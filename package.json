@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "expo": "~55.0.8",
+    "expo-linking": "~55.0.8",
     "expo-router": "~55.0.7",
     "expo-status-bar": "~55.0.4",
     "react": "19.2.0",
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "babel-preset-expo": "^55.0.12",
     "typescript": "~5.9.2"
   },
   "private": true
