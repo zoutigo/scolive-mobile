@@ -1,13 +1,19 @@
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { router } from 'expo-router';
-import { colors } from '../src/theme';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { router } from "expo-router";
+import { colors } from "../src/theme";
 
 const FEATURES = [
-  { icon: '📊', label: 'Suivi des notes en temps réel' },
-  { icon: '💬', label: 'Messagerie école-famille' },
-  { icon: '📖', label: 'Cahier de vie numérique' },
-  { icon: '📅', label: 'Gestion des absences' },
+  { icon: "📊", label: "Suivi des notes en temps réel" },
+  { icon: "💬", label: "Messagerie école-famille" },
+  { icon: "📖", label: "Cahier de vie numérique" },
+  { icon: "📅", label: "Gestion des absences" },
 ];
 
 export default function HomeScreen() {
@@ -50,7 +56,7 @@ export default function HomeScreen() {
       <TouchableOpacity
         style={styles.button}
         activeOpacity={0.85}
-        onPress={() => router.push('/login')}
+        onPress={() => router.push("/login")}
       >
         <Text style={styles.buttonText}>Se connecter</Text>
       </TouchableOpacity>
@@ -64,23 +70,23 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: colors.background,
-    alignItems: 'center',
+    alignItems: "center",
     paddingHorizontal: 24,
     paddingTop: 72,
     paddingBottom: 40,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   title: {
     fontSize: 52,
-    fontWeight: '900',
+    fontWeight: "900",
     letterSpacing: -1,
     marginBottom: 8,
   },
   titleAccent: { color: colors.primary },
-  titleMain:   { color: colors.primaryDark },
+  titleMain: { color: colors.primaryDark },
   titleUnderline: {
     width: 56,
     height: 4,
@@ -93,42 +99,42 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   cardsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
-    width: '100%',
+    width: "100%",
     marginBottom: 32,
   },
   card: {
-    width: '47%',
+    width: "47%",
     backgroundColor: colors.surface,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     padding: 16,
     gap: 8,
-    shadowColor: '#4D3820',
+    shadowColor: "#4D3820",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 3,
   },
-  cardIcon:  { fontSize: 24 },
+  cardIcon: { fontSize: 24 },
   cardLabel: {
     fontSize: 13,
     color: colors.textPrimary,
-    fontWeight: '500',
+    fontWeight: "500",
     lineHeight: 18,
   },
   banner: {
-    width: '100%',
+    width: "100%",
     backgroundColor: colors.warmHighlight,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     marginBottom: 32,
   },
@@ -145,11 +151,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   button: {
-    width: '100%',
+    width: "100%",
     backgroundColor: colors.primary,
     paddingVertical: 16,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 16,
     shadowColor: colors.primaryDark,
     shadowOffset: { width: 0, height: 4 },
@@ -160,7 +166,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: colors.white,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.3,
   },
   footer: {

@@ -1,0 +1,104 @@
+# scolive-mobile — Contexte projet
+
+Application mobile React Native (Expo) du projet Scolive.
+Repo GitHub : `git@github.com:zoutigo/scolive-mobile.git`
+
+## Structure du monorepo
+
+```
+/home/zoutigo/projets/scolive/
+├── scolive-mobile/   ← ce projet
+└── scolive-web/      ← monorepo NestJS API + Next.js web
+```
+
+## Stack technique
+
+- Expo SDK 55 + React Native 0.83.2
+- expo-router (file-based navigation via `app/`)
+- TypeScript strict
+- Thème couleurs extrait de `scolive-web/apps/web/tailwind.config.ts`
+
+## Écrans existants
+
+| Fichier           | Route    | Description                                             |
+| ----------------- | -------- | ------------------------------------------------------- |
+| `app/_layout.tsx` | root     | Stack layout, header masqué, animation slide_from_right |
+| `app/index.tsx`   | `/`      | Landing page avec feature cards + bouton "Se connecter" |
+| `app/login.tsx`   | `/login` | Login avec 3 onglets : Téléphone (défaut), Email, SSO   |
+
+## Lancer sur l'émulateur
+
+```bash
+cd /home/zoutigo/projets/scolive/scolive-mobile
+npx expo start --clear
+```
+
+Émulateur stable : **Pixel_5_API33** (API 34 est instable sur cette machine).
+Expo Go 55.0.5 est installé sur l'émulateur.
+
+### Problème connu — React Native DevTools
+
+Au démarrage, une erreur sandbox Chrome apparaît. Contournement permanent :
+
+```bash
+EXPO_NO_DEVTOOLS=1 npx expo start --clear
+```
+
+Le `--clear` est important : sans lui Metro peut utiliser un cache stale.
+
+### Pourquoi App.tsx + babel.config.js + metro.config.js sont requis
+
+Expo Go 55 envoie une requête hardcodée vers `node_modules/expo/AppEntry.bundle`.
+`expo/AppEntry.js` fait `import App from '../../App'` → projet root `App.tsx`.
+
+- **`App.tsx`** : re-exporte `expo-router/build/qualified-entry` pour que expo-router
+  gère la navigation via le dossier `app/`
+- **`babel.config.js`** : active `babel-preset-expo` → injecte `EXPO_ROUTER_APP_ROOT`
+- **`metro.config.js`** : active `getDefaultConfig` → supporte `require.context`
+  et `.tsx` dans les extensions résolues
+
+Sans ces 3 fichiers → bundling fail avec `Unable to resolve "../../App"`.
+
+### Si le bundling échoue encore
+
+Tuer tous les processus Metro et vider les caches :
+
+```bash
+pkill -f "expo start"; pkill -f metro
+rm -rf /tmp/metro-* ~/.expo/metro-cache .expo node_modules/.cache
+npx expo start --clear
+```
+
+## Lancer via VS Code
+
+Depuis `/home/zoutigo/projets/scolive` :
+
+```bash
+code /home/zoutigo/projets/scolive
+```
+
+VS Code ouvre le workspace et lance automatiquement 5 terminaux :
+
+- **Infra** — Docker (postgres, redis, minio, media) + Prisma generate
+- **API** — `npm run -w @school-live/api dev`
+- **Worker** — `npm run -w @school-live/api worker:dev`
+- **Mobile** — `EXPO_NO_DEVTOOLS=1 npx expo start --clear`
+- **Web** — `npm run -w @school-live/web dev`
+
+Config dans `/home/zoutigo/projets/scolive/.vscode/tasks.json`.
+
+## Dépendances clés installées manuellement
+
+Ces packages ne sont PAS dans le template create-expo-app mais sont requis :
+
+```json
+"expo-linking": "~7.1.7",
+"babel-preset-expo": "^12.0.11"
+```
+
+## CI GitHub Actions
+
+`.github/workflows/ci.yml` — déclenché sur push/PR vers `main` et `dev` :
+
+1. Typecheck (`npx tsc --noEmit`)
+2. Expo export web (`npx expo export --platform web`)

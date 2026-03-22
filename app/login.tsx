@@ -1,31 +1,37 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
-  StyleSheet, Text, View, TouchableOpacity, ScrollView,
-  TextInput, KeyboardAvoidingView, Platform,
-} from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { router } from 'expo-router';
-import { colors } from '../src/theme';
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { router } from "expo-router";
+import { colors } from "../src/theme";
 
-type AuthTab = 'phone' | 'email' | 'sso';
+type AuthTab = "phone" | "email" | "sso";
 
 const TABS: { key: AuthTab; label: string }[] = [
-  { key: 'phone', label: 'Téléphone' },
-  { key: 'email', label: 'Email' },
-  { key: 'sso',   label: 'SSO École' },
+  { key: "phone", label: "Téléphone" },
+  { key: "email", label: "Email" },
+  { key: "sso", label: "SSO École" },
 ];
 
 export default function LoginScreen() {
-  const [tab, setTab]           = useState<AuthTab>('phone');
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [phone, setPhone]       = useState('');
-  const [pin, setPin]           = useState('');
+  const [tab, setTab] = useState<AuthTab>("phone");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [pin, setPin] = useState("");
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: colors.background }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <StatusBar style="dark" />
 
@@ -50,14 +56,19 @@ export default function LoginScreen() {
 
         {/* Onglets */}
         <View style={styles.tabs}>
-          {TABS.map(t => (
+          {TABS.map((t) => (
             <TouchableOpacity
               key={t.key}
               style={[styles.tab, tab === t.key && styles.tabActive]}
               onPress={() => setTab(t.key)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.tabLabel, tab === t.key && styles.tabLabelActive]}>
+              <Text
+                style={[
+                  styles.tabLabel,
+                  tab === t.key && styles.tabLabelActive,
+                ]}
+              >
                 {t.label}
               </Text>
             </TouchableOpacity>
@@ -65,24 +76,24 @@ export default function LoginScreen() {
         </View>
 
         {/* Téléphone */}
-        {tab === 'phone' && (
+        {tab === "phone" && (
           <View style={styles.form}>
             <Text style={styles.inputLabel}>Numéro de téléphone</Text>
             <TextInput
               style={styles.input}
               placeholder="6XXXXXXXX"
-              placeholderTextColor={colors.textSecondary + '88'}
+              placeholderTextColor={colors.textSecondary + "88"}
               value={phone}
-              onChangeText={t => setPhone(t.replace(/\D/g, ''))}
+              onChangeText={(t) => setPhone(t.replace(/\D/g, ""))}
               keyboardType="phone-pad"
             />
             <Text style={styles.inputLabel}>Code PIN (6 chiffres)</Text>
             <TextInput
               style={styles.input}
               placeholder="● ● ● ● ● ●"
-              placeholderTextColor={colors.textSecondary + '88'}
+              placeholderTextColor={colors.textSecondary + "88"}
               value={pin}
-              onChangeText={t => setPin(t.replace(/\D/g, '').slice(0, 6))}
+              onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 6))}
               keyboardType="number-pad"
               secureTextEntry
             />
@@ -96,13 +107,13 @@ export default function LoginScreen() {
         )}
 
         {/* Email */}
-        {tab === 'email' && (
+        {tab === "email" && (
           <View style={styles.form}>
             <Text style={styles.inputLabel}>Adresse email</Text>
             <TextInput
               style={styles.input}
               placeholder="prenom.nom@gmail.com"
-              placeholderTextColor={colors.textSecondary + '88'}
+              placeholderTextColor={colors.textSecondary + "88"}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -112,7 +123,7 @@ export default function LoginScreen() {
             <TextInput
               style={styles.input}
               placeholder="••••••••"
-              placeholderTextColor={colors.textSecondary + '88'}
+              placeholderTextColor={colors.textSecondary + "88"}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -127,7 +138,7 @@ export default function LoginScreen() {
         )}
 
         {/* SSO */}
-        {tab === 'sso' && (
+        {tab === "sso" && (
           <View style={styles.form}>
             <Text style={styles.ssoHint}>
               Connectez-vous avec le compte fourni par votre école.
@@ -138,11 +149,18 @@ export default function LoginScreen() {
               </View>
               <Text style={styles.ssoBtnText}>Continuer avec Google</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.ssoBtn, styles.ssoBtnApple]} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={[styles.ssoBtn, styles.ssoBtnApple]}
+              activeOpacity={0.85}
+            >
               <View style={[styles.ssoIconCircle, styles.ssoIconCircleApple]}>
-                <Text style={[styles.ssoIconText, styles.ssoIconTextApple]}>⌘</Text>
+                <Text style={[styles.ssoIconText, styles.ssoIconTextApple]}>
+                  ⌘
+                </Text>
               </View>
-              <Text style={[styles.ssoBtnText, styles.ssoBtnTextApple]}>Continuer avec Apple</Text>
+              <Text style={[styles.ssoBtnText, styles.ssoBtnTextApple]}>
+                Continuer avec Apple
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -150,7 +168,9 @@ export default function LoginScreen() {
 
       {/* Fixed footer */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>© 2026 Scolive — Tous droits réservés</Text>
+        <Text style={styles.footerText}>
+          © 2026 Scolive — Tous droits réservés
+        </Text>
       </View>
     </KeyboardAvoidingView>
   );
@@ -158,10 +178,10 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 52 : 16,
+    paddingTop: Platform.OS === "ios" ? 52 : 16,
     paddingBottom: 12,
     backgroundColor: colors.background,
   },
@@ -172,13 +192,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.warmHighlight,
     borderWidth: 1,
     borderColor: colors.warmBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  backText: { fontSize: 18, color: colors.primary, fontWeight: '700', lineHeight: 20 },
-  topBarTitle: { flex: 1, textAlign: 'center', fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
+  backText: {
+    fontSize: 18,
+    color: colors.primary,
+    fontWeight: "700",
+    lineHeight: 20,
+  },
+  topBarTitle: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 28,
+    fontWeight: "900",
+    letterSpacing: -0.5,
+  },
   titleAccent: { color: colors.primary },
-  titleMain:   { color: colors.primaryDark },
+  titleMain: { color: colors.primaryDark },
   topBarSpacer: { width: 36 },
 
   container: {
@@ -190,10 +221,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginBottom: 24,
-    textAlign: 'center',
+    textAlign: "center",
   },
   tabs: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: colors.warmHighlight,
     borderRadius: 10,
     padding: 4,
@@ -202,21 +233,26 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: 9,
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: 8,
   },
   tabActive: {
     backgroundColor: colors.surface,
-    shadowColor: '#4D3820',
+    shadowColor: "#4D3820",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
   },
-  tabLabel:       { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
-  tabLabelActive: { color: colors.primary, fontWeight: '700' },
-  form:           { gap: 12 },
-  inputLabel:     { fontSize: 13, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
+  tabLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: "500" },
+  tabLabelActive: { color: colors.primary, fontWeight: "700" },
+  form: { gap: 12 },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
   input: {
     backgroundColor: colors.surface,
     borderWidth: 1.5,
@@ -231,14 +267,14 @@ const styles = StyleSheet.create({
   forgotLink: {
     fontSize: 13,
     color: colors.primary,
-    textAlign: 'right',
+    textAlign: "right",
     marginBottom: 8,
   },
   submitBtn: {
     backgroundColor: colors.primary,
     paddingVertical: 15,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
     shadowColor: colors.primaryDark,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -246,17 +282,17 @@ const styles = StyleSheet.create({
     elevation: 5,
     marginTop: 4,
   },
-  submitText: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  submitText: { color: colors.white, fontSize: 16, fontWeight: "700" },
   ssoHint: {
     fontSize: 14,
     color: colors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 12,
     lineHeight: 20,
   },
   ssoBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.surface,
     borderWidth: 1.5,
     borderColor: colors.warmBorder,
@@ -274,23 +310,23 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     backgroundColor: colors.warmHighlight,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  ssoIconCircleApple: { backgroundColor: 'rgba(255,255,255,0.15)' },
-  ssoIconText: { fontSize: 14, fontWeight: '800', color: colors.primary },
+  ssoIconCircleApple: { backgroundColor: "rgba(255,255,255,0.15)" },
+  ssoIconText: { fontSize: 14, fontWeight: "800", color: colors.primary },
   ssoIconTextApple: { color: colors.white },
   ssoBtnText: {
     flex: 1,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.textPrimary,
   },
   ssoBtnTextApple: { color: colors.white },
   footer: {
     paddingVertical: 12,
-    alignItems: 'center',
+    alignItems: "center",
     backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: colors.warmBorder,
