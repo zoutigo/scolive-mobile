@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
-    "start": "EXPO_NO_DEVTOOLS=1 npx expo start",
-    "start:clean": "EXPO_NO_DEVTOOLS=1 npx expo start --clear",
-    "android": "expo run:android",
+    "start": "EXPO_NO_DEVTOOLS=1 npx expo start --dev-client",
+    "start:clean": "EXPO_NO_DEVTOOLS=1 npx expo start --dev-client --clear",
+    "android": "npx expo run:android",
+    "android:build": "npx expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest",

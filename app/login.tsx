@@ -75,10 +75,20 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+  const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+  const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+  // En Expo Go le flow web est utilisé → clientId web suffit
+  const isGoogleConfigured = !!(
+    googleWebClientId ||
+    (Platform.OS === "android" && googleAndroidClientId) ||
+    (Platform.OS === "ios" && googleIosClientId)
+  );
+
   const [, googleResponse, googlePromptAsync] = Google.useAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    clientId: googleWebClientId ?? "not-configured",
+    androidClientId: googleAndroidClientId ?? "not-configured",
+    iosClientId: googleIosClientId ?? "not-configured",
   });
 
   // Google OAuth result handling
@@ -343,10 +353,13 @@ export default function LoginScreen() {
               Connectez-vous avec le compte fourni par votre école.
             </Text>
             <TouchableOpacity
-              style={styles.ssoBtn}
+              style={[
+                styles.ssoBtn,
+                (!isGoogleConfigured || loading) && styles.submitBtnDisabled,
+              ]}
               activeOpacity={0.85}
               onPress={() => googlePromptAsync()}
-              disabled={loading}
+              disabled={!isGoogleConfigured || loading}
               testID="sso-google"
             >
               {loading ? (
