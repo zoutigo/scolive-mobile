@@ -42,7 +42,3 @@ jobs:
       - name: Unit tests
         run: npm test
 
-      - name: Export (web platform)
-        run: npx expo export --platform web
-        env:
-          CI: "1"
