@@ -1,0 +1,147 @@
+import { act } from "@testing-library/react-native";
+import { useAuthStore } from "../../src/store/auth.store";
+import { authApi } from "../../src/api/auth.api";
+import { tokenStorage } from "../../src/api/client";
+import type { LoginResponse } from "../../src/types/auth.types";
+
+jest.mock("../../src/api/auth.api");
+jest.mock("../../src/api/client", () => ({
+  tokenStorage: {
+    getAccessToken: jest.fn(),
+    getRefreshToken: jest.fn(),
+    setTokens: jest.fn(),
+    clear: jest.fn(),
+  },
+  apiFetch: jest.fn(),
+  BASE_URL: "http://localhost:3001/api",
+}));
+
+const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
+const mockStorage = tokenStorage as jest.Mocked<typeof tokenStorage>;
+
+const fakeLoginResponse: LoginResponse = {
+  accessToken: "access-token-123",
+  refreshToken: "refresh-token-456",
+  tokenType: "Bearer",
+  expiresIn: 86400,
+  refreshExpiresIn: 2592000,
+  schoolSlug: "ecole-test",
+};
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  // Reset store state
+  useAuthStore.setState({
+    user: null,
+    accessToken: null,
+    schoolSlug: null,
+    isLoading: true,
+    isAuthenticated: false,
+  });
+});
+
+describe("auth.store — initialize", () => {
+  it("passe isLoading à false sans token stocké", async () => {
+    mockStorage.getAccessToken.mockResolvedValue(null);
+    mockStorage.getRefreshToken.mockResolvedValue(null);
+
+    await act(async () => {
+      await useAuthStore.getState().initialize();
+    });
+
+    const { isLoading, isAuthenticated } = useAuthStore.getState();
+    expect(isLoading).toBe(false);
+    expect(isAuthenticated).toBe(false);
+  });
+
+  it("restaure la session depuis le access token existant", async () => {
+    mockStorage.getAccessToken.mockResolvedValue("stored-access-token");
+    mockStorage.getRefreshToken.mockResolvedValue("stored-refresh-token");
+
+    await act(async () => {
+      await useAuthStore.getState().initialize();
+    });
+
+    const { isAuthenticated, accessToken, isLoading } = useAuthStore.getState();
+    expect(isAuthenticated).toBe(true);
+    expect(accessToken).toBe("stored-access-token");
+    expect(isLoading).toBe(false);
+  });
+
+  it("tente un refresh silencieux si seul le refresh token est présent", async () => {
+    mockStorage.getAccessToken.mockResolvedValue(null);
+    mockStorage.getRefreshToken.mockResolvedValue("stored-refresh-token");
+    mockAuthApi.refresh.mockResolvedValue(fakeLoginResponse);
+    mockStorage.setTokens.mockResolvedValue();
+
+    await act(async () => {
+      await useAuthStore.getState().initialize();
+    });
+
+    expect(mockAuthApi.refresh).toHaveBeenCalledWith("stored-refresh-token");
+    expect(mockStorage.setTokens).toHaveBeenCalledWith(
+      fakeLoginResponse.accessToken,
+      fakeLoginResponse.refreshToken,
+      fakeLoginResponse.refreshExpiresIn,
+    );
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+  });
+
+  it("efface le storage et reste déconnecté si le refresh échoue", async () => {
+    mockStorage.getAccessToken.mockResolvedValue(null);
+    mockStorage.getRefreshToken.mockResolvedValue("expired-refresh-token");
+    mockAuthApi.refresh.mockRejectedValue(new Error("Invalid refresh token"));
+    mockStorage.clear.mockResolvedValue();
+
+    await act(async () => {
+      await useAuthStore.getState().initialize();
+    });
+
+    expect(mockStorage.clear).toHaveBeenCalled();
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    expect(useAuthStore.getState().isLoading).toBe(false);
+  });
+});
+
+describe("auth.store — handleLoginResponse", () => {
+  it("stocke les tokens et marque comme authentifié", async () => {
+    mockStorage.setTokens.mockResolvedValue();
+
+    await act(async () => {
+      await useAuthStore.getState().handleLoginResponse(fakeLoginResponse);
+    });
+
+    expect(mockStorage.setTokens).toHaveBeenCalledWith(
+      "access-token-123",
+      "refresh-token-456",
+      2592000,
+    );
+    const state = useAuthStore.getState();
+    expect(state.isAuthenticated).toBe(true);
+    expect(state.accessToken).toBe("access-token-123");
+    expect(state.schoolSlug).toBe("ecole-test");
+  });
+});
+
+describe("auth.store — logout", () => {
+  it("efface le state et appelle authApi.logout", async () => {
+    useAuthStore.setState({
+      user: null,
+      accessToken: "access-token-123",
+      schoolSlug: "ecole-test",
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    mockAuthApi.logout.mockResolvedValue();
+
+    await act(async () => {
+      await useAuthStore.getState().logout();
+    });
+
+    const state = useAuthStore.getState();
+    expect(state.isAuthenticated).toBe(false);
+    expect(state.accessToken).toBeNull();
+    expect(state.schoolSlug).toBeNull();
+    expect(mockAuthApi.logout).toHaveBeenCalled();
+  });
+});

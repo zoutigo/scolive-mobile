@@ -19,19 +19,26 @@
   "jest": {
     "preset": "jest-expo",
     "moduleNameMapper": {
-      "^expo/src/winter/ImportMetaRegistry$": "<rootDir>/__mocks__/expoImportMetaRegistry.js"
+      "^expo/src/winter/ImportMetaRegistry$": "<rootDir>/__mocks__/expoImportMetaRegistry.js",
+      "^(.*)/app/\\(home\\)/(.*)$": "<rootDir>/app/(home)/$2"
     }
   },
   "dependencies": {
     "expo": "~55.0.8",
+    "expo-apple-authentication": "^55.0.9",
+    "expo-auth-session": "^55.0.9",
     "expo-linking": "~55.0.8",
     "expo-router": "~55.0.7",
+    "expo-secure-store": "^55.0.9",
     "expo-status-bar": "~55.0.4",
+    "expo-web-browser": "^55.0.10",
     "react": "19.2.0",
     "react-dom": "^19.2.0",
     "react-native": "0.83.2",
     "react-native-safe-area-context": "~5.6.2",
-    "react-native-screens": "~4.23.0"
+    "react-native-screens": "~4.23.0",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
