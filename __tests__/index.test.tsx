@@ -10,7 +10,10 @@ const mockUseAuthStore = useAuthStore as jest.MockedFunction<
   typeof useAuthStore
 >;
 
-function setupStore(overrides: { isAuthenticated: boolean; isLoading: boolean }) {
+function setupStore(overrides: {
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}) {
   mockUseAuthStore.mockReturnValue({
     isAuthenticated: overrides.isAuthenticated,
     isLoading: overrides.isLoading,
@@ -38,7 +41,8 @@ describe("IndexScreen", () => {
 
     render(<IndexScreen />);
 
-    expect(screen.getByText("Connexion")).toBeOnTheScreen();
+    expect(screen.getByText("SCOLIVE")).toBeOnTheScreen();
+    expect(screen.getByText("Bienvenue")).toBeOnTheScreen();
   });
 
   it("affiche l'écran home si authentifié", () => {

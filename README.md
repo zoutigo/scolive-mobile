@@ -61,7 +61,7 @@ Le build `android:build:precommit` est isolé du flux de dev :
 
 - il ne lance pas d'installation APK
 - il ne touche pas à l'émulateur
-- il utilise son propre cache Gradle dans `.gradle-precommit`
+- il utilise son propre cache Gradle dans `${XDG_CACHE_HOME:-$HOME/.cache}/scolive-mobile/gradle-precommit`
 
 ## Notes
 

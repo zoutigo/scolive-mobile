@@ -8,8 +8,10 @@ describe("LoginScreen", () => {
   it("affiche le formulaire téléphone par défaut", () => {
     render(<LoginScreen />);
 
-    expect(screen.getByText("Connexion")).toBeOnTheScreen();
+    expect(screen.getByText("SCOLIVE")).toBeOnTheScreen();
+    expect(screen.getByText("Bienvenue")).toBeOnTheScreen();
     expect(screen.getByTestId("tab-phone")).toBeOnTheScreen();
+    expect(screen.getByTestId("tab-google")).toBeOnTheScreen();
     expect(screen.getByTestId("input-phone")).toBeOnTheScreen();
     expect(screen.getByTestId("input-pin")).toBeOnTheScreen();
     expect(screen.queryByTestId("input-email")).toBeNull();
@@ -23,6 +25,16 @@ describe("LoginScreen", () => {
     expect(screen.getByTestId("input-email")).toBeOnTheScreen();
     expect(screen.getByTestId("input-password")).toBeOnTheScreen();
     expect(screen.queryByTestId("input-phone")).toBeNull();
+  });
+
+  it("bascule vers le panneau Google", () => {
+    render(<LoginScreen />);
+
+    fireEvent.press(screen.getByTestId("tab-google"));
+
+    expect(screen.getByTestId("panel-google")).toBeOnTheScreen();
+    expect(screen.getByTestId("sso-google")).toBeOnTheScreen();
+    expect(screen.getByTestId("sso-apple")).toBeOnTheScreen();
   });
 
   it("conserve les saisies quand on change d'onglet", () => {
@@ -44,11 +56,12 @@ describe("LoginScreen", () => {
     expect(screen.getByDisplayValue("secret")).toBeOnTheScreen();
   });
 
-  it("affiche les éléments de statut de build dev", () => {
+  it("affiche le bas de page produit", () => {
     render(<LoginScreen />);
 
     expect(screen.getByTestId("submit-login")).toBeOnTheScreen();
-    expect(screen.getByTestId("dev-badge")).toBeOnTheScreen();
-    expect(screen.getByText("Build dev Android opérationnel")).toBeOnTheScreen();
+    expect(
+      screen.getByText("© 2026 Scolive. Tous droits reserves."),
+    ).toBeOnTheScreen();
   });
 });

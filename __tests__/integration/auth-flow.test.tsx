@@ -1,5 +1,11 @@
 import React from "react";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import HomeScreen from "../../app/(home)/index";
 import IndexScreen from "../../app/index";
 import { authApi } from "../../src/api/auth.api";
@@ -110,7 +116,8 @@ describe("Flux écrans auth", () => {
   it("IndexScreen affiche le login si l'utilisateur est déconnecté", () => {
     render(<IndexScreen />);
 
-    expect(screen.getByText("Connexion")).toBeOnTheScreen();
+    expect(screen.getByText("SCOLIVE")).toBeOnTheScreen();
+    expect(screen.getByText("Bienvenue")).toBeOnTheScreen();
   });
 
   it("IndexScreen affiche home si l'utilisateur est connecté", () => {
