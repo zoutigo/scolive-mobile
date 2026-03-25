@@ -30,21 +30,23 @@ Repo GitHub : `git@github.com:zoutigo/scolive-mobile.git`
 
 ```bash
 cd /home/zoutigo/projets/scolive/scolive-mobile
-npx expo start --clear
+npm run android:emulator
+npm run android:build
+npm start
 ```
 
-Émulateur stable : **Pixel_5_API33** (API 34 est instable sur cette machine).
-Expo Go 55.0.5 est installé sur l'émulateur.
+Émulateur stable : **Scolive_Dev_AOSP_API33**.
+Android Studio local : `~/android-studio/bin/studio`.
 
 ### Problème connu — React Native DevTools
 
 Au démarrage, une erreur sandbox Chrome apparaît. Contournement permanent :
 
 ```bash
-EXPO_NO_DEVTOOLS=1 npx expo start --clear
+npm run start:clean
 ```
 
-Le `--clear` est important : sans lui Metro peut utiliser un cache stale.
+Utiliser `npm run start:clean` uniquement si Metro est réellement cassé.
 
 ### Pourquoi App.tsx + babel.config.js + metro.config.js sont requis
 
@@ -66,7 +68,7 @@ Tuer tous les processus Metro et vider les caches :
 ```bash
 pkill -f "expo start"; pkill -f metro
 rm -rf /tmp/metro-* ~/.expo/metro-cache .expo node_modules/.cache
-npx expo start --clear
+npm run start:clean
 ```
 
 ## Lancer via VS Code
@@ -74,15 +76,17 @@ npx expo start --clear
 Depuis `/home/zoutigo/projets/scolive` :
 
 ```bash
-code /home/zoutigo/projets/scolive
+bash /home/zoutigo/projets/scolive/dev.sh
 ```
 
-VS Code ouvre le workspace et lance automatiquement 5 terminaux :
+`dev.sh` ouvre VS Code sur le workspace et lance l'émulateur Android stable s'il n'est pas déjà démarré.
+
+VS Code ouvre ensuite le workspace et lance automatiquement les terminaux configurés :
 
 - **Infra** — Docker (postgres, redis, minio, media) + Prisma generate
 - **API** — `npm run -w @school-live/api dev`
 - **Worker** — `npm run -w @school-live/api worker:dev`
-- **Mobile** — `EXPO_NO_DEVTOOLS=1 npx expo start --clear`
+- **Mobile** — `npm start`
 - **Web** — `npm run -w @school-live/web dev`
 
 Config dans `/home/zoutigo/projets/scolive/.vscode/tasks.json`.

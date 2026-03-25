@@ -5,4 +5,4 @@ echo "[pre-commit] Auto-formatting repository..."
 npm run format
 
 echo "[pre-commit] Running repository checks..."
-npm run check:repo
+npm run check:precommit

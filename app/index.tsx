@@ -1,26 +1,38 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
-import { router } from "expo-router";
 import { useAuthStore } from "../src/store/auth.store";
 import { colors } from "../src/theme";
+import LoginScreen from "./login";
+import HomeScreen from "./(home)/index";
 
 export default function IndexScreen() {
   const { isAuthenticated, isLoading } = useAuthStore();
+  const [showFallback, setShowFallback] = useState(false);
 
   useEffect(() => {
-    if (isLoading) return;
-    if (isAuthenticated) {
-      router.replace("/(home)");
-    } else {
-      router.replace("/login");
+    if (!isLoading) {
+      setShowFallback(false);
+      return;
     }
-  }, [isAuthenticated, isLoading]);
 
-  return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color={colors.primary} />
-    </View>
-  );
+    const timer = setTimeout(() => setShowFallback(true), 3000);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.container} testID="index-loading">
+        <ActivityIndicator size="large" color={colors.primary} />
+        {showFallback ? <View style={styles.fallbackDot} /> : null}
+      </View>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <HomeScreen />;
+  }
+
+  return <LoginScreen />;
 }
 
 const styles = StyleSheet.create({
@@ -29,5 +41,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     justifyContent: "center",
     alignItems: "center",
+  },
+  fallbackDot: {
+    marginTop: 16,
+    width: 12,
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: colors.primary,
   },
 });
