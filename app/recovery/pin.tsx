@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
+  findNodeHandle,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -107,6 +108,25 @@ export default function PinRecoveryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ── Scroll automatique au focus (Android) ────────────────────────────────
+  const scrollRef = useRef<ScrollView>(null);
+  const birthdateRef = useRef<View>(null);
+  const answerRefs = useRef<(View | null)[]>([]);
+  const confirmPinRef = useRef<View>(null);
+
+  function scrollToView(node: View | null) {
+    if (!node || !scrollRef.current) return;
+    const handle = findNodeHandle(scrollRef.current);
+    if (!handle) return;
+    node.measureLayout(
+      handle,
+      (_, y) => {
+        scrollRef.current?.scrollTo({ y: Math.max(0, y - 24), animated: true });
+      },
+      () => {},
+    );
+  }
 
   function clearErrors() {
     setError(null);
@@ -271,6 +291,7 @@ export default function PinRecoveryScreen() {
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
           <ScrollView
+            ref={scrollRef}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -360,7 +381,7 @@ export default function PinRecoveryScreen() {
                   </View>
                 ) : null}
 
-                <View style={styles.fieldGroup}>
+                <View ref={birthdateRef} style={styles.fieldGroup}>
                   <View style={styles.labelRow}>
                     <View style={styles.fieldIcon}>
                       <Text style={styles.fieldIconText}>📅</Text>
@@ -371,6 +392,7 @@ export default function PinRecoveryScreen() {
                     testID="input-birthdate"
                     value={birthDate}
                     onChangeText={(t) => setBirthDate(formatDateInput(t))}
+                    onFocus={() => scrollToView(birthdateRef.current)}
                     placeholder="JJ/MM/AAAA"
                     keyboardType="numeric"
                     style={[
@@ -391,7 +413,13 @@ export default function PinRecoveryScreen() {
                 </View>
 
                 {questions.map((q, idx) => (
-                  <View key={q.key} style={styles.fieldGroup}>
+                  <View
+                    key={q.key}
+                    ref={(r) => {
+                      answerRefs.current[idx] = r;
+                    }}
+                    style={styles.fieldGroup}
+                  >
                     <View style={styles.labelRow}>
                       <View style={styles.fieldIcon}>
                         <Text style={styles.fieldIconText}>🔑</Text>
@@ -404,6 +432,7 @@ export default function PinRecoveryScreen() {
                       onChangeText={(v) =>
                         setAnswers((prev) => ({ ...prev, [q.key]: v }))
                       }
+                      onFocus={() => scrollToView(answerRefs.current[idx])}
                       placeholder="Votre réponse"
                       autoCapitalize="none"
                       style={styles.input}
@@ -475,7 +504,7 @@ export default function PinRecoveryScreen() {
                   ) : null}
                 </View>
 
-                <View style={styles.fieldGroup}>
+                <View ref={confirmPinRef} style={styles.fieldGroup}>
                   <View style={styles.labelRow}>
                     <View style={styles.fieldIcon}>
                       <Text style={styles.fieldIconText}>🔒</Text>
@@ -484,6 +513,7 @@ export default function PinRecoveryScreen() {
                   </View>
                   <TextInput
                     testID="input-confirm-pin"
+                    onFocus={() => scrollToView(confirmPinRef.current)}
                     value={confirmPin}
                     onChangeText={setConfirmPin}
                     placeholder="Confirmez votre PIN"

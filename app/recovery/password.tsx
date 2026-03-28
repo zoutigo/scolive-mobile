@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
+  findNodeHandle,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -110,6 +111,25 @@ export default function PasswordRecoveryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ── Scroll automatique au focus (Android) ────────────────────────────────
+  const scrollRef = useRef<ScrollView>(null);
+  const birthdateRef = useRef<View>(null);
+  const answerRefs = useRef<(View | null)[]>([]);
+  const confirmPasswordRef = useRef<View>(null);
+
+  function scrollToView(node: View | null) {
+    if (!node || !scrollRef.current) return;
+    const handle = findNodeHandle(scrollRef.current);
+    if (!handle) return;
+    node.measureLayout(
+      handle,
+      (_, y) => {
+        scrollRef.current?.scrollTo({ y: Math.max(0, y - 24), animated: true });
+      },
+      () => {},
+    );
+  }
 
   function clearErrors() {
     setError(null);
@@ -312,6 +332,7 @@ export default function PasswordRecoveryScreen() {
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
           <ScrollView
+            ref={scrollRef}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -475,7 +496,7 @@ export default function PasswordRecoveryScreen() {
                   </View>
                 ) : null}
 
-                <View style={styles.fieldGroup}>
+                <View ref={birthdateRef} style={styles.fieldGroup}>
                   <View style={styles.labelRow}>
                     <View style={styles.fieldIcon}>
                       <Text style={styles.fieldIconText}>📅</Text>
@@ -486,6 +507,7 @@ export default function PasswordRecoveryScreen() {
                     testID="input-birthdate"
                     value={birthDate}
                     onChangeText={(t) => setBirthDate(formatDateInput(t))}
+                    onFocus={() => scrollToView(birthdateRef.current)}
                     placeholder="JJ/MM/AAAA"
                     keyboardType="numeric"
                     style={[
@@ -506,7 +528,13 @@ export default function PasswordRecoveryScreen() {
                 </View>
 
                 {questions.map((q, idx) => (
-                  <View key={q.key} style={styles.fieldGroup}>
+                  <View
+                    key={q.key}
+                    ref={(r) => {
+                      answerRefs.current[idx] = r;
+                    }}
+                    style={styles.fieldGroup}
+                  >
                     <View style={styles.labelRow}>
                       <View style={styles.fieldIcon}>
                         <Text style={styles.fieldIconText}>🔑</Text>
@@ -519,6 +547,7 @@ export default function PasswordRecoveryScreen() {
                       onChangeText={(v) =>
                         setAnswers((prev) => ({ ...prev, [q.key]: v }))
                       }
+                      onFocus={() => scrollToView(answerRefs.current[idx])}
                       placeholder="Votre réponse"
                       autoCapitalize="none"
                       style={styles.input}
@@ -603,7 +632,7 @@ export default function PasswordRecoveryScreen() {
                   ) : null}
                 </View>
 
-                <View style={styles.fieldGroup}>
+                <View ref={confirmPasswordRef} style={styles.fieldGroup}>
                   <View style={styles.labelRow}>
                     <View style={styles.fieldIcon}>
                       <Text style={styles.fieldIconText}>🔒</Text>
@@ -612,6 +641,7 @@ export default function PasswordRecoveryScreen() {
                   </View>
                   <TextInput
                     testID="input-confirm-password"
+                    onFocus={() => scrollToView(confirmPasswordRef.current)}
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     placeholder="Confirmez votre mot de passe"
