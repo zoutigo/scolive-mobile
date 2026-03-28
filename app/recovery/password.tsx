@@ -675,7 +675,7 @@ export default function PasswordRecoveryScreen() {
                 </Text>
                 <Pressable
                   testID="btn-go-login"
-                  style={styles.primaryButton}
+                  style={[styles.primaryButton, styles.fullWidth]}
                   onPress={() => router.replace("/login")}
                 >
                   <Text style={styles.primaryButtonText}>Se connecter</Text>
@@ -921,6 +921,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   primaryButtonSpaced: { marginTop: 24 },
+  fullWidth: { alignSelf: "stretch" },
   primaryButtonBusy: { opacity: 0.7 },
   primaryButtonText: {
     color: "#FFFFFF",
