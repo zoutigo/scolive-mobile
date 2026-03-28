@@ -260,6 +260,13 @@ export default function PasswordRecoveryScreen() {
         <View style={styles.blobTopRight} />
         <View style={styles.blobBottomLeft} />
 
+        {/* Marque */}
+        <View style={styles.brandRow}>
+          <Text style={styles.brandNameWhite}>SCO</Text>
+          <Text style={styles.brandNameGold}>LIVE</Text>
+        </View>
+        <View style={styles.brandAccent} />
+
         {!isSuccess && (
           <Pressable
             testID="back-button"
@@ -663,7 +670,7 @@ const styles = StyleSheet.create({
 
   header: {
     paddingHorizontal: 24,
-    paddingBottom: 32,
+    paddingBottom: 36,
     overflow: "hidden",
   },
   blobTopRight: {
@@ -686,7 +693,33 @@ const styles = StyleSheet.create({
     backgroundColor: "#E07B2A",
     opacity: 0.12,
   },
-  backButton: { paddingVertical: 4, marginBottom: 16, alignSelf: "flex-start" },
+  // Marque
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginBottom: 2,
+  },
+  brandNameWhite: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "900",
+    letterSpacing: 5,
+  },
+  brandNameGold: {
+    color: GOLD,
+    fontSize: 18,
+    fontWeight: "900",
+    letterSpacing: 5,
+  },
+  brandAccent: {
+    width: 36,
+    height: 2.5,
+    borderRadius: 999,
+    backgroundColor: GOLD,
+    marginBottom: 20,
+  },
+
+  backButton: { paddingVertical: 4, marginBottom: 14, alignSelf: "flex-start" },
   backButtonText: {
     color: "rgba(255,255,255,0.8)",
     fontSize: 14,
@@ -702,8 +735,8 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.65)",
     fontSize: 13,
     fontWeight: "600",
-    marginTop: 6,
-    marginBottom: 10,
+    marginTop: 8,
+    marginBottom: 12,
   },
   progressTrack: {
     height: 4,
@@ -723,9 +756,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 28,
+    paddingTop: 32,
     paddingBottom: 56,
-    gap: 18,
+    gap: 24,
   },
 
   stepTitle: {
@@ -733,13 +766,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "800",
     letterSpacing: -0.4,
-    marginBottom: 6,
+    marginBottom: 10,
   },
   stepSubtitle: {
     color: "#6A625A",
     fontSize: 14,
-    lineHeight: 21,
-    marginBottom: 4,
+    lineHeight: 22,
+    marginBottom: 8,
   },
 
   infoBox: {
@@ -764,10 +797,10 @@ const styles = StyleSheet.create({
   hintText: { color: "#1E40AF", fontSize: 13, fontWeight: "500" },
   hintValue: { fontWeight: "800" },
 
-  fieldGroup: { gap: 7 },
+  fieldGroup: { gap: 10 },
   label: {
     color: "#1F2933",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.1,
   },
@@ -777,7 +810,7 @@ const styles = StyleSheet.create({
     borderColor: "#E2D6CA",
     borderRadius: 14,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 15,
     fontSize: 16,
     color: "#1F2933",
   },
@@ -787,7 +820,6 @@ const styles = StyleSheet.create({
     color: "#B91C1C",
     fontSize: 12,
     fontWeight: "600",
-    marginTop: 2,
   },
 
   passwordRow: { flexDirection: "row", gap: 8, alignItems: "center" },
@@ -817,9 +849,9 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: BLUE_LIGHT,
     borderRadius: 14,
-    paddingVertical: 15,
+    paddingVertical: 16,
     alignItems: "center",
-    marginTop: 4,
+    marginTop: 8,
     shadowColor: AMBER,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.22,

@@ -27,14 +27,6 @@ export const pinRecoveryStep1PhoneSchema = z.object({
     .regex(/^\d{9}$/, "Numéro invalide (9 chiffres attendus)."),
 });
 
-export const pinRecoveryStep1EmailSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .min(1, "L'adresse email est requise.")
-    .email("Adresse email invalide."),
-});
-
 export const pinRecoveryStep3Schema = z
   .object({
     newPin: z
@@ -55,7 +47,6 @@ export const pinRecoveryStep3Schema = z
 // ── Types internes ────────────────────────────────────────────────────────────
 
 type Step = 1 | 2 | 3 | 4;
-type InputMode = "phone" | "email";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -101,10 +92,8 @@ export function parseRecoveryApiError(err: unknown): string {
 export default function PinRecoveryScreen() {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>(1);
-  const [inputMode, setInputMode] = useState<InputMode>("phone");
 
   const [phone, setPhone] = useState("");
-  const [emailId, setEmailId] = useState("");
 
   const [principalHint, setPrincipalHint] = useState("");
   const [questions, setQuestions] = useState<RecoveryQuestion[]>([]);
@@ -124,30 +113,20 @@ export default function PinRecoveryScreen() {
     setFieldErrors({});
   }
 
-  // ── Step 1 : Identification ───────────────────────────────────────────────
+  // ── Step 1 : Identification par téléphone ─────────────────────────────────
 
   async function handleStep1() {
     clearErrors();
 
-    if (inputMode === "phone") {
-      const result = pinRecoveryStep1PhoneSchema.safeParse({ phone });
-      if (!result.success) {
-        setFieldErrors({ phone: result.error.issues[0].message });
-        return;
-      }
-    } else {
-      const result = pinRecoveryStep1EmailSchema.safeParse({ email: emailId });
-      if (!result.success) {
-        setFieldErrors({ email: result.error.issues[0].message });
-        return;
-      }
+    const result = pinRecoveryStep1PhoneSchema.safeParse({ phone });
+    if (!result.success) {
+      setFieldErrors({ phone: result.error.issues[0].message });
+      return;
     }
 
     setIsSubmitting(true);
     try {
-      const payload =
-        inputMode === "phone" ? { phone } : { email: emailId.trim() };
-      const res = await recoveryApi.forgotPinOptions(payload);
+      const res = await recoveryApi.forgotPinOptions({ phone });
       setPrincipalHint(res.principalHint);
       setQuestions(res.questions);
       setStep(2);
@@ -189,15 +168,14 @@ export default function PinRecoveryScreen() {
 
     setIsSubmitting(true);
     try {
-      const payload = {
-        ...(inputMode === "phone" ? { phone } : { email: emailId.trim() }),
+      const res = await recoveryApi.forgotPinVerify({
+        phone,
         birthDate: isoDate,
         answers: questions.map((q) => ({
           questionKey: q.key,
           answer: answers[q.key].trim(),
         })),
-      };
-      const res = await recoveryApi.forgotPinVerify(payload);
+      });
       setRecoveryToken(res.recoveryToken);
       setStep(3);
     } catch (err) {
@@ -245,6 +223,13 @@ export default function PinRecoveryScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <View style={styles.blobTopRight} />
         <View style={styles.blobBottomLeft} />
+
+        {/* Marque */}
+        <View style={styles.brandRow}>
+          <Text style={styles.brandNameWhite}>SCO</Text>
+          <Text style={styles.brandNameGold}>LIVE</Text>
+        </View>
+        <View style={styles.brandAccent} />
 
         {!isSuccess && (
           <Pressable
@@ -294,86 +279,36 @@ export default function PinRecoveryScreen() {
               <View testID="step-1">
                 <Text style={styles.stepTitle}>Identifiez votre compte</Text>
                 <Text style={styles.stepSubtitle}>
-                  Renseignez votre numéro de téléphone ou adresse email pour
-                  retrouver l'accès à votre compte.
+                  Renseignez votre numéro de téléphone pour retrouver l'accès à
+                  votre compte.
                 </Text>
 
-                <View style={styles.toggleRow}>
-                  {(["phone", "email"] as InputMode[]).map((m) => (
-                    <Pressable
-                      key={m}
-                      testID={`toggle-${m}`}
-                      onPress={() => {
-                        setInputMode(m);
-                        clearErrors();
-                      }}
-                      style={[
-                        styles.toggleBtn,
-                        inputMode === m && styles.toggleBtnActive,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.toggleText,
-                          inputMode === m && styles.toggleTextActive,
-                        ]}
-                      >
-                        {m === "phone" ? "Téléphone" : "Email"}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-
-                {inputMode === "phone" ? (
-                  <View style={styles.fieldGroup}>
-                    <Text style={styles.label}>Numéro de téléphone</Text>
-                    <View style={styles.phoneRow}>
-                      <View style={styles.dialCode}>
-                        <Text style={styles.dialCodeText}>+237</Text>
-                      </View>
-                      <TextInput
-                        testID="input-phone"
-                        value={phone}
-                        onChangeText={setPhone}
-                        placeholder="6XX XXX XXX"
-                        keyboardType="phone-pad"
-                        style={[
-                          styles.input,
-                          styles.inputFlex,
-                          fieldErrors.phone ? styles.inputError : null,
-                        ]}
-                        placeholderTextColor="#9B9490"
-                      />
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Numéro de téléphone</Text>
+                  <View style={styles.phoneRow}>
+                    <View style={styles.dialCode}>
+                      <Text style={styles.dialCodeText}>+237</Text>
                     </View>
-                    {fieldErrors.phone ? (
-                      <Text style={styles.fieldErrorText} testID="error-phone">
-                        {fieldErrors.phone}
-                      </Text>
-                    ) : null}
-                  </View>
-                ) : (
-                  <View style={styles.fieldGroup}>
-                    <Text style={styles.label}>Adresse email</Text>
                     <TextInput
-                      testID="input-email"
-                      value={emailId}
-                      onChangeText={setEmailId}
-                      placeholder="nom@etablissement.cm"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
+                      testID="input-phone"
+                      value={phone}
+                      onChangeText={setPhone}
+                      placeholder="6XX XXX XXX"
+                      keyboardType="phone-pad"
                       style={[
                         styles.input,
-                        fieldErrors.email ? styles.inputError : null,
+                        styles.inputFlex,
+                        fieldErrors.phone ? styles.inputError : null,
                       ]}
                       placeholderTextColor="#9B9490"
                     />
-                    {fieldErrors.email ? (
-                      <Text style={styles.fieldErrorText} testID="error-email">
-                        {fieldErrors.email}
-                      </Text>
-                    ) : null}
                   </View>
-                )}
+                  {fieldErrors.phone ? (
+                    <Text style={styles.fieldErrorText} testID="error-phone">
+                      {fieldErrors.phone}
+                    </Text>
+                  ) : null}
+                </View>
 
                 {error ? (
                   <View style={styles.errorBox}>
@@ -613,7 +548,7 @@ const styles = StyleSheet.create({
   // En-tête
   header: {
     paddingHorizontal: 24,
-    paddingBottom: 32,
+    paddingBottom: 36,
     overflow: "hidden",
   },
   blobTopRight: {
@@ -636,7 +571,34 @@ const styles = StyleSheet.create({
     backgroundColor: "#E07B2A",
     opacity: 0.12,
   },
-  backButton: { paddingVertical: 4, marginBottom: 16, alignSelf: "flex-start" },
+
+  // Marque
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginBottom: 2,
+  },
+  brandNameWhite: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "900",
+    letterSpacing: 5,
+  },
+  brandNameGold: {
+    color: GOLD,
+    fontSize: 18,
+    fontWeight: "900",
+    letterSpacing: 5,
+  },
+  brandAccent: {
+    width: 36,
+    height: 2.5,
+    borderRadius: 999,
+    backgroundColor: GOLD,
+    marginBottom: 20,
+  },
+
+  backButton: { paddingVertical: 4, marginBottom: 14, alignSelf: "flex-start" },
   backButtonText: {
     color: "rgba(255,255,255,0.8)",
     fontSize: 14,
@@ -652,8 +614,8 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.65)",
     fontSize: 13,
     fontWeight: "600",
-    marginTop: 6,
-    marginBottom: 10,
+    marginTop: 8,
+    marginBottom: 12,
   },
   progressTrack: {
     height: 4,
@@ -678,9 +640,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 28,
+    paddingTop: 32,
     paddingBottom: 56,
-    gap: 18,
+    gap: 24,
   },
 
   // Étape
@@ -689,46 +651,20 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "800",
     letterSpacing: -0.4,
-    marginBottom: 6,
+    marginBottom: 10,
   },
   stepSubtitle: {
     color: "#6A625A",
     fontSize: 14,
-    lineHeight: 21,
-    marginBottom: 4,
+    lineHeight: 22,
+    marginBottom: 8,
   },
-
-  // Toggle
-  toggleRow: {
-    flexDirection: "row",
-    backgroundColor: "#EFE8DE",
-    borderRadius: 12,
-    padding: 4,
-    gap: 2,
-    marginBottom: 4,
-  },
-  toggleBtn: {
-    flex: 1,
-    borderRadius: 8,
-    paddingVertical: 9,
-    alignItems: "center",
-  },
-  toggleBtnActive: {
-    backgroundColor: BLUE,
-    shadowColor: BLUE,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  toggleText: { color: "#7A6F65", fontSize: 13, fontWeight: "700" },
-  toggleTextActive: { color: "#FFFFFF" },
 
   // Champs
-  fieldGroup: { gap: 7 },
+  fieldGroup: { gap: 10 },
   label: {
     color: "#1F2933",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.1,
   },
@@ -738,7 +674,7 @@ const styles = StyleSheet.create({
     borderColor: "#E2D6CA",
     borderRadius: 14,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 15,
     fontSize: 16,
     color: "#1F2933",
   },
@@ -766,7 +702,6 @@ const styles = StyleSheet.create({
     color: "#B91C1C",
     fontSize: 12,
     fontWeight: "600",
-    marginTop: 2,
   },
 
   // Hint
@@ -775,8 +710,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#BFDBFE",
     borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   hintText: { color: "#1E40AF", fontSize: 13, fontWeight: "500" },
   hintValue: { fontWeight: "800" },
@@ -787,8 +722,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#FCA5A5",
     borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   errorText: {
     color: "#B91C1C",
@@ -801,9 +736,9 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: BLUE_LIGHT,
     borderRadius: 14,
-    paddingVertical: 15,
+    paddingVertical: 16,
     alignItems: "center",
-    marginTop: 4,
+    marginTop: 8,
     shadowColor: AMBER,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.22,

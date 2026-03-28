@@ -2,7 +2,6 @@ import React from "react";
 import { render, fireEvent } from "@testing-library/react-native";
 import PinRecoveryScreen, {
   pinRecoveryStep1PhoneSchema,
-  pinRecoveryStep1EmailSchema,
   pinRecoveryStep3Schema,
   formatDateInput,
   parseDateToISO,
@@ -145,31 +144,6 @@ describe("pinRecoveryStep1PhoneSchema", () => {
   });
 });
 
-describe("pinRecoveryStep1EmailSchema", () => {
-  it("accepte un email valide", () => {
-    expect(
-      pinRecoveryStep1EmailSchema.safeParse({ email: "test@example.com" })
-        .success,
-    ).toBe(true);
-  });
-
-  it("rejette un email vide", () => {
-    const r = pinRecoveryStep1EmailSchema.safeParse({ email: "" });
-    expect(r.success).toBe(false);
-    expect(r.error?.issues[0].message).toBe("L'adresse email est requise.");
-  });
-
-  it("rejette un email sans @", () => {
-    const r = pinRecoveryStep1EmailSchema.safeParse({ email: "notanemail" });
-    expect(r.success).toBe(false);
-    expect(r.error?.issues[0].message).toBe("Adresse email invalide.");
-  });
-
-  it("rejette un email sans domaine", () => {
-    const r = pinRecoveryStep1EmailSchema.safeParse({ email: "test@" });
-    expect(r.success).toBe(false);
-  });
-});
 
 describe("pinRecoveryStep3Schema", () => {
   it("accepte un PIN à 6 chiffres correspondants", () => {
@@ -306,29 +280,6 @@ describe("PinRecoveryScreen", () => {
       expect(err.props.children).toContain("9 chiffres");
     });
 
-    it("passe en mode email sur toggle et affiche l'input email", () => {
-      const { getByTestId, queryByTestId } = render(<PinRecoveryScreen />);
-      fireEvent.press(getByTestId("toggle-email"));
-      expect(getByTestId("input-email")).toBeTruthy();
-      expect(queryByTestId("input-phone")).toBeNull();
-    });
-
-    it("affiche une erreur si l'email est invalide (mode email)", async () => {
-      const { getByTestId, findByTestId } = render(<PinRecoveryScreen />);
-      fireEvent.press(getByTestId("toggle-email"));
-      fireEvent.changeText(getByTestId("input-email"), "notanemail");
-      fireEvent.press(getByTestId("btn-step1"));
-      const err = await findByTestId("error-email");
-      expect(err.props.children).toBe("Adresse email invalide.");
-    });
-
-    it("affiche une erreur si l'email est vide (mode email)", async () => {
-      const { getByTestId, findByTestId } = render(<PinRecoveryScreen />);
-      fireEvent.press(getByTestId("toggle-email"));
-      fireEvent.press(getByTestId("btn-step1"));
-      const err = await findByTestId("error-email");
-      expect(err.props.children).toBe("L'adresse email est requise.");
-    });
 
     it("affiche l'erreur API sur NOT_FOUND", async () => {
       mockOptions.mockRejectedValueOnce({ code: "NOT_FOUND", statusCode: 404 });
@@ -359,18 +310,6 @@ describe("PinRecoveryScreen", () => {
       fireEvent.press(getByTestId("btn-step1"));
       await findByTestId("step-2");
       expect(mockOptions).toHaveBeenCalledWith({ phone: "650000001" });
-    });
-
-    it("efface l'erreur quand on bascule de mode", async () => {
-      mockOptions.mockRejectedValueOnce({ code: "NOT_FOUND", statusCode: 404 });
-      const { getByTestId, findByTestId, queryByTestId } = render(
-        <PinRecoveryScreen />,
-      );
-      fireEvent.changeText(getByTestId("input-phone"), "650000001");
-      fireEvent.press(getByTestId("btn-step1"));
-      await findByTestId("error-message");
-      fireEvent.press(getByTestId("toggle-email"));
-      expect(queryByTestId("error-message")).toBeNull();
     });
 
     it("appelle router.back() sur 'Retour' depuis l'étape 1", () => {

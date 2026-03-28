@@ -124,28 +124,6 @@ describe("Récupération de PIN", () => {
         .withTimeout(3000);
     });
 
-    it("bascule sur le mode email et valide l'email vide", async () => {
-      await element(by.id("toggle-email")).tap();
-      await element(by.id("btn-step1")).tap();
-      await waitFor(element(by.id("error-email")))
-        .toBeVisible()
-        .withTimeout(3000);
-      await expect(element(by.id("error-email"))).toHaveText(
-        "L'adresse email est requise.",
-      );
-    });
-
-    it("affiche une erreur si l'email est invalide (mode email)", async () => {
-      await element(by.id("toggle-email")).tap();
-      await element(by.id("input-email")).typeText("notanemail");
-      await element(by.id("btn-step1")).tap();
-      await waitFor(element(by.id("error-email")))
-        .toBeVisible()
-        .withTimeout(3000);
-      await expect(element(by.id("error-email"))).toHaveText(
-        "Adresse email invalide.",
-      );
-    });
   });
 
   // ──────────────────────────────────────────────────────────────────────────
