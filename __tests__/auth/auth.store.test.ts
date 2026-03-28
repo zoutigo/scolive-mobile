@@ -2,14 +2,16 @@ import { act } from "@testing-library/react-native";
 import { useAuthStore } from "../../src/store/auth.store";
 import { authApi } from "../../src/api/auth.api";
 import { tokenStorage } from "../../src/api/client";
-import type { LoginResponse } from "../../src/types/auth.types";
+import type { AuthUser, LoginResponse } from "../../src/types/auth.types";
 
 jest.mock("../../src/api/auth.api");
 jest.mock("../../src/api/client", () => ({
   tokenStorage: {
     getAccessToken: jest.fn(),
     getRefreshToken: jest.fn(),
+    getSchoolSlug: jest.fn(),
     setTokens: jest.fn(),
+    setSchoolSlug: jest.fn(),
     clear: jest.fn(),
   },
   apiFetch: jest.fn(),
@@ -28,8 +30,23 @@ const fakeLoginResponse: LoginResponse = {
   schoolSlug: "ecole-test",
 };
 
+const fakeUser: AuthUser = {
+  id: "user-001",
+  firstName: "Jean",
+  lastName: "Mbarga",
+  email: "jean@ecole.com",
+  platformRoles: [],
+  memberships: [{ schoolId: "school-001", role: "TEACHER" }],
+  profileCompleted: true,
+  activationStatus: "ACTIVE",
+  role: "TEACHER",
+  activeRole: "TEACHER",
+};
+
 beforeEach(() => {
   jest.clearAllMocks();
+  mockStorage.getSchoolSlug.mockResolvedValue(null);
+  mockStorage.setSchoolSlug.mockResolvedValue(undefined);
   // Reset store state
   useAuthStore.setState({
     user: null,
@@ -57,6 +74,8 @@ describe("auth.store — initialize", () => {
   it("restaure la session depuis le access token existant", async () => {
     mockStorage.getAccessToken.mockResolvedValue("stored-access-token");
     mockStorage.getRefreshToken.mockResolvedValue("stored-refresh-token");
+    mockStorage.getSchoolSlug.mockResolvedValue("ecole-test");
+    mockAuthApi.me.mockResolvedValue(fakeUser);
 
     await act(async () => {
       await useAuthStore.getState().initialize();
@@ -72,7 +91,8 @@ describe("auth.store — initialize", () => {
     mockStorage.getAccessToken.mockResolvedValue(null);
     mockStorage.getRefreshToken.mockResolvedValue("stored-refresh-token");
     mockAuthApi.refresh.mockResolvedValue(fakeLoginResponse);
-    mockStorage.setTokens.mockResolvedValue();
+    mockStorage.setTokens.mockResolvedValue(undefined);
+    mockAuthApi.me.mockResolvedValue(fakeUser);
 
     await act(async () => {
       await useAuthStore.getState().initialize();
@@ -83,6 +103,9 @@ describe("auth.store — initialize", () => {
       fakeLoginResponse.accessToken,
       fakeLoginResponse.refreshToken,
       fakeLoginResponse.refreshExpiresIn,
+    );
+    expect(mockStorage.setSchoolSlug).toHaveBeenCalledWith(
+      fakeLoginResponse.schoolSlug,
     );
     expect(useAuthStore.getState().isAuthenticated).toBe(true);
   });
@@ -104,8 +127,9 @@ describe("auth.store — initialize", () => {
 });
 
 describe("auth.store — handleLoginResponse", () => {
-  it("stocke les tokens et marque comme authentifié", async () => {
-    mockStorage.setTokens.mockResolvedValue();
+  it("stocke les tokens, récupère le profil et marque comme authentifié", async () => {
+    mockStorage.setTokens.mockResolvedValue(undefined);
+    mockAuthApi.me.mockResolvedValue(fakeUser);
 
     await act(async () => {
       await useAuthStore.getState().handleLoginResponse(fakeLoginResponse);
@@ -116,10 +140,26 @@ describe("auth.store — handleLoginResponse", () => {
       "refresh-token-456",
       2592000,
     );
+    expect(mockStorage.setSchoolSlug).toHaveBeenCalledWith("ecole-test");
+    expect(mockAuthApi.me).toHaveBeenCalledWith("ecole-test");
     const state = useAuthStore.getState();
     expect(state.isAuthenticated).toBe(true);
     expect(state.accessToken).toBe("access-token-123");
     expect(state.schoolSlug).toBe("ecole-test");
+    expect(state.user).toEqual(fakeUser);
+  });
+
+  it("reste authentifié même si authApi.me échoue", async () => {
+    mockStorage.setTokens.mockResolvedValue(undefined);
+    mockAuthApi.me.mockRejectedValue(new Error("Network error"));
+
+    await act(async () => {
+      await useAuthStore.getState().handleLoginResponse(fakeLoginResponse);
+    });
+
+    const state = useAuthStore.getState();
+    expect(state.isAuthenticated).toBe(true);
+    expect(state.user).toBeNull();
   });
 });
 

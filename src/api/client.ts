@@ -3,6 +3,7 @@ import * as SecureStore from "expo-secure-store";
 const ACCESS_TOKEN_KEY = "scolive_access_token";
 const REFRESH_TOKEN_KEY = "scolive_refresh_token";
 const REFRESH_EXPIRES_KEY = "scolive_refresh_expires_at";
+const SCHOOL_SLUG_KEY = "scolive_school_slug";
 
 // Android emulator → host machine ; iOS simulator → localhost
 export const BASE_URL =
@@ -15,6 +16,14 @@ export const tokenStorage = {
 
   async getRefreshToken(): Promise<string | null> {
     return SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+  },
+
+  async getSchoolSlug(): Promise<string | null> {
+    return SecureStore.getItemAsync(SCHOOL_SLUG_KEY);
+  },
+
+  async setSchoolSlug(slug: string): Promise<void> {
+    await SecureStore.setItemAsync(SCHOOL_SLUG_KEY, slug);
   },
 
   async setTokens(
@@ -35,6 +44,7 @@ export const tokenStorage = {
       SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY),
       SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
       SecureStore.deleteItemAsync(REFRESH_EXPIRES_KEY),
+      SecureStore.deleteItemAsync(SCHOOL_SLUG_KEY),
     ]);
   },
 };

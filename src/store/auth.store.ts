@@ -45,13 +45,17 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   initialize: async () => {
     try {
-      const [accessToken, refreshToken] = await Promise.all([
+      const [accessToken, refreshToken, schoolSlug] = await Promise.all([
         withTimeout(
           tokenStorage.getAccessToken().catch(() => null),
           STORAGE_TIMEOUT_MS,
         ).catch(() => null),
         withTimeout(
           tokenStorage.getRefreshToken().catch(() => null),
+          STORAGE_TIMEOUT_MS,
+        ).catch(() => null),
+        withTimeout(
+          tokenStorage.getSchoolSlug().catch(() => null),
           STORAGE_TIMEOUT_MS,
         ).catch(() => null),
       ]);
@@ -62,7 +66,18 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
 
       if (accessToken) {
-        set({ accessToken, isAuthenticated: true, isLoading: false });
+        set({
+          accessToken,
+          schoolSlug,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+        if (schoolSlug) {
+          authApi
+            .me(schoolSlug)
+            .then((user) => set({ user }))
+            .catch(() => {});
+        }
         return;
       }
 
@@ -77,12 +92,21 @@ export const useAuthStore = create<AuthState>((set) => ({
           response.refreshToken,
           response.refreshExpiresIn,
         );
+        if (response.schoolSlug) {
+          await tokenStorage.setSchoolSlug(response.schoolSlug);
+        }
         set({
           accessToken: response.accessToken,
           schoolSlug: response.schoolSlug,
           isAuthenticated: true,
           isLoading: false,
         });
+        if (response.schoolSlug) {
+          authApi
+            .me(response.schoolSlug)
+            .then((user) => set({ user }))
+            .catch(() => {});
+        }
       } catch {
         await tokenStorage.clear();
         set({ isLoading: false });
@@ -98,11 +122,22 @@ export const useAuthStore = create<AuthState>((set) => ({
       response.refreshToken,
       response.refreshExpiresIn,
     );
+    if (response.schoolSlug) {
+      await tokenStorage.setSchoolSlug(response.schoolSlug);
+    }
     set({
       accessToken: response.accessToken,
       schoolSlug: response.schoolSlug,
       isAuthenticated: true,
     });
+    if (response.schoolSlug) {
+      try {
+        const user = await authApi.me(response.schoolSlug);
+        set({ user });
+      } catch {
+        // user stays null; will retry on next initialize
+      }
+    }
   },
 
   logout: async () => {

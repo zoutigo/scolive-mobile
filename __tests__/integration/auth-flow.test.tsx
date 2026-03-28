@@ -20,7 +20,9 @@ jest.mock("../../src/api/client", () => ({
   tokenStorage: {
     getAccessToken: jest.fn(),
     getRefreshToken: jest.fn(),
+    getSchoolSlug: jest.fn().mockResolvedValue(null),
     setTokens: jest.fn().mockResolvedValue(undefined),
+    setSchoolSlug: jest.fn().mockResolvedValue(undefined),
     clear: jest.fn().mockResolvedValue(undefined),
   },
   BASE_URL: "http://localhost:3001/api",

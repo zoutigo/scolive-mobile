@@ -149,7 +149,10 @@ export default function LoginScreen() {
                 <Pressable
                   key={t}
                   testID={`tab-${t}`}
-                  onPress={() => { setTab(t); setError(null); }}
+                  onPress={() => {
+                    setTab(t);
+                    setError(null);
+                  }}
                   style={[styles.tab, tab === t && styles.tabActive]}
                 >
                   <Text
@@ -199,28 +202,28 @@ export default function LoginScreen() {
                     maxLength={6}
                   />
                 </View>
-              {error ? (
-                <View style={styles.errorBox} testID="error-message">
-                  <Text style={styles.errorText}>{error}</Text>
-                </View>
-              ) : null}
-              <Pressable
-                style={[
-                  styles.primaryButton,
-                  isSubmitting && styles.primaryButtonBusy,
-                ]}
-                onPress={handlePhoneLogin}
-                disabled={isSubmitting}
-                testID="submit-login"
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Se connecter</Text>
-                )}
-              </Pressable>
-            </View>
-          ) : null}
+                {error ? (
+                  <View style={styles.errorBox} testID="error-message">
+                    <Text style={styles.errorText}>{error}</Text>
+                  </View>
+                ) : null}
+                <Pressable
+                  style={[
+                    styles.primaryButton,
+                    isSubmitting && styles.primaryButtonBusy,
+                  ]}
+                  onPress={handlePhoneLogin}
+                  disabled={isSubmitting}
+                  testID="submit-login"
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.primaryButtonText}>Se connecter</Text>
+                  )}
+                </Pressable>
+              </View>
+            ) : null}
 
             {/* Email */}
             {tab === "email" ? (

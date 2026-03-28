@@ -1,5 +1,10 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import LoginScreen from "../../app/login";
 import { authApi } from "../../src/api/auth.api";
 import { useAuthStore } from "../../src/store/auth.store";
@@ -9,7 +14,9 @@ jest.mock("../../src/api/auth.api");
 jest.mock("../../src/store/auth.store", () => ({ useAuthStore: jest.fn() }));
 
 const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
-const mockUseAuthStore = useAuthStore as jest.MockedFunction<typeof useAuthStore>;
+const mockUseAuthStore = useAuthStore as jest.MockedFunction<
+  typeof useAuthStore
+>;
 
 const mockHandleLoginResponse = jest.fn().mockResolvedValue(undefined);
 
@@ -51,9 +58,7 @@ describe("En-tête", () => {
 
   it("affiche le tagline", () => {
     render(<LoginScreen />);
-    expect(
-      screen.getByText("Votre école en temps réel."),
-    ).toBeOnTheScreen();
+    expect(screen.getByText("Votre école en temps réel.")).toBeOnTheScreen();
   });
 });
 
@@ -154,9 +159,7 @@ describe("Formulaire Téléphone — validation", () => {
     fireEvent.press(screen.getByTestId("submit-login"));
     await waitFor(() =>
       expect(
-        screen.getByText(
-          "Le code PIN doit contenir exactement 6 chiffres.",
-        ),
+        screen.getByText("Le code PIN doit contenir exactement 6 chiffres."),
       ).toBeOnTheScreen(),
     );
     expect(mockAuthApi.loginPhone).not.toHaveBeenCalled();
@@ -213,7 +216,9 @@ describe("Formulaire Téléphone — soumission", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText("Trop de tentatives. Réessayez dans quelques minutes."),
+        screen.getByText(
+          "Trop de tentatives. Réessayez dans quelques minutes.",
+        ),
       ).toBeOnTheScreen(),
     );
   });
@@ -272,9 +277,7 @@ describe("Formulaire Email — rendu", () => {
       "directeur@lycee-cm.cm",
     );
     fireEvent.changeText(screen.getByTestId("input-password"), "motdepasse");
-    expect(
-      screen.getByDisplayValue("directeur@lycee-cm.cm"),
-    ).toBeOnTheScreen();
+    expect(screen.getByDisplayValue("directeur@lycee-cm.cm")).toBeOnTheScreen();
     expect(screen.getByDisplayValue("motdepasse")).toBeOnTheScreen();
   });
 });
@@ -291,9 +294,7 @@ describe("Formulaire Email — validation", () => {
     fireEvent.press(screen.getByTestId("submit-login"));
 
     await waitFor(() =>
-      expect(
-        screen.getByText("Adresse email invalide."),
-      ).toBeOnTheScreen(),
+      expect(screen.getByText("Adresse email invalide.")).toBeOnTheScreen(),
     );
     expect(mockAuthApi.loginEmail).not.toHaveBeenCalled();
   });
@@ -301,10 +302,7 @@ describe("Formulaire Email — validation", () => {
   it("affiche une erreur si le mot de passe est vide", async () => {
     render(<LoginScreen />);
     fireEvent.press(screen.getByTestId("tab-email"));
-    fireEvent.changeText(
-      screen.getByTestId("input-email"),
-      "prof@ecole.cm",
-    );
+    fireEvent.changeText(screen.getByTestId("input-email"), "prof@ecole.cm");
     fireEvent.press(screen.getByTestId("submit-login"));
 
     await waitFor(() =>
@@ -346,10 +344,7 @@ describe("Formulaire Email — soumission", () => {
     render(<LoginScreen />);
 
     fireEvent.press(screen.getByTestId("tab-email"));
-    fireEvent.changeText(
-      screen.getByTestId("input-email"),
-      "prof@ecole.cm",
-    );
+    fireEvent.changeText(screen.getByTestId("input-email"), "prof@ecole.cm");
     fireEvent.changeText(screen.getByTestId("input-password"), "mauvais");
     fireEvent.press(screen.getByTestId("submit-login"));
 
@@ -401,10 +396,7 @@ describe("Persistance des saisies entre onglets", () => {
   it("conserve les valeurs email/password après changement d'onglet", () => {
     render(<LoginScreen />);
     fireEvent.press(screen.getByTestId("tab-email"));
-    fireEvent.changeText(
-      screen.getByTestId("input-email"),
-      "marie@ecole.fr",
-    );
+    fireEvent.changeText(screen.getByTestId("input-email"), "marie@ecole.fr");
     fireEvent.changeText(screen.getByTestId("input-password"), "secret");
     fireEvent.press(screen.getByTestId("tab-phone"));
     fireEvent.press(screen.getByTestId("tab-email"));
