@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,8 +12,31 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { authApi } from "../src/api/auth.api";
+import { type ApiClientError } from "../src/api/client";
+import { useAuthStore } from "../src/store/auth.store";
 
 type AuthTab = "phone" | "email" | "google";
+
+function parseApiError(err: unknown): string {
+  const code = (err as ApiClientError)?.code;
+  switch (code) {
+    case "INVALID_CREDENTIALS":
+      return "Identifiants incorrects. Vérifiez vos informations.";
+    case "AUTH_RATE_LIMITED":
+      return "Trop de tentatives. Réessayez dans quelques minutes.";
+    case "ACCOUNT_VALIDATION_REQUIRED":
+      return "Votre compte est en attente d'activation.";
+    case "ACCOUNT_SUSPENDED":
+      return "Votre compte a été suspendu. Contactez votre administration.";
+    case "PASSWORD_CHANGE_REQUIRED":
+      return "Vous devez modifier votre mot de passe.";
+    case "PROFILE_SETUP_REQUIRED":
+      return "Votre profil est incomplet.";
+    default:
+      return "Impossible de se connecter. Vérifiez votre connexion.";
+  }
+}
 
 function GoogleIcon() {
   return (
@@ -32,11 +56,58 @@ function AppleIcon() {
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
+  const { handleLoginResponse } = useAuthStore();
+
   const [tab, setTab] = useState<AuthTab>("phone");
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handlePhoneLogin() {
+    const digits = phone.replace(/\D/g, "");
+    if (!digits || digits.length < 8) {
+      setError("Numéro de téléphone invalide.");
+      return;
+    }
+    if (!/^\d{6}$/.test(pin)) {
+      setError("Le code PIN doit contenir exactement 6 chiffres.");
+      return;
+    }
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const response = await authApi.loginPhone(`+237${digits}`, pin);
+      await handleLoginResponse(response);
+    } catch (err) {
+      setError(parseApiError(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleEmailLogin() {
+    if (!email.trim() || !email.includes("@")) {
+      setError("Adresse email invalide.");
+      return;
+    }
+    if (!password) {
+      setError("Mot de passe requis.");
+      return;
+    }
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const response = await authApi.loginEmail(email.trim(), password);
+      await handleLoginResponse(response);
+    } catch (err) {
+      setError(parseApiError(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <View style={styles.screen}>
@@ -65,136 +136,170 @@ export default function LoginScreen() {
           style={styles.kav}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          scrollIndicatorInsets={{ bottom: 40 }}
-        >
-          {/* Onglets */}
-          <View style={styles.tabBar}>
-            {(["phone", "email", "google"] as AuthTab[]).map((t) => (
-              <Pressable
-                key={t}
-                testID={`tab-${t}`}
-                onPress={() => setTab(t)}
-                style={[styles.tab, tab === t && styles.tabActive]}
-              >
-                <Text
-                  style={[styles.tabText, tab === t && styles.tabTextActive]}
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            scrollIndicatorInsets={{ bottom: 40 }}
+          >
+            {/* Onglets */}
+            <View style={styles.tabBar}>
+              {(["phone", "email", "google"] as AuthTab[]).map((t) => (
+                <Pressable
+                  key={t}
+                  testID={`tab-${t}`}
+                  onPress={() => { setTab(t); setError(null); }}
+                  style={[styles.tab, tab === t && styles.tabActive]}
                 >
-                  {t === "phone"
-                    ? "Téléphone"
-                    : t === "email"
-                      ? "Email"
-                      : "Google"}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+                  <Text
+                    style={[styles.tabText, tab === t && styles.tabTextActive]}
+                  >
+                    {t === "phone"
+                      ? "Téléphone"
+                      : t === "email"
+                        ? "Email"
+                        : "Google"}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
 
-          {/* Téléphone */}
-          {tab === "phone" ? (
-            <View style={styles.form} testID="panel-phone">
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Numéro de téléphone</Text>
-                <View style={styles.phoneRow}>
-                  <View style={styles.dialCode}>
-                    <Text style={styles.dialCodeText}>+237</Text>
+            {/* Téléphone */}
+            {tab === "phone" ? (
+              <View style={styles.form} testID="panel-phone">
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Numéro de téléphone</Text>
+                  <View style={styles.phoneRow}>
+                    <View style={styles.dialCode}>
+                      <Text style={styles.dialCodeText}>+237</Text>
+                    </View>
+                    <TextInput
+                      testID="input-phone"
+                      value={phone}
+                      onChangeText={setPhone}
+                      placeholder="6XX XXX XXX"
+                      keyboardType="phone-pad"
+                      style={[styles.input, styles.inputFlex]}
+                      placeholderTextColor="#9B9490"
+                    />
                   </View>
+                </View>
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Code PIN</Text>
                   <TextInput
-                    testID="input-phone"
-                    value={phone}
-                    onChangeText={setPhone}
-                    placeholder="6XX XXX XXX"
-                    keyboardType="phone-pad"
-                    style={[styles.input, styles.inputFlex]}
+                    testID="input-pin"
+                    value={pin}
+                    onChangeText={setPin}
+                    placeholder="6 chiffres"
+                    keyboardType="number-pad"
+                    style={styles.input}
+                    placeholderTextColor="#9B9490"
+                    secureTextEntry
+                    maxLength={6}
+                  />
+                </View>
+              {error ? (
+                <View style={styles.errorBox} testID="error-message">
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              ) : null}
+              <Pressable
+                style={[
+                  styles.primaryButton,
+                  isSubmitting && styles.primaryButtonBusy,
+                ]}
+                onPress={handlePhoneLogin}
+                disabled={isSubmitting}
+                testID="submit-login"
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.primaryButtonText}>Se connecter</Text>
+                )}
+              </Pressable>
+            </View>
+          ) : null}
+
+            {/* Email */}
+            {tab === "email" ? (
+              <View style={styles.form} testID="panel-email">
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Adresse email</Text>
+                  <TextInput
+                    testID="input-email"
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="nom@etablissement.cm"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    style={styles.input}
                     placeholderTextColor="#9B9490"
                   />
                 </View>
-              </View>
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Code PIN</Text>
-                <TextInput
-                  testID="input-pin"
-                  value={pin}
-                  onChangeText={setPin}
-                  placeholder="6 chiffres"
-                  keyboardType="number-pad"
-                  style={styles.input}
-                  placeholderTextColor="#9B9490"
-                  secureTextEntry
-                  maxLength={6}
-                />
-              </View>
-              <Pressable style={styles.primaryButton} testID="submit-login">
-                <Text style={styles.primaryButtonText}>Se connecter</Text>
-              </Pressable>
-            </View>
-          ) : null}
-
-          {/* Email */}
-          {tab === "email" ? (
-            <View style={styles.form} testID="panel-email">
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Adresse email</Text>
-                <TextInput
-                  testID="input-email"
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="nom@etablissement.cm"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  style={styles.input}
-                  placeholderTextColor="#9B9490"
-                />
-              </View>
-              <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Mot de passe</Text>
-                <TextInput
-                  testID="input-password"
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Votre mot de passe"
-                  secureTextEntry
-                  style={styles.input}
-                  placeholderTextColor="#9B9490"
-                />
-              </View>
-              <Pressable style={styles.primaryButton} testID="submit-login">
-                <Text style={styles.primaryButtonText}>Se connecter</Text>
-              </Pressable>
-            </View>
-          ) : null}
-
-          {/* Google / Apple SSO */}
-          {tab === "google" ? (
-            <View style={styles.form} testID="panel-google">
-              <Text style={styles.ssoInfo}>
-                Accès instantané avec votre compte existant.
-              </Text>
-              <Pressable style={styles.ssoButton} testID="sso-google">
-                <View style={styles.ssoButtonInner}>
-                  <GoogleIcon />
-                  <Text style={styles.ssoButtonText}>
-                    Continuer avec Google
-                  </Text>
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Mot de passe</Text>
+                  <TextInput
+                    testID="input-password"
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Votre mot de passe"
+                    secureTextEntry
+                    style={styles.input}
+                    placeholderTextColor="#9B9490"
+                  />
                 </View>
-                <Text style={styles.ssoChevron}>›</Text>
-              </Pressable>
-              <Pressable style={styles.ssoButtonMuted} testID="sso-apple">
-                <View style={styles.ssoButtonInner}>
-                  <AppleIcon />
-                  <Text style={styles.ssoButtonTextMuted}>
-                    Continuer avec Apple
-                  </Text>
-                </View>
-                <Text style={styles.comingSoon}>BIENTÔT</Text>
-              </Pressable>
-            </View>
-          ) : null}
-        </ScrollView>
+                {error ? (
+                  <View style={styles.errorBox} testID="error-message">
+                    <Text style={styles.errorText}>{error}</Text>
+                  </View>
+                ) : null}
+                <Pressable
+                  style={[
+                    styles.primaryButton,
+                    isSubmitting && styles.primaryButtonBusy,
+                  ]}
+                  onPress={handleEmailLogin}
+                  disabled={isSubmitting}
+                  testID="submit-login"
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.primaryButtonText}>Se connecter</Text>
+                  )}
+                </Pressable>
+              </View>
+            ) : null}
+
+            {/* Google / Apple SSO */}
+            {tab === "google" ? (
+              <View style={styles.form} testID="panel-google">
+                <Text style={styles.ssoInfo}>
+                  Accès instantané avec votre compte existant.
+                </Text>
+                <Pressable style={styles.ssoButton} testID="sso-google">
+                  <View style={styles.ssoButtonInner}>
+                    <GoogleIcon />
+                    <Text style={styles.ssoButtonText}>
+                      Continuer avec Google
+                    </Text>
+                  </View>
+                  <Text style={styles.ssoChevron}>›</Text>
+                </Pressable>
+                <Pressable style={styles.ssoButtonMuted} testID="sso-apple">
+                  <View style={styles.ssoButtonInner}>
+                    <AppleIcon />
+                    <Text style={styles.ssoButtonTextMuted}>
+                      Continuer avec Apple
+                    </Text>
+                  </View>
+                  <Text style={styles.comingSoon}>BIENTÔT</Text>
+                </Pressable>
+              </View>
+            ) : null}
+          </ScrollView>
         </KeyboardAvoidingView>
 
         {/* Copyright — juste au-dessus de la barre de navigation */}
@@ -394,11 +499,30 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 5,
   },
+  primaryButtonBusy: {
+    opacity: 0.7,
+  },
   primaryButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "800",
     letterSpacing: 0.2,
+  },
+
+  // ── Message d'erreur ───────────────────────────────────────
+  errorBox: {
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  errorText: {
+    color: "#B91C1C",
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
   },
 
   // ── SSO ────────────────────────────────────────────────────
