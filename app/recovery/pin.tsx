@@ -224,28 +224,29 @@ export default function PinRecoveryScreen() {
         <View style={styles.blobTopRight} />
         <View style={styles.blobBottomLeft} />
 
-        {/* Marque */}
-        <View style={styles.brandRow}>
-          <Text style={styles.brandNameWhite}>SCO</Text>
-          <Text style={styles.brandNameGold}>LIVE</Text>
+        {/* Marque + bouton retour sur la même ligne */}
+        <View style={styles.headerTopRow}>
+          <View style={styles.brandRow}>
+            <Text style={styles.brandNameWhite}>SCO</Text>
+            <Text style={styles.brandNameGold}>LIVE</Text>
+          </View>
+          {!isSuccess && (
+            <Pressable
+              testID="back-button"
+              onPress={() => {
+                if (step === 1) router.back();
+                else {
+                  clearErrors();
+                  setStep((s) => (s - 1) as Step);
+                }
+              }}
+              style={styles.backButton}
+            >
+              <Text style={styles.backButtonText}>‹ Retour</Text>
+            </Pressable>
+          )}
         </View>
         <View style={styles.brandAccent} />
-
-        {!isSuccess && (
-          <Pressable
-            testID="back-button"
-            onPress={() => {
-              if (step === 1) router.back();
-              else {
-                clearErrors();
-                setStep((s) => (s - 1) as Step);
-              }
-            }}
-            style={styles.backButton}
-          >
-            <Text style={styles.backButtonText}>← Retour</Text>
-          </Pressable>
-        )}
 
         <Text style={styles.headerTitle}>
           {isSuccess ? "PIN mis à jour !" : "Récupération de PIN"}
@@ -284,7 +285,12 @@ export default function PinRecoveryScreen() {
                 </Text>
 
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Numéro de téléphone</Text>
+                  <View style={styles.labelRow}>
+                    <View style={styles.fieldIcon}>
+                      <Text style={styles.fieldIconText}>📱</Text>
+                    </View>
+                    <Text style={styles.label}>Numéro de téléphone</Text>
+                  </View>
                   <View style={styles.phoneRow}>
                     <View style={styles.dialCode}>
                       <Text style={styles.dialCodeText}>+237</Text>
@@ -322,6 +328,7 @@ export default function PinRecoveryScreen() {
                   testID="btn-step1"
                   style={[
                     styles.primaryButton,
+                    styles.primaryButtonSpaced,
                     isSubmitting && styles.primaryButtonBusy,
                   ]}
                   onPress={handleStep1}
@@ -354,7 +361,12 @@ export default function PinRecoveryScreen() {
                 ) : null}
 
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Date de naissance</Text>
+                  <View style={styles.labelRow}>
+                    <View style={styles.fieldIcon}>
+                      <Text style={styles.fieldIconText}>📅</Text>
+                    </View>
+                    <Text style={styles.label}>Date de naissance</Text>
+                  </View>
                   <TextInput
                     testID="input-birthdate"
                     value={birthDate}
@@ -380,7 +392,12 @@ export default function PinRecoveryScreen() {
 
                 {questions.map((q, idx) => (
                   <View key={q.key} style={styles.fieldGroup}>
-                    <Text style={styles.label}>{q.label}</Text>
+                    <View style={styles.labelRow}>
+                      <View style={styles.fieldIcon}>
+                        <Text style={styles.fieldIconText}>🔑</Text>
+                      </View>
+                      <Text style={styles.label}>{q.label}</Text>
+                    </View>
                     <TextInput
                       testID={`input-answer-${idx}`}
                       value={answers[q.key] ?? ""}
@@ -431,7 +448,12 @@ export default function PinRecoveryScreen() {
                 </Text>
 
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Nouveau PIN</Text>
+                  <View style={styles.labelRow}>
+                    <View style={styles.fieldIcon}>
+                      <Text style={styles.fieldIconText}>🔒</Text>
+                    </View>
+                    <Text style={styles.label}>Nouveau PIN</Text>
+                  </View>
                   <TextInput
                     testID="input-new-pin"
                     value={newPin}
@@ -454,7 +476,12 @@ export default function PinRecoveryScreen() {
                 </View>
 
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Confirmer le PIN</Text>
+                  <View style={styles.labelRow}>
+                    <View style={styles.fieldIcon}>
+                      <Text style={styles.fieldIconText}>🔒</Text>
+                    </View>
+                    <Text style={styles.label}>Confirmer le PIN</Text>
+                  </View>
                   <TextInput
                     testID="input-confirm-pin"
                     value={confirmPin}
@@ -573,10 +600,15 @@ const styles = StyleSheet.create({
   },
 
   // Marque
+  headerTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 2,
+  },
   brandRow: {
     flexDirection: "row",
     alignItems: "baseline",
-    marginBottom: 2,
   },
   brandNameWhite: {
     color: "#FFFFFF",
@@ -598,11 +630,19 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
-  backButton: { paddingVertical: 4, marginBottom: 14, alignSelf: "flex-start" },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderRadius: 20,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+  },
   backButtonText: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 14,
-    fontWeight: "600",
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 13,
+    fontWeight: "700",
   },
   headerTitle: {
     color: "#FFFFFF",
@@ -662,11 +702,28 @@ const styles = StyleSheet.create({
 
   // Champs
   fieldGroup: { gap: 10 },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  fieldIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    backgroundColor: "#F0F6FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fieldIconText: {
+    fontSize: 13,
+  },
   label: {
     color: "#1F2933",
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.1,
+    flex: 1,
   },
   input: {
     backgroundColor: "#FFFFFF",
@@ -745,6 +802,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 4,
   },
+  primaryButtonSpaced: { marginTop: 24 },
   primaryButtonBusy: { opacity: 0.7 },
   primaryButtonText: {
     color: "#FFFFFF",
