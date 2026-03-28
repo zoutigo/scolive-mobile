@@ -5,9 +5,7 @@ import { colors } from "../../src/theme";
 export default function HomeScreen() {
   const { user, logout } = useAuthStore();
 
-  const displayName = user
-    ? `${user.firstName} ${user.lastName}`
-    : "Chargement…";
+  const displayName = user ? `${user.firstName} ${user.lastName}` : "—";
 
   return (
     <View style={styles.container}>

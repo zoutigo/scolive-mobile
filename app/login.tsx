@@ -19,7 +19,9 @@ import { useAuthStore } from "../src/store/auth.store";
 type AuthTab = "phone" | "email" | "google";
 
 function parseApiError(err: unknown): string {
-  const code = (err as ApiClientError)?.code;
+  const apiErr = err as ApiClientError;
+  const code = apiErr?.code;
+  const statusCode = apiErr?.statusCode;
   switch (code) {
     case "INVALID_CREDENTIALS":
       return "Identifiants incorrects. Vérifiez vos informations.";
@@ -34,6 +36,8 @@ function parseApiError(err: unknown): string {
     case "PROFILE_SETUP_REQUIRED":
       return "Votre profil est incomplet.";
     default:
+      if (statusCode === 401)
+        return "Identifiants incorrects. Vérifiez vos informations.";
       return "Impossible de se connecter. Vérifiez votre connexion.";
   }
 }
