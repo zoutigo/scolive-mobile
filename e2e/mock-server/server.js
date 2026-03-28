@@ -4,14 +4,22 @@
  * Mock HTTP server pour les tests E2E — remplace l'API réelle sur le port 3001.
  *
  * Endpoints applicatifs (appelés depuis l'app Android via 10.0.2.2:3001) :
- *   POST /api/auth/login-phone   → réponse pilotée par le scénario courant
- *   POST /api/auth/logout        → 204 (toujours OK)
- *   POST /api/auth/refresh       → 401 (forçage d'une nouvelle authentification)
- *   GET  /api/health             → 200
+ *   POST /api/auth/login-phone                  → pilotée par currentScenario
+ *   POST /api/auth/logout                       → 204
+ *   POST /api/auth/refresh                      → 401
+ *   GET  /api/health                            → 200
+ *   POST /api/auth/forgot-pin/options           → pilotée par currentPinScenario
+ *   POST /api/auth/forgot-pin/verify            → pilotée par currentPinScenario
+ *   POST /api/auth/forgot-pin/complete          → pilotée par currentPinScenario
+ *   POST /api/auth/forgot-password/request      → pilotée par currentPwdScenario
+ *   POST /api/auth/forgot-password/options      → pilotée par currentPwdScenario
+ *   POST /api/auth/forgot-password/verify       → pilotée par currentPwdScenario
+ *   POST /api/auth/forgot-password/complete     → pilotée par currentPwdScenario
  *
- * Endpoint de contrôle (appelé depuis les tests Jest sur localhost:3001) :
- *   POST /__scenario             → change le scénario courant
- *   GET  /__scenario             → lit le scénario courant (debug)
+ * Endpoints de contrôle (appelés depuis les tests Jest sur localhost:3001) :
+ *   POST /__scenario              → change le scénario de login
+ *   POST /__scenario/pin          → change le scénario de récupération PIN
+ *   POST /__scenario/password     → change le scénario de récupération mot de passe
  */
 
 const http = require("http");
@@ -73,9 +81,40 @@ const SCENARIOS = {
   network_error: { closeImmediately: true },
 };
 
+// ────────────────────────── Scénarios récupération PIN ──────────────────────────
+
+/**
+ * Scénarios disponibles pour les endpoints forgot-pin :
+ *   happy_path       → options ok, verify ok, complete ok
+ *   not_found        → options → 404 NOT_FOUND
+ *   invalid_recovery → verify → 400 RECOVERY_INVALID
+ *   session_expired  → complete → 401 RECOVERY_SESSION_EXPIRED
+ *   same_pin         → complete → 400 SAME_PIN
+ */
+
+const MOCK_PIN_QUESTIONS = [
+  { key: "MOTHER_MAIDEN_NAME", label: "Nom de jeune fille de votre mère" },
+  { key: "BIRTH_CITY", label: "Votre ville de naissance" },
+  { key: "FAVORITE_SPORT", label: "Votre sport préféré" },
+];
+
+// ────────────────────────── Scénarios récupération mot de passe ──────────────
+
+/**
+ * Scénarios disponibles pour les endpoints forgot-password :
+ *   happy_path       → request ok, options ok, verify ok, complete ok
+ *   not_found        → request → 404 NOT_FOUND
+ *   token_invalid    → options → 400 TOKEN_INVALID
+ *   token_expired    → options → 401 TOKEN_EXPIRED
+ *   invalid_recovery → verify → 400 RECOVERY_INVALID
+ *   same_password    → complete → 400 SAME_PASSWORD
+ */
+
 // ────────────────────────── État courant ──────────────────────────
 
 let currentScenario = "happy_path";
+let currentPinScenario = "happy_path";
+let currentPwdScenario = "happy_path";
 let server = null;
 
 // ────────────────────────── Gestion des requêtes ──────────────────────────
@@ -100,19 +139,29 @@ function json(res, status, body) {
 function handleRequest(req, res) {
   const { url, method } = req;
 
-  // ── Endpoint de contrôle (tests → mock server) ──────────────
-  if (url === "/__scenario") {
+  // ── Endpoints de contrôle (tests → mock server) ─────────────
+  if (
+    url === "/__scenario" ||
+    url === "/__scenario/pin" ||
+    url === "/__scenario/password"
+  ) {
     if (method === "POST") {
       readBody(req).then((raw) => {
         try {
           const { scenario } = JSON.parse(raw);
-          if (!SCENARIOS[scenario]) {
-            return json(res, 400, {
-              error: `Scénario inconnu : "${scenario}"`,
-            });
+          if (url === "/__scenario") {
+            if (!SCENARIOS[scenario]) {
+              return json(res, 400, {
+                error: `Scénario login inconnu : "${scenario}"`,
+              });
+            }
+            currentScenario = scenario;
+          } else if (url === "/__scenario/pin") {
+            currentPinScenario = scenario;
+          } else {
+            currentPwdScenario = scenario;
           }
-          currentScenario = scenario;
-          console.log(`[mock] scénario → ${scenario}`);
+          console.log(`[mock] ${url} → ${scenario}`);
           json(res, 200, { ok: true, scenario });
         } catch {
           json(res, 400, { error: "JSON invalide" });
@@ -121,7 +170,11 @@ function handleRequest(req, res) {
       return;
     }
     if (method === "GET") {
-      return json(res, 200, { scenario: currentScenario });
+      return json(res, 200, {
+        login: currentScenario,
+        pin: currentPinScenario,
+        password: currentPwdScenario,
+      });
     }
   }
 
@@ -153,6 +206,118 @@ function handleRequest(req, res) {
       return;
     }
     return json(res, scenario.status, scenario.body);
+  }
+
+  // ── Récupération PIN ─────────────────────────────────────────
+
+  if (method === "POST" && url === "/api/auth/forgot-pin/options") {
+    if (currentPinScenario === "not_found") {
+      return json(res, 404, {
+        code: "NOT_FOUND",
+        message: "User not found",
+        statusCode: 404,
+      });
+    }
+    return json(res, 200, {
+      success: true,
+      principalHint: "6***3",
+      schoolSlug: null,
+      questions: MOCK_PIN_QUESTIONS,
+    });
+  }
+
+  if (method === "POST" && url === "/api/auth/forgot-pin/verify") {
+    if (currentPinScenario === "invalid_recovery") {
+      return json(res, 400, {
+        code: "RECOVERY_INVALID",
+        message: "Invalid recovery info",
+        statusCode: 400,
+      });
+    }
+    return json(res, 200, {
+      success: true,
+      recoveryToken: "e2e-pin-recovery-token",
+      schoolSlug: null,
+    });
+  }
+
+  if (method === "POST" && url === "/api/auth/forgot-pin/complete") {
+    if (currentPinScenario === "session_expired") {
+      return json(res, 401, {
+        code: "RECOVERY_SESSION_EXPIRED",
+        message: "Session expired",
+        statusCode: 401,
+      });
+    }
+    if (currentPinScenario === "same_pin") {
+      return json(res, 400, {
+        code: "SAME_PIN",
+        message: "Same PIN not allowed",
+        statusCode: 400,
+      });
+    }
+    return json(res, 200, { success: true, schoolSlug: null });
+  }
+
+  // ── Récupération mot de passe ─────────────────────────────────
+
+  if (method === "POST" && url === "/api/auth/forgot-password/request") {
+    if (currentPwdScenario === "not_found") {
+      return json(res, 404, {
+        code: "NOT_FOUND",
+        message: "User not found",
+        statusCode: 404,
+      });
+    }
+    return json(res, 200, {
+      success: true,
+      message: "Si ce compte existe, un lien a été envoyé.",
+    });
+  }
+
+  if (method === "POST" && url === "/api/auth/forgot-password/options") {
+    if (currentPwdScenario === "token_invalid") {
+      return json(res, 400, {
+        code: "TOKEN_INVALID",
+        message: "Invalid token",
+        statusCode: 400,
+      });
+    }
+    if (currentPwdScenario === "token_expired") {
+      return json(res, 401, {
+        code: "TOKEN_EXPIRED",
+        message: "Token expired",
+        statusCode: 401,
+      });
+    }
+    return json(res, 200, {
+      success: true,
+      emailHint: "t***t@example.com",
+      schoolSlug: null,
+      questions: MOCK_PIN_QUESTIONS,
+    });
+  }
+
+  if (method === "POST" && url === "/api/auth/forgot-password/verify") {
+    if (currentPwdScenario === "invalid_recovery") {
+      return json(res, 400, {
+        code: "RECOVERY_INVALID",
+        message: "Invalid recovery info",
+        statusCode: 400,
+      });
+    }
+    return json(res, 200, { success: true, verified: true });
+  }
+
+  if (method === "POST" && url === "/api/auth/forgot-password/complete") {
+    if (currentPwdScenario === "same_password") {
+      return json(res, 400, {
+        code: "SAME_PASSWORD",
+        message: "Same password not allowed",
+        statusCode: 400,
+      });
+    }
+    return json(res, 200, { success: true });
   }
 
   // ── Route inconnue ────────────────────────────────────────────

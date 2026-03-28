@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authApi } from "../src/api/auth.api";
 import { type ApiClientError } from "../src/api/client";
@@ -226,6 +227,13 @@ export default function LoginScreen() {
                     <Text style={styles.primaryButtonText}>Se connecter</Text>
                   )}
                 </Pressable>
+                <Pressable
+                  testID="link-forgot-pin"
+                  onPress={() => router.push("/recovery/pin")}
+                  style={styles.forgotLink}
+                >
+                  <Text style={styles.forgotLinkText}>PIN oublié ?</Text>
+                </Pressable>
               </View>
             ) : null}
 
@@ -276,6 +284,15 @@ export default function LoginScreen() {
                   ) : (
                     <Text style={styles.primaryButtonText}>Se connecter</Text>
                   )}
+                </Pressable>
+                <Pressable
+                  testID="link-forgot-password"
+                  onPress={() => router.push("/recovery/password")}
+                  style={styles.forgotLink}
+                >
+                  <Text style={styles.forgotLinkText}>
+                    Mot de passe oublié ?
+                  </Text>
                 </Pressable>
               </View>
             ) : null}
@@ -608,6 +625,18 @@ const styles = StyleSheet.create({
   },
   ssoIconTextWhite: {
     color: "#FFFFFF",
+  },
+
+  // ── Lien "oublié" ──────────────────────────────────────────
+  forgotLink: {
+    alignItems: "center",
+    paddingVertical: 6,
+  },
+  forgotLinkText: {
+    color: BLUE,
+    fontSize: 13,
+    fontWeight: "700",
+    textDecorationLine: "underline",
   },
 
   // ── Copyright (ancré en bas) ───────────────────────────────

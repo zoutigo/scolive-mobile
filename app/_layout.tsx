@@ -14,6 +14,14 @@ export default function RootLayout() {
       <Stack.Screen name="index" />
       <Stack.Screen name="login" options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="(home)" />
+      <Stack.Screen
+        name="recovery/pin"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="recovery/password"
+        options={{ animation: "slide_from_right" }}
+      />
     </Stack>
   );
 }
