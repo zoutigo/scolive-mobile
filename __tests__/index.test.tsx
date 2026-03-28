@@ -41,8 +41,8 @@ describe("IndexScreen", () => {
 
     render(<IndexScreen />);
 
-    expect(screen.getByText("SCOLIVE")).toBeOnTheScreen();
-    expect(screen.getByText("Bienvenue")).toBeOnTheScreen();
+    expect(screen.getByText("SCO")).toBeOnTheScreen();
+    expect(screen.getByTestId("tab-phone")).toBeOnTheScreen();
   });
 
   it("affiche l'écran home si authentifié", () => {

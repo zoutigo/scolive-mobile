@@ -116,8 +116,8 @@ describe("Flux écrans auth", () => {
   it("IndexScreen affiche le login si l'utilisateur est déconnecté", () => {
     render(<IndexScreen />);
 
-    expect(screen.getByText("SCOLIVE")).toBeOnTheScreen();
-    expect(screen.getByText("Bienvenue")).toBeOnTheScreen();
+    expect(screen.getByText("SCO")).toBeOnTheScreen();
+    expect(screen.getByTestId("tab-phone")).toBeOnTheScreen();
   });
 
   it("IndexScreen affiche home si l'utilisateur est connecté", () => {

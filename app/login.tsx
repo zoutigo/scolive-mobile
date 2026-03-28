@@ -10,26 +10,28 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type AuthTab = "phone" | "email" | "google";
 
-function GoogleMark() {
+function GoogleIcon() {
   return (
-    <View style={styles.googleMark}>
-      <Text style={styles.googleMarkText}>G</Text>
+    <View style={styles.ssoIcon}>
+      <Text style={styles.ssoIconTextBlue}>G</Text>
     </View>
   );
 }
 
-function AppleMark() {
+function AppleIcon() {
   return (
-    <View style={styles.appleMark}>
-      <Text style={styles.appleMarkText}>A</Text>
+    <View style={[styles.ssoIcon, styles.ssoIconDark]}>
+      <Text style={[styles.ssoIconTextBlue, styles.ssoIconTextWhite]}>A</Text>
     </View>
   );
 }
 
 export default function LoginScreen() {
+  const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<AuthTab>("phone");
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
@@ -37,92 +39,80 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
 
   return (
-    <KeyboardAvoidingView
-      style={styles.screen}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <StatusBar style="dark" />
+    <View style={styles.screen}>
+      <StatusBar style="light" />
 
-      <View style={styles.backgroundGlowTop} />
-      <View style={styles.backgroundGlowBottom} />
+      {/* ── En-tête sombre ─────────────────────────────────── */}
+      <View style={styles.header}>
+        {/* Blobs décoratifs */}
+        <View style={styles.blobTopRight} />
+        <View style={styles.blobBottomLeft} />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.hero}>
-          <Text style={styles.brandWordmark}>SCOLIVE</Text>
-          <View style={styles.brandRule} />
-
-          <Text style={styles.title}>Bienvenue</Text>
-          <Text style={styles.subtitle}>Accedez a votre espace scolaire.</Text>
+        {/* Marque */}
+        <View style={styles.brandRow}>
+          <Text style={styles.brandNameWhite}>SCO</Text>
+          <Text style={styles.brandNameGold}>LIVE</Text>
         </View>
+        <View style={styles.brandAccent} />
 
-        <View style={styles.card}>
-          <View style={styles.tabs}>
-            <Pressable
-              testID="tab-phone"
-              onPress={() => setTab("phone")}
-              style={[styles.tab, tab === "phone" && styles.tabActive]}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  tab === "phone" && styles.tabTextActive,
-                ]}
+        {/* Tagline */}
+        <Text style={styles.tagline}>Votre école en temps réel.</Text>
+      </View>
+
+      {/* ── Card (formulaire) ──────────────────────────────── */}
+      <View style={styles.cardOuter}>
+        <KeyboardAvoidingView
+          style={styles.kav}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          scrollIndicatorInsets={{ bottom: 40 }}
+        >
+          {/* Onglets */}
+          <View style={styles.tabBar}>
+            {(["phone", "email", "google"] as AuthTab[]).map((t) => (
+              <Pressable
+                key={t}
+                testID={`tab-${t}`}
+                onPress={() => setTab(t)}
+                style={[styles.tab, tab === t && styles.tabActive]}
               >
-                Téléphone
-              </Text>
-            </Pressable>
-            <Pressable
-              testID="tab-email"
-              onPress={() => setTab("email")}
-              style={[styles.tab, tab === "email" && styles.tabActive]}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  tab === "email" && styles.tabTextActive,
-                ]}
-              >
-                Email
-              </Text>
-            </Pressable>
-            <Pressable
-              testID="tab-google"
-              onPress={() => setTab("google")}
-              style={[styles.tab, tab === "google" && styles.tabActive]}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  tab === "google" && styles.tabTextActive,
-                ]}
-              >
-                Google
-              </Text>
-            </Pressable>
+                <Text
+                  style={[styles.tabText, tab === t && styles.tabTextActive]}
+                >
+                  {t === "phone"
+                    ? "Téléphone"
+                    : t === "email"
+                      ? "Email"
+                      : "Google"}
+                </Text>
+              </Pressable>
+            ))}
           </View>
 
-          <View style={styles.headerBlock}>
-            <Text style={styles.cardSubtitle}>
-              Choisissez votre mode d&apos;accès.
-            </Text>
-          </View>
-
+          {/* Téléphone */}
           {tab === "phone" ? (
             <View style={styles.form} testID="panel-phone">
               <View style={styles.fieldGroup}>
-                <Text style={styles.label}>Numero de telephone</Text>
-                <TextInput
-                  testID="input-phone"
-                  value={phone}
-                  onChangeText={setPhone}
-                  placeholder="6XXXXXXXX"
-                  keyboardType="phone-pad"
-                  style={styles.input}
-                  placeholderTextColor="#8A847D"
-                />
+                <Text style={styles.label}>Numéro de téléphone</Text>
+                <View style={styles.phoneRow}>
+                  <View style={styles.dialCode}>
+                    <Text style={styles.dialCodeText}>+237</Text>
+                  </View>
+                  <TextInput
+                    testID="input-phone"
+                    value={phone}
+                    onChangeText={setPhone}
+                    placeholder="6XX XXX XXX"
+                    keyboardType="phone-pad"
+                    style={[styles.input, styles.inputFlex]}
+                    placeholderTextColor="#9B9490"
+                  />
+                </View>
               </View>
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>Code PIN</Text>
@@ -130,21 +120,21 @@ export default function LoginScreen() {
                   testID="input-pin"
                   value={pin}
                   onChangeText={setPin}
-                  placeholder="123456"
+                  placeholder="6 chiffres"
                   keyboardType="number-pad"
                   style={styles.input}
-                  placeholderTextColor="#8A847D"
+                  placeholderTextColor="#9B9490"
                   secureTextEntry
+                  maxLength={6}
                 />
               </View>
               <Pressable style={styles.primaryButton} testID="submit-login">
-                <Text style={styles.primaryButtonText}>
-                  Entrer dans l&apos;espace
-                </Text>
+                <Text style={styles.primaryButtonText}>Se connecter</Text>
               </Pressable>
             </View>
           ) : null}
 
+          {/* Email */}
           {tab === "email" ? (
             <View style={styles.form} testID="panel-email">
               <View style={styles.fieldGroup}>
@@ -153,11 +143,11 @@ export default function LoginScreen() {
                   testID="input-email"
                   value={email}
                   onChangeText={setEmail}
-                  placeholder="prenom.nom@etablissement.fr"
+                  placeholder="nom@etablissement.cm"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   style={styles.input}
-                  placeholderTextColor="#8A847D"
+                  placeholderTextColor="#9B9490"
                 />
               </View>
               <View style={styles.fieldGroup}>
@@ -169,251 +159,278 @@ export default function LoginScreen() {
                   placeholder="Votre mot de passe"
                   secureTextEntry
                   style={styles.input}
-                  placeholderTextColor="#8A847D"
+                  placeholderTextColor="#9B9490"
                 />
               </View>
               <Pressable style={styles.primaryButton} testID="submit-login">
-                <Text style={styles.primaryButtonText}>Continuer</Text>
+                <Text style={styles.primaryButtonText}>Se connecter</Text>
               </Pressable>
             </View>
           ) : null}
 
+          {/* Google / Apple SSO */}
           {tab === "google" ? (
             <View style={styles.form} testID="panel-google">
-              <View style={styles.ssoPanel}>
-                <Text style={styles.ssoTitle}>Connexion Google</Text>
-                <Text style={styles.ssoSubtitle}>
-                  Accès rapide avec votre compte.
-                </Text>
-              </View>
-
+              <Text style={styles.ssoInfo}>
+                Accès instantané avec votre compte existant.
+              </Text>
               <Pressable style={styles.ssoButton} testID="sso-google">
-                <View style={styles.ssoButtonLeft}>
-                  <GoogleMark />
+                <View style={styles.ssoButtonInner}>
+                  <GoogleIcon />
                   <Text style={styles.ssoButtonText}>
                     Continuer avec Google
                   </Text>
                 </View>
-                <Text style={styles.ssoArrow}>›</Text>
+                <Text style={styles.ssoChevron}>›</Text>
               </Pressable>
-
               <Pressable style={styles.ssoButtonMuted} testID="sso-apple">
-                <View style={styles.ssoButtonLeft}>
-                  <AppleMark />
+                <View style={styles.ssoButtonInner}>
+                  <AppleIcon />
                   <Text style={styles.ssoButtonTextMuted}>
                     Continuer avec Apple
                   </Text>
                 </View>
-                <Text style={styles.ssoMutedHint}>Bientot</Text>
+                <Text style={styles.comingSoon}>BIENTÔT</Text>
               </Pressable>
             </View>
           ) : null}
-        </View>
+        </ScrollView>
+        </KeyboardAvoidingView>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerCopy}>
-            © 2026 Scolive. Tous droits reserves.
+        {/* Copyright — juste au-dessus de la barre de navigation */}
+        <View style={[styles.copyrightBar, { bottom: insets.bottom }]}>
+          <Text style={styles.copyright}>
+            © 2026 Scolive. Tous droits réservés.
           </Text>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+    </View>
   );
 }
 
+const BLUE = "#08467D";
+const BLUE_LIGHT = "#0C5FA8";
+const GOLD = "#F7C260";
+const AMBER = "#C06A1A";
+
 const styles = StyleSheet.create({
+  // ── Écran ──────────────────────────────────────────────────
   screen: {
     flex: 1,
-    backgroundColor: "#F7F1E8",
+    backgroundColor: BLUE,
+  },
+
+  // ── En-tête ────────────────────────────────────────────────
+  header: {
+    paddingTop: 64,
+    paddingHorizontal: 28,
+    paddingBottom: 48,
+    overflow: "hidden",
+  },
+  blobTopRight: {
+    position: "absolute",
+    top: -30,
+    right: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 999,
+    backgroundColor: GOLD,
+    opacity: 0.12,
+  },
+  blobBottomLeft: {
+    position: "absolute",
+    bottom: -20,
+    left: -40,
+    width: 140,
+    height: 140,
+    borderRadius: 999,
+    backgroundColor: "#E07B2A",
+    opacity: 0.15,
+  },
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+  },
+  brandNameWhite: {
+    color: "#FFFFFF",
+    fontSize: 22,
+    fontWeight: "900",
+    letterSpacing: 5,
+  },
+  brandNameGold: {
+    color: GOLD,
+    fontSize: 22,
+    fontWeight: "900",
+    letterSpacing: 5,
+  },
+  brandAccent: {
+    width: 44,
+    height: 3,
+    borderRadius: 999,
+    backgroundColor: GOLD,
+    marginTop: 12,
+  },
+  tagline: {
+    color: "#FFFFFF",
+    fontSize: 30,
+    fontWeight: "800",
+    lineHeight: 36,
+    letterSpacing: -0.8,
+    marginTop: 28,
+  },
+
+  // ── Card ───────────────────────────────────────────────────
+  cardOuter: {
+    flex: 1,
+    backgroundColor: "#FFFCF8",
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    overflow: "hidden",
+  },
+  kav: {
+    flex: 1,
+  },
+  scroll: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
-    paddingHorizontal: 22,
-    paddingTop: 22,
-    paddingBottom: 36,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 56,
+    gap: 24,
   },
-  backgroundGlowTop: {
-    position: "absolute",
-    top: -20,
-    right: -30,
-    width: 210,
-    height: 210,
-    borderRadius: 999,
-    backgroundColor: "#D8E9FF",
-    opacity: 0.95,
-  },
-  backgroundGlowBottom: {
-    position: "absolute",
-    bottom: 70,
-    left: -40,
-    width: 180,
-    height: 180,
-    borderRadius: 999,
-    backgroundColor: "#F2D9BC",
-    opacity: 0.8,
-  },
-  hero: {
-    marginBottom: 24,
-    gap: 10,
-    alignItems: "center",
-    paddingTop: 10,
-  },
-  brandWordmark: {
-    color: "#0C5FA8",
-    fontSize: 24,
-    lineHeight: 26,
-    fontWeight: "900",
-    letterSpacing: 4.8,
-    textAlign: "center",
-  },
-  brandRule: {
-    width: 72,
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: "#D89B5B",
-    opacity: 0.9,
-  },
-  title: {
-    color: "#1F2933",
-    fontSize: 36,
-    lineHeight: 40,
-    fontWeight: "900",
-    letterSpacing: -1.4,
-    textAlign: "center",
-    marginTop: 4,
-  },
-  subtitle: {
-    color: "#5F5A52",
-    fontSize: 14,
-    lineHeight: 20,
-    maxWidth: 260,
-    textAlign: "center",
-  },
-  card: {
-    backgroundColor: "rgba(255, 252, 248, 0.95)",
-    borderRadius: 26,
-    borderWidth: 1,
-    borderColor: "#E5D8C8",
-    padding: 20,
-    gap: 16,
-    shadowColor: "#55371A",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 6,
-  },
-  tabs: {
+
+  // ── Onglets ────────────────────────────────────────────────
+  tabBar: {
     flexDirection: "row",
-    gap: 8,
+    backgroundColor: "#EFE8DE",
+    borderRadius: 14,
+    padding: 4,
+    gap: 2,
   },
   tab: {
     flex: 1,
-    borderRadius: 14,
-    backgroundColor: "#F5EBDD",
-    paddingVertical: 11,
-    paddingHorizontal: 8,
+    borderRadius: 10,
+    paddingVertical: 10,
     alignItems: "center",
   },
   tabActive: {
-    backgroundColor: "#0C5FA8",
+    backgroundColor: BLUE,
+    shadowColor: BLUE,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
   },
   tabText: {
-    color: "#6B6259",
-    fontSize: 14,
-    fontWeight: "800",
+    color: "#7A6F65",
+    fontSize: 13,
+    fontWeight: "700",
   },
   tabTextActive: {
     color: "#FFFFFF",
   },
-  headerBlock: {
-    gap: 6,
-  },
-  cardSubtitle: {
-    color: "#6A625A",
-    fontSize: 13,
-    lineHeight: 18,
-    textAlign: "center",
-  },
+
+  // ── Formulaire ─────────────────────────────────────────────
   form: {
-    gap: 16,
+    gap: 18,
   },
   fieldGroup: {
     gap: 8,
   },
   label: {
     color: "#1F2933",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
+    letterSpacing: 0.1,
   },
   input: {
-    backgroundColor: "#FFFDFC",
-    borderWidth: 1,
-    borderColor: "#E8CCAE",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#E2D6CA",
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
     color: "#1F2933",
   },
+  inputFlex: {
+    flex: 1,
+    borderLeftWidth: 0,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+  },
+  phoneRow: {
+    flexDirection: "row",
+  },
+  dialCode: {
+    backgroundColor: "#FDF0DF",
+    borderWidth: 1.5,
+    borderRightWidth: 0,
+    borderColor: "#E2D6CA",
+    borderTopLeftRadius: 14,
+    borderBottomLeftRadius: 14,
+    paddingHorizontal: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  dialCodeText: {
+    color: AMBER,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
+  // ── Bouton principal ───────────────────────────────────────
   primaryButton: {
-    marginTop: 4,
-    backgroundColor: "#0C5FA8",
-    borderRadius: 16,
+    backgroundColor: BLUE,
+    borderRadius: 14,
     paddingVertical: 15,
     alignItems: "center",
-    shadowColor: "#0C5FA8",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
-    elevation: 4,
+    marginTop: 4,
+    shadowColor: AMBER,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 5,
   },
   primaryButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "800",
-    letterSpacing: 0.1,
+    letterSpacing: 0.2,
   },
-  ssoPanel: {
-    backgroundColor: "#F7EFE5",
-    borderRadius: 16,
-    padding: 15,
-    gap: 4,
-    borderWidth: 1,
-    borderColor: "#E9D4BC",
-  },
-  ssoTitle: {
-    color: "#1F2933",
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  ssoSubtitle: {
+
+  // ── SSO ────────────────────────────────────────────────────
+  ssoInfo: {
     color: "#6A625A",
     fontSize: 14,
     lineHeight: 21,
+    textAlign: "center",
   },
   ssoButton: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 14,
+    borderWidth: 1.5,
     borderColor: "#D5E4F8",
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 15,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   ssoButtonMuted: {
     backgroundColor: "#F8F4EF",
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 14,
+    borderWidth: 1.5,
     borderColor: "#E9DED1",
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 15,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  ssoButtonLeft: {
+  ssoButtonInner: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -428,21 +445,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
   },
-  ssoArrow: {
-    color: "#0C5FA8",
+  ssoChevron: {
+    color: BLUE_LIGHT,
     fontSize: 24,
     lineHeight: 24,
   },
-  ssoMutedHint: {
+  comingSoon: {
     color: "#8A6B45",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "800",
-    textTransform: "uppercase",
     letterSpacing: 0.8,
   },
-  googleMark: {
-    width: 28,
-    height: 28,
+  ssoIcon: {
+    width: 30,
+    height: 30,
     borderRadius: 999,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
@@ -450,32 +466,32 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  googleMarkText: {
-    color: "#0C5FA8",
+  ssoIconDark: {
+    backgroundColor: "#1F2933",
+    borderColor: "#1F2933",
+  },
+  ssoIconTextBlue: {
+    color: BLUE_LIGHT,
     fontSize: 15,
     fontWeight: "900",
   },
-  appleMark: {
-    width: 28,
-    height: 28,
-    borderRadius: 999,
-    backgroundColor: "#1F2933",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  appleMarkText: {
+  ssoIconTextWhite: {
     color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "900",
   },
-  footer: {
-    marginTop: 16,
-    alignItems: "center",
-    gap: 4,
-    paddingBottom: 6,
+
+  // ── Copyright (ancré en bas) ───────────────────────────────
+  copyrightBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 12,
+    backgroundColor: "#FFFCF8",
+    zIndex: 10,
+    elevation: 10,
   },
-  footerCopy: {
-    color: "#857A70",
+  copyright: {
+    color: "#B0A496",
     fontSize: 12,
     textAlign: "center",
   },
