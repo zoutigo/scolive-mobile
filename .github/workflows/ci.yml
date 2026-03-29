@@ -75,7 +75,7 @@ jobs:
 
       - name: Start Metro bundler
         run: |
-          nohup env NODE_ENV=development EXPO_NO_DEVTOOLS=1 npx expo start --localhost --max-workers 2 >/tmp/metro.log 2>&1 &
+          nohup env NODE_ENV=development EXPO_NO_DEVTOOLS=1 EXPO_UNSTABLE_HEADLESS=1 npx expo start --localhost --max-workers 2 >/tmp/metro.log 2>&1 &
           echo $! > /tmp/metro.pid
           echo "Metro PID: $(cat /tmp/metro.pid)"
 
