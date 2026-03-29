@@ -162,10 +162,17 @@ jobs:
 
       - name: Warm Metro bundle
         run: |
-          curl -fsS --retry 3 --retry-all-errors \
-            "http://127.0.0.1:8081/index.bundle?platform=android&dev=true&minify=false" \
-            -o /tmp/index.android.bundle
-          wc -c /tmp/index.android.bundle
+          for i in {1..30}; do
+            if curl -fsS \
+              "http://localhost:8081/index.bundle?platform=android&dev=true&minify=false" \
+              -o /tmp/index.android.bundle; then
+              wc -c /tmp/index.android.bundle
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Metro bundle warmup failed."
+          exit 1
 
       - name: Run E2E tests for ${{ matrix.suite }}
         uses: reactivecircus/android-emulator-runner@v2
