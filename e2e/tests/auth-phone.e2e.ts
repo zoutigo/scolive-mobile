@@ -47,7 +47,19 @@ async function waitForHomeScreen(): Promise<void> {
 }
 
 async function resetToLoginScreen(): Promise<void> {
-  await device.reloadReactNative();
+  try {
+    await waitForLoginScreen();
+    return;
+  } catch {
+    // L'application n'est pas encore sur le login.
+  }
+
+  try {
+    await device.reloadReactNative();
+  } catch {
+    await device.launchApp({ newInstance: true });
+  }
+
   try {
     await waitFor(element(by.id("logout-button")))
       .toBeVisible()
@@ -89,11 +101,6 @@ const VALID_PIN = "123456";
 // ────────────── Suite principale ─────────────────────────────────────────────
 
 describe("Auth — Login par téléphone", () => {
-  beforeAll(async () => {
-    await device.launchApp({ newInstance: true });
-    await waitForLoginScreen();
-  });
-
   afterAll(async () => {
     await device.terminateApp();
   });

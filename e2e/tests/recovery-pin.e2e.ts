@@ -32,7 +32,19 @@ async function waitForLoginScreen(): Promise<void> {
 }
 
 async function resetToLoginScreen(): Promise<void> {
-  await device.reloadReactNative();
+  try {
+    await waitForLoginScreen();
+    return;
+  } catch {
+    // L'application n'est pas encore sur le login.
+  }
+
+  try {
+    await device.reloadReactNative();
+  } catch {
+    await device.launchApp({ newInstance: true });
+  }
+
   await waitForLoginScreen();
 }
 
@@ -97,11 +109,6 @@ const VALID_NEW_PIN = "654321";
 // ── Suite ─────────────────────────────────────────────────────────────────────
 
 describe("Récupération de PIN", () => {
-  beforeAll(async () => {
-    await device.launchApp({ newInstance: true });
-    await waitForLoginScreen();
-  });
-
   afterAll(async () => {
     await device.terminateApp();
   });
