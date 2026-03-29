@@ -23,6 +23,8 @@
     "prepare": "sh scripts/setup-git-hooks.sh",
     "e2e:build": "detox build --configuration android.emu.debug",
     "e2e:test": "detox test --configuration android.emu.debug",
+    "e2e:build:ci": "detox build --configuration android.emu.release",
+    "e2e:test:ci": "detox test --configuration android.emu.release",
     "e2e": "npm run e2e:build && npm run e2e:test"
   },
   "jest": {

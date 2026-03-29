@@ -17,10 +17,20 @@ module.exports = {
       type: "android.apk",
       // APK produit par le build debug standard
       binaryPath: "android/app/build/outputs/apk/debug/app-debug.apk",
-      // Compile l'APK app + l'APK d'instrumentation Detox sans New Architecture.
-      // Detox plante encore avec Fabric/React 0.83 sur notre stack Android CI.
+      testBinaryPath:
+        "android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+      // Configuration locale historique pour le debug/Metro.
       build:
-        "cd android && sh ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug -PnewArchEnabled=false -PreactNativeArchitectures=x86_64 --no-daemon",
+        "cd android && sh ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug -PreactNativeArchitectures=x86_64 --no-daemon",
+    },
+    "android.release": {
+      type: "android.apk",
+      binaryPath: "android/app/build/outputs/apk/release/app-release.apk",
+      testBinaryPath:
+        "android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk",
+      // Build embarqué pour les campagnes E2E dédiées: pas de Metro ni de DevSupport.
+      build:
+        "cd android && sh ./gradlew assembleRelease assembleAndroidTest -DtestBuildType=release -PreactNativeArchitectures=x86_64 --no-daemon",
     },
   },
 
@@ -37,6 +47,10 @@ module.exports = {
     "android.emu.debug": {
       device: "emulator",
       app: "android.debug",
+    },
+    "android.emu.release": {
+      device: "emulator",
+      app: "android.release",
     },
   },
 };
