@@ -11,7 +11,7 @@ module.exports = {
   // Detox impose l'exécution séquentielle
   maxWorkers: 1,
   bail: 1,
-  testTimeout: 120000,
+  testTimeout: 300000,
 
   // Infrastructure Detox
   globalSetup: "<rootDir>/e2e/global-setup.js",

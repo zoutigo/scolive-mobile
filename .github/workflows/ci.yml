@@ -160,6 +160,13 @@ jobs:
           echo "Metro did not become ready in time."
           exit 1
 
+      - name: Warm Metro bundle
+        run: |
+          curl -fsS --retry 3 --retry-all-errors \
+            "http://127.0.0.1:8081/index.bundle?platform=android&dev=true&minify=false" \
+            -o /tmp/index.android.bundle
+          wc -c /tmp/index.android.bundle
+
       - name: Run E2E tests for ${{ matrix.suite }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
