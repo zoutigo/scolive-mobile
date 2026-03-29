@@ -68,6 +68,11 @@ async function expectError(expectedText: string): Promise<void> {
   await expect(element(by.id("error-message"))).toHaveText(expectedText);
 }
 
+async function resetToLoginScreen(): Promise<void> {
+  await device.launchApp({ newInstance: true });
+  await waitForLoginScreen();
+}
+
 async function submitEmailLogin(
   email: string,
   password: string,
@@ -166,19 +171,13 @@ async function completePhoneOnboarding(): Promise<void> {
 }
 
 describe("Onboarding mobile", () => {
-  beforeAll(async () => {
-    await device.launchApp({ newInstance: true, delete: true });
-    await waitForLoginScreen();
-  });
-
   afterAll(async () => {
     await device.terminateApp();
   });
 
   describe("Validation client", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
-      await waitForLoginScreen();
+      await resetToLoginScreen();
     });
 
     it("valide le mot de passe provisoire en étape 1 email", async () => {
@@ -225,8 +224,7 @@ describe("Onboarding mobile", () => {
 
   describe("Parcours complet", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
-      await waitForLoginScreen();
+      await resetToLoginScreen();
     });
 
     it("termine le workflow email de première connexion", async () => {
@@ -257,8 +255,7 @@ describe("Onboarding mobile", () => {
 
   describe("Erreurs API", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
-      await waitForLoginScreen();
+      await resetToLoginScreen();
     });
 
     it("affiche l'erreur backend sur la finalisation email", async () => {

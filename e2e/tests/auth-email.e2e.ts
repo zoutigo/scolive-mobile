@@ -46,6 +46,11 @@ async function waitForHomeScreen(): Promise<void> {
     .withTimeout(SUBMIT_TIMEOUT);
 }
 
+async function resetToLoginScreen(): Promise<void> {
+  await device.launchApp({ newInstance: true });
+  await waitForLoginScreen();
+}
+
 async function submitEmailLogin(
   email: string,
   password: string,
@@ -75,19 +80,13 @@ async function expectError(expectedText: string): Promise<void> {
 }
 
 describe("Auth — Login par email", () => {
-  beforeAll(async () => {
-    await device.launchApp({ newInstance: true, delete: true });
-    await waitForLoginScreen();
-  });
-
   afterAll(async () => {
     await device.terminateApp();
   });
 
   describe("Validation côté client", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
-      await waitForLoginScreen();
+      await resetToLoginScreen();
     });
 
     it("affiche une erreur si l'adresse email est invalide", async () => {
@@ -115,8 +114,7 @@ describe("Auth — Login par email", () => {
 
   describe("Erreurs API", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
-      await waitForLoginScreen();
+      await resetToLoginScreen();
     });
 
     it('affiche "Identifiants incorrects" sur une réponse 401', async () => {
@@ -156,8 +154,7 @@ describe("Auth — Login par email", () => {
 
   describe("Transitions de workflow", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
-      await waitForLoginScreen();
+      await resetToLoginScreen();
     });
 
     it("redirige vers l'onboarding si le mot de passe doit être changé", async () => {
@@ -187,8 +184,7 @@ describe("Auth — Login par email", () => {
 
   describe("Retry et succès", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
-      await waitForLoginScreen();
+      await resetToLoginScreen();
       await setScenario("happy_path");
     });
 

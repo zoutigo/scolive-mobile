@@ -192,7 +192,7 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: npx detox test --configuration android.emu.debug --reuse --cleanup --jest-report-specs --record-logs failing -- --runTestsByPath e2e/tests/${{ matrix.suite }}
+          script: npx detox test --configuration android.emu.debug --cleanup --jest-report-specs --record-logs failing -- --runTestsByPath e2e/tests/${{ matrix.suite }}
 
       - name: Dump Metro log on failure
         if: failure()

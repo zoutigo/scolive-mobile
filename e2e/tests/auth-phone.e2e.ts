@@ -46,6 +46,11 @@ async function waitForHomeScreen(): Promise<void> {
     .withTimeout(SUBMIT_TIMEOUT);
 }
 
+async function resetToLoginScreen(): Promise<void> {
+  await device.launchApp({ newInstance: true });
+  await waitForLoginScreen();
+}
+
 /** Remplit les champs téléphone et PIN puis soumet. */
 async function submitPhoneLogin(phone: string, pin: string): Promise<void> {
   await element(by.id("input-phone")).tap();
@@ -76,12 +81,6 @@ const VALID_PIN = "123456";
 // ────────────── Suite principale ─────────────────────────────────────────────
 
 describe("Auth — Login par téléphone", () => {
-  beforeAll(async () => {
-    // Démarre l'app dans un état complètement propre (SecureStore effacé)
-    await device.launchApp({ newInstance: true, delete: true });
-    await waitForLoginScreen();
-  });
-
   afterAll(async () => {
     await device.terminateApp();
   });
@@ -91,9 +90,7 @@ describe("Auth — Login par téléphone", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Validation côté client", () => {
     beforeEach(async () => {
-      // Rechargement JS sans effacer SecureStore (aucun token stocké ici)
-      await device.reloadReactNative();
-      await waitForLoginScreen();
+      await resetToLoginScreen();
     });
 
     it("affiche une erreur si le numéro a moins de 8 chiffres", async () => {
@@ -137,8 +134,7 @@ describe("Auth — Login par téléphone", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Erreurs API", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
-      await waitForLoginScreen();
+      await resetToLoginScreen();
     });
 
     it('affiche "Identifiants incorrects" sur une réponse 401', async () => {
@@ -181,9 +177,7 @@ describe("Auth — Login par téléphone", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Retry après erreur", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
-      await waitForLoginScreen();
-      // Réinitialise le scénario en happy_path avant chaque test
+      await resetToLoginScreen();
       await setScenario("happy_path");
     });
 
@@ -218,8 +212,7 @@ describe("Auth — Login par téléphone", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Visibilité clavier — champs visibles au focus", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
-      await waitForLoginScreen();
+      await resetToLoginScreen();
     });
 
     it("input-pin reste visible après ouverture du clavier", async () => {
@@ -247,8 +240,7 @@ describe("Auth — Login par téléphone", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Connexion réussie", () => {
     beforeAll(async () => {
-      await device.reloadReactNative();
-      await waitForLoginScreen();
+      await resetToLoginScreen();
       await setScenario("happy_path");
     });
 
