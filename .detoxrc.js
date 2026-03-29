@@ -17,9 +17,10 @@ module.exports = {
       type: "android.apk",
       // APK produit par le build debug standard
       binaryPath: "android/app/build/outputs/apk/debug/app-debug.apk",
-      // Compile l'APK app + l'APK d'instrumentation Detox
+      // Compile l'APK app + l'APK d'instrumentation Detox sans New Architecture.
+      // Detox plante encore avec Fabric/React 0.83 sur notre stack Android CI.
       build:
-        "cd android && sh ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug -PreactNativeArchitectures=x86_64 --no-daemon",
+        "cd android && sh ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug -PnewArchEnabled=false -PreactNativeArchitectures=x86_64 --no-daemon",
     },
   },
 
