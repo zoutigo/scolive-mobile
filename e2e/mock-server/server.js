@@ -5,9 +5,12 @@
  *
  * Endpoints applicatifs (appelés depuis l'app Android via 10.0.2.2:3001) :
  *   POST /api/auth/login-phone                  → pilotée par currentScenario
+ *   POST /api/auth/login                        → pilotée par currentEmailLoginScenario
  *   POST /api/auth/logout                       → 204
  *   POST /api/auth/refresh                      → 401
  *   GET  /api/health                            → 200
+ *   GET  /api/auth/onboarding/options           → pilotée par currentOnboardingScenario
+ *   POST /api/auth/onboarding/complete          → pilotée par currentOnboardingScenario
  *   POST /api/auth/forgot-pin/options           → pilotée par currentPinScenario
  *   POST /api/auth/forgot-pin/verify            → pilotée par currentPinScenario
  *   POST /api/auth/forgot-pin/complete          → pilotée par currentPinScenario
@@ -17,7 +20,9 @@
  *   POST /api/auth/forgot-password/complete     → pilotée par currentPwdScenario
  *
  * Endpoints de contrôle (appelés depuis les tests Jest sur localhost:3001) :
- *   POST /__scenario              → change le scénario de login
+ *   POST /__scenario              → change le scénario de login téléphone
+ *   POST /__scenario/email-login  → change le scénario de login email
+ *   POST /__scenario/onboarding   → change le scénario d'onboarding
  *   POST /__scenario/pin          → change le scénario de récupération PIN
  *   POST /__scenario/password     → change le scénario de récupération mot de passe
  */
@@ -79,6 +84,41 @@ const SCENARIOS = {
 
   // Simule une erreur réseau : la socket est détruite avant l'envoi d'une réponse
   network_error: { closeImmediately: true },
+  profile_setup_required: {
+    status: 403,
+    body: {
+      code: "PROFILE_SETUP_REQUIRED",
+      message: "Profile setup required",
+      statusCode: 403,
+      schoolSlug: "ecole-demo",
+      setupToken: "setup-token-phone",
+    },
+  },
+};
+
+const EMAIL_LOGIN_SCENARIOS = {
+  happy_path: {
+    status: 200,
+    body: {
+      accessToken: "e2e-email-access-token-valid",
+      refreshToken: "e2e-email-refresh-token-valid",
+      tokenType: "Bearer",
+      expiresIn: 86400,
+      refreshExpiresIn: 2592000,
+      schoolSlug: "ecole-demo",
+      csrfToken: "e2e-csrf",
+    },
+  },
+  password_change_required: {
+    status: 403,
+    body: {
+      code: "PASSWORD_CHANGE_REQUIRED",
+      message: "Password change required",
+      statusCode: 403,
+      email: "parent@ecole.cm",
+      schoolSlug: "ecole-demo",
+    },
+  },
 };
 
 // ────────────────────────── Scénarios récupération PIN ──────────────────────────
@@ -113,6 +153,8 @@ const MOCK_PIN_QUESTIONS = [
 // ────────────────────────── État courant ──────────────────────────
 
 let currentScenario = "happy_path";
+let currentEmailLoginScenario = "happy_path";
+let currentOnboardingScenario = "email_parent_happy";
 let currentPinScenario = "happy_path";
 let currentPwdScenario = "happy_path";
 let server = null;
@@ -142,6 +184,8 @@ function handleRequest(req, res) {
   // ── Endpoints de contrôle (tests → mock server) ─────────────
   if (
     url === "/__scenario" ||
+    url === "/__scenario/email-login" ||
+    url === "/__scenario/onboarding" ||
     url === "/__scenario/pin" ||
     url === "/__scenario/password"
   ) {
@@ -156,6 +200,15 @@ function handleRequest(req, res) {
               });
             }
             currentScenario = scenario;
+          } else if (url === "/__scenario/email-login") {
+            if (!EMAIL_LOGIN_SCENARIOS[scenario]) {
+              return json(res, 400, {
+                error: `Scénario login email inconnu : "${scenario}"`,
+              });
+            }
+            currentEmailLoginScenario = scenario;
+          } else if (url === "/__scenario/onboarding") {
+            currentOnboardingScenario = scenario;
           } else if (url === "/__scenario/pin") {
             currentPinScenario = scenario;
           } else {
@@ -172,6 +225,8 @@ function handleRequest(req, res) {
     if (method === "GET") {
       return json(res, 200, {
         login: currentScenario,
+        emailLogin: currentEmailLoginScenario,
+        onboarding: currentOnboardingScenario,
         pin: currentPinScenario,
         password: currentPwdScenario,
       });
@@ -206,6 +261,58 @@ function handleRequest(req, res) {
       return;
     }
     return json(res, scenario.status, scenario.body);
+  }
+
+  if (method === "POST" && url === "/api/auth/login") {
+    const scenario = EMAIL_LOGIN_SCENARIOS[currentEmailLoginScenario];
+    return json(res, scenario.status, scenario.body);
+  }
+
+  if (method === "GET" && url.startsWith("/api/auth/onboarding/options")) {
+    if (currentOnboardingScenario === "options_error") {
+      return json(res, 400, {
+        message: "Impossible de charger les options d'activation.",
+        statusCode: 400,
+      });
+    }
+
+    if (currentOnboardingScenario === "phone_happy") {
+      return json(res, 200, {
+        schoolSlug: "ecole-demo",
+        schoolRoles: ["TEACHER"],
+        questions: MOCK_PIN_QUESTIONS,
+        classes: [],
+        students: [],
+      });
+    }
+
+    return json(res, 200, {
+      schoolSlug: "ecole-demo",
+      schoolRoles: ["PARENT"],
+      questions: [
+        ...MOCK_PIN_QUESTIONS,
+        { key: "FAVORITE_BOOK", label: "Votre livre préféré" },
+      ],
+      classes: [{ id: "class-1", name: "6e A", year: "2025-2026" }],
+      students: [{ id: "student-1", firstName: "Paul", lastName: "MBELE" }],
+    });
+  }
+
+  if (method === "POST" && url === "/api/auth/onboarding/complete") {
+    if (currentOnboardingScenario === "complete_email_in_use") {
+      return json(res, 403, {
+        message: "Cette adresse email est deja utilisee.",
+        statusCode: 403,
+      });
+    }
+    if (currentOnboardingScenario === "invalid_activation") {
+      return json(res, 401, {
+        code: "INVALID_CREDENTIALS",
+        message: "Invalid credentials",
+        statusCode: 401,
+      });
+    }
+    return json(res, 200, { success: true, schoolSlug: "ecole-demo" });
   }
 
   // ── Récupération PIN ─────────────────────────────────────────

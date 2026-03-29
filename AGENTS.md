@@ -11,11 +11,13 @@ Android pan nativement la fenêtre pour garder le champ focalisé visible. Tout 
 de scroll est superflu et entre en conflit avec Fabric (New Architecture).
 
 Imports interdits dans les composants formulaire :
+
 - `Keyboard` (pour `addListener("keyboardDidShow", ...)`)
 - `useRef<ScrollView>` couplé à `scrollTo` sur `onFocus`
 - `onLayout` pour mesurer des positions Y dans le but de scroller
 
 Pattern correct :
+
 ```tsx
 <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
   <ScrollView keyboardShouldPersistTaps="handled">
@@ -36,7 +38,9 @@ Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignor
   un test de visibilité post-focus :
   ```typescript
   await element(by.id("input-answer-2")).tap();
-  await waitFor(element(by.id("input-answer-2"))).toBeVisible().withTimeout(2000);
+  await waitFor(element(by.id("input-answer-2")))
+    .toBeVisible()
+    .withTimeout(2000);
   ```
 - `npm run e2e:build` → rebuild APK Detox (requis après changement natif)
 - `npm run e2e:test` → lance les tests (émulateur + Metro doivent tourner)
@@ -44,9 +48,11 @@ Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignor
 ## Rebuild natif obligatoire
 
 Après tout changement dans `android/` (AndroidManifest, build.gradle, fichiers Kotlin) :
+
 ```bash
 npm run android:build
 ```
+
 Un simple reload Metro (`r` dans le terminal Metro) ne suffit pas.
 
 ## API mobile
@@ -61,5 +67,18 @@ Un simple reload Metro (`r` dans le terminal Metro) ne suffit pas.
 | Fichier                     | Route                | Description                          |
 | --------------------------- | -------------------- | ------------------------------------ |
 | `app/login.tsx`             | `/login`             | Login Téléphone / Email / SSO        |
+| `app/onboarding.tsx`        | `/onboarding`        | Première connexion / activation      |
 | `app/recovery/pin.tsx`      | `/recovery/pin`      | Récupération PIN (3 étapes)          |
 | `app/recovery/password.tsx` | `/recovery/password` | Récupération mot de passe (4 étapes) |
+
+## Workflow de première connexion
+
+- Le mobile implémente le même onboarding que le web
+- Branche email : mot de passe provisoire -> nouveau mot de passe -> profil -> questions de récupération
+- Branche phone : email optionnel + `setupToken` -> profil -> nouveau PIN -> questions de récupération
+- Le login redirige vers `/onboarding` sur `PASSWORD_CHANGE_REQUIRED` et `PROFILE_SETUP_REQUIRED`
+- Les payloads passent par `src/api/auth.api.ts` :
+  - `getOnboardingOptions({ email | setupToken })`
+  - `completeOnboarding(...)`
+- Les tests unitaires associés vivent dans `__tests__/auth/onboarding.test.tsx`
+- Les scénarios Detox associés vivent dans `e2e/tests/onboarding.e2e.ts`

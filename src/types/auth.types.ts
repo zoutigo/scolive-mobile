@@ -46,6 +46,7 @@ export interface ApiError extends Error {
   statusCode?: number;
   schoolSlug?: string | null;
   email?: string | null;
+  setupToken?: string | null;
 }
 
 export type SsoProvider = "GOOGLE" | "APPLE";

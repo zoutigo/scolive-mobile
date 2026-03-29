@@ -81,6 +81,71 @@ describe("authApi.refresh", () => {
   });
 });
 
+describe("authApi.getOnboardingOptions", () => {
+  it("appelle GET /auth/onboarding/options avec email", async () => {
+    mockApiFetch.mockResolvedValue({ schoolRoles: [] });
+
+    await authApi.getOnboardingOptions({ email: "parent@ecole.cm" });
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/auth/onboarding/options?email=parent%40ecole.cm",
+    );
+  });
+
+  it("appelle GET /auth/onboarding/options avec setupToken", async () => {
+    mockApiFetch.mockResolvedValue({ schoolRoles: [] });
+
+    await authApi.getOnboardingOptions({ setupToken: "setup-token" });
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/auth/onboarding/options?setupToken=setup-token",
+    );
+  });
+});
+
+describe("authApi.completeOnboarding", () => {
+  it("appelle POST /auth/onboarding/complete", async () => {
+    mockApiFetch.mockResolvedValue({ success: true });
+
+    await authApi.completeOnboarding({
+      email: "parent@ecole.cm",
+      temporaryPassword: "TempPass11",
+      newPassword: "NewPassWord9",
+      firstName: "Lisa",
+      lastName: "Mbele",
+      gender: "F",
+      birthDate: "1987-01-09",
+      answers: [
+        { questionKey: "MOTHER_MAIDEN_NAME", answer: "Abena" },
+        { questionKey: "BIRTH_CITY", answer: "Douala" },
+        { questionKey: "FAVORITE_SPORT", answer: "Basket" },
+      ],
+      parentClassId: "class-1",
+      parentStudentId: "student-1",
+    });
+
+    expect(mockApiFetch).toHaveBeenCalledWith("/auth/onboarding/complete", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "parent@ecole.cm",
+        temporaryPassword: "TempPass11",
+        newPassword: "NewPassWord9",
+        firstName: "Lisa",
+        lastName: "Mbele",
+        gender: "F",
+        birthDate: "1987-01-09",
+        answers: [
+          { questionKey: "MOTHER_MAIDEN_NAME", answer: "Abena" },
+          { questionKey: "BIRTH_CITY", answer: "Douala" },
+          { questionKey: "FAVORITE_SPORT", answer: "Basket" },
+        ],
+        parentClassId: "class-1",
+        parentStudentId: "student-1",
+      }),
+    });
+  });
+});
+
 describe("authApi.logout", () => {
   it("récupère le refreshToken depuis le storage et appelle POST /auth/logout", async () => {
     mockStorage.getRefreshToken.mockResolvedValue("stored-refresh");

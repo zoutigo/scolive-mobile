@@ -20,13 +20,39 @@ Repo GitHub : `git@github.com:zoutigo/scolive-mobile.git`
 
 ## Écrans existants
 
-| Fichier                       | Route              | Description                                             |
-| ----------------------------- | ------------------ | ------------------------------------------------------- |
-| `app/_layout.tsx`             | root               | Stack layout, header masqué, animation slide_from_right |
-| `app/index.tsx`               | `/`                | Landing page avec feature cards + bouton "Se connecter" |
-| `app/login.tsx`               | `/login`           | Login avec 3 onglets : Téléphone (défaut), Email, SSO   |
-| `app/recovery/pin.tsx`        | `/recovery/pin`    | Récupération de PIN en 3 étapes + écran succès          |
-| `app/recovery/password.tsx`   | `/recovery/password` | Récupération de mot de passe en 4 étapes + succès     |
+| Fichier                     | Route                | Description                                             |
+| --------------------------- | -------------------- | ------------------------------------------------------- |
+| `app/_layout.tsx`           | root                 | Stack layout, header masqué, animation slide_from_right |
+| `app/index.tsx`             | `/`                  | Landing page avec feature cards + bouton "Se connecter" |
+| `app/login.tsx`             | `/login`             | Login avec 3 onglets : Téléphone (défaut), Email, SSO   |
+| `app/onboarding.tsx`        | `/onboarding`        | Première connexion / activation en plusieurs étapes     |
+| `app/recovery/pin.tsx`      | `/recovery/pin`      | Récupération de PIN en 3 étapes + écran succès          |
+| `app/recovery/password.tsx` | `/recovery/password` | Récupération de mot de passe en 4 étapes + succès       |
+
+## Workflow de première connexion
+
+Le mobile implémente désormais le même flux d'onboarding que le web :
+
+- **Email** : mot de passe provisoire, nouveau mot de passe, profil, questions de récupération
+- **Téléphone** : email optionnel + `setupToken`, profil, changement du PIN, questions de récupération
+
+Déclenchement depuis `app/login.tsx` :
+
+- `PASSWORD_CHANGE_REQUIRED` -> redirection vers `/onboarding` avec `email`
+- `PROFILE_SETUP_REQUIRED` -> redirection vers `/onboarding`
+  - branche email : `email`
+  - branche phone : `setupToken` + `schoolSlug`
+
+Contrats API mobile :
+
+- `src/api/auth.api.ts#getOnboardingOptions`
+- `src/api/auth.api.ts#completeOnboarding`
+
+Couverture de tests :
+
+- unitaires : `__tests__/auth/onboarding.test.tsx`
+- navigation login : `__tests__/screens/login.test.tsx`
+- e2e mockés : `e2e/tests/onboarding.e2e.ts`
 
 ## Comportement clavier Android — règle absolue
 

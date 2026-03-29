@@ -10,6 +10,9 @@ import { authApi } from "../../src/api/auth.api";
 import { useAuthStore } from "../../src/store/auth.store";
 
 jest.mock("expo-status-bar", () => ({ StatusBar: () => null }));
+jest.mock("expo-router", () => ({
+  router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
+}));
 jest.mock("../../src/api/auth.api");
 jest.mock("../../src/store/auth.store", () => ({ useAuthStore: jest.fn() }));
 
@@ -17,6 +20,9 @@ const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<
   typeof useAuthStore
 >;
+const { router: mockRouter } = require("expo-router") as {
+  router: { push: jest.Mock; replace: jest.Mock; back: jest.Mock };
+};
 
 const mockHandleLoginResponse = jest.fn().mockResolvedValue(undefined);
 
@@ -33,6 +39,9 @@ function makeApiError(code: string, status = 401) {
   const err = new Error(code) as Error & {
     code: string;
     statusCode: number;
+    email?: string | null;
+    schoolSlug?: string | null;
+    setupToken?: string | null;
   };
   err.code = code;
   err.statusCode = status;
@@ -187,6 +196,29 @@ describe("Formulaire Téléphone — soumission", () => {
     });
   });
 
+  it("redirige vers l'onboarding si le profil téléphone doit être complété", async () => {
+    const err = makeApiError("PROFILE_SETUP_REQUIRED", 403);
+    err.setupToken = "setup-token-phone";
+    err.schoolSlug = "lycee-bilingue";
+    mockAuthApi.loginPhone.mockRejectedValueOnce(err);
+    render(<LoginScreen />);
+
+    fireEvent.changeText(screen.getByTestId("input-phone"), "612345678");
+    fireEvent.changeText(screen.getByTestId("input-pin"), "123456");
+    fireEvent.press(screen.getByTestId("submit-login"));
+
+    await waitFor(() =>
+      expect(mockRouter.push).toHaveBeenCalledWith({
+        pathname: "/onboarding",
+        params: {
+          schoolSlug: "lycee-bilingue",
+          setupToken: "setup-token-phone",
+        },
+      }),
+    );
+    expect(screen.queryByTestId("error-message")).toBeNull();
+  });
+
   it("affiche une erreur INVALID_CREDENTIALS", async () => {
     mockAuthApi.loginPhone.mockRejectedValueOnce(
       makeApiError("INVALID_CREDENTIALS"),
@@ -335,6 +367,55 @@ describe("Formulaire Email — soumission", () => {
       );
       expect(mockHandleLoginResponse).toHaveBeenCalledWith(fakeLoginResponse);
     });
+  });
+
+  it("redirige vers l'onboarding si le mot de passe doit être changé", async () => {
+    const err = makeApiError("PASSWORD_CHANGE_REQUIRED", 403);
+    err.email = "directeur@lycee-cm.cm";
+    err.schoolSlug = "lycee-cm";
+    mockAuthApi.loginEmail.mockRejectedValueOnce(err);
+    render(<LoginScreen />);
+
+    fireEvent.press(screen.getByTestId("tab-email"));
+    fireEvent.changeText(
+      screen.getByTestId("input-email"),
+      "directeur@lycee-cm.cm",
+    );
+    fireEvent.changeText(screen.getByTestId("input-password"), "TempPass11");
+    fireEvent.press(screen.getByTestId("submit-login"));
+
+    await waitFor(() =>
+      expect(mockRouter.push).toHaveBeenCalledWith({
+        pathname: "/onboarding",
+        params: {
+          email: "directeur@lycee-cm.cm",
+          schoolSlug: "lycee-cm",
+        },
+      }),
+    );
+  });
+
+  it("redirige vers l'onboarding si le profil email doit être complété", async () => {
+    const err = makeApiError("PROFILE_SETUP_REQUIRED", 403);
+    err.email = "prof@ecole.cm";
+    err.schoolSlug = "ecole";
+    mockAuthApi.loginEmail.mockRejectedValueOnce(err);
+    render(<LoginScreen />);
+
+    fireEvent.press(screen.getByTestId("tab-email"));
+    fireEvent.changeText(screen.getByTestId("input-email"), "prof@ecole.cm");
+    fireEvent.changeText(screen.getByTestId("input-password"), "motdepasse");
+    fireEvent.press(screen.getByTestId("submit-login"));
+
+    await waitFor(() =>
+      expect(mockRouter.push).toHaveBeenCalledWith({
+        pathname: "/onboarding",
+        params: {
+          email: "prof@ecole.cm",
+          schoolSlug: "ecole",
+        },
+      }),
+    );
   });
 
   it("affiche une erreur INVALID_CREDENTIALS", async () => {

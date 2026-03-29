@@ -43,6 +43,18 @@ function parseApiError(err: unknown): string {
   }
 }
 
+function routeToOnboarding(err: ApiClientError, fallbackEmail?: string) {
+  const email = err.email ?? fallbackEmail ?? undefined;
+  router.push({
+    pathname: "/onboarding",
+    params: {
+      ...(email ? { email } : {}),
+      ...(err.schoolSlug ? { schoolSlug: err.schoolSlug } : {}),
+      ...(err.setupToken ? { setupToken: err.setupToken } : {}),
+    },
+  });
+}
+
 function GoogleIcon() {
   return (
     <View style={styles.ssoIcon}>
@@ -87,7 +99,12 @@ export default function LoginScreen() {
       const response = await authApi.loginPhone(`+237${digits}`, pin);
       await handleLoginResponse(response);
     } catch (err) {
-      setError(parseApiError(err));
+      const apiErr = err as ApiClientError;
+      if (apiErr?.code === "PROFILE_SETUP_REQUIRED" && apiErr.setupToken) {
+        routeToOnboarding(apiErr);
+        return;
+      }
+      setError(parseApiError(apiErr));
     } finally {
       setIsSubmitting(false);
     }
@@ -108,7 +125,15 @@ export default function LoginScreen() {
       const response = await authApi.loginEmail(email.trim(), password);
       await handleLoginResponse(response);
     } catch (err) {
-      setError(parseApiError(err));
+      const apiErr = err as ApiClientError;
+      if (
+        apiErr?.code === "PASSWORD_CHANGE_REQUIRED" ||
+        apiErr?.code === "PROFILE_SETUP_REQUIRED"
+      ) {
+        routeToOnboarding(apiErr, email.trim());
+        return;
+      }
+      setError(parseApiError(apiErr));
     } finally {
       setIsSubmitting(false);
     }

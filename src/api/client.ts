@@ -75,6 +75,7 @@ export async function apiFetch<T>(
     err.statusCode = response.status;
     err.email = body?.email ?? null;
     err.schoolSlug = body?.schoolSlug ?? null;
+    err.setupToken = body?.setupToken ?? null;
     throw err;
   }
 
@@ -87,4 +88,5 @@ export interface ApiClientError extends Error {
   statusCode?: number;
   email?: string | null;
   schoolSlug?: string | null;
+  setupToken?: string | null;
 }

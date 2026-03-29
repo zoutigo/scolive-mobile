@@ -1,5 +1,9 @@
 import { apiFetch, tokenStorage } from "./client";
 import type { AuthUser, LoginResponse, SsoProvider } from "../types/auth.types";
+import type {
+  OnboardingCompletePayload,
+  OnboardingOptionsResponse,
+} from "../types/onboarding.types";
 
 export const authApi = {
   loginEmail(email: string, password: string): Promise<LoginResponse> {
@@ -55,5 +59,28 @@ export const authApi = {
 
   me(schoolSlug: string): Promise<AuthUser> {
     return apiFetch(`/schools/${schoolSlug}/auth/me`, {}, true);
+  },
+
+  getOnboardingOptions(input: {
+    email?: string;
+    setupToken?: string;
+  }): Promise<OnboardingOptionsResponse> {
+    const query = new URLSearchParams();
+    if (input.email?.trim()) {
+      query.set("email", input.email.trim());
+    }
+    if (input.setupToken?.trim()) {
+      query.set("setupToken", input.setupToken.trim());
+    }
+    return apiFetch(`/auth/onboarding/options?${query.toString()}`);
+  },
+
+  completeOnboarding(
+    payload: OnboardingCompletePayload,
+  ): Promise<{ success: boolean; schoolSlug?: string | null }> {
+    return apiFetch("/auth/onboarding/complete", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
   },
 };
