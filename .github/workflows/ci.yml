@@ -162,13 +162,19 @@ jobs:
 
       - name: Warm Metro bundle
         run: |
+          urls=(
+            "http://localhost:8081/node_modules/expo-router/entry.bundle?platform=android&dev=true&minify=false"
+            "http://localhost:8081/expo-router/entry.bundle?platform=android&dev=true&minify=false"
+            "http://localhost:8081/index.bundle?platform=android&dev=true&minify=false"
+          )
           for i in {1..30}; do
-            if curl -fsS \
-              "http://localhost:8081/index.bundle?platform=android&dev=true&minify=false" \
-              -o /tmp/index.android.bundle; then
-              wc -c /tmp/index.android.bundle
-              exit 0
-            fi
+            for url in "${urls[@]}"; do
+              if curl -fsS "$url" -o /tmp/index.android.bundle; then
+                echo "Warmup URL: $url"
+                wc -c /tmp/index.android.bundle
+                exit 0
+              fi
+            done
             sleep 2
           done
           echo "Metro bundle warmup failed."
