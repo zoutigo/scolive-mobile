@@ -53,8 +53,92 @@ jobs:
           path: android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
           if-no-files-found: error
 
-  e2e:
+  e2e-smoke:
     needs: e2e-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Install emulator runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpulse0
+
+      - name: Download app release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: detox-app-release-apk
+          path: android/app/build/outputs/apk/release
+
+      - name: Download release androidTest APK
+        uses: actions/download-artifact@v4
+        with:
+          name: detox-app-release-androidTest-apk
+          path: android/app/build/outputs/apk/androidTest/release
+
+      - name: Run smoke E2E
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          arch: x86_64
+          profile: pixel_5
+          avd-name: Scolive_Dev_AOSP_API33
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            mkdir -p /tmp/detox-artifacts
+            touch /tmp/adb-logcat.txt
+            set +e
+            npx detox test --configuration android.emu.release --cleanup --jest-report-specs --record-logs failing --artifacts-location /tmp/detox-artifacts -- --runTestsByPath e2e/tests/smoke.e2e.ts
+            status=$?
+            if [ "$status" -ne 0 ]; then
+              adb -s emulator-5554 logcat -d >/tmp/adb-logcat.txt 2>&1 || true
+              tail -n 400 /tmp/adb-logcat.txt || true
+            fi
+            exit "$status"
+
+      - name: Upload smoke ADB logcat
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adb-logcat-smoke
+          path: /tmp/adb-logcat.txt
+          if-no-files-found: ignore
+
+      - name: Upload smoke Detox artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: detox-artifacts-smoke
+          path: /tmp/detox-artifacts
+          if-no-files-found: ignore
+
+  e2e:
+    needs:
+      - e2e-build
+      - e2e-smoke
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
