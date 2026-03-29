@@ -2,6 +2,10 @@
  * Tests E2E — Première connexion / onboarding
  */
 
+import { by, device, element, expect, waitFor } from "detox";
+
+export {};
+
 const MOCK_CONTROL_URL = "http://localhost:3001/__scenario";
 const LOGIN_SCREEN_TIMEOUT = 10_000;
 const SUBMIT_TIMEOUT = 8_000;

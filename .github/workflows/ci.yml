@@ -67,6 +67,11 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Install emulator runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpulse0
+
       - name: Build Detox APKs
         run: npm run e2e:build
 

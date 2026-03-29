@@ -5,6 +5,10 @@
  * L'API réelle NE doit PAS tourner sur le port 3001.
  */
 
+import { by, device, element, expect, waitFor } from "detox";
+
+export {};
+
 const MOCK_CONTROL_URL = "http://localhost:3001/__scenario";
 const TIMEOUT = 10_000;
 const SUBMIT_TIMEOUT = 8_000;

@@ -10,6 +10,10 @@
  * Lancement : npm run e2e:test
  */
 
+import { by, device, element, expect, waitFor } from "detox";
+
+export {};
+
 // ────────────── Helpers ──────────────────────────────────────────────────────
 
 const MOCK_CONTROL_URL = "http://localhost:3001/__scenario";
