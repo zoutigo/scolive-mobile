@@ -42,9 +42,62 @@ jobs:
       - name: Unit tests
         run: npm test
 
-  e2e:
+  e2e-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 35
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Build Detox APKs
+        run: npm run e2e:build
+
+      - name: Upload app debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: detox-app-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Upload androidTest APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: detox-app-debug-androidTest-apk
+          path: android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          if-no-files-found: error
+
+  e2e:
+    needs: e2e-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          - auth-email.e2e.ts
+          - auth-phone.e2e.ts
+          - onboarding.e2e.ts
+          - recovery-password.e2e.ts
+          - recovery-pin.e2e.ts
     permissions:
       contents: read
 
@@ -73,6 +126,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libpulse0
 
+      - name: Download app debug APK
+        uses: actions/download-artifact@v4
+        with:
+          name: detox-app-debug-apk
+          path: android/app/build/outputs/apk/debug
+
+      - name: Download androidTest APK
+        uses: actions/download-artifact@v4
+        with:
+          name: detox-app-debug-androidTest-apk
+          path: android/app/build/outputs/apk/androidTest/debug
+
       - name: Start Metro bundler
         run: |
           nohup env NODE_ENV=development EXPO_NO_DEVTOOLS=1 EXPO_UNSTABLE_HEADLESS=1 npx expo start --localhost --max-workers 2 >/tmp/metro.log 2>&1 &
@@ -94,9 +159,6 @@ jobs:
           done
           echo "Metro did not become ready in time."
           exit 1
-
-      - name: Build Detox APKs
-        run: npm run e2e:build
 
       - name: AVD cache
         uses: actions/cache@v4
@@ -120,7 +182,7 @@ jobs:
           disable-animations: false
           script: echo "AVD snapshot generated."
 
-      - name: Run E2E tests
+      - name: Run E2E tests for ${{ matrix.suite }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 33
@@ -130,7 +192,7 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: npm run e2e:test
+          script: npx detox test --configuration android.emu.debug --reuse --cleanup --jest-report-specs --record-logs failing -- --runTestsByPath e2e/tests/${{ matrix.suite }}
 
       - name: Dump Metro log on failure
         if: failure()
@@ -145,6 +207,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: metro-log
+          name: metro-log-${{ matrix.suite }}
           path: /tmp/metro.log
           if-no-files-found: ignore

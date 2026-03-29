@@ -32,7 +32,7 @@ async function waitForLoginScreen(): Promise<void> {
 }
 
 async function resetToLoginScreen(): Promise<void> {
-  await device.launchApp({ newInstance: true, delete: true });
+  await device.launchApp({ newInstance: true });
   await waitForLoginScreen();
 }
 
