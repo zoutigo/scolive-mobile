@@ -172,7 +172,7 @@ async function completePhoneOnboarding(): Promise<void> {
 
 describe("Onboarding mobile", () => {
   beforeAll(async () => {
-    await device.launchApp({ newInstance: true, delete: true });
+    await device.launchApp({ newInstance: true });
     await waitForLoginScreen();
   });
 

@@ -98,7 +98,7 @@ const VALID_NEW_PIN = "654321";
 
 describe("Récupération de PIN", () => {
   beforeAll(async () => {
-    await device.launchApp({ newInstance: true, delete: true });
+    await device.launchApp({ newInstance: true });
     await waitForLoginScreen();
   });
 

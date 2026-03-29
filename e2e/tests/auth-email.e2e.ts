@@ -89,7 +89,7 @@ async function expectError(expectedText: string): Promise<void> {
 
 describe("Auth — Login par email", () => {
   beforeAll(async () => {
-    await device.launchApp({ newInstance: true, delete: true });
+    await device.launchApp({ newInstance: true });
     await waitForLoginScreen();
   });
 

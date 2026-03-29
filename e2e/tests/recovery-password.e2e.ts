@@ -111,7 +111,7 @@ const VALID_NEW_PASSWORD = "NewValidPass1";
 
 describe("Récupération de mot de passe", () => {
   beforeAll(async () => {
-    await device.launchApp({ newInstance: true, delete: true });
+    await device.launchApp({ newInstance: true });
     await waitForLoginScreen();
   });
 

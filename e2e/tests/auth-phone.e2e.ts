@@ -90,7 +90,7 @@ const VALID_PIN = "123456";
 
 describe("Auth — Login par téléphone", () => {
   beforeAll(async () => {
-    await device.launchApp({ newInstance: true, delete: true });
+    await device.launchApp({ newInstance: true });
     await waitForLoginScreen();
   });
 
