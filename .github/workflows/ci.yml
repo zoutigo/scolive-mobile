@@ -66,11 +66,18 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          cache: gradle
 
       - name: Install emulator runtime dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libpulse0
+
+      - name: Start Metro bundler
+        run: |
+          nohup env NODE_ENV=development EXPO_NO_DEVTOOLS=1 npx expo start --localhost --max-workers 2 >/tmp/metro.log 2>&1 &
+          echo $! > /tmp/metro.pid
+          echo "Metro PID: $(cat /tmp/metro.pid)"
 
       - name: Build Detox APKs
         run: npm run e2e:build
@@ -96,11 +103,6 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: false
           script: echo "AVD snapshot generated."
-
-      - name: Start Metro bundler
-        run: |
-          NODE_ENV=development EXPO_NO_DEVTOOLS=1 npx expo start --localhost --max-workers 2 &
-          echo "Metro PID: $!"
 
       - name: Run E2E tests
         uses: reactivecircus/android-emulator-runner@v2

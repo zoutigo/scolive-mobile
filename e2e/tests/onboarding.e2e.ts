@@ -271,5 +271,23 @@ describe("Onboarding mobile", () => {
 
       await expectError("Cette adresse email est deja utilisee.");
     });
+
+    it("affiche une erreur si les options d'onboarding ne chargent pas", async () => {
+      await setEmailLoginScenario("password_change_required");
+      await setOnboardingScenario("options_error");
+
+      await submitEmailLogin("parent@ecole.cm", "TempPass11");
+      await expectError("Impossible de charger les options d'activation.");
+    });
+
+    it("affiche une erreur backend sur la finalisation phone", async () => {
+      await setPhoneLoginScenario("profile_setup_required");
+      await setOnboardingScenario("invalid_activation");
+
+      await submitPhoneLogin("650000001", "123456");
+      await completePhoneOnboarding();
+
+      await expectError("Identifiants incorrects. Vérifiez vos informations.");
+    });
   });
 });

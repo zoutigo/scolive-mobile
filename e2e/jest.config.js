@@ -10,6 +10,7 @@ module.exports = {
 
   // Detox impose l'exécution séquentielle
   maxWorkers: 1,
+  bail: 1,
   testTimeout: 120000,
 
   // Infrastructure Detox

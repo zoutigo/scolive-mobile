@@ -119,6 +119,50 @@ const EMAIL_LOGIN_SCENARIOS = {
       schoolSlug: "ecole-demo",
     },
   },
+  invalid_credentials: {
+    status: 401,
+    body: {
+      message: "Invalid credentials",
+      error: "Unauthorized",
+      statusCode: 401,
+    },
+  },
+  rate_limited: {
+    status: 429,
+    body: {
+      code: "AUTH_RATE_LIMITED",
+      message: "Too many attempts",
+      statusCode: 429,
+    },
+  },
+  account_suspended: {
+    status: 403,
+    body: {
+      code: "ACCOUNT_SUSPENDED",
+      message: "Account suspended",
+      statusCode: 403,
+    },
+  },
+  not_activated: {
+    status: 403,
+    body: {
+      code: "ACCOUNT_VALIDATION_REQUIRED",
+      message: "Account not activated",
+      statusCode: 403,
+    },
+  },
+  profile_setup_required: {
+    status: 403,
+    body: {
+      code: "PROFILE_SETUP_REQUIRED",
+      message: "Profile setup required",
+      statusCode: 403,
+      email: "prof@ecole.cm",
+      schoolSlug: "ecole-demo",
+      setupToken: "setup-token-email",
+    },
+  },
+  network_error: { closeImmediately: true },
 };
 
 // ────────────────────────── Scénarios récupération PIN ──────────────────────────
@@ -265,6 +309,10 @@ function handleRequest(req, res) {
 
   if (method === "POST" && url === "/api/auth/login") {
     const scenario = EMAIL_LOGIN_SCENARIOS[currentEmailLoginScenario];
+    if (scenario.closeImmediately) {
+      req.socket.destroy();
+      return;
+    }
     return json(res, scenario.status, scenario.body);
   }
 
