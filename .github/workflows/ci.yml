@@ -82,7 +82,11 @@ jobs:
       - name: Wait for Metro
         run: |
           for i in {1..60}; do
-            if curl -fsS http://127.0.0.1:8081/status | grep -q "packager-status:running"; then
+            if curl -fsS http://localhost:8081/status | grep -q "packager-status:running"; then
+              echo "Metro is ready via localhost /status."
+              exit 0
+            fi
+            if curl -fsS http://localhost:8081 >/dev/null; then
               echo "Metro is ready."
               exit 0
             fi
