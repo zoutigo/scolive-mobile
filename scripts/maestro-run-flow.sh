@@ -74,4 +74,26 @@ set_scenario "/__scenario/onboarding" "${ONBOARDING_SCENARIO:-email_parent_happy
 set_scenario "/__scenario/pin" "${PIN_SCENARIO:-happy_path}"
 set_scenario "/__scenario/password" "${PASSWORD_SCENARIO:-happy_path}"
 
+dismiss_system_anr() {
+  local dumpsys_output=""
+
+  for _ in $(seq 1 10); do
+    dumpsys_output="$(adb shell dumpsys window displays 2>/dev/null || true)"
+    if [[ "$dumpsys_output" != *"Application Not Responding: system"* ]]; then
+      return 0
+    fi
+
+    adb shell input tap 360 860 >/dev/null 2>&1 || true
+    sleep 1
+  done
+
+  return 0
+}
+
+adb shell am force-stop com.zoutigo.scoliveapp >/dev/null 2>&1 || true
+adb shell pm clear com.zoutigo.scoliveapp >/dev/null 2>&1 || true
+adb shell monkey -p com.zoutigo.scoliveapp -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
+sleep 2
+dismiss_system_anr
+
 "$MAESTRO_BIN" test "$FLOW_PATH" "$@"
