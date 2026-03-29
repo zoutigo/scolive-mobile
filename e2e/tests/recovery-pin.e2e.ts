@@ -32,7 +32,7 @@ async function waitForLoginScreen(): Promise<void> {
 }
 
 async function resetToLoginScreen(): Promise<void> {
-  await device.launchApp({ newInstance: true });
+  await device.launchApp({ newInstance: true, delete: true });
   await waitForLoginScreen();
 }
 
@@ -97,11 +97,6 @@ const VALID_NEW_PIN = "654321";
 // ── Suite ─────────────────────────────────────────────────────────────────────
 
 describe("Récupération de PIN", () => {
-  beforeAll(async () => {
-    await device.launchApp({ newInstance: true, delete: true });
-    await waitForLoginScreen();
-  });
-
   afterAll(async () => {
     await device.terminateApp();
   });
