@@ -300,7 +300,44 @@ describe("Récupération de mot de passe", () => {
   });
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 8. Happy path complet
+  // 8. Visibilité clavier — adjustPan garde les champs visibles au focus
+  // ──────────────────────────────────────────────────────────────────────────
+  describe("Visibilité clavier — champs visibles au focus", () => {
+    beforeEach(async () => {
+      await device.reloadReactNative();
+      await setPwdScenario("happy_path");
+      await navigateToPasswordRecovery();
+      await fillStep1Email(VALID_EMAIL);
+      await fillStep2Token(VALID_TOKEN);
+      await waitForStep("step-3");
+    });
+
+    it("le 3e champ réponse reste visible après ouverture du clavier", async () => {
+      await element(by.id("input-answer-2")).tap();
+      await waitFor(element(by.id("input-answer-2")))
+        .toBeVisible()
+        .withTimeout(2000);
+    });
+
+    it("le champ date de naissance reste visible après ouverture du clavier", async () => {
+      await element(by.id("input-birthdate")).tap();
+      await waitFor(element(by.id("input-birthdate")))
+        .toBeVisible()
+        .withTimeout(2000);
+    });
+
+    it("le champ confirmation mot de passe reste visible au focus sur step-4", async () => {
+      await fillStep3(VALID_BIRTH_DATE, VALID_ANSWERS);
+      await waitForStep("step-4");
+      await element(by.id("input-confirm-password")).tap();
+      await waitFor(element(by.id("input-confirm-password")))
+        .toBeVisible()
+        .withTimeout(2000);
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 10. Happy path complet
   // ──────────────────────────────────────────────────────────────────────────
   describe("Happy path — Récupération complète", () => {
     beforeAll(async () => {

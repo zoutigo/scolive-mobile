@@ -20,11 +20,44 @@ Repo GitHub : `git@github.com:zoutigo/scolive-mobile.git`
 
 ## Écrans existants
 
-| Fichier           | Route    | Description                                             |
-| ----------------- | -------- | ------------------------------------------------------- |
-| `app/_layout.tsx` | root     | Stack layout, header masqué, animation slide_from_right |
-| `app/index.tsx`   | `/`      | Landing page avec feature cards + bouton "Se connecter" |
-| `app/login.tsx`   | `/login` | Login avec 3 onglets : Téléphone (défaut), Email, SSO   |
+| Fichier                       | Route              | Description                                             |
+| ----------------------------- | ------------------ | ------------------------------------------------------- |
+| `app/_layout.tsx`             | root               | Stack layout, header masqué, animation slide_from_right |
+| `app/index.tsx`               | `/`                | Landing page avec feature cards + bouton "Se connecter" |
+| `app/login.tsx`               | `/login`           | Login avec 3 onglets : Téléphone (défaut), Email, SSO   |
+| `app/recovery/pin.tsx`        | `/recovery/pin`    | Récupération de PIN en 3 étapes + écran succès          |
+| `app/recovery/password.tsx`   | `/recovery/password` | Récupération de mot de passe en 4 étapes + succès     |
+
+## Comportement clavier Android — règle absolue
+
+`android:windowSoftInputMode="adjustPan"` est configuré dans `android/app/src/main/AndroidManifest.xml`.
+
+**Android pan nativement la fenêtre pour garder le champ focalisé visible** quand le clavier s'ouvre. Ce comportement s'applique automatiquement à tous les écrans sans aucun code JavaScript supplémentaire.
+
+### Ce qu'il NE FAUT PAS faire dans les formulaires
+
+```tsx
+// ❌ Interdit : scroll JavaScript au focus
+Keyboard.addListener("keyboardDidShow", ...)
+scrollRef.current?.scrollTo(...)
+onFocus={() => scrollToField(...)}
+onLayout={(e) => { someY.current = e.nativeEvent.layout.y; }}
+```
+
+### Ce qu'il FAUT faire
+
+```tsx
+// ✅ Correct : ScrollView simple, KeyboardAvoidingView uniquement pour iOS
+<KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+  <ScrollView keyboardShouldPersistTaps="handled">
+    <TextInput ... />  {/* adjustPan gère la visibilité nativement */}
+  </ScrollView>
+</KeyboardAvoidingView>
+```
+
+> **Contexte** : Avec React Native Fabric (New Architecture) + `adjustResize`, `ScrollView.scrollTo()` est écrasé par le layout manager Android après chaque ouverture de clavier. `adjustPan` évite ce conflit en agissant au niveau natif avant tout re-layout.
+
+> **Rebuild requis** : tout changement dans `AndroidManifest.xml` nécessite `npm run android:build` (pas seulement un reload Metro).
 
 ## Lancer sur l'émulateur
 

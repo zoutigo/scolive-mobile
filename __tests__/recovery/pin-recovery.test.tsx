@@ -144,7 +144,6 @@ describe("pinRecoveryStep1PhoneSchema", () => {
   });
 });
 
-
 describe("pinRecoveryStep3Schema", () => {
   it("accepte un PIN à 6 chiffres correspondants", () => {
     expect(
@@ -279,7 +278,6 @@ describe("PinRecoveryScreen", () => {
       const err = await findByTestId("error-phone");
       expect(err.props.children).toContain("9 chiffres");
     });
-
 
     it("affiche l'erreur API sur NOT_FOUND", async () => {
       mockOptions.mockRejectedValueOnce({ code: "NOT_FOUND", statusCode: 404 });

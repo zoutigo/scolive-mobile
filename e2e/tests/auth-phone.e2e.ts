@@ -210,7 +210,36 @@ describe("Auth — Login par téléphone", () => {
   });
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 4. Connexion réussie (en dernier — laisse des tokens dans SecureStore)
+  // 4. Visibilité clavier — adjustPan garde les champs visibles au focus
+  // ──────────────────────────────────────────────────────────────────────────
+  describe("Visibilité clavier — champs visibles au focus", () => {
+    beforeEach(async () => {
+      await device.reloadReactNative();
+      await waitForLoginScreen();
+    });
+
+    it("input-pin reste visible après ouverture du clavier", async () => {
+      await element(by.id("input-phone")).tap();
+      await element(by.id("input-phone")).typeText(VALID_PHONE);
+      await element(by.id("input-pin")).tap();
+      await waitFor(element(by.id("input-pin")))
+        .toBeVisible()
+        .withTimeout(2000);
+    });
+
+    it("input-password (onglet Email) reste visible après ouverture du clavier", async () => {
+      await element(by.id("tab-email")).tap();
+      await element(by.id("input-email")).tap();
+      await element(by.id("input-email")).typeText("test@test.cm");
+      await element(by.id("input-password")).tap();
+      await waitFor(element(by.id("input-password")))
+        .toBeVisible()
+        .withTimeout(2000);
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 5. Connexion réussie (en dernier — laisse des tokens dans SecureStore)
   // ──────────────────────────────────────────────────────────────────────────
   describe("Connexion réussie", () => {
     beforeAll(async () => {

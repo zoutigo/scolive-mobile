@@ -123,7 +123,6 @@ describe("Récupération de PIN", () => {
         .toBeVisible()
         .withTimeout(3000);
     });
-
   });
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -221,7 +220,44 @@ describe("Récupération de PIN", () => {
   });
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 6. Happy path complet
+  // 6. Visibilité clavier — adjustPan garde les champs visibles au focus
+  // ──────────────────────────────────────────────────────────────────────────
+  describe("Visibilité clavier — champs visibles au focus", () => {
+    beforeEach(async () => {
+      await device.reloadReactNative();
+      await setPinScenario("happy_path");
+      await navigateToPinRecovery();
+      await fillStep1Phone(VALID_PHONE);
+      await waitForPinRecoveryStep("step-2");
+    });
+
+    it("le 3e champ réponse reste visible après ouverture du clavier", async () => {
+      // Le 3e champ (index 2) est en bas d'écran et était masqué avant adjustPan
+      await element(by.id("input-answer-2")).tap();
+      await waitFor(element(by.id("input-answer-2")))
+        .toBeVisible()
+        .withTimeout(2000);
+    });
+
+    it("le champ date de naissance reste visible après ouverture du clavier", async () => {
+      await element(by.id("input-birthdate")).tap();
+      await waitFor(element(by.id("input-birthdate")))
+        .toBeVisible()
+        .withTimeout(2000);
+    });
+
+    it("le champ confirmation PIN reste visible au focus sur step-3", async () => {
+      await fillStep2(VALID_BIRTH_DATE, VALID_ANSWERS);
+      await waitForPinRecoveryStep("step-3");
+      await element(by.id("input-confirm-pin")).tap();
+      await waitFor(element(by.id("input-confirm-pin")))
+        .toBeVisible()
+        .withTimeout(2000);
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 8. Happy path complet
   // ──────────────────────────────────────────────────────────────────────────
   describe("Happy path — Récupération complète", () => {
     beforeAll(async () => {
