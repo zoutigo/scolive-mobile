@@ -32,6 +32,11 @@ async function waitForLoginScreen(): Promise<void> {
     .withTimeout(TIMEOUT);
 }
 
+async function resetToLoginScreen(): Promise<void> {
+  await device.launchApp({ newInstance: true });
+  await waitForLoginScreen();
+}
+
 async function waitForStep(stepId: string): Promise<void> {
   await waitFor(element(by.id(stepId)))
     .toBeVisible()
@@ -119,7 +124,7 @@ describe("Récupération de mot de passe", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Validation côté client — Step 1", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
+      await resetToLoginScreen();
       await navigateToPasswordRecovery();
     });
 
@@ -150,7 +155,7 @@ describe("Récupération de mot de passe", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Erreurs API — Step 1", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
+      await resetToLoginScreen();
       await navigateToPasswordRecovery();
     });
 
@@ -166,7 +171,7 @@ describe("Récupération de mot de passe", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Validation côté client — Step 2", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
+      await resetToLoginScreen();
       await setPwdScenario("happy_path");
       await navigateToPasswordRecovery();
       await fillStep1Email(VALID_EMAIL);
@@ -198,7 +203,7 @@ describe("Récupération de mot de passe", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Erreurs API — Step 2", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
+      await resetToLoginScreen();
       await setPwdScenario("happy_path");
       await navigateToPasswordRecovery();
       await fillStep1Email(VALID_EMAIL);
@@ -222,7 +227,7 @@ describe("Récupération de mot de passe", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Erreurs API — Step 3", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
+      await resetToLoginScreen();
       await setPwdScenario("happy_path");
       await navigateToPasswordRecovery();
       await fillStep1Email(VALID_EMAIL);
@@ -241,7 +246,7 @@ describe("Récupération de mot de passe", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Validation côté client — Step 4", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
+      await resetToLoginScreen();
       await setPwdScenario("happy_path");
       await navigateToPasswordRecovery();
       await fillStep1Email(VALID_EMAIL);
@@ -286,7 +291,7 @@ describe("Récupération de mot de passe", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Erreurs API — Step 4", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
+      await resetToLoginScreen();
       await setPwdScenario("happy_path");
       await navigateToPasswordRecovery();
       await fillStep1Email(VALID_EMAIL);
@@ -308,7 +313,7 @@ describe("Récupération de mot de passe", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Visibilité clavier — champs visibles au focus", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
+      await resetToLoginScreen();
       await setPwdScenario("happy_path");
       await navigateToPasswordRecovery();
       await fillStep1Email(VALID_EMAIL);
@@ -344,8 +349,8 @@ describe("Récupération de mot de passe", () => {
   // 10. Happy path complet
   // ──────────────────────────────────────────────────────────────────────────
   describe("Happy path — Récupération complète", () => {
-    beforeAll(async () => {
-      await device.reloadReactNative();
+    beforeEach(async () => {
+      await resetToLoginScreen();
       await setPwdScenario("happy_path");
     });
 

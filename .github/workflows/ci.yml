@@ -79,6 +79,18 @@ jobs:
           echo $! > /tmp/metro.pid
           echo "Metro PID: $(cat /tmp/metro.pid)"
 
+      - name: Wait for Metro
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:8081/status | grep -q "packager-status:running"; then
+              echo "Metro is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Metro did not become ready in time."
+          exit 1
+
       - name: Build Detox APKs
         run: npm run e2e:build
 
@@ -115,3 +127,20 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: npm run e2e:test
+
+      - name: Dump Metro log on failure
+        if: failure()
+        run: |
+          if [ -f /tmp/metro.log ]; then
+            cat /tmp/metro.log
+          else
+            echo "No Metro log found."
+          fi
+
+      - name: Upload Metro log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: metro-log
+          path: /tmp/metro.log
+          if-no-files-found: ignore

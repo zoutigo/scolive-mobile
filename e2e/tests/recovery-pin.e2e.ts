@@ -31,6 +31,11 @@ async function waitForLoginScreen(): Promise<void> {
     .withTimeout(TIMEOUT);
 }
 
+async function resetToLoginScreen(): Promise<void> {
+  await device.launchApp({ newInstance: true });
+  await waitForLoginScreen();
+}
+
 async function waitForPinRecoveryStep(stepId: string): Promise<void> {
   await waitFor(element(by.id(stepId)))
     .toBeVisible()
@@ -106,7 +111,7 @@ describe("Récupération de PIN", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Validation côté client — Step 1", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
+      await resetToLoginScreen();
       await navigateToPinRecovery();
     });
 
@@ -134,7 +139,7 @@ describe("Récupération de PIN", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Erreurs API — Step 1", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
+      await resetToLoginScreen();
       await navigateToPinRecovery();
     });
 
@@ -150,7 +155,7 @@ describe("Récupération de PIN", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Erreurs API — Step 2", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
+      await resetToLoginScreen();
       await setPinScenario("happy_path");
       await navigateToPinRecovery();
       await fillStep1Phone(VALID_PHONE);
@@ -168,7 +173,7 @@ describe("Récupération de PIN", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Erreurs API — Step 3", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
+      await resetToLoginScreen();
       await setPinScenario("happy_path");
       await navigateToPinRecovery();
       await fillStep1Phone(VALID_PHONE);
@@ -193,7 +198,7 @@ describe("Récupération de PIN", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Validation côté client — Step 3", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
+      await resetToLoginScreen();
       await setPinScenario("happy_path");
       await navigateToPinRecovery();
       await fillStep1Phone(VALID_PHONE);
@@ -228,7 +233,7 @@ describe("Récupération de PIN", () => {
   // ──────────────────────────────────────────────────────────────────────────
   describe("Visibilité clavier — champs visibles au focus", () => {
     beforeEach(async () => {
-      await device.reloadReactNative();
+      await resetToLoginScreen();
       await setPinScenario("happy_path");
       await navigateToPinRecovery();
       await fillStep1Phone(VALID_PHONE);
@@ -264,8 +269,8 @@ describe("Récupération de PIN", () => {
   // 8. Happy path complet
   // ──────────────────────────────────────────────────────────────────────────
   describe("Happy path — Récupération complète", () => {
-    beforeAll(async () => {
-      await device.reloadReactNative();
+    beforeEach(async () => {
+      await resetToLoginScreen();
       await setPinScenario("happy_path");
     });
 
