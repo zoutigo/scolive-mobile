@@ -160,28 +160,6 @@ jobs:
           echo "Metro did not become ready in time."
           exit 1
 
-      - name: AVD cache
-        uses: actions/cache@v4
-        id: avd-cache
-        with:
-          path: |
-            ~/.android/avd/*
-            ~/.android/adb*
-          key: avd-api33-${{ runner.os }}
-
-      - name: Create AVD snapshot
-        if: steps.avd-cache.outputs.cache-hit != 'true'
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 33
-          arch: x86_64
-          profile: pixel_5
-          avd-name: Scolive_Dev_AOSP_API33
-          force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          disable-animations: false
-          script: echo "AVD snapshot generated."
-
       - name: Run E2E tests for ${{ matrix.suite }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -192,7 +170,16 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: npx detox test --configuration android.emu.debug --cleanup --jest-report-specs --record-logs failing -- --runTestsByPath e2e/tests/${{ matrix.suite }}
+          script: |
+            mkdir -p /tmp/detox-artifacts
+            set +e
+            npx detox test --configuration android.emu.debug --cleanup --jest-report-specs --record-logs failing --artifacts-location /tmp/detox-artifacts -- --runTestsByPath e2e/tests/${{ matrix.suite }}
+            status=$?
+            if [ "$status" -ne 0 ]; then
+              adb logcat -d >/tmp/adb-logcat.txt || true
+              tail -n 400 /tmp/adb-logcat.txt || true
+            fi
+            exit "$status"
 
       - name: Dump Metro log on failure
         if: failure()
@@ -209,4 +196,20 @@ jobs:
         with:
           name: metro-log-${{ matrix.suite }}
           path: /tmp/metro.log
+          if-no-files-found: ignore
+
+      - name: Upload ADB logcat
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adb-logcat-${{ matrix.suite }}
+          path: /tmp/adb-logcat.txt
+          if-no-files-found: ignore
+
+      - name: Upload Detox artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: detox-artifacts-${{ matrix.suite }}
+          path: /tmp/detox-artifacts
           if-no-files-found: ignore

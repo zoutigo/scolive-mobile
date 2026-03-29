@@ -69,7 +69,7 @@ async function expectError(expectedText: string): Promise<void> {
 }
 
 async function resetToLoginScreen(): Promise<void> {
-  await device.launchApp({ newInstance: true });
+  await device.reloadReactNative();
   await waitForLoginScreen();
 }
 
@@ -171,6 +171,11 @@ async function completePhoneOnboarding(): Promise<void> {
 }
 
 describe("Onboarding mobile", () => {
+  beforeAll(async () => {
+    await device.launchApp({ newInstance: true, delete: true });
+    await waitForLoginScreen();
+  });
+
   afterAll(async () => {
     await device.terminateApp();
   });

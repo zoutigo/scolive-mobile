@@ -47,7 +47,15 @@ async function waitForHomeScreen(): Promise<void> {
 }
 
 async function resetToLoginScreen(): Promise<void> {
-  await device.launchApp({ newInstance: true });
+  await device.reloadReactNative();
+  try {
+    await waitFor(element(by.id("logout-button")))
+      .toBeVisible()
+      .withTimeout(2000);
+    await element(by.id("logout-button")).tap();
+  } catch {
+    // L'application est deja revenue au login.
+  }
   await waitForLoginScreen();
 }
 
@@ -80,6 +88,11 @@ async function expectError(expectedText: string): Promise<void> {
 }
 
 describe("Auth — Login par email", () => {
+  beforeAll(async () => {
+    await device.launchApp({ newInstance: true, delete: true });
+    await waitForLoginScreen();
+  });
+
   afterAll(async () => {
     await device.terminateApp();
   });
