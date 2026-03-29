@@ -12,7 +12,7 @@ concurrency:
 jobs:
   e2e-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 20
     permissions:
       contents: read
 
@@ -36,21 +36,14 @@ jobs:
           java-version: 17
           cache: gradle
 
-      - name: Build Detox APKs
-        run: npm run e2e:build:ci
+      - name: Build Android release APK
+        run: E2E_ANDROID_ABIS=x86_64 npm run e2e:build
 
-      - name: Upload app release APK
+      - name: Upload Android release APK
         uses: actions/upload-artifact@v4
         with:
-          name: detox-app-release-apk
+          name: android-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
-          if-no-files-found: error
-
-      - name: Upload release androidTest APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: detox-app-release-androidTest-apk
-          path: android/app/build/outputs/apk/androidTest/release/app-release-androidTest.apk
           if-no-files-found: error
 
   e2e-smoke:
@@ -80,22 +73,19 @@ jobs:
           java-version: 17
           cache: gradle
 
+      - name: Install Maestro CLI
+        run: npm run maestro:install
+
       - name: Install emulator runtime dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libpulse0
 
-      - name: Download app release APK
+      - name: Download Android release APK
         uses: actions/download-artifact@v4
         with:
-          name: detox-app-release-apk
+          name: android-release-apk
           path: android/app/build/outputs/apk/release
-
-      - name: Download release androidTest APK
-        uses: actions/download-artifact@v4
-        with:
-          name: detox-app-release-androidTest-apk
-          path: android/app/build/outputs/apk/androidTest/release
 
       - name: Run smoke E2E
         uses: reactivecircus/android-emulator-runner@v2
@@ -108,14 +98,16 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
-            mkdir -p /tmp/detox-artifacts
-            touch /tmp/adb-logcat.txt
+            export PATH="$HOME/.maestro/bin:$PATH"
+            touch /tmp/adb-logcat.txt /tmp/scolive-maestro-mock.log
             set +e
-            npx detox test --configuration android.emu.release --cleanup --jest-report-specs --record-logs failing --artifacts-location /tmp/detox-artifacts -- --runTestsByPath e2e/tests/smoke.e2e.ts
+            adb install -r android/app/build/outputs/apk/release/app-release.apk
+            npm run e2e:test:smoke
             status=$?
             if [ "$status" -ne 0 ]; then
               adb -s emulator-5554 logcat -d >/tmp/adb-logcat.txt 2>&1 || true
               tail -n 400 /tmp/adb-logcat.txt || true
+              tail -n 200 /tmp/scolive-maestro-mock.log || true
             fi
             exit "$status"
 
@@ -127,12 +119,12 @@ jobs:
           path: /tmp/adb-logcat.txt
           if-no-files-found: ignore
 
-      - name: Upload smoke Detox artifacts
+      - name: Upload smoke Maestro mock log
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: detox-artifacts-smoke
-          path: /tmp/detox-artifacts
+          name: maestro-mock-log-smoke
+          path: /tmp/scolive-maestro-mock.log
           if-no-files-found: ignore
 
   e2e:
@@ -144,12 +136,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite:
-          - auth-email.e2e.ts
-          - auth-phone.e2e.ts
-          - onboarding.e2e.ts
-          - recovery-password.e2e.ts
-          - recovery-pin.e2e.ts
+        include:
+          - name: auth-email
+            command: npm run e2e:test:auth-email
+          - name: auth-phone
+            command: npm run e2e:test:auth-phone
+          - name: onboarding-email
+            command: npm run e2e:test:onboarding-email
+          - name: onboarding-phone
+            command: npm run e2e:test:onboarding-phone
+          - name: recovery-password
+            command: npm run e2e:test:recovery-password
+          - name: recovery-pin
+            command: npm run e2e:test:recovery-pin
     permissions:
       contents: read
 
@@ -173,24 +172,21 @@ jobs:
           java-version: 17
           cache: gradle
 
+      - name: Install Maestro CLI
+        run: npm run maestro:install
+
       - name: Install emulator runtime dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libpulse0
 
-      - name: Download app release APK
+      - name: Download Android release APK
         uses: actions/download-artifact@v4
         with:
-          name: detox-app-release-apk
+          name: android-release-apk
           path: android/app/build/outputs/apk/release
 
-      - name: Download release androidTest APK
-        uses: actions/download-artifact@v4
-        with:
-          name: detox-app-release-androidTest-apk
-          path: android/app/build/outputs/apk/androidTest/release
-
-      - name: Run E2E tests for ${{ matrix.suite }}
+      - name: Run E2E tests for ${{ matrix.name }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 33
@@ -201,14 +197,16 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
-            mkdir -p /tmp/detox-artifacts
-            touch /tmp/adb-logcat.txt
+            export PATH="$HOME/.maestro/bin:$PATH"
+            touch /tmp/adb-logcat.txt /tmp/scolive-maestro-mock.log
             set +e
-            npx detox test --configuration android.emu.release --cleanup --jest-report-specs --record-logs failing --artifacts-location /tmp/detox-artifacts -- --runTestsByPath e2e/tests/${{ matrix.suite }}
+            adb install -r android/app/build/outputs/apk/release/app-release.apk
+            ${{ matrix.command }}
             status=$?
             if [ "$status" -ne 0 ]; then
               adb -s emulator-5554 logcat -d >/tmp/adb-logcat.txt 2>&1 || true
               tail -n 400 /tmp/adb-logcat.txt || true
+              tail -n 200 /tmp/scolive-maestro-mock.log || true
             fi
             exit "$status"
 
@@ -216,14 +214,14 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: adb-logcat-${{ matrix.suite }}
+          name: adb-logcat-${{ matrix.name }}
           path: /tmp/adb-logcat.txt
           if-no-files-found: ignore
 
-      - name: Upload Detox artifacts
+      - name: Upload Maestro mock log
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: detox-artifacts-${{ matrix.suite }}
-          path: /tmp/detox-artifacts
+          name: maestro-mock-log-${{ matrix.name }}
+          path: /tmp/scolive-maestro-mock.log
           if-no-files-found: ignore

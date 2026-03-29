@@ -96,11 +96,6 @@ android {
         versionName "1.0.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
-
-        // Detox E2E — instrumentation runner
-        testBuildType System.getProperty('testBuildType', 'debug')
-        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
-        missingDimensionStrategy 'detox', 'full'
     }
     buildTypes {
         debug {
@@ -152,9 +147,6 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
-
-    // Detox E2E test runner (module local du package npm pour eviter l'AAR incomplet publie)
-    androidTestImplementation(project(':detox'))
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";

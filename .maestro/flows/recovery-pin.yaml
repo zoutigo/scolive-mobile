@@ -1,0 +1,79 @@
+appId: com.zoutigo.scoliveapp
+name: PIN Recovery
+tags:
+  - recovery
+  - pin
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "link-forgot-pin"
+- extendedWaitUntil:
+    visible:
+      id: "step-1"
+    timeout: 10000
+- tapOn:
+    id: "input-phone"
+- inputText: "650000001"
+- hideKeyboard
+- tapOn:
+    id: "btn-step1"
+- extendedWaitUntil:
+    visible:
+      id: "step-2"
+    timeout: 15000
+- tapOn:
+    id: "input-birthdate"
+- inputText: "09011987"
+- tapOn:
+    id: "input-answer-0"
+- inputText: "Abena"
+- hideKeyboard
+- tapOn:
+    id: "input-answer-1"
+- inputText: "Douala"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "input-answer-2"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "input-answer-2"
+- inputText: "Basket"
+- hideKeyboard
+- tapOn:
+    id: "btn-step2"
+- extendedWaitUntil:
+    visible:
+      id: "step-3"
+    timeout: 15000
+- tapOn:
+    id: "input-new-pin"
+- inputText: "654321"
+- hideKeyboard
+- tapOn:
+    id: "input-confirm-pin"
+- inputText: "654321"
+- hideKeyboard
+- tapOn:
+    id: "btn-step3"
+- extendedWaitUntil:
+    visible:
+      id: "step-4"
+    timeout: 15000
+- tapOn:
+    id: "btn-go-login"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 10000

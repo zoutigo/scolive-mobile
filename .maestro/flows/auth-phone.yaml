@@ -1,0 +1,38 @@
+appId: com.zoutigo.scoliveapp
+name: Login Phone
+tags:
+  - auth
+  - phone
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "input-phone"
+- inputText: "650000001"
+- tapOn:
+    id: "input-pin"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- extendedWaitUntil:
+    visible:
+      id: "logout-button"
+    timeout: 20000
+- assertVisible:
+    id: "user-name"
+- tapOn:
+    id: "logout-button"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 10000

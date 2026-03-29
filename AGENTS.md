@@ -30,20 +30,19 @@ Pattern correct :
 
 Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignore`.
 
-## Tests E2E (Detox)
+## Tests E2E (Maestro)
 
-- Les tests vivent dans `e2e/tests/`
-- Le mock server (`e2e/mock-server/server.js`) remplace l'API réelle sur le port 3001
-- Chaque champ critique (en bas d'écran, susceptible d'être masqué par le clavier) doit avoir
-  un test de visibilité post-focus :
-  ```typescript
-  await element(by.id("input-answer-2")).tap();
-  await waitFor(element(by.id("input-answer-2")))
-    .toBeVisible()
-    .withTimeout(2000);
-  ```
-- `npm run e2e:build` → rebuild APK Detox (requis après changement natif)
-- `npm run e2e:test` → lance les tests (émulateur + Metro doivent tourner)
+- Les flows vivent dans `.maestro/flows/`
+- Le mock server (`.maestro/mock-server/server.js`) remplace l'API réelle sur le port 3001
+- Les commandes locales principales sont :
+  - `npm run maestro:install`
+  - `npm run e2e:build`
+  - `npm run e2e:test:smoke`
+  - `npm run e2e:test`
+- Les E2E Android du CI ne tournent plus sur chaque push/PR :
+  - workflow dédié `.github/workflows/e2e-android.yml`
+  - déclenchement nocturne en semaine
+  - déclenchement manuel possible via `workflow_dispatch`
 
 ## Rebuild natif obligatoire
 
@@ -81,4 +80,4 @@ Un simple reload Metro (`r` dans le terminal Metro) ne suffit pas.
   - `getOnboardingOptions({ email | setupToken })`
   - `completeOnboarding(...)`
 - Les tests unitaires associés vivent dans `__tests__/auth/onboarding.test.tsx`
-- Les scénarios Detox associés vivent dans `e2e/tests/onboarding.e2e.ts`
+- Les scénarios E2E associés vivent dans `.maestro/flows/onboarding-email.yaml` et `.maestro/flows/onboarding-phone.yaml`

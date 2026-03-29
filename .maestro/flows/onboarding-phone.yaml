@@ -1,0 +1,110 @@
+appId: com.zoutigo.scoliveapp
+name: First Login Phone
+tags:
+  - onboarding
+  - phone
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "input-phone"
+- inputText: "650000001"
+- tapOn:
+    id: "input-pin"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- extendedWaitUntil:
+    visible:
+      id: "step-1"
+    timeout: 20000
+- tapOn:
+    id: "btn-step1"
+- extendedWaitUntil:
+    visible:
+      id: "step-2"
+    timeout: 15000
+- tapOn:
+    id: "input-first-name"
+- inputText: "Jean"
+- hideKeyboard
+- tapOn:
+    id: "input-last-name"
+- inputText: "Dupont"
+- hideKeyboard
+- tapOn:
+    id: "gender-M"
+- tapOn:
+    id: "input-birthdate"
+- inputText: "15011990"
+- hideKeyboard
+- tapOn:
+    id: "btn-step2"
+- extendedWaitUntil:
+    visible:
+      id: "step-3"
+    timeout: 15000
+- tapOn:
+    id: "input-new-pin"
+- inputText: "654321"
+- hideKeyboard
+- tapOn:
+    id: "input-confirm-pin"
+- inputText: "654321"
+- hideKeyboard
+- tapOn:
+    id: "btn-step3"
+- extendedWaitUntil:
+    visible:
+      id: "step-4"
+    timeout: 15000
+- tapOn:
+    id: "question-MOTHER_MAIDEN_NAME"
+- tapOn:
+    id: "question-BIRTH_CITY"
+- tapOn:
+    id: "question-FAVORITE_SPORT"
+- tapOn:
+    id: "input-answer-0"
+- inputText: "Amina"
+- hideKeyboard
+- tapOn:
+    id: "input-answer-1"
+- inputText: "Yaounde"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "input-answer-2"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "input-answer-2"
+- inputText: "Football"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "btn-submit-onboarding"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "btn-submit-onboarding"
+- extendedWaitUntil:
+    visible:
+      id: "step-5"
+    timeout: 20000
+- tapOn:
+    id: "btn-go-login"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 10000

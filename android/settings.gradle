@@ -36,6 +36,4 @@ rootProject.name = 'scolive-app'
 expoAutolinking.useExpoVersionCatalog()
 
 include ':app'
-include ':detox'
-project(':detox').projectDir = new File(rootDir, '../node_modules/detox/android/detox')
 includeBuild(expoAutolinking.reactNativeGradlePlugin)

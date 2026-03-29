@@ -1,0 +1,40 @@
+appId: com.zoutigo.scoliveapp
+name: Login Email
+tags:
+  - auth
+  - email
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "tab-email"
+- tapOn:
+    id: "input-email"
+- inputText: "teacher@ecole.cm"
+- tapOn:
+    id: "input-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- extendedWaitUntil:
+    visible:
+      id: "logout-button"
+    timeout: 20000
+- assertVisible:
+    id: "user-name"
+- tapOn:
+    id: "logout-button"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 10000

@@ -52,7 +52,7 @@ Couverture de tests :
 
 - unitaires : `__tests__/auth/onboarding.test.tsx`
 - navigation login : `__tests__/screens/login.test.tsx`
-- e2e mockés : `e2e/tests/onboarding.e2e.ts`
+- e2e Android : flows Maestro dans `.maestro/flows/`
 
 ## Comportement clavier Android — règle absolue
 
@@ -165,3 +165,11 @@ Ces packages ne sont PAS dans le template create-expo-app mais sont requis :
 
 1. Typecheck (`npx tsc --noEmit`)
 2. Expo export web (`npx expo export --platform web`)
+
+`.github/workflows/e2e-android.yml` — workflow Android E2E dédié :
+
+- build un APK release standard
+- lance l'émulateur Android
+- installe l'APK
+- exécute les flows Maestro avec le mock server local sur `3001`
+- se déclenche la nuit en semaine et manuellement
