@@ -1,0 +1,227 @@
+name: E2E Android
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * 1-5"
+
+concurrency:
+  group: e2e-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Build Android release APK
+        run: E2E_ANDROID_ABIS=x86_64 npm run e2e:build
+
+      - name: Upload Android release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+
+  e2e-smoke:
+    needs: e2e-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Install Maestro CLI
+        run: npm run maestro:install
+
+      - name: Install emulator runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpulse0
+
+      - name: Download Android release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-release-apk
+          path: android/app/build/outputs/apk/release
+
+      - name: Run smoke E2E
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          arch: x86_64
+          profile: pixel_5
+          avd-name: Scolive_Dev_AOSP_API33
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            export PATH="$HOME/.maestro/bin:$PATH"
+            touch /tmp/adb-logcat.txt /tmp/scolive-maestro-mock.log
+            set +e
+            adb install -r android/app/build/outputs/apk/release/app-release.apk
+            npm run e2e:test:smoke
+            status=$?
+            if [ "$status" -ne 0 ]; then
+              adb -s emulator-5554 logcat -d >/tmp/adb-logcat.txt 2>&1 || true
+              tail -n 400 /tmp/adb-logcat.txt || true
+              tail -n 200 /tmp/scolive-maestro-mock.log || true
+            fi
+            exit "$status"
+
+      - name: Upload smoke ADB logcat
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adb-logcat-smoke
+          path: /tmp/adb-logcat.txt
+          if-no-files-found: ignore
+
+      - name: Upload smoke Maestro mock log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-mock-log-smoke
+          path: /tmp/scolive-maestro-mock.log
+          if-no-files-found: ignore
+
+  e2e:
+    needs:
+      - e2e-build
+      - e2e-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: auth-email
+            command: npm run e2e:test:auth-email
+          - name: auth-phone
+            command: npm run e2e:test:auth-phone
+          - name: onboarding-email
+            command: npm run e2e:test:onboarding-email
+          - name: onboarding-phone
+            command: npm run e2e:test:onboarding-phone
+          - name: recovery-password
+            command: npm run e2e:test:recovery-password
+          - name: recovery-pin
+            command: npm run e2e:test:recovery-pin
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Install Maestro CLI
+        run: npm run maestro:install
+
+      - name: Install emulator runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpulse0
+
+      - name: Download Android release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-release-apk
+          path: android/app/build/outputs/apk/release
+
+      - name: Run E2E tests for ${{ matrix.name }}
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          arch: x86_64
+          profile: pixel_5
+          avd-name: Scolive_Dev_AOSP_API33
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            export PATH="$HOME/.maestro/bin:$PATH"
+            touch /tmp/adb-logcat.txt /tmp/scolive-maestro-mock.log
+            set +e
+            adb install -r android/app/build/outputs/apk/release/app-release.apk
+            ${{ matrix.command }}
+            status=$?
+            if [ "$status" -ne 0 ]; then
+              adb -s emulator-5554 logcat -d >/tmp/adb-logcat.txt 2>&1 || true
+              tail -n 400 /tmp/adb-logcat.txt || true
+              tail -n 200 /tmp/scolive-maestro-mock.log || true
+            fi
+            exit "$status"
+
+      - name: Upload ADB logcat
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adb-logcat-${{ matrix.name }}
+          path: /tmp/adb-logcat.txt
+          if-no-files-found: ignore
+
+      - name: Upload Maestro mock log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-mock-log-${{ matrix.name }}
+          path: /tmp/scolive-maestro-mock.log
+          if-no-files-found: ignore

@@ -32,11 +32,12 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+.gradle-precommit/
 
 # typescript
 *.tsbuildinfo
 
 # generated native folders
 /ios
-/android

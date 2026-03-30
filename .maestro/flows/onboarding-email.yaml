@@ -1,0 +1,122 @@
+appId: com.zoutigo.scoliveapp
+name: First Login Email
+tags:
+  - onboarding
+  - email
+---
+- runFlow:
+    when:
+      visible: "Process system isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "step-1"
+    timeout: 20000
+- tapOn:
+    id: "input-temporary-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "input-new-password"
+- inputText: "NewPassWord9"
+- hideKeyboard
+- tapOn:
+    id: "input-confirm-password"
+- inputText: "NewPassWord9"
+- hideKeyboard
+- tapOn:
+    id: "btn-step1"
+- extendedWaitUntil:
+    visible:
+      id: "step-2"
+    timeout: 15000
+- tapOn:
+    id: "input-first-name"
+- inputText: "Lisa"
+- hideKeyboard
+- tapOn:
+    id: "input-last-name"
+- inputText: "Mbele"
+- hideKeyboard
+- tapOn:
+    id: "gender-F"
+- tapOn:
+    id: "input-birthdate"
+- inputText: "09011987"
+- hideKeyboard
+- tapOn:
+    id: "btn-step2"
+- extendedWaitUntil:
+    visible:
+      id: "step-3"
+    timeout: 15000
+- tapOn:
+    id: "question-MOTHER_MAIDEN_NAME"
+- tapOn:
+    id: "question-BIRTH_CITY"
+- tapOn:
+    id: "question-FAVORITE_SPORT"
+- tapOn:
+    id: "btn-step3"
+- extendedWaitUntil:
+    visible:
+      id: "step-4"
+    timeout: 15000
+- tapOn:
+    id: "input-answer-0"
+- inputText: "Abena"
+- hideKeyboard
+- tapOn:
+    id: "input-answer-1"
+- inputText: "Douala"
+- hideKeyboard
+- tapOn:
+    point: "90%,12%"
+- swipe:
+    start: 50%, 80%
+    end: 50%, 62%
+    duration: 500
+- tapOn:
+    id: "input-answer-2"
+- inputText: "Basket"
+- hideKeyboard
+- tapOn:
+    point: "90%,12%"
+- swipe:
+    start: 50%, 68%
+    end: 50%, 42%
+    duration: 500
+- swipe:
+    start: 50%, 68%
+    end: 50%, 42%
+    duration: 500
+- tapOn:
+    id: "parent-class-class-1"
+- tapOn:
+    id: "parent-student-student-1"
+- swipe:
+    start: 50%, 68%
+    end: 50%, 42%
+    duration: 500
+- swipe:
+    start: 50%, 68%
+    end: 50%, 42%
+    duration: 500
+- tapOn:
+    id: "btn-submit-onboarding"
+- extendedWaitUntil:
+    visible:
+      id: "step-5"
+    timeout: 20000
+- tapOn:
+    id: "btn-go-login"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 10000

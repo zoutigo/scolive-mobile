@@ -1,0 +1,116 @@
+appId: com.zoutigo.scoliveapp
+name: First Login Phone
+tags:
+  - onboarding
+  - phone
+---
+- runFlow:
+    when:
+      visible: "Process system isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "step-1"
+    timeout: 20000
+- tapOn:
+    id: "btn-step1"
+- extendedWaitUntil:
+    visible:
+      id: "step-2"
+    timeout: 15000
+- tapOn:
+    id: "input-first-name"
+- inputText: "Jean"
+- hideKeyboard
+- tapOn:
+    id: "input-last-name"
+- inputText: "Dupont"
+- hideKeyboard
+- tapOn:
+    id: "gender-M"
+- tapOn:
+    id: "input-birthdate"
+- inputText: "15011990"
+- hideKeyboard
+- tapOn:
+    id: "btn-step2"
+- extendedWaitUntil:
+    visible:
+      id: "step-3"
+    timeout: 15000
+- tapOn:
+    id: "input-new-pin"
+- inputText: "654321"
+- hideKeyboard
+- tapOn:
+    id: "input-confirm-pin"
+- inputText: "654321"
+- hideKeyboard
+- tapOn:
+    id: "btn-step3"
+- extendedWaitUntil:
+    visible:
+      id: "step-4"
+    timeout: 15000
+- tapOn:
+    id: "question-MOTHER_MAIDEN_NAME"
+- tapOn:
+    id: "question-BIRTH_CITY"
+- tapOn:
+    id: "question-FAVORITE_SPORT"
+- tapOn:
+    id: "btn-step4"
+- extendedWaitUntil:
+    visible:
+      id: "step-5"
+    timeout: 15000
+- tapOn:
+    id: "input-answer-0"
+- inputText: "Amina"
+- hideKeyboard
+- tapOn:
+    id: "input-answer-1"
+- inputText: "Yaounde"
+- hideKeyboard
+- tapOn:
+    point: "90%,12%"
+- scrollUntilVisible:
+    element:
+      id: "input-answer-2"
+    direction: DOWN
+    timeout: 10000
+    speed: 40
+    visibilityPercentage: 1
+    centerElement: false
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    id: "input-answer-2"
+- setClipboard: "Football"
+- pasteText
+- pressKey: back
+- swipe:
+    start: 50%, 68%
+    end: 50%, 42%
+    duration: 500
+- swipe:
+    start: 50%, 68%
+    end: 50%, 42%
+    duration: 500
+- tapOn:
+    id: "btn-submit-onboarding"
+- extendedWaitUntil:
+    visible:
+      id: "step-6"
+    timeout: 20000
+- tapOn:
+    id: "btn-go-login"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 10000

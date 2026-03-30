@@ -1,102 +1,55 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react-native";
-import HomeScreen from "../app/index";
+import { render, screen } from "@testing-library/react-native";
+import IndexScreen from "../app/index";
+import { useAuthStore } from "../src/store/auth.store";
 
-// Mock expo-router — jest.mock est hoisted, on accède au mock via jest.requireMock
-jest.mock("expo-router", () => ({
-  router: { push: jest.fn() },
-}));
+jest.mock("../src/store/auth.store", () => ({ useAuthStore: jest.fn() }));
+jest.mock("expo-status-bar", () => ({ StatusBar: () => null }));
 
-// Mock expo-status-bar
-jest.mock("expo-status-bar", () => ({
-  StatusBar: () => null,
-}));
+const mockUseAuthStore = useAuthStore as jest.MockedFunction<
+  typeof useAuthStore
+>;
 
-const mockRouter = jest.requireMock("expo-router").router as {
-  push: jest.Mock;
-};
+function setupStore(overrides: {
+  isAuthenticated: boolean;
+  isLoading: boolean;
+}) {
+  mockUseAuthStore.mockReturnValue({
+    isAuthenticated: overrides.isAuthenticated,
+    isLoading: overrides.isLoading,
+    user: null,
+    accessToken: null,
+    schoolSlug: null,
+  } as ReturnType<typeof useAuthStore>);
+}
 
-describe("Landing page (HomeScreen)", () => {
-  beforeEach(() => {
-    mockRouter.push.mockClear();
-    render(<HomeScreen />);
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
+describe("IndexScreen", () => {
+  it("affiche un loader pendant le chargement", () => {
+    setupStore({ isAuthenticated: false, isLoading: true });
+
+    render(<IndexScreen />);
+
+    expect(screen.getByTestId("index-loading")).toBeOnTheScreen();
   });
 
-  // --- Header ---
-  describe("Header", () => {
-    it('affiche "Sco" (partie accent du titre)', () => {
-      expect(screen.getByText("Sco")).toBeOnTheScreen();
-    });
+  it("affiche l'écran de connexion si non authentifié", () => {
+    setupStore({ isAuthenticated: false, isLoading: false });
 
-    it('affiche "live" (partie principale du titre)', () => {
-      expect(screen.getByText("live")).toBeOnTheScreen();
-    });
+    render(<IndexScreen />);
 
-    it("affiche le sous-titre", () => {
-      expect(
-        screen.getByText("La vie scolaire, simplifiée."),
-      ).toBeOnTheScreen();
-    });
+    expect(screen.getByText("SCO")).toBeOnTheScreen();
+    expect(screen.getByTestId("tab-phone")).toBeOnTheScreen();
   });
 
-  // --- Feature cards ---
-  describe("Feature cards", () => {
-    it("affiche les 4 icônes des cartes", () => {
-      expect(screen.getByText("📊")).toBeOnTheScreen();
-      expect(screen.getByText("💬")).toBeOnTheScreen();
-      expect(screen.getByText("📖")).toBeOnTheScreen();
-      expect(screen.getByText("📅")).toBeOnTheScreen();
-    });
+  it("affiche l'écran home si authentifié", () => {
+    setupStore({ isAuthenticated: true, isLoading: false });
 
-    it('affiche le label "Suivi des notes en temps réel"', () => {
-      expect(
-        screen.getByText("Suivi des notes en temps réel"),
-      ).toBeOnTheScreen();
-    });
+    render(<IndexScreen />);
 
-    it('affiche le label "Messagerie école-famille"', () => {
-      expect(screen.getByText("Messagerie école-famille")).toBeOnTheScreen();
-    });
-
-    it('affiche le label "Cahier de vie numérique"', () => {
-      expect(screen.getByText("Cahier de vie numérique")).toBeOnTheScreen();
-    });
-
-    it('affiche le label "Gestion des absences"', () => {
-      expect(screen.getByText("Gestion des absences")).toBeOnTheScreen();
-    });
-  });
-
-  // --- Banner ---
-  describe("Banner", () => {
-    it("affiche le texte du banner", () => {
-      expect(
-        screen.getByText(
-          "Connectez école, enseignants et familles en un seul endroit.",
-        ),
-      ).toBeOnTheScreen();
-    });
-  });
-
-  // --- Bouton CTA ---
-  describe('Bouton "Se connecter"', () => {
-    it("est présent sur la page", () => {
-      expect(screen.getByText("Se connecter")).toBeOnTheScreen();
-    });
-
-    it("navigue vers /login au clic", () => {
-      fireEvent.press(screen.getByText("Se connecter"));
-      expect(mockRouter.push).toHaveBeenCalledTimes(1);
-      expect(mockRouter.push).toHaveBeenCalledWith("/login");
-    });
-  });
-
-  // --- Footer ---
-  describe("Footer", () => {
-    it("affiche le copyright", () => {
-      expect(
-        screen.getByText("© 2026 Scolive — Tous droits réservés"),
-      ).toBeOnTheScreen();
-    });
+    expect(screen.getByText("Bienvenue")).toBeOnTheScreen();
   });
 });

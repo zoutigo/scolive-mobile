@@ -20,31 +20,140 @@ Repo GitHub : `git@github.com:zoutigo/scolive-mobile.git`
 
 ## Écrans existants
 
-| Fichier           | Route    | Description                                             |
-| ----------------- | -------- | ------------------------------------------------------- |
-| `app/_layout.tsx` | root     | Stack layout, header masqué, animation slide_from_right |
-| `app/index.tsx`   | `/`      | Landing page avec feature cards + bouton "Se connecter" |
-| `app/login.tsx`   | `/login` | Login avec 3 onglets : Téléphone (défaut), Email, SSO   |
+| Fichier                     | Route                | Description                                             |
+| --------------------------- | -------------------- | ------------------------------------------------------- |
+| `app/_layout.tsx`           | root                 | Stack layout, header masqué, animation slide_from_right |
+| `app/index.tsx`             | `/`                  | Landing page avec feature cards + bouton "Se connecter" |
+| `app/login.tsx`             | `/login`             | Login avec 3 onglets : Téléphone (défaut), Email, SSO   |
+| `app/onboarding.tsx`        | `/onboarding`        | Première connexion / activation en plusieurs étapes     |
+| `app/recovery/pin.tsx`      | `/recovery/pin`      | Récupération de PIN en 3 étapes + écran succès          |
+| `app/recovery/password.tsx` | `/recovery/password` | Récupération de mot de passe en 4 étapes + succès       |
+
+## Workflow de première connexion
+
+Le mobile implémente désormais le même flux d'onboarding que le web :
+
+- **Email** : mot de passe provisoire, nouveau mot de passe, profil, questions de récupération
+- **Téléphone** : email optionnel + `setupToken`, profil, changement du PIN, questions de récupération
+
+Déclenchement depuis `app/login.tsx` :
+
+- `PASSWORD_CHANGE_REQUIRED` -> redirection vers `/onboarding` avec `email`
+- `PROFILE_SETUP_REQUIRED` -> redirection vers `/onboarding`
+  - branche email : `email`
+  - branche phone : `setupToken` + `schoolSlug`
+
+Contrats API mobile :
+
+- `src/api/auth.api.ts#getOnboardingOptions`
+- `src/api/auth.api.ts#completeOnboarding`
+
+Couverture de tests :
+
+- unitaires : `__tests__/auth/onboarding.test.tsx`
+- navigation login : `__tests__/screens/login.test.tsx`
+- e2e Android : flows Maestro dans `.maestro/flows/`
+
+## Architecture E2E Android
+
+Les E2E Android reposent maintenant sur Maestro, pas sur Detox.
+
+Architecture locale :
+
+- `.maestro/flows/` contient un flow YAML par scénario métier
+- `.maestro/mock-server/server.js` simule l'API backend sur `http://10.0.2.2:3001/api`
+- `scripts/android-release-build.sh` produit l'APK release utilisée pour les E2E
+- `scripts/maestro-run-flow.sh` :
+  - démarre le mock server avec les variables de scénario
+  - installe l'APK release
+  - reset l'état Android de l'app
+  - ouvre l'app ou un deep link ciblé
+  - exécute le flow Maestro demandé
+
+Flows disponibles :
+
+- `smoke`
+- `auth-email`
+- `auth-phone`
+- `onboarding-email`
+- `onboarding-phone`
+- `recovery-password`
+- `recovery-pin`
+
+Commandes utiles :
+
+```bash
+npm run maestro:install
+npm run e2e:build
+npm run e2e:test:smoke
+npm run e2e:test:auth-email
+npm run e2e:test:auth-phone
+npm run e2e:test:onboarding-email
+npm run e2e:test:onboarding-phone
+npm run e2e:test:recovery-password
+npm run e2e:test:recovery-pin
+npm run e2e:test
+npm run e2e
+```
+
+Lecture des commandes :
+
+- `npm run e2e:test:<flow>` lance un seul flow
+- `npm run e2e:test` lance toute la suite Maestro, sans rebuild natif
+- `npm run e2e` rebâtit l'APK release puis lance toute la suite
+
+## Comportement clavier Android — règle absolue
+
+`android:windowSoftInputMode="adjustPan"` est configuré dans `android/app/src/main/AndroidManifest.xml`.
+
+**Android pan nativement la fenêtre pour garder le champ focalisé visible** quand le clavier s'ouvre. Ce comportement s'applique automatiquement à tous les écrans sans aucun code JavaScript supplémentaire.
+
+### Ce qu'il NE FAUT PAS faire dans les formulaires
+
+```tsx
+// ❌ Interdit : scroll JavaScript au focus
+Keyboard.addListener("keyboardDidShow", ...)
+scrollRef.current?.scrollTo(...)
+onFocus={() => scrollToField(...)}
+onLayout={(e) => { someY.current = e.nativeEvent.layout.y; }}
+```
+
+### Ce qu'il FAUT faire
+
+```tsx
+// ✅ Correct : ScrollView simple, KeyboardAvoidingView uniquement pour iOS
+<KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+  <ScrollView keyboardShouldPersistTaps="handled">
+    <TextInput ... />  {/* adjustPan gère la visibilité nativement */}
+  </ScrollView>
+</KeyboardAvoidingView>
+```
+
+> **Contexte** : Avec React Native Fabric (New Architecture) + `adjustResize`, `ScrollView.scrollTo()` est écrasé par le layout manager Android après chaque ouverture de clavier. `adjustPan` évite ce conflit en agissant au niveau natif avant tout re-layout.
+
+> **Rebuild requis** : tout changement dans `AndroidManifest.xml` nécessite `npm run android:build` (pas seulement un reload Metro).
 
 ## Lancer sur l'émulateur
 
 ```bash
 cd /home/zoutigo/projets/scolive/scolive-mobile
-npx expo start --clear
+npm run android:emulator
+npm run android:build
+npm start
 ```
 
-Émulateur stable : **Pixel_5_API33** (API 34 est instable sur cette machine).
-Expo Go 55.0.5 est installé sur l'émulateur.
+Émulateur stable : **Scolive_Dev_AOSP_API33**.
+Android Studio local : `~/android-studio/bin/studio`.
 
 ### Problème connu — React Native DevTools
 
 Au démarrage, une erreur sandbox Chrome apparaît. Contournement permanent :
 
 ```bash
-EXPO_NO_DEVTOOLS=1 npx expo start --clear
+npm run start:clean
 ```
 
-Le `--clear` est important : sans lui Metro peut utiliser un cache stale.
+Utiliser `npm run start:clean` uniquement si Metro est réellement cassé.
 
 ### Pourquoi App.tsx + babel.config.js + metro.config.js sont requis
 
@@ -66,7 +175,7 @@ Tuer tous les processus Metro et vider les caches :
 ```bash
 pkill -f "expo start"; pkill -f metro
 rm -rf /tmp/metro-* ~/.expo/metro-cache .expo node_modules/.cache
-npx expo start --clear
+npm run start:clean
 ```
 
 ## Lancer via VS Code
@@ -74,15 +183,17 @@ npx expo start --clear
 Depuis `/home/zoutigo/projets/scolive` :
 
 ```bash
-code /home/zoutigo/projets/scolive
+bash /home/zoutigo/projets/scolive/dev.sh
 ```
 
-VS Code ouvre le workspace et lance automatiquement 5 terminaux :
+`dev.sh` ouvre VS Code sur le workspace et lance l'émulateur Android stable s'il n'est pas déjà démarré.
+
+VS Code ouvre ensuite le workspace et lance automatiquement les terminaux configurés :
 
 - **Infra** — Docker (postgres, redis, minio, media) + Prisma generate
 - **API** — `npm run -w @school-live/api dev`
 - **Worker** — `npm run -w @school-live/api worker:dev`
-- **Mobile** — `EXPO_NO_DEVTOOLS=1 npx expo start --clear`
+- **Mobile** — `npm start`
 - **Web** — `npm run -w @school-live/web dev`
 
 Config dans `/home/zoutigo/projets/scolive/.vscode/tasks.json`.
@@ -102,3 +213,13 @@ Ces packages ne sont PAS dans le template create-expo-app mais sont requis :
 
 1. Typecheck (`npx tsc --noEmit`)
 2. Expo export web (`npx expo export --platform web`)
+
+`.github/workflows/e2e-android.yml` — workflow Android E2E dédié :
+
+- build un APK release standard
+- exécute d'abord `smoke`
+- lance l'émulateur Android
+- installe l'APK
+- exécute ensuite chaque flow Maestro métier dans la matrice
+- utilise le mock server local sur `3001`
+- se déclenche la nuit en semaine et manuellement
