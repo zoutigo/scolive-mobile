@@ -128,6 +128,31 @@ Il :
 - se lance la nuit en semaine
 - peut aussi être lancé manuellement
 
+## Publication Android release
+
+Le workflow `.github/workflows/publish-android.yml` publie un APK Android signe sur chaque `push` vers `main`.
+
+Secrets GitHub requis :
+
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+- `MOBILE_BUILD_UPLOAD_TOKEN`
+
+Variable GitHub optionnelle :
+
+- `MOBILE_BUILD_UPLOAD_URL`
+  - défaut : `https://scolive.lisaweb.fr/api/mobile-builds/android`
+
+Le workflow :
+
+- reconstruit le keystore release
+- lit `versionName` depuis `app.json`
+- utilise `GITHUB_RUN_NUMBER` comme `versionCode`
+- build l'APK release signé
+- publie l'APK vers l'API web en `multipart/form-data`
+
 ## Notes
 
 - Android Studio propre est maintenant installé dans `~/android-studio`

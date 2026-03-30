@@ -67,6 +67,15 @@ Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignor
   - `npm run e2e:test`
 - `npm run e2e:test` rejoue toute la campagne sans rebâtir l'APK
 - `npm run e2e` rebâtit l'APK release puis lance toute la campagne
+- Le workflow `.github/workflows/publish-android.yml` publie l'APK release signe sur `main`
+- Secrets GitHub attendus pour cette publication :
+  - `ANDROID_KEYSTORE_BASE64`
+  - `ANDROID_KEYSTORE_PASSWORD`
+  - `ANDROID_KEY_ALIAS`
+  - `ANDROID_KEY_PASSWORD`
+  - `MOBILE_BUILD_UPLOAD_TOKEN`
+- Variable GitHub optionnelle :
+  - `MOBILE_BUILD_UPLOAD_URL`
 - Les E2E Android du CI ne tournent plus sur chaque push/PR :
   - workflow dédié `.github/workflows/e2e-android.yml`
   - déclenchement nocturne en semaine
