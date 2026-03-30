@@ -16,19 +16,6 @@ tags:
       - tapOn: "Wait"
 - extendedWaitUntil:
     visible:
-      id: "submit-login"
-    timeout: 30000
-- tapOn:
-    id: "input-phone"
-- inputText: "650000001"
-- tapOn:
-    id: "input-pin"
-- inputText: "123456"
-- hideKeyboard
-- tapOn:
-    id: "submit-login"
-- extendedWaitUntil:
-    visible:
       id: "step-1"
     timeout: 20000
 - tapOn:
@@ -78,6 +65,12 @@ tags:
 - tapOn:
     id: "question-FAVORITE_SPORT"
 - tapOn:
+    id: "btn-step4"
+- extendedWaitUntil:
+    visible:
+      id: "step-5"
+    timeout: 15000
+- tapOn:
     id: "input-answer-0"
 - inputText: "Amina"
 - hideKeyboard
@@ -85,33 +78,35 @@ tags:
     id: "input-answer-1"
 - inputText: "Yaounde"
 - hideKeyboard
+- tapOn:
+    point: "90%,12%"
 - scrollUntilVisible:
     element:
       id: "input-answer-2"
     direction: DOWN
     timeout: 10000
-    speed: 80
-    visibilityPercentage: 20
-    centerElement: true
-    waitToSettleTimeoutMs: 500
+    speed: 40
+    visibilityPercentage: 1
+    centerElement: false
+    waitToSettleTimeoutMs: 1000
 - tapOn:
     id: "input-answer-2"
-- inputText: "Football"
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: "btn-submit-onboarding"
-    direction: DOWN
-    timeout: 10000
-    speed: 80
-    visibilityPercentage: 20
-    centerElement: true
-    waitToSettleTimeoutMs: 500
+- setClipboard: "Football"
+- pasteText
+- pressKey: back
+- swipe:
+    start: 50%, 68%
+    end: 50%, 42%
+    duration: 500
+- swipe:
+    start: 50%, 68%
+    end: 50%, 42%
+    duration: 500
 - tapOn:
     id: "btn-submit-onboarding"
 - extendedWaitUntil:
     visible:
-      id: "step-5"
+      id: "step-6"
     timeout: 20000
 - tapOn:
     id: "btn-go-login"

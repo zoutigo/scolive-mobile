@@ -9,6 +9,7 @@ shift || true
 FLOW_PATH="$ROOT_DIR/.maestro/flows/${FLOW_NAME}.yaml"
 MAESTRO_BIN="${MAESTRO_BIN:-$HOME/.maestro/bin/maestro}"
 MOCK_SERVER_MODULE="$ROOT_DIR/.maestro/mock-server/server.js"
+APK_PATH="$ROOT_DIR/android/app/build/outputs/apk/release/app-release.apk"
 MOCK_PID=""
 
 if [[ ! -f "$FLOW_PATH" ]]; then
@@ -74,6 +75,10 @@ set_scenario "/__scenario/onboarding" "${ONBOARDING_SCENARIO:-email_parent_happy
 set_scenario "/__scenario/pin" "${PIN_SCENARIO:-happy_path}"
 set_scenario "/__scenario/password" "${PASSWORD_SCENARIO:-happy_path}"
 
+if [[ -f "$APK_PATH" ]]; then
+  adb install -r "$APK_PATH" >/dev/null
+fi
+
 dismiss_system_anr() {
   local dumpsys_output=""
 
@@ -90,10 +95,47 @@ dismiss_system_anr() {
   return 0
 }
 
+wait_for_app_activity() {
+  local retries="${1:-20}"
+  local output=""
+
+  for _ in $(seq 1 "$retries"); do
+    output="$(adb shell dumpsys activity activities 2>/dev/null || true)"
+    if [[ "$output" == *"com.zoutigo.scoliveapp/.MainActivity"* ]]; then
+      return 0
+    fi
+    sleep 1
+  done
+
+  return 1
+}
+
+open_flow_route() {
+  case "$FLOW_NAME" in
+    onboarding-email)
+      adb shell am start -W \
+        -a android.intent.action.VIEW \
+        -d 'scolive://onboarding?email=parent%40ecole.cm&schoolSlug=ecole-demo' \
+        com.zoutigo.scoliveapp >/dev/null 2>&1 || true
+      ;;
+    onboarding-phone)
+      adb shell am start -W \
+        -a android.intent.action.VIEW \
+        -d 'scolive://onboarding?setupToken=setup-token-phone&schoolSlug=ecole-demo' \
+        com.zoutigo.scoliveapp >/dev/null 2>&1 || true
+      ;;
+    *)
+      adb shell monkey -p com.zoutigo.scoliveapp -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
+      ;;
+  esac
+}
+
 adb shell am force-stop com.zoutigo.scoliveapp >/dev/null 2>&1 || true
 adb shell pm clear com.zoutigo.scoliveapp >/dev/null 2>&1 || true
-adb shell monkey -p com.zoutigo.scoliveapp -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
+open_flow_route
 sleep 2
 dismiss_system_anr
+wait_for_app_activity 20 || true
+sleep 2
 
 "$MAESTRO_BIN" test "$FLOW_PATH" "$@"

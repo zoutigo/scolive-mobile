@@ -5,6 +5,7 @@ import OnboardingScreen, {
   emailOnboardingStep1Schema,
   onboardingPinStepSchema,
   onboardingProfileStepSchema,
+  onboardingRecoverySelectionStepSchema,
   onboardingRecoveryStepSchema,
   parseOnboardingApiError,
   phoneOnboardingStep1Schema,
@@ -187,6 +188,15 @@ describe("onboardingRecoveryStepSchema", () => {
   });
 });
 
+describe("onboardingRecoverySelectionStepSchema", () => {
+  it("rejette moins de 3 questions", () => {
+    const result = onboardingRecoverySelectionStepSchema.safeParse({
+      selectedQuestions: ["MOTHER_MAIDEN_NAME"],
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe("helpers", () => {
   it("construit les réponses de récupération dans l'ordre", () => {
     expect(
@@ -258,6 +268,9 @@ describe("OnboardingScreen", () => {
     fireEvent.press(getByTestId("question-MOTHER_MAIDEN_NAME"));
     fireEvent.press(getByTestId("question-BIRTH_CITY"));
     fireEvent.press(getByTestId("question-FAVORITE_SPORT"));
+    fireEvent.press(getByTestId("btn-step3"));
+
+    await findByTestId("step-4");
     fireEvent.changeText(getByTestId("input-answer-0"), "Abena");
     fireEvent.changeText(getByTestId("input-answer-1"), "Douala");
     fireEvent.changeText(getByTestId("input-answer-2"), "Basket");
@@ -318,6 +331,9 @@ describe("OnboardingScreen", () => {
     fireEvent.press(getByTestId("question-MOTHER_MAIDEN_NAME"));
     fireEvent.press(getByTestId("question-BIRTH_CITY"));
     fireEvent.press(getByTestId("question-FAVORITE_SPORT"));
+    fireEvent.press(getByTestId("btn-step4"));
+
+    await findByTestId("step-5");
     fireEvent.changeText(getByTestId("input-answer-0"), "Amina");
     fireEvent.changeText(getByTestId("input-answer-1"), "Yaounde");
     fireEvent.changeText(getByTestId("input-answer-2"), "Football");
@@ -363,6 +379,9 @@ describe("OnboardingScreen", () => {
     fireEvent.press(getByTestId("question-MOTHER_MAIDEN_NAME"));
     fireEvent.press(getByTestId("question-BIRTH_CITY"));
     fireEvent.press(getByTestId("question-FAVORITE_SPORT"));
+    fireEvent.press(getByTestId("btn-step3"));
+
+    await findByTestId("step-4");
     fireEvent.changeText(getByTestId("input-answer-0"), "Abena");
     fireEvent.changeText(getByTestId("input-answer-1"), "Douala");
     fireEvent.changeText(getByTestId("input-answer-2"), "Basket");

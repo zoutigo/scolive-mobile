@@ -25,7 +25,7 @@ import { formatDateInput, parseDateToISO } from "./recovery/pin";
 const PASSWORD_COMPLEXITY_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 const PHONE_PIN_REGEX = /^\d{6}$/;
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
 export const emailOnboardingStep1Schema = z
   .object({
@@ -152,6 +152,15 @@ export const onboardingRecoveryStepSchema = z
     }
   });
 
+export const onboardingRecoverySelectionStepSchema = z.object({
+  selectedQuestions: z
+    .array(z.string())
+    .length(3, "Choisissez exactement 3 questions.")
+    .refine((items) => new Set(items).size === 3, {
+      message: "Les 3 questions doivent être différentes.",
+    }),
+});
+
 export function buildOnboardingRecoveryRows(
   selectedQuestions: string[],
   answers: Record<string, string>,
@@ -196,6 +205,13 @@ function getTextParam(value: string | string[] | undefined): string {
   return "";
 }
 
+function getCompactQuestionLabel(label: string): string {
+  if (label.length <= 22) {
+    return label;
+  }
+  return `${label.slice(0, 19).trimEnd()}…`;
+}
+
 function GenderButton({
   value,
   label,
@@ -235,7 +251,8 @@ export default function OnboardingScreen() {
   const initialSetupToken = getTextParam(params.setupToken).trim();
   const schoolSlug = getTextParam(params.schoolSlug).trim();
   const isTokenFlow = initialSetupToken.length > 0;
-  const totalSteps = isTokenFlow ? 4 : 3;
+  const totalSteps = isTokenFlow ? 5 : 4;
+  const successStep = (totalSteps + 1) as Step;
 
   const [step, setStep] = useState<Step>(1);
   const [email, setEmail] = useState(initialEmail);
@@ -318,7 +335,7 @@ export default function OnboardingScreen() {
   }
 
   function handleBack() {
-    if (step === 5) {
+    if (step === successStep) {
       router.replace("/login");
       return;
     }
@@ -422,6 +439,21 @@ export default function OnboardingScreen() {
     return true;
   }
 
+  function validateRecoverySelectionStep() {
+    clearErrors();
+    const result = onboardingRecoverySelectionStepSchema.safeParse({
+      selectedQuestions,
+    });
+    if (!result.success) {
+      const message =
+        result.error.issues[0]?.message ?? "Choisissez exactement 3 questions.";
+      setFieldErrors({ selectedQuestions: message });
+      setError(message);
+      return false;
+    }
+    return true;
+  }
+
   function goNext() {
     const valid =
       step === 1
@@ -430,7 +462,9 @@ export default function OnboardingScreen() {
           ? validateProfileStep()
           : isTokenFlow && step === 3
             ? validatePinStep()
-            : validateRecoveryStep();
+            : (!isTokenFlow && step === 3) || (isTokenFlow && step === 4)
+              ? validateRecoverySelectionStep()
+              : validateRecoveryStep();
     if (!valid) {
       return;
     }
@@ -488,7 +522,7 @@ export default function OnboardingScreen() {
         parentClassId: parentClassId || undefined,
         parentStudentId: parentStudentId || undefined,
       });
-      setStep(5);
+      setStep(successStep);
     } catch (err) {
       setError(parseOnboardingApiError(err));
     } finally {
@@ -498,7 +532,8 @@ export default function OnboardingScreen() {
 
   const progressWidth =
     `${((Math.min(step, totalSteps) / totalSteps) * 100).toFixed(0)}%` as `${number}%`;
-  const title = step === 5 ? "Activation terminée" : "Première connexion";
+  const title =
+    step === successStep ? "Activation terminée" : "Première connexion";
 
   return (
     <View style={styles.screen}>
@@ -519,14 +554,14 @@ export default function OnboardingScreen() {
             style={styles.backButton}
           >
             <Text style={styles.backButtonText}>
-              {step === 5 ? "Se connecter" : "‹ Retour"}
+              {step === successStep ? "Se connecter" : "‹ Retour"}
             </Text>
           </Pressable>
         </View>
 
         <View style={styles.brandAccent} />
         <Text style={styles.headerTitle}>{title}</Text>
-        {step !== 5 ? (
+        {step !== successStep ? (
           <>
             <Text style={styles.stepIndicator}>
               Étape {step} sur {totalSteps}
@@ -564,7 +599,7 @@ export default function OnboardingScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {isLoadingOptions && step !== 5 ? (
+            {isLoadingOptions && step !== successStep ? (
               <View style={styles.loadingBox} testID="loading-options">
                 <ActivityIndicator size="small" color={BLUE} />
                 <Text style={styles.loadingText}>Chargement des options…</Text>
@@ -855,8 +890,19 @@ export default function OnboardingScreen() {
             ) : null}
 
             {((step === 3 && !isTokenFlow) || (step === 4 && isTokenFlow)) && (
-              <View style={styles.form} testID={`step-${step}`}>
-                <View style={styles.sectionBox}>
+              <View
+                style={[
+                  styles.form,
+                  selectedQuestions.length === 3 && styles.formCompact,
+                ]}
+                testID={`step-${step}`}
+              >
+                <View
+                  style={[
+                    styles.sectionBox,
+                    selectedQuestions.length === 3 && styles.sectionBoxCompact,
+                  ]}
+                >
                   <Text style={styles.sectionTitle}>
                     Choisissez 3 questions
                   </Text>
@@ -873,6 +919,8 @@ export default function OnboardingScreen() {
                           onPress={() => toggleQuestion(question.key)}
                           style={[
                             styles.choiceChip,
+                            selectedQuestions.length === 3 &&
+                              styles.choiceChipCompact,
                             active && styles.choiceChipActive,
                           ]}
                         >
@@ -880,9 +928,13 @@ export default function OnboardingScreen() {
                             style={[
                               styles.choiceChipText,
                               active && styles.choiceChipTextActive,
+                              selectedQuestions.length === 3 &&
+                                styles.choiceChipTextCompact,
                             ]}
                           >
-                            {question.label}
+                            {selectedQuestions.length === 3
+                              ? getCompactQuestionLabel(question.label)
+                              : question.label}
                           </Text>
                         </Pressable>
                       );
@@ -890,15 +942,44 @@ export default function OnboardingScreen() {
                   </View>
                 </View>
 
+                <Pressable
+                  testID={`btn-step${step}`}
+                  onPress={goNext}
+                  style={styles.primaryButton}
+                >
+                  <Text style={styles.primaryButtonText}>Continuer</Text>
+                </Pressable>
+              </View>
+            )}
+
+            {((step === 4 && !isTokenFlow) || (step === 5 && isTokenFlow)) && (
+              <View
+                style={[
+                  styles.form,
+                  selectedQuestions.length === 3 && styles.formCompact,
+                  !isParent && styles.formUltraCompact,
+                ]}
+                testID={`step-${step}`}
+              >
                 {selectedQuestions.map((questionKey, index) => {
                   const question = options?.questions.find(
                     (item) => item.key === questionKey,
                   );
                   return (
-                    <View key={questionKey} style={styles.fieldGroup}>
-                      <Text style={styles.label}>
-                        {question?.label ?? questionKey}
-                      </Text>
+                    <View
+                      key={questionKey}
+                      style={[
+                        styles.fieldGroup,
+                        selectedQuestions.length === 3 &&
+                          styles.fieldGroupCompact,
+                        !isParent && styles.fieldGroupUltraCompact,
+                      ]}
+                    >
+                      {isParent ? (
+                        <Text style={styles.label}>
+                          {question?.label ?? questionKey}
+                        </Text>
+                      ) : null}
                       <TextInput
                         testID={`input-answer-${index}`}
                         value={answers[questionKey] ?? ""}
@@ -908,7 +989,12 @@ export default function OnboardingScreen() {
                             [questionKey]: value,
                           }))
                         }
-                        style={styles.input}
+                        style={[
+                          styles.input,
+                          selectedQuestions.length === 3 && styles.inputCompact,
+                          !isParent && styles.inputUltraCompact,
+                        ]}
+                        placeholder={!isParent ? question?.label : undefined}
                         placeholderTextColor="#9B9490"
                       />
                       {fieldErrors[`answer:${questionKey}`] ? (
@@ -925,11 +1011,23 @@ export default function OnboardingScreen() {
 
                 {isParent ? (
                   <>
-                    <View style={styles.sectionBox}>
+                    <View
+                      style={[
+                        styles.sectionBox,
+                        selectedQuestions.length === 3 &&
+                          styles.sectionBoxCompact,
+                      ]}
+                    >
                       <Text style={styles.sectionTitle}>
                         Classe de votre enfant
                       </Text>
-                      <View style={styles.optionList}>
+                      <View
+                        style={[
+                          styles.optionList,
+                          selectedQuestions.length === 3 &&
+                            styles.optionListCompact,
+                        ]}
+                      >
                         {(options?.classes ?? []).map((classroom) => {
                           const active = parentClassId === classroom.id;
                           return (
@@ -939,13 +1037,27 @@ export default function OnboardingScreen() {
                               onPress={() => setParentClassId(classroom.id)}
                               style={[
                                 styles.optionCard,
+                                selectedQuestions.length === 3 &&
+                                  styles.optionCardCompact,
                                 active && styles.optionCardActive,
                               ]}
                             >
-                              <Text style={styles.optionTitle}>
+                              <Text
+                                style={[
+                                  styles.optionTitle,
+                                  selectedQuestions.length === 3 &&
+                                    styles.optionTitleCompact,
+                                ]}
+                              >
                                 {classroom.name}
                               </Text>
-                              <Text style={styles.optionSubtitle}>
+                              <Text
+                                style={[
+                                  styles.optionSubtitle,
+                                  selectedQuestions.length === 3 &&
+                                    styles.optionSubtitleCompact,
+                                ]}
+                              >
                                 {classroom.year}
                               </Text>
                             </Pressable>
@@ -962,11 +1074,23 @@ export default function OnboardingScreen() {
                       ) : null}
                     </View>
 
-                    <View style={styles.sectionBox}>
+                    <View
+                      style={[
+                        styles.sectionBox,
+                        selectedQuestions.length === 3 &&
+                          styles.sectionBoxCompact,
+                      ]}
+                    >
                       <Text style={styles.sectionTitle}>
                         Nom de votre enfant
                       </Text>
-                      <View style={styles.optionList}>
+                      <View
+                        style={[
+                          styles.optionList,
+                          selectedQuestions.length === 3 &&
+                            styles.optionListCompact,
+                        ]}
+                      >
                         {(options?.students ?? []).map((student) => {
                           const active = parentStudentId === student.id;
                           return (
@@ -976,10 +1100,18 @@ export default function OnboardingScreen() {
                               onPress={() => setParentStudentId(student.id)}
                               style={[
                                 styles.optionCard,
+                                selectedQuestions.length === 3 &&
+                                  styles.optionCardCompact,
                                 active && styles.optionCardActive,
                               ]}
                             >
-                              <Text style={styles.optionTitle}>
+                              <Text
+                                style={[
+                                  styles.optionTitle,
+                                  selectedQuestions.length === 3 &&
+                                    styles.optionTitleCompact,
+                                ]}
+                              >
                                 {student.firstName} {student.lastName}
                               </Text>
                             </Pressable>
@@ -1004,6 +1136,8 @@ export default function OnboardingScreen() {
                   disabled={isSubmitting}
                   style={[
                     styles.primaryButton,
+                    selectedQuestions.length === 3 &&
+                      styles.primaryButtonCompact,
                     isSubmitting && styles.primaryButtonBusy,
                   ]}
                 >
@@ -1016,8 +1150,8 @@ export default function OnboardingScreen() {
               </View>
             )}
 
-            {step === 5 ? (
-              <View style={styles.successCard} testID="step-5">
+            {step === successStep ? (
+              <View style={styles.successCard} testID={`step-${successStep}`}>
                 <Text style={styles.successTitle}>Compte configuré</Text>
                 <Text style={styles.successText}>
                   Votre première connexion est terminée pour
@@ -1179,8 +1313,20 @@ const styles = StyleSheet.create({
   form: {
     gap: 18,
   },
+  formCompact: {
+    gap: 14,
+  },
+  formUltraCompact: {
+    gap: 10,
+  },
   fieldGroup: {
     gap: 8,
+  },
+  fieldGroupCompact: {
+    gap: 6,
+  },
+  fieldGroupUltraCompact: {
+    gap: 4,
   },
   label: {
     color: "#1F2933",
@@ -1197,12 +1343,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#1F2933",
   },
+  inputCompact: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  inputUltraCompact: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
   primaryButton: {
     backgroundColor: BLUE,
     borderRadius: 14,
     paddingVertical: 15,
     alignItems: "center",
     marginTop: 4,
+  },
+  primaryButtonCompact: {
+    paddingVertical: 13,
   },
   primaryButtonBusy: {
     opacity: 0.8,
@@ -1250,6 +1407,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: "#FFFFFF",
   },
+  choiceChipCompact: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
   choiceChipActive: {
     backgroundColor: BLUE,
     borderColor: BLUE,
@@ -1259,6 +1420,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
+  choiceChipTextCompact: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
   choiceChipTextActive: {
     color: "#FFFFFF",
   },
@@ -1267,6 +1432,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F1E8",
     borderRadius: 18,
     padding: 16,
+  },
+  sectionBoxCompact: {
+    gap: 10,
+    paddingVertical: 14,
   },
   sectionTitle: {
     color: "#1F2933",
@@ -1281,12 +1450,18 @@ const styles = StyleSheet.create({
   optionList: {
     gap: 10,
   },
+  optionListCompact: {
+    gap: 8,
+  },
   optionCard: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1.5,
     borderColor: "#E2D6CA",
     borderRadius: 14,
     padding: 14,
+  },
+  optionCardCompact: {
+    padding: 12,
   },
   optionCardActive: {
     borderColor: BLUE_LIGHT,
@@ -1297,10 +1472,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
+  optionTitleCompact: {
+    fontSize: 13,
+  },
   optionSubtitle: {
     color: "#6B625B",
     fontSize: 12,
     marginTop: 4,
+  },
+  optionSubtitleCompact: {
+    marginTop: 2,
+    fontSize: 11,
   },
   successCard: {
     flex: 1,

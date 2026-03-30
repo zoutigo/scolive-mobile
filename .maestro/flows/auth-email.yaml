@@ -23,6 +23,7 @@ tags:
 - tapOn:
     id: "input-email"
 - inputText: "teacher@ecole.cm"
+- hideKeyboard
 - tapOn:
     id: "input-password"
 - inputText: "TempPass11"

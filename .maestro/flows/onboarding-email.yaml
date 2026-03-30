@@ -16,21 +16,6 @@ tags:
       - tapOn: "Wait"
 - extendedWaitUntil:
     visible:
-      id: "submit-login"
-    timeout: 30000
-- tapOn:
-    id: "tab-email"
-- tapOn:
-    id: "input-email"
-- inputText: "parent@ecole.cm"
-- tapOn:
-    id: "input-password"
-- inputText: "TempPass11"
-- hideKeyboard
-- tapOn:
-    id: "submit-login"
-- extendedWaitUntil:
-    visible:
       id: "step-1"
     timeout: 20000
 - tapOn:
@@ -78,6 +63,12 @@ tags:
 - tapOn:
     id: "question-FAVORITE_SPORT"
 - tapOn:
+    id: "btn-step3"
+- extendedWaitUntil:
+    visible:
+      id: "step-4"
+    timeout: 15000
+- tapOn:
     id: "input-answer-0"
 - inputText: "Abena"
 - hideKeyboard
@@ -85,31 +76,38 @@ tags:
     id: "input-answer-1"
 - inputText: "Douala"
 - hideKeyboard
+- tapOn:
+    point: "90%,12%"
 - swipe:
-    start: 50%, 84%
-    end: 50%, 28%
-    duration: 800
-- swipe:
-    start: 50%, 84%
-    end: 50%, 28%
-    duration: 800
+    start: 50%, 80%
+    end: 50%, 62%
+    duration: 500
 - tapOn:
     id: "input-answer-2"
 - inputText: "Basket"
 - hideKeyboard
+- tapOn:
+    point: "90%,12%"
 - swipe:
-    start: 50%, 82%
-    end: 50%, 30%
-    duration: 800
+    start: 50%, 68%
+    end: 50%, 42%
+    duration: 500
+- swipe:
+    start: 50%, 68%
+    end: 50%, 42%
+    duration: 500
 - tapOn:
     id: "parent-class-class-1"
 - tapOn:
     id: "parent-student-student-1"
-- hideKeyboard
 - swipe:
-    start: 50%, 82%
-    end: 50%, 30%
-    duration: 800
+    start: 50%, 68%
+    end: 50%, 42%
+    duration: 500
+- swipe:
+    start: 50%, 68%
+    end: 50%, 42%
+    duration: 500
 - tapOn:
     id: "btn-submit-onboarding"
 - extendedWaitUntil:

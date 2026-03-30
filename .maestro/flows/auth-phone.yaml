@@ -21,6 +21,7 @@ tags:
 - tapOn:
     id: "input-phone"
 - inputText: "650000001"
+- hideKeyboard
 - tapOn:
     id: "input-pin"
 - inputText: "123456"
