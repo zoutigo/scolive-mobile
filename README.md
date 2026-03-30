@@ -159,3 +159,4 @@ Le workflow :
 - Le bon binaire IDE est `~/android-studio/bin/studio`
 - Le snap `android-studio` ne doit plus être utilisé
 - Le SDK actif est dans `~/Android/Sdk`
+
