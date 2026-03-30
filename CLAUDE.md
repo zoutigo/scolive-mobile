@@ -54,6 +54,54 @@ Couverture de tests :
 - navigation login : `__tests__/screens/login.test.tsx`
 - e2e Android : flows Maestro dans `.maestro/flows/`
 
+## Architecture E2E Android
+
+Les E2E Android reposent maintenant sur Maestro, pas sur Detox.
+
+Architecture locale :
+
+- `.maestro/flows/` contient un flow YAML par scénario métier
+- `.maestro/mock-server/server.js` simule l'API backend sur `http://10.0.2.2:3001/api`
+- `scripts/android-release-build.sh` produit l'APK release utilisée pour les E2E
+- `scripts/maestro-run-flow.sh` :
+  - démarre le mock server avec les variables de scénario
+  - installe l'APK release
+  - reset l'état Android de l'app
+  - ouvre l'app ou un deep link ciblé
+  - exécute le flow Maestro demandé
+
+Flows disponibles :
+
+- `smoke`
+- `auth-email`
+- `auth-phone`
+- `onboarding-email`
+- `onboarding-phone`
+- `recovery-password`
+- `recovery-pin`
+
+Commandes utiles :
+
+```bash
+npm run maestro:install
+npm run e2e:build
+npm run e2e:test:smoke
+npm run e2e:test:auth-email
+npm run e2e:test:auth-phone
+npm run e2e:test:onboarding-email
+npm run e2e:test:onboarding-phone
+npm run e2e:test:recovery-password
+npm run e2e:test:recovery-pin
+npm run e2e:test
+npm run e2e
+```
+
+Lecture des commandes :
+
+- `npm run e2e:test:<flow>` lance un seul flow
+- `npm run e2e:test` lance toute la suite Maestro, sans rebuild natif
+- `npm run e2e` rebâtit l'APK release puis lance toute la suite
+
 ## Comportement clavier Android — règle absolue
 
 `android:windowSoftInputMode="adjustPan"` est configuré dans `android/app/src/main/AndroidManifest.xml`.
@@ -169,7 +217,9 @@ Ces packages ne sont PAS dans le template create-expo-app mais sont requis :
 `.github/workflows/e2e-android.yml` — workflow Android E2E dédié :
 
 - build un APK release standard
+- exécute d'abord `smoke`
 - lance l'émulateur Android
 - installe l'APK
-- exécute les flows Maestro avec le mock server local sur `3001`
+- exécute ensuite chaque flow Maestro métier dans la matrice
+- utilise le mock server local sur `3001`
 - se déclenche la nuit en semaine et manuellement

@@ -63,6 +63,71 @@ Le build `android:build:precommit` est isolé du flux de dev :
 - il ne touche pas à l'émulateur
 - il utilise son propre cache Gradle dans `${XDG_CACHE_HOME:-$HOME/.cache}/scolive-mobile/gradle-precommit`
 
+## E2E Android
+
+Les E2E Android utilisent Maestro.
+
+Architecture :
+
+- les flows YAML vivent dans `.maestro/flows/`
+- le mock server dédié vit dans `.maestro/mock-server/server.js`
+- le script `scripts/maestro-run-flow.sh` orchestre un run complet d'un flow :
+  - démarre le mock server
+  - installe l'APK release
+  - reset l'application
+  - lance l'app ou un deep link
+  - exécute le flow Maestro demandé
+
+### Installation
+
+```bash
+npm run maestro:install
+```
+
+### Lancer un flow unique
+
+```bash
+npm run e2e:build
+npm run e2e:test:smoke
+```
+
+Autres flows disponibles :
+
+```bash
+npm run e2e:test:auth-email
+npm run e2e:test:auth-phone
+npm run e2e:test:onboarding-email
+npm run e2e:test:onboarding-phone
+npm run e2e:test:recovery-password
+npm run e2e:test:recovery-pin
+```
+
+### Lancer toute la suite E2E
+
+Si l'APK release est déjà construit :
+
+```bash
+npm run e2e:test
+```
+
+Pour rebâtir puis exécuter toute la suite :
+
+```bash
+npm run e2e
+```
+
+### CI E2E
+
+Le workflow GitHub Actions dédié est `.github/workflows/e2e-android.yml`.
+
+Il :
+
+- construit l'APK release
+- valide d'abord le flow `smoke`
+- exécute ensuite les flows métier
+- se lance la nuit en semaine
+- peut aussi être lancé manuellement
+
 ## Notes
 
 - Android Studio propre est maintenant installé dans `~/android-studio`

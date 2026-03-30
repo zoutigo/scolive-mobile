@@ -34,11 +34,39 @@ Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignor
 
 - Les flows vivent dans `.maestro/flows/`
 - Le mock server (`.maestro/mock-server/server.js`) remplace l'API réelle sur le port 3001
+- Le script `scripts/maestro-run-flow.sh` orchestre un run local :
+  - démarre le mock server avec le scénario attendu
+  - installe l'APK release si nécessaire
+  - réinitialise l'application Android
+  - ouvre directement certains flows via deep link pour éviter une navigation parasite
+  - exécute ensuite le flow Maestro ciblé
+- Les flows actuels sont :
+  - `smoke`
+  - `auth-email`
+  - `auth-phone`
+  - `onboarding-email`
+  - `onboarding-phone`
+  - `recovery-password`
+  - `recovery-pin`
 - Les commandes locales principales sont :
   - `npm run maestro:install`
   - `npm run e2e:build`
   - `npm run e2e:test:smoke`
+  - `npm run e2e:test:auth-email`
+  - `npm run e2e:test:auth-phone`
+  - `npm run e2e:test:onboarding-email`
+  - `npm run e2e:test:onboarding-phone`
+  - `npm run e2e:test:recovery-password`
+  - `npm run e2e:test:recovery-pin`
   - `npm run e2e:test`
+  - `npm run e2e`
+- Séquence locale recommandée :
+  - `npm run maestro:install`
+  - `npm run android:emulator`
+  - `npm run e2e:build`
+  - `npm run e2e:test`
+- `npm run e2e:test` rejoue toute la campagne sans rebâtir l'APK
+- `npm run e2e` rebâtit l'APK release puis lance toute la campagne
 - Les E2E Android du CI ne tournent plus sur chaque push/PR :
   - workflow dédié `.github/workflows/e2e-android.yml`
   - déclenchement nocturne en semaine
