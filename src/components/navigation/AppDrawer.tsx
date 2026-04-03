@@ -13,16 +13,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter, usePathname } from "expo-router";
 import { colors } from "../../theme";
 import { ConfirmDialog } from "../ConfirmDialog";
-import type { NavItem } from "./nav-config";
+import type { NavItem, ParentChildSection } from "./nav-config";
 
 const DRAWER_WIDTH = 288;
-const BAR_HEIGHT = 56; // hauteur de la barre header (hors status bar)
+const BAR_HEIGHT = 56;
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 interface AppDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   navItems: NavItem[];
+  /** Sections enfants — uniquement pour le rôle PARENT */
+  childSections?: ParentChildSection[];
   portalLabel: string;
   userFullName: string;
   userInitials: string;
@@ -34,6 +36,7 @@ export function AppDrawer({
   isOpen,
   onClose,
   navItems,
+  childSections,
   portalLabel,
   userFullName,
   userInitials,
@@ -45,11 +48,15 @@ export function AppDrawer({
   const drawerBottom = insets.bottom;
 
   const [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false);
+  // "general" = section parent ouverte ; "child-{id}" = section enfant ouverte
+  const [openSection, setOpenSection] = useState<string>("general");
 
   const translateX = useRef(new Animated.Value(DRAWER_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const router = useRouter();
   const pathname = usePathname();
+
+  const hasChildren = (childSections?.length ?? 0) > 0;
 
   useEffect(() => {
     if (isOpen) {
@@ -82,6 +89,13 @@ export function AppDrawer({
     }
   }, [isOpen, overlayOpacity, translateX]);
 
+  // Réinitialise la section ouverte quand le drawer se ferme
+  useEffect(() => {
+    if (!isOpen) {
+      setOpenSection("general");
+    }
+  }, [isOpen]);
+
   const handleNavPress = (item: NavItem) => {
     onClose();
     setTimeout(() => {
@@ -97,18 +111,22 @@ export function AppDrawer({
   };
 
   const isItemActive = (item: NavItem): boolean => {
-    if (item.key === "home") {
+    if (item.key === "home" || item.key.endsWith("-home")) {
       return pathname === "/" || pathname === "/index" || pathname === "";
     }
     return false;
   };
+
+  function initials(firstName: string, lastName: string): string {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  }
 
   return (
     <View
       style={[StyleSheet.absoluteFillObject, styles.root]}
       pointerEvents={isOpen ? "auto" : "none"}
     >
-      {/* Overlay (dark background) */}
+      {/* Overlay */}
       <Animated.View
         style={[styles.overlay, { opacity: overlayOpacity }]}
         pointerEvents={isOpen ? "auto" : "none"}
@@ -121,7 +139,7 @@ export function AppDrawer({
         />
       </Animated.View>
 
-      {/* Drawer panel — ancré à droite, entre bas du header et barre de nav */}
+      {/* Drawer panel */}
       <Animated.View
         testID="drawer-panel"
         style={[
@@ -158,41 +176,132 @@ export function AppDrawer({
           </View>
         </View>
 
-        {/* Nav items */}
+        {/* Nav — mode accordéon si parent avec enfants, sinon liste simple */}
         <ScrollView
           style={styles.navList}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.navContent}
         >
-          {navItems.map((item) => {
-            const active = isItemActive(item);
-            return (
+          {hasChildren ? (
+            <>
+              {/* ── Section "Mon espace famille" ── */}
               <TouchableOpacity
-                key={item.key}
-                style={[styles.navItem, active && styles.navItemActive]}
-                onPress={() => handleNavPress(item)}
+                style={styles.sectionHeader}
+                onPress={() => setOpenSection("general")}
                 activeOpacity={0.7}
-                testID={`nav-item-${item.key}`}
-                accessibilityLabel={item.label}
+                testID="drawer-section-general"
               >
-                {/* Active bar on the LEFT inside the right-side drawer */}
-                {active && <View style={styles.activeBar} />}
                 <Ionicons
-                  name={item.icon as "home-outline"}
-                  size={20}
-                  color={active ? colors.warmAccent : "rgba(255,255,255,0.72)"}
+                  name="home-outline"
+                  size={16}
+                  color={
+                    openSection === "general"
+                      ? colors.warmAccent
+                      : "rgba(255,255,255,0.5)"
+                  }
                 />
                 <Text
-                  style={[styles.navLabel, active && styles.navLabelActive]}
+                  style={[
+                    styles.sectionHeaderText,
+                    openSection === "general" && styles.sectionHeaderTextActive,
+                  ]}
                 >
-                  {item.label}
+                  Mon espace famille
                 </Text>
+                <Ionicons
+                  name={
+                    openSection === "general"
+                      ? "chevron-down"
+                      : "chevron-forward"
+                  }
+                  size={14}
+                  color="rgba(255,255,255,0.4)"
+                />
               </TouchableOpacity>
-            );
-          })}
+
+              {openSection === "general" &&
+                navItems.map((item) => {
+                  const active = isItemActive(item);
+                  return (
+                    <NavRow
+                      key={item.key}
+                      item={item}
+                      active={active}
+                      onPress={handleNavPress}
+                      indented
+                    />
+                  );
+                })}
+
+              {/* ── Sections par enfant ── */}
+              {childSections!.map((child) => {
+                const sectionKey = `child-${child.id}`;
+                const isOpen = openSection === sectionKey;
+                const childInitials = initials(child.firstName, child.lastName);
+
+                return (
+                  <View key={child.id}>
+                    <TouchableOpacity
+                      style={styles.sectionHeader}
+                      onPress={() => setOpenSection(sectionKey)}
+                      activeOpacity={0.7}
+                      testID={`drawer-section-child-${child.id}`}
+                    >
+                      <View style={styles.childAvatar}>
+                        <Text style={styles.childAvatarText}>
+                          {childInitials}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.sectionHeaderText,
+                          isOpen && styles.sectionHeaderTextActive,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {child.lastName} {child.firstName}
+                      </Text>
+                      <Ionicons
+                        name={isOpen ? "chevron-down" : "chevron-forward"}
+                        size={14}
+                        color="rgba(255,255,255,0.4)"
+                      />
+                    </TouchableOpacity>
+
+                    {isOpen &&
+                      child.navItems.map((item) => {
+                        const active = isItemActive(item);
+                        return (
+                          <NavRow
+                            key={item.key}
+                            item={item}
+                            active={active}
+                            onPress={handleNavPress}
+                            indented
+                          />
+                        );
+                      })}
+                  </View>
+                );
+              })}
+            </>
+          ) : (
+            // Mode simple (non-parent)
+            navItems.map((item) => {
+              const active = isItemActive(item);
+              return (
+                <NavRow
+                  key={item.key}
+                  item={item}
+                  active={active}
+                  onPress={handleNavPress}
+                />
+              );
+            })
+          )}
         </ScrollView>
 
-        {/* Bouton de déconnexion — ouvre la confirmation */}
+        {/* Bouton de déconnexion */}
         <TouchableOpacity
           style={styles.logoutRow}
           onPress={() => setConfirmLogoutVisible(true)}
@@ -208,7 +317,7 @@ export function AppDrawer({
         </TouchableOpacity>
       </Animated.View>
 
-      {/* Dialog de confirmation de déconnexion */}
+      {/* Dialog confirmation déconnexion */}
       <ConfirmDialog
         visible={confirmLogoutVisible}
         variant="danger"
@@ -225,7 +334,7 @@ export function AppDrawer({
         onCancel={() => setConfirmLogoutVisible(false)}
       />
 
-      {/* Tap zone to the left of the drawer closes it */}
+      {/* Zone de clic à gauche du drawer */}
       {isOpen && (
         <TouchableOpacity
           style={[
@@ -240,15 +349,47 @@ export function AppDrawer({
   );
 }
 
+// ── Composant ligne de navigation réutilisable ──────────────────────────────
+
+interface NavRowProps {
+  item: NavItem;
+  active: boolean;
+  onPress: (item: NavItem) => void;
+  indented?: boolean;
+}
+
+function NavRow({ item, active, onPress, indented = false }: NavRowProps) {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.navItem,
+        active && styles.navItemActive,
+        indented && styles.navItemIndented,
+      ]}
+      onPress={() => onPress(item)}
+      activeOpacity={0.7}
+      testID={`nav-item-${item.key}`}
+      accessibilityLabel={item.label}
+    >
+      {active && <View style={styles.activeBar} />}
+      <Ionicons
+        name={item.icon as "home-outline"}
+        size={18}
+        color={active ? colors.warmAccent : "rgba(255,255,255,0.72)"}
+      />
+      <Text style={[styles.navLabel, active && styles.navLabelActive]}>
+        {item.label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
-  root: {
-    zIndex: 100,
-  },
+  root: { zIndex: 100 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "#000",
   },
-  // Drawer sits on the RIGHT — top/bottom sont injectés dynamiquement via style inline
   drawer: {
     position: "absolute",
     right: 0,
@@ -272,10 +413,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "rgba(255,255,255,0.1)",
     gap: 12,
   },
-  closeBtn: {
-    padding: 4,
-    marginLeft: "auto",
-  },
+  closeBtn: { padding: 4, marginLeft: "auto" },
   avatarLarge: {
     width: 46,
     height: 46,
@@ -285,28 +423,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
-  avatarLargeText: {
-    color: colors.white,
-    fontSize: 17,
-    fontWeight: "700",
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    color: colors.white,
-    fontSize: 15,
-    fontWeight: "600",
-  },
+  avatarLargeText: { color: colors.white, fontSize: 17, fontWeight: "700" },
+  userInfo: { flex: 1 },
+  userName: { color: colors.white, fontSize: 15, fontWeight: "600" },
   userRoleText: {
     color: "rgba(255,255,255,0.6)",
     fontSize: 12,
     marginTop: 2,
   },
-  portalBadgeRow: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
+  portalBadgeRow: { paddingHorizontal: 20, paddingVertical: 12 },
   portalBadge: {
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -321,36 +446,62 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
-  navList: {
-    flex: 1,
-  },
-  navContent: {
+  navList: { flex: 1 },
+  navContent: { paddingHorizontal: 12, paddingBottom: 8 },
+
+  // ── Accordéon ──────────────────────────────────────────────────────────────
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
-    paddingBottom: 8,
+    paddingVertical: 12,
+    gap: 10,
+    borderRadius: 10,
+    marginBottom: 2,
   },
+  sectionHeaderText: {
+    flex: 1,
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  sectionHeaderTextActive: { color: colors.warmAccent },
+  childAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  childAvatarText: {
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: "700",
+  },
+
+  // ── Items de navigation ─────────────────────────────────────────────────────
   navItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 13,
+    paddingVertical: 11,
     paddingHorizontal: 12,
     borderRadius: 10,
     marginBottom: 2,
     gap: 14,
     position: "relative",
   },
-  navItemActive: {
-    backgroundColor: "rgba(255,255,255,0.12)",
-  },
+  navItemActive: { backgroundColor: "rgba(255,255,255,0.12)" },
+  navItemIndented: { paddingLeft: 20 },
   navLabel: {
     color: "rgba(255,255,255,0.72)",
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "400",
     flex: 1,
   },
-  navLabelActive: {
-    color: colors.white,
-    fontWeight: "600",
-  },
+  navLabelActive: { color: colors.white, fontWeight: "600" },
   activeBar: {
     position: "absolute",
     left: 0,
@@ -360,6 +511,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.warmAccent,
     borderRadius: 2,
   },
+
+  // ── Déconnexion ─────────────────────────────────────────────────────────────
   logoutRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -369,13 +522,6 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(255,255,255,0.1)",
     gap: 14,
   },
-  logoutLabel: {
-    color: "rgba(255,255,255,0.55)",
-    fontSize: 15,
-  },
-  sideHitArea: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-  },
+  logoutLabel: { color: "rgba(255,255,255,0.55)", fontSize: 15 },
+  sideHitArea: { position: "absolute", top: 0, bottom: 0 },
 });

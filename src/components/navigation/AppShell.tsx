@@ -1,6 +1,7 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { useAuthStore } from "../../store/auth.store";
+import { useFamilyStore } from "../../store/family.store";
 import { colors } from "../../theme";
 import { AppHeader } from "./AppHeader";
 import { AppDrawer } from "./AppDrawer";
@@ -9,6 +10,7 @@ import {
   getPortalLabel,
   getRoleLabel,
   getViewType,
+  buildChildSections,
 } from "./nav-config";
 import { DrawerContext } from "./drawer-context";
 
@@ -20,7 +22,12 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const { user, logout } = useAuthStore();
+  const { user, schoolSlug, logout } = useAuthStore();
+  const {
+    children: familyChildren,
+    loadChildren,
+    clearChildren,
+  } = useFamilyStore();
 
   const openDrawer = useCallback(() => setIsDrawerOpen(true), []);
   const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
@@ -35,6 +42,18 @@ export function AppShell({ children }: AppShellProps) {
     : "?";
   const userRole = user ? getRoleLabel(user) : "";
 
+  // Charge les enfants quand l'utilisateur est un parent avec un schoolSlug
+  useEffect(() => {
+    if (viewType === "parent" && schoolSlug) {
+      void loadChildren(schoolSlug);
+    } else {
+      clearChildren();
+    }
+  }, [viewType, schoolSlug, loadChildren, clearChildren]);
+
+  const childSections =
+    viewType === "parent" ? buildChildSections(familyChildren) : undefined;
+
   return (
     <DrawerContext.Provider value={{ openDrawer, closeDrawer, isDrawerOpen }}>
       <View style={styles.container}>
@@ -44,6 +63,7 @@ export function AppShell({ children }: AppShellProps) {
           isOpen={isDrawerOpen}
           onClose={closeDrawer}
           navItems={navItems}
+          childSections={childSections}
           portalLabel={portalLabel}
           userFullName={userFullName}
           userInitials={userInitials}

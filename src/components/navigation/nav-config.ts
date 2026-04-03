@@ -1,4 +1,5 @@
 import type { AuthUser, AppRole, SchoolRole } from "../../types/auth.types";
+import type { ParentChild } from "../../types/family.types";
 
 export type NavItem = {
   key: string;
@@ -6,6 +7,10 @@ export type NavItem = {
   icon: string;
   route: string;
   params?: Record<string, string>;
+};
+
+export type ParentChildSection = ParentChild & {
+  navItems: NavItem[];
 };
 
 export type ViewType =
@@ -153,6 +158,62 @@ const STUDENT_NAV: NavItem[] = [
   placeholder("Documents", "document-outline", "documents"),
   placeholder("Mon compte", "settings-outline", "account"),
 ];
+
+export function buildChildNavItems(childId: string): NavItem[] {
+  return [
+    {
+      key: `child-${childId}-home`,
+      label: "Accueil",
+      icon: "home-outline",
+      route: "/placeholder",
+      params: { title: "Accueil enfant" },
+    },
+    {
+      key: `child-${childId}-grades`,
+      label: "Notes",
+      icon: "ribbon-outline",
+      route: "/placeholder",
+      params: { title: "Notes" },
+    },
+    {
+      key: `child-${childId}-schedule`,
+      label: "Emploi du temps",
+      icon: "calendar-outline",
+      route: "/placeholder",
+      params: { title: "Emploi du temps" },
+    },
+    {
+      key: `child-${childId}-life`,
+      label: "Vie scolaire",
+      icon: "person-circle-outline",
+      route: "/placeholder",
+      params: { title: "Vie scolaire" },
+    },
+    {
+      key: `child-${childId}-messages`,
+      label: "Messagerie",
+      icon: "chatbubble-outline",
+      route: "/placeholder",
+      params: { title: "Messagerie" },
+    },
+    {
+      key: `child-${childId}-documents`,
+      label: "Documents",
+      icon: "document-outline",
+      route: "/placeholder",
+      params: { title: "Documents" },
+    },
+  ];
+}
+
+export function buildChildSections(
+  children: ParentChild[],
+): ParentChildSection[] {
+  return children.map((child) => ({
+    ...child,
+    navItems: buildChildNavItems(child.id),
+  }));
+}
 
 export function getNavItems(user: AuthUser): NavItem[] {
   const view = getViewType(user);

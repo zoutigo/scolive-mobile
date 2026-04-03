@@ -5,10 +5,13 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
+import { useFamilyStore } from "../../store/family.store";
 import type { AuthUser } from "../../types/auth.types";
+import type { ParentChild } from "../../types/family.types";
 
 interface ParentHomeProps {
   user: AuthUser;
@@ -16,6 +19,8 @@ interface ParentHomeProps {
 }
 
 export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
+  const { children, isLoading } = useFamilyStore();
+
   const schoolDisplay = schoolSlug
     ? schoolSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
     : "Mon établissement";
@@ -43,25 +48,43 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
         </View>
       </View>
 
-      {/* My children */}
+      {/* Mes enfants */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Mes enfants</Text>
-      </View>
-      <View style={styles.childrenCard}>
-        <View style={styles.childrenEmpty}>
-          <Ionicons
-            name="people-circle-outline"
-            size={42}
-            color={colors.warmBorder}
-          />
-          <Text style={styles.emptyTitle}>Aucun enfant associé</Text>
-          <Text style={styles.emptySub}>
-            Vos enfants inscrits apparaîtront ici
-          </Text>
-        </View>
+        {children.length > 0 && (
+          <View style={styles.countBadge}>
+            <Text style={styles.countBadgeText}>{children.length}</Text>
+          </View>
+        )}
       </View>
 
-      {/* Quick links */}
+      {isLoading ? (
+        <View style={styles.loadingCard}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : children.length === 0 ? (
+        <View style={styles.childrenCard}>
+          <View style={styles.childrenEmpty}>
+            <Ionicons
+              name="people-circle-outline"
+              size={42}
+              color={colors.warmBorder}
+            />
+            <Text style={styles.emptyTitle}>Aucun enfant associé</Text>
+            <Text style={styles.emptySub}>
+              Vos enfants inscrits apparaîtront ici
+            </Text>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.childrenList}>
+          {children.map((child) => (
+            <ChildCard key={child.id} child={child} />
+          ))}
+        </View>
+      )}
+
+      {/* Accès rapides */}
       <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
         Accès rapides
       </Text>
@@ -84,7 +107,6 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
             label: "Messagerie",
             sub: "Contacter l'équipe",
             color: "#6B5EA8",
-            badge: "1",
           },
           {
             icon: "document-outline",
@@ -106,13 +128,6 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
                 size={24}
                 color={item.color}
               />
-              {item.badge && (
-                <View
-                  style={[styles.quickBadge, { backgroundColor: item.color }]}
-                >
-                  <Text style={styles.quickBadgeText}>{item.badge}</Text>
-                </View>
-              )}
             </View>
             <Text style={styles.quickLabel}>{item.label}</Text>
             <Text style={styles.quickSub}>{item.sub}</Text>
@@ -120,7 +135,7 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
         ))}
       </View>
 
-      {/* School news placeholder */}
+      {/* Actualités */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Actualités</Text>
         <TouchableOpacity>
@@ -141,6 +156,40 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
         </View>
       </View>
     </ScrollView>
+  );
+}
+
+// ── Carte enfant ─────────────────────────────────────────────────────────────
+
+function ChildCard({ child }: { child: ParentChild }) {
+  const initials =
+    `${child.firstName.charAt(0)}${child.lastName.charAt(0)}`.toUpperCase();
+
+  return (
+    <TouchableOpacity style={styles.childCard} activeOpacity={0.75}>
+      <View style={styles.childAvatar}>
+        <Text style={styles.childAvatarText}>{initials}</Text>
+      </View>
+      <View style={styles.childInfo}>
+        <Text style={styles.childName}>
+          {child.lastName} {child.firstName}
+        </Text>
+      </View>
+      <View style={styles.childActions}>
+        <ChildQuickLink icon="ribbon-outline" label="Notes" />
+        <ChildQuickLink icon="calendar-outline" label="Emploi du temps" />
+      </View>
+      <Ionicons name="chevron-forward" size={16} color="rgba(0,0,0,0.3)" />
+    </TouchableOpacity>
+  );
+}
+
+function ChildQuickLink({ icon, label }: { icon: string; label: string }) {
+  return (
+    <TouchableOpacity style={styles.childQuickLink} activeOpacity={0.7}>
+      <Ionicons name={icon as "home"} size={14} color={colors.primary} />
+      <Text style={styles.childQuickLinkText}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -168,11 +217,7 @@ const styles = StyleSheet.create({
   },
   schoolRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   schoolLabel: { fontSize: 13, color: colors.primary, fontWeight: "500" },
-  rolePill: {
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
+  rolePill: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
   rolePillText: { color: colors.white, fontSize: 11, fontWeight: "600" },
 
   sectionHeader: {
@@ -189,6 +234,23 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   sectionLink: { fontSize: 13, color: colors.primary, fontWeight: "600" },
+  countBadge: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  countBadgeText: { color: colors.white, fontSize: 12, fontWeight: "700" },
+
+  loadingCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    padding: 32,
+    alignItems: "center",
+    marginBottom: 20,
+  },
 
   childrenCard: {
     backgroundColor: colors.surface,
@@ -196,12 +258,62 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.warmBorder,
     overflow: "hidden",
+    marginBottom: 20,
   },
-  childrenEmpty: {
+  childrenEmpty: { alignItems: "center", padding: 32, gap: 8 },
+  childrenList: {
+    gap: 10,
+    marginBottom: 20,
+  },
+
+  // Carte enfant
+  childCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    padding: 16,
+    flexDirection: "row",
     alignItems: "center",
-    padding: 32,
-    gap: 8,
+    gap: 12,
   },
+  childAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.primary + "20",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  childAvatarText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.primary,
+  },
+  childInfo: { flex: 1 },
+  childName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    marginBottom: 6,
+  },
+  childActions: { flexDirection: "row", gap: 8 },
+  childQuickLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.primary + "12",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  childQuickLinkText: {
+    fontSize: 11,
+    color: colors.primary,
+    fontWeight: "600",
+  },
+
   emptyTitle: {
     fontSize: 14,
     fontWeight: "600",
@@ -236,24 +348,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    position: "relative",
   },
-  quickBadge: {
-    position: "absolute",
-    top: -2,
-    right: -2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  quickBadgeText: { color: colors.white, fontSize: 10, fontWeight: "700" },
-  quickLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
+  quickLabel: { fontSize: 14, fontWeight: "600", color: colors.textPrimary },
   quickSub: { fontSize: 12, color: colors.textSecondary },
 
   newsCard: {
@@ -263,9 +359,5 @@ const styles = StyleSheet.create({
     borderColor: colors.warmBorder,
     overflow: "hidden",
   },
-  newsEmpty: {
-    alignItems: "center",
-    padding: 32,
-    gap: 8,
-  },
+  newsEmpty: { alignItems: "center", padding: 32, gap: 8 },
 });
