@@ -2,6 +2,12 @@
 
 Ce fichier liste les règles non-négociables à respecter lors de toute modification de ce projet.
 
+## Git — commit et push
+
+**Ne jamais créer de commit ni pousser sur le remote sans y avoir été explicitement invité.**
+Préparer le code, faire tourner les vérifications (format, lint, typecheck, tests), puis attendre
+l'instruction explicite de l'utilisateur avant tout `git commit` ou `git push`.
+
 ## Comportement clavier Android — règle absolue
 
 `android:windowSoftInputMode="adjustPan"` est configuré dans `android/app/src/main/AndroidManifest.xml`.

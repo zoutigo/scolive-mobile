@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter, usePathname } from "expo-router";
 import { colors } from "../../theme";
 import { ConfirmDialog } from "../ConfirmDialog";
+import { useFamilyStore } from "../../store/family.store";
 import type { NavItem, ParentChildSection } from "./nav-config";
 
 const DRAWER_WIDTH = 288;
@@ -48,8 +49,11 @@ export function AppDrawer({
   const drawerBottom = insets.bottom;
 
   const [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false);
+  const { activeChildId } = useFamilyStore();
   // "general" = section parent ouverte ; "child-{id}" = section enfant ouverte
-  const [openSection, setOpenSection] = useState<string>("general");
+  const [openSection, setOpenSection] = useState<string>(
+    activeChildId ? `child-${activeChildId}` : "general",
+  );
 
   const translateX = useRef(new Animated.Value(DRAWER_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
@@ -57,6 +61,11 @@ export function AppDrawer({
   const pathname = usePathname();
 
   const hasChildren = (childSections?.length ?? 0) > 0;
+
+  // Synchronise la section ouverte quand l'enfant actif change dans le store
+  useEffect(() => {
+    setOpenSection(activeChildId ? `child-${activeChildId}` : "general");
+  }, [activeChildId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -88,13 +97,6 @@ export function AppDrawer({
       ]).start();
     }
   }, [isOpen, overlayOpacity, translateX]);
-
-  // Réinitialise la section ouverte quand le drawer se ferme
-  useEffect(() => {
-    if (!isOpen) {
-      setOpenSection("general");
-    }
-  }, [isOpen]);
 
   const handleNavPress = (item: NavItem) => {
     onClose();

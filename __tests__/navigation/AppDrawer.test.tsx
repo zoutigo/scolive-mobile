@@ -1,7 +1,11 @@
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react-native";
 import { AppDrawer } from "../../src/components/navigation/AppDrawer";
-import { getNavItems } from "../../src/components/navigation/nav-config";
+import {
+  getNavItems,
+  buildChildSections,
+} from "../../src/components/navigation/nav-config";
+import { useFamilyStore } from "../../src/store/family.store";
 import type { AuthUser } from "../../src/types/auth.types";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
@@ -67,9 +71,13 @@ const studentUser = makeUser({
   activeRole: "STUDENT",
 });
 
+const child1 = { id: "c1", firstName: "Lisa", lastName: "Ntamack" };
+const child2 = { id: "c2", firstName: "Paul", lastName: "Ntamack" };
+
 beforeEach(() => {
   jest.clearAllMocks();
   jest.useFakeTimers();
+  useFamilyStore.setState({ activeChildId: null, children: [] });
 });
 
 afterEach(() => {
@@ -317,5 +325,81 @@ describe("Bouton de déconnexion", () => {
     fireEvent.press(screen.getByTestId("drawer-logout-btn"));
     fireEvent.press(screen.getByTestId("confirm-dialog-cancel"));
     expect(screen.queryByTestId("confirm-dialog-card")).toBeNull();
+  });
+});
+
+// ── Accordéon parent+enfants ──────────────────────────────────────────────────
+
+describe("Accordéon parent — sections enfants", () => {
+  const childSections = buildChildSections([child1, child2]);
+  const navItems = getNavItems(parentUser);
+
+  function renderParentDrawer(activeChildId: string | null = null) {
+    useFamilyStore.setState({ activeChildId, children: [] });
+    return render(
+      <AppDrawer
+        {...baseProps}
+        navItems={navItems}
+        childSections={childSections}
+      />,
+    );
+  }
+
+  it("affiche le bouton de section 'Mon espace famille'", () => {
+    renderParentDrawer();
+    expect(screen.getByTestId("drawer-section-general")).toBeTruthy();
+  });
+
+  it("affiche un bouton de section par enfant", () => {
+    renderParentDrawer();
+    expect(screen.getByTestId("drawer-section-child-c1")).toBeTruthy();
+    expect(screen.getByTestId("drawer-section-child-c2")).toBeTruthy();
+  });
+
+  it("ouvre la section 'général' par défaut quand activeChildId est null", () => {
+    renderParentDrawer(null);
+    // Les items parent sont visibles (section générale ouverte)
+    expect(screen.getByTestId("nav-item-home")).toBeTruthy();
+  });
+
+  it("ouvre la section de l'enfant actif quand activeChildId est défini", () => {
+    renderParentDrawer("c1");
+    // Les items de l'enfant c1 sont visibles
+    expect(screen.getByTestId("nav-item-child-c1-home")).toBeTruthy();
+    expect(screen.getByTestId("nav-item-child-c1-grades")).toBeTruthy();
+  });
+
+  it("ouvre la section du deuxième enfant quand activeChildId est c2", () => {
+    renderParentDrawer("c2");
+    expect(screen.getByTestId("nav-item-child-c2-home")).toBeTruthy();
+    expect(screen.getByTestId("nav-item-child-c2-grades")).toBeTruthy();
+  });
+
+  it("n'affiche pas les items d'un enfant non-actif", () => {
+    renderParentDrawer("c1");
+    expect(screen.queryByTestId("nav-item-child-c2-home")).toBeNull();
+  });
+
+  it("cliquer sur la section d'un enfant l'ouvre", () => {
+    renderParentDrawer(null);
+    fireEvent.press(screen.getByTestId("drawer-section-child-c1"));
+    expect(screen.getByTestId("nav-item-child-c1-home")).toBeTruthy();
+  });
+
+  it("cliquer sur 'Mon espace famille' ouvre la section générale", () => {
+    renderParentDrawer("c1");
+    fireEvent.press(screen.getByTestId("drawer-section-general"));
+    expect(screen.getByTestId("nav-item-home")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-child-c1-home")).toBeNull();
+  });
+
+  it("changer activeChildId dans le store met à jour la section ouverte", () => {
+    renderParentDrawer("c1");
+    expect(screen.getByTestId("nav-item-child-c1-home")).toBeTruthy();
+    act(() => {
+      useFamilyStore.setState({ activeChildId: "c2" });
+    });
+    expect(screen.queryByTestId("nav-item-child-c1-home")).toBeNull();
+    expect(screen.getByTestId("nav-item-child-c2-home")).toBeTruthy();
   });
 });

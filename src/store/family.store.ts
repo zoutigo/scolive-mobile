@@ -5,13 +5,16 @@ import type { ParentChild } from "../types/family.types";
 interface FamilyState {
   children: ParentChild[];
   isLoading: boolean;
+  activeChildId: string | null;
   loadChildren: (schoolSlug: string) => Promise<void>;
   clearChildren: () => void;
+  setActiveChild: (childId: string | null) => void;
 }
 
 export const useFamilyStore = create<FamilyState>((set) => ({
   children: [],
   isLoading: false,
+  activeChildId: null,
 
   async loadChildren(schoolSlug: string) {
     set({ isLoading: true });
@@ -26,6 +29,10 @@ export const useFamilyStore = create<FamilyState>((set) => ({
   },
 
   clearChildren() {
-    set({ children: [] });
+    set({ children: [], activeChildId: null });
+  },
+
+  setActiveChild(childId: string | null) {
+    set({ activeChildId: childId });
   },
 }));

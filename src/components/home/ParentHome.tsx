@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import { useFamilyStore } from "../../store/family.store";
 import type { AuthUser } from "../../types/auth.types";
@@ -19,11 +20,20 @@ interface ParentHomeProps {
 }
 
 export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
-  const { children, isLoading } = useFamilyStore();
+  const { children, isLoading, setActiveChild } = useFamilyStore();
+  const router = useRouter();
 
   const schoolDisplay = schoolSlug
     ? schoolSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
     : "Mon établissement";
+
+  function handleChildPress(child: ParentChild) {
+    setActiveChild(child.id);
+    router.push({
+      pathname: "/placeholder",
+      params: { title: `${child.lastName} ${child.firstName}` },
+    });
+  }
 
   return (
     <ScrollView
@@ -52,7 +62,7 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Mes enfants</Text>
         {children.length > 0 && (
-          <View style={styles.countBadge}>
+          <View style={styles.countBadge} testID="children-count-badge">
             <Text style={styles.countBadgeText}>{children.length}</Text>
           </View>
         )}
@@ -79,7 +89,11 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
       ) : (
         <View style={styles.childrenList}>
           {children.map((child) => (
-            <ChildCard key={child.id} child={child} />
+            <ChildCard
+              key={child.id}
+              child={child}
+              onPress={handleChildPress}
+            />
           ))}
         </View>
       )}
@@ -161,34 +175,23 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
 
 // ── Carte enfant ─────────────────────────────────────────────────────────────
 
-function ChildCard({ child }: { child: ParentChild }) {
-  const initials =
-    `${child.firstName.charAt(0)}${child.lastName.charAt(0)}`.toUpperCase();
-
-  return (
-    <TouchableOpacity style={styles.childCard} activeOpacity={0.75}>
-      <View style={styles.childAvatar}>
-        <Text style={styles.childAvatarText}>{initials}</Text>
-      </View>
-      <View style={styles.childInfo}>
-        <Text style={styles.childName}>
-          {child.lastName} {child.firstName}
-        </Text>
-      </View>
-      <View style={styles.childActions}>
-        <ChildQuickLink icon="ribbon-outline" label="Notes" />
-        <ChildQuickLink icon="calendar-outline" label="Emploi du temps" />
-      </View>
-      <Ionicons name="chevron-forward" size={16} color="rgba(0,0,0,0.3)" />
-    </TouchableOpacity>
-  );
+interface ChildCardProps {
+  child: ParentChild;
+  onPress: (child: ParentChild) => void;
 }
 
-function ChildQuickLink({ icon, label }: { icon: string; label: string }) {
+function ChildCard({ child, onPress }: ChildCardProps) {
   return (
-    <TouchableOpacity style={styles.childQuickLink} activeOpacity={0.7}>
-      <Ionicons name={icon as "home"} size={14} color={colors.primary} />
-      <Text style={styles.childQuickLinkText}>{label}</Text>
+    <TouchableOpacity
+      style={styles.childCard}
+      activeOpacity={0.75}
+      onPress={() => onPress(child)}
+      testID={`child-card-${child.id}`}
+    >
+      <Text style={styles.childName}>
+        {child.lastName} {child.firstName}
+      </Text>
+      <Ionicons name="chevron-forward" size={16} color="rgba(0,0,0,0.3)" />
     </TouchableOpacity>
   );
 }
@@ -262,56 +265,26 @@ const styles = StyleSheet.create({
   },
   childrenEmpty: { alignItems: "center", padding: 32, gap: 8 },
   childrenList: {
-    gap: 10,
+    gap: 8,
     marginBottom: 20,
   },
 
-  // Carte enfant
+  // Carte enfant — nom seul
   childCard: {
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.warmBorder,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "space-between",
   },
-  childAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary + "20",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  childAvatarText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.primary,
-  },
-  childInfo: { flex: 1 },
   childName: {
     fontSize: 15,
     fontWeight: "600",
     color: colors.textPrimary,
-    marginBottom: 6,
-  },
-  childActions: { flexDirection: "row", gap: 8 },
-  childQuickLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: colors.primary + "12",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  childQuickLinkText: {
-    fontSize: 11,
-    color: colors.primary,
-    fontWeight: "600",
   },
 
   emptyTitle: {
