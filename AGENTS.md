@@ -65,6 +65,7 @@ Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignor
   - `npm run android:emulator`
   - `npm run e2e:build`
   - `npm run e2e:test`
+- L'AVD de dev quotidien pointé par `npm run android:emulator` est `Scolive_Dev_AOSP_API33_Fresh`
 - `npm run e2e:test` rejoue toute la campagne sans rebâtir l'APK
 - `npm run e2e` rebâtit l'APK release puis lance toute la campagne
 - Le workflow `.github/workflows/publish-android.yml` publie l'APK release signe sur `main`

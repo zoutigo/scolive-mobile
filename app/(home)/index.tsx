@@ -1,71 +1,72 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import React from "react";
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useAuthStore } from "../../src/store/auth.store";
+import { getViewType } from "../../src/components/navigation/nav-config";
+import { AppShell } from "../../src/components/navigation/AppShell";
+import { PlatformHome } from "../../src/components/home/PlatformHome";
+import { SchoolHome } from "../../src/components/home/SchoolHome";
+import { TeacherHome } from "../../src/components/home/TeacherHome";
+import { ParentHome } from "../../src/components/home/ParentHome";
+import { StudentHome } from "../../src/components/home/StudentHome";
 import { colors } from "../../src/theme";
 
 export default function HomeScreen() {
-  const { user, logout } = useAuthStore();
+  const { user, schoolSlug } = useAuthStore();
 
-  const displayName = user ? `${user.firstName} ${user.lastName}` : "—";
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.welcome}>Bienvenue</Text>
-        <Text style={styles.name} testID="user-name">
-          {displayName}
-        </Text>
+  if (!user) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
+    );
+  }
 
-      <TouchableOpacity
-        style={styles.logoutButton}
-        onPress={logout}
-        testID="logout-button"
-      >
-        <Text style={styles.logoutText}>Se déconnecter</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  const view = getViewType(user);
+
+  const content = (() => {
+    switch (view) {
+      case "platform":
+        return <PlatformHome user={user} />;
+      case "school":
+        return <SchoolHome user={user} schoolSlug={schoolSlug} />;
+      case "teacher":
+        return <TeacherHome user={user} schoolSlug={schoolSlug} />;
+      case "parent":
+        return <ParentHome user={user} schoolSlug={schoolSlug} />;
+      case "student":
+        return <StudentHome user={user} schoolSlug={schoolSlug} />;
+      default:
+        return (
+          <View style={styles.fallback}>
+            <Text style={styles.fallbackText}>
+              Bienvenue, {user.firstName} {user.lastName}
+            </Text>
+          </View>
+        );
+    }
+  })();
+
+  return <AppShell>{content}</AppShell>;
 }
 
 const styles = StyleSheet.create({
-  container: {
+  loading: {
     flex: 1,
     backgroundColor: colors.background,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
-    gap: 32,
   },
-  card: {
-    width: "100%",
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
+  fallback: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: "center",
+    alignItems: "center",
     padding: 24,
-    alignItems: "center",
-    gap: 8,
   },
-  welcome: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  name: {
-    fontSize: 22,
-    fontWeight: "700",
+  fallbackText: {
+    fontSize: 18,
+    fontWeight: "600",
     color: colors.textPrimary,
-  },
-  logoutButton: {
-    width: "100%",
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    alignItems: "center",
-  },
-  logoutText: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    fontWeight: "500",
+    textAlign: "center",
   },
 });

@@ -1,0 +1,173 @@
+import type { AuthUser, AppRole, SchoolRole } from "../../types/auth.types";
+
+export type NavItem = {
+  key: string;
+  label: string;
+  icon: string;
+  route: string;
+  params?: Record<string, string>;
+};
+
+export type ViewType =
+  | "platform"
+  | "school"
+  | "teacher"
+  | "parent"
+  | "student"
+  | "unknown";
+
+const SCHOOL_STAFF_ROLES: SchoolRole[] = [
+  "SCHOOL_ADMIN",
+  "SCHOOL_MANAGER",
+  "SUPERVISOR",
+  "SCHOOL_ACCOUNTANT",
+  "SCHOOL_STAFF",
+];
+
+const SCHOOL_ROLES = new Set<AppRole>([
+  "SCHOOL_ADMIN",
+  "SCHOOL_MANAGER",
+  "SUPERVISOR",
+  "SCHOOL_ACCOUNTANT",
+  "SCHOOL_STAFF",
+  "TEACHER",
+  "PARENT",
+  "STUDENT",
+]);
+
+function getEffectiveRole(user: AuthUser): AppRole | null {
+  const role = user.activeRole ?? user.role;
+  if (role) return role;
+  if (user.memberships.length > 0) return user.memberships[0].role;
+  return null;
+}
+
+export function getViewType(user: AuthUser): ViewType {
+  if (user.platformRoles.length > 0) return "platform";
+  const role = getEffectiveRole(user);
+  if (!role || !SCHOOL_ROLES.has(role)) return "unknown";
+  if (SCHOOL_STAFF_ROLES.includes(role as SchoolRole)) return "school";
+  if (role === "TEACHER") return "teacher";
+  if (role === "PARENT") return "parent";
+  if (role === "STUDENT") return "student";
+  return "unknown";
+}
+
+export function getPortalLabel(view: ViewType): string {
+  switch (view) {
+    case "platform":
+      return "Portail administration";
+    case "school":
+      return "Portail établissement";
+    case "teacher":
+      return "Portail enseignant";
+    case "parent":
+    case "student":
+      return "Portail famille";
+    default:
+      return "Scolive";
+  }
+}
+
+const ROLE_LABELS: Record<AppRole, string> = {
+  SUPER_ADMIN: "Super administrateur",
+  ADMIN: "Administrateur",
+  SALES: "Commercial",
+  SUPPORT: "Support",
+  SCHOOL_ADMIN: "Administrateur école",
+  SCHOOL_MANAGER: "Directeur",
+  SUPERVISOR: "Superviseur",
+  SCHOOL_ACCOUNTANT: "Comptable",
+  SCHOOL_STAFF: "Personnel",
+  TEACHER: "Enseignant(e)",
+  PARENT: "Parent",
+  STUDENT: "Élève",
+};
+
+export function getRoleLabel(user: AuthUser): string {
+  const role = getEffectiveRole(user);
+  if (!role) return "";
+  return ROLE_LABELS[role] ?? role;
+}
+
+function placeholder(label: string, icon: string, key: string): NavItem {
+  return {
+    key,
+    label,
+    icon,
+    route: "/placeholder",
+    params: { title: label },
+  };
+}
+
+const PLATFORM_NAV: NavItem[] = [
+  { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
+  placeholder("Écoles", "business-outline", "schools"),
+  placeholder("Classes", "book-outline", "classes"),
+  placeholder("Matières", "library-outline", "subjects"),
+  placeholder("Curriculums", "layers-outline", "curriculums"),
+  placeholder("Inscriptions", "person-add-outline", "enrollments"),
+  placeholder("Élèves", "people-outline", "students"),
+  placeholder("Utilisateurs", "person-outline", "users"),
+  placeholder("Indicateurs", "bar-chart-outline", "indicators"),
+  placeholder("Mon compte", "settings-outline", "account"),
+];
+
+const SCHOOL_NAV: NavItem[] = [
+  { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
+  placeholder("Fil d'actualité", "newspaper-outline", "feed"),
+  placeholder("Classes", "book-outline", "classes"),
+  placeholder("Matières", "library-outline", "subjects"),
+  placeholder("Curriculums", "layers-outline", "curriculums"),
+  placeholder("Inscriptions", "person-add-outline", "enrollments"),
+  placeholder("Élèves", "people-outline", "students"),
+  placeholder("Enseignants", "school-outline", "teachers"),
+  placeholder("Parents-Élèves", "people-circle-outline", "parents"),
+  placeholder("Notes", "ribbon-outline", "grades"),
+  placeholder("Messagerie", "chatbubble-outline", "messages"),
+  placeholder("Mon compte", "settings-outline", "account"),
+];
+
+const TEACHER_NAV: NavItem[] = [
+  { key: "home", label: "Tableau de bord", icon: "home-outline", route: "/" },
+  placeholder("Fil d'actualité", "newspaper-outline", "feed"),
+  placeholder("Mes classes", "book-outline", "classes"),
+  placeholder("Cahier de notes", "journal-outline", "gradebook"),
+  placeholder("Messagerie", "chatbubble-outline", "messages"),
+  placeholder("Mon compte", "settings-outline", "account"),
+];
+
+const PARENT_NAV: NavItem[] = [
+  { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
+  placeholder("Fil d'actualité", "newspaper-outline", "feed"),
+  placeholder("Situation financière", "wallet-outline", "finance"),
+  placeholder("Messagerie", "chatbubble-outline", "messages"),
+  placeholder("Documents", "document-outline", "documents"),
+  placeholder("Mon compte", "settings-outline", "account"),
+];
+
+const STUDENT_NAV: NavItem[] = [
+  { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
+  placeholder("Notes & devoirs", "ribbon-outline", "grades"),
+  placeholder("Messagerie", "chatbubble-outline", "messages"),
+  placeholder("Documents", "document-outline", "documents"),
+  placeholder("Mon compte", "settings-outline", "account"),
+];
+
+export function getNavItems(user: AuthUser): NavItem[] {
+  const view = getViewType(user);
+  switch (view) {
+    case "platform":
+      return PLATFORM_NAV;
+    case "school":
+      return SCHOOL_NAV;
+    case "teacher":
+      return TEACHER_NAV;
+    case "parent":
+      return PARENT_NAV;
+    case "student":
+      return STUDENT_NAV;
+    default:
+      return [];
+  }
+}
