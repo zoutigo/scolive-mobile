@@ -1,5 +1,10 @@
 # scolive-mobile — Contexte projet
 
+## Git — règle absolue
+
+**Ne jamais créer de commit ni pousser sur le remote sans instruction explicite de l'utilisateur.**
+Terminer le travail, vérifier (format, lint, typecheck, tests), puis attendre qu'on demande le commit/push.
+
 Application mobile React Native (Expo) du projet Scolive.
 Repo GitHub : `git@github.com:zoutigo/scolive-mobile.git`
 

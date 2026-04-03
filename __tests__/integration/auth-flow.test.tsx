@@ -14,6 +14,10 @@ import { useAuthStore } from "../../src/store/auth.store";
 import type { AuthUser, LoginResponse } from "../../src/types/auth.types";
 
 jest.mock("expo-status-bar", () => ({ StatusBar: () => null }));
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  usePathname: () => "/",
+}));
 jest.mock("../../src/api/auth.api");
 jest.mock("../../src/api/client", () => ({
   apiFetch: jest.fn(),
@@ -122,7 +126,7 @@ describe("Flux écrans auth", () => {
     expect(screen.getByTestId("tab-phone")).toBeOnTheScreen();
   });
 
-  it("IndexScreen affiche home si l'utilisateur est connecté", () => {
+  it("IndexScreen affiche le header Scolive quand l'utilisateur est connecté", () => {
     useAuthStore.setState({
       user: fakeUser,
       accessToken: "access-token",
@@ -133,11 +137,12 @@ describe("Flux écrans auth", () => {
 
     render(<IndexScreen />);
 
-    expect(screen.getByText("Bienvenue")).toBeOnTheScreen();
-    expect(screen.getByTestId("user-name")).toHaveTextContent("Marie Dupont");
+    // Le header avec logo et bouton menu doit être présent
+    expect(screen.getByTestId("header-logo")).toBeOnTheScreen();
+    expect(screen.getByTestId("header-menu-btn")).toBeOnTheScreen();
   });
 
-  it("HomeScreen déclenche bien logout depuis le bouton", async () => {
+  it("HomeScreen déclenche bien logout via le drawer avec confirmation", async () => {
     useAuthStore.setState({
       user: fakeUser,
       accessToken: "access-token",
@@ -148,10 +153,57 @@ describe("Flux écrans auth", () => {
     mockAuthApi.logout.mockResolvedValue(undefined);
 
     render(<HomeScreen />);
-    fireEvent.press(screen.getByTestId("logout-button"));
+
+    // Ouvrir le drawer via le bouton menu du header
+    fireEvent.press(screen.getByTestId("header-menu-btn"));
+
+    // Appuyer sur le bouton de déconnexion dans le drawer
+    await waitFor(() => {
+      expect(screen.getByTestId("drawer-logout-btn")).toBeOnTheScreen();
+    });
+    fireEvent.press(screen.getByTestId("drawer-logout-btn"));
+
+    // Le ConfirmDialog doit apparaître — l'utilisateur n'est pas encore déconnecté
+    await waitFor(() => {
+      expect(screen.getByTestId("confirm-dialog-card")).toBeOnTheScreen();
+    });
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+
+    // Confirmer la déconnexion
+    fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
 
     await waitFor(() => {
       expect(useAuthStore.getState().isAuthenticated).toBe(false);
     });
+  });
+
+  it("HomeScreen annuler la déconnexion dans le dialog garde l'utilisateur connecté", async () => {
+    useAuthStore.setState({
+      user: fakeUser,
+      accessToken: "access-token",
+      schoolSlug: "ecole",
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    mockAuthApi.logout.mockResolvedValue(undefined);
+
+    render(<HomeScreen />);
+
+    fireEvent.press(screen.getByTestId("header-menu-btn"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("drawer-logout-btn")).toBeOnTheScreen();
+    });
+    fireEvent.press(screen.getByTestId("drawer-logout-btn"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("confirm-dialog-card")).toBeOnTheScreen();
+    });
+
+    // Annuler — l'utilisateur reste connecté
+    fireEvent.press(screen.getByTestId("confirm-dialog-cancel"));
+
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+    expect(screen.queryByTestId("confirm-dialog-card")).toBeNull();
   });
 });

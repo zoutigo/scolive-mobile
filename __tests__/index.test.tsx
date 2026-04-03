@@ -2,24 +2,43 @@ import React from "react";
 import { render, screen } from "@testing-library/react-native";
 import IndexScreen from "../app/index";
 import { useAuthStore } from "../src/store/auth.store";
+import type { AuthUser } from "../src/types/auth.types";
 
 jest.mock("../src/store/auth.store", () => ({ useAuthStore: jest.fn() }));
 jest.mock("expo-status-bar", () => ({ StatusBar: () => null }));
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  usePathname: () => "/",
+}));
 
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<
   typeof useAuthStore
 >;
 
+const fakeTeacher: AuthUser = {
+  id: "u1",
+  firstName: "Marie",
+  lastName: "Dupont",
+  platformRoles: [],
+  memberships: [{ schoolId: "s1", role: "TEACHER" }],
+  profileCompleted: true,
+  role: "TEACHER",
+  activeRole: "TEACHER",
+};
+
 function setupStore(overrides: {
   isAuthenticated: boolean;
   isLoading: boolean;
+  user?: AuthUser | null;
+  schoolSlug?: string | null;
 }) {
   mockUseAuthStore.mockReturnValue({
     isAuthenticated: overrides.isAuthenticated,
     isLoading: overrides.isLoading,
-    user: null,
+    user: overrides.user ?? null,
     accessToken: null,
-    schoolSlug: null,
+    schoolSlug: overrides.schoolSlug ?? null,
+    logout: jest.fn(),
   } as ReturnType<typeof useAuthStore>);
 }
 
@@ -30,26 +49,36 @@ beforeEach(() => {
 describe("IndexScreen", () => {
   it("affiche un loader pendant le chargement", () => {
     setupStore({ isAuthenticated: false, isLoading: true });
-
     render(<IndexScreen />);
-
     expect(screen.getByTestId("index-loading")).toBeOnTheScreen();
   });
 
   it("affiche l'écran de connexion si non authentifié", () => {
     setupStore({ isAuthenticated: false, isLoading: false });
-
     render(<IndexScreen />);
-
     expect(screen.getByText("SCO")).toBeOnTheScreen();
     expect(screen.getByTestId("tab-phone")).toBeOnTheScreen();
   });
 
-  it("affiche l'écran home si authentifié", () => {
-    setupStore({ isAuthenticated: true, isLoading: false });
-
+  it("affiche le header avec le bouton menu quand authentifié", () => {
+    setupStore({
+      isAuthenticated: true,
+      isLoading: false,
+      user: fakeTeacher,
+      schoolSlug: "college-vogt",
+    });
     render(<IndexScreen />);
+    expect(screen.getByTestId("header-menu-btn")).toBeOnTheScreen();
+  });
 
-    expect(screen.getByText("Bienvenue")).toBeOnTheScreen();
+  it("affiche le logo Scolive quand authentifié", () => {
+    setupStore({
+      isAuthenticated: true,
+      isLoading: false,
+      user: fakeTeacher,
+      schoolSlug: "college-vogt",
+    });
+    render(<IndexScreen />);
+    expect(screen.getByTestId("header-logo")).toBeOnTheScreen();
   });
 });
