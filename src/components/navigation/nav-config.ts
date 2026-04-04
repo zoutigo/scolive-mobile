@@ -129,7 +129,12 @@ const SCHOOL_NAV: NavItem[] = [
   placeholder("Enseignants", "school-outline", "teachers"),
   placeholder("Parents-Élèves", "people-circle-outline", "parents"),
   placeholder("Notes", "ribbon-outline", "grades"),
-  placeholder("Messagerie", "chatbubble-outline", "messages"),
+  {
+    key: "messages",
+    label: "Messagerie",
+    icon: "chatbubble-outline",
+    route: "/messages",
+  },
   placeholder("Mon compte", "settings-outline", "account"),
 ];
 
@@ -138,7 +143,12 @@ const TEACHER_NAV: NavItem[] = [
   placeholder("Fil d'actualité", "newspaper-outline", "feed"),
   placeholder("Mes classes", "book-outline", "classes"),
   placeholder("Cahier de notes", "journal-outline", "gradebook"),
-  placeholder("Messagerie", "chatbubble-outline", "messages"),
+  {
+    key: "messages",
+    label: "Messagerie",
+    icon: "chatbubble-outline",
+    route: "/messages",
+  },
   placeholder("Mon compte", "settings-outline", "account"),
 ];
 
@@ -146,7 +156,12 @@ const PARENT_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
   placeholder("Fil d'actualité", "newspaper-outline", "feed"),
   placeholder("Situation financière", "wallet-outline", "finance"),
-  placeholder("Messagerie", "chatbubble-outline", "messages"),
+  {
+    key: "messages",
+    label: "Messagerie",
+    icon: "chatbubble-outline",
+    route: "/messages",
+  },
   placeholder("Documents", "document-outline", "documents"),
   placeholder("Mon compte", "settings-outline", "account"),
 ];
@@ -154,7 +169,12 @@ const PARENT_NAV: NavItem[] = [
 const STUDENT_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
   placeholder("Notes & devoirs", "ribbon-outline", "grades"),
-  placeholder("Messagerie", "chatbubble-outline", "messages"),
+  {
+    key: "messages",
+    label: "Messagerie",
+    icon: "chatbubble-outline",
+    route: "/messages",
+  },
   placeholder("Documents", "document-outline", "documents"),
   placeholder("Mon compte", "settings-outline", "account"),
 ];
@@ -193,8 +213,7 @@ export function buildChildNavItems(childId: string): NavItem[] {
       key: `child-${childId}-messages`,
       label: "Messagerie",
       icon: "chatbubble-outline",
-      route: "/placeholder",
-      params: { title: "Messagerie" },
+      route: "/messages",
     },
     {
       key: `child-${childId}-documents`,
