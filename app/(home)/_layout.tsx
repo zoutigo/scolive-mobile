@@ -25,6 +25,10 @@ export default function HomeLayout() {
         name="placeholder"
         options={{ animation: "slide_from_right" }}
       />
+      <Stack.Screen
+        name="messages"
+        options={{ animation: "slide_from_right" }}
+      />
     </Stack>
   );
 }
