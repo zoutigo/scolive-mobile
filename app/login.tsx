@@ -15,6 +15,7 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authApi } from "../src/api/auth.api";
 import { type ApiClientError } from "../src/api/client";
+import { SecureTextField } from "../src/components/SecureTextField";
 import { useAuthStore } from "../src/store/auth.store";
 
 type AuthTab = "phone" | "email" | "google";
@@ -220,16 +221,15 @@ export default function LoginScreen() {
                 </View>
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Code PIN</Text>
-                  <TextInput
+                  <SecureTextField
                     testID="input-pin"
                     value={pin}
                     onChangeText={setPin}
                     placeholder="6 chiffres"
                     keyboardType="number-pad"
-                    style={styles.input}
                     placeholderTextColor="#9B9490"
-                    secureTextEntry
                     maxLength={6}
+                    variant="pin"
                   />
                 </View>
                 {error ? (
@@ -280,13 +280,11 @@ export default function LoginScreen() {
                 </View>
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Mot de passe</Text>
-                  <TextInput
+                  <SecureTextField
                     testID="input-password"
                     value={password}
                     onChangeText={setPassword}
                     placeholder="Votre mot de passe"
-                    secureTextEntry
-                    style={styles.input}
                     placeholderTextColor="#9B9490"
                   />
                 </View>

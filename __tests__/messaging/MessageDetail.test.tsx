@@ -14,6 +14,7 @@ import MessageDetailScreen from "../../app/(home)/messages/[messageId]";
 import { messagingApi } from "../../src/api/messaging.api";
 import { useMessagingStore } from "../../src/store/messaging.store";
 import { useAuthStore } from "../../src/store/auth.store";
+import { useSuccessToastStore } from "../../src/store/success-toast.store";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -70,11 +71,14 @@ const messageWithImages = {
 const storeState = {
   folder: "inbox" as const,
   markLocalRead: jest.fn(),
+  markLocalUnread: jest.fn(),
   removeLocal: jest.fn(),
 };
+const showFeedbackToast = jest.fn();
 
 beforeEach(() => {
   jest.clearAllMocks();
+  useSuccessToastStore.setState({ show: showFeedbackToast });
   (useAuthStore as unknown as jest.Mock).mockReturnValue({
     schoolSlug: "college-vogt",
   });
@@ -93,11 +97,21 @@ async function renderDetailAndWait() {
 // ── Rendu ─────────────────────────────────────────────────────────────────────
 
 describe("Rendu du détail", () => {
-  it("affiche le sujet dans l'en-tête", async () => {
+  it("affiche une barre d'actions fixe sur une seule ligne", async () => {
     await renderDetailAndWait();
-    expect(
-      screen.getAllByText("Convocation réunion parents").length,
-    ).toBeGreaterThan(0);
+    expect(screen.getByTestId("message-detail-action-bar")).toHaveStyle({
+      flexDirection: "row",
+    });
+  });
+
+  it("affiche le titre de retour dans l'en-tête", async () => {
+    await renderDetailAndWait();
+    expect(screen.getByText("Retour à la messagerie")).toBeTruthy();
+  });
+
+  it("affiche le sujet dans la carte de résumé", async () => {
+    await renderDetailAndWait();
+    expect(screen.getByText("Convocation réunion parents")).toBeTruthy();
   });
 
   it("affiche le corps du message (texte)", async () => {
@@ -233,7 +247,70 @@ describe("Action archiver", () => {
       fireEvent.press(screen.getByTestId("archive-btn"));
     });
     expect(api.archive).toHaveBeenCalledWith("college-vogt", "m1", true);
+    expect(showFeedbackToast).toHaveBeenCalledWith({
+      variant: "success",
+      title: "Message archivé",
+      message: "Le message a été déplacé dans les archives.",
+    });
     expect(storeState.removeLocal).toHaveBeenCalledWith("m1");
+    expect(mockBack).toHaveBeenCalled();
+  });
+
+  it("affiche un toast d'erreur si l'archivage échoue", async () => {
+    api.archive.mockRejectedValueOnce(new Error("ARCHIVE_FAILED"));
+
+    await renderDetailAndWait();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("archive-btn"));
+    });
+
+    await waitFor(() => {
+      expect(showFeedbackToast).toHaveBeenCalledWith({
+        variant: "error",
+        title: "Archivage impossible",
+        message: "Impossible d'archiver ce message.",
+      });
+    });
+  });
+});
+
+describe("Action marquer non lu", () => {
+  it("affiche le bouton quand le message a déjà été lu", async () => {
+    api.get.mockResolvedValueOnce({
+      ...messageDetail,
+      recipientState: {
+        readAt: "2024-01-15T10:10:00Z",
+        archivedAt: null,
+        deletedAt: null,
+      },
+    });
+
+    await renderDetailAndWait();
+    expect(screen.getByTestId("mark-unread-btn")).toBeTruthy();
+  });
+
+  it("cache le bouton si le message est déjà non lu", async () => {
+    await renderDetailAndWait();
+    expect(screen.queryByTestId("mark-unread-btn")).toBeNull();
+  });
+
+  it("appelle markRead(false) et met à jour le store local", async () => {
+    api.get.mockResolvedValueOnce({
+      ...messageDetail,
+      recipientState: {
+        readAt: "2024-01-15T10:10:00Z",
+        archivedAt: null,
+        deletedAt: null,
+      },
+    });
+
+    await renderDetailAndWait();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("mark-unread-btn"));
+    });
+
+    expect(api.markRead).toHaveBeenCalledWith("college-vogt", "m1", false);
+    expect(storeState.markLocalUnread).toHaveBeenCalledWith("m1");
     expect(mockBack).toHaveBeenCalled();
   });
 });
@@ -252,7 +329,30 @@ describe("Action supprimer", () => {
       fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
     });
     expect(api.remove).toHaveBeenCalledWith("college-vogt", "m1");
+    expect(showFeedbackToast).toHaveBeenCalledWith({
+      variant: "success",
+      title: "Message supprimé",
+      message: "Le message a bien été supprimé.",
+    });
     expect(storeState.removeLocal).toHaveBeenCalledWith("m1");
+  });
+
+  it("affiche un toast d'erreur si la suppression échoue", async () => {
+    api.remove.mockRejectedValueOnce(new Error("DELETE_FAILED"));
+
+    await renderDetailAndWait();
+    fireEvent.press(screen.getByTestId("delete-btn"));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
+    });
+
+    await waitFor(() => {
+      expect(showFeedbackToast).toHaveBeenCalledWith({
+        variant: "error",
+        title: "Suppression impossible",
+        message: "Impossible de supprimer ce message.",
+      });
+    });
   });
 
   it("n'appelle pas remove si on annule", async () => {

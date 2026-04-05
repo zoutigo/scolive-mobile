@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   ScrollView,
   View,
@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import { useFamilyStore } from "../../store/family.store";
+import { useMessagingStore } from "../../store/messaging.store";
 import type { AuthUser } from "../../types/auth.types";
 import type { ParentChild } from "../../types/family.types";
 
@@ -21,7 +22,13 @@ interface ParentHomeProps {
 
 export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
   const { children, isLoading, setActiveChild } = useFamilyStore();
+  const { unreadCount, loadUnreadCount } = useMessagingStore();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!schoolSlug) return;
+    loadUnreadCount(schoolSlug).catch(() => {});
+  }, [loadUnreadCount, schoolSlug]);
 
   const schoolDisplay = schoolSlug
     ? schoolSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
@@ -32,6 +39,18 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
     router.push({
       pathname: "/placeholder",
       params: { title: `${child.lastName} ${child.firstName}` },
+    });
+  }
+
+  function handleQuickAccessPress(label: string) {
+    if (label === "Messagerie") {
+      router.push("/(home)/messages");
+      return;
+    }
+
+    router.push({
+      pathname: "/placeholder",
+      params: { title: label },
     });
   }
 
@@ -133,7 +152,22 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
             key={item.label}
             style={styles.quickCard}
             activeOpacity={0.75}
+            onPress={() => handleQuickAccessPress(item.label)}
+            testID={`quick-link-${item.label
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/(^-|-$)/g, "")}`}
           >
+            {item.label === "Messagerie" && unreadCount > 0 ? (
+              <View
+                style={styles.quickBadge}
+                testID="quick-link-messagerie-badge"
+              >
+                <Text style={styles.quickBadgeText}>
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </Text>
+              </View>
+            ) : null}
             <View
               style={[styles.quickIcon, { backgroundColor: item.color + "18" }]}
             >
@@ -308,12 +342,30 @@ const styles = StyleSheet.create({
   },
   quickCard: {
     width: "47.5%",
+    position: "relative",
     backgroundColor: colors.surface,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     padding: 16,
     gap: 8,
+  },
+  quickBadge: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    paddingHorizontal: 7,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  quickBadgeText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "700",
   },
   quickIcon: {
     width: 46,

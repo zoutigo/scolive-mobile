@@ -209,6 +209,34 @@ describe("markLocalRead()", () => {
   });
 });
 
+// ── markLocalUnread ───────────────────────────────────────────────────────────
+
+describe("markLocalUnread()", () => {
+  it("passe unread=true sur le message ciblé", () => {
+    useMessagingStore.setState({
+      messages: [{ ...message1, unread: false }],
+      unreadCount: 0,
+    });
+    useMessagingStore.getState().markLocalUnread("m1");
+    expect(useMessagingStore.getState().messages[0].unread).toBe(true);
+  });
+
+  it("incrémente unreadCount quand le message était lu", () => {
+    useMessagingStore.setState({
+      messages: [{ ...message1, unread: false }],
+      unreadCount: 2,
+    });
+    useMessagingStore.getState().markLocalUnread("m1");
+    expect(useMessagingStore.getState().unreadCount).toBe(3);
+  });
+
+  it("n'incrémente pas unreadCount si le message est déjà non lu", () => {
+    useMessagingStore.setState({ messages: [message1], unreadCount: 2 });
+    useMessagingStore.getState().markLocalUnread("m1");
+    expect(useMessagingStore.getState().unreadCount).toBe(2);
+  });
+});
+
 // ── removeLocal ───────────────────────────────────────────────────────────────
 
 describe("removeLocal()", () => {

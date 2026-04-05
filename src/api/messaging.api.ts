@@ -48,6 +48,135 @@ type SendPayload = {
   }>;
 };
 
+type MultipartResponse = {
+  ok: boolean;
+  status: number;
+  json(): Promise<unknown>;
+  text(): Promise<string>;
+};
+
+export class MessagingMultipartError extends Error {
+  statusCode?: number;
+  responseBody?: string;
+  constructor(
+    message: string,
+    options?: { statusCode?: number; responseBody?: string },
+  ) {
+    super(message);
+    this.name = "MessagingMultipartError";
+    this.statusCode = options?.statusCode;
+    this.responseBody = options?.responseBody;
+  }
+}
+
+function canRetryMultipart(error: unknown) {
+  return (
+    error instanceof TypeError ||
+    (error instanceof Error &&
+      /network request failed/i.test(error.message || ""))
+  );
+}
+
+function xhrMultipart(
+  url: string,
+  formData: FormData,
+  token: string | null,
+): Promise<MultipartResponse> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.responseType = "text";
+    if (token) {
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    }
+
+    xhr.onload = () => {
+      const responseText =
+        typeof xhr.response === "string"
+          ? xhr.response
+          : (xhr.responseText ?? "");
+
+      resolve({
+        ok: xhr.status >= 200 && xhr.status < 300,
+        status: xhr.status,
+        async json() {
+          return responseText ? JSON.parse(responseText) : {};
+        },
+        async text() {
+          return responseText;
+        },
+      });
+    };
+
+    xhr.onerror = () => {
+      reject(new TypeError("Network request failed"));
+    };
+
+    xhr.send(formData);
+  });
+}
+
+async function postMultipart(
+  path: string,
+  formData: FormData,
+): Promise<MultipartResponse> {
+  const token = await tokenStorage.getAccessToken();
+  const url = `${BASE_URL}${path}`;
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      json: () => response.json(),
+      text: () => response.text(),
+    };
+  } catch (error) {
+    if (!canRetryMultipart(error)) {
+      throw error;
+    }
+
+    return xhrMultipart(url, formData, token);
+  }
+}
+
+async function throwMultipartError(
+  response: MultipartResponse,
+  fallbackMessage: string,
+): Promise<never> {
+  const responseText = await response.text().catch(() => "");
+  let message = fallbackMessage;
+
+  if (responseText) {
+    try {
+      const parsed = JSON.parse(responseText) as {
+        message?: string | string[];
+      };
+      if (Array.isArray(parsed.message)) {
+        message = parsed.message.join(", ");
+      } else if (typeof parsed.message === "string" && parsed.message.trim()) {
+        message = parsed.message.trim();
+      }
+    } catch {
+      message = responseText;
+    }
+  }
+
+  throw new MessagingMultipartError(message, {
+    statusCode: response.status,
+    responseBody: responseText,
+  });
+}
+
 export const messagingApi = {
   async list(schoolSlug: string, params: ListParams): Promise<ListResponse> {
     const query = new URLSearchParams({ folder: params.folder });
@@ -96,7 +225,6 @@ export const messagingApi = {
   },
 
   async send(schoolSlug: string, payload: SendPayload): Promise<void> {
-    const token = await tokenStorage.getAccessToken();
     const formData = new FormData();
     formData.append("subject", payload.subject);
     formData.append("body", payload.body);
@@ -114,14 +242,13 @@ export const messagingApi = {
       } as unknown as Blob);
     }
 
-    const response = await fetch(`${BASE_URL}/schools/${schoolSlug}/messages`, {
-      method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: formData,
-    });
+    const response = await postMultipart(
+      `/schools/${schoolSlug}/messages`,
+      formData,
+    );
 
     if (!response.ok) {
-      throw new Error("SEND_MESSAGE_FAILED");
+      await throwMultipartError(response, "SEND_MESSAGE_FAILED");
     }
   },
 
@@ -176,8 +303,6 @@ export const messagingApi = {
     mimeType: string,
     fileName: string,
   ): Promise<string> {
-    const token = await tokenStorage.getAccessToken();
-
     const formData = new FormData();
     formData.append("file", {
       uri: fileUri,
@@ -185,17 +310,13 @@ export const messagingApi = {
       name: fileName,
     } as unknown as Blob);
 
-    const response = await fetch(
-      `${BASE_URL}/schools/${schoolSlug}/messages/uploads/inline-image`,
-      {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-      },
+    const response = await postMultipart(
+      `/schools/${schoolSlug}/messages/uploads/inline-image`,
+      formData,
     );
 
     if (!response.ok) {
-      throw new Error("IMAGE_UPLOAD_FAILED");
+      await throwMultipartError(response, "IMAGE_UPLOAD_FAILED");
     }
 
     const data = (await response.json()) as { url: string };

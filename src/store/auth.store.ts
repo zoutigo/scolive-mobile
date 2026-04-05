@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { registerSessionExpiredHandler } from "../auth/session-events";
 import { authApi } from "../api/auth.api";
 import { tokenStorage } from "../api/client";
 import type { AuthUser, LoginResponse } from "../types/auth.types";
@@ -29,10 +30,13 @@ export interface AuthState {
   schoolSlug: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  authErrorMessage: string | null;
 
   initialize: () => Promise<void>;
   handleLoginResponse: (response: LoginResponse) => Promise<void>;
   logout: () => Promise<void>;
+  invalidateSession: (message?: string) => Promise<void>;
+  clearAuthError: () => void;
   setUser: (user: AuthUser) => void;
 }
 
@@ -42,6 +46,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   schoolSlug: null,
   isLoading: true,
   isAuthenticated: false,
+  authErrorMessage: null,
 
   initialize: async () => {
     try {
@@ -61,7 +66,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       ]);
 
       if (!accessToken && !refreshToken) {
-        set({ isLoading: false });
+        set({ isLoading: false, authErrorMessage: null });
         return;
       }
 
@@ -71,6 +76,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           schoolSlug,
           isAuthenticated: true,
           isLoading: false,
+          authErrorMessage: null,
         });
         if (schoolSlug) {
           authApi
@@ -100,6 +106,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           schoolSlug: response.schoolSlug,
           isAuthenticated: true,
           isLoading: false,
+          authErrorMessage: null,
         });
         if (response.schoolSlug) {
           authApi
@@ -109,10 +116,10 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
       } catch {
         await tokenStorage.clear();
-        set({ isLoading: false });
+        set({ isLoading: false, authErrorMessage: null });
       }
     } catch {
-      set({ isLoading: false });
+      set({ isLoading: false, authErrorMessage: null });
     }
   },
 
@@ -129,6 +136,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       accessToken: response.accessToken,
       schoolSlug: response.schoolSlug,
       isAuthenticated: true,
+      authErrorMessage: null,
     });
     if (response.schoolSlug) {
       try {
@@ -147,8 +155,28 @@ export const useAuthStore = create<AuthState>((set) => ({
       accessToken: null,
       schoolSlug: null,
       isAuthenticated: false,
+      authErrorMessage: null,
     });
   },
 
+  invalidateSession: async (message?: string) => {
+    await tokenStorage.clear().catch(() => {});
+    set({
+      user: null,
+      accessToken: null,
+      schoolSlug: null,
+      isAuthenticated: false,
+      isLoading: false,
+      authErrorMessage:
+        message?.trim() || "Votre session a expire. Veuillez vous reconnecter.",
+    });
+  },
+
+  clearAuthError: () => set({ authErrorMessage: null }),
+
   setUser: (user: AuthUser) => set({ user }),
 }));
+
+registerSessionExpiredHandler(async ({ message }) => {
+  await useAuthStore.getState().invalidateSession(message);
+});

@@ -1,10 +1,18 @@
-import { Stack, Redirect } from "expo-router";
+import { useEffect } from "react";
+import { Stack, useRouter } from "expo-router";
 import { useAuthStore } from "../../src/store/auth.store";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { colors } from "../../src/theme";
 
 export default function HomeLayout() {
   const { isAuthenticated, isLoading } = useAuthStore();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace("/");
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {
     return (
@@ -15,7 +23,11 @@ export default function HomeLayout() {
   }
 
   if (!isAuthenticated) {
-    return <Redirect href="/login" />;
+    return (
+      <View style={styles.loader} testID="home-layout-redirecting">
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
   }
 
   return (

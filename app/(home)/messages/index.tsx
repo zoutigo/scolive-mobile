@@ -2,7 +2,6 @@ import React, { useEffect, useCallback, useState } from "react";
 import {
   View,
   Text,
-  FlatList,
   StyleSheet,
   TouchableOpacity,
   TextInput,
@@ -18,6 +17,7 @@ import { useMessagingStore } from "../../../src/store/messaging.store";
 import { useAuthStore } from "../../../src/store/auth.store";
 import { FolderTabs } from "../../../src/components/messaging/FolderTabs";
 import { MessageRow } from "../../../src/components/messaging/MessageRow";
+import { InfiniteScrollList } from "../../../src/components/lists/InfiniteScrollList";
 import type {
   FolderKey,
   MessageListItem,
@@ -45,13 +45,18 @@ export default function MessagesScreen() {
 
   const [searchVisible, setSearchVisible] = useState(false);
 
-  const load = useCallback(() => {
-    if (schoolSlug) loadMessages(schoolSlug);
+  const load = useCallback(async () => {
+    if (!schoolSlug) return;
+    try {
+      await loadMessages(schoolSlug);
+    } catch (error) {
+      console.error("MESSAGES_LOAD_FAILED", error);
+    }
   }, [schoolSlug, loadMessages]);
 
   // Reload when folder or search changes
   useEffect(() => {
-    load();
+    void load();
   }, [load, folder, search]);
 
   function handleFolderChange(f: FolderKey) {
@@ -70,12 +75,17 @@ export default function MessagesScreen() {
   }
 
   function handleRefresh() {
-    if (schoolSlug) refreshMessages(schoolSlug);
+    if (!schoolSlug) return;
+    void refreshMessages(schoolSlug).catch((error) => {
+      console.error("MESSAGES_REFRESH_FAILED", error);
+    });
   }
 
   function handleLoadMore() {
     if (schoolSlug && meta && messages.length < meta.total && !isLoading) {
-      loadMoreMessages(schoolSlug);
+      void loadMoreMessages(schoolSlug).catch((error) => {
+        console.error("MESSAGES_LOAD_MORE_FAILED", error);
+      });
     }
   }
 
@@ -153,7 +163,7 @@ export default function MessagesScreen() {
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
-        <FlatList
+        <InfiniteScrollList
           data={messages}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -161,9 +171,7 @@ export default function MessagesScreen() {
           )}
           refreshing={isRefreshing}
           onRefresh={handleRefresh}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.3}
-          ListEmptyComponent={
+          emptyComponent={
             !isLoading ? (
               <View style={styles.empty}>
                 <Ionicons
@@ -190,23 +198,10 @@ export default function MessagesScreen() {
               </View>
             ) : null
           }
-          ListFooterComponent={
-            hasMore ? (
-              <TouchableOpacity
-                style={styles.loadMore}
-                onPress={handleLoadMore}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <Text style={styles.loadMoreText}>
-                    Charger plus ({meta!.total - messages.length} restants)
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ) : null
-          }
+          hasMore={hasMore}
+          isLoadingMore={isLoading && messages.length > 0}
+          onLoadMore={handleLoadMore}
+          endOfListLabel="Tous les messages ont été chargés"
           contentContainerStyle={
             messages.length === 0 ? styles.emptyContainer : undefined
           }
@@ -290,17 +285,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     opacity: 0.7,
   },
-
-  loadMore: {
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  loadMoreText: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: "600",
-  },
-
   fab: {
     position: "absolute",
     right: 20,

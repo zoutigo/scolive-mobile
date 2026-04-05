@@ -3,16 +3,42 @@ name: E2E Android
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 2 * * 1-5"
+    - cron: "0 23 * * *"
+    - cron: "0 0 * * *"
 
 concurrency:
-  group: e2e-android-${{ github.ref }}
+  group: e2e-android-${{ github.event_name }}-${{ github.event.schedule || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  e2e-build:
+  schedule-guard:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    outputs:
+      should_run: ${{ steps.guard.outputs.should_run }}
+    steps:
+      - name: Decide whether the scheduled run matches 01:00 Europe/Paris
+        id: guard
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          PARIS_HOUR="$(TZ=Europe/Paris date +%H)"
+          PARIS_WEEKDAY="$(TZ=Europe/Paris date +%u)"
+
+          if [ "$PARIS_HOUR" = "01" ] && [ "$PARIS_WEEKDAY" -ge 1 ] && [ "$PARIS_WEEKDAY" -le 5 ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  e2e-build:
+    needs: schedule-guard
+    if: needs.schedule-guard.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
     permissions:
       contents: read
 
@@ -47,9 +73,11 @@ jobs:
           if-no-files-found: error
 
   e2e-smoke:
-    needs: e2e-build
+    needs:
+      - schedule-guard
+      - e2e-build
+    if: needs.schedule-guard.outputs.should_run == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     permissions:
       contents: read
 
@@ -129,10 +157,11 @@ jobs:
 
   e2e:
     needs:
+      - schedule-guard
       - e2e-build
       - e2e-smoke
+    if: needs.schedule-guard.outputs.should_run == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:

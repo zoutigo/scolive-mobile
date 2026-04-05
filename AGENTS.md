@@ -36,6 +36,11 @@ Pattern correct :
 
 Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignore`.
 
+## Règles UI transverses
+
+- Toute nouvelle UI de liste à chargement progressif doit utiliser le composant partagé `src/components/lists/InfiniteScrollList.tsx`
+- Tout `POST` doit utiliser le toast global centré pour ses retours métier `success/error`, visible 7 secondes et fermable immédiatement par l'utilisateur
+
 ## Tests E2E (Maestro)
 
 - Les flows vivent dans `.maestro/flows/`

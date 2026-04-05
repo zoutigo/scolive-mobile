@@ -22,6 +22,7 @@ interface MessagingState {
   loadMoreMessages: (schoolSlug: string) => Promise<void>;
   loadUnreadCount: (schoolSlug: string) => Promise<void>;
   markLocalRead: (messageId: string) => void;
+  markLocalUnread: (messageId: string) => void;
   removeLocal: (messageId: string) => void;
   reset: () => void;
 }
@@ -109,6 +110,22 @@ export const useMessagingStore = create<MessagingState>((set, get) => ({
       ),
       unreadCount: Math.max(0, state.unreadCount - 1),
     }));
+  },
+
+  markLocalUnread(messageId) {
+    set((state) => {
+      const target = state.messages.find((message) => message.id === messageId);
+      const shouldIncrement = !!target && !target.unread;
+
+      return {
+        messages: state.messages.map((m) =>
+          m.id === messageId ? { ...m, unread: true } : m,
+        ),
+        unreadCount: shouldIncrement
+          ? state.unreadCount + 1
+          : state.unreadCount,
+      };
+    });
   },
 
   removeLocal(messageId) {

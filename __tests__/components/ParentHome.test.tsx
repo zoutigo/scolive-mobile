@@ -9,6 +9,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react-native";
 import { ParentHome } from "../../src/components/home/ParentHome";
 import { useFamilyStore } from "../../src/store/family.store";
+import { useMessagingStore } from "../../src/store/messaging.store";
 import type { AuthUser } from "../../src/types/auth.types";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
@@ -42,6 +43,16 @@ beforeEach(() => {
     children: [],
     isLoading: false,
     activeChildId: null,
+  });
+  useMessagingStore.setState({
+    folder: "inbox",
+    messages: [],
+    meta: null,
+    isLoading: false,
+    isRefreshing: false,
+    search: "",
+    unreadCount: 0,
+    loadUnreadCount: jest.fn().mockResolvedValue(undefined),
   });
 });
 
@@ -165,5 +176,49 @@ describe("Compteur d'enfants", () => {
     useFamilyStore.setState({ children: [child1, child2], isLoading: false });
     render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
     expect(screen.getByText("2")).toBeTruthy();
+  });
+});
+
+describe("Accès rapides", () => {
+  it("navigue vers la messagerie depuis le raccourci d'accueil", () => {
+    render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+    fireEvent.press(screen.getByTestId("quick-link-messagerie"));
+
+    expect(mockPush).toHaveBeenCalledWith("/(home)/messages");
+  });
+
+  it("charge le compteur de messages non lus à l'ouverture", () => {
+    const loadUnreadCountSpy = jest.fn().mockResolvedValue(undefined);
+    useMessagingStore.setState({ loadUnreadCount: loadUnreadCountSpy });
+
+    render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+    expect(loadUnreadCountSpy).toHaveBeenCalledWith("college-vogt");
+  });
+
+  it("affiche le badge de non lus sur le raccourci messagerie", () => {
+    useMessagingStore.setState({ unreadCount: 7 });
+
+    render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+    expect(screen.getByTestId("quick-link-messagerie-badge")).toBeTruthy();
+    expect(screen.getByText("7")).toBeTruthy();
+  });
+
+  it("masque le badge si aucun message n'est non lu", () => {
+    useMessagingStore.setState({ unreadCount: 0 });
+
+    render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+    expect(screen.queryByTestId("quick-link-messagerie-badge")).toBeNull();
+  });
+
+  it("borne l'affichage du badge à 99+", () => {
+    useMessagingStore.setState({ unreadCount: 124 });
+
+    render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+    expect(screen.getByText("99+")).toBeTruthy();
   });
 });

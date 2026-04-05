@@ -2,7 +2,12 @@
  * Tests fonctionnels — écran de liste des messages (messages/index.tsx)
  */
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react-native";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import MessagesScreen from "../../app/(home)/messages/index";
 import { useMessagingStore } from "../../src/store/messaging.store";
 import { useAuthStore } from "../../src/store/auth.store";
@@ -140,6 +145,16 @@ describe("Liste de messages", () => {
     render(<MessagesScreen />);
     expect(screen.getByText("Aucun brouillon")).toBeTruthy();
   });
+
+  it("affiche l'état vide adapté aux archives", () => {
+    (useMessagingStore as unknown as jest.Mock).mockReturnValue({
+      ...defaultStoreState,
+      folder: "archive",
+      messages: [],
+    });
+    render(<MessagesScreen />);
+    expect(screen.getByText("Archives vides")).toBeTruthy();
+  });
 });
 
 // ── Changement de dossier ─────────────────────────────────────────────────────
@@ -206,5 +221,91 @@ describe("Chargement initial", () => {
   it("appelle loadMessages au montage", () => {
     render(<MessagesScreen />);
     expect(defaultStoreState.loadMessages).toHaveBeenCalledWith("college-vogt");
+  });
+
+  it("intercepte les erreurs de chargement pour eviter un Uncaught Promise", async () => {
+    const consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(jest.fn());
+
+    (useMessagingStore as unknown as jest.Mock).mockReturnValue({
+      ...defaultStoreState,
+      loadMessages: jest.fn().mockRejectedValue(new Error("Unauthorized")),
+    });
+
+    render(<MessagesScreen />);
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "MESSAGES_LOAD_FAILED",
+        expect.any(Error),
+      );
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+});
+
+describe("Infinite scroll", () => {
+  it.each([["inbox"], ["sent"], ["drafts"], ["archive"]] as const)(
+    "charge la page suivante quand on atteint la fin pour le dossier %s",
+    (folder) => {
+      (useMessagingStore as unknown as jest.Mock).mockReturnValue({
+        ...defaultStoreState,
+        folder,
+        messages: [mockMessage],
+        meta: { page: 1, limit: 25, total: 40, totalPages: 2 },
+      });
+
+      render(<MessagesScreen />);
+
+      fireEvent(screen.getByTestId("messages-list"), "onEndReached", {
+        distanceFromEnd: 24,
+      });
+
+      expect(defaultStoreState.loadMoreMessages).toHaveBeenCalledWith(
+        "college-vogt",
+      );
+    },
+  );
+
+  it("affiche un indicateur de fin quand tous les messages sont chargés", () => {
+    (useMessagingStore as unknown as jest.Mock).mockReturnValue({
+      ...defaultStoreState,
+      messages: [mockMessage],
+      meta: { page: 1, limit: 25, total: 1, totalPages: 1 },
+    });
+
+    render(<MessagesScreen />);
+
+    expect(screen.getByText("Tous les messages ont été chargés")).toBeTruthy();
+  });
+
+  it("intercepte les erreurs de chargement additionnel", async () => {
+    const consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(jest.fn());
+
+    (useMessagingStore as unknown as jest.Mock).mockReturnValue({
+      ...defaultStoreState,
+      messages: [mockMessage],
+      meta: { page: 1, limit: 25, total: 40, totalPages: 2 },
+      loadMoreMessages: jest.fn().mockRejectedValue(new Error("timeout")),
+    });
+
+    render(<MessagesScreen />);
+
+    fireEvent(screen.getByTestId("messages-list"), "onEndReached", {
+      distanceFromEnd: 24,
+    });
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "MESSAGES_LOAD_MORE_FAILED",
+        expect.any(Error),
+      );
+    });
+
+    consoleErrorSpy.mockRestore();
   });
 });

@@ -15,6 +15,7 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
 import { recoveryApi } from "../../src/api/recovery.api";
+import { SecureTextField } from "../../src/components/SecureTextField";
 import type { RecoveryQuestion } from "../../src/types/recovery.types";
 import { formatDateInput, parseDateToISO } from "./pin";
 
@@ -105,7 +106,6 @@ export default function PasswordRecoveryScreen() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -569,30 +569,18 @@ export default function PasswordRecoveryScreen() {
                     </View>
                     <Text style={styles.label}>Nouveau mot de passe</Text>
                   </View>
-                  <View style={styles.passwordRow}>
-                    <TextInput
-                      testID="input-new-password"
-                      value={newPassword}
-                      onChangeText={setNewPassword}
-                      placeholder="Votre nouveau mot de passe"
-                      secureTextEntry={!showPassword}
-                      style={[
-                        styles.input,
-                        styles.inputFlex,
-                        fieldErrors.newPassword ? styles.inputError : null,
-                      ]}
-                      placeholderTextColor="#9B9490"
-                    />
-                    <Pressable
-                      testID="toggle-show-password"
-                      onPress={() => setShowPassword((v) => !v)}
-                      style={styles.eyeButton}
-                    >
-                      <Text style={styles.eyeText}>
-                        {showPassword ? "Cacher" : "Voir"}
-                      </Text>
-                    </Pressable>
-                  </View>
+                  <SecureTextField
+                    testID="input-new-password"
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    placeholder="Votre nouveau mot de passe"
+                    containerStyle={
+                      fieldErrors.newPassword ? styles.inputError : null
+                    }
+                    inputStyle={styles.inputFlex}
+                    placeholderTextColor="#9B9490"
+                    visibilityToggleTestID="toggle-show-password"
+                  />
                   {fieldErrors.newPassword ? (
                     <Text
                       style={styles.fieldErrorText}
@@ -610,16 +598,14 @@ export default function PasswordRecoveryScreen() {
                     </View>
                     <Text style={styles.label}>Confirmer le mot de passe</Text>
                   </View>
-                  <TextInput
+                  <SecureTextField
                     testID="input-confirm-password"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     placeholder="Confirmez votre mot de passe"
-                    secureTextEntry={!showPassword}
-                    style={[
-                      styles.input,
-                      fieldErrors.confirmPassword ? styles.inputError : null,
-                    ]}
+                    containerStyle={
+                      fieldErrors.confirmPassword ? styles.inputError : null
+                    }
                     placeholderTextColor="#9B9490"
                   />
                   {fieldErrors.confirmPassword ? (
@@ -883,15 +869,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
-
-  passwordRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  eyeButton: {
-    backgroundColor: "#EFE8DE",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 14,
-  },
-  eyeText: { color: AMBER, fontSize: 13, fontWeight: "700" },
 
   errorBox: {
     backgroundColor: "#FEF2F2",

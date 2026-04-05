@@ -17,6 +17,7 @@ import { colors } from "../../../src/theme";
 import { messagingApi } from "../../../src/api/messaging.api";
 import { useMessagingStore } from "../../../src/store/messaging.store";
 import { useAuthStore } from "../../../src/store/auth.store";
+import { useSuccessToastStore } from "../../../src/store/success-toast.store";
 import { ConfirmDialog } from "../../../src/components/ConfirmDialog";
 import type {
   MessageAttachment,
@@ -113,7 +114,8 @@ export default function MessageDetailScreen() {
   const router = useRouter();
   const { messageId } = useLocalSearchParams<{ messageId: string }>();
   const { schoolSlug } = useAuthStore();
-  const { markLocalRead, removeLocal } = useMessagingStore();
+  const { markLocalRead, markLocalUnread, removeLocal } = useMessagingStore();
+  const showFeedbackToast = useSuccessToastStore((state) => state.show);
 
   const [message, setMessage] = useState<MessageDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -149,10 +151,45 @@ export default function MessageDetailScreen() {
     setIsBusy(true);
     try {
       await messagingApi.archive(schoolSlug, message.id, !isArchived);
+      showFeedbackToast({
+        variant: "success",
+        title: !isArchived ? "Message archivé" : "Message restauré",
+        message: !isArchived
+          ? "Le message a été déplacé dans les archives."
+          : "Le message a été retiré des archives.",
+      });
       removeLocal(message.id);
       router.back();
     } catch {
-      Alert.alert("Erreur", "Impossible d'archiver ce message.");
+      showFeedbackToast({
+        variant: "error",
+        title: "Archivage impossible",
+        message: "Impossible d'archiver ce message.",
+      });
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function handleMarkUnread() {
+    if (!schoolSlug || !message || message.isSender) return;
+    setIsBusy(true);
+    try {
+      await messagingApi.markRead(schoolSlug, message.id, false);
+      markLocalUnread(message.id);
+      setMessage((current) =>
+        current
+          ? {
+              ...current,
+              recipientState: current.recipientState
+                ? { ...current.recipientState, readAt: null }
+                : current.recipientState,
+            }
+          : current,
+      );
+      router.back();
+    } catch {
+      Alert.alert("Erreur", "Impossible de marquer ce message comme non lu.");
     } finally {
       setIsBusy(false);
     }
@@ -163,10 +200,19 @@ export default function MessageDetailScreen() {
     setIsBusy(true);
     try {
       await messagingApi.remove(schoolSlug, message.id);
+      showFeedbackToast({
+        variant: "success",
+        title: "Message supprimé",
+        message: "Le message a bien été supprimé.",
+      });
       removeLocal(message.id);
       router.back();
     } catch {
-      Alert.alert("Erreur", "Impossible de supprimer ce message.");
+      showFeedbackToast({
+        variant: "error",
+        title: "Suppression impossible",
+        message: "Impossible de supprimer ce message.",
+      });
     } finally {
       setIsBusy(false);
       setConfirmDelete(false);
@@ -218,7 +264,7 @@ export default function MessageDetailScreen() {
           >
             <Ionicons name="arrow-back" size={22} color={colors.white} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Message</Text>
+          <Text style={styles.headerTitle}>Retour à la messagerie</Text>
         </View>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -245,59 +291,8 @@ export default function MessageDetailScreen() {
           <Ionicons name="arrow-back" size={22} color={colors.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          {message.subject || "(sans objet)"}
+          Retour à la messagerie
         </Text>
-      </View>
-
-      {/* Actions bar */}
-      <View style={styles.actionsBar}>
-        {!message.isSender && (
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={handleReply}
-            disabled={isBusy}
-            testID="reply-btn"
-          >
-            <Ionicons
-              name="return-down-back-outline"
-              size={20}
-              color={colors.primary}
-            />
-            <Text style={styles.actionLabel}>Répondre</Text>
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={handleArchiveToggle}
-          disabled={isBusy}
-          testID="archive-btn"
-        >
-          <Ionicons
-            name={isArchived ? "archive" : "archive-outline"}
-            size={20}
-            color={colors.accentTeal}
-          />
-          <Text style={[styles.actionLabel, { color: colors.accentTeal }]}>
-            {isArchived ? "Désarchiver" : "Archiver"}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={() => setConfirmDelete(true)}
-          disabled={isBusy}
-          testID="delete-btn"
-        >
-          <Ionicons
-            name="trash-outline"
-            size={20}
-            color={colors.notification}
-          />
-          <Text style={[styles.actionLabel, { color: colors.notification }]}>
-            Supprimer
-          </Text>
-        </TouchableOpacity>
       </View>
 
       {/* Content */}
@@ -305,17 +300,18 @@ export default function MessageDetailScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Subject */}
-        <Text style={styles.subject}>
-          {message.subject || "(sans objet)"}
-          {message.status === "DRAFT" && (
-            <Text style={styles.draftTag}> · Brouillon</Text>
-          )}
-        </Text>
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryTopRow}>
+            <Text style={styles.subject}>
+              {message.subject || "(sans objet)"}
+            </Text>
+            {message.status === "DRAFT" && (
+              <View style={styles.statusPill}>
+                <Text style={styles.statusPillText}>Brouillon</Text>
+              </View>
+            )}
+          </View>
 
-        {/* Meta */}
-        <View style={styles.meta}>
-          {/* Sender */}
           <View style={styles.metaRow}>
             {message.sender ? (
               <View style={styles.senderAvatar}>
@@ -323,7 +319,15 @@ export default function MessageDetailScreen() {
                   {initials(message.sender.firstName, message.sender.lastName)}
                 </Text>
               </View>
-            ) : null}
+            ) : (
+              <View style={styles.senderAvatarMuted}>
+                <Ionicons
+                  name="mail-open-outline"
+                  size={18}
+                  color={colors.textSecondary}
+                />
+              </View>
+            )}
             <View style={styles.metaContent}>
               {message.isSender ? (
                 <Text style={styles.metaFrom}>
@@ -341,25 +345,45 @@ export default function MessageDetailScreen() {
             </View>
           </View>
 
-          {/* Recipients toggle */}
-          <TouchableOpacity
-            style={styles.recipientsToggle}
-            onPress={() => setShowRecipients((v) => !v)}
-            testID="recipients-toggle"
-          >
-            <Text style={styles.recipientsCount}>
-              {message.recipients.length === 1
-                ? "1 destinataire"
-                : `${message.recipients.length} destinataires`}
-            </Text>
-            <Ionicons
-              name={showRecipients ? "chevron-up" : "chevron-down"}
-              size={14}
-              color={colors.textSecondary}
-            />
-          </TouchableOpacity>
+          <View style={styles.summaryInfoRow}>
+            <TouchableOpacity
+              style={styles.recipientsToggle}
+              onPress={() => setShowRecipients((v) => !v)}
+              testID="recipients-toggle"
+            >
+              <Ionicons
+                name="people-outline"
+                size={14}
+                color={colors.primary}
+              />
+              <Text style={styles.recipientsCount}>
+                {message.recipients.length === 1
+                  ? "1 destinataire"
+                  : `${message.recipients.length} destinataires`}
+              </Text>
+              <Ionicons
+                name={showRecipients ? "chevron-up" : "chevron-down"}
+                size={14}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
 
-          {showRecipients && (
+            <View style={styles.datePill}>
+              <Ionicons
+                name="time-outline"
+                size={14}
+                color={colors.textSecondary}
+              />
+              <Text style={styles.datePillText}>
+                {message.sentAt ? "Envoyé" : "Créé"}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {showRecipients && (
+          <View style={styles.meta}>
+            <Text style={styles.recipientsSectionTitle}>Destinataires</Text>
             <View style={styles.recipientsList}>
               {message.recipients.map((r) => (
                 <View key={r.id} style={styles.recipientRow}>
@@ -384,8 +408,8 @@ export default function MessageDetailScreen() {
                 </View>
               ))}
             </View>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* Body */}
         <View style={styles.bodyCard}>
@@ -451,6 +475,90 @@ export default function MessageDetailScreen() {
         )}
       </ScrollView>
 
+      <View
+        style={[
+          styles.bottomActionBarWrap,
+          { paddingBottom: Math.max(insets.bottom, 8) + 8 },
+        ]}
+      >
+        <View style={styles.bottomActionBar} testID="message-detail-action-bar">
+          {!message.isSender && (
+            <TouchableOpacity
+              style={styles.bottomActionBtn}
+              onPress={handleReply}
+              disabled={isBusy}
+              testID="reply-btn"
+            >
+              <Ionicons
+                name="return-down-back-outline"
+                size={18}
+                color={colors.primary}
+              />
+              <Text style={styles.bottomActionLabel}>Répondre</Text>
+            </TouchableOpacity>
+          )}
+
+          {!message.isSender && !!message.recipientState?.readAt && (
+            <TouchableOpacity
+              style={styles.bottomActionBtn}
+              onPress={handleMarkUnread}
+              disabled={isBusy}
+              testID="mark-unread-btn"
+            >
+              <Ionicons
+                name="mail-unread-outline"
+                size={18}
+                color={colors.warmAccent}
+              />
+              <Text
+                style={[
+                  styles.bottomActionLabel,
+                  styles.bottomActionLabelWarning,
+                ]}
+              >
+                Non lu
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={styles.bottomActionBtn}
+            onPress={handleArchiveToggle}
+            disabled={isBusy}
+            testID="archive-btn"
+          >
+            <Ionicons
+              name={isArchived ? "archive" : "archive-outline"}
+              size={18}
+              color={colors.accentTeal}
+            />
+            <Text
+              style={[styles.bottomActionLabel, styles.bottomActionLabelTeal]}
+            >
+              {isArchived ? "Restaurer" : "Archiver"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.bottomActionBtn}
+            onPress={() => setConfirmDelete(true)}
+            disabled={isBusy}
+            testID="delete-btn"
+          >
+            <Ionicons
+              name="trash-outline"
+              size={18}
+              color={colors.notification}
+            />
+            <Text
+              style={[styles.bottomActionLabel, styles.bottomActionLabelDanger]}
+            >
+              Supprimer
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Confirm delete */}
       <ConfirmDialog
         visible={confirmDelete}
@@ -481,52 +589,97 @@ const styles = StyleSheet.create({
   backBtn: { flexShrink: 0 },
   headerTitle: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
     color: colors.white,
   },
 
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
 
-  actionsBar: {
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 136, gap: 14 },
+
+  bottomActionBarWrap: {
+    backgroundColor: "rgba(247, 242, 234, 0.96)",
+    borderTopWidth: 1,
+    borderTopColor: colors.warmBorder,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+  },
+  bottomActionBar: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
     backgroundColor: colors.surface,
-    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    borderRadius: 16,
+    padding: 8,
+    shadowColor: "#7B5E45",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 4,
+  },
+  bottomActionBtn: {
+    flex: 1,
+    minHeight: 48,
+    paddingHorizontal: 4,
     paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.warmBorder,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
+    justifyContent: "center",
+    alignItems: "center",
     gap: 4,
   },
-  actionBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 8,
-    gap: 6,
-    borderRadius: 8,
-  },
-  actionLabel: {
-    fontSize: 13,
-    fontWeight: "600",
+  bottomActionLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    textAlign: "center",
     color: colors.primary,
+    includeFontPadding: false,
   },
+  bottomActionLabelWarning: { color: colors.warmAccent },
+  bottomActionLabelTeal: { color: colors.accentTeal },
+  bottomActionLabelDanger: { color: colors.notification },
 
-  scroll: { flex: 1 },
-  scrollContent: { padding: 16, gap: 16 },
+  summaryCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    padding: 16,
+    gap: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  summaryTopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 10,
+  },
 
   subject: {
-    fontSize: 20,
+    flex: 1,
+    fontSize: 22,
     fontWeight: "700",
     color: colors.textPrimary,
-    lineHeight: 26,
+    lineHeight: 30,
   },
-  draftTag: {
-    fontSize: 14,
-    fontWeight: "400",
+  statusPill: {
+    backgroundColor: "rgba(224, 115, 42, 0.14)",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  statusPillText: {
+    fontSize: 12,
+    fontWeight: "700",
     color: colors.warmAccent,
-    fontStyle: "italic",
   },
 
   meta: {
@@ -547,28 +700,72 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
+  senderAvatarMuted: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.warmSurface,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
   senderInitials: { color: colors.white, fontSize: 15, fontWeight: "700" },
   metaContent: { flex: 1, gap: 4 },
   metaFrom: { fontSize: 14, color: colors.textSecondary },
   metaName: { fontWeight: "700", color: colors.textPrimary },
   metaDate: { fontSize: 12, color: colors.textSecondary },
+  summaryInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
 
   recipientsToggle: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingTop: 2,
+    backgroundColor: "rgba(12,95,168,0.08)",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
   },
   recipientsCount: {
     fontSize: 13,
+    color: colors.primary,
+    fontWeight: "600",
+  },
+  datePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.warmSurface,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  datePillText: {
+    fontSize: 12,
+    fontWeight: "600",
     color: colors.textSecondary,
   },
 
+  recipientsSectionTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
   recipientsList: { gap: 8, paddingTop: 4 },
   recipientRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    backgroundColor: colors.warmSurface,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
   },
   recipientAvatar: {
     width: 32,
@@ -596,10 +793,10 @@ const styles = StyleSheet.create({
 
   bodyCard: {
     backgroundColor: colors.surface,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.warmBorder,
-    padding: 16,
+    padding: 18,
   },
   bodyText: {
     fontSize: 15,
@@ -618,7 +815,7 @@ const styles = StyleSheet.create({
   },
   attachmentsCard: {
     backgroundColor: colors.surface,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     padding: 16,
@@ -633,6 +830,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    backgroundColor: colors.warmSurface,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   attachmentIcon: {
     width: 36,
