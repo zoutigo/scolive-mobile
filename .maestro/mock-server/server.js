@@ -354,7 +354,10 @@ function createInitialMessages() {
 }
 
 function stripHtml(value) {
-  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  return value
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function extractMultipartField(raw, fieldName) {
@@ -365,7 +368,11 @@ function extractMultipartField(raw, fieldName) {
 }
 
 function extractMultipartFields(raw, fieldName) {
-  return [...raw.matchAll(new RegExp(`name="${fieldName}"\\r\\n\\r\\n([\\s\\S]*?)\\r\\n`, "gi"))]
+  return [
+    ...raw.matchAll(
+      new RegExp(`name="${fieldName}"\\r\\n\\r\\n([\\s\\S]*?)\\r\\n`, "gi"),
+    ),
+  ]
     .map((match) => match[1].trim())
     .filter(Boolean);
 }
@@ -389,7 +396,9 @@ function extractMultipartAttachments(raw) {
         fileName,
         url: `http://10.0.2.2:3001/mock/media/${encodeURIComponent(fileName)}`,
         mimeType,
-        sizeBytes: lower.endsWith(".pdf") ? ATTACHMENT_PDF.length : INLINE_IMAGE_PNG.length,
+        sizeBytes: lower.endsWith(".pdf")
+          ? ATTACHMENT_PDF.length
+          : INLINE_IMAGE_PNG.length,
       };
     },
   );
@@ -707,11 +716,17 @@ function handleRequest(req, res) {
     return json(res, 200, MOCK_PARENT_ME);
   }
 
-  if (method === "GET" && path === "/api/schools/ecole-demo/messaging/recipients") {
+  if (
+    method === "GET" &&
+    path === "/api/schools/ecole-demo/messaging/recipients"
+  ) {
     return json(res, 200, MOCK_RECIPIENTS);
   }
 
-  if (method === "GET" && path === "/api/schools/ecole-demo/messages/unread-count") {
+  if (
+    method === "GET" &&
+    path === "/api/schools/ecole-demo/messages/unread-count"
+  ) {
     const unread = mockMessages.filter(
       (message) => message.folder === "inbox" && message.unread,
     ).length;
@@ -734,7 +749,10 @@ function handleRequest(req, res) {
     });
   }
 
-  if (method === "GET" && path.startsWith("/api/schools/ecole-demo/messages/")) {
+  if (
+    method === "GET" &&
+    path.startsWith("/api/schools/ecole-demo/messages/")
+  ) {
     const messageId = path.split("/").pop();
     const message = findMessageById(messageId);
     if (!message) {

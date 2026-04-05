@@ -12,7 +12,9 @@ jest.mock("@expo/vector-icons", () => {
   };
 });
 
-function ControlledSecureField(props: Partial<React.ComponentProps<typeof SecureTextField>>) {
+function ControlledSecureField(
+  props: Partial<React.ComponentProps<typeof SecureTextField>>,
+) {
   const [value, setValue] = useState(props.value?.toString() ?? "");
 
   return (

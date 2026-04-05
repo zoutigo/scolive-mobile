@@ -1,6 +1,12 @@
 import React from "react";
 import { Alert, TouchableOpacity } from "react-native";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react-native";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react-native";
 import ComposeScreen from "../../app/(home)/messages/compose";
 import MessagesScreen from "../../app/(home)/messages/index";
 import { messagingApi } from "../../src/api/messaging.api";
@@ -46,7 +52,8 @@ jest.mock("../../src/components/messaging/RecipientPickerModal", () => ({
       TouchableOpacity,
       {
         testID: "recipient-modal-confirm",
-        onPress: () => props.onConfirm([{ value: "u-teacher", label: "Alice Martin" }]),
+        onPress: () =>
+          props.onConfirm([{ value: "u-teacher", label: "Alice Martin" }]),
       },
       React.createElement(Text, null, "Confirmer"),
     );
@@ -176,7 +183,10 @@ describe("Messaging integration", () => {
         <SuccessToastHost />
       </>,
     );
-    fireEvent.changeText(screen.getByTestId("subject-input"), "Réunion reportée");
+    fireEvent.changeText(
+      screen.getByTestId("subject-input"),
+      "Réunion reportée",
+    );
 
     await act(async () => {
       fireEvent.press(screen.getByTestId("save-draft-btn"));
@@ -212,7 +222,10 @@ describe("Messaging integration", () => {
 
     fireEvent.press(screen.getByTestId("recipients-field"));
     fireEvent.press(screen.getByTestId("recipient-modal-confirm"));
-    fireEvent.changeText(screen.getByTestId("subject-input"), "Suivi de classe");
+    fireEvent.changeText(
+      screen.getByTestId("subject-input"),
+      "Suivi de classe",
+    );
     fireEvent.press(screen.getByTestId("rich-editor-set-content"));
 
     await act(async () => {
@@ -243,7 +256,10 @@ describe("Messaging integration", () => {
 
     fireEvent.press(screen.getByTestId("recipients-field"));
     fireEvent.press(screen.getByTestId("recipient-modal-confirm"));
-    fireEvent.changeText(screen.getByTestId("subject-input"), "Suivi de classe");
+    fireEvent.changeText(
+      screen.getByTestId("subject-input"),
+      "Suivi de classe",
+    );
     fireEvent.press(screen.getByTestId("rich-editor-set-content"));
 
     await act(async () => {
@@ -303,14 +319,18 @@ describe("Messaging integration", () => {
     const actions = alertSpy.mock.calls.at(-1)?.[2] as
       | Array<{ text?: string; onPress?: () => void }>
       | undefined;
-    const galleryAction = actions?.find((action) => action.text === "Ouvrir la galerie");
+    const galleryAction = actions?.find(
+      (action) => action.text === "Ouvrir la galerie",
+    );
 
     await act(async () => {
       galleryAction?.onPress?.();
     });
 
     await waitFor(() => {
-      expect(screen.getByText("integration-piece-jointe.jpg")).toBeOnTheScreen();
+      expect(
+        screen.getByText("integration-piece-jointe.jpg"),
+      ).toBeOnTheScreen();
     });
     expect(api.uploadInlineImage).not.toHaveBeenCalled();
     expect(mockEditorMethods.insertImage).not.toHaveBeenCalled();
@@ -382,9 +402,8 @@ describe("Messaging integration", () => {
       expect(screen.getByTestId("message-row-m2")).toBeOnTheScreen();
     });
 
-    expect(useMessagingStore.getState().messages.map((message) => message.id)).toEqual([
-      "m1",
-      "m2",
-    ]);
+    expect(
+      useMessagingStore.getState().messages.map((message) => message.id),
+    ).toEqual(["m1", "m2"]);
   });
 });

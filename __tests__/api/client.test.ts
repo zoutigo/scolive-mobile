@@ -29,12 +29,12 @@ describe("apiFetch()", () => {
       }),
     });
 
-    await expect(apiFetch("/schools/test/messages", {}, true)).rejects.toMatchObject(
-      {
-        message: "Votre session a expiré. Veuillez vous reconnecter.",
-        statusCode: 401,
-      },
-    );
+    await expect(
+      apiFetch("/schools/test/messages", {}, true),
+    ).rejects.toMatchObject({
+      message: "Votre session a expiré. Veuillez vous reconnecter.",
+      statusCode: 401,
+    });
 
     expect(onExpired).toHaveBeenCalledWith({
       message: "Votre session a expiré. Veuillez vous reconnecter.",

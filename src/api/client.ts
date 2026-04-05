@@ -55,7 +55,8 @@ let unauthorizedHandlingPromise: Promise<void> | null = null;
 async function handleUnauthorized(message: string) {
   if (!unauthorizedHandlingPromise) {
     unauthorizedHandlingPromise = notifySessionExpired({
-      message: message.trim() || "Votre session a expiré. Veuillez vous reconnecter.",
+      message:
+        message.trim() || "Votre session a expiré. Veuillez vous reconnecter.",
       statusCode: 401,
     }).finally(() => {
       unauthorizedHandlingPromise = null;
@@ -95,9 +96,7 @@ export async function apiFetch<T>(
       await handleUnauthorized(message);
     }
 
-    const err = new Error(
-      message,
-    ) as ApiClientError;
+    const err = new Error(message) as ApiClientError;
     err.code = body?.code;
     err.statusCode = response.status;
     err.email = body?.email ?? null;

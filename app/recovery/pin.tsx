@@ -462,7 +462,9 @@ export default function PinRecoveryScreen() {
                     placeholder="6 chiffres"
                     keyboardType="number-pad"
                     maxLength={6}
-                    containerStyle={fieldErrors.newPin ? styles.inputError : null}
+                    containerStyle={
+                      fieldErrors.newPin ? styles.inputError : null
+                    }
                     placeholderTextColor="#9B9490"
                     variant="pin"
                   />

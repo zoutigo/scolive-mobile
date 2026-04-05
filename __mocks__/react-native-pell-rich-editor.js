@@ -72,4 +72,9 @@ RichEditor.prototype.render = function render() {
   );
 };
 
-module.exports = { RichEditor, RichToolbar, actions, __mockEditorMethods: mockEditorMethods };
+module.exports = {
+  RichEditor,
+  RichToolbar,
+  actions,
+  __mockEditorMethods: mockEditorMethods,
+};

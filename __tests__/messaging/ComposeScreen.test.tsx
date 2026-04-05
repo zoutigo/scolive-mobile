@@ -664,15 +664,13 @@ describe("Envoi avec pièces jointes", () => {
   });
 
   it("affiche le vrai message backend même si l'erreur remonte en 502", async () => {
-    api.send.mockRejectedValueOnce(
-      {
-        name: "MessagingMultipartError",
-        message: "Type upload non supporte",
-        statusCode: 502,
-        responseBody:
-          '{"message":"Type upload non supporte","error":"Bad Gateway","statusCode":502}',
-      },
-    );
+    api.send.mockRejectedValueOnce({
+      name: "MessagingMultipartError",
+      message: "Type upload non supporte",
+      statusCode: 502,
+      responseBody:
+        '{"message":"Type upload non supporte","error":"Bad Gateway","statusCode":502}',
+    });
 
     renderCompose();
     await fillSendableForm();
@@ -721,7 +719,9 @@ describe("Gestion d'erreurs locales", () => {
         },
       ],
     });
-    api.uploadInlineImage.mockRejectedValueOnce(new Error("IMAGE_UPLOAD_FAILED"));
+    api.uploadInlineImage.mockRejectedValueOnce(
+      new Error("IMAGE_UPLOAD_FAILED"),
+    );
 
     renderCompose();
 
@@ -852,9 +852,7 @@ describe("resolveAttachmentMimeType()", () => {
         name: "emploi-du-temps.xlsx",
         mimeType: "application/octet-stream",
       }),
-    ).toBe(
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    );
+    ).toBe("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   });
 
   it("retombe sur application/octet-stream si rien n'est déductible", () => {

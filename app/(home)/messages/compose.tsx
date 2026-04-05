@@ -709,44 +709,44 @@ export default function ComposeScreen() {
               testID="rich-toolbar"
             />
             <View style={styles.editorQuickActions}>
-            <TouchableOpacity
-              style={styles.editorQuickToolBtn}
-              onPress={openTextColorMenu}
-              testID="editor-color-btn"
-              accessibilityLabel="Couleur du texte"
-            >
-              <Ionicons
-                name="color-palette-outline"
-                size={18}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.editorQuickToolBtn}
+                onPress={openTextColorMenu}
+                testID="editor-color-btn"
+                accessibilityLabel="Couleur du texte"
+              >
+                <Ionicons
+                  name="color-palette-outline"
+                  size={18}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.editorQuickToolBtn}
-              onPress={applyHeading}
-              testID="editor-heading-btn"
-              accessibilityLabel="Titre"
-            >
-              <Ionicons
-                name="text-outline"
-                size={18}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.editorQuickToolBtn}
+                onPress={applyHeading}
+                testID="editor-heading-btn"
+                accessibilityLabel="Titre"
+              >
+                <Ionicons
+                  name="text-outline"
+                  size={18}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.editorQuickToolBtn}
-              onPress={applyQuote}
-              testID="editor-quote-btn"
-              accessibilityLabel="Citation"
-            >
-              <Ionicons
-                name="chatbox-ellipses-outline"
-                size={18}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.editorQuickToolBtn}
+                onPress={applyQuote}
+                testID="editor-quote-btn"
+                accessibilityLabel="Citation"
+              >
+                <Ionicons
+                  name="chatbox-ellipses-outline"
+                  size={18}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -830,58 +830,66 @@ export default function ComposeScreen() {
           style={[styles.bottomBarWrap, { paddingBottom: insets.bottom + 10 }]}
         >
           <View style={styles.bottomBar} testID="compose-action-bar">
-          <TouchableOpacity
-            style={[styles.actionBarBtn, styles.attachActionBarBtn]}
-            onPress={openAttachmentMenu}
-            testID="attachment-actions-btn"
-          >
-            <Ionicons
-              name="attach-outline"
-              size={20}
-              color={colors.accentTeal}
-            />
-            <Text style={[styles.actionBarBtnLabel, styles.attachActionBarBtnLabel]}>
-              Joindre
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionBarBtn, styles.attachActionBarBtn]}
+              onPress={openAttachmentMenu}
+              testID="attachment-actions-btn"
+            >
+              <Ionicons
+                name="attach-outline"
+                size={20}
+                color={colors.accentTeal}
+              />
+              <Text
+                style={[
+                  styles.actionBarBtnLabel,
+                  styles.attachActionBarBtnLabel,
+                ]}
+              >
+                Joindre
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.actionBarBtn,
-              styles.draftActionBarBtn,
-              !canSaveDraft && styles.actionBarBtnDisabled,
-            ]}
-            onPress={handleSaveDraft}
-            disabled={!canSaveDraft}
-            testID="save-draft-btn"
-          >
-            <Ionicons name="save-outline" size={20} color={colors.primary} />
-            <Text style={styles.actionBarBtnLabel}>Brouillon</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.actionBarBtn,
+                styles.draftActionBarBtn,
+                !canSaveDraft && styles.actionBarBtnDisabled,
+              ]}
+              onPress={handleSaveDraft}
+              disabled={!canSaveDraft}
+              testID="save-draft-btn"
+            >
+              <Ionicons name="save-outline" size={20} color={colors.primary} />
+              <Text style={styles.actionBarBtnLabel}>Brouillon</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.actionBarBtn,
-              styles.sendActionBarBtn,
-              !canSend && styles.actionBarBtnDisabled,
-            ]}
-            onPress={handleSend}
-            disabled={!canSend}
-            testID="send-btn"
-          >
-            {isSending ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <>
-                <Ionicons name="send" size={18} color={colors.white} />
-                <Text
-                  style={[styles.actionBarBtnLabel, styles.sendActionBarBtnLabel]}
-                >
-                  Envoyer
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.actionBarBtn,
+                styles.sendActionBarBtn,
+                !canSend && styles.actionBarBtnDisabled,
+              ]}
+              onPress={handleSend}
+              disabled={!canSend}
+              testID="send-btn"
+            >
+              {isSending ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <>
+                  <Ionicons name="send" size={18} color={colors.white} />
+                  <Text
+                    style={[
+                      styles.actionBarBtnLabel,
+                      styles.sendActionBarBtnLabel,
+                    ]}
+                  >
+                    Envoyer
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
       </View>

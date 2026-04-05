@@ -247,12 +247,7 @@ describe("Chargement initial", () => {
 });
 
 describe("Infinite scroll", () => {
-  it.each([
-    ["inbox"],
-    ["sent"],
-    ["drafts"],
-    ["archive"],
-  ] as const)(
+  it.each([["inbox"], ["sent"], ["drafts"], ["archive"]] as const)(
     "charge la page suivante quand on atteint la fin pour le dossier %s",
     (folder) => {
       (useMessagingStore as unknown as jest.Mock).mockReturnValue({

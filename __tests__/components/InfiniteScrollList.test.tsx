@@ -104,7 +104,10 @@ describe("InfiniteScrollList", () => {
 
     expect(onLoadMore).toHaveBeenCalledTimes(1);
 
-    fireEvent(screen.getByTestId("test-infinite-list"), "onMomentumScrollBegin");
+    fireEvent(
+      screen.getByTestId("test-infinite-list"),
+      "onMomentumScrollBegin",
+    );
     fireEvent(screen.getByTestId("test-infinite-list"), "onEndReached", {
       distanceFromEnd: 20,
     });

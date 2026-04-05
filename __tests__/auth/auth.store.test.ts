@@ -200,7 +200,9 @@ describe("auth.store — logout", () => {
     await act(async () => {
       await useAuthStore
         .getState()
-        .invalidateSession("Votre session a expiré. Veuillez vous reconnecter.");
+        .invalidateSession(
+          "Votre session a expiré. Veuillez vous reconnecter.",
+        );
     });
 
     const state = useAuthStore.getState();

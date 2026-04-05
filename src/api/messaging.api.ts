@@ -58,7 +58,10 @@ type MultipartResponse = {
 export class MessagingMultipartError extends Error {
   statusCode?: number;
   responseBody?: string;
-  constructor(message: string, options?: { statusCode?: number; responseBody?: string }) {
+  constructor(
+    message: string,
+    options?: { statusCode?: number; responseBody?: string },
+  ) {
     super(message);
     this.name = "MessagingMultipartError";
     this.statusCode = options?.statusCode;
@@ -89,7 +92,9 @@ function xhrMultipart(
 
     xhr.onload = () => {
       const responseText =
-        typeof xhr.response === "string" ? xhr.response : xhr.responseText ?? "";
+        typeof xhr.response === "string"
+          ? xhr.response
+          : (xhr.responseText ?? "");
 
       resolve({
         ok: xhr.status >= 200 && xhr.status < 300,
@@ -153,7 +158,9 @@ async function throwMultipartError(
 
   if (responseText) {
     try {
-      const parsed = JSON.parse(responseText) as { message?: string | string[] };
+      const parsed = JSON.parse(responseText) as {
+        message?: string | string[];
+      };
       if (Array.isArray(parsed.message)) {
         message = parsed.message.join(", ");
       } else if (typeof parsed.message === "string" && parsed.message.trim()) {

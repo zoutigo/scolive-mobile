@@ -130,14 +130,20 @@ export function ConfirmDialog({
           <View
             style={[
               styles.cornerGlow,
-              { borderColor: `${accentColor}28`, backgroundColor: `${accentColor}08` },
+              {
+                borderColor: `${accentColor}28`,
+                backgroundColor: `${accentColor}08`,
+              },
             ]}
           />
           <View
             style={[styles.glowOrb, { backgroundColor: `${accentColor}18` }]}
           />
           <View
-            style={[styles.secondaryOrb, { backgroundColor: `${accentColor}10` }]}
+            style={[
+              styles.secondaryOrb,
+              { backgroundColor: `${accentColor}10` },
+            ]}
           />
 
           {/* Icône */}
@@ -145,7 +151,10 @@ export function ConfirmDialog({
             <View
               style={[
                 styles.iconHalo,
-                { backgroundColor: `${accentColor}12`, borderColor: `${accentColor}20` },
+                {
+                  backgroundColor: `${accentColor}12`,
+                  borderColor: `${accentColor}20`,
+                },
               ]}
             />
             <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>

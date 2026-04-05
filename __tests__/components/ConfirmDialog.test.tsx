@@ -37,7 +37,12 @@ describe("Rendu", () => {
   });
 
   it("affiche le sous-titre quand il est fourni", () => {
-    render(<ConfirmDialog {...baseProps} subtitle="Veuillez confirmer votre choix" />);
+    render(
+      <ConfirmDialog
+        {...baseProps}
+        subtitle="Veuillez confirmer votre choix"
+      />,
+    );
     expect(screen.getByTestId("confirm-dialog-subtitle")).toHaveTextContent(
       "Veuillez confirmer votre choix",
     );

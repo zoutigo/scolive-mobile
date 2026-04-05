@@ -302,7 +302,9 @@ export default function MessageDetailScreen() {
       >
         <View style={styles.summaryCard}>
           <View style={styles.summaryTopRow}>
-            <Text style={styles.subject}>{message.subject || "(sans objet)"}</Text>
+            <Text style={styles.subject}>
+              {message.subject || "(sans objet)"}
+            </Text>
             {message.status === "DRAFT" && (
               <View style={styles.statusPill}>
                 <Text style={styles.statusPillText}>Brouillon</Text>

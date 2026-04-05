@@ -256,18 +256,14 @@ describe("OnboardingScreen", () => {
     expect(getByTestId("input-temporary-password").props.secureTextEntry).toBe(
       true,
     );
-    fireEvent.press(
-      getByTestId("input-temporary-password-toggle-visibility"),
-    );
+    fireEvent.press(getByTestId("input-temporary-password-toggle-visibility"));
     expect(getByTestId("input-temporary-password").props.secureTextEntry).toBe(
       false,
     );
 
     expect(getByTestId("input-new-password").props.secureTextEntry).toBe(true);
     fireEvent.press(getByTestId("input-new-password-toggle-visibility"));
-    expect(getByTestId("input-new-password").props.secureTextEntry).toBe(
-      false,
-    );
+    expect(getByTestId("input-new-password").props.secureTextEntry).toBe(false);
     expect(getByTestId("input-confirm-password").props.secureTextEntry).toBe(
       true,
     );
