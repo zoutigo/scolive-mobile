@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
 import { authApi } from "../src/api/auth.api";
 import type { ApiClientError } from "../src/api/client";
+import { SecureTextField } from "../src/components/SecureTextField";
 import type {
   Gender,
   OnboardingOptionsResponse,
@@ -678,12 +679,10 @@ export default function OnboardingScreen() {
                     </View>
                     <View style={styles.fieldGroup}>
                       <Text style={styles.label}>Mot de passe provisoire</Text>
-                      <TextInput
+                      <SecureTextField
                         testID="input-temporary-password"
                         value={temporaryPassword}
                         onChangeText={setTemporaryPassword}
-                        secureTextEntry
-                        style={styles.input}
                         placeholderTextColor="#9B9490"
                       />
                       {fieldErrors.temporaryPassword ? (
@@ -697,12 +696,10 @@ export default function OnboardingScreen() {
                     </View>
                     <View style={styles.fieldGroup}>
                       <Text style={styles.label}>Nouveau mot de passe</Text>
-                      <TextInput
+                      <SecureTextField
                         testID="input-new-password"
                         value={newPassword}
                         onChangeText={setNewPassword}
-                        secureTextEntry
-                        style={styles.input}
                         placeholderTextColor="#9B9490"
                       />
                       {fieldErrors.newPassword ? (
@@ -718,12 +715,10 @@ export default function OnboardingScreen() {
                       <Text style={styles.label}>
                         Confirmer le mot de passe
                       </Text>
-                      <TextInput
+                      <SecureTextField
                         testID="input-confirm-password"
                         value={confirmPassword}
                         onChangeText={setConfirmPassword}
-                        secureTextEntry
-                        style={styles.input}
                         placeholderTextColor="#9B9490"
                       />
                       {fieldErrors.confirmPassword ? (
@@ -845,15 +840,14 @@ export default function OnboardingScreen() {
               <View style={styles.form} testID="step-3">
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Nouveau PIN</Text>
-                  <TextInput
+                  <SecureTextField
                     testID="input-new-pin"
                     value={newPin}
                     onChangeText={setNewPin}
                     keyboardType="number-pad"
-                    secureTextEntry
                     maxLength={6}
-                    style={styles.input}
                     placeholderTextColor="#9B9490"
+                    variant="pin"
                   />
                   {fieldErrors.newPin ? (
                     <Text style={styles.fieldError} testID="error-newPin">
@@ -863,15 +857,14 @@ export default function OnboardingScreen() {
                 </View>
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Confirmer le PIN</Text>
-                  <TextInput
+                  <SecureTextField
                     testID="input-confirm-pin"
                     value={confirmPin}
                     onChangeText={setConfirmPin}
                     keyboardType="number-pad"
-                    secureTextEntry
                     maxLength={6}
-                    style={styles.input}
                     placeholderTextColor="#9B9490"
+                    variant="pin"
                   />
                   {fieldErrors.confirmPin ? (
                     <Text style={styles.fieldError} testID="error-confirmPin">

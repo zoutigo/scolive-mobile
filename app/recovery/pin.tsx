@@ -15,6 +15,7 @@ import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
 import { recoveryApi } from "../../src/api/recovery.api";
+import { SecureTextField } from "../../src/components/SecureTextField";
 import type { RecoveryQuestion } from "../../src/types/recovery.types";
 
 // ── Schémas Zod ───────────────────────────────────────────────────────────────
@@ -454,19 +455,16 @@ export default function PinRecoveryScreen() {
                     </View>
                     <Text style={styles.label}>Nouveau PIN</Text>
                   </View>
-                  <TextInput
+                  <SecureTextField
                     testID="input-new-pin"
                     value={newPin}
                     onChangeText={setNewPin}
                     placeholder="6 chiffres"
                     keyboardType="number-pad"
-                    secureTextEntry
                     maxLength={6}
-                    style={[
-                      styles.input,
-                      fieldErrors.newPin ? styles.inputError : null,
-                    ]}
+                    containerStyle={fieldErrors.newPin ? styles.inputError : null}
                     placeholderTextColor="#9B9490"
+                    variant="pin"
                   />
                   {fieldErrors.newPin ? (
                     <Text style={styles.fieldErrorText} testID="error-new-pin">
@@ -482,19 +480,18 @@ export default function PinRecoveryScreen() {
                     </View>
                     <Text style={styles.label}>Confirmer le PIN</Text>
                   </View>
-                  <TextInput
+                  <SecureTextField
                     testID="input-confirm-pin"
                     value={confirmPin}
                     onChangeText={setConfirmPin}
                     placeholder="Confirmez votre PIN"
                     keyboardType="number-pad"
-                    secureTextEntry
                     maxLength={6}
-                    style={[
-                      styles.input,
-                      fieldErrors.confirmPin ? styles.inputError : null,
-                    ]}
+                    containerStyle={
+                      fieldErrors.confirmPin ? styles.inputError : null
+                    }
                     placeholderTextColor="#9B9490"
+                    variant="pin"
                   />
                   {fieldErrors.confirmPin ? (
                     <Text

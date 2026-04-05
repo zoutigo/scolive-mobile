@@ -23,6 +23,11 @@ Repo GitHub : `git@github.com:zoutigo/scolive-mobile.git`
 - TypeScript strict
 - Thème couleurs extrait de `scolive-web/apps/web/tailwind.config.ts`
 
+## Règles UI transverses
+
+- Toute UI de liste avec chargement progressif passe par `src/components/lists/InfiniteScrollList.tsx`
+- Tout `POST` utilise le toast global centré pour ses retours `success/error`, affiché 7 secondes et fermable manuellement à tout moment
+
 ## Écrans existants
 
 | Fichier                     | Route                | Description                                             |

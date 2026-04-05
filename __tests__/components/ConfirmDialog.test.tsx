@@ -36,6 +36,13 @@ describe("Rendu", () => {
     );
   });
 
+  it("affiche le sous-titre quand il est fourni", () => {
+    render(<ConfirmDialog {...baseProps} subtitle="Veuillez confirmer votre choix" />);
+    expect(screen.getByTestId("confirm-dialog-subtitle")).toHaveTextContent(
+      "Veuillez confirmer votre choix",
+    );
+  });
+
   it("affiche le bouton de confirmation avec le label par défaut", () => {
     render(<ConfirmDialog {...baseProps} />);
     expect(screen.getByTestId("confirm-dialog-confirm")).toHaveTextContent(
@@ -53,6 +60,12 @@ describe("Rendu", () => {
   it("affiche la carte du dialog", () => {
     render(<ConfirmDialog {...baseProps} />);
     expect(screen.getByTestId("confirm-dialog-card")).toBeTruthy();
+  });
+
+  it("affiche les éléments visuels de mise en valeur", () => {
+    render(<ConfirmDialog {...baseProps} />);
+    expect(screen.getByTestId("confirm-dialog-accent")).toBeTruthy();
+    expect(screen.getByTestId("confirm-dialog-badge")).toBeTruthy();
   });
 
   it("n'affiche rien quand visible=false", () => {
@@ -76,6 +89,12 @@ describe("Labels personnalisés", () => {
     expect(screen.getByTestId("confirm-dialog-cancel")).toHaveTextContent(
       "Non, garder",
     );
+  });
+
+  it("masque le bouton annuler quand hideCancel=true", () => {
+    render(<ConfirmDialog {...baseProps} hideCancel />);
+    expect(screen.queryByTestId("confirm-dialog-cancel")).toBeNull();
+    expect(screen.getByTestId("confirm-dialog-confirm")).toBeTruthy();
   });
 });
 

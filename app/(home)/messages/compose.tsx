@@ -22,9 +22,13 @@ import {
   actions,
 } from "react-native-pell-rich-editor";
 import { colors } from "../../../src/theme";
-import { messagingApi } from "../../../src/api/messaging.api";
+import {
+  messagingApi,
+  MessagingMultipartError,
+} from "../../../src/api/messaging.api";
 import { useAuthStore } from "../../../src/store/auth.store";
 import { useMessagingStore } from "../../../src/store/messaging.store";
+import { useSuccessToastStore } from "../../../src/store/success-toast.store";
 import { RecipientPickerModal } from "../../../src/components/messaging/RecipientPickerModal";
 import type {
   RecipientOption,
@@ -43,6 +47,72 @@ export type AttachedFile = {
   uploaded: boolean | null;
 };
 
+export const TEXT_COLOR_PRESETS = [
+  { label: "Bleu profond", value: "#0C5FA8" },
+  { label: "Vert soutien", value: "#217346" },
+  { label: "Rouge alerte", value: "#B42318" },
+  { label: "Noir", value: "#1B1F23" },
+] as const;
+
+const ATTACHMENT_MIME_BY_EXTENSION: Record<string, string> = {
+  pdf: "application/pdf",
+  txt: "text/plain",
+  csv: "text/csv",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xls: "application/vnd.ms-excel",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ppt: "application/vnd.ms-powerpoint",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+};
+
+function normalizeMimeTypeAlias(mimeType: string): string {
+  const normalized = mimeType.trim().toLowerCase();
+  if (normalized === "image/jpg") {
+    return "image/jpeg";
+  }
+  return normalized;
+}
+
+function extractFileExtension(nameOrUri?: string): string | null {
+  if (!nameOrUri) return null;
+  const cleaned = nameOrUri.split("?")[0]?.trim();
+  if (!cleaned) return null;
+  const match = cleaned.match(/\.([a-z0-9]+)$/i);
+  return match?.[1]?.toLowerCase() ?? null;
+}
+
+export function resolveAttachmentMimeType(params: {
+  name?: string;
+  uri?: string;
+  mimeType?: string | null;
+}): string {
+  const providedMimeType = params.mimeType
+    ? normalizeMimeTypeAlias(params.mimeType)
+    : "";
+
+  if (
+    providedMimeType &&
+    providedMimeType !== "application/octet-stream" &&
+    providedMimeType !== "*/*"
+  ) {
+    return providedMimeType;
+  }
+
+  const extension =
+    extractFileExtension(params.name) ?? extractFileExtension(params.uri);
+
+  if (extension && ATTACHMENT_MIME_BY_EXTENSION[extension]) {
+    return ATTACHMENT_MIME_BY_EXTENSION[extension];
+  }
+
+  return "application/octet-stream";
+}
+
 function dedupeAttachedFiles(files: AttachedFile[]): AttachedFile[] {
   const seen = new Set<string>();
   return files.filter((file) => {
@@ -51,6 +121,10 @@ function dedupeAttachedFiles(files: AttachedFile[]): AttachedFile[] {
     seen.add(key);
     return true;
   });
+}
+
+export function buildFormatBlockCommand(tag: "h2" | "blockquote"): string {
+  return `document.execCommand('formatBlock', false, '<${tag}>'); true;`;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -115,6 +189,41 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 }
 
+function getMultipartError(error: unknown): MessagingMultipartError | null {
+  if (error instanceof MessagingMultipartError) {
+    return error;
+  }
+
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    (("statusCode" in error && typeof error.statusCode === "number") ||
+      ("responseBody" in error && typeof error.responseBody === "string") ||
+      ("name" in error && error.name === "MessagingMultipartError"))
+  ) {
+    return error as MessagingMultipartError;
+  }
+
+  return null;
+}
+
+const EMPTY_DRAFT_HTML = "<p>&nbsp;</p>";
+
+function hasDraftContent(params: {
+  subject: string;
+  hasBody: boolean;
+  selectedRecipients: RecipientOption[];
+  attachedFiles: AttachedFile[];
+}): boolean {
+  return (
+    params.subject.trim().length > 0 ||
+    params.hasBody ||
+    params.selectedRecipients.length > 0 ||
+    params.attachedFiles.length > 0
+  );
+}
+
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function ComposeScreen() {
@@ -122,6 +231,7 @@ export default function ComposeScreen() {
   const router = useRouter();
   const { schoolSlug } = useAuthStore();
   const { folder, loadMessages } = useMessagingStore();
+  const showFeedbackToast = useSuccessToastStore((state) => state.show);
   const editorRef = useRef<RichEditor>(null);
 
   const { replyToSubject, replyToSenderId, replyToSenderLabel } =
@@ -199,13 +309,30 @@ export default function ComposeScreen() {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsMultipleSelection: false,
       quality: 0.85,
       exif: false,
     });
     if (!result.canceled && result.assets[0]) {
       await insertImageAsset(result.assets[0]);
+    }
+  }
+
+  async function pickAttachmentFromGallery() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission refusée", "Autorisez l'accès à la galerie.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: false,
+      quality: 0.85,
+      exif: false,
+    });
+    if (!result.canceled && result.assets[0]) {
+      addImageAttachmentAsset(result.assets[0]);
     }
   }
 
@@ -216,13 +343,56 @@ export default function ComposeScreen() {
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       quality: 0.85,
       exif: false,
     });
     if (!result.canceled && result.assets[0]) {
       await insertImageAsset(result.assets[0]);
     }
+  }
+
+  async function takeAttachmentPhoto() {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission refusée", "Autorisez l'accès à la caméra.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      quality: 0.85,
+      exif: false,
+    });
+    if (!result.canceled && result.assets[0]) {
+      addImageAttachmentAsset(result.assets[0]);
+    }
+  }
+
+  function openAttachmentMenu() {
+    Alert.alert("Joindre un fichier", "Choisissez le type de contenu", [
+      { text: "Prendre une photo", onPress: takeAttachmentPhoto },
+      { text: "Ouvrir la galerie", onPress: pickAttachmentFromGallery },
+      { text: "Insérer un fichier", onPress: handlePickDocument },
+      { text: "Annuler", style: "cancel" },
+    ]);
+  }
+
+  function openTextColorMenu() {
+    Alert.alert("Couleur du texte", "Choisissez une couleur", [
+      ...TEXT_COLOR_PRESETS.map((color) => ({
+        text: color.label,
+        onPress: () => editorRef.current?.setForeColor(color.value),
+      })),
+      { text: "Annuler", style: "cancel" as const },
+    ]);
+  }
+
+  function applyHeading() {
+    editorRef.current?.command(buildFormatBlockCommand("h2"));
+  }
+
+  function applyQuote() {
+    editorRef.current?.command(buildFormatBlockCommand("blockquote"));
   }
 
   async function insertImageAsset(asset: ImagePicker.ImagePickerAsset) {
@@ -246,6 +416,27 @@ export default function ComposeScreen() {
     }
   }
 
+  function addImageAttachmentAsset(asset: ImagePicker.ImagePickerAsset) {
+    const name =
+      asset.fileName?.trim() ||
+      `image_${Date.now()}.${asset.mimeType?.includes("png") ? "png" : "jpg"}`;
+
+    const newFile: AttachedFile = {
+      id: `${Date.now()}-${Math.random()}`,
+      name,
+      size: asset.fileSize ?? 0,
+      mimeType: resolveAttachmentMimeType({
+        name,
+        uri: asset.uri,
+        mimeType: asset.mimeType ?? "image/jpeg",
+      }),
+      uri: asset.uri,
+      uploaded: null,
+    };
+
+    setAttachedFiles((prev) => dedupeAttachedFiles([...prev, newFile]));
+  }
+
   // ── File attachments (non-image documents) ──────────────────────────────────
 
   async function handlePickDocument() {
@@ -253,7 +444,8 @@ export default function ComposeScreen() {
       const result = await DocumentPicker.getDocumentAsync({
         type: "*/*",
         multiple: true,
-        copyToCacheDirectory: false,
+        // Expo/Android uploads are reliable with a real cache file URI.
+        copyToCacheDirectory: true,
       });
 
       if (result.canceled) return;
@@ -262,7 +454,11 @@ export default function ComposeScreen() {
         id: `${Date.now()}-${Math.random()}`,
         name: asset.name,
         size: asset.size ?? 0,
-        mimeType: asset.mimeType ?? "application/octet-stream",
+        mimeType: resolveAttachmentMimeType({
+          name: asset.name,
+          uri: asset.uri,
+          mimeType: asset.mimeType,
+        }),
         uri: asset.uri,
         uploaded: null,
       }));
@@ -285,10 +481,60 @@ export default function ComposeScreen() {
     selectedRecipients.length > 0 &&
     subject.trim().length > 0 &&
     hasBody;
+  const canSaveDraft =
+    !isSending &&
+    !isInsertingImage &&
+    hasDraftContent({
+      subject,
+      hasBody,
+      selectedRecipients,
+      attachedFiles,
+    });
 
   async function handleSend() {
     if (!canSend || !schoolSlug) return;
     await doSend();
+  }
+
+  async function handleSaveDraft() {
+    if (!canSaveDraft || !schoolSlug) return;
+    setIsSending(true);
+    try {
+      await messagingApi.send(schoolSlug, {
+        subject: subject.trim() || "Brouillon sans objet",
+        body: hasBody ? bodyHtml : EMPTY_DRAFT_HTML,
+        recipientUserIds: selectedRecipients.map((r) => r.value),
+        isDraft: true,
+        attachments: attachedFiles.map((file) => ({
+          uri: file.uri,
+          name: file.name,
+          mimeType: file.mimeType,
+          size: file.size,
+        })),
+      });
+      if (folder === "drafts") await loadMessages(schoolSlug);
+      showFeedbackToast({
+        variant: "success",
+        title: "Brouillon enregistré",
+        message: "Votre brouillon a bien été sauvegardé.",
+      });
+      router.back();
+    } catch (error) {
+      const multipartError = getMultipartError(error);
+      const message =
+        multipartError &&
+        multipartError.message &&
+        multipartError.message !== "SEND_MESSAGE_FAILED"
+          ? multipartError.message
+          : "Impossible d'enregistrer le brouillon.";
+      showFeedbackToast({
+        variant: "error",
+        title: "Enregistrement impossible",
+        message,
+      });
+    } finally {
+      setIsSending(false);
+    }
   }
 
   async function doSend() {
@@ -307,10 +553,37 @@ export default function ComposeScreen() {
         })),
       });
       if (folder === "sent") await loadMessages(schoolSlug);
-      Alert.alert("Message envoyé", "Votre message a bien été envoyé.");
+      showFeedbackToast({
+        variant: "success",
+        title: "Message envoyé",
+        message: "Votre message a bien été envoyé.",
+      });
       router.back();
-    } catch {
-      Alert.alert("Erreur", "Impossible d'envoyer le message. Réessayez.");
+    } catch (error) {
+      const multipartError = getMultipartError(error);
+
+      if (multipartError) {
+        console.error("MESSAGING_SEND_FAILED", {
+          statusCode: multipartError.statusCode,
+          message: multipartError.message,
+          responseBody: multipartError.responseBody,
+        });
+      } else {
+        console.error("MESSAGING_SEND_FAILED", error);
+      }
+
+      const message =
+        multipartError &&
+        multipartError.message &&
+        multipartError.message !== "SEND_MESSAGE_FAILED"
+          ? multipartError.message
+          : "Impossible d'envoyer le message. Réessayez.";
+
+      showFeedbackToast({
+        variant: "error",
+        title: "Envoi impossible",
+        message,
+      });
     } finally {
       setIsSending(false);
     }
@@ -336,21 +609,7 @@ export default function ComposeScreen() {
           <Text style={styles.headerTitle}>
             {isReply ? "Répondre" : "Nouveau message"}
           </Text>
-          <TouchableOpacity
-            style={[styles.sendBtn, !canSend && styles.sendBtnDisabled]}
-            onPress={handleSend}
-            disabled={!canSend}
-            testID="send-btn"
-          >
-            {isSending ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <>
-                <Ionicons name="send" size={16} color={colors.white} />
-                <Text style={styles.sendBtnLabel}>Envoyer</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          <View style={styles.headerSpacer} />
         </View>
 
         {/* Inserting image indicator */}
@@ -363,6 +622,7 @@ export default function ComposeScreen() {
 
         <ScrollView
           style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           nestedScrollEnabled
         >
@@ -420,33 +680,75 @@ export default function ComposeScreen() {
           <View style={styles.divider} />
 
           {/* Formatting toolbar */}
-          <RichToolbar
-            editor={editorRef}
-            style={styles.richToolbar}
-            iconTint={colors.textSecondary}
-            selectedIconTint={colors.primary}
-            disabledIconTint={colors.warmBorder}
-            actions={[
-              actions.setBold,
-              actions.setItalic,
-              actions.setUnderline,
-              actions.setStrikethrough,
-              actions.insertBulletsList,
-              actions.insertOrderedList,
-              actions.insertImage,
-            ]}
-            onPressAddImage={handleInsertImage}
-            iconMap={{
-              [actions.insertImage]: () => (
-                <Ionicons
-                  name="image-outline"
-                  size={20}
-                  color={colors.primary}
-                />
-              ),
-            }}
-            testID="rich-toolbar"
-          />
+          <View style={styles.editorToolbarRow} testID="editor-quick-tools">
+            <RichToolbar
+              editor={editorRef}
+              style={styles.richToolbar}
+              iconTint={colors.textSecondary}
+              selectedIconTint={colors.primary}
+              disabledIconTint={colors.warmBorder}
+              actions={[
+                actions.setBold,
+                actions.setItalic,
+                actions.setUnderline,
+                actions.setStrikethrough,
+                actions.insertBulletsList,
+                actions.insertOrderedList,
+                actions.insertImage,
+              ]}
+              onPressAddImage={handleInsertImage}
+              iconMap={{
+                [actions.insertImage]: () => (
+                  <Ionicons
+                    name="image-outline"
+                    size={20}
+                    color={colors.primary}
+                  />
+                ),
+              }}
+              testID="rich-toolbar"
+            />
+            <View style={styles.editorQuickActions}>
+            <TouchableOpacity
+              style={styles.editorQuickToolBtn}
+              onPress={openTextColorMenu}
+              testID="editor-color-btn"
+              accessibilityLabel="Couleur du texte"
+            >
+              <Ionicons
+                name="color-palette-outline"
+                size={18}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.editorQuickToolBtn}
+              onPress={applyHeading}
+              testID="editor-heading-btn"
+              accessibilityLabel="Titre"
+            >
+              <Ionicons
+                name="text-outline"
+                size={18}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.editorQuickToolBtn}
+              onPress={applyQuote}
+              testID="editor-quote-btn"
+              accessibilityLabel="Citation"
+            >
+              <Ionicons
+                name="chatbox-ellipses-outline"
+                size={18}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+            </View>
+          </View>
 
           {/* Rich text editor */}
           <RichEditor
@@ -480,17 +782,6 @@ export default function ComposeScreen() {
               <Text style={styles.attachmentsSectionLabel}>
                 Pièces jointes ({attachedFiles.length})
               </Text>
-              <View style={styles.attachmentWarning}>
-                <Ionicons
-                  name="information-circle-outline"
-                  size={14}
-                  color={colors.warmAccent}
-                />
-                <Text style={styles.attachmentWarningText}>
-                  Les pièces jointes seront disponibles dès la prochaine mise à
-                  jour du serveur.
-                </Text>
-              </View>
               {attachedFiles.map((file) => (
                 <View
                   key={file.id}
@@ -535,43 +826,63 @@ export default function ComposeScreen() {
         </ScrollView>
 
         {/* Bottom media/file toolbar */}
-        <View style={[styles.toolbar, { paddingBottom: insets.bottom + 6 }]}>
+        <View
+          style={[styles.bottomBarWrap, { paddingBottom: insets.bottom + 10 }]}
+        >
+          <View style={styles.bottomBar} testID="compose-action-bar">
           <TouchableOpacity
-            style={styles.toolbarBtn}
-            onPress={pickFromGallery}
-            testID="pick-image-btn"
-          >
-            <Ionicons name="image-outline" size={20} color={colors.primary} />
-            <Text style={styles.toolbarBtnLabel}>Galerie</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.toolbarBtn}
-            onPress={takePhoto}
-            testID="take-photo-btn"
-          >
-            <Ionicons name="camera-outline" size={20} color={colors.primary} />
-            <Text style={styles.toolbarBtnLabel}>Photo</Text>
-          </TouchableOpacity>
-
-          <View style={styles.toolbarSep} />
-
-          <TouchableOpacity
-            style={styles.toolbarBtn}
-            onPress={handlePickDocument}
-            testID="pick-document-btn"
+            style={[styles.actionBarBtn, styles.attachActionBarBtn]}
+            onPress={openAttachmentMenu}
+            testID="attachment-actions-btn"
           >
             <Ionicons
               name="attach-outline"
               size={20}
               color={colors.accentTeal}
             />
-            <Text
-              style={[styles.toolbarBtnLabel, { color: colors.accentTeal }]}
-            >
-              Joindre un fichier
+            <Text style={[styles.actionBarBtnLabel, styles.attachActionBarBtnLabel]}>
+              Joindre
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.actionBarBtn,
+              styles.draftActionBarBtn,
+              !canSaveDraft && styles.actionBarBtnDisabled,
+            ]}
+            onPress={handleSaveDraft}
+            disabled={!canSaveDraft}
+            testID="save-draft-btn"
+          >
+            <Ionicons name="save-outline" size={20} color={colors.primary} />
+            <Text style={styles.actionBarBtnLabel}>Brouillon</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.actionBarBtn,
+              styles.sendActionBarBtn,
+              !canSend && styles.actionBarBtnDisabled,
+            ]}
+            onPress={handleSend}
+            disabled={!canSend}
+            testID="send-btn"
+          >
+            {isSending ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <>
+                <Ionicons name="send" size={18} color={colors.white} />
+                <Text
+                  style={[styles.actionBarBtnLabel, styles.sendActionBarBtnLabel]}
+                >
+                  Envoyer
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -605,19 +916,9 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
     color: colors.white,
+    textAlign: "center",
   },
-  sendBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.warmAccent,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    gap: 6,
-  },
-  sendBtnDisabled: { opacity: 0.45 },
-  sendBtnLabel: { fontSize: 14, fontWeight: "700", color: colors.white },
-
+  headerSpacer: { width: 22, height: 22 },
   banner: {
     flexDirection: "row",
     alignItems: "center",
@@ -631,6 +932,7 @@ const styles = StyleSheet.create({
   bannerText: { fontSize: 13, color: colors.primary, fontWeight: "500" },
 
   scroll: { flex: 1, backgroundColor: colors.surface },
+  scrollContent: { paddingBottom: 132 },
 
   fieldRow: {
     flexDirection: "row",
@@ -672,13 +974,35 @@ const styles = StyleSheet.create({
   },
   divider: { height: 1, backgroundColor: colors.warmBorder, marginLeft: 76 },
 
-  richToolbar: {
+  editorToolbarRow: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.warmSurface,
     borderTopWidth: 1,
     borderTopColor: colors.warmBorder,
     borderBottomWidth: 1,
     borderBottomColor: colors.warmBorder,
+  },
+  richToolbar: {
+    flex: 1,
+    backgroundColor: "transparent",
     height: 46,
+  },
+  editorQuickActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingRight: 10,
+  },
+  editorQuickToolBtn: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
   },
   richEditor: {
     minHeight: 200,
@@ -699,20 +1023,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
-  },
-  attachmentWarning: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 6,
-    backgroundColor: colors.warmHighlight,
-    borderRadius: 8,
-    padding: 10,
-  },
-  attachmentWarningText: {
-    flex: 1,
-    fontSize: 12,
-    color: colors.textSecondary,
-    lineHeight: 16,
   },
   attachmentRow: {
     flexDirection: "row",
@@ -741,31 +1051,65 @@ const styles = StyleSheet.create({
   },
   attachmentMeta: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
 
-  // ── Bottom toolbar ───────────────────────────────────────────────────────────
-  toolbar: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.surface,
+  // ── Bottom action bar ───────────────────────────────────────────────────────
+  bottomBarWrap: {
+    backgroundColor: "rgba(247, 242, 234, 0.96)",
     borderTopWidth: 1,
     borderTopColor: colors.warmBorder,
     paddingHorizontal: 12,
     paddingTop: 10,
-    gap: 4,
   },
-  toolbarBtn: {
+  bottomBar: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
-    backgroundColor: "rgba(12,95,168,0.07)",
+    gap: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    borderRadius: 16,
+    padding: 8,
+    shadowColor: "#7B5E45",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 4,
   },
-  toolbarBtnLabel: { fontSize: 13, fontWeight: "600", color: colors.primary },
-  toolbarSep: {
-    width: 1,
-    height: 24,
-    backgroundColor: colors.warmBorder,
-    marginHorizontal: 4,
+  actionBarBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 6,
+    flexShrink: 1,
+  },
+  actionBarBtnDisabled: { opacity: 0.45 },
+  actionBarBtnLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    includeFontPadding: false,
+  },
+  attachActionBarBtn: {
+    backgroundColor: "rgba(56, 173, 169, 0.12)",
+  },
+  attachActionBarBtnLabel: {
+    color: colors.accentTeal,
+  },
+  draftActionBarBtn: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+  },
+  sendActionBarBtn: {
+    backgroundColor: colors.warmAccent,
+  },
+  sendActionBarBtnLabel: {
+    color: colors.white,
+  },
+  actionBarLabel: {
+    color: colors.primary,
   },
 });

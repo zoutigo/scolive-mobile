@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useAuthStore } from "../src/store/auth.store";
 import { colors } from "../src/theme";
+import { ConfirmDialog } from "../src/components/ConfirmDialog";
 import LoginScreen from "./login";
 import HomeScreen from "./(home)/index";
 
 export default function IndexScreen() {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, authErrorMessage, clearAuthError } =
+    useAuthStore();
   const [showFallback, setShowFallback] = useState(false);
 
   useEffect(() => {
@@ -28,11 +30,26 @@ export default function IndexScreen() {
     );
   }
 
-  if (isAuthenticated) {
-    return <HomeScreen />;
-  }
-
-  return <LoginScreen />;
+  return (
+    <>
+      {isAuthenticated ? <HomeScreen /> : <LoginScreen />}
+      <ConfirmDialog
+        visible={!isLoading && !isAuthenticated && !!authErrorMessage}
+        title="Session expirée"
+        subtitle="Votre espace a été verrouillé en toute sécurité"
+        message={
+          authErrorMessage ||
+          "Votre session a expiré. Veuillez vous connecter à nouveau."
+        }
+        icon="lock-closed-outline"
+        variant="warning"
+        confirmLabel="Se reconnecter"
+        hideCancel
+        onConfirm={clearAuthError}
+        onCancel={clearAuthError}
+      />
+    </>
+  );
 }
 
 const styles = StyleSheet.create({

@@ -1,4 +1,5 @@
 import * as SecureStore from "expo-secure-store";
+import { notifySessionExpired } from "../auth/session-events";
 
 const ACCESS_TOKEN_KEY = "scolive_access_token";
 const REFRESH_TOKEN_KEY = "scolive_refresh_token";
@@ -49,6 +50,21 @@ export const tokenStorage = {
   },
 };
 
+let unauthorizedHandlingPromise: Promise<void> | null = null;
+
+async function handleUnauthorized(message: string) {
+  if (!unauthorizedHandlingPromise) {
+    unauthorizedHandlingPromise = notifySessionExpired({
+      message: message.trim() || "Votre session a expiré. Veuillez vous reconnecter.",
+      statusCode: 401,
+    }).finally(() => {
+      unauthorizedHandlingPromise = null;
+    });
+  }
+
+  await unauthorizedHandlingPromise;
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -68,8 +84,19 @@ export async function apiFetch<T>(
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
+    const message =
+      typeof body?.message === "string"
+        ? body.message
+        : response.status === 401
+          ? "Votre session a expiré. Veuillez vous reconnecter."
+          : "Request failed";
+
+    if (withAuth && response.status === 401) {
+      await handleUnauthorized(message);
+    }
+
     const err = new Error(
-      typeof body?.message === "string" ? body.message : "Request failed",
+      message,
     ) as ApiClientError;
     err.code = body?.code;
     err.statusCode = response.status;

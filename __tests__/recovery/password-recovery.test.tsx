@@ -10,6 +10,7 @@ import { recoveryApi } from "../../src/api/recovery.api";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
+jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/recovery.api", () => ({
   recoveryApi: {
     forgotPasswordRequest: jest.fn(),
@@ -27,7 +28,6 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { router: mockRouter } = require("expo-router") as {
   router: { replace: jest.Mock; back: jest.Mock; push: jest.Mock };
 };
@@ -572,10 +572,19 @@ describe("PasswordRecoveryScreen", () => {
 
     it("le toggle 'Voir/Cacher' change la visibilité du mot de passe", async () => {
       const { getByTestId } = await goToStep4();
-      const input = getByTestId("input-new-password");
-      expect(input.props.secureTextEntry).toBe(true);
+      expect(getByTestId("input-new-password").props.secureTextEntry).toBe(
+        true,
+      );
+      expect(getByTestId("input-confirm-password").props.secureTextEntry).toBe(
+        true,
+      );
       fireEvent.press(getByTestId("toggle-show-password"));
-      expect(input.props.secureTextEntry).toBe(false);
+      expect(getByTestId("input-new-password").props.secureTextEntry).toBe(
+        false,
+      );
+      expect(getByTestId("input-confirm-password").props.secureTextEntry).toBe(
+        true,
+      );
     });
   });
 

@@ -31,6 +31,53 @@ cleanup() {
 
 trap cleanup EXIT
 
+seed_messaging_fixtures() {
+  local tmp_dir=""
+  tmp_dir="$(mktemp -d)"
+
+  base64 -d >"$tmp_dir/e2e-inline-image.png" <<'EOF'
+iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAb0lEQVR4nO3PQQ0AIBDAMMC/5yFjRxMFfXpn5g5A7zWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgfY5GAOQO2vByAAAAAElFTkSuQmCC
+EOF
+
+  cat >"$tmp_dir/e2e-message-attachment.pdf" <<'EOF'
+%PDF-1.1
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 144] /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 44 >>
+stream
+BT /F1 18 Tf 40 80 Td (E2E attachment) Tj ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000010 00000 n 
+0000000061 00000 n 
+0000000118 00000 n 
+0000000207 00000 n 
+trailer
+<< /Size 5 /Root 1 0 R >>
+startxref
+300
+%%EOF
+EOF
+
+  adb shell rm -f /sdcard/Pictures/e2e-inline-image.png >/dev/null 2>&1 || true
+  adb shell rm -f /sdcard/Download/e2e-message-attachment.pdf >/dev/null 2>&1 || true
+  adb push "$tmp_dir/e2e-inline-image.png" /sdcard/Pictures/e2e-inline-image.png >/dev/null
+  adb push "$tmp_dir/e2e-message-attachment.pdf" /sdcard/Download/e2e-message-attachment.pdf >/dev/null
+  adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Pictures/e2e-inline-image.png >/dev/null 2>&1 || true
+  rm -rf "$tmp_dir"
+}
+
 wait_for_health() {
   local retries="${1:-40}"
   for _ in $(seq 1 "$retries"); do
@@ -74,6 +121,10 @@ set_scenario "/__scenario/email-login" "${EMAIL_LOGIN_SCENARIO:-happy_path}"
 set_scenario "/__scenario/onboarding" "${ONBOARDING_SCENARIO:-email_parent_happy}"
 set_scenario "/__scenario/pin" "${PIN_SCENARIO:-happy_path}"
 set_scenario "/__scenario/password" "${PASSWORD_SCENARIO:-happy_path}"
+
+if [[ "$FLOW_NAME" == "messaging-compose" ]]; then
+  seed_messaging_fixtures
+fi
 
 if [[ -f "$APK_PATH" ]]; then
   adb install -r "$APK_PATH" >/dev/null

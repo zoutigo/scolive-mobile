@@ -11,6 +11,7 @@ import { recoveryApi } from "../../src/api/recovery.api";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
+jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/recovery.api", () => ({
   recoveryApi: {
     forgotPinOptions: jest.fn(),
@@ -28,7 +29,6 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 
 // Références aux mocks (récupérées après le hoisting)
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { router: mockRouter } = require("expo-router") as {
   router: { replace: jest.Mock; back: jest.Mock; push: jest.Mock };
 };
@@ -511,6 +511,18 @@ describe("PinRecoveryScreen", () => {
         recoveryToken: "e2e-recovery-token",
         newPin: "654321",
       });
+    });
+
+    it("permet d'afficher un PIN sans révéler l'autre champ", async () => {
+      const { getByTestId } = await goToStep3();
+
+      expect(getByTestId("input-new-pin").props.secureTextEntry).toBe(true);
+      expect(getByTestId("input-confirm-pin").props.secureTextEntry).toBe(true);
+
+      fireEvent.press(getByTestId("input-new-pin-toggle-visibility"));
+
+      expect(getByTestId("input-new-pin").props.secureTextEntry).toBe(false);
+      expect(getByTestId("input-confirm-pin").props.secureTextEntry).toBe(true);
     });
   });
 

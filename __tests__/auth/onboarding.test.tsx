@@ -12,6 +12,7 @@ import OnboardingScreen, {
 } from "../../app/onboarding";
 import { authApi } from "../../src/api/auth.api";
 
+jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-status-bar", () => ({ StatusBar: () => null }));
 
 let mockParams: Record<string, string | undefined> = {
@@ -247,6 +248,31 @@ describe("OnboardingScreen", () => {
     );
   });
 
+  it("permet d'afficher les mots de passe sur l'étape email", async () => {
+    const { getByTestId, findByTestId } = render(<OnboardingScreen />);
+
+    await findByTestId("step-1");
+
+    expect(getByTestId("input-temporary-password").props.secureTextEntry).toBe(
+      true,
+    );
+    fireEvent.press(
+      getByTestId("input-temporary-password-toggle-visibility"),
+    );
+    expect(getByTestId("input-temporary-password").props.secureTextEntry).toBe(
+      false,
+    );
+
+    expect(getByTestId("input-new-password").props.secureTextEntry).toBe(true);
+    fireEvent.press(getByTestId("input-new-password-toggle-visibility"));
+    expect(getByTestId("input-new-password").props.secureTextEntry).toBe(
+      false,
+    );
+    expect(getByTestId("input-confirm-password").props.secureTextEntry).toBe(
+      true,
+    );
+  });
+
   it("termine le parcours email parent et soumet le payload attendu", async () => {
     const { getByTestId, findByTestId } = render(<OnboardingScreen />);
 
@@ -323,6 +349,9 @@ describe("OnboardingScreen", () => {
     fireEvent.press(getByTestId("btn-step2"));
 
     await findByTestId("step-3");
+    expect(getByTestId("input-new-pin").props.secureTextEntry).toBe(true);
+    fireEvent.press(getByTestId("input-new-pin-toggle-visibility"));
+    expect(getByTestId("input-new-pin").props.secureTextEntry).toBe(false);
     fireEvent.changeText(getByTestId("input-new-pin"), "654321");
     fireEvent.changeText(getByTestId("input-confirm-pin"), "654321");
     fireEvent.press(getByTestId("btn-step3"));

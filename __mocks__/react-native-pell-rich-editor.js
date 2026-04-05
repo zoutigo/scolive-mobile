@@ -1,5 +1,12 @@
 const React = require("react");
 const { View, TouchableOpacity, Text } = require("react-native");
+const { jest: jestGlobals } = require("@jest/globals");
+
+const mockEditorMethods = {
+  insertImage: jestGlobals.fn(),
+  setForeColor: jestGlobals.fn(),
+  command: jestGlobals.fn(),
+};
 
 const actions = {
   setBold: "setBold",
@@ -13,9 +20,18 @@ const actions = {
 
 class RichEditor extends React.Component {
   insertImage(url) {
+    mockEditorMethods.insertImage(url);
     if (this.props.onChange) {
       this.props.onChange(`<p><img src="${url}"></p>`);
     }
+  }
+
+  setForeColor(color) {
+    mockEditorMethods.setForeColor(color);
+  }
+
+  command(command) {
+    mockEditorMethods.command(command);
   }
 
   render() {
@@ -56,4 +72,4 @@ RichEditor.prototype.render = function render() {
   );
 };
 
-module.exports = { RichEditor, RichToolbar, actions };
+module.exports = { RichEditor, RichToolbar, actions, __mockEditorMethods: mockEditorMethods };

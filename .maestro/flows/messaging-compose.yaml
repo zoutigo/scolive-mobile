@@ -1,0 +1,96 @@
+appId: com.zoutigo.scoliveapp
+name: Messaging Compose
+tags:
+  - messaging
+  - compose
+---
+- runFlow:
+    when:
+      visible: "Process system isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "tab-email"
+- tapOn:
+    id: "input-email"
+- inputText: "teacher@ecole.cm"
+- hideKeyboard
+- tapOn:
+    id: "input-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- extendedWaitUntil:
+    visible:
+      id: "header-menu-btn"
+    timeout: 20000
+- tapOn:
+    id: "header-menu-btn"
+- extendedWaitUntil:
+    visible:
+      id: "nav-item-messages"
+    timeout: 10000
+- tapOn:
+    id: "nav-item-messages"
+- extendedWaitUntil:
+    visible:
+      id: "compose-fab"
+    timeout: 20000
+- tapOn:
+    id: "compose-fab"
+- extendedWaitUntil:
+    visible:
+      id: "recipients-field"
+    timeout: 15000
+- tapOn:
+    id: "recipients-field"
+- extendedWaitUntil:
+    visible:
+      id: "recipient-option-teacher-rousselot"
+    timeout: 10000
+- tapOn:
+    id: "recipient-option-teacher-rousselot"
+- tapOn:
+    id: "recipient-picker-confirm"
+- tapOn:
+    id: "subject-input"
+- inputText: "E2E Maestro message"
+- hideKeyboard
+- tapOn:
+    point: 20%, 30%
+- inputText: "Bonjour Maestro"
+- hideKeyboard
+- tapOn:
+    id: "attachment-actions-btn"
+- tapOn: "Insérer un fichier"
+- extendedWaitUntil:
+    visible: "Downloads"
+    timeout: 10000
+- tapOn:
+    point: 21%, 28%
+- extendedWaitUntil:
+    visible: "e2e-message-attachment.pdf"
+    timeout: 10000
+- tapOn:
+    id: "send-btn"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible:
+    id: "success-toast-title"
+- assertVisible: "Message envoyé"
+- tapOn:
+    id: "success-toast-close"
+- tapOn: "Envoyés"
+- assertVisible: "E2E Maestro message"

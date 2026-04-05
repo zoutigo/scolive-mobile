@@ -9,6 +9,7 @@ import LoginScreen from "../../app/login";
 import { authApi } from "../../src/api/auth.api";
 import { useAuthStore } from "../../src/store/auth.store";
 
+jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-status-bar", () => ({ StatusBar: () => null }));
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
@@ -118,6 +119,29 @@ describe("Onglets", () => {
 
     fireEvent.press(screen.getByTestId("tab-email"));
     expect(screen.queryByTestId("error-message")).toBeNull();
+  });
+});
+
+describe("Champs sécurisés", () => {
+  it("permet d'afficher le PIN saisi", () => {
+    render(<LoginScreen />);
+
+    expect(screen.getByTestId("input-pin").props.secureTextEntry).toBe(true);
+    fireEvent.press(screen.getByTestId("input-pin-toggle-visibility"));
+    expect(screen.getByTestId("input-pin").props.secureTextEntry).toBe(false);
+  });
+
+  it("permet d'afficher le mot de passe saisi", () => {
+    render(<LoginScreen />);
+
+    fireEvent.press(screen.getByTestId("tab-email"));
+    expect(screen.getByTestId("input-password").props.secureTextEntry).toBe(
+      true,
+    );
+    fireEvent.press(screen.getByTestId("input-password-toggle-visibility"));
+    expect(screen.getByTestId("input-password").props.secureTextEntry).toBe(
+      false,
+    );
   });
 });
 

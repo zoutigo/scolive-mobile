@@ -16,6 +16,42 @@ jest.mock("expo-secure-store", () => ({
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
+let xhrScenario = {
+  status: 204,
+  responseText: "",
+  networkError: false,
+};
+const mockXhrOpen = jest.fn();
+const mockXhrSetRequestHeader = jest.fn();
+const mockXhrSend = jest.fn(function send(this: {
+  onload?: () => void;
+  onerror?: () => void;
+  status: number;
+  response: string;
+  responseText: string;
+}) {
+  if (xhrScenario.networkError) {
+    this.onerror?.();
+    return;
+  }
+
+  this.status = xhrScenario.status;
+  this.response = xhrScenario.responseText;
+  this.responseText = xhrScenario.responseText;
+  this.onload?.();
+});
+
+global.XMLHttpRequest = jest.fn(() => ({
+  open: mockXhrOpen,
+  setRequestHeader: mockXhrSetRequestHeader,
+  send: mockXhrSend,
+  status: 0,
+  response: "",
+  responseText: "",
+  onload: undefined,
+  onerror: undefined,
+})) as unknown as typeof XMLHttpRequest;
+
 function okJson(body: unknown) {
   return Promise.resolve({
     ok: true,
@@ -29,12 +65,18 @@ function errorResponse(status: number, message = "Error") {
     ok: false,
     status,
     json: () => Promise.resolve({ message }),
+    text: () => Promise.resolve(JSON.stringify({ message })),
   });
 }
 
 beforeEach(() => {
   jest.clearAllMocks();
   process.env.EXPO_PUBLIC_API_URL = "http://10.0.2.2:3001/api";
+  xhrScenario = {
+    status: 204,
+    responseText: "",
+    networkError: false,
+  };
 });
 
 // ── list() ────────────────────────────────────────────────────────────────────
@@ -233,6 +275,44 @@ describe("messagingApi.send()", () => {
     expect(formData.getAll("recipientUserIds")).toEqual(["user-1"]);
     expect(formData.getAll("attachments")).toHaveLength(1);
   });
+
+  it("inclut isDraft=true pour enregistrer un brouillon", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+      json: () => Promise.resolve({}),
+    });
+    await messagingApi.send("college-vogt", {
+      subject: "Brouillon sans objet",
+      body: "<p>&nbsp;</p>",
+      recipientUserIds: [],
+      isDraft: true,
+    });
+    const [, options] = mockFetch.mock.calls[0];
+    const formData = options.body as FormData;
+    expect(formData.get("isDraft")).toBe("true");
+  });
+
+  it("retente via XMLHttpRequest quand fetch échoue au niveau réseau", async () => {
+    mockFetch.mockRejectedValueOnce(new TypeError("Network request failed"));
+
+    await messagingApi.send("college-vogt", {
+      subject: "Test",
+      body: "<p>Bonjour</p>",
+      recipientUserIds: ["u1"],
+    });
+
+    expect(global.XMLHttpRequest).toHaveBeenCalledTimes(1);
+    expect(mockXhrOpen).toHaveBeenCalledWith(
+      "POST",
+      "http://10.0.2.2:3001/api/schools/college-vogt/messages",
+    );
+    expect(mockXhrSetRequestHeader).toHaveBeenCalledWith(
+      "Authorization",
+      "Bearer test-token",
+    );
+    expect(mockXhrSend).toHaveBeenCalledWith(expect.any(FormData));
+  });
 });
 
 // ── markRead() ────────────────────────────────────────────────────────────────
@@ -278,6 +358,18 @@ describe("messagingApi.archive()", () => {
     expect(url).toContain("/messages/m1/archive");
     expect(options.method).toBe("PATCH");
     expect(JSON.parse(options.body)).toEqual({ archived: true });
+  });
+
+  it("appelle PATCH .../archive avec archived=false pour désarchiver", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+      json: () => Promise.resolve({}),
+    });
+    await messagingApi.archive("college-vogt", "m1", false);
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({
+      archived: false,
+    });
   });
 });
 
@@ -364,6 +456,6 @@ describe("messagingApi.uploadInlineImage()", () => {
         "application/pdf",
         "doc.pdf",
       ),
-    ).rejects.toThrow("IMAGE_UPLOAD_FAILED");
+    ).rejects.toThrow("Type invalide");
   });
 });

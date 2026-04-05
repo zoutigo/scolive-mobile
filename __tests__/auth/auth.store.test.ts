@@ -54,6 +54,7 @@ beforeEach(() => {
     schoolSlug: null,
     isLoading: true,
     isAuthenticated: false,
+    authErrorMessage: null,
   });
 });
 
@@ -183,5 +184,33 @@ describe("auth.store — logout", () => {
     expect(state.accessToken).toBeNull();
     expect(state.schoolSlug).toBeNull();
     expect(mockAuthApi.logout).toHaveBeenCalled();
+  });
+
+  it("invalidateSession efface la session et stocke un message utilisateur", async () => {
+    useAuthStore.setState({
+      user: fakeUser,
+      accessToken: "access-token-123",
+      schoolSlug: "ecole-test",
+      isAuthenticated: true,
+      isLoading: false,
+      authErrorMessage: null,
+    });
+    mockStorage.clear.mockResolvedValue(undefined);
+
+    await act(async () => {
+      await useAuthStore
+        .getState()
+        .invalidateSession("Votre session a expiré. Veuillez vous reconnecter.");
+    });
+
+    const state = useAuthStore.getState();
+    expect(mockStorage.clear).toHaveBeenCalled();
+    expect(state.isAuthenticated).toBe(false);
+    expect(state.user).toBeNull();
+    expect(state.accessToken).toBeNull();
+    expect(state.schoolSlug).toBeNull();
+    expect(state.authErrorMessage).toBe(
+      "Votre session a expiré. Veuillez vous reconnecter.",
+    );
   });
 });

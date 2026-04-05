@@ -31,6 +31,7 @@ function setupStore(overrides: {
   isLoading: boolean;
   user?: AuthUser | null;
   schoolSlug?: string | null;
+  authErrorMessage?: string | null;
 }) {
   mockUseAuthStore.mockReturnValue({
     isAuthenticated: overrides.isAuthenticated,
@@ -38,6 +39,8 @@ function setupStore(overrides: {
     user: overrides.user ?? null,
     accessToken: null,
     schoolSlug: overrides.schoolSlug ?? null,
+    authErrorMessage: overrides.authErrorMessage ?? null,
+    clearAuthError: jest.fn(),
     logout: jest.fn(),
   } as ReturnType<typeof useAuthStore>);
 }
@@ -80,5 +83,30 @@ describe("IndexScreen", () => {
     });
     render(<IndexScreen />);
     expect(screen.getByTestId("header-logo")).toBeOnTheScreen();
+  });
+
+  it("affiche une vraie modale si la session a expiré", () => {
+    setupStore({
+      isAuthenticated: false,
+      isLoading: false,
+      authErrorMessage: "Votre session a expiré. Veuillez vous reconnecter.",
+    });
+
+    render(<IndexScreen />);
+
+    expect(screen.getByTestId("confirm-dialog-card")).toBeOnTheScreen();
+    expect(screen.getByTestId("confirm-dialog-title")).toHaveTextContent(
+      "Session expirée",
+    );
+    expect(screen.getByTestId("confirm-dialog-subtitle")).toHaveTextContent(
+      "Votre espace a été verrouillé en toute sécurité",
+    );
+    expect(screen.getByTestId("confirm-dialog-message")).toHaveTextContent(
+      "Votre session a expiré. Veuillez vous reconnecter.",
+    );
+    expect(screen.getByTestId("confirm-dialog-confirm")).toHaveTextContent(
+      "Se reconnecter",
+    );
+    expect(screen.queryByTestId("confirm-dialog-cancel")).toBeNull();
   });
 });
