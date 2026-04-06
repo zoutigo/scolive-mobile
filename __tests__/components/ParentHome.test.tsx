@@ -180,6 +180,14 @@ describe("Compteur d'enfants", () => {
 });
 
 describe("Accès rapides", () => {
+  it("navigue vers le fil d'actualité depuis le raccourci d'accueil", () => {
+    render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+    fireEvent.press(screen.getByTestId("quick-link-fil-d-actualit"));
+
+    expect(mockPush).toHaveBeenCalledWith("/(home)/feed");
+  });
+
   it("navigue vers la messagerie depuis le raccourci d'accueil", () => {
     render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
 

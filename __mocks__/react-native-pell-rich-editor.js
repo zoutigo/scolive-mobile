@@ -8,6 +8,8 @@ const mockEditorMethods = {
   command: jestGlobals.fn(),
 };
 
+let mockContentHtml = "";
+
 const actions = {
   setBold: "setBold",
   setItalic: "setItalic",
@@ -21,8 +23,9 @@ const actions = {
 class RichEditor extends React.Component {
   insertImage(url) {
     mockEditorMethods.insertImage(url);
+    mockContentHtml = `<p><img src="${url}"></p>`;
     if (this.props.onChange) {
-      this.props.onChange(`<p><img src="${url}"></p>`);
+      this.props.onChange(mockContentHtml);
     }
   }
 
@@ -32,6 +35,10 @@ class RichEditor extends React.Component {
 
   command(command) {
     mockEditorMethods.command(command);
+  }
+
+  getContentHtml() {
+    return Promise.resolve(mockContentHtml);
   }
 
   render() {
@@ -62,8 +69,9 @@ RichEditor.prototype.render = function render() {
       {
         testID: "rich-editor-set-content",
         onPress: () => {
+          mockContentHtml = "<p>Bonjour</p>";
           if (this.props.onChange) {
-            this.props.onChange("<p>Bonjour</p>");
+            this.props.onChange(mockContentHtml);
           }
         },
       },
@@ -77,4 +85,7 @@ module.exports = {
   RichToolbar,
   actions,
   __mockEditorMethods: mockEditorMethods,
+  __setMockEditorContentHtml: (html) => {
+    mockContentHtml = html;
+  },
 };

@@ -28,10 +28,12 @@
     "e2e:test:auth-phone": "PHONE_LOGIN_SCENARIO=happy_path bash scripts/maestro-run-flow.sh auth-phone",
     "e2e:test:onboarding-email": "EMAIL_LOGIN_SCENARIO=password_change_required ONBOARDING_SCENARIO=email_parent_happy bash scripts/maestro-run-flow.sh onboarding-email",
     "e2e:test:onboarding-phone": "PHONE_LOGIN_SCENARIO=profile_setup_required ONBOARDING_SCENARIO=phone_happy bash scripts/maestro-run-flow.sh onboarding-phone",
+    "e2e:test:feed": "EMAIL_LOGIN_SCENARIO=happy_path bash scripts/maestro-run-flow.sh feed",
+    "e2e:test:feed:interactions": "EMAIL_LOGIN_SCENARIO=happy_path bash scripts/maestro-run-flow.sh feed-interactions",
     "e2e:test:messaging": "EMAIL_LOGIN_SCENARIO=happy_path bash scripts/maestro-run-flow.sh messaging-compose",
     "e2e:test:recovery-password": "PASSWORD_SCENARIO=happy_path bash scripts/maestro-run-flow.sh recovery-password",
     "e2e:test:recovery-pin": "PIN_SCENARIO=happy_path bash scripts/maestro-run-flow.sh recovery-pin",
-    "e2e:test": "npm run e2e:test:smoke && npm run e2e:test:auth-email && npm run e2e:test:auth-phone && npm run e2e:test:onboarding-email && npm run e2e:test:onboarding-phone && npm run e2e:test:messaging && npm run e2e:test:recovery-password && npm run e2e:test:recovery-pin",
+    "e2e:test": "npm run e2e:test:smoke && npm run e2e:test:auth-email && npm run e2e:test:auth-phone && npm run e2e:test:onboarding-email && npm run e2e:test:onboarding-phone && npm run e2e:test:feed && npm run e2e:test:feed:interactions && npm run e2e:test:messaging && npm run e2e:test:recovery-password && npm run e2e:test:recovery-pin",
     "e2e": "npm run e2e:build && npm run e2e:test",
     "maestro:install": "bash scripts/install-maestro.sh"
   },

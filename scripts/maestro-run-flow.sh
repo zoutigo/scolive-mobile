@@ -91,6 +91,28 @@ wait_for_health() {
   return 1
 }
 
+wait_for_android_device() {
+  adb wait-for-device >/dev/null 2>&1
+
+  local retries="${1:-90}"
+  local boot_completed=""
+  local package_state=""
+
+  for _ in $(seq 1 "$retries"); do
+    boot_completed="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')"
+    package_state="$(adb shell pm path android 2>/dev/null || true)"
+
+    if [[ "$boot_completed" == "1" && "$package_state" == package:* ]]; then
+      return 0
+    fi
+
+    sleep 2
+  done
+
+  echo "[maestro] appareil Android non prêt" >&2
+  return 1
+}
+
 start_mock_server() {
   if curl -fsS "http://localhost:3001/api/health" >/dev/null 2>&1; then
     return 0
@@ -114,8 +136,69 @@ set_scenario() {
     >/dev/null
 }
 
+reset_mock_state() {
+  curl -fsS -X POST "http://localhost:3001/__reset" >/dev/null
+}
+
+cleanup_stale_maestro_port() {
+  local pid=""
+  pid="$(lsof -tiTCP:7001 -sTCP:LISTEN 2>/dev/null || true)"
+
+  if [[ -z "$pid" ]]; then
+    return 0
+  fi
+
+  if ps -p "$pid" -o cmd= 2>/dev/null | grep -q "maestro.cli.AppKt"; then
+    echo "[maestro] fermeture d'une ancienne session bloquée sur le port 7001 (pid=$pid)" >&2
+    kill "$pid" >/dev/null 2>&1 || true
+    sleep 1
+  fi
+}
+
+assert_feed_interactions_state() {
+  local payload=""
+
+  payload="$(curl -fsS "http://localhost:3001/__state/feed")"
+
+  node -e '
+    const fs = require("fs");
+    const payload = JSON.parse(fs.readFileSync(0, "utf8"));
+    const feed1 = payload.items.find((item) => item.id === "feed-1");
+    const feed2 = payload.items.find((item) => item.id === "feed-2");
+
+    if (!feed1) {
+      console.error("[maestro] feed-1 introuvable dans l état mock");
+      process.exit(1);
+    }
+
+    if (!feed2 || !feed2.poll) {
+      console.error("[maestro] feed-2 / poll introuvable dans l état mock");
+      process.exit(1);
+    }
+
+    const likedOk = feed1.likedByViewer === true && feed1.likesCount === 3;
+    const commentOk = Array.isArray(feed1.comments)
+      && feed1.comments.some((comment) => comment.text === "Merci pour ce rappel");
+    if (!likedOk) {
+      console.error("[maestro] like feed invalide", {
+        likedByViewer: feed1.likedByViewer,
+        likesCount: feed1.likesCount,
+      });
+      process.exit(1);
+    }
+
+    if (!commentOk) {
+      console.error("[maestro] commentaire feed introuvable");
+      process.exit(1);
+    }
+  ' <<<"$payload"
+}
+
 start_mock_server
 
+cleanup_stale_maestro_port
+wait_for_android_device
+reset_mock_state
 set_scenario "/__scenario" "${PHONE_LOGIN_SCENARIO:-happy_path}"
 set_scenario "/__scenario/email-login" "${EMAIL_LOGIN_SCENARIO:-happy_path}"
 set_scenario "/__scenario/onboarding" "${ONBOARDING_SCENARIO:-email_parent_happy}"
@@ -127,6 +210,7 @@ if [[ "$FLOW_NAME" == "messaging-compose" ]]; then
 fi
 
 if [[ -f "$APK_PATH" ]]; then
+  wait_for_android_device
   adb install -r "$APK_PATH" >/dev/null
 fi
 
@@ -183,10 +267,16 @@ open_flow_route() {
 
 adb shell am force-stop com.zoutigo.scoliveapp >/dev/null 2>&1 || true
 adb shell pm clear com.zoutigo.scoliveapp >/dev/null 2>&1 || true
+wait_for_android_device
 open_flow_route
 sleep 2
 dismiss_system_anr
 wait_for_app_activity 20 || true
 sleep 2
+wait_for_android_device
 
 "$MAESTRO_BIN" test "$FLOW_PATH" "$@"
+
+if [[ "$FLOW_NAME" == "feed-interactions" ]]; then
+  assert_feed_interactions_state
+fi

@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import type { AuthUser, SchoolRole } from "../../types/auth.types";
 
@@ -28,11 +29,16 @@ interface QuickLinkProps {
   label: string;
   color: string;
   count?: string;
+  onPress?: () => void;
 }
 
-function QuickLink({ icon, label, color, count }: QuickLinkProps) {
+function QuickLink({ icon, label, color, count, onPress }: QuickLinkProps) {
   return (
-    <TouchableOpacity style={styles.quickLink} activeOpacity={0.75}>
+    <TouchableOpacity
+      style={styles.quickLink}
+      activeOpacity={0.75}
+      onPress={onPress}
+    >
       <View style={[styles.qlIcon, { backgroundColor: color + "18" }]}>
         <Ionicons name={icon as "home"} size={22} color={color} />
       </View>
@@ -48,11 +54,23 @@ function QuickLink({ icon, label, color, count }: QuickLinkProps) {
 }
 
 export function SchoolHome({ user, schoolSlug }: SchoolHomeProps) {
+  const router = useRouter();
   const role = (user.activeRole ?? user.role) as SchoolRole | null;
   const roleLabel = role ? (ROLE_LABELS[role] ?? role) : "";
   const schoolDisplay = schoolSlug
     ? schoolSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
     : "Mon établissement";
+
+  function handleQuickLinkPress(label: string) {
+    if (label === "Fil d'actualité") {
+      router.push("/(home)/feed");
+      return;
+    }
+
+    if (label === "Messagerie") {
+      router.push("/(home)/messages");
+    }
+  }
 
   return (
     <ScrollView
@@ -109,6 +127,7 @@ export function SchoolHome({ user, schoolSlug }: SchoolHomeProps) {
           icon="newspaper-outline"
           label="Fil d'actualité"
           color={colors.primary}
+          onPress={() => handleQuickLinkPress("Fil d'actualité")}
         />
         <QuickLink
           icon="people-outline"
@@ -125,6 +144,7 @@ export function SchoolHome({ user, schoolSlug }: SchoolHomeProps) {
           label="Messagerie"
           color="#6B5EA8"
           count="3"
+          onPress={() => handleQuickLinkPress("Messagerie")}
         />
         <QuickLink
           icon="person-add-outline"

@@ -105,6 +105,15 @@ function placeholder(label: string, icon: string, key: string): NavItem {
   };
 }
 
+function feedItem(): NavItem {
+  return {
+    key: "feed",
+    label: "Fil d'actualité",
+    icon: "newspaper-outline",
+    route: "/feed",
+  };
+}
+
 const PLATFORM_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
   placeholder("Écoles", "business-outline", "schools"),
@@ -120,7 +129,7 @@ const PLATFORM_NAV: NavItem[] = [
 
 const SCHOOL_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
-  placeholder("Fil d'actualité", "newspaper-outline", "feed"),
+  feedItem(),
   placeholder("Classes", "book-outline", "classes"),
   placeholder("Matières", "library-outline", "subjects"),
   placeholder("Curriculums", "layers-outline", "curriculums"),
@@ -140,7 +149,7 @@ const SCHOOL_NAV: NavItem[] = [
 
 const TEACHER_NAV: NavItem[] = [
   { key: "home", label: "Tableau de bord", icon: "home-outline", route: "/" },
-  placeholder("Fil d'actualité", "newspaper-outline", "feed"),
+  feedItem(),
   placeholder("Mes classes", "book-outline", "classes"),
   placeholder("Cahier de notes", "journal-outline", "gradebook"),
   {
@@ -154,7 +163,7 @@ const TEACHER_NAV: NavItem[] = [
 
 const PARENT_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
-  placeholder("Fil d'actualité", "newspaper-outline", "feed"),
+  feedItem(),
   placeholder("Situation financière", "wallet-outline", "finance"),
   {
     key: "messages",

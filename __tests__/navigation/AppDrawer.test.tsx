@@ -269,10 +269,7 @@ describe("Navigation — clic sur un item", () => {
     renderDrawer(getNavItems(parentUser));
     fireEvent.press(screen.getByTestId("nav-item-feed"));
     act(() => jest.runAllTimers());
-    expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/placeholder",
-      params: { title: "Fil d'actualité" },
-    });
+    expect(mockPush).toHaveBeenCalledWith("/feed");
   });
 
   it("appelle onClose avant de naviguer", () => {

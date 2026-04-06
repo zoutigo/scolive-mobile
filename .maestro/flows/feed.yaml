@@ -1,0 +1,78 @@
+appId: com.zoutigo.scoliveapp
+name: Feed Browse and Publish
+tags:
+  - feed
+  - publication
+---
+- runFlow:
+    when:
+      visible: "Process system isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "tab-email"
+- tapOn:
+    id: "input-email"
+- inputText: "teacher@ecole.cm"
+- hideKeyboard
+- tapOn:
+    id: "input-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- extendedWaitUntil:
+    visible:
+      id: "header-menu-btn"
+    timeout: 20000
+- tapOn:
+    id: "header-menu-btn"
+- extendedWaitUntil:
+    visible:
+      id: "nav-item-feed"
+    timeout: 10000
+- tapOn:
+    id: "nav-item-feed"
+- extendedWaitUntil:
+    visible:
+      id: "feed-open-composer"
+    timeout: 20000
+- assertVisible: "Réunion parents-professeurs"
+- tapOn:
+    id: "feed-filter-polls"
+- assertVisible: "Horaire du forum orientation"
+- tapOn:
+    id: "feed-filter-all"
+- tapOn:
+    id: "feed-open-composer"
+- extendedWaitUntil:
+    visible:
+      id: "feed-composer-title"
+    timeout: 10000
+- tapOn:
+    id: "feed-composer-title"
+- inputText: "Annonce E2E fil"
+- hideKeyboard
+- tapOn:
+    point: 22%, 56%
+- inputText: "Bonjour depuis Maestro"
+- hideKeyboard
+- assertVisible:
+    id: "feed-composer-submit"
+- tapOn:
+    id: "feed-composer-submit"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Actualité publiée"
+- assertVisible: "Annonce E2E fil"

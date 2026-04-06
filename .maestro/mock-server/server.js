@@ -25,6 +25,7 @@
  *   POST /__scenario/onboarding   → change le scénario d'onboarding
  *   POST /__scenario/pin          → change le scénario de récupération PIN
  *   POST /__scenario/password     → change le scénario de récupération mot de passe
+ *   POST /__reset                 → réinitialise les fixtures en mémoire
  */
 
 const http = require("http");
@@ -285,6 +286,19 @@ let messageCounter = 10;
 let attachmentCounter = 10;
 let mailboxCounter = 10;
 let mockMessages = createInitialMessages();
+let feedCounter = 10;
+let feedCommentCounter = 10;
+let mockFeedPosts = createInitialFeedPosts();
+
+function resetMockState() {
+  messageCounter = 10;
+  attachmentCounter = 10;
+  mailboxCounter = 10;
+  mockMessages = createInitialMessages();
+  feedCounter = 10;
+  feedCommentCounter = 10;
+  mockFeedPosts = createInitialFeedPosts();
+}
 
 // ────────────────────────── Gestion des requêtes ──────────────────────────
 
@@ -349,6 +363,85 @@ function createInitialMessages() {
       isSender: false,
       mailboxEntryId: "mailbox-1",
       attachments: [],
+    },
+  ];
+}
+
+function createInitialFeedPosts() {
+  return [
+    {
+      id: "feed-1",
+      type: "POST",
+      author: {
+        id: "teacher-rousselot",
+        fullName: "Anne Rousselot",
+        civility: "Mme",
+        roleLabel: "Vie scolaire",
+        avatarText: "AR",
+      },
+      title: "Réunion parents-professeurs",
+      bodyHtml:
+        "<p>La réunion parents-professeurs aura lieu vendredi à 16h30 dans la salle polyvalente.</p>",
+      createdAt: "2026-04-04T08:30:00.000Z",
+      featuredUntil: "2026-04-10T08:30:00.000Z",
+      audience: {
+        scope: "PARENTS_ONLY",
+        label: "Parents uniquement",
+      },
+      attachments: [
+        {
+          id: "feed-attachment-1",
+          fileName: "programme-reunion.pdf",
+          fileUrl: "http://10.0.2.2:3001/mock/files/e2e-message-attachment.pdf",
+          sizeLabel: "1 Ko",
+        },
+      ],
+      likedByViewer: false,
+      likesCount: 2,
+      authoredByViewer: false,
+      canManage: false,
+      comments: [
+        {
+          id: "feed-comment-1",
+          authorName: "Robert Ntamack",
+          text: "Merci pour l'information.",
+          createdAt: "2026-04-04T09:00:00.000Z",
+        },
+      ],
+    },
+    {
+      id: "feed-2",
+      type: "POLL",
+      author: {
+        id: "school-admin-1",
+        fullName: "Valery Mbele",
+        civility: "M.",
+        roleLabel: "Administration",
+        avatarText: "VM",
+      },
+      title: "Horaire du forum orientation",
+      bodyHtml:
+        "<p>Merci de nous aider à choisir le meilleur créneau pour le forum orientation.</p>",
+      createdAt: "2026-04-03T11:00:00.000Z",
+      featuredUntil: null,
+      audience: {
+        scope: "SCHOOL_ALL",
+        label: "Toute l'école",
+      },
+      attachments: [],
+      likedByViewer: false,
+      likesCount: 1,
+      authoredByViewer: false,
+      canManage: false,
+      comments: [],
+      poll: {
+        question: "Quel créneau préférez-vous ?",
+        votedOptionId: null,
+        options: [
+          { id: "poll-1", label: "Mercredi matin", votes: 4 },
+          { id: "poll-2", label: "Vendredi après-midi", votes: 3 },
+        ],
+      },
     },
   ];
 }
@@ -442,6 +535,33 @@ function findMessageById(messageId) {
   return mockMessages.find((message) => message.id === messageId) ?? null;
 }
 
+function filterFeedPosts(searchParams) {
+  const filter = searchParams.get("filter") || "all";
+  const q = (searchParams.get("q") || "").trim().toLowerCase();
+  const now = Date.now();
+
+  return mockFeedPosts.filter((post) => {
+    if (
+      filter === "featured" &&
+      (!post.featuredUntil || new Date(post.featuredUntil).getTime() <= now)
+    ) {
+      return false;
+    }
+
+    if (filter === "polls" && post.type !== "POLL") {
+      return false;
+    }
+
+    if (!q) {
+      return true;
+    }
+
+    return `${post.title} ${stripHtml(post.bodyHtml)}`
+      .toLowerCase()
+      .includes(q);
+  });
+}
+
 function handleRequest(req, res) {
   const { url, method } = req;
   const requestUrl = new URL(url, "http://mock.local");
@@ -453,11 +573,17 @@ function handleRequest(req, res) {
     url === "/__scenario/email-login" ||
     url === "/__scenario/onboarding" ||
     url === "/__scenario/pin" ||
-    url === "/__scenario/password"
+    url === "/__scenario/password" ||
+    url === "/__reset"
   ) {
     if (method === "POST") {
       readBody(req).then((raw) => {
         try {
+          if (url === "/__reset") {
+            resetMockState();
+            console.log("[mock] /__reset");
+            return json(res, 200, { ok: true });
+          }
           const { scenario } = JSON.parse(raw);
           if (url === "/__scenario") {
             if (!SCENARIOS[scenario]) {
@@ -502,6 +628,10 @@ function handleRequest(req, res) {
   // ── Health check ─────────────────────────────────────────────
   if (method === "GET" && path === "/api/health") {
     return json(res, 200, { status: "mock-ok" });
+  }
+
+  if (method === "GET" && path === "/__state/feed") {
+    return json(res, 200, { items: mockFeedPosts });
   }
 
   if (method === "GET" && path === "/mock/media/inline-image.png") {
@@ -714,6 +844,192 @@ function handleRequest(req, res) {
 
   if (method === "GET" && path === "/api/schools/ecole-demo/me") {
     return json(res, 200, MOCK_PARENT_ME);
+  }
+
+  if (method === "GET" && path === "/api/schools/ecole-demo/feed") {
+    const items = filterFeedPosts(requestUrl.searchParams);
+    return json(res, 200, {
+      items,
+      meta: {
+        page: 1,
+        limit: 12,
+        total: items.length,
+        totalPages: 1,
+      },
+    });
+  }
+
+  if (
+    method === "POST" &&
+    path === "/api/schools/ecole-demo/feed/uploads/inline-image"
+  ) {
+    return json(res, 201, {
+      url: "http://10.0.2.2:3001/mock/media/inline-image.png",
+    });
+  }
+
+  if (method === "POST" && path === "/api/schools/ecole-demo/feed") {
+    readBody(req).then((raw) => {
+      const payload = JSON.parse(raw || "{}");
+      feedCounter += 1;
+
+      const created = {
+        id: `feed-${feedCounter}`,
+        type: payload.type || "POST",
+        author: {
+          id: "parent-1",
+          fullName: "Robert Ntamack",
+          civility: "M.",
+          roleLabel: "Parent",
+          avatarText: "RN",
+        },
+        title: payload.title || "Nouvelle actualité",
+        bodyHtml: payload.bodyHtml || "<p>Publication vide.</p>",
+        createdAt: "2026-04-05T10:00:00.000Z",
+        featuredUntil:
+          typeof payload.featuredDays === "number" && payload.featuredDays > 0
+            ? "2026-04-12T10:00:00.000Z"
+            : null,
+        audience: {
+          scope: payload.audienceScope || "PARENTS_ONLY",
+          label: payload.audienceLabel || "Parents uniquement",
+        },
+        attachments: (payload.attachments || []).map((attachment, index) => ({
+          id: `feed-attachment-${feedCounter}-${index + 1}`,
+          fileName: attachment.fileName,
+          fileUrl: attachment.fileUrl || null,
+          sizeLabel: attachment.sizeLabel || "",
+        })),
+        likedByViewer: false,
+        likesCount: 0,
+        authoredByViewer: true,
+        canManage: true,
+        comments: [],
+        poll:
+          payload.type === "POLL"
+            ? {
+                question: payload.pollQuestion || "Question",
+                votedOptionId: null,
+                options: (payload.pollOptions || []).map((label, index) => ({
+                  id: `feed-poll-${feedCounter}-${index + 1}`,
+                  label,
+                  votes: 0,
+                })),
+              }
+            : undefined,
+      };
+
+      mockFeedPosts = [created, ...mockFeedPosts];
+      return json(res, 201, created);
+    });
+    return;
+  }
+
+  if (
+    method === "POST" &&
+    path.match(/^\/api\/schools\/ecole-demo\/feed\/[^/]+\/likes\/toggle$/)
+  ) {
+    const postId = path.split("/")[5];
+    const post = mockFeedPosts.find((entry) => entry.id === postId);
+    if (!post) {
+      return json(res, 404, {
+        message: "Feed post not found",
+        statusCode: 404,
+      });
+    }
+    post.likedByViewer = !post.likedByViewer;
+    post.likesCount = Math.max(
+      0,
+      post.likesCount + (post.likedByViewer ? 1 : -1),
+    );
+    return json(res, 200, {
+      liked: post.likedByViewer,
+      likesCount: post.likesCount,
+    });
+  }
+
+  if (
+    method === "POST" &&
+    path.match(/^\/api\/schools\/ecole-demo\/feed\/[^/]+\/comments$/)
+  ) {
+    const postId = path.split("/")[5];
+    const post = mockFeedPosts.find((entry) => entry.id === postId);
+    if (!post) {
+      return json(res, 404, {
+        message: "Feed post not found",
+        statusCode: 404,
+      });
+    }
+    readBody(req).then((raw) => {
+      const payload = JSON.parse(raw || "{}");
+      feedCommentCounter += 1;
+      const comment = {
+        id: `feed-comment-${feedCommentCounter}`,
+        authorName: "Robert Ntamack",
+        text: payload.text || "Merci",
+        createdAt: "2026-04-05T10:30:00.000Z",
+      };
+      post.comments.push(comment);
+      return json(res, 201, {
+        comment,
+        commentsCount: post.comments.length,
+      });
+    });
+    return;
+  }
+
+  if (
+    method === "POST" &&
+    path.match(/^\/api\/schools\/ecole-demo\/feed\/[^/]+\/polls\/[^/]+\/vote$/)
+  ) {
+    const segments = path.split("/");
+    const postId = segments[5];
+    const optionId = segments[7];
+    const post = mockFeedPosts.find((entry) => entry.id === postId);
+    if (!post) {
+      return json(res, 404, {
+        message: "Feed post not found",
+        statusCode: 404,
+      });
+    }
+    if (post.type !== "POLL" || !post.poll) {
+      return json(res, 400, {
+        message: "Not a poll post",
+        statusCode: 400,
+      });
+    }
+    if (post.poll.votedOptionId) {
+      return json(res, 400, {
+        message: "Vote deja enregistre",
+        statusCode: 400,
+      });
+    }
+    const selected = post.poll.options.find((entry) => entry.id === optionId);
+    if (!selected) {
+      return json(res, 400, {
+        message: "Option de vote introuvable",
+        statusCode: 400,
+      });
+    }
+
+    post.poll.votedOptionId = optionId;
+    post.poll.options = post.poll.options.map((entry) =>
+      entry.id === optionId ? { ...entry, votes: entry.votes + 1 } : entry,
+    );
+
+    return json(res, 201, {
+      votedOptionId: optionId,
+      options: post.poll.options,
+    });
+  }
+
+  if (
+    method === "DELETE" &&
+    path.match(/^\/api\/schools\/ecole-demo\/feed\/[^/]+$/)
+  ) {
+    const postId = path.split("/")[5];
+    mockFeedPosts = mockFeedPosts.filter((entry) => entry.id !== postId);
+    return json(res, 200, { success: true, postId });
   }
 
   if (
