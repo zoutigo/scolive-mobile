@@ -88,7 +88,9 @@ function CommentRow({ comment }: { comment: FeedComment }) {
       <View style={styles.commentBody}>
         <View style={styles.commentHeader}>
           <Text style={styles.commentAuthor}>{comment.authorName}</Text>
-          <Text style={styles.commentDate}>{formatFeedDate(comment.createdAt)}</Text>
+          <Text style={styles.commentDate}>
+            {formatFeedDate(comment.createdAt)}
+          </Text>
         </View>
         <Text style={styles.commentText}>{comment.text}</Text>
       </View>
@@ -137,13 +139,17 @@ export function FeedPostCard({
       </View>
 
       <Text style={styles.title}>{post.title}</Text>
-      <Text style={styles.bodyText}>{excerpt || "Publication sans texte."}</Text>
+      <Text style={styles.bodyText}>
+        {excerpt || "Publication sans texte."}
+      </Text>
       <View style={styles.metaFooter}>
         <Text style={styles.metaFooterText}>
           {formatAuthorName(post.author)}
           {post.author.roleLabel ? ` · ${post.author.roleLabel}` : ""}
         </Text>
-        <Text style={styles.metaFooterText}>{formatFeedDate(post.createdAt)}</Text>
+        <Text style={styles.metaFooterText}>
+          {formatFeedDate(post.createdAt)}
+        </Text>
       </View>
 
       {post.attachments.length > 0 ? (
@@ -230,7 +236,9 @@ export function FeedPostCard({
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.commentsSummary}>{getCommentSummary(post.comments)}</Text>
+      <Text style={styles.commentsSummary}>
+        {getCommentSummary(post.comments)}
+      </Text>
 
       {commentsOpen ? (
         <View style={styles.commentsPanel}>

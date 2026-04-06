@@ -184,7 +184,9 @@ describe("Feed integration", () => {
     await waitFor(() => {
       expect(screen.getByTestId("success-toast-card")).toBeTruthy();
     });
-    expect(screen.getByTestId("success-toast-variant")).toHaveTextContent("Échec");
+    expect(screen.getByTestId("success-toast-variant")).toHaveTextContent(
+      "Échec",
+    );
     expect(screen.getByTestId("success-toast-title")).toHaveTextContent(
       "Publication impossible",
     );
@@ -291,11 +293,16 @@ describe("Feed integration", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("feed-post-comments-toggle-post-1")).toBeTruthy();
+      expect(
+        screen.getByTestId("feed-post-comments-toggle-post-1"),
+      ).toBeTruthy();
     });
 
     fireEvent.press(screen.getByTestId("feed-post-comments-toggle-post-1"));
-    fireEvent.changeText(screen.getByTestId("feed-comment-input-post-1"), "Merci");
+    fireEvent.changeText(
+      screen.getByTestId("feed-comment-input-post-1"),
+      "Merci",
+    );
     fireEvent.press(screen.getByTestId("feed-comment-submit-post-1"));
 
     await waitFor(() => {
@@ -329,7 +336,11 @@ describe("Feed integration", () => {
     fireEvent.press(screen.getByText("08:00"));
 
     await waitFor(() => {
-      expect(api.votePoll).toHaveBeenCalledWith("college-vogt", "poll-1", "opt-2");
+      expect(api.votePoll).toHaveBeenCalledWith(
+        "college-vogt",
+        "poll-1",
+        "opt-2",
+      );
     });
     expect(useFeedStore.getState().posts[0]?.poll?.votedOptionId).toBe("opt-2");
     expect(useFeedStore.getState().posts[0]?.poll?.options[1]?.votes).toBe(1);

@@ -92,9 +92,9 @@ describe("feed.store", () => {
   it("réinitialise isLoading après un échec de chargement", async () => {
     api.list.mockRejectedValueOnce(new Error("FEED_DOWN"));
 
-    await expect(useFeedStore.getState().loadFeed("college-vogt")).rejects.toThrow(
-      "FEED_DOWN",
-    );
+    await expect(
+      useFeedStore.getState().loadFeed("college-vogt"),
+    ).rejects.toThrow("FEED_DOWN");
 
     expect(useFeedStore.getState().isLoading).toBe(false);
   });
@@ -117,7 +117,9 @@ describe("feed.store", () => {
 
   it("remplace une publication existante", () => {
     useFeedStore.setState({ posts: [post1] });
-    useFeedStore.getState().replacePost({ ...post1, title: "Réunion mise à jour" });
+    useFeedStore
+      .getState()
+      .replacePost({ ...post1, title: "Réunion mise à jour" });
     expect(useFeedStore.getState().posts[0]?.title).toBe("Réunion mise à jour");
   });
 
@@ -157,9 +159,7 @@ describe("feed.store", () => {
       { id: "opt-1", label: "07:30", votes: 1 },
       { id: "opt-2", label: "08:00", votes: 1 },
     ]);
-    expect(useFeedStore.getState().posts[0]?.poll?.votedOptionId).toBe(
-      "opt-2",
-    );
+    expect(useFeedStore.getState().posts[0]?.poll?.votedOptionId).toBe("opt-2");
     expect(useFeedStore.getState().posts[0]?.poll?.options[1]?.votes).toBe(1);
   });
 

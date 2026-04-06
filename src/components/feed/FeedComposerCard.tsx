@@ -101,17 +101,13 @@ export function FeedComposerCard({
   const [submitting, setSubmitting] = useState(false);
 
   function openTextColorMenu() {
-    Alert.alert(
-      "Couleur du texte",
-      "Choisissez une couleur",
-      [
-        ...COLOR_PRESETS.map((preset) => ({
-          text: preset.label,
-          onPress: () => editorRef.current?.setForeColor(preset.value),
-        })),
-        { text: "Annuler", style: "cancel" as const },
-      ],
-    );
+    Alert.alert("Couleur du texte", "Choisissez une couleur", [
+      ...COLOR_PRESETS.map((preset) => ({
+        text: preset.label,
+        onPress: () => editorRef.current?.setForeColor(preset.value),
+      })),
+      { text: "Annuler", style: "cancel" as const },
+    ]);
   }
 
   function applyHeading() {
@@ -156,7 +152,9 @@ export function FeedComposerCard({
     } catch (error) {
       Alert.alert(
         "Image non ajoutée",
-        error instanceof Error ? error.message : "Impossible d'ajouter l'image.",
+        error instanceof Error
+          ? error.message
+          : "Impossible d'ajouter l'image.",
       );
     }
   }
@@ -176,7 +174,9 @@ export function FeedComposerCard({
       const next = [...current];
       result.assets.forEach((asset) => {
         const key = `${asset.name}:${asset.size ?? 0}`;
-        if (next.some((entry) => `${entry.fileName}:${entry.sizeLabel}` === key)) {
+        if (
+          next.some((entry) => `${entry.fileName}:${entry.sizeLabel}` === key)
+        ) {
           return;
         }
         next.push({
@@ -232,9 +232,11 @@ export function FeedComposerCard({
         bodyHtml: resolvedBodyHtml,
         audienceScope: selectedAudienceScope,
         audienceLabel:
-          audienceOptions.find((option) => option.scope === selectedAudienceScope)
-            ?.label ?? "Toute l'école",
-        featuredDays: Number(featuredDays) > 0 ? Number(featuredDays) : undefined,
+          audienceOptions.find(
+            (option) => option.scope === selectedAudienceScope,
+          )?.label ?? "Toute l'école",
+        featuredDays:
+          Number(featuredDays) > 0 ? Number(featuredDays) : undefined,
         pollQuestion: type === "POLL" ? pollQuestion.trim() : undefined,
         pollOptions:
           type === "POLL"
@@ -364,9 +366,7 @@ export function FeedComposerCard({
           {pollOptions.length < 5 ? (
             <TouchableOpacity
               style={styles.secondaryAction}
-              onPress={() =>
-                setPollOptions((current) => [...current, ""])
-              }
+              onPress={() => setPollOptions((current) => [...current, ""])}
               testID="feed-composer-add-poll-option"
             >
               <Ionicons name="add" size={16} color={colors.primary} />
@@ -382,7 +382,8 @@ export function FeedComposerCard({
             key={option.scope}
             style={[
               styles.audienceChip,
-              selectedAudienceScope === option.scope && styles.audienceChipActive,
+              selectedAudienceScope === option.scope &&
+                styles.audienceChipActive,
             ]}
             onPress={() => setSelectedAudienceScope(option.scope)}
             testID={`feed-audience-${option.scope.toLowerCase()}`}
@@ -419,7 +420,8 @@ export function FeedComposerCard({
               <Text
                 style={[
                   styles.audienceChipText,
-                  featuredDays === option.value && styles.audienceChipTextActive,
+                  featuredDays === option.value &&
+                    styles.audienceChipTextActive,
                 ]}
               >
                 {option.label}
@@ -453,13 +455,19 @@ export function FeedComposerCard({
             <View key={attachment.id} style={styles.attachmentRow}>
               <View style={styles.attachmentMeta}>
                 <Text style={styles.attachmentName}>{attachment.fileName}</Text>
-                <Text style={styles.attachmentSize}>{attachment.sizeLabel}</Text>
+                <Text style={styles.attachmentSize}>
+                  {attachment.sizeLabel}
+                </Text>
               </View>
               <TouchableOpacity
                 onPress={() => removeAttachment(attachment.id)}
                 testID={`feed-remove-attachment-${attachment.id}`}
               >
-                <Ionicons name="close-circle" size={18} color={colors.notification} />
+                <Ionicons
+                  name="close-circle"
+                  size={18}
+                  color={colors.notification}
+                />
               </TouchableOpacity>
             </View>
           ))

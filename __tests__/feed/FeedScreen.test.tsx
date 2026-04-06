@@ -77,12 +77,14 @@ beforeEach(() => {
       .join(" ");
     return message.includes("not wrapped in act");
   };
-  consoleErrorSpy = jest.spyOn(console, "error").mockImplementation((...args) => {
-    if (shouldSilenceActWarning(args)) {
-      return;
-    }
-    jest.requireActual("console").error(...args);
-  });
+  consoleErrorSpy = jest
+    .spyOn(console, "error")
+    .mockImplementation((...args) => {
+      if (shouldSilenceActWarning(args)) {
+        return;
+      }
+      jest.requireActual("console").error(...args);
+    });
   consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation((...args) => {
     if (shouldSilenceActWarning(args)) {
       return;
@@ -178,9 +180,7 @@ describe("FeedScreen", () => {
   it("affiche un header sans sous-titre", async () => {
     await renderFeedScreen();
 
-    expect(
-      screen.queryByText(/La vie de l'école|contexte actif/i),
-    ).toBeNull();
+    expect(screen.queryByText(/La vie de l'école|contexte actif/i)).toBeNull();
   });
 
   it("affiche les filtres dans une barre basse avec 'Tout' actif par défaut", async () => {
@@ -275,7 +275,11 @@ describe("FeedScreen", () => {
     fireEvent.press(screen.getByText("08:00"));
 
     await waitFor(() => {
-      expect(api.votePoll).toHaveBeenCalledWith("college-vogt", "poll-1", "opt-2");
+      expect(api.votePoll).toHaveBeenCalledWith(
+        "college-vogt",
+        "poll-1",
+        "opt-2",
+      );
     });
   });
 });

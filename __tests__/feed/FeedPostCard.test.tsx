@@ -81,9 +81,7 @@ describe("FeedPostCard", () => {
 
     fireEvent.press(screen.getByTestId("feed-post-like-post-1"));
     expect(onToggleLike).toHaveBeenCalledWith("post-1");
-    expect(
-      screen.getByLabelText("Réactions 2"),
-    ).toBeTruthy();
+    expect(screen.getByLabelText("Réactions 2")).toBeTruthy();
     expect(
       screen.getByTestId("feed-post-comments-count-post-1-1"),
     ).toHaveTextContent("1");
@@ -138,11 +136,7 @@ describe("FeedPostCard", () => {
     );
 
     expect(onVote).toHaveBeenCalledWith("poll-1", "option-1");
-    expect(
-      screen.getByLabelText("Mercredi matin, 4 votes"),
-    ).toBeTruthy();
-    expect(
-      screen.getByLabelText("Vendredi après-midi, 2 votes"),
-    ).toBeTruthy();
+    expect(screen.getByLabelText("Mercredi matin, 4 votes")).toBeTruthy();
+    expect(screen.getByLabelText("Vendredi après-midi, 2 votes")).toBeTruthy();
   });
 });

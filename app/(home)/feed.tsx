@@ -22,9 +22,17 @@ import { InfiniteScrollList } from "../../src/components/lists/InfiniteScrollLis
 import { ConfirmDialog } from "../../src/components/ConfirmDialog";
 import { FeedComposerCard } from "../../src/components/feed/FeedComposerCard";
 import { FeedPostCard } from "../../src/components/feed/FeedPostCard";
-import type { FeedFilter, FeedPost, FeedViewerRole } from "../../src/types/feed.types";
+import type {
+  FeedFilter,
+  FeedPost,
+  FeedViewerRole,
+} from "../../src/types/feed.types";
 
-const FILTERS: Array<{ key: FeedFilter; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
+const FILTERS: Array<{
+  key: FeedFilter;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}> = [
   { key: "all", label: "Tout", icon: "albums-outline" },
   { key: "featured", label: "À la une", icon: "sparkles-outline" },
   { key: "polls", label: "Sondages", icon: "stats-chart-outline" },
@@ -41,7 +49,9 @@ const FEED_ROLES: FeedViewerRole[] = [
   "STUDENT",
 ];
 
-function resolveViewerRole(role: string | null | undefined): FeedViewerRole | null {
+function resolveViewerRole(
+  role: string | null | undefined,
+): FeedViewerRole | null {
   if (!role) return null;
   return FEED_ROLES.includes(role as FeedViewerRole)
     ? (role as FeedViewerRole)
@@ -106,7 +116,9 @@ export default function FeedScreen() {
     });
   }
 
-  async function handleCreatePost(payload: Parameters<typeof feedApi.create>[1]) {
+  async function handleCreatePost(
+    payload: Parameters<typeof feedApi.create>[1],
+  ) {
     if (!schoolSlug) return;
     try {
       const created = await feedApi.create(schoolSlug, payload);
@@ -310,7 +322,11 @@ export default function FeedScreen() {
         <>
           <View style={styles.heroCard}>
             <View style={styles.heroIcon}>
-              <Ionicons name="newspaper-outline" size={22} color={colors.primary} />
+              <Ionicons
+                name="newspaper-outline"
+                size={22}
+                color={colors.primary}
+              />
             </View>
             <View style={styles.heroCopy}>
               <Text style={styles.heroTitle}>Partager une annonce utile</Text>
@@ -349,7 +365,9 @@ export default function FeedScreen() {
                   color={colors.warmBorder}
                 />
                 <Text style={styles.emptyTitle}>
-                  {search ? "Aucun résultat" : "Aucune actualité pour le moment"}
+                  {search
+                    ? "Aucun résultat"
+                    : "Aucune actualité pour le moment"}
                 </Text>
                 <Text style={styles.emptySub}>
                   {search
@@ -393,7 +411,9 @@ export default function FeedScreen() {
               <Ionicons
                 name={entry.icon}
                 size={18}
-                color={filter === entry.key ? colors.primary : colors.textSecondary}
+                color={
+                  filter === entry.key ? colors.primary : colors.textSecondary
+                }
               />
               <Text
                 style={[

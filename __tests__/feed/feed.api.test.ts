@@ -114,7 +114,7 @@ describe("feedApi.create()", () => {
     const [url, options] = mockFetch.mock.calls[0];
     expect(url).toContain("/schools/college-vogt/feed");
     expect(options.method).toBe("POST");
-    expect(options.body).toContain("\"title\":\"Réunion\"");
+    expect(options.body).toContain('"title":"Réunion"');
   });
 });
 
@@ -126,7 +126,9 @@ describe("feedApi.remove()", () => {
       json: () => Promise.resolve(undefined),
     });
 
-    await expect(feedApi.remove("college-vogt", "post-1")).resolves.toBeUndefined();
+    await expect(
+      feedApi.remove("college-vogt", "post-1"),
+    ).resolves.toBeUndefined();
     expect(mockFetch.mock.calls[0]?.[0]).toContain(
       "/schools/college-vogt/feed/post-1",
     );
@@ -158,11 +160,7 @@ describe("feedApi.addComment()", () => {
         commentsCount: 1,
       }),
     );
-    const result = await feedApi.addComment(
-      "college-vogt",
-      "post-1",
-      "Merci",
-    );
+    const result = await feedApi.addComment("college-vogt", "post-1", "Merci");
     expect(result.comment.text).toBe("Merci");
   });
 });

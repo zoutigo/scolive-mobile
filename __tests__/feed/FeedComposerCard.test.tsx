@@ -1,13 +1,20 @@
 import React from "react";
 import { Alert } from "react-native";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import { FeedComposerCard } from "../../src/components/feed/FeedComposerCard";
 import { __setMockEditorContentHtml } from "../../__mocks__/react-native-pell-rich-editor";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("react-native-pell-rich-editor");
 
-const mockGetDocument = jest.fn().mockResolvedValue({ canceled: true, assets: [] });
+const mockGetDocument = jest
+  .fn()
+  .mockResolvedValue({ canceled: true, assets: [] });
 const mockRequestGallery = jest.fn().mockResolvedValue({ status: "granted" });
 const mockLaunchLibrary = jest
   .fn()
@@ -124,7 +131,10 @@ describe("FeedComposerCard", () => {
     );
 
     fireEvent.press(screen.getByTestId("feed-composer-type-poll"));
-    fireEvent.changeText(screen.getByTestId("feed-composer-title"), "Transport");
+    fireEvent.changeText(
+      screen.getByTestId("feed-composer-title"),
+      "Transport",
+    );
     fireEvent.press(screen.getByTestId("rich-editor-set-content"));
     fireEvent.changeText(
       screen.getByTestId("feed-composer-poll-question"),

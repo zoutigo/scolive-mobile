@@ -138,7 +138,9 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   applyLike(postId, liked, likesCount) {
     set((state) => ({
       posts: state.posts.map((entry) =>
-        entry.id === postId ? { ...entry, likedByViewer: liked, likesCount } : entry,
+        entry.id === postId
+          ? { ...entry, likedByViewer: liked, likesCount }
+          : entry,
       ),
     }));
   },

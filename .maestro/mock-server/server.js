@@ -932,7 +932,10 @@ function handleRequest(req, res) {
     const postId = path.split("/")[5];
     const post = mockFeedPosts.find((entry) => entry.id === postId);
     if (!post) {
-      return json(res, 404, { message: "Feed post not found", statusCode: 404 });
+      return json(res, 404, {
+        message: "Feed post not found",
+        statusCode: 404,
+      });
     }
     post.likedByViewer = !post.likedByViewer;
     post.likesCount = Math.max(
@@ -952,7 +955,10 @@ function handleRequest(req, res) {
     const postId = path.split("/")[5];
     const post = mockFeedPosts.find((entry) => entry.id === postId);
     if (!post) {
-      return json(res, 404, { message: "Feed post not found", statusCode: 404 });
+      return json(res, 404, {
+        message: "Feed post not found",
+        statusCode: 404,
+      });
     }
     readBody(req).then((raw) => {
       const payload = JSON.parse(raw || "{}");
@@ -981,7 +987,10 @@ function handleRequest(req, res) {
     const optionId = segments[7];
     const post = mockFeedPosts.find((entry) => entry.id === postId);
     if (!post) {
-      return json(res, 404, { message: "Feed post not found", statusCode: 404 });
+      return json(res, 404, {
+        message: "Feed post not found",
+        statusCode: 404,
+      });
     }
     if (post.type !== "POLL" || !post.poll) {
       return json(res, 400, {

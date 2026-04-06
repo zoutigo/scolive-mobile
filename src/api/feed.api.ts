@@ -136,11 +136,14 @@ export const feedApi = {
     );
   },
 
-  async uploadInlineImage(schoolSlug: string, file: {
-    uri: string;
-    name: string;
-    mimeType: string;
-  }) {
+  async uploadInlineImage(
+    schoolSlug: string,
+    file: {
+      uri: string;
+      name: string;
+      mimeType: string;
+    },
+  ) {
     const formData = new FormData();
     formData.append("file", {
       uri: file.uri,

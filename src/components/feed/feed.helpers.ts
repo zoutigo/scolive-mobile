@@ -47,10 +47,7 @@ export function formatAuthorName(author: FeedAuthor) {
   if (!author.civility) {
     return author.fullName;
   }
-  const withoutCivility = author.fullName.replace(
-    /^(m\.?|mme|mlle)\s+/i,
-    "",
-  );
+  const withoutCivility = author.fullName.replace(/^(m\.?|mme|mlle)\s+/i, "");
   return `${author.civility} ${withoutCivility}`.trim();
 }
 
