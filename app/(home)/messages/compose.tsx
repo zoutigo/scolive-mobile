@@ -16,11 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
-import {
-  RichEditor,
-  RichToolbar,
-  actions,
-} from "react-native-pell-rich-editor";
+import { RichEditor } from "react-native-pell-rich-editor";
 import { colors } from "../../../src/theme";
 import {
   messagingApi,
@@ -29,6 +25,7 @@ import {
 import { useAuthStore } from "../../../src/store/auth.store";
 import { useMessagingStore } from "../../../src/store/messaging.store";
 import { useSuccessToastStore } from "../../../src/store/success-toast.store";
+import { RichTextToolbar } from "../../../src/components/editor/RichTextToolbar";
 import { RecipientPickerModal } from "../../../src/components/messaging/RecipientPickerModal";
 import type {
   RecipientOption,
@@ -680,75 +677,13 @@ export default function ComposeScreen() {
           <View style={styles.divider} />
 
           {/* Formatting toolbar */}
-          <View style={styles.editorToolbarRow} testID="editor-quick-tools">
-            <RichToolbar
-              editor={editorRef}
-              style={styles.richToolbar}
-              iconTint={colors.textSecondary}
-              selectedIconTint={colors.primary}
-              disabledIconTint={colors.warmBorder}
-              actions={[
-                actions.setBold,
-                actions.setItalic,
-                actions.setUnderline,
-                actions.setStrikethrough,
-                actions.insertBulletsList,
-                actions.insertOrderedList,
-                actions.insertImage,
-              ]}
-              onPressAddImage={handleInsertImage}
-              iconMap={{
-                [actions.insertImage]: () => (
-                  <Ionicons
-                    name="image-outline"
-                    size={20}
-                    color={colors.primary}
-                  />
-                ),
-              }}
-              testID="rich-toolbar"
-            />
-            <View style={styles.editorQuickActions}>
-              <TouchableOpacity
-                style={styles.editorQuickToolBtn}
-                onPress={openTextColorMenu}
-                testID="editor-color-btn"
-                accessibilityLabel="Couleur du texte"
-              >
-                <Ionicons
-                  name="color-palette-outline"
-                  size={18}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.editorQuickToolBtn}
-                onPress={applyHeading}
-                testID="editor-heading-btn"
-                accessibilityLabel="Titre"
-              >
-                <Ionicons
-                  name="text-outline"
-                  size={18}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.editorQuickToolBtn}
-                onPress={applyQuote}
-                testID="editor-quote-btn"
-                accessibilityLabel="Citation"
-              >
-                <Ionicons
-                  name="chatbox-ellipses-outline"
-                  size={18}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
+          <RichTextToolbar
+            editorRef={editorRef}
+            onPressAddImage={handleInsertImage}
+            onPressColor={openTextColorMenu}
+            onPressHeading={applyHeading}
+            onPressQuote={applyQuote}
+          />
 
           {/* Rich text editor */}
           <RichEditor

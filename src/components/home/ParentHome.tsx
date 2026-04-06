@@ -43,6 +43,11 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
   }
 
   function handleQuickAccessPress(label: string) {
+    if (label === "Fil d'actualité") {
+      router.push("/(home)/feed");
+      return;
+    }
+
     if (label === "Messagerie") {
       router.push("/(home)/messages");
       return;
@@ -186,7 +191,7 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
       {/* Actualités */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Actualités</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push("/(home)/feed")}>
           <Text style={styles.sectionLink}>Voir tout</Text>
         </TouchableOpacity>
       </View>

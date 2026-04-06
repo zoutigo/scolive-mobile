@@ -1,0 +1,67 @@
+appId: com.zoutigo.scoliveapp
+name: Feed Interactions
+tags:
+  - feed
+  - interactions
+---
+- runFlow:
+    when:
+      visible: "Process system isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "tab-email"
+- tapOn:
+    id: "input-email"
+- inputText: "teacher@ecole.cm"
+- hideKeyboard
+- tapOn:
+    id: "input-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- extendedWaitUntil:
+    visible:
+      id: "header-menu-btn"
+    timeout: 20000
+- tapOn:
+    id: "header-menu-btn"
+- extendedWaitUntil:
+    visible:
+      id: "nav-item-feed"
+    timeout: 10000
+- tapOn:
+    id: "nav-item-feed"
+- extendedWaitUntil:
+    visible:
+      id: "feed-post-like-feed-1"
+    timeout: 20000
+- assertVisible: "programme-reunion.pdf"
+- tapOn:
+    id: "feed-post-like-feed-1"
+- tapOn:
+    id: "feed-post-comments-toggle-feed-1"
+- tapOn:
+    id: "feed-comment-input-feed-1"
+- inputText: "Merci pour ce rappel"
+- hideKeyboard
+- tapOn:
+    id: "feed-comment-submit-feed-1"
+- assertVisible: "Merci pour ce rappel"
+- tapOn:
+    id: "feed-filter-polls"
+- assertVisible: "Horaire du forum orientation"
+- tapOn: "Mercredi matin, 4"
+- extendedWaitUntil:
+    visible: "Mercredi matin, 5"
+    timeout: 10000
