@@ -85,6 +85,7 @@ Flows disponibles :
 - `smoke`
 - `auth-email`
 - `auth-phone`
+- `auth-google`
 - `onboarding-email`
 - `onboarding-phone`
 - `recovery-password`
@@ -98,6 +99,7 @@ npm run e2e:build
 npm run e2e:test:smoke
 npm run e2e:test:auth-email
 npm run e2e:test:auth-phone
+npm run e2e:test:auth-google
 npm run e2e:test:onboarding-email
 npm run e2e:test:onboarding-phone
 npm run e2e:test:recovery-password
@@ -111,6 +113,9 @@ Lecture des commandes :
 - `npm run e2e:test:<flow>` lance un seul flow
 - `npm run e2e:test` lance toute la suite Maestro, sans rebuild natif
 - `npm run e2e` rebâtit l'APK release puis lance toute la suite
+- `auth-google` ouvre directement `/auth/callback` via deep link et valide l'arrivée sur l'écran authentifié
+- le runner Maestro détecte s'il parle au mock server ou à l'API réelle
+- il installe l'APK Android la plus récente disponible entre `debug` et `release`
 
 ## Comportement clavier Android — règle absolue
 
@@ -145,25 +150,60 @@ onLayout={(e) => { someY.current = e.nativeEvent.layout.y; }}
 
 ## Lancer sur l'émulateur
 
+Émulateur de référence : **`Scolive_GooglePlay_API33`** (image Google Play, inclut Chrome).
+Cet AVD est requis pour Google Auth (Chrome Custom Tabs).
+
 ```bash
 cd /home/zoutigo/projets/scolive/scolive-mobile
-npm run android:emulator
-npm run android:build
-npm start
+npm run android:emulator          # lance Scolive_GooglePlay_API33
+npm run android:build             # build APK debug, installe, ouvre l'app
+npm start                         # démarre Metro
 ```
 
-Émulateur stable : **Scolive_Dev_AOSP_API33**.
 Android Studio local : `~/android-studio/bin/studio`.
 
-### Problème connu — React Native DevTools
+### Snapshot de démarrage rapide
 
-Au démarrage, une erreur sandbox Chrome apparaît. Contournement permanent :
+Après le premier boot complet (qui déclenche la compilation AOT de TrichromeLibrary/Chrome — ~30 min),
+un snapshot `startup_ready` a été créé :
 
-```bash
-npm run start:clean
+```
+~/.android/avd/Scolive_GooglePlay_API33.avd/snapshots/startup_ready/
 ```
 
-Utiliser `npm run start:clean` uniquement si Metro est réellement cassé.
+`scripts/android-emulator-nvidia.sh` charge automatiquement ce snapshot si le dossier existe.
+Résultat : boot en ~25 s au lieu de 30+ min.
+
+> **Si le snapshot est supprimé ou corrompu** : relancer l'émulateur sans snapshot, attendre que
+> `dex2oat64` finisse (logcat : plus de lignes `dex2oat64`), puis recréer via
+> `Emulator → Extended Controls → Snapshots → Take snapshot` et nommer `startup_ready`.
+
+### Ports adb reverse configurés automatiquement
+
+Les scripts (`android-dev-install.sh`, `workspace-mobile-start.sh`) configurent :
+
+```
+tcp:8081  → Metro bundler
+tcp:3000  → app web Next.js (requis pour Google OAuth)
+tcp:3001  → mock server E2E
+```
+
+Ces tunnels permettent à l'émulateur d'atteindre `localhost:PORT` de la machine hôte.
+Vérification manuelle : `adb reverse --list`
+
+### React Native DevTools — fix Linux (chrome-sandbox)
+
+Au démarrage Metro, une erreur sandbox peut apparaître (`--no-sandbox`).
+Correction permanente (une seule fois) :
+
+```bash
+SANDBOX="$HOME/.cache/dotslash/cb/$(ls ~/.cache/dotslash/cb/)/React Native DevTools-linux-x64/chrome-sandbox"
+sudo chown root:root "$SANDBOX"
+sudo chmod 4755 "$SANDBOX"
+```
+
+`REACT_NATIVE_DEVTOOLS=0` est défini dans `scripts/expo-start-raw.sh` pour désactiver DevTools
+si la correction n'a pas été appliquée.
 
 ### Pourquoi App.tsx + babel.config.js + metro.config.js sont requis
 
@@ -188,23 +228,35 @@ rm -rf /tmp/metro-* ~/.expo/metro-cache .expo node_modules/.cache
 npm run start:clean
 ```
 
-## Lancer via VS Code
+## Lancer via VS Code (`code .`)
 
 Depuis `/home/zoutigo/projets/scolive` :
 
 ```bash
 bash /home/zoutigo/projets/scolive/dev.sh
+# ou simplement : code .
 ```
 
-`dev.sh` ouvre VS Code sur le workspace et lance l'émulateur Android stable s'il n'est pas déjà démarré.
+`dev.sh` ouvre VS Code et lance `Scolive_GooglePlay_API33` s'il n'est pas déjà actif.
 
-VS Code ouvre ensuite le workspace et lance automatiquement les terminaux configurés :
+VS Code lance automatiquement les terminaux :
 
-- **Infra** — Docker (postgres, redis, minio, media) + Prisma generate
-- **API** — `npm run -w @school-live/api dev`
-- **Worker** — `npm run -w @school-live/api worker:dev`
-- **Mobile** — `npm start`
-- **Web** — `npm run -w @school-live/web dev`
+| Tâche               | Commande                                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------------ |
+| **Infra**           | Docker (postgres, redis, minio, media) + Prisma generate                                   |
+| **API**             | `npm run -w @school-live/api dev`                                                          |
+| **Worker**          | `npm run -w @school-live/api worker:dev`                                                   |
+| **mobile-emulator** | `android-emulator-nvidia.sh Scolive_GooglePlay_API33` — charge le snapshot `startup_ready` |
+| **mobile**          | `workspace-mobile-start.sh` — démarre Metro + bootstrap en arrière-plan                    |
+| **Web**             | `npm run -w @school-live/web dev`                                                          |
+
+Séquence automatique après `code .` :
+
+1. L'émulateur charge le snapshot (`~25 s`)
+2. Metro démarre
+3. Le bootstrap attend que Metro réponde sur `/status`, réveille l'écran, ouvre l'app native
+4. Si le JS ne charge pas (race), force-stop et réessaie jusqu'à 5 fois
+5. Résultat : écran de login visible en ~100 s
 
 Config dans `/home/zoutigo/projets/scolive/.vscode/tasks.json`.
 
@@ -233,3 +285,55 @@ Ces packages ne sont PAS dans le template create-expo-app mais sont requis :
 - exécute ensuite chaque flow Maestro métier dans la matrice
 - utilise le mock server local sur `3001`
 - se déclenche la nuit en semaine et manuellement
+
+## Google Auth Android — État stabilisé
+
+### Flux complet (validé en production dev)
+
+```
+App native (com.zoutigo.scoliveapp)
+  → bouton "Connexion Google"
+  → WebBrowser.openAuthSessionAsync("http://localhost:3000/auth/mobile-sso-start?redirectUri=scolive://auth/callback")
+  → Chrome Custom Tab (via adb reverse tcp:3000, localhost:3000 joint depuis l'émulateur)
+  → NextAuth démarre le flux OAuth Google
+  → Redirection Google (compte sélectionné — prompt: "select_account" forcé)
+  → Callback NextAuth sur localhost:3000 (cookie de state sur domain localhost → cohérent)
+  → Redirection finale vers scolive://auth/callback
+  → Chrome Custom Tab fermé automatiquement
+  → App native reçoit le deep link, stocke la session
+  → Écran home
+```
+
+### Pourquoi `Scolive_GooglePlay_API33` est obligatoire
+
+Chrome Custom Tabs nécessite Chrome. L'image AOSP (`Scolive_Dev_AOSP_API33`) n'a pas Chrome.
+**Ne jamais utiliser l'AVD AOSP pour tester Google Auth.**
+
+### Paramétrage clé
+
+| Fichier                            | Paramètre                       | Valeur                                     | Raison                                                    |
+| ---------------------------------- | ------------------------------- | ------------------------------------------ | --------------------------------------------------------- |
+| `src/auth/google-auth.ts`          | `normalizeWebBaseUrlForRuntime` | pas de remplacement `localhost → 10.0.2.2` | `adb reverse` rend `localhost:3000` joignable directement |
+| `scolive-web/apps/web/src/auth.ts` | `prompt`                        | `"select_account"`                         | Force le sélecteur de compte Google à chaque connexion    |
+| `scripts/android-dev-install.sh`   | `apply_dev_tuning`              | Chrome **non désactivé**                   | Chrome est requis pour Custom Tabs                        |
+
+### Checklist avant de tester Google Auth
+
+```bash
+adb devices                             # com.zoutigo.scoliveapp doit être présent, PAS host.exp.exponent
+adb reverse --list                      # tcp:8081, tcp:3000, tcp:3001 doivent être listés
+adb shell pm path com.android.chrome    # doit retourner package:...
+```
+
+Si `adb reverse` est vide, c'est normal après un reboot : les scripts le reconfigurent automatiquement
+au prochain `npm run android:build` ou `npm start` (via `workspace-mobile-start.sh`).
+
+### Problèmes passés et leurs fixes
+
+| Problème                                  | Cause                                                                            | Fix                                                                           |
+| ----------------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| ERR_CONNECTION_REFUSED sur localhost:3000 | Pas de tunnel adb                                                                | `adb reverse tcp:3000 tcp:3000` ajouté aux scripts                            |
+| "State cookie was missing"                | `localhost → 10.0.2.2` dans google-auth.ts cassait le domaine du cookie NextAuth | Suppression de la normalisation                                               |
+| Écran noir au démarrage Google Play AVD   | dex2oat64 compile TrichromeLibrary au 1er boot (~30 min)                         | Snapshot `startup_ready` créé après la compilation                            |
+| App qui ne s'ouvre pas (race Metro)       | App lancée avant que Metro soit prêt                                             | `wait_for_metro()` + retry `app_js_loaded()` dans `workspace-mobile-start.sh` |
+| Google Auth sans sélecteur de compte      | Pas de `prompt: "select_account"`                                                | Ajouté dans `auth.ts` côté web                                                |

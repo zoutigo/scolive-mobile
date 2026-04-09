@@ -22,6 +22,7 @@ export default function RootLayout() {
           name="onboarding"
           options={{ animation: "slide_from_right" }}
         />
+        <Stack.Screen name="auth/callback" />
         <Stack.Screen name="(home)" />
         <Stack.Screen
           name="recovery/pin"

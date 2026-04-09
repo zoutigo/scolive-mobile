@@ -39,6 +39,8 @@ apply_dev_tuning() {
   local serial="$1"
 
   "$ADB_BIN" -s "$serial" reverse tcp:8081 tcp:8081 >/dev/null 2>&1 || true
+  "$ADB_BIN" -s "$serial" reverse tcp:3000 tcp:3000 >/dev/null 2>&1 || true
+  "$ADB_BIN" -s "$serial" reverse tcp:3001 tcp:3001 >/dev/null 2>&1 || true
 
   "$ADB_BIN" -s "$serial" shell settings put global verifier_verify_adb_installs 0 >/dev/null 2>&1 || true
   "$ADB_BIN" -s "$serial" shell settings put global package_verifier_enable 0 >/dev/null 2>&1 || true
@@ -48,16 +50,24 @@ apply_dev_tuning() {
   "$ADB_BIN" -s "$serial" shell settings put global transition_animation_scale 0 >/dev/null 2>&1 || true
   "$ADB_BIN" -s "$serial" shell settings put global animator_duration_scale 0 >/dev/null 2>&1 || true
 
+  # Chrome est intentionnellement conservé : requis pour les Custom Tabs (Google OAuth).
   for pkg in \
     com.google.android.youtube \
     com.google.android.apps.messaging \
     com.google.android.apps.wellbeing \
-    com.android.chrome \
     com.google.android.googlequicksearchbox
   do
     "$ADB_BIN" -s "$serial" shell pm disable-user --user 0 "$pkg" >/dev/null 2>&1 || true
     "$ADB_BIN" -s "$serial" shell am force-stop "$pkg" >/dev/null 2>&1 || true
   done
+}
+
+precompile_app() {
+  local serial="$1"
+
+  # Pre-compile avec speed-profile pour éviter la compilation JIT au lancement
+  # (premier démarrage sur Google Play AVD sinon ~30 min de noir/ANR).
+  "$ADB_BIN" -s "$serial" shell cmd package compile -m speed-profile -f "$APP_ID" >/dev/null 2>&1 || true
 }
 
 install_apk() {
@@ -91,6 +101,13 @@ install_apk() {
   return 1
 }
 
+launch_native_app() {
+  local serial="$1"
+
+  "$ADB_BIN" -s "$serial" shell am start -W -n "${APP_ID}/.MainActivity" >/dev/null 2>&1 || \
+    "$ADB_BIN" -s "$serial" shell monkey -p "$APP_ID" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
+}
+
 SERIAL="$(find_emulator)"
 
 if [ -z "$SERIAL" ]; then
@@ -107,5 +124,7 @@ fi
 
 apply_dev_tuning "$SERIAL"
 install_apk "$SERIAL"
+precompile_app "$SERIAL"
+launch_native_app "$SERIAL"
 
-echo "APK installé sur $SERIAL"
+echo "APK installé et application native ouverte sur $SERIAL"

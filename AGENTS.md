@@ -55,6 +55,7 @@ Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignor
   - `smoke`
   - `auth-email`
   - `auth-phone`
+  - `auth-google`
   - `onboarding-email`
   - `onboarding-phone`
   - `recovery-password`
@@ -65,6 +66,7 @@ Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignor
   - `npm run e2e:test:smoke`
   - `npm run e2e:test:auth-email`
   - `npm run e2e:test:auth-phone`
+  - `npm run e2e:test:auth-google`
   - `npm run e2e:test:onboarding-email`
   - `npm run e2e:test:onboarding-phone`
   - `npm run e2e:test:recovery-password`
@@ -76,7 +78,9 @@ Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignor
   - `npm run android:emulator`
   - `npm run e2e:build`
   - `npm run e2e:test`
-- L'AVD de dev quotidien pointé par `npm run android:emulator` est `Scolive_Dev_AOSP_API33_Fresh`
+- `auth-google` rejoue un callback SSO Google via deep link contrôlé puis vérifie l'arrivée sur l'écran authentifié
+- Le runner Maestro détecte désormais API réelle vs mock server et installe l'APK Android la plus récente disponible
+- L'AVD de dev quotidien pointé par `npm run android:emulator` est `Scolive_Dev_AOSP_API33`
 - `npm run e2e:test` rejoue toute la campagne sans rebâtir l'APK
 - `npm run e2e` rebâtit l'APK release puis lance toute la campagne
 - Le workflow `.github/workflows/publish-android.yml` publie l'APK release signe sur `main`

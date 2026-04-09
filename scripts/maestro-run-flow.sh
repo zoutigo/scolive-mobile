@@ -10,7 +10,15 @@ FLOW_PATH="$ROOT_DIR/.maestro/flows/${FLOW_NAME}.yaml"
 MAESTRO_BIN="${MAESTRO_BIN:-$HOME/.maestro/bin/maestro}"
 MOCK_SERVER_MODULE="$ROOT_DIR/.maestro/mock-server/server.js"
 APK_PATH="$ROOT_DIR/android/app/build/outputs/apk/release/app-release.apk"
+GOOGLE_E2E_APK_PATH="$ROOT_DIR/android/app/build/outputs/apk/release/app-release-google-e2e.apk"
+DEBUG_APK_PATH="$ROOT_DIR/android/app/build/outputs/apk/debug/app-debug.apk"
+SELECTED_APK_PATH=""
 MOCK_PID=""
+GOOGLE_SSO_PROVIDER_ACCOUNT_ID="${GOOGLE_SSO_PROVIDER_ACCOUNT_ID:-114665872120651017460}"
+GOOGLE_SSO_EMAIL="${GOOGLE_SSO_EMAIL:-plizaweb@gmail.com}"
+GOOGLE_SSO_FIRST_NAME="${GOOGLE_SSO_FIRST_NAME:-Valery}"
+GOOGLE_SSO_LAST_NAME="${GOOGLE_SSO_LAST_NAME:-MBELE}"
+IS_MOCK_SERVER=0
 
 if [[ ! -f "$FLOW_PATH" ]]; then
   echo "[maestro] flow introuvable: $FLOW_PATH" >&2
@@ -91,6 +99,16 @@ wait_for_health() {
   return 1
 }
 
+detect_mock_server() {
+  local status=""
+  status="$(curl -fsS "http://localhost:3001/api/health" 2>/dev/null | grep -o '"status":"[^"]*"' | head -n1 | cut -d: -f2 | tr -d '"')"
+  if [[ "$status" == "mock-ok" ]]; then
+    IS_MOCK_SERVER=1
+  else
+    IS_MOCK_SERVER=0
+  fi
+}
+
 wait_for_android_device() {
   adb wait-for-device >/dev/null 2>&1
 
@@ -115,6 +133,7 @@ wait_for_android_device() {
 
 start_mock_server() {
   if curl -fsS "http://localhost:3001/api/health" >/dev/null 2>&1; then
+    detect_mock_server
     return 0
   fi
 
@@ -122,6 +141,7 @@ start_mock_server() {
     >/tmp/scolive-maestro-mock.log 2>&1 &
   MOCK_PID=$!
   wait_for_health
+  detect_mock_server
 }
 
 set_scenario() {
@@ -137,6 +157,9 @@ set_scenario() {
 }
 
 reset_mock_state() {
+  if [[ "$IS_MOCK_SERVER" != "1" ]]; then
+    return 0
+  fi
   curl -fsS -X POST "http://localhost:3001/__reset" >/dev/null
 }
 
@@ -152,6 +175,44 @@ cleanup_stale_maestro_port() {
     echo "[maestro] fermeture d'une ancienne session bloquée sur le port 7001 (pid=$pid)" >&2
     kill "$pid" >/dev/null 2>&1 || true
     sleep 1
+  fi
+}
+
+select_apk_path() {
+  # auth-google-full utilise exclusivement son APK dédié (URL mockée baked-in)
+  if [[ "$FLOW_NAME" == "auth-google-full" ]]; then
+    if [[ -f "$GOOGLE_E2E_APK_PATH" ]]; then
+      SELECTED_APK_PATH="$GOOGLE_E2E_APK_PATH"
+    else
+      echo "[maestro] APK Google e2e introuvable. Lance d'abord: npm run e2e:build:google" >&2
+      exit 1
+    fi
+    return 0
+  fi
+
+  local release_exists=0
+  local debug_exists=0
+
+  [[ -f "$APK_PATH" ]] && release_exists=1
+  [[ -f "$DEBUG_APK_PATH" ]] && debug_exists=1
+
+  if [[ "$release_exists" == "1" && "$debug_exists" == "1" ]]; then
+    if [[ "$DEBUG_APK_PATH" -nt "$APK_PATH" ]]; then
+      SELECTED_APK_PATH="$DEBUG_APK_PATH"
+    else
+      SELECTED_APK_PATH="$APK_PATH"
+    fi
+    return 0
+  fi
+
+  if [[ "$release_exists" == "1" ]]; then
+    SELECTED_APK_PATH="$APK_PATH"
+    return 0
+  fi
+
+  if [[ "$debug_exists" == "1" ]]; then
+    SELECTED_APK_PATH="$DEBUG_APK_PATH"
+    return 0
   fi
 }
 
@@ -199,19 +260,23 @@ start_mock_server
 cleanup_stale_maestro_port
 wait_for_android_device
 reset_mock_state
-set_scenario "/__scenario" "${PHONE_LOGIN_SCENARIO:-happy_path}"
-set_scenario "/__scenario/email-login" "${EMAIL_LOGIN_SCENARIO:-happy_path}"
-set_scenario "/__scenario/onboarding" "${ONBOARDING_SCENARIO:-email_parent_happy}"
-set_scenario "/__scenario/pin" "${PIN_SCENARIO:-happy_path}"
-set_scenario "/__scenario/password" "${PASSWORD_SCENARIO:-happy_path}"
+if [[ "$IS_MOCK_SERVER" == "1" ]]; then
+  set_scenario "/__scenario" "${PHONE_LOGIN_SCENARIO:-happy_path}"
+  set_scenario "/__scenario/email-login" "${EMAIL_LOGIN_SCENARIO:-happy_path}"
+  set_scenario "/__scenario/onboarding" "${ONBOARDING_SCENARIO:-email_parent_happy}"
+  set_scenario "/__scenario/pin" "${PIN_SCENARIO:-happy_path}"
+  set_scenario "/__scenario/password" "${PASSWORD_SCENARIO:-happy_path}"
+fi
 
 if [[ "$FLOW_NAME" == "messaging-compose" ]]; then
   seed_messaging_fixtures
 fi
 
-if [[ -f "$APK_PATH" ]]; then
+select_apk_path
+
+if [[ -n "$SELECTED_APK_PATH" ]]; then
   wait_for_android_device
-  adb install -r "$APK_PATH" >/dev/null
+  adb install -r "$SELECTED_APK_PATH" >/dev/null
 fi
 
 dismiss_system_anr() {
@@ -245,19 +310,35 @@ wait_for_app_activity() {
   return 1
 }
 
+open_android_deep_link() {
+  local deep_link="$1"
+  local tmp_script=""
+
+  tmp_script="$(mktemp)"
+  printf '%s\n' \
+    '#!/system/bin/sh' \
+    "am start -W -a android.intent.action.VIEW -d \"$deep_link\"" \
+    >"$tmp_script"
+
+  adb push "$tmp_script" /data/local/tmp/scolive-open-link.sh >/dev/null
+  adb shell chmod 755 /data/local/tmp/scolive-open-link.sh >/dev/null
+  adb shell sh /data/local/tmp/scolive-open-link.sh >/dev/null
+  rm -f "$tmp_script"
+}
+
 open_flow_route() {
   case "$FLOW_NAME" in
+    auth-google)
+      open_android_deep_link \
+        "scolive:///auth/callback?providerAccountId=${GOOGLE_SSO_PROVIDER_ACCOUNT_ID}&email=${GOOGLE_SSO_EMAIL//@/%40}&firstName=${GOOGLE_SSO_FIRST_NAME}&lastName=${GOOGLE_SSO_LAST_NAME}"
+      ;;
     onboarding-email)
-      adb shell am start -W \
-        -a android.intent.action.VIEW \
-        -d 'scolive://onboarding?email=parent%40ecole.cm&schoolSlug=ecole-demo' \
-        com.zoutigo.scoliveapp >/dev/null 2>&1 || true
+      open_android_deep_link \
+        'scolive://onboarding?email=parent%40ecole.cm&schoolSlug=ecole-demo'
       ;;
     onboarding-phone)
-      adb shell am start -W \
-        -a android.intent.action.VIEW \
-        -d 'scolive://onboarding?setupToken=setup-token-phone&schoolSlug=ecole-demo' \
-        com.zoutigo.scoliveapp >/dev/null 2>&1 || true
+      open_android_deep_link \
+        'scolive://onboarding?setupToken=setup-token-phone&schoolSlug=ecole-demo'
       ;;
     *)
       adb shell monkey -p com.zoutigo.scoliveapp -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true

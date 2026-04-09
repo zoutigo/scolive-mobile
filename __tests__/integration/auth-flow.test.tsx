@@ -19,6 +19,7 @@ jest.mock("expo-status-bar", () => ({ StatusBar: () => null }));
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
   usePathname: () => "/",
+  useLocalSearchParams: jest.fn(() => ({})),
 }));
 jest.mock("../../src/api/auth.api");
 jest.mock("../../src/api/family.api");
