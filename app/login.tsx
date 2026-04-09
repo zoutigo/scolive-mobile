@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -11,38 +11,19 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authApi } from "../src/api/auth.api";
 import { type ApiClientError } from "../src/api/client";
+import {
+  GoogleAuthError,
+  signInWithGoogleAsync,
+} from "../src/auth/google-auth";
+import { parseApiError } from "../src/auth/google-sso-callback";
 import { SecureTextField } from "../src/components/SecureTextField";
 import { useAuthStore } from "../src/store/auth.store";
 
 type AuthTab = "phone" | "email" | "google";
-
-function parseApiError(err: unknown): string {
-  const apiErr = err as ApiClientError;
-  const code = apiErr?.code;
-  const statusCode = apiErr?.statusCode;
-  switch (code) {
-    case "INVALID_CREDENTIALS":
-      return "Identifiants incorrects. Vérifiez vos informations.";
-    case "AUTH_RATE_LIMITED":
-      return "Trop de tentatives. Réessayez dans quelques minutes.";
-    case "ACCOUNT_VALIDATION_REQUIRED":
-      return "Votre compte est en attente d'activation.";
-    case "ACCOUNT_SUSPENDED":
-      return "Votre compte a été suspendu. Contactez votre administration.";
-    case "PASSWORD_CHANGE_REQUIRED":
-      return "Vous devez modifier votre mot de passe.";
-    case "PROFILE_SETUP_REQUIRED":
-      return "Votre profil est incomplet.";
-    default:
-      if (statusCode === 401)
-        return "Identifiants incorrects. Vérifiez vos informations.";
-      return "Impossible de se connecter. Vérifiez votre connexion.";
-  }
-}
 
 function routeToOnboarding(err: ApiClientError, fallbackEmail?: string) {
   const email = err.email ?? fallbackEmail ?? undefined;
@@ -73,6 +54,7 @@ function AppleIcon() {
 }
 
 export default function LoginScreen() {
+  const params = useLocalSearchParams<{ tab?: string; error?: string }>();
   const insets = useSafeAreaInsets();
   const { handleLoginResponse } = useAuthStore();
 
@@ -83,6 +65,15 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (params.tab === "google") {
+      setTab("google");
+    }
+    if (typeof params.error === "string" && params.error.trim()) {
+      setError(params.error.trim());
+    }
+  }, [params.error, params.tab]);
 
   async function handlePhoneLogin() {
     const digits = phone.replace(/\D/g, "");
@@ -135,6 +126,23 @@ export default function LoginScreen() {
         return;
       }
       setError(parseApiError(apiErr));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleGoogleLogin() {
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      await signInWithGoogleAsync();
+    } catch (err) {
+      if (err instanceof GoogleAuthError) {
+        setError(err.message);
+        return;
+      }
+      setError(parseApiError(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -326,15 +334,30 @@ export default function LoginScreen() {
                 <Text style={styles.ssoInfo}>
                   Accès instantané avec votre compte existant.
                 </Text>
-                <Pressable style={styles.ssoButton} testID="sso-google">
+                <Pressable
+                  style={[
+                    styles.ssoButton,
+                    isSubmitting && styles.primaryButtonBusy,
+                  ]}
+                  testID="sso-google"
+                  onPress={() => void handleGoogleLogin()}
+                  disabled={isSubmitting}
+                >
                   <View style={styles.ssoButtonInner}>
                     <GoogleIcon />
                     <Text style={styles.ssoButtonText}>
-                      Continuer avec Google
+                      {isSubmitting
+                        ? "Connexion Google..."
+                        : "Continuer avec Google"}
                     </Text>
                   </View>
                   <Text style={styles.ssoChevron}>›</Text>
                 </Pressable>
+                {error ? (
+                  <View style={styles.errorBox} testID="error-message">
+                    <Text style={styles.errorText}>{error}</Text>
+                  </View>
+                ) : null}
                 <Pressable style={styles.ssoButtonMuted} testID="sso-apple">
                   <View style={styles.ssoButtonInner}>
                     <AppleIcon />

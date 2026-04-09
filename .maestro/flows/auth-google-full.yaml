@@ -1,0 +1,43 @@
+appId: com.zoutigo.scoliveapp
+name: Login Google — flux complet (login → bouton → Chrome Tab → callback → home)
+tags:
+  - auth
+  - google
+---
+# Gestion des ANR systèmes
+- runFlow:
+    when:
+      visible: "Process system isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+
+# L'app démarre sur le login screen (état vidé par le runner)
+# Attendre que les onglets soient visibles
+- extendedWaitUntil:
+    visible:
+      id: "tab-google"
+    timeout: 15000
+
+# Aller sur l'onglet Google
+- tapOn:
+    id: "tab-google"
+
+# Cliquer sur "Continuer avec Google"
+- tapOn:
+    id: "sso-google"
+
+# Chrome Custom Tab s'ouvre → mock server redirige vers scolive://auth/callback
+# → le Tab se ferme automatiquement → l'app navigue vers /auth/callback
+# → callback appelle POST /api/auth/sso/login → home screen
+- extendedWaitUntil:
+    visible: "Valery MBELE"
+    timeout: 30000
+- assertVisible: "Administrateur"
+- assertVisible: "Gérer les écoles"
+- assertNotVisible:
+    id: "submit-login"

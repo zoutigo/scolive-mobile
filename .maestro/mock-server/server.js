@@ -6,6 +6,7 @@
  * Endpoints applicatifs (appelés depuis l'app Android via 10.0.2.2:3001) :
  *   POST /api/auth/login-phone                  → pilotée par currentScenario
  *   POST /api/auth/login                        → pilotée par currentEmailLoginScenario
+ *   POST /api/auth/sso/login                    → login Google mocké pour flow auth-google
  *   POST /api/auth/logout                       → 204
  *   POST /api/auth/refresh                      → 401
  *   GET  /api/health                            → 200
@@ -255,6 +256,32 @@ const MOCK_AUTH_USER = {
   activationStatus: "ACTIVE",
   role: "PARENT",
   activeRole: "PARENT",
+};
+
+const MOCK_GOOGLE_SSO = {
+  providerAccountId: "114665872120651017460",
+  email: "plizaweb@gmail.com",
+  firstName: "Valery",
+  lastName: "MBELE",
+  schoolSlug: "ecole-demo",
+  accessToken: "e2e-google-access-token-valid",
+  refreshToken: "e2e-google-refresh-token-valid",
+};
+
+const MOCK_GOOGLE_AUTH_USER = {
+  id: "platform-admin-1",
+  firstName: "Valery",
+  lastName: "MBELE",
+  email: "plizaweb@gmail.com",
+  phone: "+237065059783",
+  avatarUrl: null,
+  gender: "M",
+  platformRoles: ["ADMIN"],
+  memberships: [],
+  profileCompleted: true,
+  activationStatus: "ACTIVE",
+  role: "ADMIN",
+  activeRole: "ADMIN",
 };
 
 const MOCK_PARENT_ME = {
@@ -630,6 +657,29 @@ function handleRequest(req, res) {
     return json(res, 200, { status: "mock-ok" });
   }
 
+  // ── SSO Google : point d'entrée web (remplace /auth/mobile-sso-start du web) ─
+  // L'app ouvre ce endpoint dans un Chrome Custom Tab.
+  // Le mock redirige immédiatement vers le deep link scolive:// avec les
+  // paramètres du compte Google mocké, ce qui ferme le Tab et déclenche
+  // le callback dans l'app sans passer par la vraie page Google.
+  if (method === "GET" && path === "/auth/mobile-sso-start") {
+    const redirectUri =
+      requestUrl.searchParams.get("redirectUri") || "scolive://auth/callback";
+
+    const callbackUrl = new URL(redirectUri);
+    callbackUrl.searchParams.set(
+      "providerAccountId",
+      MOCK_GOOGLE_SSO.providerAccountId,
+    );
+    callbackUrl.searchParams.set("email", MOCK_GOOGLE_SSO.email);
+    callbackUrl.searchParams.set("firstName", MOCK_GOOGLE_SSO.firstName);
+    callbackUrl.searchParams.set("lastName", MOCK_GOOGLE_SSO.lastName);
+
+    res.writeHead(302, { Location: callbackUrl.toString() });
+    res.end();
+    return;
+  }
+
   if (method === "GET" && path === "/__state/feed") {
     return json(res, 200, { items: mockFeedPosts });
   }
@@ -677,6 +727,49 @@ function handleRequest(req, res) {
       return;
     }
     return json(res, scenario.status, scenario.body);
+  }
+
+  if (method === "POST" && path === "/api/auth/sso/login") {
+    readBody(req).then((raw) => {
+      let payload;
+      try {
+        payload = JSON.parse(raw || "{}");
+      } catch {
+        return json(res, 400, {
+          message: "JSON invalide",
+          statusCode: 400,
+        });
+      }
+
+      const provider = String(payload.provider || "").toUpperCase();
+      const providerAccountId = String(payload.providerAccountId || "").trim();
+      const email = String(payload.email || "")
+        .toLowerCase()
+        .trim();
+
+      if (
+        provider !== "GOOGLE" ||
+        providerAccountId !== MOCK_GOOGLE_SSO.providerAccountId ||
+        email !== MOCK_GOOGLE_SSO.email
+      ) {
+        return json(res, 401, {
+          code: "ACCOUNT_NOT_PROVISIONED",
+          message: "Account not provisioned by school",
+          statusCode: 401,
+        });
+      }
+
+      return json(res, 201, {
+        accessToken: MOCK_GOOGLE_SSO.accessToken,
+        refreshToken: MOCK_GOOGLE_SSO.refreshToken,
+        tokenType: "Bearer",
+        expiresIn: 86400,
+        refreshExpiresIn: 2592000,
+        schoolSlug: MOCK_GOOGLE_SSO.schoolSlug,
+        csrfToken: "e2e-google-csrf",
+      });
+    });
+    return;
   }
 
   if (method === "GET" && path.startsWith("/api/auth/onboarding/options")) {
@@ -839,6 +932,10 @@ function handleRequest(req, res) {
   }
 
   if (method === "GET" && path === "/api/schools/ecole-demo/auth/me") {
+    const authorization = String(req.headers.authorization || "");
+    if (authorization === `Bearer ${MOCK_GOOGLE_SSO.accessToken}`) {
+      return json(res, 200, MOCK_GOOGLE_AUTH_USER);
+    }
     return json(res, 200, MOCK_AUTH_USER);
   }
 

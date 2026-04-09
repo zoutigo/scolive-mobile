@@ -7,20 +7,44 @@ import {
 } from "@testing-library/react-native";
 import LoginScreen from "../../app/login";
 import { authApi } from "../../src/api/auth.api";
+import { signInWithGoogleAsync } from "../../src/auth/google-auth";
 import { useAuthStore } from "../../src/store/auth.store";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-status-bar", () => ({ StatusBar: () => null }));
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
+  useLocalSearchParams: jest.fn(() => ({})),
 }));
 jest.mock("../../src/api/auth.api");
+jest.mock("../../src/auth/google-auth", () => {
+  class MockGoogleAuthError extends Error {
+    code: string;
+
+    constructor(code: string, message: string) {
+      super(message);
+      this.name = "GoogleAuthError";
+      this.code = code;
+    }
+  }
+
+  return {
+    GoogleAuthError: MockGoogleAuthError,
+    signInWithGoogleAsync: jest.fn(),
+  };
+});
 jest.mock("../../src/store/auth.store", () => ({ useAuthStore: jest.fn() }));
 
 const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
+const mockGoogleAuth = signInWithGoogleAsync as jest.MockedFunction<
+  typeof signInWithGoogleAsync
+>;
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<
   typeof useAuthStore
 >;
+const { GoogleAuthError } = require("../../src/auth/google-auth") as {
+  GoogleAuthError: new (code: string, message: string) => Error;
+};
 const { router: mockRouter } = require("expo-router") as {
   router: { push: jest.Mock; replace: jest.Mock; back: jest.Mock };
 };
@@ -51,9 +75,20 @@ function makeApiError(code: string, status = 401) {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockUseAuthStore.mockReturnValue({
-    handleLoginResponse: mockHandleLoginResponse,
-  } as ReturnType<typeof useAuthStore>);
+  const { useLocalSearchParams } = require("expo-router") as {
+    useLocalSearchParams: jest.Mock;
+  };
+  useLocalSearchParams.mockReturnValue({});
+  mockUseAuthStore.mockImplementation((selector: unknown) => {
+    if (typeof selector === "function") {
+      return selector({
+        handleLoginResponse: mockHandleLoginResponse,
+      });
+    }
+    return {
+      handleLoginResponse: mockHandleLoginResponse,
+    } as ReturnType<typeof useAuthStore>;
+  });
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -101,6 +136,21 @@ describe("Onglets", () => {
     render(<LoginScreen />);
     fireEvent.press(screen.getByTestId("tab-google"));
     expect(screen.getByTestId("panel-google")).toBeOnTheScreen();
+  });
+
+  it("ouvre l'onglet Google et affiche l'erreur passée en query param", () => {
+    const { useLocalSearchParams } = require("expo-router") as {
+      useLocalSearchParams: jest.Mock;
+    };
+    useLocalSearchParams.mockReturnValue({
+      tab: "google",
+      error: "Connexion Google interrompue.",
+    });
+
+    render(<LoginScreen />);
+
+    expect(screen.getByTestId("panel-google")).toBeOnTheScreen();
+    expect(screen.getByText("Connexion Google interrompue.")).toBeOnTheScreen();
   });
 
   it("efface l'erreur lors du changement d'onglet", async () => {
@@ -533,6 +583,40 @@ describe("Panneau SSO", () => {
     render(<LoginScreen />);
     fireEvent.press(screen.getByTestId("tab-google"));
     expect(screen.getByText("BIENTÔT")).toBeOnTheScreen();
+  });
+
+  it("ouvre le flux Google sans appeler loginSso depuis l'écran login", async () => {
+    mockGoogleAuth.mockResolvedValueOnce(undefined);
+
+    render(<LoginScreen />);
+    fireEvent.press(screen.getByTestId("tab-google"));
+    fireEvent.press(screen.getByTestId("sso-google"));
+
+    await waitFor(() => {
+      expect(mockGoogleAuth).toHaveBeenCalled();
+    });
+    expect(mockAuthApi.loginSso).not.toHaveBeenCalled();
+  });
+
+  it("affiche une erreur claire si Google requiert l'app native", async () => {
+    mockGoogleAuth.mockRejectedValueOnce(
+      new GoogleAuthError(
+        "GOOGLE_AUTH_NATIVE_BUILD_REQUIRED",
+        "La connexion Google nécessite l'application Android native. Lancez `npm run android:build` puis réessayez.",
+      ),
+    );
+
+    render(<LoginScreen />);
+    fireEvent.press(screen.getByTestId("tab-google"));
+    fireEvent.press(screen.getByTestId("sso-google"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "La connexion Google nécessite l'application Android native. Lancez `npm run android:build` puis réessayez.",
+        ),
+      ).toBeOnTheScreen(),
+    );
   });
 });
 
