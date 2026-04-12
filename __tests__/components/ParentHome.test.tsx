@@ -1,7 +1,7 @@
 /**
  * Tests du composant ParentHome.
  * - Rendu des enfants (nom seul, pas de boutons rapides)
- * - Clic sur un enfant → setActiveChild + navigation
+ * - Clic sur un enfant → setActiveChild + navigation vers Vie scolaire
  * - Compteur d'enfants intact
  * - États : chargement, vide, avec enfants
  */
@@ -115,12 +115,12 @@ describe("Clic sur un enfant", () => {
     expect(useFamilyStore.getState().activeChildId).toBe("c1");
   });
 
-  it("navigue vers /placeholder avec le nom de l'enfant comme titre", () => {
+  it("navigue vers Vie scolaire pour l'enfant cliqué", () => {
     render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
     fireEvent.press(screen.getByTestId("child-card-c1"));
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/placeholder",
-      params: { title: "Ntamack Lisa" },
+      pathname: "/(home)/vie-scolaire/[childId]",
+      params: { childId: "c1" },
     });
   });
 
@@ -130,12 +130,12 @@ describe("Clic sur un enfant", () => {
     expect(useFamilyStore.getState().activeChildId).toBe("c2");
   });
 
-  it("navigue avec le bon nom pour le deuxième enfant", () => {
+  it("navigue vers Vie scolaire pour le deuxième enfant", () => {
     render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
     fireEvent.press(screen.getByTestId("child-card-c2"));
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/placeholder",
-      params: { title: "Ntamack Paul" },
+      pathname: "/(home)/vie-scolaire/[childId]",
+      params: { childId: "c2" },
     });
   });
 });

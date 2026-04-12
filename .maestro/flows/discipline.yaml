@@ -1,0 +1,51 @@
+appId: com.zoutigo.scoliveapp
+name: Discipline Parent Overview
+tags:
+  - discipline
+  - parent
+---
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "tab-email"
+- tapOn:
+    id: "input-email"
+- inputText: "teacher@ecole.cm"
+- hideKeyboard
+- tapOn:
+    id: "input-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible: "Robert Ntamack"
+    timeout: 20000
+- assertVisible: "Robert Ntamack"
+- tapOn: "Ntamack Remi"
+- extendedWaitUntil:
+    visible: "Vie scolaire"
+    timeout: 15000
+- assertVisible: "Vie scolaire"
+- assertVisible: "1 absence non justifiée cette année."
+- assertVisible: "Absence en premiere heure"
+- tapOn: "Sanctions & Punitions"
+- extendedWaitUntil:
+    visible: "Comportement irrespectueux en classe"
+    timeout: 10000
+- assertVisible: "Comportement irrespectueux en classe"
+- tapOn: "Absences & Retards"
+- assertVisible: "Retard a l'appel"
+- assertVisible: "Retard a l'appel"
