@@ -150,8 +150,11 @@ onLayout={(e) => { someY.current = e.nativeEvent.layout.y; }}
 
 ## Lancer sur l'émulateur
 
-Émulateur de référence : **`Scolive_GooglePlay_API33`** (image Google Play, inclut Chrome).
-Cet AVD est requis pour Google Auth (Chrome Custom Tabs).
+Émulateur de référence pour le dev quotidien : **`Scolive_GooglePlay_API33`**.
+
+Émulateur dédié aux tests E2E Google / Maestro : **`Scolive_E2E_GooglePlay_API33`**.
+Les flows E2E ne doivent pas être exécutés sur l'émulateur de dev.
+L'AVD E2E Google Play est requis pour Google Auth et les scénarios Maestro qui dépendent de Chrome Custom Tabs.
 
 ```bash
 cd /home/zoutigo/projets/scolive/scolive-mobile
@@ -168,7 +171,7 @@ Après le premier boot complet (qui déclenche la compilation AOT de TrichromeLi
 un snapshot `startup_ready` a été créé :
 
 ```
-~/.android/avd/Scolive_GooglePlay_API33.avd/snapshots/startup_ready/
+~/.android/avd/Scolive_E2E_GooglePlay_API33.avd/snapshots/startup_ready/
 ```
 
 `scripts/android-emulator-nvidia.sh` charge automatiquement ce snapshot si le dossier existe.
@@ -304,7 +307,7 @@ App native (com.zoutigo.scoliveapp)
   → Écran home
 ```
 
-### Pourquoi `Scolive_GooglePlay_API33` est obligatoire
+### Pourquoi `Scolive_E2E_GooglePlay_API33` est obligatoire
 
 Chrome Custom Tabs nécessite Chrome. L'image AOSP (`Scolive_Dev_AOSP_API33`) n'a pas Chrome.
 **Ne jamais utiliser l'AVD AOSP pour tester Google Auth.**

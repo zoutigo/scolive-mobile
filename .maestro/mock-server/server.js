@@ -26,6 +26,7 @@
  *   POST /__scenario/onboarding   → change le scénario d'onboarding
  *   POST /__scenario/pin          → change le scénario de récupération PIN
  *   POST /__scenario/password     → change le scénario de récupération mot de passe
+ *   POST /__scenario/discipline   → change le scénario discipline
  *   POST /__reset                 → réinitialise les fixtures en mémoire
  */
 
@@ -111,6 +112,18 @@ const EMAIL_LOGIN_SCENARIOS = {
       csrfToken: "e2e-csrf",
     },
   },
+  discipline_admin: {
+    status: 200,
+    body: {
+      accessToken: "e2e-discipline-admin-access-token-valid",
+      refreshToken: "e2e-discipline-admin-refresh-token-valid",
+      tokenType: "Bearer",
+      expiresIn: 86400,
+      refreshExpiresIn: 2592000,
+      schoolSlug: "ecole-demo",
+      csrfToken: "e2e-discipline-admin-csrf",
+    },
+  },
   password_change_required: {
     status: 403,
     body: {
@@ -167,6 +180,15 @@ const EMAIL_LOGIN_SCENARIOS = {
   network_error: { closeImmediately: true },
 };
 
+const DISCIPLINE_SCENARIOS = {
+  happy_path: "happy_path",
+  list_error: "list_error",
+  list_error_once: "list_error_once",
+  create_error: "create_error",
+  update_error: "update_error",
+  delete_error: "delete_error",
+};
+
 // ────────────────────────── Scénarios récupération PIN ──────────────────────────
 
 /**
@@ -203,6 +225,7 @@ let currentEmailLoginScenario = "happy_path";
 let currentOnboardingScenario = "email_parent_happy";
 let currentPinScenario = "happy_path";
 let currentPwdScenario = "happy_path";
+let currentDisciplineScenario = "happy_path";
 let server = null;
 
 const INLINE_IMAGE_PNG_BASE64 =
@@ -284,6 +307,22 @@ const MOCK_GOOGLE_AUTH_USER = {
   activeRole: "ADMIN",
 };
 
+const MOCK_DISCIPLINE_ADMIN_AUTH_USER = {
+  id: "school-admin-1",
+  firstName: "Valery",
+  lastName: "MBELE",
+  email: "teacher@ecole.cm",
+  phone: "+237065059783",
+  avatarUrl: null,
+  gender: "M",
+  platformRoles: [],
+  memberships: [{ schoolId: "school-1", role: "SCHOOL_ADMIN" }],
+  profileCompleted: true,
+  activationStatus: "ACTIVE",
+  role: "ADMIN",
+  activeRole: "ADMIN",
+};
+
 const MOCK_PARENT_ME = {
   linkedStudents: [
     {
@@ -316,6 +355,8 @@ let mockMessages = createInitialMessages();
 let feedCounter = 10;
 let feedCommentCounter = 10;
 let mockFeedPosts = createInitialFeedPosts();
+let lifeEventCounter = 10;
+let mockLifeEventsByStudent = createInitialLifeEventsByStudent();
 
 function resetMockState() {
   messageCounter = 10;
@@ -325,6 +366,8 @@ function resetMockState() {
   feedCounter = 10;
   feedCommentCounter = 10;
   mockFeedPosts = createInitialFeedPosts();
+  lifeEventCounter = 10;
+  mockLifeEventsByStudent = createInitialLifeEventsByStudent();
 }
 
 // ────────────────────────── Gestion des requêtes ──────────────────────────
@@ -473,6 +516,91 @@ function createInitialFeedPosts() {
   ];
 }
 
+function createInitialLifeEventsByStudent() {
+  const baseEvents = [
+    {
+      id: "life-1",
+      schoolId: "school-1",
+      studentId: "child-1",
+      classId: "class-1",
+      schoolYearId: "year-1",
+      authorUserId: "staff-1",
+      type: "ABSENCE",
+      occurredAt: "2026-04-04T07:30:00.000Z",
+      durationMinutes: 55,
+      justified: false,
+      reason: "Absence en premiere heure",
+      comment: "Parents a contacter",
+      createdAt: "2026-04-04T08:00:00.000Z",
+      updatedAt: "2026-04-04T08:00:00.000Z",
+      class: { id: "class-1", name: "6e A" },
+      schoolYear: { id: "year-1", label: "2025-2026" },
+      authorUser: {
+        id: "staff-1",
+        firstName: "Anne",
+        lastName: "Rousselot",
+        email: "anne.rousselot@ecole.cm",
+      },
+    },
+    {
+      id: "life-2",
+      schoolId: "school-1",
+      studentId: "child-1",
+      classId: "class-1",
+      schoolYearId: "year-1",
+      authorUserId: "staff-1",
+      type: "RETARD",
+      occurredAt: "2026-04-03T08:10:00.000Z",
+      durationMinutes: 10,
+      justified: true,
+      reason: "Retard a l'appel",
+      comment: null,
+      createdAt: "2026-04-03T08:15:00.000Z",
+      updatedAt: "2026-04-03T08:15:00.000Z",
+      class: { id: "class-1", name: "6e A" },
+      schoolYear: { id: "year-1", label: "2025-2026" },
+      authorUser: {
+        id: "staff-1",
+        firstName: "Anne",
+        lastName: "Rousselot",
+        email: "anne.rousselot@ecole.cm",
+      },
+    },
+    {
+      id: "life-3",
+      schoolId: "school-1",
+      studentId: "child-1",
+      classId: "class-1",
+      schoolYearId: "year-1",
+      authorUserId: "staff-1",
+      type: "SANCTION",
+      occurredAt: "2026-04-02T10:30:00.000Z",
+      durationMinutes: null,
+      justified: null,
+      reason: "Comportement irrespectueux en classe",
+      comment: "Entretien prevu avec le parent.",
+      createdAt: "2026-04-02T10:45:00.000Z",
+      updatedAt: "2026-04-02T10:45:00.000Z",
+      class: { id: "class-1", name: "6e A" },
+      schoolYear: { id: "year-1", label: "2025-2026" },
+      authorUser: {
+        id: "staff-1",
+        firstName: "Anne",
+        lastName: "Rousselot",
+        email: "anne.rousselot@ecole.cm",
+      },
+    },
+  ];
+
+  return {
+    "child-1": baseEvents,
+    "student-1": baseEvents.map((event) => ({
+      ...event,
+      studentId: "student-1",
+    })),
+  };
+}
+
 function stripHtml(value) {
   return value
     .replace(/<[^>]+>/g, " ")
@@ -600,6 +728,7 @@ function handleRequest(req, res) {
     url === "/__scenario/email-login" ||
     url === "/__scenario/onboarding" ||
     url === "/__scenario/pin" ||
+    url === "/__scenario/discipline" ||
     url === "/__scenario/password" ||
     url === "/__reset"
   ) {
@@ -628,6 +757,13 @@ function handleRequest(req, res) {
             currentEmailLoginScenario = scenario;
           } else if (url === "/__scenario/onboarding") {
             currentOnboardingScenario = scenario;
+          } else if (url === "/__scenario/discipline") {
+            if (!DISCIPLINE_SCENARIOS[scenario]) {
+              return json(res, 400, {
+                error: `Scénario discipline inconnu : "${scenario}"`,
+              });
+            }
+            currentDisciplineScenario = scenario;
           } else if (url === "/__scenario/pin") {
             currentPinScenario = scenario;
           } else {
@@ -646,6 +782,7 @@ function handleRequest(req, res) {
         login: currentScenario,
         emailLogin: currentEmailLoginScenario,
         onboarding: currentOnboardingScenario,
+        discipline: currentDisciplineScenario,
         pin: currentPinScenario,
         password: currentPwdScenario,
       });
@@ -682,6 +819,10 @@ function handleRequest(req, res) {
 
   if (method === "GET" && path === "/__state/feed") {
     return json(res, 200, { items: mockFeedPosts });
+  }
+
+  if (method === "GET" && path === "/__state/discipline") {
+    return json(res, 200, { items: mockLifeEventsByStudent });
   }
 
   if (method === "GET" && path === "/mock/media/inline-image.png") {
@@ -936,11 +1077,143 @@ function handleRequest(req, res) {
     if (authorization === `Bearer ${MOCK_GOOGLE_SSO.accessToken}`) {
       return json(res, 200, MOCK_GOOGLE_AUTH_USER);
     }
+    if (
+      authorization ===
+      `Bearer ${EMAIL_LOGIN_SCENARIOS.discipline_admin.body.accessToken}`
+    ) {
+      return json(res, 200, MOCK_DISCIPLINE_ADMIN_AUTH_USER);
+    }
     return json(res, 200, MOCK_AUTH_USER);
   }
 
   if (method === "GET" && path === "/api/schools/ecole-demo/me") {
     return json(res, 200, MOCK_PARENT_ME);
+  }
+
+  const lifeEventsMatch = path.match(
+    /^\/api\/schools\/ecole-demo\/students\/([^/]+)\/life-events(?:\/([^/]+))?$/,
+  );
+
+  if (lifeEventsMatch && method === "GET") {
+    if (currentDisciplineScenario === "list_error") {
+      return json(res, 500, {
+        message: "Impossible de charger la vie scolaire.",
+        statusCode: 500,
+      });
+    }
+
+    if (currentDisciplineScenario === "list_error_once") {
+      currentDisciplineScenario = "happy_path";
+      return json(res, 500, {
+        message: "Impossible de charger la vie scolaire.",
+        statusCode: 500,
+      });
+    }
+
+    const studentId = lifeEventsMatch[1];
+    const filterType = requestUrl.searchParams.get("type");
+    const items = [...(mockLifeEventsByStudent[studentId] || [])].filter(
+      (event) => !filterType || event.type === filterType,
+    );
+    return json(res, 200, items);
+  }
+
+  if (lifeEventsMatch && method === "POST") {
+    if (currentDisciplineScenario === "create_error") {
+      return json(res, 400, {
+        message: "Creation discipline refusee.",
+        statusCode: 400,
+      });
+    }
+
+    readBody(req).then((raw) => {
+      const payload = JSON.parse(raw || "{}");
+      const studentId = lifeEventsMatch[1];
+      lifeEventCounter += 1;
+      const created = {
+        id: `life-${lifeEventCounter}`,
+        schoolId: "school-1",
+        studentId,
+        classId: payload.classId || "class-1",
+        schoolYearId: "year-1",
+        authorUserId: "staff-1",
+        type: payload.type || "ABSENCE",
+        occurredAt: payload.occurredAt || "2026-04-05T08:00:00.000Z",
+        durationMinutes:
+          typeof payload.durationMinutes === "number"
+            ? payload.durationMinutes
+            : null,
+        justified:
+          typeof payload.justified === "boolean" ? payload.justified : null,
+        reason: payload.reason || "Evenement discipline",
+        comment: payload.comment || null,
+        createdAt: "2026-04-05T08:05:00.000Z",
+        updatedAt: "2026-04-05T08:05:00.000Z",
+        class: { id: "class-1", name: "6e A" },
+        schoolYear: { id: "year-1", label: "2025-2026" },
+        authorUser: {
+          id: "staff-1",
+          firstName: "Anne",
+          lastName: "Rousselot",
+          email: "anne.rousselot@ecole.cm",
+        },
+      };
+
+      mockLifeEventsByStudent[studentId] = [
+        created,
+        ...(mockLifeEventsByStudent[studentId] || []),
+      ];
+      return json(res, 201, created);
+    });
+    return;
+  }
+
+  if (lifeEventsMatch && method === "PATCH") {
+    if (currentDisciplineScenario === "update_error") {
+      return json(res, 400, {
+        message: "Modification discipline refusee.",
+        statusCode: 400,
+      });
+    }
+
+    readBody(req).then((raw) => {
+      const payload = JSON.parse(raw || "{}");
+      const studentId = lifeEventsMatch[1];
+      const eventId = lifeEventsMatch[2];
+      const events = mockLifeEventsByStudent[studentId] || [];
+      const index = events.findIndex((event) => event.id === eventId);
+
+      if (index === -1) {
+        return json(res, 404, {
+          message: "Evenement discipline introuvable.",
+          statusCode: 404,
+        });
+      }
+
+      events[index] = {
+        ...events[index],
+        ...payload,
+        updatedAt: "2026-04-05T09:00:00.000Z",
+      };
+      return json(res, 200, events[index]);
+    });
+    return;
+  }
+
+  if (lifeEventsMatch && method === "DELETE") {
+    if (currentDisciplineScenario === "delete_error") {
+      return json(res, 400, {
+        message: "Suppression discipline refusee.",
+        statusCode: 400,
+      });
+    }
+
+    const studentId = lifeEventsMatch[1];
+    const eventId = lifeEventsMatch[2];
+    mockLifeEventsByStudent[studentId] = (
+      mockLifeEventsByStudent[studentId] || []
+    ).filter((event) => event.id !== eventId);
+    return json(res, 200, { id: eventId, deleted: true });
   }
 
   if (method === "GET" && path === "/api/schools/ecole-demo/feed") {

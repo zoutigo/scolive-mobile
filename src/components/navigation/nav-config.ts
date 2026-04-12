@@ -139,6 +139,13 @@ const SCHOOL_NAV: NavItem[] = [
   placeholder("Parents-Élèves", "people-circle-outline", "parents"),
   placeholder("Notes", "ribbon-outline", "grades"),
   {
+    key: "discipline",
+    label: "Discipline",
+    icon: "shield-outline",
+    route: "/placeholder",
+    params: { title: "Discipline" },
+  },
+  {
     key: "messages",
     label: "Messagerie",
     icon: "chatbubble-outline",
@@ -152,6 +159,13 @@ const TEACHER_NAV: NavItem[] = [
   feedItem(),
   placeholder("Mes classes", "book-outline", "classes"),
   placeholder("Cahier de notes", "journal-outline", "gradebook"),
+  {
+    key: "discipline",
+    label: "Discipline",
+    icon: "shield-outline",
+    route: "/placeholder",
+    params: { title: "Discipline" },
+  },
   {
     key: "messages",
     label: "Messagerie",
@@ -215,8 +229,8 @@ export function buildChildNavItems(childId: string): NavItem[] {
       key: `child-${childId}-life`,
       label: "Vie scolaire",
       icon: "person-circle-outline",
-      route: "/placeholder",
-      params: { title: "Vie scolaire" },
+      route: "/(home)/vie-scolaire/[childId]",
+      params: { childId },
     },
     {
       key: `child-${childId}-messages`,
