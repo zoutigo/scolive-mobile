@@ -1,7 +1,7 @@
 /**
  * Tests du composant ParentHome.
  * - Rendu des enfants (nom seul, pas de boutons rapides)
- * - Clic sur un enfant → setActiveChild + navigation
+ * - Clic sur un enfant → setActiveChild + navigation vers Vie scolaire
  * - Compteur d'enfants intact
  * - États : chargement, vide, avec enfants
  */
@@ -127,7 +127,7 @@ describe("Clic sur un enfant", () => {
     expect(useFamilyStore.getState().activeChildId).toBe("c2");
   });
 
-  it("navigue avec le bon nom pour le deuxième enfant", () => {
+  it("navigue vers la route timetable du deuxième enfant", () => {
     render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
     fireEvent.press(screen.getByTestId("child-card-c2"));
     expect(mockPush).toHaveBeenCalledWith("/(home)/timetable/child/c2");

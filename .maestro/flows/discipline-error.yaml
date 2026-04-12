@@ -1,0 +1,46 @@
+appId: com.zoutigo.scoliveapp
+name: Discipline Parent Error Recovery
+tags:
+  - discipline
+  - parent
+  - error
+---
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "tab-email"
+- tapOn:
+    id: "input-email"
+- inputText: "teacher@ecole.cm"
+- hideKeyboard
+- tapOn:
+    id: "input-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible: "Robert Ntamack"
+    timeout: 20000
+- tapOn: "Ntamack Remi"
+- extendedWaitUntil:
+    visible: "Impossible de charger les données. Réessayez."
+    timeout: 15000
+- assertVisible: "Impossible de charger les données. Réessayez."
+- tapOn: "Réessayer"
+- extendedWaitUntil:
+    visible: "Vie scolaire"
+    timeout: 15000
+- assertVisible: "Absence en premiere heure"

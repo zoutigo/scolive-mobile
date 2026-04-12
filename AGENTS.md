@@ -45,6 +45,9 @@ Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignor
 
 - Les flows vivent dans `.maestro/flows/`
 - Le mock server (`.maestro/mock-server/server.js`) remplace l'API réelle sur le port 3001
+- L'AVD de dev quotidien est `Scolive_GooglePlay_API33`
+- L'AVD dédié aux E2E Google / Maestro est `Scolive_E2E_GooglePlay_API33`
+- Ne jamais lancer les flows E2E sur l'émulateur de dev `Scolive_GooglePlay_API33`
 - Le script `scripts/maestro-run-flow.sh` orchestre un run local :
   - démarre le mock server avec le scénario attendu
   - installe l'APK release si nécessaire
@@ -75,7 +78,7 @@ Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignor
   - `npm run e2e`
 - Séquence locale recommandée :
   - `npm run maestro:install`
-  - `npm run android:emulator`
+  - lancer l'AVD `Scolive_E2E_GooglePlay_API33`
   - `npm run e2e:build`
   - `npm run e2e:test`
 - `auth-google` rejoue un callback SSO Google via deep link contrôlé puis vérifie l'arrivée sur l'écran authentifié

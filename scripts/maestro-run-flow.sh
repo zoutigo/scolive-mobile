@@ -8,6 +8,9 @@ shift || true
 
 FLOW_PATH="$ROOT_DIR/.maestro/flows/${FLOW_NAME}.yaml"
 MAESTRO_BIN="${MAESTRO_BIN:-$HOME/.maestro/bin/maestro}"
+MAESTRO_DEVICE_ARGS=()
+ADB_BIN="${ADB_BIN:-$HOME/Android/Sdk/platform-tools/adb}"
+ADB_ARGS=()
 MOCK_SERVER_MODULE="$ROOT_DIR/.maestro/mock-server/server.js"
 MOCK_SERVER_PORT="${MOCK_SERVER_PORT:-3001}"
 MOCK_SERVER_API_BASE="http://localhost:${MOCK_SERVER_PORT}"
@@ -16,11 +19,27 @@ GOOGLE_E2E_APK_PATH="$ROOT_DIR/android/app/build/outputs/apk/release/app-release
 DEBUG_APK_PATH="$ROOT_DIR/android/app/build/outputs/apk/debug/app-debug.apk"
 SELECTED_APK_PATH=""
 MOCK_PID=""
+APP_ID="com.zoutigo.scoliveapp"
+REMOTE_APK="/data/local/tmp/scolive-e2e.apk"
 GOOGLE_SSO_PROVIDER_ACCOUNT_ID="${GOOGLE_SSO_PROVIDER_ACCOUNT_ID:-114665872120651017460}"
 GOOGLE_SSO_EMAIL="${GOOGLE_SSO_EMAIL:-plizaweb@gmail.com}"
 GOOGLE_SSO_FIRST_NAME="${GOOGLE_SSO_FIRST_NAME:-Valery}"
 GOOGLE_SSO_LAST_NAME="${GOOGLE_SSO_LAST_NAME:-MBELE}"
 IS_MOCK_SERVER=0
+
+if [[ -n "${ANDROID_SERIAL:-}" ]]; then
+  ADB_ARGS=(-s "$ANDROID_SERIAL")
+fi
+
+adb_cmd() {
+  "$ADB_BIN" "${ADB_ARGS[@]}" "$@"
+}
+
+adb_shell_timeout() {
+  local seconds="$1"
+  shift
+  timeout "${seconds}s" "$ADB_BIN" "${ADB_ARGS[@]}" shell "$@" >/dev/null 2>&1 || true
+}
 
 if [[ ! -f "$FLOW_PATH" ]]; then
   echo "[maestro] flow introuvable: $FLOW_PATH" >&2
@@ -80,11 +99,11 @@ startxref
 %%EOF
 EOF
 
-  adb shell rm -f /sdcard/Pictures/e2e-inline-image.png >/dev/null 2>&1 || true
-  adb shell rm -f /sdcard/Download/e2e-message-attachment.pdf >/dev/null 2>&1 || true
-  adb push "$tmp_dir/e2e-inline-image.png" /sdcard/Pictures/e2e-inline-image.png >/dev/null
-  adb push "$tmp_dir/e2e-message-attachment.pdf" /sdcard/Download/e2e-message-attachment.pdf >/dev/null
-  adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Pictures/e2e-inline-image.png >/dev/null 2>&1 || true
+  adb_cmd shell rm -f /sdcard/Pictures/e2e-inline-image.png >/dev/null 2>&1 || true
+  adb_cmd shell rm -f /sdcard/Download/e2e-message-attachment.pdf >/dev/null 2>&1 || true
+  adb_cmd push "$tmp_dir/e2e-inline-image.png" /sdcard/Pictures/e2e-inline-image.png >/dev/null
+  adb_cmd push "$tmp_dir/e2e-message-attachment.pdf" /sdcard/Download/e2e-message-attachment.pdf >/dev/null
+  adb_cmd shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Pictures/e2e-inline-image.png >/dev/null 2>&1 || true
   rm -rf "$tmp_dir"
 }
 
@@ -112,15 +131,19 @@ detect_mock_server() {
 }
 
 wait_for_android_device() {
-  adb wait-for-device >/dev/null 2>&1
+  adb_cmd wait-for-device >/dev/null 2>&1
 
   local retries="${1:-90}"
   local boot_completed=""
   local package_state=""
 
   for _ in $(seq 1 "$retries"); do
-    boot_completed="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')"
-    package_state="$(adb shell pm path android 2>/dev/null || true)"
+    boot_completed="$(
+      timeout 10s "$ADB_BIN" "${ADB_ARGS[@]}" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r'
+    )"
+    package_state="$(
+      timeout 10s "$ADB_BIN" "${ADB_ARGS[@]}" shell pm path android 2>/dev/null || true
+    )"
 
     if [[ "$boot_completed" == "1" && "$package_state" == package:* ]]; then
       return 0
@@ -148,6 +171,26 @@ wait_for_metro_if_needed() {
   done
 
   echo "[maestro] Metro indisponible sur http://127.0.0.1:8081 pour l'APK debug" >&2
+  return 1
+}
+
+apply_e2e_device_tuning() {
+  adb_cmd reverse tcp:3001 tcp:3001 >/dev/null 2>&1 || true
+  adb_cmd shell settings put global verifier_verify_adb_installs 0 >/dev/null 2>&1 || true
+  adb_cmd shell settings put global package_verifier_enable 0 >/dev/null 2>&1 || true
+  adb_cmd shell settings put global upload_apk_enable 0 >/dev/null 2>&1 || true
+}
+
+install_selected_apk() {
+  if timeout 180s "$ADB_BIN" "${ADB_ARGS[@]}" install -r "$SELECTED_APK_PATH" \
+    >/tmp/scolive-maestro-install.log 2>&1; then
+    return 0
+  fi
+
+  echo "[maestro] installation Android incomplète" >&2
+  if [[ -f /tmp/scolive-maestro-install.log ]]; then
+    tail -n 50 /tmp/scolive-maestro-install.log >&2 || true
+  fi
   return 1
 }
 
@@ -217,11 +260,9 @@ select_apk_path() {
   [[ -f "$DEBUG_APK_PATH" ]] && debug_exists=1
 
   if [[ "$release_exists" == "1" && "$debug_exists" == "1" ]]; then
-    if [[ "$DEBUG_APK_PATH" -nt "$APK_PATH" ]]; then
-      SELECTED_APK_PATH="$DEBUG_APK_PATH"
-    else
-      SELECTED_APK_PATH="$APK_PATH"
-    fi
+    # Les flows Maestro doivent privilégier un APK autonome.
+    # Le debug dépend de Metro et casse les E2E s'il n'est pas lancé.
+    SELECTED_APK_PATH="$APK_PATH"
     return 0
   fi
 
@@ -275,6 +316,102 @@ assert_feed_interactions_state() {
   ' <<<"$payload"
 }
 
+open_google_auth_callback() {
+  open_android_deep_link \
+    "scolive:///auth/callback?providerAccountId=${GOOGLE_SSO_PROVIDER_ACCOUNT_ID}&email=${GOOGLE_SSO_EMAIL//@/%40}&firstName=${GOOGLE_SSO_FIRST_NAME}&lastName=${GOOGLE_SSO_LAST_NAME}"
+}
+
+assert_discipline_crud_state() {
+  local expected_type=""
+  local expected_reason=""
+  local expected_comment=""
+  local expected_justified=""
+  local expected_duration=""
+  local payload=""
+
+  case "$FLOW_NAME" in
+    discipline-crud-absence)
+      expected_type="ABSENCE"
+      expected_reason="E2E absence"
+      expected_comment=""
+      expected_justified="false"
+      expected_duration="55"
+      ;;
+    discipline-crud-retard)
+      expected_type="RETARD"
+      expected_reason="E2E retard"
+      expected_comment=""
+      expected_justified="true"
+      expected_duration="20"
+      ;;
+    discipline-crud-sanction)
+      expected_type="SANCTION"
+      expected_reason="E2E sanction"
+      expected_comment=""
+      expected_justified="null"
+      expected_duration="10"
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  payload="$(curl -fsS "http://localhost:3001/__state/discipline")"
+
+  node -e '
+    const fs = require("fs");
+    const payload = JSON.parse(fs.readFileSync(0, "utf8"));
+    const expectedType = process.argv[1];
+    const expectedReason = process.argv[2];
+    const expectedComment = process.argv[3];
+    const expectedJustified = process.argv[4];
+    const expectedDuration = process.argv[5];
+    const items = payload.items?.["student-1"];
+
+    if (!Array.isArray(items)) {
+      console.error("[maestro] etat discipline mock introuvable pour student-1");
+      process.exit(1);
+    }
+
+    const match = items.find((item) =>
+      item.type === expectedType &&
+      item.reason === expectedReason &&
+      ((expectedComment === "" && item.comment == null) || item.comment === expectedComment),
+    );
+
+    if (!match) {
+      console.error("[maestro] evenement discipline attendu introuvable", {
+        expectedType,
+        expectedReason,
+        expectedComment,
+      });
+      process.exit(1);
+    }
+
+    const actualJustified =
+      match.justified === null ? "null" : String(match.justified);
+    if (actualJustified !== expectedJustified) {
+      console.error("[maestro] valeur justified inattendue", {
+        expectedJustified,
+        actualJustified,
+        id: match.id,
+      });
+      process.exit(1);
+    }
+
+    const actualDuration =
+      match.durationMinutes === null ? "" : String(match.durationMinutes);
+    if (expectedDuration !== "" && actualDuration !== expectedDuration) {
+      console.error("[maestro] valeur durationMinutes inattendue", {
+        expectedDuration,
+        actualDuration,
+        id: match.id,
+      });
+      process.exit(1);
+    }
+  ' "$expected_type" "$expected_reason" "$expected_comment" "$expected_justified" "$expected_duration" <<<"$payload"
+}
+
 start_mock_server
 
 cleanup_stale_maestro_port
@@ -286,29 +423,41 @@ if [[ "$IS_MOCK_SERVER" == "1" ]]; then
   set_scenario "/__scenario/onboarding" "${ONBOARDING_SCENARIO:-email_parent_happy}"
   set_scenario "/__scenario/pin" "${PIN_SCENARIO:-happy_path}"
   set_scenario "/__scenario/password" "${PASSWORD_SCENARIO:-happy_path}"
+  set_scenario "/__scenario/discipline" "${DISCIPLINE_SCENARIO:-happy_path}"
 fi
 
 if [[ "$FLOW_NAME" == "messaging-compose" ]]; then
   seed_messaging_fixtures
 fi
 
+if [[ -n "${ANDROID_SERIAL:-}" ]]; then
+  MAESTRO_DEVICE_ARGS+=(--device "$ANDROID_SERIAL")
+fi
+
 select_apk_path
 
-if [[ -n "$SELECTED_APK_PATH" ]]; then
+if [[ -n "$SELECTED_APK_PATH" && "${SKIP_APK_INSTALL:-0}" != "1" ]]; then
   wait_for_android_device
-  adb install -r "$SELECTED_APK_PATH" >/dev/null
+  apply_e2e_device_tuning
+  install_selected_apk
 fi
 
 dismiss_system_anr() {
   local dumpsys_output=""
 
   for _ in $(seq 1 10); do
-    dumpsys_output="$(adb shell dumpsys window displays 2>/dev/null || true)"
+    dumpsys_output="$(adb_cmd shell dumpsys window displays 2>/dev/null || true)"
     if [[ "$dumpsys_output" != *"Application Not Responding: system"* ]]; then
-      return 0
+      if [[ "$dumpsys_output" != *"Application Not Responding:"* ]]; then
+        return 0
+      fi
     fi
 
-    adb shell input tap 360 860 >/dev/null 2>&1 || true
+    adb_shell_timeout 5 input tap 840 1140
+    adb_shell_timeout 5 input tap 560 1140
+    adb_shell_timeout 5 input tap 360 860
+    adb_shell_timeout 5 input keyevent 66
+    adb_shell_timeout 5 input keyevent 4
     sleep 1
   done
 
@@ -320,7 +469,9 @@ wait_for_app_activity() {
   local output=""
 
   for _ in $(seq 1 "$retries"); do
-    output="$(adb shell dumpsys activity activities 2>/dev/null || true)"
+    output="$(
+      timeout 10s "$ADB_BIN" "${ADB_ARGS[@]}" shell dumpsys activity activities 2>/dev/null || true
+    )"
     if [[ "$output" == *"com.zoutigo.scoliveapp/.MainActivity"* ]]; then
       return 0
     fi
@@ -365,20 +516,19 @@ open_android_deep_link() {
   tmp_script="$(mktemp)"
   printf '%s\n' \
     '#!/system/bin/sh' \
-    "am start -W -a android.intent.action.VIEW -d \"$deep_link\"" \
+    "am start -a android.intent.action.VIEW -d \"$deep_link\"" \
     >"$tmp_script"
 
-  adb push "$tmp_script" /data/local/tmp/scolive-open-link.sh >/dev/null
-  adb shell chmod 755 /data/local/tmp/scolive-open-link.sh >/dev/null
-  adb shell sh /data/local/tmp/scolive-open-link.sh >/dev/null
+  adb_cmd push "$tmp_script" /data/local/tmp/scolive-open-link.sh >/dev/null
+  adb_cmd shell chmod 755 /data/local/tmp/scolive-open-link.sh >/dev/null
+  timeout 20s "$ADB_BIN" "${ADB_ARGS[@]}" shell sh /data/local/tmp/scolive-open-link.sh >/dev/null 2>&1 || true
   rm -f "$tmp_script"
 }
 
 open_flow_route() {
   case "$FLOW_NAME" in
     auth-google)
-      open_android_deep_link \
-        "scolive:///auth/callback?providerAccountId=${GOOGLE_SSO_PROVIDER_ACCOUNT_ID}&email=${GOOGLE_SSO_EMAIL//@/%40}&firstName=${GOOGLE_SSO_FIRST_NAME}&lastName=${GOOGLE_SSO_LAST_NAME}"
+      open_google_auth_callback
       ;;
     onboarding-email)
       open_android_deep_link \
@@ -394,8 +544,8 @@ open_flow_route() {
   esac
 }
 
-adb shell am force-stop com.zoutigo.scoliveapp >/dev/null 2>&1 || true
-adb shell pm clear com.zoutigo.scoliveapp >/dev/null 2>&1 || true
+adb_shell_timeout 15 am force-stop com.zoutigo.scoliveapp
+adb_shell_timeout 20 pm clear com.zoutigo.scoliveapp
 wait_for_android_device
 wait_for_metro_if_needed
 ensure_adb_reverse
@@ -406,8 +556,10 @@ wait_for_app_activity 20
 sleep 2
 wait_for_android_device
 
-"$MAESTRO_BIN" test "$FLOW_PATH" "$@"
+"$MAESTRO_BIN" test "${MAESTRO_DEVICE_ARGS[@]}" "$FLOW_PATH" "$@"
 
 if [[ "$FLOW_NAME" == "feed-interactions" ]]; then
   assert_feed_interactions_state
 fi
+
+assert_discipline_crud_state
