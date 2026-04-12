@@ -186,7 +186,7 @@ describe("Scrollabilité de la liste de navigation", () => {
     });
   });
 
-  it("tous les items établissement (13) sont dans le ScrollView", () => {
+  it("tous les items établissement (14) sont dans le ScrollView", () => {
     const schoolUser: AuthUser = {
       id: "u3",
       firstName: "Eve",
@@ -199,7 +199,7 @@ describe("Scrollabilité de la liste de navigation", () => {
     };
     render(<AppDrawer {...baseProps} navItems={getNavItems(schoolUser)} />);
     const schoolItems = getNavItems(schoolUser);
-    expect(schoolItems).toHaveLength(13);
+    expect(schoolItems).toHaveLength(14);
     schoolItems.forEach((item) => {
       expect(screen.getByTestId(`nav-item-${item.key}`)).toBeTruthy();
     });

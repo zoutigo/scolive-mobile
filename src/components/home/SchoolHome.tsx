@@ -69,6 +69,11 @@ export function SchoolHome({ user, schoolSlug }: SchoolHomeProps) {
 
     if (label === "Messagerie") {
       router.push("/(home)/messages");
+      return;
+    }
+
+    if (label === "Emploi du temps") {
+      router.push("/(home)/timetable");
     }
   }
 
@@ -124,9 +129,15 @@ export function SchoolHome({ user, schoolSlug }: SchoolHomeProps) {
       <Text style={styles.sectionTitle}>Navigation rapide</Text>
       <View style={styles.quickLinks}>
         <QuickLink
+          icon="calendar-outline"
+          label="Emploi du temps"
+          color={colors.primary}
+          onPress={() => handleQuickLinkPress("Emploi du temps")}
+        />
+        <QuickLink
           icon="newspaper-outline"
           label="Fil d'actualité"
-          color={colors.primary}
+          color={colors.accentTeal}
           onPress={() => handleQuickLinkPress("Fil d'actualité")}
         />
         <QuickLink

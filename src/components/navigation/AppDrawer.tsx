@@ -116,7 +116,10 @@ export function AppDrawer({
     if (item.key === "home" || item.key.endsWith("-home")) {
       return pathname === "/" || pathname === "/index" || pathname === "";
     }
-    return false;
+    if (!item.route || item.route === "/placeholder") {
+      return false;
+    }
+    return pathname === item.route || pathname.startsWith(`${item.route}/`);
   };
 
   function initials(firstName: string, lastName: string): string {

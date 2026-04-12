@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import type { AuthUser } from "../../types/auth.types";
 
@@ -32,6 +33,7 @@ const MONTH_LABELS = [
 ];
 
 export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
+  const router = useRouter();
   const now = new Date();
   const dayLabel = DAY_LABELS[now.getDay()];
   const dateStr = `${dayLabel} ${now.getDate()} ${MONTH_LABELS[now.getMonth()]} ${now.getFullYear()}`;
@@ -71,7 +73,12 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
       {/* Quick stats */}
       <View style={styles.statsRow}>
         {[
-          { icon: "book", label: "Mes classes", color: colors.primary },
+          {
+            icon: "calendar",
+            label: "Mes classes",
+            color: colors.primary,
+            onPress: () => router.push("/(home)/timetable"),
+          },
           {
             icon: "journal",
             label: "Cahier de notes",
@@ -88,6 +95,7 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
             key={s.label}
             style={styles.statCard}
             activeOpacity={0.75}
+            onPress={s.onPress}
           >
             <View
               style={[styles.statIcon, { backgroundColor: s.color + "18" }]}
@@ -107,7 +115,7 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
       {/* Today's schedule placeholder */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Emploi du temps du jour</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push("/(home)/timetable")}>
           <Text style={styles.sectionLink}>Voir tout</Text>
         </TouchableOpacity>
       </View>
@@ -130,7 +138,7 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
       {/* My classes */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Mes classes</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push("/(home)/timetable")}>
           <Text style={styles.sectionLink}>Gérer</Text>
         </TouchableOpacity>
       </View>

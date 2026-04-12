@@ -1,0 +1,63 @@
+appId: com.zoutigo.scoliveapp
+name: Timetable Parent Readonly
+tags:
+  - timetable
+  - parent
+---
+- runFlow:
+    when:
+      visible: "Process system isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "tab-email"
+- tapOn:
+    id: "input-email"
+- inputText: "parent@ecole.cm"
+- hideKeyboard
+- tapOn:
+    id: "input-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- runFlow:
+    when:
+      visible: "Save password to Google?"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible:
+      id: "header-menu-btn"
+    timeout: 20000
+- tapOn:
+    id: "header-menu-btn"
+- extendedWaitUntil:
+    visible:
+      id: "drawer-section-child-child-1"
+    timeout: 10000
+- tapOn:
+    id: "drawer-section-child-child-1"
+- extendedWaitUntil:
+    visible:
+      id: "nav-item-child-child-1-schedule"
+    timeout: 10000
+- tapOn:
+    id: "nav-item-child-child-1-schedule"
+- extendedWaitUntil:
+    visible:
+      id: "child-timetable-occurrences"
+    timeout: 15000
+- assertVisible: "Maths"
+- assertVisible: "Agenda des cours"
+- assertVisible:
+    id: "child-timetable-from-date"

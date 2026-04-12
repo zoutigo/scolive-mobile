@@ -116,6 +116,7 @@ Lecture des commandes :
 - `auth-google` ouvre directement `/auth/callback` via deep link et valide l'arrivée sur l'écran authentifié
 - le runner Maestro détecte s'il parle au mock server ou à l'API réelle
 - il installe l'APK Android la plus récente disponible entre `debug` et `release`
+- les flows E2E doivent tourner sur l'AVD dédié `Scolive_E2E_GooglePlay_API33`, jamais sur l'AVD de dev
 
 ## Comportement clavier Android — règle absolue
 

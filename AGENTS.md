@@ -83,7 +83,16 @@ Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignor
   - `npm run e2e:test`
 - `auth-google` rejoue un callback SSO Google via deep link contrôlé puis vérifie l'arrivée sur l'écran authentifié
 - Le runner Maestro détecte désormais API réelle vs mock server et installe l'APK Android la plus récente disponible
-- `npm run android:emulator` reste le flux de dev et pointe l'AVD `Scolive_GooglePlay_API33`
+- L'AVD Google Play de dev pointé par `npm run android:emulator:google` est `Scolive_GooglePlay_API33`
+- `npm run android:emulator` reste l'AVD AOSP de dev simple `Scolive_Dev_AOSP_API33`
+- L'AVD dédié aux tests E2E Maestro est `Scolive_E2E_GooglePlay_API33`
+- Ne pas lancer les flows E2E sur l'émulateur de dev
+- Pour les E2E, couper l'émulateur Android actif puis lancer explicitement :
+
+```bash
+bash scripts/android-emulator-nvidia.sh Scolive_E2E_GooglePlay_API33
+```
+
 - `npm run e2e:test` rejoue toute la campagne sans rebâtir l'APK
 - `npm run e2e` rebâtit l'APK release puis lance toute la campagne
 - Le workflow `.github/workflows/publish-android.yml` publie l'APK release signe sur `main`
