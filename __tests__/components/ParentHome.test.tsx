@@ -115,13 +115,10 @@ describe("Clic sur un enfant", () => {
     expect(useFamilyStore.getState().activeChildId).toBe("c1");
   });
 
-  it("navigue vers /placeholder avec le nom de l'enfant comme titre", () => {
+  it("navigue vers la route timetable de l'enfant", () => {
     render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
     fireEvent.press(screen.getByTestId("child-card-c1"));
-    expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/placeholder",
-      params: { title: "Ntamack Lisa" },
-    });
+    expect(mockPush).toHaveBeenCalledWith("/(home)/timetable/child/c1");
   });
 
   it("setActiveChild est appelé avec le bon id pour le deuxième enfant", () => {
@@ -133,10 +130,7 @@ describe("Clic sur un enfant", () => {
   it("navigue avec le bon nom pour le deuxième enfant", () => {
     render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
     fireEvent.press(screen.getByTestId("child-card-c2"));
-    expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/placeholder",
-      params: { title: "Ntamack Paul" },
-    });
+    expect(mockPush).toHaveBeenCalledWith("/(home)/timetable/child/c2");
   });
 });
 

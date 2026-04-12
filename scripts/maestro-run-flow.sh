@@ -9,6 +9,8 @@ shift || true
 FLOW_PATH="$ROOT_DIR/.maestro/flows/${FLOW_NAME}.yaml"
 MAESTRO_BIN="${MAESTRO_BIN:-$HOME/.maestro/bin/maestro}"
 MOCK_SERVER_MODULE="$ROOT_DIR/.maestro/mock-server/server.js"
+MOCK_SERVER_PORT="${MOCK_SERVER_PORT:-3001}"
+MOCK_SERVER_API_BASE="http://localhost:${MOCK_SERVER_PORT}"
 APK_PATH="$ROOT_DIR/android/app/build/outputs/apk/release/app-release.apk"
 GOOGLE_E2E_APK_PATH="$ROOT_DIR/android/app/build/outputs/apk/release/app-release-google-e2e.apk"
 DEBUG_APK_PATH="$ROOT_DIR/android/app/build/outputs/apk/debug/app-debug.apk"
@@ -89,19 +91,19 @@ EOF
 wait_for_health() {
   local retries="${1:-40}"
   for _ in $(seq 1 "$retries"); do
-    if curl -fsS "http://localhost:3001/api/health" >/dev/null 2>&1; then
+    if curl -fsS "${MOCK_SERVER_API_BASE}/api/health" >/dev/null 2>&1; then
       return 0
     fi
     sleep 0.5
   done
 
-  echo "[maestro] mock server indisponible sur http://localhost:3001" >&2
+  echo "[maestro] mock server indisponible sur ${MOCK_SERVER_API_BASE}" >&2
   return 1
 }
 
 detect_mock_server() {
   local status=""
-  status="$(curl -fsS "http://localhost:3001/api/health" 2>/dev/null | grep -o '"status":"[^"]*"' | head -n1 | cut -d: -f2 | tr -d '"')"
+  status="$(curl -fsS "${MOCK_SERVER_API_BASE}/api/health" 2>/dev/null | grep -o '"status":"[^"]*"' | head -n1 | cut -d: -f2 | tr -d '"')"
   if [[ "$status" == "mock-ok" ]]; then
     IS_MOCK_SERVER=1
   else
@@ -131,13 +133,31 @@ wait_for_android_device() {
   return 1
 }
 
+wait_for_metro_if_needed() {
+  if [[ -z "$SELECTED_APK_PATH" || "$SELECTED_APK_PATH" != "$DEBUG_APK_PATH" ]]; then
+    return 0
+  fi
+
+  local retries="${1:-60}"
+
+  for _ in $(seq 1 "$retries"); do
+    if curl -fsS "http://127.0.0.1:8081/status" 2>/dev/null | grep -q "packager-status:running"; then
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo "[maestro] Metro indisponible sur http://127.0.0.1:8081 pour l'APK debug" >&2
+  return 1
+}
+
 start_mock_server() {
-  if curl -fsS "http://localhost:3001/api/health" >/dev/null 2>&1; then
+  if curl -fsS "${MOCK_SERVER_API_BASE}/api/health" >/dev/null 2>&1; then
     detect_mock_server
     return 0
   fi
 
-  node -e "const { startMockServer } = require('$MOCK_SERVER_MODULE'); startMockServer(3001).catch((error) => { console.error(error); process.exit(1); });" \
+  node -e "const { startMockServer } = require('$MOCK_SERVER_MODULE'); startMockServer(${MOCK_SERVER_PORT}).catch((error) => { console.error(error); process.exit(1); });" \
     >/tmp/scolive-maestro-mock.log 2>&1 &
   MOCK_PID=$!
   wait_for_health
@@ -152,7 +172,7 @@ set_scenario() {
     -X POST \
     -H "Content-Type: application/json" \
     -d "{\"scenario\":\"${scenario}\"}" \
-    "http://localhost:3001${path}" \
+    "${MOCK_SERVER_API_BASE}${path}" \
     >/dev/null
 }
 
@@ -160,7 +180,7 @@ reset_mock_state() {
   if [[ "$IS_MOCK_SERVER" != "1" ]]; then
     return 0
   fi
-  curl -fsS -X POST "http://localhost:3001/__reset" >/dev/null
+  curl -fsS -X POST "${MOCK_SERVER_API_BASE}/__reset" >/dev/null
 }
 
 cleanup_stale_maestro_port() {
@@ -219,7 +239,7 @@ select_apk_path() {
 assert_feed_interactions_state() {
   local payload=""
 
-  payload="$(curl -fsS "http://localhost:3001/__state/feed")"
+  payload="$(curl -fsS "${MOCK_SERVER_API_BASE}/__state/feed")"
 
   node -e '
     const fs = require("fs");
@@ -310,6 +330,34 @@ wait_for_app_activity() {
   return 1
 }
 
+ensure_adb_reverse() {
+  adb reverse tcp:8081 tcp:8081 >/dev/null 2>&1 || true
+  adb reverse tcp:3000 tcp:3000 >/dev/null 2>&1 || true
+  adb reverse tcp:3001 tcp:3001 >/dev/null 2>&1 || true
+}
+
+start_main_activity() {
+  adb shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1 || true
+  adb shell wm dismiss-keyguard >/dev/null 2>&1 || true
+  adb shell am start -W -n com.zoutigo.scoliveapp/.MainActivity >/dev/null 2>&1 || true
+}
+
+open_app_with_retries() {
+  local retries="${1:-5}"
+
+  for _ in $(seq 1 "$retries"); do
+    start_main_activity
+    sleep 2
+    dismiss_system_anr
+    if wait_for_app_activity 8; then
+      return 0
+    fi
+  done
+
+  echo "[maestro] impossible d'ouvrir durablement com.zoutigo.scoliveapp/.MainActivity" >&2
+  return 1
+}
+
 open_android_deep_link() {
   local deep_link="$1"
   local tmp_script=""
@@ -341,7 +389,7 @@ open_flow_route() {
         'scolive://onboarding?setupToken=setup-token-phone&schoolSlug=ecole-demo'
       ;;
     *)
-      adb shell monkey -p com.zoutigo.scoliveapp -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
+      open_app_with_retries 5
       ;;
   esac
 }
@@ -349,10 +397,12 @@ open_flow_route() {
 adb shell am force-stop com.zoutigo.scoliveapp >/dev/null 2>&1 || true
 adb shell pm clear com.zoutigo.scoliveapp >/dev/null 2>&1 || true
 wait_for_android_device
+wait_for_metro_if_needed
+ensure_adb_reverse
 open_flow_route
 sleep 2
 dismiss_system_anr
-wait_for_app_activity 20 || true
+wait_for_app_activity 20
 sleep 2
 wait_for_android_device
 

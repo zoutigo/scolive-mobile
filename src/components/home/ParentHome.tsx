@@ -36,10 +36,7 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
 
   function handleChildPress(child: ParentChild) {
     setActiveChild(child.id);
-    router.push({
-      pathname: "/placeholder",
-      params: { title: `${child.lastName} ${child.firstName}` },
-    });
+    router.push(`/(home)/timetable/child/${child.id}`);
   }
 
   function handleQuickAccessPress(label: string) {

@@ -1,0 +1,184 @@
+appId: com.zoutigo.scoliveapp
+name: Timetable CRUD School
+tags:
+  - timetable
+  - crud
+---
+- runFlow:
+    when:
+      visible: "Process system isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "tab-email"
+- tapOn:
+    id: "input-email"
+- inputText: "admin@ecole.cm"
+- hideKeyboard
+- tapOn:
+    id: "input-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- runFlow:
+    when:
+      visible: "Save password to Google?"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible:
+      id: "header-menu-btn"
+    timeout: 20000
+- tapOn:
+    id: "header-menu-btn"
+- extendedWaitUntil:
+    visible:
+      id: "nav-item-timetable"
+    timeout: 10000
+- tapOn:
+    id: "nav-item-timetable"
+- extendedWaitUntil:
+    visible:
+      id: "timetable-class-row-class-6a"
+    timeout: 15000
+- tapOn:
+    id: "timetable-class-row-class-6a"
+- extendedWaitUntil:
+    visible:
+      id: "class-timetable-tab-slots"
+    timeout: 15000
+- tapOn:
+    id: "class-timetable-tab-slots"
+- scrollUntilVisible:
+    element:
+      id: "slot-form-submit"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 20
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "slot-form-submit"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Créneau ajouté"
+- tapOn:
+    id: "success-toast-close"
+- scrollUntilVisible:
+    element:
+      id: "slot-delete-slot-11"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 20
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "slot-delete-slot-11"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Créneau supprimé"
+- tapOn:
+    id: "success-toast-close"
+- tapOn:
+    id: "class-timetable-tab-oneoff"
+- scrollUntilVisible:
+    element:
+      id: "oneoff-form-submit"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 20
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "oneoff-form-submit"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Séance exceptionnelle ajoutée"
+- tapOn:
+    id: "success-toast-close"
+- scrollUntilVisible:
+    element:
+      id: "oneoff-delete-oneoff-11"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 20
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "oneoff-delete-oneoff-11"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Séance supprimée"
+- tapOn:
+    id: "success-toast-close"
+- tapOn:
+    id: "class-timetable-tab-holidays"
+- scrollUntilVisible:
+    element:
+      id: "holiday-form-label"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 20
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "holiday-form-label"
+- inputText: "Pont pedagogique"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "holiday-form-submit"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 20
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "holiday-form-submit"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Fermeture ajoutée"
+- tapOn:
+    id: "success-toast-close"
+- scrollUntilVisible:
+    element:
+      id: "calendar-event-delete-event-11"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 20
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "calendar-event-delete-event-11"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Fermeture supprimée"

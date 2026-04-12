@@ -258,6 +258,53 @@ const MOCK_AUTH_USER = {
   activeRole: "PARENT",
 };
 
+const MOCK_TEACHER_AUTH_USER = {
+  id: "teacher-1",
+  firstName: "Paul",
+  lastName: "Manga",
+  email: "teacher@ecole.cm",
+  phone: "+237611111111",
+  avatarUrl: null,
+  gender: "M",
+  platformRoles: [],
+  memberships: [{ schoolId: "school-1", role: "TEACHER" }],
+  profileCompleted: true,
+  activationStatus: "ACTIVE",
+  role: "TEACHER",
+  activeRole: "TEACHER",
+};
+
+const MOCK_SCHOOL_AUTH_USER = {
+  id: "school-admin-1",
+  firstName: "Valery",
+  lastName: "Mbele",
+  email: "admin@ecole.cm",
+  phone: "+237622222222",
+  avatarUrl: null,
+  gender: "M",
+  platformRoles: [],
+  memberships: [{ schoolId: "school-1", role: "SCHOOL_ADMIN" }],
+  profileCompleted: true,
+  activationStatus: "ACTIVE",
+  role: "SCHOOL_ADMIN",
+  activeRole: "SCHOOL_ADMIN",
+};
+
+const EMAIL_TOKENS = {
+  parent: {
+    accessToken: "e2e-parent-access-token-valid",
+    refreshToken: "e2e-parent-refresh-token-valid",
+  },
+  teacher: {
+    accessToken: "e2e-teacher-access-token-valid",
+    refreshToken: "e2e-teacher-refresh-token-valid",
+  },
+  school: {
+    accessToken: "e2e-school-access-token-valid",
+    refreshToken: "e2e-school-refresh-token-valid",
+  },
+};
+
 const MOCK_GOOGLE_SSO = {
   providerAccountId: "114665872120651017460",
   email: "plizaweb@gmail.com",
@@ -295,6 +342,107 @@ const MOCK_PARENT_ME = {
   ],
 };
 
+const MOCK_TIMETABLE_CONTEXT = {
+  schoolYears: [{ id: "sy-1", label: "2025-2026", isActive: true }],
+  selectedSchoolYearId: "sy-1",
+  assignments: [
+    {
+      classId: "class-6a",
+      subjectId: "subject-math",
+      className: "6e A",
+      subjectName: "Maths",
+      schoolYearId: "sy-1",
+    },
+    {
+      classId: "class-6a",
+      subjectId: "subject-fr",
+      className: "6e A",
+      subjectName: "Français",
+      schoolYearId: "sy-1",
+    },
+  ],
+  students: [
+    {
+      classId: "class-6a",
+      className: "6e A",
+      studentId: "child-1",
+      studentFirstName: "Remi",
+      studentLastName: "Ntamack",
+    },
+    {
+      classId: "class-6a",
+      className: "6e A",
+      studentId: "child-2",
+      studentFirstName: "Lina",
+      studentLastName: "Ntamack",
+    },
+  ],
+};
+
+function createInitialTimetableState() {
+  return {
+    slots: [
+      {
+        id: "slot-1",
+        weekday: 1,
+        startMinute: 450,
+        endMinute: 510,
+        room: "Salle A1",
+        activeFromDate: "2026-04-06",
+        activeToDate: "2026-05-30",
+        subject: { id: "subject-math", name: "Maths" },
+        teacherUser: {
+          id: "teacher-1",
+          firstName: "Paul",
+          lastName: "Manga",
+          email: "teacher@ecole.cm",
+        },
+      },
+    ],
+    oneOffSlots: [
+      {
+        id: "oneoff-1",
+        occurrenceDate: "2026-04-15",
+        startMinute: 600,
+        endMinute: 660,
+        room: "Salle Poly",
+        status: "PLANNED",
+        sourceSlotId: null,
+        subject: { id: "subject-fr", name: "Français" },
+        teacherUser: {
+          id: "teacher-1",
+          firstName: "Paul",
+          lastName: "Manga",
+          email: "teacher@ecole.cm",
+        },
+      },
+    ],
+    slotExceptions: [],
+    calendarEvents: [
+      {
+        id: "event-1",
+        type: "HOLIDAY",
+        scope: "SCHOOL",
+        label: "Fête nationale",
+        startDate: "2026-05-20",
+        endDate: "2026-05-20",
+        schoolYearId: "sy-1",
+        academicLevelId: null,
+        classId: null,
+      },
+    ],
+    subjectStyles: [
+      { subjectId: "subject-math", colorHex: "#0C5FA8" },
+      { subjectId: "subject-fr", colorHex: "#D89B5B" },
+    ],
+  };
+}
+
+let timetableSlotCounter = 10;
+let timetableOneOffCounter = 10;
+let timetableEventCounter = 10;
+let mockTimetableState = createInitialTimetableState();
+
 const MOCK_RECIPIENTS = {
   teachers: [
     {
@@ -325,6 +473,150 @@ function resetMockState() {
   feedCounter = 10;
   feedCommentCounter = 10;
   mockFeedPosts = createInitialFeedPosts();
+  timetableSlotCounter = 10;
+  timetableOneOffCounter = 10;
+  timetableEventCounter = 10;
+  mockTimetableState = createInitialTimetableState();
+}
+
+function parseJsonSafe(raw) {
+  try {
+    return JSON.parse(raw || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function parseAuthorizationToken(req) {
+  return String(req.headers.authorization || "")
+    .replace(/^Bearer\s+/i, "")
+    .trim();
+}
+
+function resolveAuthUserFromToken(token) {
+  if (token === MOCK_GOOGLE_SSO.accessToken) {
+    return MOCK_GOOGLE_AUTH_USER;
+  }
+  if (token === EMAIL_TOKENS.teacher.accessToken) {
+    return MOCK_TEACHER_AUTH_USER;
+  }
+  if (token === EMAIL_TOKENS.school.accessToken) {
+    return MOCK_SCHOOL_AUTH_USER;
+  }
+  return MOCK_AUTH_USER;
+}
+
+function buildOccurrencesFromState() {
+  const recurring = mockTimetableState.slots.map((slot, index) => ({
+    id: `occ-rec-${index + 1}`,
+    source: "RECURRING",
+    status: "PLANNED",
+    occurrenceDate: "2026-04-13",
+    weekday: slot.weekday,
+    startMinute: slot.startMinute,
+    endMinute: slot.endMinute,
+    room: slot.room,
+    reason: null,
+    subject: slot.subject,
+    teacherUser: slot.teacherUser,
+    slotId: slot.id,
+  }));
+
+  const oneOff = mockTimetableState.oneOffSlots.map((slot, index) => ({
+    id: `occ-oneoff-${index + 1}`,
+    source: "ONE_OFF",
+    status: slot.status,
+    occurrenceDate: slot.occurrenceDate,
+    weekday: 3,
+    startMinute: slot.startMinute,
+    endMinute: slot.endMinute,
+    room: slot.room,
+    reason: null,
+    subject: slot.subject,
+    teacherUser: slot.teacherUser,
+    oneOffSlotId: slot.id,
+  }));
+
+  return [...recurring, ...oneOff];
+}
+
+function buildMyTimetablePayload() {
+  return {
+    student: { id: "child-1", firstName: "Remi", lastName: "Ntamack" },
+    class: {
+      id: "class-6a",
+      name: "6e A",
+      schoolYearId: "sy-1",
+      academicLevelId: null,
+    },
+    slots: mockTimetableState.slots,
+    oneOffSlots: mockTimetableState.oneOffSlots,
+    slotExceptions: mockTimetableState.slotExceptions,
+    occurrences: buildOccurrencesFromState(),
+    calendarEvents: mockTimetableState.calendarEvents,
+    subjectStyles: mockTimetableState.subjectStyles,
+  };
+}
+
+function buildClassTimetablePayload() {
+  return {
+    class: {
+      id: "class-6a",
+      schoolYearId: "sy-1",
+      academicLevelId: null,
+    },
+    slots: mockTimetableState.slots,
+    oneOffSlots: mockTimetableState.oneOffSlots,
+    slotExceptions: mockTimetableState.slotExceptions,
+    occurrences: buildOccurrencesFromState(),
+    calendarEvents: mockTimetableState.calendarEvents,
+    subjectStyles: mockTimetableState.subjectStyles,
+  };
+}
+
+function buildClassContextPayload() {
+  return {
+    class: {
+      id: "class-6a",
+      name: "6e A",
+      schoolId: "school-1",
+      schoolYearId: "sy-1",
+      academicLevelId: null,
+      curriculumId: null,
+      referentTeacherUserId: "teacher-1",
+    },
+    allowedSubjects: [
+      { id: "subject-math", name: "Maths" },
+      { id: "subject-fr", name: "Français" },
+    ],
+    assignments: [
+      {
+        teacherUserId: "teacher-1",
+        subjectId: "subject-math",
+        subject: { id: "subject-math", name: "Maths" },
+        teacherUser: {
+          id: "teacher-1",
+          firstName: "Paul",
+          lastName: "Manga",
+          email: "teacher@ecole.cm",
+        },
+      },
+      {
+        teacherUserId: "teacher-1",
+        subjectId: "subject-fr",
+        subject: { id: "subject-fr", name: "Français" },
+        teacherUser: {
+          id: "teacher-1",
+          firstName: "Paul",
+          lastName: "Manga",
+          email: "teacher@ecole.cm",
+        },
+      },
+    ],
+    subjectStyles: mockTimetableState.subjectStyles,
+    schoolYears: [{ id: "sy-1", label: "2025-2026", isActive: true }],
+    selectedSchoolYearId: "sy-1",
+  };
 }
 
 // ────────────────────────── Gestion des requêtes ──────────────────────────
@@ -684,6 +976,10 @@ function handleRequest(req, res) {
     return json(res, 200, { items: mockFeedPosts });
   }
 
+  if (method === "GET" && path === "/__state/timetable") {
+    return json(res, 200, mockTimetableState);
+  }
+
   if (method === "GET" && path === "/mock/media/inline-image.png") {
     return bytes(res, 200, INLINE_IMAGE_PNG, "image/png");
   }
@@ -721,12 +1017,34 @@ function handleRequest(req, res) {
   }
 
   if (method === "POST" && path === "/api/auth/login") {
-    const scenario = EMAIL_LOGIN_SCENARIOS[currentEmailLoginScenario];
-    if (scenario.closeImmediately) {
-      req.socket.destroy();
-      return;
-    }
-    return json(res, scenario.status, scenario.body);
+    readBody(req).then((raw) => {
+      const payload = parseJsonSafe(raw);
+      const email = String(payload.email || "")
+        .toLowerCase()
+        .trim();
+      const scenario = EMAIL_LOGIN_SCENARIOS[currentEmailLoginScenario];
+      if (scenario.closeImmediately) {
+        req.socket.destroy();
+        return;
+      }
+
+      if (scenario.status === 200) {
+        const tokenSet =
+          email === "teacher@ecole.cm"
+            ? EMAIL_TOKENS.teacher
+            : email === "admin@ecole.cm"
+              ? EMAIL_TOKENS.school
+              : EMAIL_TOKENS.parent;
+        return json(res, 200, {
+          ...scenario.body,
+          accessToken: tokenSet.accessToken,
+          refreshToken: tokenSet.refreshToken,
+        });
+      }
+
+      return json(res, scenario.status, scenario.body);
+    });
+    return;
   }
 
   if (method === "POST" && path === "/api/auth/sso/login") {
@@ -932,15 +1250,253 @@ function handleRequest(req, res) {
   }
 
   if (method === "GET" && path === "/api/schools/ecole-demo/auth/me") {
-    const authorization = String(req.headers.authorization || "");
-    if (authorization === `Bearer ${MOCK_GOOGLE_SSO.accessToken}`) {
-      return json(res, 200, MOCK_GOOGLE_AUTH_USER);
-    }
-    return json(res, 200, MOCK_AUTH_USER);
+    const token = parseAuthorizationToken(req);
+    return json(res, 200, resolveAuthUserFromToken(token));
   }
 
   if (method === "GET" && path === "/api/schools/ecole-demo/me") {
     return json(res, 200, MOCK_PARENT_ME);
+  }
+
+  if (
+    method === "GET" &&
+    path === "/api/schools/ecole-demo/student-grades/context"
+  ) {
+    return json(res, 200, MOCK_TIMETABLE_CONTEXT);
+  }
+
+  if (method === "GET" && path === "/api/schools/ecole-demo/timetable/me") {
+    return json(res, 200, buildMyTimetablePayload());
+  }
+
+  if (
+    method === "GET" &&
+    path === "/api/schools/ecole-demo/timetable/classes/class-6a/context"
+  ) {
+    return json(res, 200, buildClassContextPayload());
+  }
+
+  if (
+    method === "GET" &&
+    path === "/api/schools/ecole-demo/timetable/classes/class-6a"
+  ) {
+    return json(res, 200, buildClassTimetablePayload());
+  }
+
+  if (
+    method === "POST" &&
+    path === "/api/schools/ecole-demo/timetable/classes/class-6a/slots"
+  ) {
+    readBody(req).then((raw) => {
+      const payload = parseJsonSafe(raw);
+      if (payload.startMinute === 999) {
+        return json(res, 400, {
+          message: "Créneau invalide pour cette classe",
+          statusCode: 400,
+        });
+      }
+      timetableSlotCounter += 1;
+      const created = {
+        id: `slot-${timetableSlotCounter}`,
+        weekday: Number(payload.weekday ?? 1),
+        startMinute: Number(payload.startMinute ?? 450),
+        endMinute: Number(payload.endMinute ?? 510),
+        room: payload.room ?? null,
+        activeFromDate: payload.activeFromDate ?? "2026-04-06",
+        activeToDate: payload.activeToDate ?? "2026-05-30",
+        subject:
+          payload.subjectId === "subject-fr"
+            ? { id: "subject-fr", name: "Français" }
+            : { id: "subject-math", name: "Maths" },
+        teacherUser: {
+          id: payload.teacherUserId ?? "teacher-1",
+          firstName: "Paul",
+          lastName: "Manga",
+          email: "teacher@ecole.cm",
+        },
+      };
+      mockTimetableState.slots.push(created);
+      return json(res, 201, created);
+    });
+    return;
+  }
+
+  if (
+    method === "PATCH" &&
+    path.match(/^\/api\/schools\/ecole-demo\/timetable\/slots\/[^/]+$/)
+  ) {
+    const slotId = path.split("/").pop();
+    readBody(req).then((raw) => {
+      const payload = parseJsonSafe(raw);
+      mockTimetableState.slots = mockTimetableState.slots.map((slot) =>
+        slot.id === slotId
+          ? {
+              ...slot,
+              weekday: payload.weekday ?? slot.weekday,
+              startMinute: payload.startMinute ?? slot.startMinute,
+              endMinute: payload.endMinute ?? slot.endMinute,
+              room: payload.room ?? slot.room,
+            }
+          : slot,
+      );
+      const updated = mockTimetableState.slots.find(
+        (slot) => slot.id === slotId,
+      );
+      return json(res, 200, updated);
+    });
+    return;
+  }
+
+  if (
+    method === "DELETE" &&
+    path.match(/^\/api\/schools\/ecole-demo\/timetable\/slots\/[^/]+$/)
+  ) {
+    const slotId = path.split("/").pop();
+    mockTimetableState.slots = mockTimetableState.slots.filter(
+      (slot) => slot.id !== slotId,
+    );
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  if (
+    method === "POST" &&
+    path === "/api/schools/ecole-demo/timetable/classes/class-6a/one-off-slots"
+  ) {
+    readBody(req).then((raw) => {
+      const payload = parseJsonSafe(raw);
+      timetableOneOffCounter += 1;
+      const created = {
+        id: `oneoff-${timetableOneOffCounter}`,
+        occurrenceDate: payload.occurrenceDate ?? "2026-04-18",
+        startMinute: Number(payload.startMinute ?? 600),
+        endMinute: Number(payload.endMinute ?? 660),
+        room: payload.room ?? null,
+        status: payload.status ?? "PLANNED",
+        sourceSlotId: payload.sourceSlotId ?? null,
+        subject:
+          payload.subjectId === "subject-fr"
+            ? { id: "subject-fr", name: "Français" }
+            : { id: "subject-math", name: "Maths" },
+        teacherUser: {
+          id: payload.teacherUserId ?? "teacher-1",
+          firstName: "Paul",
+          lastName: "Manga",
+          email: "teacher@ecole.cm",
+        },
+      };
+      mockTimetableState.oneOffSlots.push(created);
+      return json(res, 201, created);
+    });
+    return;
+  }
+
+  if (
+    method === "PATCH" &&
+    path.match(/^\/api\/schools\/ecole-demo\/timetable\/one-off-slots\/[^/]+$/)
+  ) {
+    const oneOffId = path.split("/").pop();
+    readBody(req).then((raw) => {
+      const payload = parseJsonSafe(raw);
+      mockTimetableState.oneOffSlots = mockTimetableState.oneOffSlots.map(
+        (slot) =>
+          slot.id === oneOffId
+            ? {
+                ...slot,
+                occurrenceDate: payload.occurrenceDate ?? slot.occurrenceDate,
+                startMinute: payload.startMinute ?? slot.startMinute,
+                endMinute: payload.endMinute ?? slot.endMinute,
+                room: payload.room ?? slot.room,
+                status: payload.status ?? slot.status,
+              }
+            : slot,
+      );
+      const updated = mockTimetableState.oneOffSlots.find(
+        (slot) => slot.id === oneOffId,
+      );
+      return json(res, 200, updated);
+    });
+    return;
+  }
+
+  if (
+    method === "DELETE" &&
+    path.match(/^\/api\/schools\/ecole-demo\/timetable\/one-off-slots\/[^/]+$/)
+  ) {
+    const oneOffId = path.split("/").pop();
+    mockTimetableState.oneOffSlots = mockTimetableState.oneOffSlots.filter(
+      (slot) => slot.id !== oneOffId,
+    );
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  if (
+    method === "POST" &&
+    path === "/api/schools/ecole-demo/timetable/calendar-events"
+  ) {
+    readBody(req).then((raw) => {
+      const payload = parseJsonSafe(raw);
+      timetableEventCounter += 1;
+      const created = {
+        id: `event-${timetableEventCounter}`,
+        type: payload.type ?? "HOLIDAY",
+        scope: payload.scope ?? "SCHOOL",
+        label: payload.label ?? "Congé",
+        startDate: payload.startDate ?? "2026-05-21",
+        endDate: payload.endDate ?? "2026-05-21",
+        schoolYearId: payload.schoolYearId ?? "sy-1",
+        academicLevelId: payload.academicLevelId ?? null,
+        classId: payload.classId ?? null,
+      };
+      mockTimetableState.calendarEvents.push(created);
+      return json(res, 201, created);
+    });
+    return;
+  }
+
+  if (
+    method === "PATCH" &&
+    path.match(
+      /^\/api\/schools\/ecole-demo\/timetable\/calendar-events\/[^/]+$/,
+    )
+  ) {
+    const eventId = path.split("/").pop();
+    readBody(req).then((raw) => {
+      const payload = parseJsonSafe(raw);
+      mockTimetableState.calendarEvents = mockTimetableState.calendarEvents.map(
+        (event) =>
+          event.id === eventId
+            ? {
+                ...event,
+                label: payload.label ?? event.label,
+                startDate: payload.startDate ?? event.startDate,
+                endDate: payload.endDate ?? event.endDate,
+              }
+            : event,
+      );
+      const updated = mockTimetableState.calendarEvents.find(
+        (event) => event.id === eventId,
+      );
+      return json(res, 200, updated);
+    });
+    return;
+  }
+
+  if (
+    method === "DELETE" &&
+    path.match(
+      /^\/api\/schools\/ecole-demo\/timetable\/calendar-events\/[^/]+$/,
+    )
+  ) {
+    const eventId = path.split("/").pop();
+    mockTimetableState.calendarEvents =
+      mockTimetableState.calendarEvents.filter((event) => event.id !== eventId);
+    res.writeHead(204);
+    res.end();
+    return;
   }
 
   if (method === "GET" && path === "/api/schools/ecole-demo/feed") {

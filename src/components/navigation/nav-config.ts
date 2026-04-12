@@ -130,6 +130,12 @@ const PLATFORM_NAV: NavItem[] = [
 const SCHOOL_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
   feedItem(),
+  {
+    key: "timetable",
+    label: "Emploi du temps",
+    icon: "calendar-outline",
+    route: "/timetable",
+  },
   placeholder("Classes", "book-outline", "classes"),
   placeholder("Matières", "library-outline", "subjects"),
   placeholder("Curriculums", "layers-outline", "curriculums"),
@@ -150,7 +156,12 @@ const SCHOOL_NAV: NavItem[] = [
 const TEACHER_NAV: NavItem[] = [
   { key: "home", label: "Tableau de bord", icon: "home-outline", route: "/" },
   feedItem(),
-  placeholder("Mes classes", "book-outline", "classes"),
+  {
+    key: "timetable",
+    label: "Mes classes",
+    icon: "calendar-outline",
+    route: "/timetable",
+  },
   placeholder("Cahier de notes", "journal-outline", "gradebook"),
   {
     key: "messages",
@@ -208,8 +219,7 @@ export function buildChildNavItems(childId: string): NavItem[] {
       key: `child-${childId}-schedule`,
       label: "Emploi du temps",
       icon: "calendar-outline",
-      route: "/placeholder",
-      params: { title: "Emploi du temps" },
+      route: `/timetable/child/${childId}`,
     },
     {
       key: `child-${childId}-life`,

@@ -1,0 +1,87 @@
+appId: com.zoutigo.scoliveapp
+name: Timetable Error Handling
+tags:
+  - timetable
+  - error
+---
+- runFlow:
+    when:
+      visible: "Process system isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "tab-email"
+- tapOn:
+    id: "input-email"
+- inputText: "admin@ecole.cm"
+- hideKeyboard
+- tapOn:
+    id: "input-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- runFlow:
+    when:
+      visible: "Save password to Google?"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible:
+      id: "header-menu-btn"
+    timeout: 20000
+- tapOn:
+    id: "header-menu-btn"
+- tapOn:
+    id: "nav-item-timetable"
+- extendedWaitUntil:
+    visible:
+      id: "timetable-class-row-class-6a"
+    timeout: 15000
+- tapOn:
+    id: "timetable-class-row-class-6a"
+- extendedWaitUntil:
+    visible:
+      id: "class-timetable-tab-slots"
+    timeout: 15000
+- tapOn:
+    id: "class-timetable-tab-slots"
+- scrollUntilVisible:
+    element:
+      id: "slot-form-start"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 20
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "slot-form-start"
+- eraseText
+- inputText: "16:39"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "slot-form-submit"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 20
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "slot-form-submit"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Créneau refusé"
