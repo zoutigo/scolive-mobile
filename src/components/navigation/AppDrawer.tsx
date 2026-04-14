@@ -103,11 +103,11 @@ export function AppDrawer({
     setTimeout(() => {
       if (item.params) {
         router.push({
-          pathname: item.route as "/placeholder",
+          pathname: item.route as never,
           params: item.params,
         });
       } else {
-        router.push(item.route as "/");
+        router.push(item.route as never);
       }
     }, 120);
   };

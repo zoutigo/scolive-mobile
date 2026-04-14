@@ -8,6 +8,23 @@ Ce fichier liste les règles non-négociables à respecter lors de toute modific
 Préparer le code, faire tourner les vérifications (format, lint, typecheck, tests), puis attendre
 l'instruction explicite de l'utilisateur avant tout `git commit` ou `git push`.
 
+## TODO — Module notes / évaluations mobile
+
+- [x] Analyser le module `notes` / `evaluations` de `scolive-web` et aligner les contrats API/types mobile
+- [x] Ajouter les types partagés mobile pour consultation élève et CRUD classe
+- [x] Implémenter l'API mobile `notes/evaluations` et le store associé
+- [x] Créer l'écran parent/enfant `Notes` avec vues `Evaluations`, `Moyennes`, `Graphiques`
+- [x] Ajouter le détail d'évaluation et les états vides/erreur/chargement
+- [x] Remplacer le placeholder `Notes` dans la navigation enfant par la vraie route
+- [x] Implémenter l'écran classe `Cahier de notes` pour enseignant et rôles établissement
+- [x] Implémenter création/édition d'évaluation, saisie des scores et appréciations de période
+- [ ] Utiliser `ConfirmDialog` pour toute suppression
+- [x] Utiliser le toast global pour les retours `success/error` des actions métier
+- [x] Mettre à jour les menus et points d'entrée `teacher` / `school`
+- [x] Ajouter les tests unitaires, API, store et intégration du module notes
+- [x] Faire tourner les validations locales ciblées puis la vérification complète
+- [x] Réaligner l'UI parent/enfant `Notes` sur la version web small-screen (`Eval`, `Moy`, `Graph`)
+
 ## Comportement clavier Android — règle absolue
 
 `android:windowSoftInputMode="adjustPan"` est configuré dans `android/app/src/main/AndroidManifest.xml`.
@@ -59,6 +76,8 @@ Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignor
   - `auth-email`
   - `auth-phone`
   - `auth-google`
+  - `notes-parent`
+  - `notes-crud-teacher`
   - `onboarding-email`
   - `onboarding-phone`
   - `recovery-password`
@@ -66,6 +85,8 @@ Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignor
 - Les commandes locales principales sont :
   - `npm run maestro:install`
   - `npm run e2e:build`
+  - `npm run e2e:test:notes:parent`
+  - `npm run e2e:test:notes:crud`
   - `npm run e2e:test:smoke`
   - `npm run e2e:test:auth-email`
   - `npm run e2e:test:auth-phone`
@@ -78,11 +99,20 @@ Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignor
   - `npm run e2e`
 - Séquence locale recommandée :
   - `npm run maestro:install`
+  - couper tout processus actif sur `3001`
   - lancer l'AVD `Scolive_E2E_GooglePlay_API33`
   - `npm run e2e:build`
   - `npm run e2e:test`
 - `auth-google` rejoue un callback SSO Google via deep link contrôlé puis vérifie l'arrivée sur l'écran authentifié
 - Le runner Maestro détecte désormais API réelle vs mock server et installe l'APK Android la plus récente disponible
+- Pour éviter tout conflit, toujours libérer explicitement le port du mock avant un run Maestro :
+
+```bash
+lsof -ti :3001 | xargs -r kill
+curl -sS --max-time 1 http://127.0.0.1:3001/api/health || true
+```
+
+- Si `curl` retourne encore une réponse, ne pas lancer Maestro tant que `3001` n'est pas libre
 - L'AVD Google Play de dev pointé par `npm run android:emulator:google` est `Scolive_GooglePlay_API33`
 - `npm run android:emulator` reste l'AVD AOSP de dev simple `Scolive_Dev_AOSP_API33`
 - L'AVD dédié aux tests E2E Maestro est `Scolive_E2E_GooglePlay_API33`
@@ -92,6 +122,29 @@ Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignor
 ```bash
 bash scripts/android-emulator-nvidia.sh Scolive_E2E_GooglePlay_API33
 ```
+
+- Le binaire attendu par Maestro est l'APK `release`, pas l'APK `debug`
+- Chemin attendu :
+
+```bash
+android/app/build/outputs/apk/release/app-release.apk
+```
+
+- Rebuild E2E local fiable :
+
+```bash
+cd /home/zoutigo/projets/scolive/scolive-mobile
+lsof -ti :3001 | xargs -r kill
+bash scripts/android-emulator-nvidia.sh Scolive_E2E_GooglePlay_API33
+npm run android:build:release
+ANDROID_SERIAL=emulator-5556 npm run e2e:test:notes:parent
+ANDROID_SERIAL=emulator-5556 npm run e2e:test:notes:crud
+```
+
+- Couverture notes validée :
+  - `notes-parent` couvre la consultation parent/enfant
+  - `notes-crud-teacher` couvre création, mise à jour, saisie des notes et conseil de classe
+- La suppression d'évaluation n'est pas encore couverte, car elle n'existe pas dans l'UI mobile actuelle
 
 - `npm run e2e:test` rejoue toute la campagne sans rebâtir l'APK
 - `npm run e2e` rebâtit l'APK release puis lance toute la campagne
