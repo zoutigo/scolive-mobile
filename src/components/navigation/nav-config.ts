@@ -143,7 +143,12 @@ const SCHOOL_NAV: NavItem[] = [
   placeholder("Élèves", "people-outline", "students"),
   placeholder("Enseignants", "school-outline", "teachers"),
   placeholder("Parents-Élèves", "people-circle-outline", "parents"),
-  placeholder("Notes", "ribbon-outline", "grades"),
+  {
+    key: "grades",
+    label: "Notes",
+    icon: "ribbon-outline",
+    route: "/notes",
+  },
   {
     key: "discipline",
     label: "Discipline",
@@ -169,7 +174,12 @@ const TEACHER_NAV: NavItem[] = [
     icon: "calendar-outline",
     route: "/timetable",
   },
-  placeholder("Cahier de notes", "journal-outline", "gradebook"),
+  {
+    key: "gradebook",
+    label: "Cahier de notes",
+    icon: "journal-outline",
+    route: "/notes",
+  },
   {
     key: "discipline",
     label: "Discipline",
@@ -226,8 +236,8 @@ export function buildChildNavItems(childId: string): NavItem[] {
       key: `child-${childId}-grades`,
       label: "Notes",
       icon: "ribbon-outline",
-      route: "/placeholder",
-      params: { title: "Notes" },
+      route: "/(home)/notes/child/[childId]",
+      params: { childId },
     },
     {
       key: `child-${childId}-schedule`,

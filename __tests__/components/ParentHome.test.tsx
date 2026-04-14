@@ -1,7 +1,7 @@
 /**
  * Tests du composant ParentHome.
  * - Rendu des enfants (nom seul, pas de boutons rapides)
- * - Clic sur un enfant → setActiveChild + navigation vers Vie scolaire
+ * - Clic sur un enfant → setActiveChild + navigation vers Notes
  * - Compteur d'enfants intact
  * - États : chargement, vide, avec enfants
  */
@@ -115,10 +115,10 @@ describe("Clic sur un enfant", () => {
     expect(useFamilyStore.getState().activeChildId).toBe("c1");
   });
 
-  it("navigue vers la route timetable de l'enfant", () => {
+  it("navigue vers la route notes de l'enfant", () => {
     render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
     fireEvent.press(screen.getByTestId("child-card-c1"));
-    expect(mockPush).toHaveBeenCalledWith("/(home)/timetable/child/c1");
+    expect(mockPush).toHaveBeenCalledWith("/(home)/notes/child/c1");
   });
 
   it("setActiveChild est appelé avec le bon id pour le deuxième enfant", () => {
@@ -127,10 +127,10 @@ describe("Clic sur un enfant", () => {
     expect(useFamilyStore.getState().activeChildId).toBe("c2");
   });
 
-  it("navigue vers la route timetable du deuxième enfant", () => {
+  it("navigue vers la route notes du deuxième enfant", () => {
     render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
     fireEvent.press(screen.getByTestId("child-card-c2"));
-    expect(mockPush).toHaveBeenCalledWith("/(home)/timetable/child/c2");
+    expect(mockPush).toHaveBeenCalledWith("/(home)/notes/child/c2");
   });
 });
 

@@ -83,6 +83,7 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
             icon: "journal",
             label: "Cahier de notes",
             color: colors.accentTeal,
+            onPress: () => router.push("/(home)/notes"),
           },
           {
             icon: "chatbubble",

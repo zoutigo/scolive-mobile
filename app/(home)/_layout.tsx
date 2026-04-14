@@ -54,6 +54,18 @@ export default function HomeLayout() {
         name="timetable/child/[childId]"
         options={{ animation: "slide_from_right" }}
       />
+      <Stack.Screen
+        name="notes/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="notes/class/[classId]"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="notes/child/[childId]"
+        options={{ animation: "slide_from_right" }}
+      />
     </Stack>
   );
 }

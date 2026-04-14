@@ -74,6 +74,11 @@ export function SchoolHome({ user, schoolSlug }: SchoolHomeProps) {
 
     if (label === "Emploi du temps") {
       router.push("/(home)/timetable");
+      return;
+    }
+
+    if (label === "Notes") {
+      router.push("/(home)/notes");
     }
   }
 
@@ -149,6 +154,7 @@ export function SchoolHome({ user, schoolSlug }: SchoolHomeProps) {
           icon="ribbon-outline"
           label="Notes"
           color={colors.warmAccent}
+          onPress={() => handleQuickLinkPress("Notes")}
         />
         <QuickLink
           icon="chatbubble-outline"

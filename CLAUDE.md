@@ -82,6 +82,8 @@ Architecture locale :
 
 Flows disponibles :
 
+- `notes-parent`
+- `notes-crud-teacher`
 - `smoke`
 - `auth-email`
 - `auth-phone`
@@ -96,6 +98,8 @@ Commandes utiles :
 ```bash
 npm run maestro:install
 npm run e2e:build
+npm run e2e:test:notes:parent
+npm run e2e:test:notes:crud
 npm run e2e:test:smoke
 npm run e2e:test:auth-email
 npm run e2e:test:auth-phone
@@ -115,8 +119,64 @@ Lecture des commandes :
 - `npm run e2e` rebâtit l'APK release puis lance toute la suite
 - `auth-google` ouvre directement `/auth/callback` via deep link et valide l'arrivée sur l'écran authentifié
 - le runner Maestro détecte s'il parle au mock server ou à l'API réelle
-- il installe l'APK Android la plus récente disponible entre `debug` et `release`
+- pour éviter les faux positifs E2E, il faut privilégier explicitement l'APK `release`
 - les flows E2E doivent tourner sur l'AVD dédié `Scolive_E2E_GooglePlay_API33`, jamais sur l'AVD de dev
+
+### Procédure locale correcte pour Maestro
+
+Le mock server Maestro doit occuper le port `3001`. Si un autre process écoute déjà sur `3001`, les flows E2E parleront au mauvais backend et échoueront de façon trompeuse.
+
+Avant chaque campagne Maestro :
+
+```bash
+cd /home/zoutigo/projets/scolive/scolive-mobile
+lsof -ti :3001 | xargs -r kill
+curl -sS --max-time 1 http://127.0.0.1:3001/api/health || true
+```
+
+Le `curl` doit échouer avant le lancement. S'il répond encore, il y a toujours un process parasite sur `3001`.
+
+Émulateur obligatoire pour les E2E :
+
+```bash
+bash scripts/android-emulator-nvidia.sh Scolive_E2E_GooglePlay_API33
+```
+
+Ne jamais lancer Maestro sur `Scolive_GooglePlay_API33`.
+
+APK à utiliser :
+
+```bash
+android/app/build/outputs/apk/release/app-release.apk
+```
+
+Ne pas utiliser l'APK `debug` pour les flows Maestro.
+
+Séquence fiable validée :
+
+```bash
+cd /home/zoutigo/projets/scolive/scolive-mobile
+lsof -ti :3001 | xargs -r kill
+bash scripts/android-emulator-nvidia.sh Scolive_E2E_GooglePlay_API33
+npm run android:build:release
+ANDROID_SERIAL=emulator-5556 npm run e2e:test:notes:parent
+ANDROID_SERIAL=emulator-5556 npm run e2e:test:notes:crud
+```
+
+Couverture E2E notes validée :
+
+- `notes-parent` : consultation parent/enfant
+- `notes-crud-teacher` : création d'évaluation, mise à jour, saisie des notes et conseil de classe
+
+La suppression d'évaluation n'est pas encore couverte car elle n'est pas exposée dans l'UI mobile actuelle.
+
+Si l'on veut tuer d'abord tout émulateur Android actif pour éviter les confusions :
+
+```bash
+adb devices -l
+adb -s emulator-5554 emu kill || true
+adb -s emulator-5556 emu kill || true
+```
 
 ## Comportement clavier Android — règle absolue
 

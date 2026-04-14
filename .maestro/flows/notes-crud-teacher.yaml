@@ -1,0 +1,262 @@
+appId: com.zoutigo.scoliveapp
+name: Notes CRUD Teacher
+tags:
+  - notes
+  - teacher
+  - crud
+---
+- runFlow:
+    when:
+      visible: "Process system isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "tab-email"
+- tapOn:
+    id: "input-email"
+- inputText: "teacher@ecole.cm"
+- hideKeyboard
+- tapOn:
+    id: "input-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- runFlow:
+    when:
+      visible: "Save password to Google?"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible:
+      id: "header-menu-btn"
+    timeout: 20000
+- tapOn:
+    id: "header-menu-btn"
+- extendedWaitUntil:
+    visible:
+      id: "nav-item-gradebook"
+    timeout: 10000
+- tapOn:
+    id: "nav-item-gradebook"
+- extendedWaitUntil:
+    visible:
+      id: "notes-class-card-class-6a"
+    timeout: 15000
+- tapOn:
+    id: "notes-class-card-class-6a"
+- extendedWaitUntil:
+    visible:
+      id: "class-notes-header"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "class-notes-form-title"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 30
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "class-notes-form-title"
+- inputText: "Evaluation E2E Notes"
+- hideKeyboard
+- tapOn:
+    id: "class-notes-form-scheduledAt"
+- inputText: "2026-04-13T08:00:00.000Z"
+- hideKeyboard
+- tapOn:
+    id: "class-notes-form-coefficient"
+- eraseText
+- inputText: "3"
+- hideKeyboard
+- tapOn:
+    id: "class-notes-form-maxScore"
+- eraseText
+- inputText: "20"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "class-notes-save-evaluation"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 30
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "class-notes-save-evaluation"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Évaluation créée"
+- tapOn:
+    id: "success-toast-close"
+- scrollUntilVisible:
+    element:
+      id: "class-evaluation-row-eval-evaluation-e2e-notes"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 20
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- longPressOn:
+    id: "class-evaluation-row-eval-evaluation-e2e-notes"
+- scrollUntilVisible:
+    element:
+      id: "class-notes-form-title"
+    direction: UP
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 30
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "class-notes-form-title"
+- eraseText
+- inputText: "Evaluation E2E Notes Maj"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "class-notes-save-evaluation"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 30
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "class-notes-save-evaluation"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Évaluation mise à jour"
+- tapOn:
+    id: "success-toast-close"
+- scrollUntilVisible:
+    element:
+      id: "class-notes-tab-scores"
+    direction: UP
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 30
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "class-notes-tab-scores"
+- scrollUntilVisible:
+    element:
+      id: "class-notes-score-evaluation-eval-evaluation-e2e-notes"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 30
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "class-notes-score-evaluation-eval-evaluation-e2e-notes"
+- scrollUntilVisible:
+    element:
+      id: "class-notes-score-value-child-1"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 30
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "class-notes-score-value-child-1"
+- eraseText
+- inputText: "16"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "class-notes-save-scores"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 30
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "class-notes-save-scores"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Notes enregistrées"
+- tapOn:
+    id: "success-toast-close"
+- scrollUntilVisible:
+    element:
+      id: "class-notes-tab-council"
+    direction: UP
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 30
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "class-notes-tab-council"
+- extendedWaitUntil:
+    visible:
+      id: "class-notes-council-heldAt"
+    timeout: 10000
+- tapOn:
+    id: "class-notes-council-heldAt"
+- eraseText
+- inputText: "2026-04-18T15:00:00.000Z"
+- hideKeyboard
+- tapOn:
+    id: "class-notes-council-general-child-1"
+- eraseText
+- inputText: "Excellente implication pendant le trimestre."
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "class-notes-council-subject-child-1-subject-math"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 30
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "class-notes-council-subject-child-1-subject-math"
+- eraseText
+- inputText: "Tres bonne progression en calcul."
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "class-notes-save-council"
+    direction: DOWN
+    timeout: 10000
+    speed: 60
+    visibilityPercentage: 30
+    centerElement: true
+    waitToSettleTimeoutMs: 800
+- tapOn:
+    id: "class-notes-save-council"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Conseil de classe enregistré"

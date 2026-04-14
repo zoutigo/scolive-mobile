@@ -41,4 +41,12 @@ describe("SchoolHome", () => {
 
     expect(mockPush).toHaveBeenCalledWith("/(home)/messages");
   });
+
+  it("navigue vers les notes depuis la navigation rapide", () => {
+    render(<SchoolHome user={schoolUser} schoolSlug="college-vogt" />);
+
+    fireEvent.press(screen.getByText("Notes"));
+
+    expect(mockPush).toHaveBeenCalledWith("/(home)/notes");
+  });
 });

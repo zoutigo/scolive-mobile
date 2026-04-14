@@ -418,6 +418,335 @@ const MOCK_TIMETABLE_CONTEXT = {
   ],
 };
 
+const MOCK_STUDENT_NOTES = {
+  "child-1": [
+    {
+      term: "TERM_1",
+      label: "Trimestre 1",
+      councilLabel: "6e C • Conseil de classe de 6eC le 09/12/2025 17:30",
+      generatedAtLabel: "Donnees publiees le 12/03/2026 16:58",
+      generalAverage: {
+        student: 13.22,
+        class: 14.62,
+        min: 9.5,
+        max: 18.6,
+      },
+      subjects: [
+        {
+          id: "subject-anglais",
+          subjectLabel: "Anglais",
+          teachers: ["Mme Rousselot"],
+          coefficient: 1,
+          studentAverage: 13.31,
+          classAverage: 14.74,
+          classMin: 11.8,
+          classMax: 17.7,
+          appreciation:
+            "Des bases presentes, mais il faut davantage s'entrainer a l'ecrit.",
+          evaluations: [
+            {
+              id: "eval-ang-1",
+              label: "Sequence 1",
+              score: 14.6,
+              maxScore: 20,
+              weight: 1,
+              recordedAt: "2026-03-12",
+              status: "ENTERED",
+            },
+            {
+              id: "eval-ang-2",
+              label: "Composition",
+              score: 26.4,
+              maxScore: 40,
+              weight: 2,
+              recordedAt: "2026-03-12",
+              status: "ENTERED",
+            },
+            {
+              id: "eval-ang-3",
+              label: "Interrogation",
+              score: 11.8,
+              maxScore: 20,
+              weight: 1,
+              recordedAt: "2026-03-12",
+              status: "ENTERED",
+            },
+          ],
+        },
+        {
+          id: "subject-geo",
+          subjectLabel: "Geographie",
+          teachers: ["M. Manga"],
+          coefficient: 2,
+          studentAverage: 11.01,
+          classAverage: 12.13,
+          classMin: 9.5,
+          classMax: 15,
+          appreciation:
+            "Des connaissances a consolider sur les reperes essentiels.",
+          evaluations: [
+            {
+              id: "eval-geo-1",
+              label: "Carte",
+              score: 12.3,
+              maxScore: 20,
+              weight: 1,
+              recordedAt: "2026-03-14",
+              status: "ENTERED",
+            },
+            {
+              id: "eval-geo-2",
+              label: "Devoir surveille",
+              score: 9.5,
+              maxScore: 20,
+              weight: 1,
+              recordedAt: "2026-03-14",
+              status: "ENTERED",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      term: "TERM_3",
+      label: "Trimestre 3",
+      councilLabel: "6e C • Conseil de classe de 6eC le 13/04/2026 17:30",
+      generatedAtLabel: "Donnees publiees le 13/04/2026 18:05",
+      generalAverage: {
+        student: 14.05,
+        class: 13.1,
+        min: 8.5,
+        max: 18.9,
+      },
+      subjects: [
+        {
+          id: "subject-math",
+          subjectLabel: "Mathematiques",
+          teachers: ["M. Manga"],
+          coefficient: 4,
+          studentAverage: 14.2,
+          classAverage: 12.8,
+          classMin: 8.5,
+          classMax: 18.9,
+          appreciation: "Bonne regularite sur la periode.",
+          evaluations: [
+            {
+              id: "eval-math-t3-1",
+              label: "Interro fractions",
+              score: 15,
+              maxScore: 20,
+              weight: 1,
+              recordedAt: "2026-04-12",
+              status: "ENTERED",
+            },
+            {
+              id: "eval-math-t3-2",
+              label: "Composition",
+              score: 28,
+              maxScore: 40,
+              weight: 2,
+              recordedAt: "2026-04-12",
+              status: "ENTERED",
+            },
+          ],
+        },
+        {
+          id: "subject-geo-t3",
+          subjectLabel: "Geographie",
+          teachers: ["Mme Rousselot"],
+          coefficient: 2,
+          studentAverage: 10.8,
+          classAverage: 12.1,
+          classMin: 9.2,
+          classMax: 15.4,
+          appreciation: "Repres geographiques a renforcer.",
+          evaluations: [
+            {
+              id: "eval-geo-t3-1",
+              label: "Croquis",
+              score: 9.5,
+              maxScore: 20,
+              weight: 1,
+              recordedAt: "2026-04-13",
+              status: "ENTERED",
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+const MOCK_NOTES_TEACHER_CONTEXT = {
+  class: {
+    id: "class-6a",
+    name: "6e A",
+    schoolYearId: "sy-1",
+  },
+  subjects: [
+    {
+      id: "subject-math",
+      name: "Maths",
+      branches: [{ id: "branch-math-general", name: "Tronc commun" }],
+    },
+    {
+      id: "subject-fr",
+      name: "Français",
+      branches: [{ id: "branch-fr-general", name: "Expression écrite" }],
+    },
+  ],
+  evaluationTypes: [
+    {
+      id: "evaltype-test",
+      code: "TEST",
+      label: "Interrogation",
+      isDefault: true,
+    },
+    {
+      id: "evaltype-exam",
+      code: "EXAM",
+      label: "Composition",
+      isDefault: false,
+    },
+  ],
+  students: [
+    { id: "child-1", firstName: "Remi", lastName: "Ntamack" },
+    { id: "child-2", firstName: "Lina", lastName: "Ntamack" },
+  ],
+};
+
+function createInitialNotesState() {
+  const baseEvaluation = {
+    id: "eval-math-initial",
+    title: "Composition math T1",
+    description: "Evaluation initiale de reference",
+    coefficient: 2,
+    maxScore: 20,
+    term: "TERM_1",
+    status: "PUBLISHED",
+    scheduledAt: "2026-01-15T08:00:00.000Z",
+    createdAt: "2026-01-10T10:00:00.000Z",
+    updatedAt: "2026-01-10T10:00:00.000Z",
+    subject: { id: "subject-math", name: "Maths" },
+    subjectBranch: { id: "branch-math-general", name: "Tronc commun" },
+    evaluationType: {
+      id: "evaltype-exam",
+      code: "EXAM",
+      label: "Composition",
+    },
+    attachments: [],
+    _count: { scores: 2 },
+  };
+
+  return {
+    evaluations: [baseEvaluation],
+    evaluationDetails: {
+      "eval-math-initial": {
+        ...baseEvaluation,
+        students: [
+          {
+            id: "child-1",
+            firstName: "Remi",
+            lastName: "Ntamack",
+            score: 14,
+            scoreStatus: "ENTERED",
+            comment: "Bonne maitrise",
+          },
+          {
+            id: "child-2",
+            firstName: "Lina",
+            lastName: "Ntamack",
+            score: 12,
+            scoreStatus: "ENTERED",
+            comment: "Encore quelques erreurs",
+          },
+        ],
+      },
+    },
+    termReports: {
+      TERM_1: {
+        term: "TERM_1",
+        status: "DRAFT",
+        councilHeldAt: "2026-01-20T15:00:00.000Z",
+        students: [
+          {
+            studentId: "child-1",
+            firstName: "Remi",
+            lastName: "Ntamack",
+            generalAppreciation: "Bon trimestre de depart.",
+            subjects: [
+              {
+                subjectId: "subject-math",
+                appreciation: "Bases bien installees.",
+              },
+              {
+                subjectId: "subject-fr",
+                appreciation: "Expression a fluidifier.",
+              },
+            ],
+          },
+          {
+            studentId: "child-2",
+            firstName: "Lina",
+            lastName: "Ntamack",
+            generalAppreciation: "Participation reguliere.",
+            subjects: [
+              {
+                subjectId: "subject-math",
+                appreciation: "Peut aller plus loin sur les problemes.",
+              },
+              {
+                subjectId: "subject-fr",
+                appreciation: "Bonne lecture.",
+              },
+            ],
+          },
+        ],
+      },
+      TERM_2: {
+        term: "TERM_2",
+        status: "DRAFT",
+        councilHeldAt: null,
+        students: MOCK_NOTES_TEACHER_CONTEXT.students.map((student) => ({
+          studentId: student.id,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          generalAppreciation: "",
+          subjects: MOCK_NOTES_TEACHER_CONTEXT.subjects.map((subject) => ({
+            subjectId: subject.id,
+            appreciation: "",
+          })),
+        })),
+      },
+      TERM_3: {
+        term: "TERM_3",
+        status: "DRAFT",
+        councilHeldAt: null,
+        students: MOCK_NOTES_TEACHER_CONTEXT.students.map((student) => ({
+          studentId: student.id,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          generalAppreciation: "",
+          subjects: MOCK_NOTES_TEACHER_CONTEXT.subjects.map((subject) => ({
+            subjectId: subject.id,
+            appreciation: "",
+          })),
+        })),
+      },
+    },
+  };
+}
+
+function slugifyValue(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+}
+
 function createInitialTimetableState() {
   return {
     slots: [
@@ -481,6 +810,8 @@ let timetableSlotCounter = 10;
 let timetableOneOffCounter = 10;
 let timetableEventCounter = 10;
 let mockTimetableState = createInitialTimetableState();
+let notesEvaluationCounter = 10;
+let mockNotesState = createInitialNotesState();
 
 const MOCK_RECIPIENTS = {
   teachers: [
@@ -518,6 +849,8 @@ function resetMockState() {
   timetableOneOffCounter = 10;
   timetableEventCounter = 10;
   mockTimetableState = createInitialTimetableState();
+  notesEvaluationCounter = 10;
+  mockNotesState = createInitialNotesState();
   lifeEventCounter = 10;
   mockLifeEventsByStudent = createInitialLifeEventsByStudent();
 }
@@ -602,6 +935,35 @@ function buildMyTimetablePayload() {
     calendarEvents: mockTimetableState.calendarEvents,
     subjectStyles: mockTimetableState.subjectStyles,
   };
+}
+
+function listNoteReports(term) {
+  const reports = Object.values(mockNotesState.termReports);
+  return term ? reports.filter((entry) => entry.term === term) : reports;
+}
+
+function resolveNotesSubject(subjectId) {
+  return (
+    MOCK_NOTES_TEACHER_CONTEXT.subjects.find(
+      (subject) => subject.id === subjectId,
+    ) ?? MOCK_NOTES_TEACHER_CONTEXT.subjects[0]
+  );
+}
+
+function resolveNotesBranch(subject, subjectBranchId) {
+  return (
+    subject.branches.find((branch) => branch.id === subjectBranchId) ??
+    subject.branches[0] ??
+    null
+  );
+}
+
+function resolveEvaluationType(evaluationTypeId) {
+  return (
+    MOCK_NOTES_TEACHER_CONTEXT.evaluationTypes.find(
+      (entry) => entry.id === evaluationTypeId,
+    ) ?? MOCK_NOTES_TEACHER_CONTEXT.evaluationTypes[0]
+  );
 }
 
 function buildClassTimetablePayload() {
@@ -1124,6 +1486,10 @@ function handleRequest(req, res) {
     return json(res, 200, { items: mockLifeEventsByStudent });
   }
 
+  if (method === "GET" && path === "/__state/notes") {
+    return json(res, 200, mockNotesState);
+  }
+
   if (method === "GET" && path === "/mock/media/inline-image.png") {
     return bytes(res, 200, INLINE_IMAGE_PNG, "image/png");
   }
@@ -1407,6 +1773,263 @@ function handleRequest(req, res) {
     path === "/api/schools/ecole-demo/student-grades/context"
   ) {
     return json(res, 200, MOCK_TIMETABLE_CONTEXT);
+  }
+
+  const studentNotesMatch = path.match(
+    /^\/api\/schools\/ecole-demo\/students\/([^/]+)\/notes$/,
+  );
+  if (method === "GET" && studentNotesMatch) {
+    const studentId = decodeURIComponent(studentNotesMatch[1]);
+    const term = requestUrl.searchParams.get("term");
+    const snapshots = MOCK_STUDENT_NOTES[studentId] ?? [];
+
+    return json(
+      res,
+      200,
+      term ? snapshots.filter((entry) => entry.term === term) : snapshots,
+    );
+  }
+
+  if (
+    method === "GET" &&
+    path === "/api/schools/ecole-demo/classes/class-6a/evaluations/context"
+  ) {
+    return json(res, 200, MOCK_NOTES_TEACHER_CONTEXT);
+  }
+
+  if (
+    method === "GET" &&
+    path === "/api/schools/ecole-demo/classes/class-6a/evaluations"
+  ) {
+    return json(res, 200, mockNotesState.evaluations);
+  }
+
+  if (
+    method === "POST" &&
+    path === "/api/schools/ecole-demo/classes/class-6a/evaluations"
+  ) {
+    readBody(req).then((raw) => {
+      const payload = parseJsonSafe(raw);
+      const subject = resolveNotesSubject(payload.subjectId);
+      const branch = resolveNotesBranch(subject, payload.subjectBranchId);
+      const evaluationType = resolveEvaluationType(payload.evaluationTypeId);
+      const titleSlug = slugifyValue(
+        payload.title || `evaluation-${notesEvaluationCounter + 1}`,
+      );
+
+      notesEvaluationCounter += 1;
+      const now = "2026-04-13T11:45:00.000Z";
+      const created = {
+        id: `eval-${titleSlug}`,
+        title: payload.title || "Evaluation sans titre",
+        description: payload.description || "",
+        coefficient: Number(payload.coefficient ?? 1),
+        maxScore: Number(payload.maxScore ?? 20),
+        term: payload.term || "TERM_1",
+        status: payload.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
+        scheduledAt: payload.scheduledAt || now,
+        createdAt: now,
+        updatedAt: now,
+        subject: { id: subject.id, name: subject.name },
+        subjectBranch: branch ? { id: branch.id, name: branch.name } : null,
+        evaluationType: {
+          id: evaluationType.id,
+          code: evaluationType.code,
+          label: evaluationType.label,
+        },
+        attachments: Array.isArray(payload.attachments)
+          ? payload.attachments
+          : [],
+        _count: { scores: 0 },
+      };
+
+      mockNotesState.evaluations = [created, ...mockNotesState.evaluations];
+      mockNotesState.evaluationDetails[created.id] = {
+        ...created,
+        students: MOCK_NOTES_TEACHER_CONTEXT.students.map((student) => ({
+          id: student.id,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          score: null,
+          scoreStatus: "NOT_GRADED",
+          comment: "",
+        })),
+      };
+
+      return json(res, 201, created);
+    });
+    return;
+  }
+
+  const classEvaluationMatch = path.match(
+    /^\/api\/schools\/ecole-demo\/classes\/class-6a\/evaluations\/([^/]+)$/,
+  );
+  if (method === "GET" && classEvaluationMatch) {
+    const evaluationId = decodeURIComponent(classEvaluationMatch[1]);
+    const detail = mockNotesState.evaluationDetails[evaluationId];
+    if (!detail) {
+      return json(res, 404, {
+        message: "Evaluation introuvable.",
+        statusCode: 404,
+      });
+    }
+    return json(res, 200, detail);
+  }
+
+  if (method === "PATCH" && classEvaluationMatch) {
+    readBody(req).then((raw) => {
+      const evaluationId = decodeURIComponent(classEvaluationMatch[1]);
+      const payload = parseJsonSafe(raw);
+      const current = mockNotesState.evaluationDetails[evaluationId];
+
+      if (!current) {
+        return json(res, 404, {
+          message: "Evaluation introuvable.",
+          statusCode: 404,
+        });
+      }
+
+      const subject = resolveNotesSubject(
+        payload.subjectId || current.subject.id,
+      );
+      const branch = resolveNotesBranch(
+        subject,
+        payload.subjectBranchId || current.subjectBranch?.id,
+      );
+      const evaluationType = resolveEvaluationType(
+        payload.evaluationTypeId || current.evaluationType.id,
+      );
+      const updated = {
+        ...current,
+        title: payload.title ?? current.title,
+        description: payload.description ?? current.description,
+        coefficient: Number(payload.coefficient ?? current.coefficient),
+        maxScore: Number(payload.maxScore ?? current.maxScore),
+        term: payload.term ?? current.term,
+        status: payload.status ?? current.status,
+        scheduledAt: payload.scheduledAt ?? current.scheduledAt,
+        updatedAt: "2026-04-13T12:00:00.000Z",
+        subject: { id: subject.id, name: subject.name },
+        subjectBranch: branch ? { id: branch.id, name: branch.name } : null,
+        evaluationType: {
+          id: evaluationType.id,
+          code: evaluationType.code,
+          label: evaluationType.label,
+        },
+        attachments: Array.isArray(payload.attachments)
+          ? payload.attachments
+          : current.attachments,
+      };
+
+      mockNotesState.evaluationDetails[evaluationId] = updated;
+      mockNotesState.evaluations = mockNotesState.evaluations.map((entry) =>
+        entry.id === evaluationId ? { ...updated, students: undefined } : entry,
+      );
+      return json(
+        res,
+        200,
+        mockNotesState.evaluations.find((entry) => entry.id === evaluationId),
+      );
+    });
+    return;
+  }
+
+  const classEvaluationScoresMatch = path.match(
+    /^\/api\/schools\/ecole-demo\/classes\/class-6a\/evaluations\/([^/]+)\/scores$/,
+  );
+  if (method === "PATCH" && classEvaluationScoresMatch) {
+    readBody(req).then((raw) => {
+      const evaluationId = decodeURIComponent(classEvaluationScoresMatch[1]);
+      const payload = parseJsonSafe(raw);
+      const current = mockNotesState.evaluationDetails[evaluationId];
+
+      if (!current) {
+        return json(res, 404, {
+          message: "Evaluation introuvable.",
+          statusCode: 404,
+        });
+      }
+
+      const scores = Array.isArray(payload.scores) ? payload.scores : [];
+      const updatedStudents = current.students.map((student) => {
+        const draft = scores.find((entry) => entry.studentId === student.id);
+        if (!draft) return student;
+        return {
+          ...student,
+          score: draft.status === "ENTERED" ? Number(draft.score ?? 0) : null,
+          scoreStatus: draft.status || "NOT_GRADED",
+          comment: draft.comment || "",
+        };
+      });
+
+      const enteredCount = updatedStudents.filter(
+        (student) => student.scoreStatus === "ENTERED",
+      ).length;
+      const updated = {
+        ...current,
+        updatedAt: "2026-04-13T12:10:00.000Z",
+        students: updatedStudents,
+        _count: { scores: enteredCount },
+      };
+
+      mockNotesState.evaluationDetails[evaluationId] = updated;
+      mockNotesState.evaluations = mockNotesState.evaluations.map((entry) =>
+        entry.id === evaluationId
+          ? { ...entry, _count: { scores: enteredCount } }
+          : entry,
+      );
+      return json(res, 200, updated);
+    });
+    return;
+  }
+
+  if (
+    method === "GET" &&
+    path === "/api/schools/ecole-demo/classes/class-6a/term-reports"
+  ) {
+    const term = requestUrl.searchParams.get("term");
+    return json(res, 200, listNoteReports(term));
+  }
+
+  const termReportsMatch = path.match(
+    /^\/api\/schools\/ecole-demo\/classes\/class-6a\/term-reports\/([^/]+)$/,
+  );
+  if (method === "PATCH" && termReportsMatch) {
+    readBody(req).then((raw) => {
+      const term = decodeURIComponent(termReportsMatch[1]);
+      const payload = parseJsonSafe(raw);
+      const current = mockNotesState.termReports[term] ?? {
+        term,
+        status: "DRAFT",
+        councilHeldAt: null,
+        students: [],
+      };
+
+      const updated = {
+        ...current,
+        status: payload.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
+        councilHeldAt: payload.councilHeldAt || null,
+        students: Array.isArray(payload.students)
+          ? payload.students.map((entry) => ({
+              studentId: entry.studentId,
+              firstName:
+                MOCK_NOTES_TEACHER_CONTEXT.students.find(
+                  (student) => student.id === entry.studentId,
+                )?.firstName ?? "",
+              lastName:
+                MOCK_NOTES_TEACHER_CONTEXT.students.find(
+                  (student) => student.id === entry.studentId,
+                )?.lastName ?? "",
+              generalAppreciation: entry.generalAppreciation || "",
+              subjects: Array.isArray(entry.subjects) ? entry.subjects : [],
+            }))
+          : current.students,
+      };
+
+      mockNotesState.termReports[term] = updated;
+      return json(res, 200, listNoteReports());
+    });
+    return;
   }
 
   if (method === "GET" && path === "/api/schools/ecole-demo/timetable/me") {

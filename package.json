@@ -42,6 +42,8 @@
     "e2e:test:timetable:parent": "EMAIL_LOGIN_SCENARIO=happy_path bash scripts/maestro-run-flow.sh timetable-parent",
     "e2e:test:timetable:crud": "EMAIL_LOGIN_SCENARIO=happy_path bash scripts/maestro-run-flow.sh timetable-crud",
     "e2e:test:timetable:error": "EMAIL_LOGIN_SCENARIO=happy_path bash scripts/maestro-run-flow.sh timetable-error",
+    "e2e:test:notes:parent": "EMAIL_LOGIN_SCENARIO=happy_path bash scripts/maestro-run-flow.sh notes-parent",
+    "e2e:test:notes:crud": "EMAIL_LOGIN_SCENARIO=happy_path bash scripts/maestro-run-flow.sh notes-crud-teacher",
     "e2e:test:messaging": "EMAIL_LOGIN_SCENARIO=happy_path bash scripts/maestro-run-flow.sh messaging-compose",
     "e2e:test:discipline": "EMAIL_LOGIN_SCENARIO=happy_path DISCIPLINE_SCENARIO=happy_path bash scripts/maestro-run-flow.sh discipline",
     "e2e:test:discipline:error": "EMAIL_LOGIN_SCENARIO=happy_path DISCIPLINE_SCENARIO=list_error_once bash scripts/maestro-run-flow.sh discipline-error",

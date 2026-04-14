@@ -1,0 +1,80 @@
+appId: com.zoutigo.scoliveapp
+name: Notes Parent Overview
+tags:
+  - notes
+  - parent
+---
+- runFlow:
+    when:
+      visible: "Process system isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "tab-email"
+- tapOn:
+    id: "input-email"
+- inputText: "parent@ecole.cm"
+- hideKeyboard
+- tapOn:
+    id: "input-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- runFlow:
+    when:
+      visible: "Save password to Google?"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible: "Robert Ntamack"
+    timeout: 20000
+- tapOn:
+    id: "child-card-child-1"
+- extendedWaitUntil:
+    visible:
+      id: "child-notes-header"
+    timeout: 15000
+- assertVisible: "Evaluations et moyennes"
+- assertVisible: "Remi Ntamack • 6e C"
+- assertVisible: "Mathematiques"
+- assertVisible:
+    id: "child-notes-view-evaluations"
+- tapOn:
+    id: "child-notes-view-averages"
+- extendedWaitUntil:
+    visible:
+      id: "child-notes-averages-board"
+    timeout: 10000
+- assertVisible: "Bonne regularite sur la periode."
+- tapOn:
+    id: "child-notes-view-charts"
+- extendedWaitUntil:
+    visible: "Radar des moyennes"
+    timeout: 10000
+- assertVisible: "Moyenne eleve"
+- tapOn:
+    id: "child-notes-view-evaluations"
+- extendedWaitUntil:
+    visible: "Mathematiques"
+    timeout: 10000
+- tapOn:
+    id: "child-notes-evaluation-eval-math-t3-1"
+- extendedWaitUntil:
+    visible: "Interro fractions"
+    timeout: 10000
+- assertVisible: "15/20"
