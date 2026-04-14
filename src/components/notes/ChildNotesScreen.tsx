@@ -636,15 +636,6 @@ function ChartsView({ snapshot }: { snapshot: StudentNotesTermSnapshot }) {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.metricPill}>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={styles.metricValue}>{value}</Text>
-    </View>
-  );
-}
-
 function ComparisonBand({ subject }: { subject: StudentSubjectNotes }) {
   const min = subject.classMin ?? 0;
   const max = subject.classMax ?? 0;

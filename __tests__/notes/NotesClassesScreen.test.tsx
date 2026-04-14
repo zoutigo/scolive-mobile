@@ -6,7 +6,6 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { NotesClassesScreen } from "../../src/components/notes/NotesClassesScreen";
-import { colors } from "../../src/theme";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useNotesStore } from "../../src/store/notes.store";
 
