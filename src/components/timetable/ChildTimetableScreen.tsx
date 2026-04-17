@@ -15,29 +15,138 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
 import { useAuthStore } from "../../store/auth.store";
 import { useTimetableStore } from "../../store/timetable.store";
+import type { TimetableOccurrence } from "../../types/timetable.types";
 import {
-  buildDefaultDateRange,
-  formatDateInput,
-  formatHumanDate,
-  parseDateInput,
+  addDays,
+  addMonths,
+  buildCompactMonthCalendarCells,
+  buildTimetableRangeForView,
+  formatMonthLabel,
+  formatWeekRangeLabel,
+  fullTeacherName,
+  minuteToTimeLabel,
+  parseOccurrenceDate,
+  sameDate,
+  startOfWeek,
+  stripTime,
+  subjectShortLabel,
+  subjectVisualTone,
+  TimetableCalendarViewMode,
+  toIsoDateString,
+  toWeekdayMondayFirst,
 } from "../../utils/timetable";
-import {
-  EmptyState,
-  ErrorBanner,
-  LoadingBlock,
-  MiniIdentityCard,
-  OccurrencesAgenda,
-  SectionCard,
-  TextField,
-} from "./TimetableCommon";
+import { EmptyState, ErrorBanner, LoadingBlock } from "./TimetableCommon";
 
-function shiftRange(value: { fromDate: string; toDate: string }, days: number) {
-  const from = parseDateInput(value.fromDate);
-  const to = parseDateInput(value.toDate);
-  if (!from || !to) return value;
-  from.setDate(from.getDate() + days);
-  to.setDate(to.getDate() + days);
-  return { fromDate: formatDateInput(from), toDate: formatDateInput(to) };
+const MODE_OPTIONS: Array<{
+  value: TimetableCalendarViewMode;
+  label: string;
+}> = [
+  { value: "day", label: "Jour" },
+  { value: "week", label: "Semaine" },
+  { value: "month", label: "Mois" },
+];
+
+const WEEKDAY_LABELS_FULL = [
+  "Lundi",
+  "Mardi",
+  "Mercredi",
+  "Jeudi",
+  "Vendredi",
+  "Samedi",
+  "Dimanche",
+] as const;
+
+const WEEKDAY_LABELS_COMPACT = ["L", "M", "M", "J", "V", "S", "D"] as const;
+
+type WeekSelection = {
+  occurrence: TimetableOccurrence;
+  date: Date;
+};
+
+function teacherLabel(occurrence: TimetableOccurrence): string {
+  return fullTeacherName(occurrence.teacherUser);
+}
+
+function buildWeekDays(cursorDate: Date) {
+  const weekStart = startOfWeek(cursorDate);
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = addDays(weekStart, index);
+    return {
+      weekday: index + 1,
+      date,
+      label: WEEKDAY_LABELS_FULL[index] ?? "",
+      compactLabel: WEEKDAY_LABELS_COMPACT[index] ?? "",
+    };
+  });
+}
+
+function formatDayNavLabel(cursorDate: Date, today: Date) {
+  return sameDate(cursorDate, today)
+    ? "Aujourd'hui"
+    : new Intl.DateTimeFormat("fr-FR", {
+        day: "2-digit",
+        month: "short",
+      }).format(cursorDate);
+}
+
+function formatDetailDay(date: Date) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(date);
+}
+
+function findInitialWeekSelection(
+  occurrences: TimetableOccurrence[],
+  visibleWeekDays: ReturnType<typeof buildWeekDays>,
+  cursorDate: Date,
+): WeekSelection | null {
+  const byDate = visibleWeekDays.flatMap((entry) =>
+    occurrences
+      .filter(
+        (occurrence) =>
+          occurrence.occurrenceDate === toIsoDateString(entry.date) &&
+          (occurrence.status ?? "PLANNED") === "PLANNED",
+      )
+      .sort((a, b) => a.startMinute - b.startMinute)
+      .map((occurrence) => ({ occurrence, date: entry.date })),
+  );
+
+  return (
+    byDate.find((entry) => sameDate(entry.date, cursorDate)) ??
+    byDate[0] ??
+    null
+  );
+}
+
+function findInitialMonthSelection(
+  monthCells: Array<{ date: Date | null; slotsCount: number }>,
+  occurrences: TimetableOccurrence[],
+  cursorDate: Date,
+): Date | null {
+  const activeCursorCell = monthCells.find(
+    (entry) => entry.date && sameDate(entry.date, cursorDate),
+  );
+  if (activeCursorCell?.date) {
+    return activeCursorCell.date;
+  }
+
+  const firstPlannedOccurrence = occurrences
+    .filter((occurrence) => (occurrence.status ?? "PLANNED") === "PLANNED")
+    .map((occurrence) => parseOccurrenceDate(occurrence.occurrenceDate))
+    .find(
+      (date): date is Date =>
+        date instanceof Date &&
+        date.getMonth() === cursorDate.getMonth() &&
+        date.getFullYear() === cursorDate.getFullYear(),
+    );
+
+  return (
+    firstPlannedOccurrence ??
+    monthCells.find((entry) => entry.date)?.date ??
+    null
+  );
 }
 
 export function ChildTimetableScreen() {
@@ -53,7 +162,20 @@ export function ChildTimetableScreen() {
     loadMyTimetable,
     clearError,
   } = useTimetableStore();
-  const [range, setRange] = useState(buildDefaultDateRange());
+
+  const today = useMemo(() => stripTime(new Date()), []);
+  const [viewMode, setViewMode] = useState<TimetableCalendarViewMode>("day");
+  const [cursorDate, setCursorDate] = useState(today);
+  const [selectedWeekCell, setSelectedWeekCell] =
+    useState<WeekSelection | null>(null);
+  const [selectedMonthDate, setSelectedMonthDate] = useState<Date | null>(
+    today,
+  );
+
+  const range = useMemo(
+    () => buildTimetableRangeForView(viewMode, cursorDate),
+    [cursorDate, viewMode],
+  );
 
   const load = useCallback(async () => {
     if (!schoolSlug || !childId) return;
@@ -68,10 +190,152 @@ export function ChildTimetableScreen() {
     void load().catch(() => {});
   }, [load]);
 
-  const headline = useMemo(() => {
-    if (!myTimetable) return "Emploi du temps";
-    return `${myTimetable.student.lastName} ${myTimetable.student.firstName}`;
+  const subtitle = useMemo(() => {
+    if (!myTimetable) return "";
+    return `${myTimetable.student.firstName} ${myTimetable.student.lastName} • ${myTimetable.class.name}`;
   }, [myTimetable]);
+
+  const plannedOccurrences = useMemo(
+    () =>
+      (myTimetable?.occurrences ?? [])
+        .filter((occurrence) => (occurrence.status ?? "PLANNED") === "PLANNED")
+        .sort((a, b) =>
+          `${a.occurrenceDate}-${a.startMinute}`.localeCompare(
+            `${b.occurrenceDate}-${b.startMinute}`,
+          ),
+        ),
+    [myTimetable?.occurrences],
+  );
+
+  const { showSaturday, showSunday } = useMemo(() => {
+    const recurringSlots = myTimetable?.slots ?? [];
+    return {
+      showSaturday: recurringSlots.some((s) => s.weekday === 6),
+      showSunday: recurringSlots.some((s) => s.weekday === 7),
+    };
+  }, [myTimetable?.slots]);
+
+  const subjectColorById = useMemo(
+    () =>
+      Object.fromEntries(
+        (myTimetable?.subjectStyles ?? []).map((entry) => [
+          entry.subjectId,
+          entry.colorHex,
+        ]),
+      ),
+    [myTimetable?.subjectStyles],
+  );
+
+  const daySlots = useMemo(
+    () =>
+      plannedOccurrences.filter(
+        (occurrence) =>
+          occurrence.occurrenceDate === toIsoDateString(cursorDate),
+      ),
+    [cursorDate, plannedOccurrences],
+  );
+
+  const weekDays = useMemo(() => buildWeekDays(cursorDate), [cursorDate]);
+  const visibleWeekDays = useMemo(
+    () =>
+      weekDays.filter((entry) => {
+        if (entry.weekday <= 5) return true;
+        if (entry.weekday === 6) return showSaturday;
+        if (entry.weekday === 7) return showSunday;
+        return false;
+      }),
+    [showSaturday, showSunday, weekDays],
+  );
+
+  useEffect(() => {
+    if (viewMode !== "week") return;
+    setSelectedWeekCell(
+      findInitialWeekSelection(plannedOccurrences, visibleWeekDays, cursorDate),
+    );
+  }, [cursorDate, plannedOccurrences, viewMode, visibleWeekDays]);
+
+  const compactMonthCells = useMemo(
+    () =>
+      buildCompactMonthCalendarCells(
+        cursorDate,
+        plannedOccurrences,
+        showSaturday,
+        showSunday,
+      ),
+    [cursorDate, showSaturday, showSunday, plannedOccurrences],
+  );
+
+  useEffect(() => {
+    if (viewMode !== "month") return;
+    setSelectedMonthDate(
+      findInitialMonthSelection(
+        compactMonthCells,
+        plannedOccurrences,
+        cursorDate,
+      ),
+    );
+  }, [compactMonthCells, cursorDate, plannedOccurrences, viewMode]);
+
+  const monthAgenda = useMemo(() => {
+    if (!selectedMonthDate) return [];
+    return plannedOccurrences.filter(
+      (occurrence) =>
+        occurrence.occurrenceDate === toIsoDateString(selectedMonthDate),
+    );
+  }, [plannedOccurrences, selectedMonthDate]);
+
+  const periodLabel = useMemo(() => {
+    if (viewMode === "day") {
+      return formatDayNavLabel(cursorDate, today);
+    }
+    if (viewMode === "week") {
+      return sameDate(startOfWeek(cursorDate), startOfWeek(today))
+        ? "Cette semaine"
+        : formatWeekRangeLabel(cursorDate);
+    }
+    return cursorDate.getMonth() === today.getMonth() &&
+      cursorDate.getFullYear() === today.getFullYear()
+      ? "Ce mois"
+      : formatMonthLabel(cursorDate);
+  }, [cursorDate, today, viewMode]);
+
+  function moveCursor(direction: -1 | 1) {
+    if (viewMode === "day") {
+      const hiddenWeekdays = [
+        ...(showSaturday ? [] : [6]),
+        ...(showSunday ? [] : [7]),
+      ];
+      let next = addDays(cursorDate, direction);
+      while (hiddenWeekdays.includes(toWeekdayMondayFirst(next))) {
+        next = addDays(next, direction);
+      }
+      setCursorDate(next);
+      return;
+    }
+
+    if (viewMode === "week") {
+      setCursorDate(addDays(cursorDate, direction * 7));
+      return;
+    }
+
+    setCursorDate(addMonths(cursorDate, direction));
+  }
+
+  function resetToCurrentPeriod() {
+    const hiddenWeekdays = [
+      ...(showSaturday ? [] : [6]),
+      ...(showSunday ? [] : [7]),
+    ];
+    if (viewMode === "day" && hiddenWeekdays.length > 0) {
+      let next = today;
+      while (hiddenWeekdays.includes(toWeekdayMondayFirst(next))) {
+        next = addDays(next, 1);
+      }
+      setCursorDate(next);
+      return;
+    }
+    setCursorDate(today);
+  }
 
   return (
     <KeyboardAvoidingView
@@ -96,254 +360,899 @@ export function ChildTimetableScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.headerRow}>
+        <View style={styles.headerCard} testID="child-timetable-header">
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backBtn}
             testID="child-timetable-back"
           >
-            <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
+            <Ionicons name="arrow-back" size={20} color={colors.white} />
           </TouchableOpacity>
           <View style={styles.headerText}>
-            <Text style={styles.eyebrow}>Portail famille</Text>
-            <Text style={styles.title}>{headline}</Text>
-            <Text style={styles.subtitle}>
-              Vue mobile de l'emploi du temps, optimisée pour un suivi rapide à
-              la semaine.
+            <Text style={styles.title} testID="child-timetable-header-title">
+              Emploi du temps
+            </Text>
+            <Text
+              style={styles.subtitle}
+              testID="child-timetable-header-subtitle"
+            >
+              {subtitle}
             </Text>
           </View>
         </View>
 
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
-        <SectionCard
-          title="Période affichée"
-          subtitle="Ajustez la fenêtre si vous voulez préparer la semaine suivante ou revoir les cours passés."
-          action={
-            <TouchableOpacity
-              style={styles.reloadBtn}
-              onPress={() => void load().catch(() => {})}
-            >
-              <Ionicons
-                name="refresh-outline"
-                size={18}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
-          }
-        >
-          <View style={styles.rangeRow}>
-            <TextField
-              label="Du"
-              value={range.fromDate}
-              onChangeText={(fromDate) =>
-                setRange((current) => ({ ...current, fromDate }))
-              }
-              placeholder="2026-04-13"
-              testID="child-timetable-from-date"
-            />
-            <TextField
-              label="Au"
-              value={range.toDate}
-              onChangeText={(toDate) =>
-                setRange((current) => ({ ...current, toDate }))
-              }
-              placeholder="2026-05-03"
-              testID="child-timetable-to-date"
-            />
-          </View>
-          <View style={styles.quickActionsRow}>
-            <TouchableOpacity
-              style={styles.quickAction}
-              onPress={() => setRange((current) => shiftRange(current, -7))}
-            >
-              <Text style={styles.quickActionText}>Semaine précédente</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.quickAction}
-              onPress={() => setRange(buildDefaultDateRange())}
-            >
-              <Text style={styles.quickActionText}>Aujourd'hui</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.quickAction}
-              onPress={() => setRange((current) => shiftRange(current, 7))}
-            >
-              <Text style={styles.quickActionText}>Semaine suivante</Text>
-            </TouchableOpacity>
-          </View>
-        </SectionCard>
-
         {isLoadingMyTimetable && !myTimetable ? (
-          <SectionCard title="Agenda">
+          <View style={styles.panelCard}>
             <LoadingBlock label="Chargement de l'emploi du temps..." />
-          </SectionCard>
+          </View>
         ) : myTimetable ? (
-          <>
-            <MiniIdentityCard
-              title={`${myTimetable.student.lastName} ${myTimetable.student.firstName}`}
-              subtitle={`${myTimetable.class.name} • du ${formatHumanDate(range.fromDate)} au ${formatHumanDate(range.toDate)}`}
-              accent={colors.warmAccent}
-            />
+          <View style={styles.moduleCard}>
+            <View style={styles.modeTabs} testID="child-timetable-mode-tabs">
+              {MODE_OPTIONS.map((entry) => {
+                const active = viewMode === entry.value;
+                return (
+                  <TouchableOpacity
+                    key={entry.value}
+                    style={[styles.modeTab, active && styles.modeTabActive]}
+                    onPress={() => setViewMode(entry.value)}
+                    testID={`child-timetable-mode-${entry.value}`}
+                  >
+                    <Text
+                      style={[
+                        styles.modeTabText,
+                        active && styles.modeTabTextActive,
+                      ]}
+                    >
+                      {entry.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
-            <SectionCard
-              title="Agenda des cours"
-              subtitle="Chaque créneau affiche la matière, l'enseignant et la salle. Les annulations restent visibles."
-            >
-              <OccurrencesAgenda
-                occurrences={myTimetable.occurrences}
-                subjectStyles={myTimetable.subjectStyles}
-                emptyTitle="Aucun cours sur cette période"
-                emptyMessage="Essayez une autre plage de dates pour consulter le reste du planning."
-                testID="child-timetable-occurrences"
-              />
-            </SectionCard>
-
-            <SectionCard
-              title="Temps forts"
-              subtitle="Fermetures et jours sans cours définis par l'établissement."
-            >
-              {myTimetable.calendarEvents.length === 0 ? (
-                <EmptyState
-                  icon="sunny-outline"
-                  title="Pas d'événement particulier"
-                  message="Les jours fériés ou congés connus sur cette période apparaîtront ici."
+            <View style={styles.periodNavRow}>
+              <TouchableOpacity
+                style={styles.periodNavButton}
+                onPress={() => moveCursor(-1)}
+                testID="child-timetable-nav-prev"
+              >
+                <Ionicons
+                  name="chevron-back"
+                  size={18}
+                  color={colors.primary}
                 />
-              ) : (
-                <View style={styles.eventList}>
-                  {myTimetable.calendarEvents.map((event) => (
-                    <View key={event.id} style={styles.eventRow}>
-                      <Ionicons
-                        name="sunny-outline"
-                        size={18}
-                        color={colors.warmAccent}
-                      />
-                      <View style={styles.eventBody}>
-                        <Text style={styles.eventTitle}>{event.label}</Text>
-                        <Text style={styles.eventText}>
-                          {formatHumanDate(event.startDate)} au{" "}
-                          {formatHumanDate(event.endDate)}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </SectionCard>
-          </>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.periodLabelButton}
+                onPress={resetToCurrentPeriod}
+                testID="child-timetable-nav-label"
+              >
+                <Text style={styles.periodLabelText}>{periodLabel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.periodNavButton}
+                onPress={() => moveCursor(1)}
+                testID="child-timetable-nav-next"
+              >
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {viewMode === "day" ? (
+              <View style={styles.dayList} testID="child-timetable-day-list">
+                {daySlots.length === 0 ? (
+                  <EmptyState
+                    icon="calendar-clear-outline"
+                    title="Aucun cours"
+                    message="Aucun créneau n'est prévu pour cette journée."
+                  />
+                ) : (
+                  daySlots.map((occurrence) => (
+                    <DayCard
+                      key={occurrence.id}
+                      occurrence={occurrence}
+                      colorHex={subjectColorById[occurrence.subject.id]}
+                    />
+                  ))
+                )}
+              </View>
+            ) : null}
+
+            {viewMode === "week" ? (
+              <View style={styles.weekSection}>
+                <WeekGrid
+                  visibleWeekDays={visibleWeekDays}
+                  occurrences={plannedOccurrences}
+                  selectedWeekCell={selectedWeekCell}
+                  setSelectedWeekCell={setSelectedWeekCell}
+                  subjectColorById={subjectColorById}
+                  today={today}
+                />
+                <WeekDetailCard
+                  selectedWeekCell={selectedWeekCell}
+                  colorHex={
+                    selectedWeekCell
+                      ? subjectColorById[selectedWeekCell.occurrence.subject.id]
+                      : undefined
+                  }
+                />
+              </View>
+            ) : null}
+
+            {viewMode === "month" ? (
+              <View style={styles.monthSection}>
+                <MonthGrid
+                  cells={compactMonthCells}
+                  selectedDate={selectedMonthDate}
+                  onSelectDate={setSelectedMonthDate}
+                  showSaturday={showSaturday}
+                  showSunday={showSunday}
+                />
+                <MonthAgenda
+                  selectedDate={selectedMonthDate}
+                  agenda={monthAgenda}
+                  subjectColorById={subjectColorById}
+                />
+              </View>
+            ) : null}
+          </View>
         ) : (
-          <SectionCard title="Agenda">
+          <View style={styles.panelCard}>
             <EmptyState
               icon="calendar-clear-outline"
               title="Impossible d'afficher ce planning"
               message="Vérifiez que l'enfant est bien lié à ce compte parent."
             />
-          </SectionCard>
+          </View>
         )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
+function DayCard({
+  occurrence,
+  colorHex,
+}: {
+  occurrence: TimetableOccurrence;
+  colorHex?: string;
+}) {
+  const tone = subjectVisualTone(colorHex);
+
+  return (
+    <View
+      style={[
+        styles.dayCard,
+        {
+          backgroundColor: tone.background,
+          borderColor: tone.border,
+        },
+      ]}
+      testID={`child-timetable-day-card-${occurrence.id}`}
+    >
+      <Text style={[styles.dayCardTitle, { color: tone.text }]}>
+        {minuteToTimeLabel(occurrence.startMinute)} -{" "}
+        {minuteToTimeLabel(occurrence.endMinute)} · {occurrence.subject.name}
+      </Text>
+      <Text style={styles.dayCardTeacher}>{teacherLabel(occurrence)}</Text>
+      {occurrence.room ? (
+        <Text style={styles.dayCardRoom}>SALLE {occurrence.room}</Text>
+      ) : null}
+    </View>
+  );
+}
+
+function WeekGrid({
+  visibleWeekDays,
+  occurrences,
+  selectedWeekCell,
+  setSelectedWeekCell,
+  subjectColorById,
+  today,
+}: {
+  visibleWeekDays: ReturnType<typeof buildWeekDays>;
+  occurrences: TimetableOccurrence[];
+  selectedWeekCell: WeekSelection | null;
+  setSelectedWeekCell: (value: WeekSelection | null) => void;
+  subjectColorById: Record<string, string>;
+  today: Date;
+}) {
+  const timelineStartMinute = 7 * 60;
+  const timelineEndMinute = 18 * 60;
+  const timelinePxPerHour = 36;
+  const timelineHeight =
+    ((timelineEndMinute - timelineStartMinute) / 60) * timelinePxPerHour;
+  const timelineHours = Array.from(
+    { length: (timelineEndMinute - timelineStartMinute) / 60 + 1 },
+    (_, index) => timelineStartMinute + index * 60,
+  );
+
+  return (
+    <View style={styles.weekGridCard} testID="child-timetable-week-grid">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View
+          style={[
+            styles.weekTimeline,
+            {
+              width: 36 + visibleWeekDays.length * 58,
+            },
+          ]}
+        >
+          <View style={styles.weekCornerCell}>
+            <Text style={styles.weekCornerText}>H</Text>
+          </View>
+          {visibleWeekDays.map((entry) => (
+            <View
+              key={`week-head-${entry.weekday}`}
+              style={[
+                styles.weekHeaderCell,
+                sameDate(entry.date, today) && styles.weekHeaderCellToday,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.weekHeaderText,
+                  sameDate(entry.date, today) && styles.weekHeaderTextToday,
+                ]}
+              >
+                {entry.compactLabel}{" "}
+                {String(entry.date.getDate()).padStart(2, "0")}
+              </Text>
+            </View>
+          ))}
+
+          <View style={[styles.weekHoursColumn, { height: timelineHeight }]}>
+            {timelineHours.map((hourMinute, index) => (
+              <View
+                key={`week-hour-${hourMinute}`}
+                style={[
+                  styles.weekHourLabelWrap,
+                  {
+                    top:
+                      index === timelineHours.length - 1
+                        ? timelineHeight - 12
+                        : ((hourMinute - timelineStartMinute) / 60) *
+                          timelinePxPerHour,
+                  },
+                ]}
+              >
+                <Text style={styles.weekHourLabel}>
+                  {minuteToTimeLabel(hourMinute)}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {visibleWeekDays.map((entry) => {
+            const dayOccurrences = occurrences.filter(
+              (occurrence) =>
+                occurrence.occurrenceDate === toIsoDateString(entry.date),
+            );
+            return (
+              <View
+                key={`week-col-${entry.weekday}`}
+                style={[styles.weekDayColumn, { height: timelineHeight }]}
+                testID={`child-timetable-week-col-${entry.weekday}`}
+              >
+                {timelineHours.slice(0, -1).map((hourMinute) => (
+                  <View
+                    key={`week-line-${entry.weekday}-${hourMinute}`}
+                    style={[
+                      styles.weekHourLine,
+                      {
+                        top:
+                          ((hourMinute - timelineStartMinute) / 60) *
+                          timelinePxPerHour,
+                      },
+                    ]}
+                  />
+                ))}
+
+                {dayOccurrences.map((occurrence) => {
+                  const tone = subjectVisualTone(
+                    subjectColorById[occurrence.subject.id],
+                  );
+                  const clampedStart = Math.max(
+                    timelineStartMinute,
+                    Math.min(timelineEndMinute, occurrence.startMinute),
+                  );
+                  const clampedEnd = Math.max(
+                    timelineStartMinute,
+                    Math.min(timelineEndMinute, occurrence.endMinute),
+                  );
+                  const top =
+                    ((clampedStart - timelineStartMinute) / 60) *
+                    timelinePxPerHour;
+                  const height = Math.max(
+                    18,
+                    ((Math.max(clampedEnd, clampedStart + 15) - clampedStart) /
+                      60) *
+                      timelinePxPerHour,
+                  );
+                  const selected =
+                    selectedWeekCell?.occurrence.id === occurrence.id &&
+                    selectedWeekCell?.date &&
+                    sameDate(selectedWeekCell.date, entry.date);
+
+                  return (
+                    <TouchableOpacity
+                      key={`week-slot-${entry.weekday}-${occurrence.id}`}
+                      style={[
+                        styles.weekSlot,
+                        {
+                          top,
+                          minHeight: height,
+                          backgroundColor: selected
+                            ? tone.chip
+                            : tone.background,
+                          borderColor: selected ? tone.chip : tone.border,
+                        },
+                      ]}
+                      onPress={() =>
+                        setSelectedWeekCell({ occurrence, date: entry.date })
+                      }
+                      testID={`child-timetable-week-slot-${occurrence.id}`}
+                    >
+                      <Text
+                        style={[
+                          styles.weekSlotText,
+                          { color: selected ? colors.white : tone.text },
+                        ]}
+                      >
+                        {subjectShortLabel(occurrence.subject.name)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function WeekDetailCard({
+  selectedWeekCell,
+  colorHex,
+}: {
+  selectedWeekCell: WeekSelection | null;
+  colorHex?: string;
+}) {
+  const tone = subjectVisualTone(colorHex);
+  return (
+    <View
+      style={[
+        styles.detailCard,
+        selectedWeekCell && {
+          backgroundColor: tone.background,
+          borderColor: tone.border,
+        },
+      ]}
+      testID="child-timetable-week-detail"
+    >
+      <Text style={styles.detailCardLabel}>DETAIL DU CRENEAU SELECTIONNE</Text>
+      {selectedWeekCell ? (
+        <View style={styles.detailCardBody}>
+          <Text style={styles.detailCardText}>
+            <Text style={styles.detailCardTextStrong}>Matiere:</Text>{" "}
+            {selectedWeekCell.occurrence.subject.name}
+          </Text>
+          <Text style={styles.detailCardText}>
+            <Text style={styles.detailCardTextStrong}>Jour:</Text>{" "}
+            {formatDetailDay(selectedWeekCell.date)}
+          </Text>
+          <Text style={styles.detailCardText}>
+            <Text style={styles.detailCardTextStrong}>Plage horaire:</Text>{" "}
+            {minuteToTimeLabel(selectedWeekCell.occurrence.startMinute)} -{" "}
+            {minuteToTimeLabel(selectedWeekCell.occurrence.endMinute)}
+          </Text>
+          <Text style={styles.detailCardText}>
+            <Text style={styles.detailCardTextStrong}>Enseignant:</Text>{" "}
+            {teacherLabel(selectedWeekCell.occurrence)}
+          </Text>
+          <Text style={styles.detailCardText}>
+            <Text style={styles.detailCardTextStrong}>Salle:</Text>{" "}
+            {selectedWeekCell.occurrence.room ?? "-"}
+          </Text>
+        </View>
+      ) : (
+        <Text style={styles.detailPlaceholder}>
+          Selectionnez un creneau dans le tableau pour afficher son detail.
+        </Text>
+      )}
+    </View>
+  );
+}
+
+function MonthGrid({
+  cells,
+  selectedDate,
+  onSelectDate,
+  showSaturday,
+  showSunday,
+}: {
+  cells: Array<{ date: Date | null; slotsCount: number }>;
+  selectedDate: Date | null;
+  onSelectDate: (date: Date | null) => void;
+  showSaturday: boolean;
+  showSunday: boolean;
+}) {
+  const weekdayLabels = [
+    ...WEEKDAY_LABELS_COMPACT.slice(0, 5),
+    ...(showSaturday ? [WEEKDAY_LABELS_COMPACT[5]!] : []),
+    ...(showSunday ? [WEEKDAY_LABELS_COMPACT[6]!] : []),
+  ];
+  const columns = weekdayLabels.length;
+
+  const rows: Array<Array<{ date: Date | null; slotsCount: number }>> = [];
+  for (let i = 0; i < cells.length; i += columns) {
+    rows.push(cells.slice(i, i + columns));
+  }
+
+  return (
+    <View style={styles.monthGridCard} testID="child-timetable-month-grid">
+      <View style={styles.monthWeekdayRow}>
+        {weekdayLabels.map((label, index) => (
+          <Text key={`${label}-${index}`} style={styles.monthWeekdayText}>
+            {label}
+          </Text>
+        ))}
+      </View>
+      <View style={styles.monthGrid}>
+        {rows.map((row, rowIndex) => (
+          <View
+            key={`month-row-${rowIndex}`}
+            style={styles.monthRow}
+            testID={`child-timetable-month-row-${rowIndex}`}
+          >
+            {row.map((entry, cellIndex) => {
+              const selected =
+                entry.date && selectedDate
+                  ? sameDate(entry.date, selectedDate)
+                  : false;
+              return (
+                <TouchableOpacity
+                  key={`month-cell-${entry.date ? toIsoDateString(entry.date) : `empty-${rowIndex}-${cellIndex}`}`}
+                  style={[
+                    styles.monthCell,
+                    !entry.date && styles.monthCellEmpty,
+                    selected && styles.monthCellSelected,
+                  ]}
+                  onPress={() => entry.date && onSelectDate(entry.date)}
+                  disabled={!entry.date}
+                  testID={
+                    entry.date
+                      ? `child-timetable-month-day-${toIsoDateString(entry.date)}`
+                      : undefined
+                  }
+                >
+                  {entry.date ? (
+                    <>
+                      <Text
+                        style={[
+                          styles.monthDayText,
+                          selected && styles.monthDayTextSelected,
+                        ]}
+                      >
+                        {entry.date.getDate()}
+                      </Text>
+                      {entry.slotsCount > 0 ? (
+                        <View
+                          style={[
+                            styles.monthCountBadge,
+                            selected && styles.monthCountBadgeSelected,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.monthCountBadgeText,
+                              selected && styles.monthCountBadgeTextSelected,
+                            ]}
+                          >
+                            {entry.slotsCount}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </>
+                  ) : null}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function MonthAgenda({
+  selectedDate,
+  agenda,
+  subjectColorById,
+}: {
+  selectedDate: Date | null;
+  agenda: TimetableOccurrence[];
+  subjectColorById: Record<string, string>;
+}) {
+  return (
+    <View style={styles.monthAgendaCard} testID="child-timetable-month-agenda">
+      <Text style={styles.monthAgendaLabel}>AGENDA DU JOUR SELECTIONNE</Text>
+      <Text style={styles.monthAgendaDate}>
+        {selectedDate ? formatDetailDay(selectedDate) : "-"}
+      </Text>
+      <View style={styles.monthAgendaList}>
+        {agenda.length === 0 ? (
+          <Text style={styles.detailPlaceholder}>
+            Aucun cours prevu pour cette journee.
+          </Text>
+        ) : (
+          agenda.map((occurrence) => (
+            <DayCard
+              key={`month-agenda-${occurrence.id}`}
+              occurrence={occurrence}
+              colorHex={subjectColorById[occurrence.subject.id]}
+            />
+          ))
+        )}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
+  root: { flex: 1, backgroundColor: colors.background },
+  content: { paddingHorizontal: 16, gap: 14 },
+  headerCard: {
+    backgroundColor: colors.primary,
+    marginHorizontal: -16,
     paddingHorizontal: 16,
-    gap: 16,
-  },
-  headerRow: {
+    paddingVertical: 11,
+    marginBottom: 6,
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 12,
+    gap: 10,
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
   },
-  headerText: {
+  headerText: { flex: 1, gap: 1, paddingTop: 0 },
+  title: { color: colors.white, fontSize: 19, fontWeight: "600" },
+  subtitle: {
+    color: "rgba(255,255,255,0.82)",
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  panelCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#F0D9BF",
+    backgroundColor: "#FFF9F1",
+    padding: 14,
+  },
+  moduleCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#F0D9BF",
+    backgroundColor: "#FFF9F1",
+    padding: 8,
+    gap: 12,
+  },
+  modeTabs: {
+    flexDirection: "row",
+    gap: 1,
+    padding: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#DCE8F7",
+    backgroundColor: "#F8FBFF",
+  },
+  modeTab: {
     flex: 1,
+    height: 36,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modeTabActive: {
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  modeTabText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#2B4A74",
+  },
+  modeTabTextActive: {
+    color: colors.white,
+  },
+  periodNavRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  periodNavButton: {
+    width: 40,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: "#EAF3FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  periodLabelButton: {
+    flex: 1,
+    minHeight: 36,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+  },
+  periodLabelText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#163158",
+  },
+  dayList: {
+    gap: 10,
+  },
+  dayCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     gap: 4,
   },
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.7,
-    color: colors.warmAccent,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: colors.textPrimary,
-  },
-  subtitle: {
+  dayCardTitle: {
     fontSize: 14,
-    lineHeight: 20,
-    color: colors.textSecondary,
+    fontWeight: "800",
   },
-  reloadBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: `${colors.primary}12`,
+  dayCardTeacher: {
+    color: "#4B5563",
+    fontSize: 12,
   },
-  rangeRow: {
-    flexDirection: "row",
-    gap: 10,
+  dayCardRoom: {
+    color: "#36557A",
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
   },
-  quickActionsRow: {
+  weekSection: { gap: 12 },
+  weekGridCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#DCE8F7",
+    backgroundColor: "#FBFDFF",
+    padding: 8,
+  },
+  weekTimeline: {
     flexDirection: "row",
     flexWrap: "wrap",
+    columnGap: 2,
+    rowGap: 2,
+  },
+  weekCornerCell: {
+    width: 36,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: "#EFF5FD",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  weekCornerText: {
+    fontSize: 8,
+    fontWeight: "700",
+    color: "#5A7093",
+  },
+  weekHeaderCell: {
+    width: 56,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: "#EFF5FD",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  weekHeaderCellToday: {
+    backgroundColor: "#DCEBFF",
+  },
+  weekHeaderText: {
+    fontSize: 8,
+    fontWeight: "700",
+    color: "#5A7093",
+    textTransform: "uppercase",
+  },
+  weekHeaderTextToday: {
+    color: colors.primary,
+  },
+  weekHoursColumn: {
+    width: 36,
+    borderRadius: 6,
+    backgroundColor: "#F2F7FD",
+    position: "relative",
+  },
+  weekHourLabelWrap: {
+    position: "absolute",
+    left: 2,
+    right: 2,
+  },
+  weekHourLabel: {
+    fontSize: 8,
+    fontWeight: "600",
+    color: "#35557F",
+  },
+  weekDayColumn: {
+    width: 56,
+    borderRadius: 6,
+    backgroundColor: "#FAFCFF",
+    position: "relative",
+    overflow: "hidden",
+  },
+  weekHourLine: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    borderTopWidth: 1,
+    borderTopColor: "#E5EEF9",
+  },
+  weekSlot: {
+    position: "absolute",
+    left: 2,
+    right: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    paddingHorizontal: 2,
+    paddingVertical: 2,
+    justifyContent: "flex-start",
+  },
+  weekSlotText: {
+    fontSize: 8,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+  detailCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#DCE8F7",
+    backgroundColor: "#F9FCFF",
+    padding: 14,
     gap: 8,
   },
-  quickAction: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    backgroundColor: colors.warmSurface,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  quickActionText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  eventList: {
-    gap: 10,
-  },
-  eventRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: colors.warmSurface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    padding: 12,
-  },
-  eventBody: {
-    flex: 1,
-    gap: 3,
-  },
-  eventTitle: {
-    fontSize: 14,
+  detailCardLabel: {
+    fontSize: 11,
     fontWeight: "700",
-    color: colors.textPrimary,
+    letterSpacing: 0.8,
+    color: "#4C6284",
+    textTransform: "uppercase",
   },
-  eventText: {
+  detailCardBody: {
+    gap: 6,
+  },
+  detailCardText: {
+    fontSize: 14,
+    color: "#213B5D",
+  },
+  detailCardTextStrong: {
+    fontWeight: "800",
+    color: "#213B5D",
+  },
+  detailPlaceholder: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: "#8192A8",
+  },
+  monthSection: { gap: 12 },
+  monthGridCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#F0D9BF",
+    backgroundColor: colors.surface,
+    padding: 12,
+    gap: 10,
+  },
+  monthWeekdayRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  monthWeekdayText: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#6B7C93",
+  },
+  monthGrid: {
+    gap: 6,
+  },
+  monthRow: {
+    flexDirection: "row",
+    gap: 6,
+  },
+  monthCell: {
+    flex: 1,
+    aspectRatio: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#DCE8F7",
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  monthCellEmpty: {
+    backgroundColor: "#F3F6F9",
+    borderColor: "transparent",
+  },
+  monthCellSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  monthDayText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#2B4A74",
+  },
+  monthDayTextSelected: {
+    color: colors.white,
+  },
+  monthCountBadge: {
+    position: "absolute",
+    right: 6,
+    bottom: 5,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#EAF3FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  monthCountBadgeSelected: {
+    backgroundColor: "rgba(255,255,255,0.22)",
+  },
+  monthCountBadgeText: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: colors.primary,
+  },
+  monthCountBadgeTextSelected: {
+    color: colors.white,
+  },
+  monthAgendaCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#F0D9BF",
+    backgroundColor: colors.surface,
+    padding: 12,
+    gap: 10,
+  },
+  monthAgendaLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#6B7C93",
+    textTransform: "uppercase",
+  },
+  monthAgendaDate: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#2B4A74",
+  },
+  monthAgendaList: {
+    gap: 10,
   },
 });
