@@ -34,6 +34,7 @@ let mockRouteParams: Record<string, string> = {
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
   useLocalSearchParams: () => mockRouteParams,
+  usePathname: () => "/(home)/vie-scolaire/[childId]",
 }));
 
 beforeEach(() => {

@@ -10,6 +10,14 @@ describe("DisciplineSummaryKpis", () => {
     render(<DisciplineSummaryKpis summary={makeSummary()} />);
 
     expect(screen.getByTestId("discipline-summary-kpis")).toBeOnTheScreen();
+    expect(screen.getByTestId("kpi-absences")).toHaveStyle({
+      width: "48%",
+      minHeight: 96,
+    });
+    expect(screen.getByText("ABSENCES")).toBeOnTheScreen();
+    expect(screen.getByText("RETARDS")).toBeOnTheScreen();
+    expect(screen.getByText("SANCTIONS")).toBeOnTheScreen();
+    expect(screen.getByText("PUNITIONS")).toBeOnTheScreen();
     expect(screen.getByText("2")).toBeOnTheScreen();
     expect(screen.getAllByText("1").length).toBeGreaterThanOrEqual(3);
     expect(screen.getByTestId("warn-dot-kpi-absences")).toBeOnTheScreen();

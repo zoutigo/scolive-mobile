@@ -1,7 +1,7 @@
 /**
  * Tests du composant ParentHome.
  * - Rendu des enfants (nom seul, pas de boutons rapides)
- * - Clic sur un enfant → setActiveChild + navigation vers Notes
+ * - Clic sur un enfant → setActiveChild + navigation vers Accueil enfant
  * - Compteur d'enfants intact
  * - États : chargement, vide, avec enfants
  */
@@ -34,8 +34,18 @@ const parentUser: AuthUser = {
   activeRole: "PARENT",
 };
 
-const child1 = { id: "c1", firstName: "Lisa", lastName: "Ntamack" };
-const child2 = { id: "c2", firstName: "Paul", lastName: "Ntamack" };
+const child1 = {
+  id: "c1",
+  firstName: "Lisa",
+  lastName: "Ntamack",
+  className: "6e A",
+};
+const child2 = {
+  id: "c2",
+  firstName: "Paul",
+  lastName: "Ntamack",
+  className: "5e B",
+};
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -115,10 +125,13 @@ describe("Clic sur un enfant", () => {
     expect(useFamilyStore.getState().activeChildId).toBe("c1");
   });
 
-  it("navigue vers la route notes de l'enfant", () => {
+  it("navigue vers l'accueil enfant du premier enfant", () => {
     render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
     fireEvent.press(screen.getByTestId("child-card-c1"));
-    expect(mockPush).toHaveBeenCalledWith("/(home)/notes/child/c1");
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/children/[childId]",
+      params: { childId: "c1" },
+    });
   });
 
   it("setActiveChild est appelé avec le bon id pour le deuxième enfant", () => {
@@ -127,10 +140,13 @@ describe("Clic sur un enfant", () => {
     expect(useFamilyStore.getState().activeChildId).toBe("c2");
   });
 
-  it("navigue vers la route notes du deuxième enfant", () => {
+  it("navigue vers l'accueil enfant du deuxième enfant", () => {
     render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
     fireEvent.press(screen.getByTestId("child-card-c2"));
-    expect(mockPush).toHaveBeenCalledWith("/(home)/notes/child/c2");
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/children/[childId]",
+      params: { childId: "c2" },
+    });
   });
 });
 

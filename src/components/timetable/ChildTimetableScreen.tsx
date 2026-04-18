@@ -13,7 +13,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
+import { ModuleHeader } from "../navigation/ModuleHeader";
+import { buildChildHomeTarget } from "../navigation/nav-config";
+import { useDrawer } from "../navigation/drawer-context";
 import { useAuthStore } from "../../store/auth.store";
+import { useFamilyStore } from "../../store/family.store";
 import { useTimetableStore } from "../../store/timetable.store";
 import type { TimetableOccurrence } from "../../types/timetable.types";
 import {
@@ -152,9 +156,11 @@ function findInitialMonthSelection(
 export function ChildTimetableScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { openDrawer } = useDrawer();
   const params = useLocalSearchParams<{ childId?: string }>();
   const childId = typeof params.childId === "string" ? params.childId : "";
   const { schoolSlug } = useAuthStore();
+  const { setActiveChild, updateChild } = useFamilyStore();
   const {
     myTimetable,
     isLoadingMyTimetable,
@@ -189,6 +195,20 @@ export function ChildTimetableScreen() {
   useEffect(() => {
     void load().catch(() => {});
   }, [load]);
+
+  useEffect(() => {
+    if (!childId) return;
+    setActiveChild(childId);
+  }, [childId, setActiveChild]);
+
+  useEffect(() => {
+    if (!childId || !myTimetable?.class.name) return;
+    updateChild(childId, {
+      className: myTimetable.class.name,
+      firstName: myTimetable.student.firstName,
+      lastName: myTimetable.student.lastName,
+    });
+  }, [childId, myTimetable, updateChild]);
 
   const subtitle = useMemo(() => {
     if (!myTimetable) return "";
@@ -346,7 +366,7 @@ export function ChildTimetableScreen() {
         style={styles.root}
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 24 },
+          { paddingTop: 0, paddingBottom: insets.bottom + 24 },
         ]}
         refreshControl={
           <RefreshControl
@@ -360,26 +380,19 @@ export function ChildTimetableScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.headerCard} testID="child-timetable-header">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backBtn}
-            testID="child-timetable-back"
-          >
-            <Ionicons name="arrow-back" size={20} color={colors.white} />
-          </TouchableOpacity>
-          <View style={styles.headerText}>
-            <Text style={styles.title} testID="child-timetable-header-title">
-              Emploi du temps
-            </Text>
-            <Text
-              style={styles.subtitle}
-              testID="child-timetable-header-subtitle"
-            >
-              {subtitle}
-            </Text>
-          </View>
-        </View>
+        <ModuleHeader
+          title="Emploi du temps"
+          subtitle={subtitle}
+          onBack={() => router.push(buildChildHomeTarget(childId) as never)}
+          rightIcon="menu-outline"
+          onRightPress={openDrawer}
+          testID="child-timetable-header"
+          backTestID="child-timetable-back"
+          titleTestID="child-timetable-header-title"
+          subtitleTestID="child-timetable-header-subtitle"
+          rightTestID="child-timetable-menu"
+          topInset={insets.top}
+        />
 
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
@@ -910,33 +923,6 @@ function MonthAgenda({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, gap: 14 },
-  headerCard: {
-    backgroundColor: colors.primary,
-    marginHorizontal: -16,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-    marginBottom: 6,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-  },
-  backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerText: { flex: 1, gap: 1, paddingTop: 0 },
-  title: { color: colors.white, fontSize: 19, fontWeight: "600" },
-  subtitle: {
-    color: "rgba(255,255,255,0.82)",
-    fontSize: 11,
-    lineHeight: 15,
-  },
   panelCard: {
     borderRadius: 24,
     borderWidth: 1,

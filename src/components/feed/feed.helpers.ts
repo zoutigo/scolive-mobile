@@ -3,6 +3,7 @@ import type {
   FeedAudienceScope,
   FeedAuthor,
   FeedComment,
+  FeedPost,
   FeedViewerRole,
 } from "../../types/feed.types";
 
@@ -51,6 +52,33 @@ export function formatAuthorName(author: FeedAuthor) {
   return `${author.civility} ${withoutCivility}`.trim();
 }
 
+function normalizeCivility(civility?: string) {
+  if (!civility) {
+    return "";
+  }
+  const cleaned = civility.trim();
+  if (/^m\.?$/i.test(cleaned)) {
+    return "M.";
+  }
+  if (/^mme$/i.test(cleaned)) {
+    return "Mme";
+  }
+  if (/^mlle$/i.test(cleaned)) {
+    return "Mlle";
+  }
+  return cleaned;
+}
+
+export function formatCompactAuthorName(author: FeedAuthor) {
+  const civility = normalizeCivility(author.civility);
+  const rawName = author.fullName.replace(/^(m\.?|mme|mlle)\s+/i, "").trim();
+  const parts = rawName.split(/\s+/).filter(Boolean);
+  const first = parts[0] ?? "";
+  const last = parts.length > 1 ? parts[parts.length - 1] : first;
+  const compact = `${first.charAt(0).toUpperCase()}.${last.toUpperCase()}`;
+  return civility ? `${civility} ${compact}` : compact;
+}
+
 export function getFeedAudienceLabel(
   scope: FeedAudienceScope,
   fallbackLabel: string,
@@ -90,4 +118,23 @@ export function getCommentSummary(comments: FeedComment[]) {
     return "1 commentaire";
   }
   return `${comments.length} commentaires`;
+}
+
+function isFeatured(post: FeedPost) {
+  if (!post.featuredUntil) {
+    return false;
+  }
+  return new Date(post.featuredUntil).getTime() > Date.now();
+}
+
+export function orderFeedPosts(posts: FeedPost[]) {
+  const featured = posts
+    .filter((post) => isFeatured(post))
+    .sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+  const featuredIds = new Set(featured.map((post) => post.id));
+  const regular = posts
+    .filter((post) => !featuredIds.has(post.id))
+    .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+
+  return [...featured, ...regular];
 }

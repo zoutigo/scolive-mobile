@@ -66,6 +66,14 @@ export default function HomeLayout() {
         name="notes/child/[childId]"
         options={{ animation: "slide_from_right" }}
       />
+      <Stack.Screen
+        name="children/[childId]/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="children/[childId]/vie-de-classe"
+        options={{ animation: "slide_from_right" }}
+      />
     </Stack>
   );
 }

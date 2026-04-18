@@ -10,10 +10,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
 import type { FeedComment, FeedPost } from "../../types/feed.types";
 import {
-  formatAuthorName,
+  formatCompactAuthorName,
   formatFeedDate,
   getAttachmentSummary,
-  getCommentSummary,
   stripHtml,
 } from "./feed.helpers";
 
@@ -24,6 +23,8 @@ type Props = {
   onVote?: (postId: string, optionId: string) => void;
   onDelete?: (post: FeedPost) => void;
 };
+
+const COMMENT_EMOJIS = ["😀", "👍", "❤️", "🎉", "👏"];
 
 function PollBar({
   postId,
@@ -80,11 +81,6 @@ function PollBar({
 function CommentRow({ comment }: { comment: FeedComment }) {
   return (
     <View style={styles.commentRow}>
-      <View style={styles.commentAvatar}>
-        <Text style={styles.commentAvatarText}>
-          {comment.authorName.slice(0, 1).toUpperCase()}
-        </Text>
-      </View>
       <View style={styles.commentBody}>
         <View style={styles.commentHeader}>
           <Text style={styles.commentAuthor}>{comment.authorName}</Text>
@@ -106,24 +102,30 @@ export function FeedPostCard({
   onDelete,
 }: Props) {
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [reactionOpen, setReactionOpen] = useState(false);
   const [draftComment, setDraftComment] = useState("");
   const excerpt = useMemo(() => stripHtml(post.bodyHtml), [post.bodyHtml]);
   const totalVotes =
     post.poll?.options.reduce((sum, option) => sum + option.votes, 0) ?? 0;
 
+  function submitReaction() {
+    const trimmed = draftComment.trim();
+    if (!trimmed) {
+      return;
+    }
+    onAddComment(post.id, trimmed);
+    setDraftComment("");
+    setReactionOpen(false);
+  }
+
+  function appendEmoji(emoji: string) {
+    setDraftComment((current) => `${current}${emoji}`);
+  }
+
   return (
     <View style={styles.card} testID={`feed-post-${post.id}`}>
-      <View style={styles.headerRow}>
-        {post.featuredUntil ? (
-          <View style={styles.featuredBadge}>
-            <Ionicons name="sparkles-outline" size={12} color={colors.white} />
-            <Text style={styles.featuredBadgeText}>À la une</Text>
-          </View>
-        ) : (
-          <View />
-        )}
-
-        {post.canManage && onDelete ? (
+      {post.canManage && onDelete ? (
+        <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() => onDelete(post)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -135,22 +137,36 @@ export function FeedPostCard({
               color={colors.notification}
             />
           </TouchableOpacity>
-        ) : null}
-      </View>
+        </View>
+      ) : null}
 
-      <Text style={styles.title}>{post.title}</Text>
+      <View style={styles.headerBlock}>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>{post.title.toUpperCase()}</Text>
+          {post.featuredUntil ? (
+            <View
+              style={styles.featuredBadge}
+              testID={`feed-post-featured-${post.id}`}
+            >
+              <Ionicons name="sparkles" size={13} color="#B45309" />
+            </View>
+          ) : null}
+        </View>
+        <View style={styles.metaFooter}>
+          <Text
+            style={styles.metaFooterText}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {formatCompactAuthorName(post.author)}
+            {post.author.roleLabel ? ` · ${post.author.roleLabel}` : ""}
+            {` · ${formatFeedDate(post.createdAt)}`}
+          </Text>
+        </View>
+      </View>
       <Text style={styles.bodyText}>
         {excerpt || "Publication sans texte."}
       </Text>
-      <View style={styles.metaFooter}>
-        <Text style={styles.metaFooterText}>
-          {formatAuthorName(post.author)}
-          {post.author.roleLabel ? ` · ${post.author.roleLabel}` : ""}
-        </Text>
-        <Text style={styles.metaFooterText}>
-          {formatFeedDate(post.createdAt)}
-        </Text>
-      </View>
 
       {post.attachments.length > 0 ? (
         <View style={styles.attachmentPanel}>
@@ -192,7 +208,11 @@ export function FeedPostCard({
 
       <View style={styles.actionsRow}>
         <TouchableOpacity
-          style={styles.actionButton}
+          style={[
+            styles.actionButton,
+            styles.actionButtonLike,
+            post.likedByViewer && styles.actionButtonLiked,
+          ]}
           onPress={() => onToggleLike(post.id)}
           testID={`feed-post-like-${post.id}`}
           accessibilityLabel={`Réactions ${post.likesCount}${post.likedByViewer ? ", aimée" : ""}`}
@@ -218,9 +238,14 @@ export function FeedPostCard({
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.actionButton}
+          style={[
+            styles.actionButton,
+            styles.actionButtonComment,
+            commentsOpen && styles.actionButtonCommentActive,
+          ]}
           onPress={() => setCommentsOpen((value) => !value)}
           testID={`feed-post-comments-toggle-${post.id}`}
+          accessibilityLabel={`Commentaires ${post.comments.length}`}
         >
           <Ionicons
             name="chatbubble-ellipses-outline"
@@ -228,50 +253,85 @@ export function FeedPostCard({
             color={colors.primary}
           />
           <Text
-            style={styles.actionLabel}
+            style={[
+              styles.actionLabel,
+              commentsOpen && styles.actionLabelActive,
+            ]}
             testID={`feed-post-comments-count-${post.id}-${post.comments.length}`}
           >
             {post.comments.length}
           </Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            styles.actionButtonReact,
+            reactionOpen && styles.actionButtonReactActive,
+          ]}
+          onPress={() => setReactionOpen((value) => !value)}
+          testID={`feed-post-react-${post.id}`}
+          accessibilityLabel={reactionOpen ? "Masquer reaction" : "Reagir"}
+        >
+          <Ionicons name="send-outline" size={18} color={colors.accentTeal} />
+          <Text
+            style={[
+              styles.actionLabel,
+              reactionOpen && styles.actionLabelReactActive,
+            ]}
+          >
+            {reactionOpen ? "Masquer reaction" : "Reagir"}
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      <Text style={styles.commentsSummary}>
-        {getCommentSummary(post.comments)}
-      </Text>
-
-      {commentsOpen ? (
-        <View style={styles.commentsPanel}>
-          {post.comments.map((comment) => (
-            <CommentRow key={comment.id} comment={comment} />
-          ))}
-
-          <View style={styles.commentComposer}>
-            <TextInput
-              style={styles.commentInput}
-              placeholder="Ajouter un commentaire"
-              placeholderTextColor={colors.textSecondary}
-              value={draftComment}
-              onChangeText={setDraftComment}
-              testID={`feed-comment-input-${post.id}`}
-            />
+      {reactionOpen ? (
+        <View style={styles.reactionComposer}>
+          <TextInput
+            style={styles.reactionInput}
+            placeholder="Ajouter un commentaire..."
+            placeholderTextColor={colors.textSecondary}
+            value={draftComment}
+            onChangeText={setDraftComment}
+            testID={`feed-comment-input-${post.id}`}
+            multiline
+            textAlignVertical="top"
+          />
+          <View style={styles.reactionFooter}>
+            <View style={styles.reactionEmojiRow}>
+              {COMMENT_EMOJIS.map((emoji) => (
+                <TouchableOpacity
+                  key={`${post.id}-${emoji}`}
+                  style={styles.reactionEmojiButton}
+                  onPress={() => appendEmoji(emoji)}
+                  accessibilityLabel={`Ajouter ${emoji}`}
+                  testID={`feed-reaction-emoji-${post.id}-${emoji}`}
+                >
+                  <Text style={styles.reactionEmojiText}>{emoji}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
             <TouchableOpacity
               style={[
                 styles.commentSend,
                 !draftComment.trim() && styles.commentSendDisabled,
               ]}
               disabled={!draftComment.trim()}
-              onPress={() => {
-                const trimmed = draftComment.trim();
-                if (!trimmed) return;
-                onAddComment(post.id, trimmed);
-                setDraftComment("");
-              }}
+              onPress={submitReaction}
               testID={`feed-comment-submit-${post.id}`}
             >
-              <Ionicons name="send" size={15} color={colors.white} />
+              <Ionicons name="send" size={14} color={colors.white} />
+              <Text style={styles.commentSendLabel}>Commenter</Text>
             </TouchableOpacity>
           </View>
+        </View>
+      ) : null}
+
+      {commentsOpen ? (
+        <View style={styles.commentsPanel}>
+          {post.comments.map((comment) => (
+            <CommentRow key={comment.id} comment={comment} />
+          ))}
         </View>
       ) : null}
     </View>
@@ -281,37 +341,50 @@ export function FeedPostCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 22,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.warmBorder,
-    padding: 18,
-    gap: 14,
+    paddingTop: 14,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    gap: 12,
   },
   headerRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 12,
+    alignItems: "center",
+    justifyContent: "flex-end",
   },
-  featuredBadge: {
+  titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: colors.warmAccent,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
+    justifyContent: "space-between",
+    gap: 8,
   },
-  featuredBadgeText: {
-    color: colors.white,
-    fontSize: 11,
-    fontWeight: "700",
+  headerBlock: {
+    gap: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.warmBorder,
+    paddingBottom: 10,
+  },
+  featuredBadge: {
+    alignItems: "center",
+    backgroundColor: "#FFFBEB",
+    borderWidth: 1,
+    borderColor: "#FCD34D",
+    justifyContent: "center",
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    flexShrink: 0,
   },
   title: {
-    fontSize: 19,
-    lineHeight: 24,
-    fontWeight: "800",
-    color: colors.textPrimary,
+    fontSize: 13,
+    lineHeight: 16,
+    fontWeight: "700",
+    color: colors.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+    flex: 1,
   },
   bodyText: {
     color: colors.textPrimary,
@@ -319,12 +392,13 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   metaFooter: {
-    gap: 3,
+    marginTop: 0,
   },
   metaFooterText: {
     color: colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 11,
+    lineHeight: 15,
+    flexShrink: 1,
   },
   attachmentPanel: {
     borderRadius: 16,
@@ -418,9 +492,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: colors.warmSurface,
     borderWidth: 1,
-    borderColor: colors.warmBorder,
+  },
+  actionButtonLike: {
+    backgroundColor: "#FEF2F2",
+    borderColor: "#FECACA",
+  },
+  actionButtonComment: {
+    backgroundColor: "#EFF6FF",
+    borderColor: "#BFDBFE",
+  },
+  actionButtonReact: {
+    backgroundColor: "#ECFDF5",
+    borderColor: "#A7F3D0",
+  },
+  actionButtonLiked: {
+    backgroundColor: "#FEF2F2",
+    borderColor: "#FECACA",
+  },
+  actionButtonCommentActive: {
+    backgroundColor: "#EFF6FF",
+    borderColor: "#BFDBFE",
+  },
+  actionButtonReactActive: {
+    backgroundColor: "#ECFDF5",
+    borderColor: "#A7F3D0",
   },
   actionState: {
     flexDirection: "row",
@@ -433,12 +529,70 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   actionLabelActive: {
-    color: colors.notification,
+    color: "#B91C1C",
   },
-  commentsSummary: {
-    color: colors.textSecondary,
+  actionLabelReactActive: {
+    color: "#047857",
+  },
+  reactionEmojiRow: {
+    flexDirection: "row",
+    gap: 8,
+    flex: 1,
+    flexWrap: "wrap",
+  },
+  reactionEmojiButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reactionEmojiText: {
+    fontSize: 14,
+  },
+  reactionComposer: {
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    borderRadius: 16,
+    padding: 10,
+    backgroundColor: colors.surface,
+  },
+  reactionInput: {
+    minHeight: 88,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.background,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 10,
+    color: colors.textPrimary,
+  },
+  reactionFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  commentSend: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    minHeight: 40,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    backgroundColor: colors.primary,
+  },
+  commentSendDisabled: {
+    opacity: 0.6,
+  },
+  commentSendLabel: {
+    color: colors.white,
+    fontWeight: "800",
     fontSize: 12,
-    marginTop: -6,
   },
   commentsPanel: {
     gap: 12,
@@ -447,25 +601,9 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   commentRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-  },
-  commentAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 10,
-    backgroundColor: colors.primaryDark,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  commentAvatarText: {
-    color: colors.white,
-    fontSize: 11,
-    fontWeight: "700",
+    gap: 8,
   },
   commentBody: {
-    flex: 1,
     borderRadius: 14,
     backgroundColor: colors.background,
     padding: 10,
@@ -491,32 +629,5 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 13,
     lineHeight: 18,
-  },
-  commentComposer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  commentInput: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    backgroundColor: colors.background,
-    paddingHorizontal: 14,
-    color: colors.textPrimary,
-  },
-  commentSend: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  commentSendDisabled: {
-    backgroundColor: colors.textSecondary,
-    opacity: 0.6,
   },
 });

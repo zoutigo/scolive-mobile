@@ -49,7 +49,7 @@ export function AppDrawer({
   const drawerBottom = insets.bottom;
 
   const [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false);
-  const { activeChildId } = useFamilyStore();
+  const { activeChildId, setActiveChild } = useFamilyStore();
   // "general" = section parent ouverte ; "child-{id}" = section enfant ouverte
   const [openSection, setOpenSection] = useState<string>(
     activeChildId ? `child-${activeChildId}` : "general",
@@ -99,6 +99,10 @@ export function AppDrawer({
   }, [isOpen, overlayOpacity, translateX]);
 
   const handleNavPress = (item: NavItem) => {
+    const childItemMatch = item.key.match(/^child-([^-]+)-/);
+    if (childItemMatch?.[1]) {
+      setActiveChild(childItemMatch[1]);
+    }
     onClose();
     setTimeout(() => {
       if (item.params) {
@@ -130,6 +134,7 @@ export function AppDrawer({
     <View
       style={[StyleSheet.absoluteFillObject, styles.root]}
       pointerEvents={isOpen ? "auto" : "none"}
+      testID="drawer-root"
     >
       {/* Overlay */}
       <Animated.View

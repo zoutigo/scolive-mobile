@@ -9,6 +9,15 @@ export type NavItem = {
   params?: Record<string, string>;
 };
 
+export function buildChildHomeTarget(childId: string) {
+  return {
+    pathname: "/(home)/children/[childId]",
+    params: {
+      childId,
+    },
+  } as const;
+}
+
 export type ParentChildSection = ParentChild & {
   navItems: NavItem[];
 };
@@ -229,8 +238,8 @@ export function buildChildNavItems(childId: string): NavItem[] {
       key: `child-${childId}-home`,
       label: "Accueil",
       icon: "home-outline",
-      route: "/placeholder",
-      params: { title: "Accueil enfant" },
+      route: buildChildHomeTarget(childId).pathname,
+      params: buildChildHomeTarget(childId).params,
     },
     {
       key: `child-${childId}-grades`,
@@ -250,6 +259,13 @@ export function buildChildNavItems(childId: string): NavItem[] {
       label: "Vie scolaire",
       icon: "person-circle-outline",
       route: "/(home)/vie-scolaire/[childId]",
+      params: { childId },
+    },
+    {
+      key: `child-${childId}-class-life`,
+      label: "Vie de classe",
+      icon: "newspaper-outline",
+      route: "/(home)/children/[childId]/vie-de-classe",
       params: { childId },
     },
     {

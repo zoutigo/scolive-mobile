@@ -38,6 +38,7 @@ let mockRouteParams: Record<string, string> = {};
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: mockBack, push: mockPush }),
   useLocalSearchParams: () => mockRouteParams,
+  usePathname: () => "/(home)/messages",
 }));
 
 jest.mock("../../src/components/messaging/RecipientPickerModal", () => ({

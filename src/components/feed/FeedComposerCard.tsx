@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Platform,
@@ -30,6 +30,7 @@ type DraftAttachment = {
 
 type Props = {
   viewerRole: FeedViewerRole;
+  initialType?: FeedPostType;
   onSubmit: (payload: CreateFeedPayload) => Promise<void>;
   onUploadInlineImage: (file: {
     uri: string;
@@ -80,6 +81,7 @@ function hasTextContent(html: string) {
 
 export function FeedComposerCard({
   viewerRole,
+  initialType = "POST",
   onSubmit,
   onUploadInlineImage,
   onCancel,
@@ -89,7 +91,7 @@ export function FeedComposerCard({
     () => getAudienceOptions(viewerRole),
     [viewerRole],
   );
-  const [type, setType] = useState<FeedPostType>("POST");
+  const [type, setType] = useState<FeedPostType>(initialType);
   const [title, setTitle] = useState("");
   const [bodyHtml, setBodyHtml] = useState("");
   const [pollQuestion, setPollQuestion] = useState("");
@@ -99,6 +101,10 @@ export function FeedComposerCard({
   const [selectedAudienceScope, setSelectedAudienceScope] =
     useState<FeedAudienceScope>(audienceOptions[0]?.scope ?? "SCHOOL_ALL");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    setType(initialType);
+  }, [initialType]);
 
   function openTextColorMenu() {
     Alert.alert("Couleur du texte", "Choisissez une couleur", [

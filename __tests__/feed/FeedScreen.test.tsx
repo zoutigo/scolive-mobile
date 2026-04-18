@@ -163,7 +163,7 @@ describe("FeedScreen", () => {
       expect.objectContaining({ page: 1, limit: 12 }),
     );
 
-    expect(screen.getByText("Réunion des parents")).toBeTruthy();
+    expect(screen.getByText("RÉUNION DES PARENTS")).toBeTruthy();
   });
 
   it("ouvre et referme la recherche", async () => {
@@ -261,6 +261,25 @@ describe("FeedScreen", () => {
 
     await waitFor(() => {
       expect(api.toggleLike).toHaveBeenCalledWith("college-vogt", "post-1");
+    });
+  });
+
+  it("ouvre le formulaire inline de reaction et publie le commentaire", async () => {
+    await renderFeedScreen();
+
+    fireEvent.press(screen.getByTestId("feed-post-react-post-1"));
+    fireEvent.changeText(screen.getByTestId("feed-comment-input-post-1"), "OK");
+    fireEvent.press(screen.getByTestId("feed-comment-submit-post-1"));
+
+    await waitFor(() => {
+      expect(api.addComment).toHaveBeenCalledWith(
+        "college-vogt",
+        "post-1",
+        "OK",
+      );
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("feed-comment-input-post-1")).toBeNull();
     });
   });
 

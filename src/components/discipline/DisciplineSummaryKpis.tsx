@@ -11,8 +11,8 @@ interface KpiCardProps {
   icon: string;
   label: string;
   count: number;
-  accent: string;
-  bg: string;
+  iconBubble: string;
+  backgroundColor: string;
   warning?: boolean;
   onPress?: () => void;
   testID?: string;
@@ -22,8 +22,8 @@ function KpiCard({
   icon,
   label,
   count,
-  accent,
-  bg,
+  iconBubble,
+  backgroundColor,
   warning,
   onPress,
   testID,
@@ -33,15 +33,28 @@ function KpiCard({
 
   return (
     <Wrapper
-      style={[styles.kpiCard, warning && count > 0 && styles.kpiWarning]}
+      style={[
+        styles.kpiCard,
+        { backgroundColor },
+        warning && count > 0 && styles.kpiWarning,
+      ]}
       testID={testID}
       {...(wrapperProps as object)}
     >
-      <View style={[styles.kpiIconWrap, { backgroundColor: bg }]}>
-        <Ionicons name={icon as "time-outline"} size={20} color={accent} />
+      <View style={styles.kpiHeader} testID={`${testID}-header`}>
+        <Text style={styles.kpiLabel} testID={`${testID}-label`}>
+          {label}
+        </Text>
+        <View
+          style={[styles.kpiIconWrap, { backgroundColor: iconBubble }]}
+          testID={`${testID}-icon-wrap`}
+        >
+          <Ionicons name={icon as "time-outline"} size={20} color="#FFFFFF" />
+        </View>
       </View>
-      <Text style={[styles.kpiCount, { color: accent }]}>{count}</Text>
-      <Text style={styles.kpiLabel}>{label}</Text>
+      <Text style={styles.kpiCount} testID={`${testID}-count`}>
+        {String(count)}
+      </Text>
       {warning && count > 0 && (
         <View style={styles.warnDot} testID={`warn-dot-${testID}`} />
       )}
@@ -66,47 +79,42 @@ export function DisciplineSummaryKpis({
   onSanctionsPress,
   onPunitionsPress,
 }: Props) {
-  const abs = DISCIPLINE_TYPE_CONFIG.ABSENCE;
-  const ret = DISCIPLINE_TYPE_CONFIG.RETARD;
-  const san = DISCIPLINE_TYPE_CONFIG.SANCTION;
-  const pun = DISCIPLINE_TYPE_CONFIG.PUNITION;
-
   return (
     <View style={styles.grid} testID="discipline-summary-kpis">
       <KpiCard
-        icon={abs.icon}
-        label="Absences"
+        icon={DISCIPLINE_TYPE_CONFIG.ABSENCE.icon}
+        label="ABSENCES"
         count={summary.absences}
-        accent={abs.accent}
-        bg={abs.bg}
+        backgroundColor="#2E8FE1"
+        iconBubble="rgba(255,255,255,0.18)"
         warning={summary.unjustifiedAbsences > 0}
         onPress={onAbsencesPress}
         testID="kpi-absences"
       />
       <KpiCard
-        icon={ret.icon}
-        label="Retards"
+        icon={DISCIPLINE_TYPE_CONFIG.RETARD.icon}
+        label="RETARDS"
         count={summary.retards}
-        accent={ret.accent}
-        bg={ret.bg}
+        backgroundColor="#FF6B39"
+        iconBubble="rgba(255,255,255,0.18)"
         onPress={onRetardsPress}
         testID="kpi-retards"
       />
       <KpiCard
-        icon={san.icon}
-        label="Sanctions"
+        icon={DISCIPLINE_TYPE_CONFIG.SANCTION.icon}
+        label="SANCTIONS"
         count={summary.sanctions}
-        accent={san.accent}
-        bg={san.bg}
+        backgroundColor="#E9151A"
+        iconBubble="rgba(255,255,255,0.18)"
         onPress={onSanctionsPress}
         testID="kpi-sanctions"
       />
       <KpiCard
-        icon={pun.icon}
-        label="Punitions"
+        icon={DISCIPLINE_TYPE_CONFIG.PUNITION.icon}
+        label="PUNITIONS"
         count={summary.punitions}
-        accent={pun.accent}
-        bg={pun.bg}
+        backgroundColor="#B432D6"
+        iconBubble="rgba(255,255,255,0.18)"
         onPress={onPunitionsPress}
         testID="kpi-punitions"
       />
@@ -120,46 +128,63 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    justifyContent: "space-between",
+    gap: 12,
   },
   kpiCard: {
-    width: "47.5%",
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    padding: 16,
-    gap: 6,
+    width: "48%",
+    minHeight: 96,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     position: "relative",
     overflow: "hidden",
   },
   kpiWarning: {
-    borderColor: "#FFCDD2",
+    shadowColor: colors.notification,
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  kpiHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 10,
   },
   kpiIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
   },
   kpiCount: {
-    fontSize: 28,
+    fontSize: 18,
     fontWeight: "800",
-    lineHeight: 34,
+    lineHeight: 22,
+    color: colors.white,
+    includeFontPadding: false,
   },
   kpiLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: "500",
+    fontSize: 11,
+    color: colors.white,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    includeFontPadding: false,
+    flexShrink: 1,
+    maxWidth: "70%",
   },
   warnDot: {
     position: "absolute",
-    top: 10,
-    right: 10,
+    top: 12,
+    right: 60,
     width: 10,
     height: 10,
     borderRadius: 5,
     backgroundColor: colors.notification,
+    borderWidth: 2,
+    borderColor: colors.white,
   },
 });
