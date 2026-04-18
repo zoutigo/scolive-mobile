@@ -48,6 +48,46 @@ describe("feedApi.list()", () => {
     expect(options.headers.Authorization).toBe("Bearer feed-token");
   });
 
+  it("propage explicitement le scope classe pour le contexte enfant", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okJson({
+        items: [],
+        meta: { page: 1, limit: 12, total: 0, totalPages: 0 },
+      }),
+    );
+
+    await feedApi.list("college-vogt", {
+      viewScope: "CLASS",
+      classId: "class-6ec",
+      filter: "all",
+    });
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain("/schools/college-vogt/feed?");
+    expect(url).toContain("viewScope=CLASS");
+    expect(url).toContain("classId=class-6ec");
+  });
+
+  it("n'envoie pas filter=mine au backend car le filtre est local", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okJson({
+        items: [],
+        meta: { page: 1, limit: 12, total: 0, totalPages: 0 },
+      }),
+    );
+
+    await feedApi.list("college-vogt", {
+      filter: "mine",
+      viewScope: "CLASS",
+      classId: "class-6ec",
+    });
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain("viewScope=CLASS");
+    expect(url).toContain("classId=class-6ec");
+    expect(url).not.toContain("filter=mine");
+  });
+
   it("mappe les posts en ajoutant schoolSlug", async () => {
     mockFetch.mockResolvedValueOnce(
       okJson({

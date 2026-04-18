@@ -11,6 +11,9 @@ import {
 import MessagesScreen from "../../app/(home)/messages/index";
 import { useMessagingStore } from "../../src/store/messaging.store";
 import { useAuthStore } from "../../src/store/auth.store";
+import { useFamilyStore } from "../../src/store/family.store";
+import { colors } from "../../src/theme";
+import { StyleSheet } from "react-native";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -70,7 +73,32 @@ beforeEach(() => {
     defaultStoreState,
   );
   (useAuthStore as unknown as jest.Mock).mockReturnValue({
+    user: {
+      id: "parent-1",
+      firstName: "Valery",
+      lastName: "Mbele",
+      platformRoles: [],
+      memberships: [{ schoolId: "school-1", role: "PARENT" }],
+      profileCompleted: true,
+      role: "PARENT",
+      activeRole: "PARENT",
+    },
     schoolSlug: "college-vogt",
+    logout: jest.fn(),
+  });
+  useFamilyStore.setState({
+    children: [
+      {
+        id: "child-1",
+        firstName: "Remi",
+        lastName: "Ntamack",
+        className: "6e C",
+      },
+    ],
+    activeChildId: "child-1",
+    isLoading: false,
+    loadChildren: jest.fn(async () => {}),
+    clearChildren: jest.fn(),
   });
 });
 
@@ -79,7 +107,28 @@ beforeEach(() => {
 describe("Rendu initial", () => {
   it("affiche le titre Messagerie", () => {
     render(<MessagesScreen />);
-    expect(screen.getByText("Messagerie")).toBeTruthy();
+    expect(screen.getByTestId("messages-header-title")).toHaveTextContent(
+      "Messagerie",
+    );
+    expect(screen.getByText("Remi Ntamack • 6e C")).toBeTruthy();
+  });
+
+  it("utilise le meme header module que les autres ecrans enfant", () => {
+    render(<MessagesScreen />);
+
+    const header = screen.getByTestId("messages-header");
+    const title = screen.getByTestId("messages-header-title");
+    const subtitle = screen.getByTestId("messages-header-subtitle");
+    const headerStyle = StyleSheet.flatten(header.props.style);
+    const titleStyle = StyleSheet.flatten(title.props.style);
+    const subtitleStyle = StyleSheet.flatten(subtitle.props.style);
+
+    expect(headerStyle.backgroundColor).toBe(colors.primary);
+    expect(headerStyle.marginHorizontal).toBe(-16);
+    expect(headerStyle.paddingVertical).toBe(10);
+    expect(titleStyle.fontWeight).toBe("600");
+    expect(titleStyle.fontSize).toBe(19);
+    expect(subtitleStyle.fontSize).toBe(11);
   });
 
   it("affiche les onglets de dossiers", () => {
@@ -91,6 +140,17 @@ describe("Rendu initial", () => {
   it("affiche le FAB de composition", () => {
     render(<MessagesScreen />);
     expect(screen.getByTestId("compose-fab")).toBeTruthy();
+  });
+
+  it("affiche le bouton menu en contexte enfant et ouvre le drawer", () => {
+    render(<MessagesScreen />);
+
+    expect(screen.getByTestId("messages-menu-btn")).toBeTruthy();
+    expect(screen.getByTestId("drawer-root").props.pointerEvents).toBe("none");
+
+    fireEvent.press(screen.getByTestId("messages-menu-btn"));
+
+    expect(screen.getByTestId("drawer-root").props.pointerEvents).toBe("auto");
   });
 });
 
@@ -171,12 +231,14 @@ describe("Changement de dossier", () => {
 
 describe("Recherche", () => {
   it("affiche le champ de recherche quand on presse le bouton", () => {
+    useFamilyStore.setState({ activeChildId: null });
     render(<MessagesScreen />);
     fireEvent.press(screen.getByTestId("messages-search-btn"));
     expect(screen.getByTestId("messages-search-input")).toBeTruthy();
   });
 
   it("appelle setSearch quand on tape dans le champ", () => {
+    useFamilyStore.setState({ activeChildId: null });
     render(<MessagesScreen />);
     fireEvent.press(screen.getByTestId("messages-search-btn"));
     fireEvent.changeText(
@@ -211,7 +273,10 @@ describe("Navigation", () => {
   it("appelle router.back() quand on presse la flèche retour", () => {
     render(<MessagesScreen />);
     fireEvent.press(screen.getByTestId("back-btn"));
-    expect(mockBack).toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/children/[childId]",
+      params: { childId: "child-1" },
+    });
   });
 });
 

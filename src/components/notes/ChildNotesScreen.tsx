@@ -14,6 +14,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
+import { ModuleHeader } from "../navigation/ModuleHeader";
+import { buildChildHomeTarget } from "../navigation/nav-config";
+import { useDrawer } from "../navigation/drawer-context";
 import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { useNotesStore } from "../../store/notes.store";
@@ -60,10 +63,11 @@ const VIEW_OPTIONS: Array<{ value: StudentNotesView; label: string }> = [
 export function ChildNotesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { openDrawer } = useDrawer();
   const params = useLocalSearchParams<{ childId?: string }>();
   const childId = typeof params.childId === "string" ? params.childId : "";
   const { schoolSlug } = useAuthStore();
-  const { children } = useFamilyStore();
+  const { children, setActiveChild, updateChild } = useFamilyStore();
   const {
     studentNotes,
     isLoadingStudentNotes,
@@ -85,6 +89,11 @@ export function ChildNotesScreen() {
     void load().catch(() => {});
   }, [load]);
 
+  useEffect(() => {
+    if (!childId) return;
+    setActiveChild(childId);
+  }, [childId, setActiveChild]);
+
   const snapshots = studentNotes[childId] ?? [];
   const currentSnapshot =
     snapshots.find((entry) => entry.term === selectedTerm) ??
@@ -103,6 +112,12 @@ export function ChildNotesScreen() {
   const child = children.find((entry) => entry.id === childId);
   const title = "Evaluations et moyennes";
   const subtitle = buildHeaderSubtitle(child, currentSnapshot);
+  const classLabel = extractClassLabel(currentSnapshot?.councilLabel ?? "");
+
+  useEffect(() => {
+    if (!childId || !classLabel) return;
+    updateChild(childId, { className: classLabel });
+  }, [childId, classLabel, updateChild]);
 
   return (
     <KeyboardAvoidingView
@@ -127,23 +142,19 @@ export function ChildNotesScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.headerCard} testID="child-notes-header">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backBtn}
-            testID="child-notes-back"
-          >
-            <Ionicons name="arrow-back" size={20} color={colors.white} />
-          </TouchableOpacity>
-          <View style={styles.headerText}>
-            <Text style={styles.title} testID="child-notes-header-title">
-              {title}
-            </Text>
-            <Text style={styles.subtitle} testID="child-notes-header-subtitle">
-              {subtitle}
-            </Text>
-          </View>
-        </View>
+        <ModuleHeader
+          title={title}
+          subtitle={subtitle}
+          onBack={() => router.push(buildChildHomeTarget(childId) as never)}
+          rightIcon="menu-outline"
+          onRightPress={openDrawer}
+          testID="child-notes-header"
+          backTestID="child-notes-back"
+          titleTestID="child-notes-header-title"
+          subtitleTestID="child-notes-header-subtitle"
+          rightTestID="child-notes-menu"
+          topInset={insets.top}
+        />
 
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
@@ -1068,33 +1079,6 @@ function ModalStat(props: { label: string; value: string; suffix?: string }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, gap: 14 },
-  headerCard: {
-    backgroundColor: colors.primary,
-    marginHorizontal: -16,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-    marginBottom: 6,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-  },
-  backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerText: { flex: 1, gap: 1, paddingTop: 0 },
-  title: { color: colors.white, fontSize: 19, fontWeight: "600" },
-  subtitle: {
-    color: "rgba(255,255,255,0.82)",
-    fontSize: 11,
-    lineHeight: 15,
-  },
   switcherCard: {
     borderRadius: 18,
     backgroundColor: colors.surface,

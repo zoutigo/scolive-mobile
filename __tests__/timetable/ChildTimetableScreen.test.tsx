@@ -10,20 +10,28 @@ import { ChildTimetableScreen } from "../../src/components/timetable/ChildTimeta
 import { useAuthStore } from "../../src/store/auth.store";
 import { useTimetableStore } from "../../src/store/timetable.store";
 import { colors } from "../../src/theme";
+import { useDrawer } from "../../src/components/navigation/drawer-context";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
 const mockBack = jest.fn();
+const mockPush = jest.fn();
 const mockLoadMyTimetable = jest.fn();
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ back: mockBack }),
+  useRouter: () => ({ back: mockBack, push: mockPush }),
   useLocalSearchParams: () => ({ childId: "stu-1" }),
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
+jest.mock("../../src/components/navigation/drawer-context", () => ({
+  useDrawer: jest.fn(),
+}));
+
+const mockUseDrawer = useDrawer as jest.MockedFunction<typeof useDrawer>;
+const mockOpenDrawer = jest.fn();
 
 beforeAll(() => {
   jest.useFakeTimers();
@@ -36,6 +44,11 @@ afterAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockUseDrawer.mockReturnValue({
+    openDrawer: mockOpenDrawer,
+    closeDrawer: jest.fn(),
+    isDrawerOpen: false,
+  });
   useAuthStore.setState({
     user: {
       id: "u1",
@@ -177,7 +190,7 @@ describe("ChildTimetableScreen", () => {
     expect(screen.getByText("Lisa Ntamack • 6e A")).toBeTruthy();
     expect(headerStyle.backgroundColor).toBe(colors.primary);
     expect(headerStyle.marginHorizontal).toBe(-16);
-    expect(headerStyle.paddingVertical).toBe(11);
+    expect(headerStyle.paddingVertical).toBe(10);
     expect(titleStyle.fontWeight).toBe("600");
     expect(titleStyle.fontSize).toBe(19);
     expect(subtitleStyle.fontSize).toBe(11);
@@ -186,7 +199,16 @@ describe("ChildTimetableScreen", () => {
   it("revient à l'écran précédent via le bouton retour", () => {
     render(<ChildTimetableScreen />);
     fireEvent.press(screen.getByTestId("child-timetable-back"));
-    expect(mockBack).toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/children/[childId]",
+      params: { childId: "stu-1" },
+    });
+  });
+
+  it("ouvre le menu de navigation enfant via l'icone droite", () => {
+    render(<ChildTimetableScreen />);
+    fireEvent.press(screen.getByTestId("child-timetable-menu"));
+    expect(mockOpenDrawer).toHaveBeenCalledTimes(1);
   });
 
   it("permet de basculer en vue semaine et de consulter le detail d'un creneau", async () => {

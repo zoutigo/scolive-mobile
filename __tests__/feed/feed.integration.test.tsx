@@ -282,6 +282,37 @@ describe("Feed integration", () => {
     );
   });
 
+  it("ouvre le formulaire inline de reaction et ajoute le commentaire au post", async () => {
+    render(
+      <>
+        <FeedScreen />
+        <SuccessToastHost />
+      </>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-post-react-post-1")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("feed-post-react-post-1"));
+    fireEvent.changeText(
+      screen.getByTestId("feed-comment-input-post-1"),
+      "Super",
+    );
+    fireEvent.press(screen.getByTestId("feed-comment-submit-post-1"));
+
+    await waitFor(() => {
+      expect(api.addComment).toHaveBeenCalledWith(
+        "college-vogt",
+        "post-1",
+        "Super",
+      );
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("feed-comment-input-post-1")).toBeNull();
+    });
+  });
+
   it("affiche un toast d'erreur si le commentaire échoue", async () => {
     api.addComment.mockRejectedValueOnce(new Error("Commentaire fermé"));
 
@@ -293,12 +324,10 @@ describe("Feed integration", () => {
     );
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("feed-post-comments-toggle-post-1"),
-      ).toBeTruthy();
+      expect(screen.getByTestId("feed-post-react-post-1")).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId("feed-post-comments-toggle-post-1"));
+    fireEvent.press(screen.getByTestId("feed-post-react-post-1"));
     fireEvent.changeText(
       screen.getByTestId("feed-comment-input-post-1"),
       "Merci",

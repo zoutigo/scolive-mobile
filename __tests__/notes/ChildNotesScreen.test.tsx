@@ -6,18 +6,26 @@ import { colors } from "../../src/theme";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useFamilyStore } from "../../src/store/family.store";
 import { useNotesStore } from "../../src/store/notes.store";
+import { useDrawer } from "../../src/components/navigation/drawer-context";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
 const mockBack = jest.fn();
+const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ back: mockBack }),
+  useRouter: () => ({ back: mockBack, push: mockPush }),
   useLocalSearchParams: () => ({ childId: "child-1" }),
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
+jest.mock("../../src/components/navigation/drawer-context", () => ({
+  useDrawer: jest.fn(),
+}));
+
+const mockUseDrawer = useDrawer as jest.MockedFunction<typeof useDrawer>;
+const mockOpenDrawer = jest.fn();
 
 describe("ChildNotesScreen", () => {
   afterEach(() => {
@@ -26,6 +34,11 @@ describe("ChildNotesScreen", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseDrawer.mockReturnValue({
+      openDrawer: mockOpenDrawer,
+      closeDrawer: jest.fn(),
+      isDrawerOpen: false,
+    });
     useAuthStore.setState({
       schoolSlug: "college-vogt",
     } as never);
@@ -112,6 +125,24 @@ describe("ChildNotesScreen", () => {
     expect(screen.getByText("Lisa Ntamack • 6e A")).toBeTruthy();
     expect(screen.getAllByText("Trimestre 1").length).toBeGreaterThan(0);
     expect(screen.getByText("MATHÉMATIQUES")).toBeTruthy();
+  });
+
+  it("redirige le retour vers l'accueil de l'enfant actif", () => {
+    render(<ChildNotesScreen />);
+
+    fireEvent.press(screen.getByTestId("child-notes-back"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/children/[childId]",
+      params: { childId: "child-1" },
+    });
+  });
+
+  it("ouvre le menu de navigation enfant via l'icone droite", () => {
+    render(<ChildNotesScreen />);
+
+    fireEvent.press(screen.getByTestId("child-notes-menu"));
+    expect(mockOpenDrawer).toHaveBeenCalledTimes(1);
   });
 
   it("selectionne au premier affichage le trimestre courant et la vue eval", () => {
@@ -208,7 +239,7 @@ describe("ChildNotesScreen", () => {
 
     expect(headerStyle.backgroundColor).toBe(colors.primary);
     expect(headerStyle.marginHorizontal).toBe(-16);
-    expect(headerStyle.paddingVertical).toBe(11);
+    expect(headerStyle.paddingVertical).toBe(10);
     expect(titleStyle.fontWeight).toBe("600");
     expect(titleStyle.fontSize).toBe(19);
     expect(subtitleStyle.fontSize).toBe(11);
@@ -316,12 +347,15 @@ describe("ChildNotesScreen", () => {
     expect(screen.getByTestId("child-notes-radar-panel")).toBeTruthy();
   });
 
-  it("retourne à l'écran précédent", () => {
+  it("redirige le retour vers l'accueil enfant", () => {
     render(<ChildNotesScreen />);
 
     fireEvent.press(screen.getByTestId("child-notes-back"));
 
-    expect(mockBack).toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/children/[childId]",
+      params: { childId: "child-1" },
+    });
   });
 
   it("déclenche une seule navigation retour au clic sur le bouton retour", () => {
@@ -330,6 +364,6 @@ describe("ChildNotesScreen", () => {
     const backButton = screen.getByTestId("child-notes-back");
     fireEvent.press(backButton);
 
-    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledTimes(1);
   });
 });

@@ -43,7 +43,7 @@ export const feedApi = {
 
     if (params.classId) query.set("classId", params.classId);
     if (params.levelId) query.set("levelId", params.levelId);
-    if (params.filter && params.filter !== "all") {
+    if (params.filter && params.filter !== "all" && params.filter !== "mine") {
       query.set("filter", params.filter);
     }
     if (params.q?.trim()) query.set("q", params.q.trim());

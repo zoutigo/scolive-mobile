@@ -15,18 +15,33 @@ import { useRouter } from "expo-router";
 import { colors } from "../../../src/theme";
 import { useMessagingStore } from "../../../src/store/messaging.store";
 import { useAuthStore } from "../../../src/store/auth.store";
+import { useFamilyStore } from "../../../src/store/family.store";
 import { FolderTabs } from "../../../src/components/messaging/FolderTabs";
 import { MessageRow } from "../../../src/components/messaging/MessageRow";
 import { InfiniteScrollList } from "../../../src/components/lists/InfiniteScrollList";
+import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
+import { buildChildHomeTarget } from "../../../src/components/navigation/nav-config";
+import { AppShell } from "../../../src/components/navigation/AppShell";
+import { useDrawer } from "../../../src/components/navigation/drawer-context";
 import type {
   FolderKey,
   MessageListItem,
 } from "../../../src/types/messaging.types";
 
-export default function MessagesScreen() {
+export default function MessagesScreenRoute() {
+  return (
+    <AppShell showHeader={false}>
+      <MessagesScreenContent />
+    </AppShell>
+  );
+}
+
+function MessagesScreenContent() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { openDrawer } = useDrawer();
   const { schoolSlug } = useAuthStore();
+  const { children, activeChildId } = useFamilyStore();
 
   const {
     folder,
@@ -90,21 +105,29 @@ export default function MessagesScreen() {
   }
 
   const hasMore = meta ? messages.length < meta.total : false;
+  const activeChild =
+    children.find((entry) => entry.id === activeChildId) ?? children[0] ?? null;
+  const subtitle = activeChild
+    ? activeChild.className
+      ? `${activeChild.firstName} ${activeChild.lastName} • ${activeChild.className}`
+      : `${activeChild.firstName} ${activeChild.lastName}`
+    : undefined;
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => router.back()}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          testID="back-btn"
-        >
-          <Ionicons name="arrow-back" size={22} color={colors.white} />
-        </TouchableOpacity>
-
-        {searchVisible ? (
+    <View style={styles.root}>
+      {searchVisible ? (
+        <View style={[styles.searchHeader, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity
+            style={styles.headerIconButton}
+            onPress={() => {
+              setSearch("");
+              setSearchVisible(false);
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            testID="back-btn"
+          >
+            <Ionicons name="arrow-back" size={20} color={colors.white} />
+          </TouchableOpacity>
           <KeyboardAvoidingView
             style={styles.searchContainer}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -122,6 +145,7 @@ export default function MessagesScreen() {
               testID="messages-search-input"
             />
             <TouchableOpacity
+              style={styles.headerIconButton}
               onPress={() => {
                 setSearch("");
                 setSearchVisible(false);
@@ -130,25 +154,34 @@ export default function MessagesScreen() {
               <Ionicons name="close" size={20} color="rgba(255,255,255,0.8)" />
             </TouchableOpacity>
           </KeyboardAvoidingView>
-        ) : (
-          <>
-            <Text style={styles.headerTitle}>Messagerie</Text>
-            <View style={styles.headerActions}>
-              <TouchableOpacity
-                onPress={() => setSearchVisible(true)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                testID="messages-search-btn"
-              >
-                <Ionicons
-                  name="search-outline"
-                  size={22}
-                  color={colors.white}
-                />
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
-      </View>
+        </View>
+      ) : (
+        <View style={styles.headerWrap}>
+          <ModuleHeader
+            title="Messagerie"
+            subtitle={subtitle}
+            onBack={() => {
+              if (activeChildId) {
+                router.push(buildChildHomeTarget(activeChildId) as never);
+                return;
+              }
+              router.back();
+            }}
+            rightIcon={activeChildId ? "menu-outline" : "search-outline"}
+            onRightPress={
+              activeChildId ? openDrawer : () => setSearchVisible(true)
+            }
+            testID="messages-header"
+            backTestID="back-btn"
+            titleTestID="messages-header-title"
+            subtitleTestID="messages-header-subtitle"
+            rightTestID={
+              activeChildId ? "messages-menu-btn" : "messages-search-btn"
+            }
+            topInset={insets.top}
+          />
+        </View>
+      )}
 
       {/* Folder Tabs */}
       <FolderTabs
@@ -224,26 +257,26 @@ export default function MessagesScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
+  headerWrap: { paddingHorizontal: 16 },
 
-  header: {
+  searchHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     backgroundColor: colors.primary,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
+    paddingBottom: 11,
+    gap: 10,
   },
-  backBtn: { flexShrink: 0 },
-  headerTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.white,
-  },
-  headerActions: {
-    flexDirection: "row",
+  headerIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
-    gap: 16,
+    justifyContent: "center",
+    flexShrink: 0,
   },
   searchContainer: {
     flex: 1,

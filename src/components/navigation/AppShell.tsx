@@ -18,9 +18,10 @@ export { useDrawer } from "./drawer-context";
 
 interface AppShellProps {
   children: React.ReactNode;
+  showHeader?: boolean;
 }
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, showHeader = true }: AppShellProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const { user, schoolSlug, logout } = useAuthStore();
   const {
@@ -57,7 +58,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <DrawerContext.Provider value={{ openDrawer, closeDrawer, isDrawerOpen }}>
       <View style={styles.container}>
-        <AppHeader />
+        {showHeader ? <AppHeader /> : null}
         <View style={styles.content}>{children}</View>
         <AppDrawer
           isOpen={isDrawerOpen}

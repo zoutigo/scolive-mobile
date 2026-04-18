@@ -365,12 +365,14 @@ describe("Accordéon parent — sections enfants", () => {
     // Les items de l'enfant c1 sont visibles
     expect(screen.getByTestId("nav-item-child-c1-home")).toBeTruthy();
     expect(screen.getByTestId("nav-item-child-c1-grades")).toBeTruthy();
+    expect(screen.getByTestId("nav-item-child-c1-class-life")).toBeTruthy();
   });
 
   it("ouvre la section du deuxième enfant quand activeChildId est c2", () => {
     renderParentDrawer("c2");
     expect(screen.getByTestId("nav-item-child-c2-home")).toBeTruthy();
     expect(screen.getByTestId("nav-item-child-c2-grades")).toBeTruthy();
+    expect(screen.getByTestId("nav-item-child-c2-class-life")).toBeTruthy();
   });
 
   it("n'affiche pas les items d'un enfant non-actif", () => {
@@ -382,6 +384,20 @@ describe("Accordéon parent — sections enfants", () => {
     renderParentDrawer(null);
     fireEvent.press(screen.getByTestId("drawer-section-child-c1"));
     expect(screen.getByTestId("nav-item-child-c1-home")).toBeTruthy();
+  });
+
+  it("cliquer sur un item d'enfant synchronise activeChildId avant navigation", () => {
+    renderParentDrawer(null);
+
+    fireEvent.press(screen.getByTestId("drawer-section-child-c2"));
+    fireEvent.press(screen.getByTestId("nav-item-child-c2-home"));
+    act(() => jest.runAllTimers());
+
+    expect(useFamilyStore.getState().activeChildId).toBe("c2");
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/children/[childId]",
+      params: { childId: "c2" },
+    });
   });
 
   it("cliquer sur 'Mon espace famille' ouvre la section générale", () => {

@@ -12,6 +12,7 @@ import { authApi } from "../../src/api/auth.api";
 import { tokenStorage } from "../../src/api/client";
 import { familyApi } from "../../src/api/family.api";
 import { useAuthStore } from "../../src/store/auth.store";
+import { useFamilyStore } from "../../src/store/family.store";
 import { useMessagingStore } from "../../src/store/messaging.store";
 import type { AuthUser, LoginResponse } from "../../src/types/auth.types";
 
@@ -219,6 +220,41 @@ describe("Flux écrans auth", () => {
     });
     expect(screen.getByTestId("quick-link-messagerie-badge")).toBeOnTheScreen();
     expect(screen.getByText("5")).toBeOnTheScreen();
+  });
+
+  it("HomeScreen hydrate le store famille avec la classe des enfants depuis /me", async () => {
+    useAuthStore.setState({
+      user: fakeParentUser,
+      accessToken: "access-token",
+      schoolSlug: "college-vogt",
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    mockFamilyApi.getParentMe.mockResolvedValue({
+      linkedStudents: [
+        {
+          id: "child-1",
+          firstName: "Remi",
+          lastName: "Ntamack",
+          currentEnrollment: {
+            class: {
+              name: "6e C",
+            },
+          },
+        },
+      ],
+    });
+
+    render(<HomeScreen />);
+
+    await waitFor(() => {
+      expect(useFamilyStore.getState().children).toEqual([
+        expect.objectContaining({
+          id: "child-1",
+          className: "6e C",
+        }),
+      ]);
+    });
   });
 
   it("HomeScreen déclenche bien logout via le drawer avec confirmation", async () => {

@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import { useFamilyStore } from "../../store/family.store";
 import { useMessagingStore } from "../../store/messaging.store";
+import { buildChildHomeTarget } from "../navigation/nav-config";
 import type { AuthUser } from "../../types/auth.types";
 import type { ParentChild } from "../../types/family.types";
 
@@ -36,7 +37,7 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
 
   function handleChildPress(child: ParentChild) {
     setActiveChild(child.id);
-    router.push(`/(home)/notes/child/${child.id}`);
+    router.push(buildChildHomeTarget(child.id) as never);
   }
 
   function handleQuickAccessPress(label: string) {

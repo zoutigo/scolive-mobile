@@ -26,6 +26,10 @@ import { useDisciplineStore } from "../../../src/store/discipline.store";
 import { DisciplineSummaryKpis } from "../../../src/components/discipline/DisciplineSummaryKpis";
 import { ReadonlyDisciplineList } from "../../../src/components/discipline/ReadonlyDisciplineList";
 import { LifeEventCard } from "../../../src/components/discipline/LifeEventCard";
+import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
+import { buildChildHomeTarget } from "../../../src/components/navigation/nav-config";
+import { useDrawer } from "../../../src/components/navigation/drawer-context";
+import { AppShell } from "../../../src/components/navigation/AppShell";
 import type {
   DisciplineSummary,
   StudentLifeEvent,
@@ -43,12 +47,21 @@ const TABS: Array<{ key: TabKey; label: string; icon: string }> = [
 
 // ── Écran ─────────────────────────────────────────────────────────────────────
 
-export default function VieScolaireScreen() {
+export default function VieScolaireScreenRoute() {
+  return (
+    <AppShell showHeader={false}>
+      <VieScolaireScreenContent />
+    </AppShell>
+  );
+}
+
+function VieScolaireScreenContent() {
   const { childId } = useLocalSearchParams<{ childId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { openDrawer } = useDrawer();
   const { schoolSlug } = useAuthStore();
-  const { children } = useFamilyStore();
+  const { children, setActiveChild, updateChild } = useFamilyStore();
   const {
     eventsMap,
     isLoading,
@@ -102,39 +115,42 @@ export default function VieScolaireScreen() {
     }
   }, [load, isCached]);
 
+  useEffect(() => {
+    if (!childId) return;
+    setActiveChild(childId);
+  }, [childId, setActiveChild]);
+
   const childName = child ? `${child.lastName} ${child.firstName}` : "Élève";
+  const classLabel =
+    events.find((event) => event.class?.name)?.class?.name?.trim() ?? "";
+  const subtitle = classLabel ? `${childName} • ${classLabel}` : childName;
+
+  useEffect(() => {
+    if (!childId || !classLabel || !child) return;
+    updateChild(childId, {
+      className: classLabel,
+      firstName: child.firstName,
+      lastName: child.lastName,
+    });
+  }, [child, childId, classLabel, updateChild]);
 
   return (
-    <View
-      style={[styles.root, { paddingTop: insets.top }]}
-      testID="vie-scolaire-screen"
-    >
+    <View style={styles.root} testID="vie-scolaire-screen">
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backBtn}
-          testID="btn-back"
-          accessibilityLabel="Retour"
-        >
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            Vie scolaire
-          </Text>
-          <Text style={styles.headerSub} numberOfLines={1}>
-            {childName}
-          </Text>
-        </View>
-        <TouchableOpacity
-          onPress={refresh}
-          style={styles.backBtn}
-          testID="btn-refresh"
-          accessibilityLabel="Rafraîchir"
-        >
-          <Ionicons name="refresh-outline" size={20} color={colors.primary} />
-        </TouchableOpacity>
+      <View style={styles.headerWrap}>
+        <ModuleHeader
+          title="Vie scolaire"
+          subtitle={subtitle}
+          onBack={() => router.push(buildChildHomeTarget(childId) as never)}
+          rightIcon="menu-outline"
+          onRightPress={openDrawer}
+          testID="vie-scolaire-header"
+          backTestID="btn-back"
+          titleTestID="vie-scolaire-header-title"
+          subtitleTestID="vie-scolaire-header-subtitle"
+          rightTestID="btn-menu"
+          topInset={insets.top}
+        />
       </View>
 
       {/* Onglets */}
@@ -251,6 +267,15 @@ function SyntheseTab({
   }
 
   const hasAny = events.length > 0;
+  const recentEvents = events.slice(0, 3);
+  const handleSeeAll = () => {
+    const latest = recentEvents[0];
+    if (latest && (latest.type === "SANCTION" || latest.type === "PUNITION")) {
+      onSanctionsPress();
+      return;
+    }
+    onAbsencesPress();
+  };
 
   return (
     <ScrollView
@@ -267,7 +292,9 @@ function SyntheseTab({
       testID="synthese-tab"
     >
       {/* KPIs */}
-      <Text style={styles.sectionTitle}>Cette année scolaire</Text>
+      <Text style={styles.sectionTitle} testID="school-year-section-title">
+        Cette année scolaire
+      </Text>
       <DisciplineSummaryKpis
         summary={summary}
         onAbsencesPress={onAbsencesPress}
@@ -300,17 +327,17 @@ function SyntheseTab({
         <>
           <View style={styles.sectionRow}>
             <Text style={styles.sectionTitle}>Derniers événements</Text>
-            <TouchableOpacity onPress={onAbsencesPress} testID="btn-see-all">
+            <TouchableOpacity onPress={handleSeeAll} testID="btn-see-all">
               <Text style={styles.sectionLink}>Tout voir</Text>
             </TouchableOpacity>
           </View>
-          {events.slice(0, 3).map((event) => (
+          {recentEvents.map((event) => (
             <LifeEventCard key={event.id} event={event} />
           ))}
           {events.length > 3 && (
             <TouchableOpacity
               style={styles.moreBtn}
-              onPress={onAbsencesPress}
+              onPress={handleSeeAll}
               testID="btn-more"
             >
               <Text style={styles.moreBtnText}>
@@ -345,34 +372,7 @@ function SyntheseTab({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.warmBorder,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerCenter: { flex: 1, alignItems: "center" },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  headerSub: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 1,
-  },
+  headerWrap: { paddingHorizontal: 16 },
 
   tabs: {
     flexDirection: "row",
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   body: { flex: 1 },
 
   scroll: { flex: 1 },
-  scrollContent: { padding: 16, gap: 14, paddingBottom: 40 },
+  scrollContent: { padding: 16, gap: 16, paddingBottom: 40 },
 
   centered: {
     flex: 1,
@@ -433,11 +433,11 @@ const styles = StyleSheet.create({
   },
 
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "800",
     color: colors.textSecondary,
     textTransform: "uppercase",
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
   },
   sectionRow: {
     flexDirection: "row",

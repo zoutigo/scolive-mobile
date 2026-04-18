@@ -76,7 +76,7 @@ export type FeedPost = {
   };
 };
 
-export type FeedFilter = "all" | "featured" | "polls";
+export type FeedFilter = "all" | "featured" | "polls" | "mine";
 
 export type FeedListMeta = {
   page: number;
