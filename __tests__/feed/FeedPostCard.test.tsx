@@ -1,6 +1,7 @@
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { FeedPostCard } from "../../src/components/feed/FeedPostCard";
+import { formatFeedDate } from "../../src/components/feed/feed.helpers";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
@@ -54,6 +55,8 @@ const pollPost = {
 
 describe("FeedPostCard", () => {
   it("affiche les informations principales du post", () => {
+    const expectedMeta = `Mme A.MARTIN · Parent délégué · ${formatFeedDate(post.createdAt)}`;
+
     render(
       <FeedPostCard
         post={post}
@@ -67,17 +70,11 @@ describe("FeedPostCard", () => {
       paddingTop: 14,
     });
     expect(screen.getByText("RÉUNION DES PARENTS")).toBeTruthy();
-    expect(
-      screen.getByText("Mme A.MARTIN · Parent délégué · 5 avr. 2026, 12:00"),
-    ).toBeTruthy();
-    expect(
-      screen.getByText("Mme A.MARTIN · Parent délégué · 5 avr. 2026, 12:00"),
-    ).toHaveStyle({
+    expect(screen.getByText(expectedMeta)).toBeTruthy();
+    expect(screen.getByText(expectedMeta)).toHaveStyle({
       fontSize: 11,
     });
-    expect(
-      screen.getByText("Mme A.MARTIN · Parent délégué · 5 avr. 2026, 12:00"),
-    ).toHaveProp("numberOfLines", 1);
+    expect(screen.getByText(expectedMeta)).toHaveProp("numberOfLines", 1);
     expect(screen.getAllByText("ordre-du-jour.pdf")).toHaveLength(2);
     expect(screen.queryByText("Parents uniquement")).toBeNull();
     expect(screen.queryByText("AM")).toBeNull();
