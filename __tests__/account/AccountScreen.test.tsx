@@ -33,6 +33,12 @@ const profileResponse = {
   email: "remi@example.com",
   phone: "237650123456",
   role: "PARENT" as const,
+  activeRole: "PARENT" as const,
+  platformRoles: [],
+  memberships: [
+    { schoolId: "school-1", role: "PARENT" as const },
+    { schoolId: "school-1", role: "TEACHER" as const },
+  ],
   schoolSlug: "college-vogt",
 };
 
@@ -84,6 +90,7 @@ describe("AccountScreen", () => {
     api.changePassword.mockResolvedValue(undefined);
     api.changePin.mockResolvedValue(undefined);
     api.updateRecovery.mockResolvedValue(undefined);
+    api.setActiveRole.mockResolvedValue({ activeRole: "TEACHER" });
   });
 
   afterEach(() => {
@@ -207,5 +214,41 @@ describe("AccountScreen", () => {
         /Le mot de passe doit contenir au moins 8 caractères avec majuscules, minuscules et chiffres\./i,
       ),
     ).toBeTruthy();
+  });
+
+  it("affiche l'onglet paramètres avec langue et profil actif", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+
+    expect(screen.getByTestId("account-settings-language-card")).toBeTruthy();
+    expect(screen.getByTestId("account-settings-role-card")).toBeTruthy();
+    expect(screen.getByTestId("account-language-fr")).toBeTruthy();
+    expect(screen.getByTestId("account-active-role-PARENT")).toBeTruthy();
+    expect(screen.getByTestId("account-active-role-TEACHER")).toBeTruthy();
+  });
+
+  it("permet de changer le profil actif depuis paramètres", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+    fireEvent.press(screen.getByTestId("account-active-role-TEACHER"));
+    fireEvent.press(screen.getByTestId("account-save-active-role"));
+
+    await waitFor(() => {
+      expect(api.setActiveRole).toHaveBeenCalledWith({ role: "TEACHER" });
+    });
+
+    await waitFor(() => {
+      expect(useAuthStore.getState().user?.activeRole).toBe("TEACHER");
+    });
   });
 });

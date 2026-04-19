@@ -80,4 +80,19 @@ describe("accountApi", () => {
       true,
     );
   });
+
+  it("met à jour le rôle actif via PUT /me/active-role", async () => {
+    mockApiFetch.mockResolvedValueOnce({ activeRole: "TEACHER" });
+
+    await accountApi.setActiveRole({ role: "TEACHER" });
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/me/active-role",
+      {
+        method: "PUT",
+        body: JSON.stringify({ role: "TEACHER" }),
+      },
+      true,
+    );
+  });
 });

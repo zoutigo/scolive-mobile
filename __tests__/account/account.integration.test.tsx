@@ -59,6 +59,12 @@ describe("account integration", () => {
       email: "remi@example.com",
       phone: "237650123456",
       role: "PARENT",
+      activeRole: "PARENT",
+      platformRoles: [],
+      memberships: [
+        { schoolId: "school-1", role: "PARENT" },
+        { schoolId: "school-1", role: "TEACHER" },
+      ],
       schoolSlug: "college-vogt",
     });
     api.getRecoveryOptions.mockResolvedValue({
@@ -71,6 +77,7 @@ describe("account integration", () => {
       parentClassId: null,
       parentStudentId: null,
     });
+    api.setActiveRole.mockResolvedValue({ activeRole: "TEACHER" });
   });
 
   afterEach(() => {
@@ -163,5 +170,31 @@ describe("account integration", () => {
     expect(screen.getAllByText("PIN actuel invalide.").length).toBeGreaterThan(
       0,
     );
+  });
+
+  it("met à jour le profil actif et affiche un toast de confirmation", async () => {
+    render(
+      <>
+        <AccountScreen />
+        <SuccessToastHost />
+      </>,
+    );
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+    fireEvent.press(screen.getByTestId("account-active-role-TEACHER"));
+    fireEvent.press(screen.getByTestId("account-save-active-role"));
+
+    await waitFor(() => {
+      expect(api.setActiveRole).toHaveBeenCalledWith({ role: "TEACHER" });
+    });
+
+    expect(screen.getByText("Profil actif mis à jour")).toBeTruthy();
+    expect(
+      screen.getByText("Enseignant(e) est maintenant actif."),
+    ).toBeTruthy();
   });
 });

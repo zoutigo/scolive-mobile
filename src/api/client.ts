@@ -7,8 +7,12 @@ const REFRESH_EXPIRES_KEY = "scolive_refresh_expires_at";
 const SCHOOL_SLUG_KEY = "scolive_school_slug";
 
 // Android emulator → host machine ; iOS simulator → localhost
+const DEFAULT_DEV_BASE_URL = "http://10.0.2.2:3001/api";
+const DEFAULT_PROD_BASE_URL = "https://scolive.lisaweb.fr/api";
+
 export const BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? "http://10.0.2.2:3001/api";
+  process.env.EXPO_PUBLIC_API_URL ??
+  (__DEV__ ? DEFAULT_DEV_BASE_URL : DEFAULT_PROD_BASE_URL);
 
 export const tokenStorage = {
   async getAccessToken(): Promise<string | null> {

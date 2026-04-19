@@ -60,13 +60,18 @@ jobs:
 
       - name: Build signed Android release APK
         env:
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://scolive.lisaweb.fr/api' }}
+          EXPO_PUBLIC_WEB_URL: ${{ vars.EXPO_PUBLIC_WEB_URL || 'https://scolive.lisaweb.fr' }}
           ORG_GRADLE_PROJECT_SCOLIVE_VERSION_NAME: ${{ steps.version.outputs.version_name }}
           ORG_GRADLE_PROJECT_SCOLIVE_VERSION_CODE: ${{ steps.version.outputs.version_code }}
           ORG_GRADLE_PROJECT_SCOLIVE_RELEASE_STORE_FILE: ${{ runner.temp }}/scolive-release.keystore
           ORG_GRADLE_PROJECT_SCOLIVE_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ORG_GRADLE_PROJECT_SCOLIVE_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ORG_GRADLE_PROJECT_SCOLIVE_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: npm run android:build:release
+        run: |
+          echo "Building release with EXPO_PUBLIC_API_URL=${EXPO_PUBLIC_API_URL}"
+          echo "Building release with EXPO_PUBLIC_WEB_URL=${EXPO_PUBLIC_WEB_URL}"
+          npm run android:build:release
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

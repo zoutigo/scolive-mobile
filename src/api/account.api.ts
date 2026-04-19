@@ -4,6 +4,8 @@ import type {
   AccountRecoveryOptionsResponse,
   ChangePasswordPayload,
   ChangePinPayload,
+  SetActiveRolePayload,
+  SetActiveRoleResponse,
   UpdateAccountProfilePayload,
   UpdateAccountRecoveryPayload,
 } from "../types/account.types";
@@ -18,6 +20,17 @@ export const accountApi = {
   ): Promise<AccountProfileResponse> {
     return apiFetch(
       "/me/profile",
+      {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      },
+      true,
+    );
+  },
+
+  setActiveRole(payload: SetActiveRolePayload): Promise<SetActiveRoleResponse> {
+    return apiFetch(
+      "/me/active-role",
       {
         method: "PUT",
         body: JSON.stringify(payload),
