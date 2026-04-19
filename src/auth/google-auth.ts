@@ -2,7 +2,8 @@ import { Platform } from "react-native";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as WebBrowser from "expo-web-browser";
 
-const DEFAULT_WEB_URL = "http://localhost:3000";
+const DEFAULT_DEV_WEB_URL = "http://localhost:3000";
+const DEFAULT_PROD_WEB_URL = "https://scolive.lisaweb.fr";
 export const MOBILE_REDIRECT_URI = "scolive://auth/callback";
 
 export class GoogleAuthError extends Error {
@@ -23,7 +24,13 @@ function isExpoGoRuntime() {
 }
 
 function getWebBaseUrl() {
-  return process.env.EXPO_PUBLIC_WEB_URL?.trim() || DEFAULT_WEB_URL;
+  const configured = process.env.EXPO_PUBLIC_WEB_URL?.trim();
+  if (configured) {
+    return configured;
+  }
+
+  const isDevRuntime = typeof __DEV__ !== "undefined" ? __DEV__ : false;
+  return isDevRuntime ? DEFAULT_DEV_WEB_URL : DEFAULT_PROD_WEB_URL;
 }
 
 function normalizeWebBaseUrlForRuntime(webBaseUrl: string) {

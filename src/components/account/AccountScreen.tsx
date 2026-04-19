@@ -40,12 +40,14 @@ import type {
   AccountProfileResponse,
   AccountRecoveryOptionsResponse,
 } from "../../types/account.types";
+import type { AppRole, PlatformRole, SchoolRole } from "../../types/auth.types";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { useAuthStore } from "../../store/auth.store";
 import type { ApiClientError } from "../../api/client";
 
-type AccountTab = "personal" | "security" | "help";
+type AccountTab = "personal" | "security" | "help" | "settings";
 type SecuritySection = "password" | "pin" | "recovery" | null;
+type SettingsLanguage = "fr" | "en";
 
 type PersonalFormState = {
   firstName: string;
@@ -79,12 +81,36 @@ const TAB_ITEMS: Array<{ key: AccountTab; label: string }> = [
   { key: "personal", label: "Informations" },
   { key: "security", label: "Sécurité" },
   { key: "help", label: "Aide" },
+  { key: "settings", label: "Paramètres" },
 ];
 
 const GENDER_OPTIONS: Array<{ value: AccountGender; label: string }> = [
   { value: "M", label: "Homme" },
   { value: "F", label: "Femme" },
   { value: "OTHER", label: "Autre" },
+];
+
+const PLATFORM_ROLE_LABELS: Record<PlatformRole, string> = {
+  SUPER_ADMIN: "Super administrateur",
+  ADMIN: "Administrateur",
+  SALES: "Commercial",
+  SUPPORT: "Support",
+};
+
+const SCHOOL_ROLE_LABELS: Record<SchoolRole, string> = {
+  SCHOOL_ADMIN: "Administrateur école",
+  SCHOOL_MANAGER: "Directeur",
+  SUPERVISOR: "Superviseur",
+  SCHOOL_ACCOUNTANT: "Comptable",
+  SCHOOL_STAFF: "Personnel",
+  TEACHER: "Enseignant(e)",
+  PARENT: "Parent",
+  STUDENT: "Élève",
+};
+
+const LANGUAGE_OPTIONS: Array<{ value: SettingsLanguage; label: string }> = [
+  { value: "fr", label: "Français" },
+  { value: "en", label: "English" },
 ];
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -101,18 +127,8 @@ function getErrorMessage(error: unknown, fallback: string) {
 
 function toReadableRole(role: string | null | undefined) {
   const labels: Record<string, string> = {
-    SUPER_ADMIN: "Super administrateur",
-    ADMIN: "Administrateur",
-    SALES: "Commercial",
-    SUPPORT: "Support",
-    SCHOOL_ADMIN: "Administrateur école",
-    SCHOOL_MANAGER: "Directeur",
-    SUPERVISOR: "Superviseur",
-    SCHOOL_ACCOUNTANT: "Comptable",
-    SCHOOL_STAFF: "Personnel",
-    TEACHER: "Enseignant(e)",
-    PARENT: "Parent",
-    STUDENT: "Élève",
+    ...PLATFORM_ROLE_LABELS,
+    ...SCHOOL_ROLE_LABELS,
   };
 
   if (!role) {
@@ -120,6 +136,29 @@ function toReadableRole(role: string | null | undefined) {
   }
 
   return labels[role] ?? role;
+}
+
+function extractAvailableRoles(
+  profile: AccountProfileResponse | null,
+): AppRole[] {
+  if (!profile) {
+    return [];
+  }
+
+  const roles = new Set<AppRole>();
+  for (const role of profile.platformRoles ?? []) {
+    roles.add(role);
+  }
+  for (const membership of profile.memberships ?? []) {
+    roles.add(membership.role);
+  }
+  if (profile.role) {
+    roles.add(profile.role);
+  }
+  if (profile.activeRole) {
+    roles.add(profile.activeRole);
+  }
+  return Array.from(roles);
 }
 
 function formatBirthDate(value: string) {
@@ -244,7 +283,6 @@ function TopTabs(props: {
 function AccountScreenContent() {
   const router = useRouter();
   const { openDrawer } = useDrawer();
-  const authUser = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
@@ -299,6 +337,10 @@ function AccountScreenContent() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingPin, setSavingPin] = useState(false);
   const [savingRecovery, setSavingRecovery] = useState(false);
+  const [settingsLanguage, setSettingsLanguage] =
+    useState<SettingsLanguage>("fr");
+  const [selectedRole, setSelectedRole] = useState<AppRole | null>(null);
+  const [savingActiveRole, setSavingActiveRole] = useState(false);
 
   const securityHint = useMemo(() => {
     if (profile?.role === "PARENT") {
@@ -306,6 +348,18 @@ function AccountScreenContent() {
     }
     return "Mot de passe, PIN et récupération du compte";
   }, [profile?.role]);
+
+  const availableRoles = useMemo(
+    () => extractAvailableRoles(profile),
+    [profile],
+  );
+  const currentActiveRole = useMemo(
+    () =>
+      profile?.activeRole && availableRoles.includes(profile.activeRole)
+        ? profile.activeRole
+        : (profile?.role ?? availableRoles[0] ?? null),
+    [availableRoles, profile?.activeRole, profile?.role],
+  );
 
   const syncProfileState = useCallback(
     (nextProfile: AccountProfileResponse) => {
@@ -316,18 +370,23 @@ function AccountScreenContent() {
         gender: nextProfile.gender ?? "M",
         phone: toLocalPhoneDisplay(nextProfile.phone),
       });
-      if (authUser) {
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser) {
         setUser({
-          ...authUser,
+          ...currentUser,
           firstName: nextProfile.firstName,
           lastName: nextProfile.lastName,
           phone: nextProfile.phone,
           gender: nextProfile.gender ?? null,
-          email: nextProfile.email ?? authUser.email ?? null,
+          email: nextProfile.email ?? currentUser.email ?? null,
+          role: nextProfile.role ?? currentUser.role,
+          activeRole: nextProfile.activeRole ?? currentUser.activeRole,
+          platformRoles: nextProfile.platformRoles ?? currentUser.platformRoles,
+          memberships: nextProfile.memberships ?? currentUser.memberships,
         });
       }
     },
-    [authUser, setUser],
+    [setUser],
   );
 
   const loadProfile = useCallback(async () => {
@@ -380,6 +439,10 @@ function AccountScreenContent() {
       void loadRecovery();
     }
   }, [loadRecovery, loadingRecovery, recoveryOptions, tab]);
+
+  useEffect(() => {
+    setSelectedRole(currentActiveRole);
+  }, [currentActiveRole]);
 
   const validatePersonal = useCallback(() => {
     const result = accountPersonalProfileSchema.safeParse(personalForm);
@@ -595,6 +658,49 @@ function AccountScreenContent() {
       });
     } finally {
       setSavingRecovery(false);
+    }
+  }
+
+  async function handleSaveActiveRole() {
+    if (!selectedRole) {
+      return;
+    }
+
+    try {
+      setSavingActiveRole(true);
+      const response = await accountApi.setActiveRole({ role: selectedRole });
+      setSelectedRole(response.activeRole);
+      setProfile((current) =>
+        current
+          ? {
+              ...current,
+              activeRole: response.activeRole,
+            }
+          : current,
+      );
+
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser) {
+        setUser({
+          ...currentUser,
+          activeRole: response.activeRole,
+        });
+      }
+
+      showSuccess({
+        title: "Profil actif mis à jour",
+        message: `${toReadableRole(response.activeRole)} est maintenant actif.`,
+      });
+    } catch (error) {
+      showError({
+        title: "Mise à jour impossible",
+        message: getErrorMessage(
+          error,
+          "Le profil actif n'a pas pu être mis à jour.",
+        ),
+      });
+    } finally {
+      setSavingActiveRole(false);
     }
   }
 
@@ -1321,6 +1427,130 @@ function AccountScreenContent() {
           </SectionCard>
         ) : null}
 
+        {tab === "settings" ? (
+          <View style={styles.settingsStack}>
+            <SectionCard
+              title="Langue"
+              subtitle="Préparez l'interface multilingue"
+              testID="account-settings-language-card"
+            >
+              <Text style={styles.settingsHint}>
+                Sélection visuelle uniquement pour le moment.
+              </Text>
+              <View style={styles.settingsChoiceWrap}>
+                {LANGUAGE_OPTIONS.map((option) => {
+                  const selected = settingsLanguage === option.value;
+                  return (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.settingsRoleOption,
+                        selected && styles.settingsRoleOptionActive,
+                      ]}
+                      onPress={() => setSettingsLanguage(option.value)}
+                      testID={`account-language-${option.value}`}
+                    >
+                      <Text
+                        style={[
+                          styles.settingsRoleLabel,
+                          selected && styles.settingsRoleLabelActive,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                      <Ionicons
+                        name={
+                          selected
+                            ? "radio-button-on-outline"
+                            : "radio-button-off-outline"
+                        }
+                        size={16}
+                        color={selected ? colors.primary : colors.textSecondary}
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </SectionCard>
+
+            <SectionCard
+              title="Profil actif"
+              subtitle="Choisissez la navigation à afficher"
+              testID="account-settings-role-card"
+            >
+              {availableRoles.length <= 1 ? (
+                <Text style={styles.settingsHint}>
+                  Un seul profil est disponible sur ce compte.
+                </Text>
+              ) : (
+                <View style={styles.settingsChoiceWrap}>
+                  {availableRoles.map((role) => {
+                    const selected = selectedRole === role;
+                    return (
+                      <TouchableOpacity
+                        key={role}
+                        style={[
+                          styles.settingsRoleOption,
+                          selected && styles.settingsRoleOptionActive,
+                        ]}
+                        onPress={() => setSelectedRole(role)}
+                        testID={`account-active-role-${role}`}
+                      >
+                        <Text
+                          style={[
+                            styles.settingsRoleLabel,
+                            selected && styles.settingsRoleLabelActive,
+                          ]}
+                        >
+                          {toReadableRole(role)}
+                        </Text>
+                        <Ionicons
+                          name={
+                            selected
+                              ? "radio-button-on-outline"
+                              : "radio-button-off-outline"
+                          }
+                          size={16}
+                          color={
+                            selected ? colors.primary : colors.textSecondary
+                          }
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+
+              <View style={styles.actionsRowSplit}>
+                <ActionButton
+                  label="Réinitialiser"
+                  variant="secondary"
+                  onPress={() => setSelectedRole(currentActiveRole)}
+                  stretch
+                  disabled={
+                    savingActiveRole || selectedRole === currentActiveRole
+                  }
+                  testID="account-reset-active-role"
+                />
+                <ActionButton
+                  label="Appliquer"
+                  onPress={() => {
+                    void handleSaveActiveRole();
+                  }}
+                  stretch
+                  loading={savingActiveRole}
+                  disabled={
+                    !selectedRole ||
+                    selectedRole === currentActiveRole ||
+                    availableRoles.length <= 1
+                  }
+                  testID="account-save-active-role"
+                />
+              </View>
+            </SectionCard>
+          </View>
+        ) : null}
+
         {!screenError && !profile ? (
           <EmptyState
             icon="person-circle-outline"
@@ -1693,6 +1923,43 @@ const styles = StyleSheet.create({
   },
   answerInput: {
     minHeight: 52,
+  },
+  settingsStack: {
+    gap: 16,
+  },
+  settingsHint: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textSecondary,
+  },
+  settingsChoiceWrap: {
+    marginTop: 10,
+    gap: 10,
+  },
+  settingsRoleOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  settingsRoleOptionActive: {
+    borderColor: "rgba(12,95,168,0.24)",
+    backgroundColor: "rgba(12,95,168,0.08)",
+  },
+  settingsRoleLabel: {
+    fontSize: 14,
+    color: colors.textPrimary,
+    fontWeight: "600",
+  },
+  settingsRoleLabelActive: {
+    color: colors.primary,
+    fontWeight: "700",
   },
   helpList: {
     gap: 14,

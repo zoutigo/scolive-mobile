@@ -7,16 +7,33 @@ import {
 } from "@testing-library/react-native";
 import LoginScreen from "../../app/login";
 import { authApi } from "../../src/api/auth.api";
+import { mobileBuildsApi } from "../../src/api/mobile-builds.api";
 import { signInWithGoogleAsync } from "../../src/auth/google-auth";
 import { useAuthStore } from "../../src/store/auth.store";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-status-bar", () => ({ StatusBar: () => null }));
+jest.mock("expo-application", () => ({
+  nativeApplicationVersion: "1.0.0",
+  nativeBuildVersion: "100",
+}));
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
   useLocalSearchParams: jest.fn(() => ({})),
 }));
+jest.mock("react-native/Libraries/Utilities/Platform", () => ({
+  __esModule: true,
+  default: {
+    OS: "android",
+    select: (options: Record<string, unknown>) =>
+      options.android ?? options.default,
+  },
+  OS: "android",
+  select: (options: Record<string, unknown>) =>
+    options.android ?? options.default,
+}));
 jest.mock("../../src/api/auth.api");
+jest.mock("../../src/api/mobile-builds.api");
 jest.mock("../../src/auth/google-auth", () => {
   class MockGoogleAuthError extends Error {
     code: string;
@@ -36,6 +53,9 @@ jest.mock("../../src/auth/google-auth", () => {
 jest.mock("../../src/store/auth.store", () => ({ useAuthStore: jest.fn() }));
 
 const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
+const mockMobileBuildsApi = mobileBuildsApi as jest.Mocked<
+  typeof mobileBuildsApi
+>;
 const mockGoogleAuth = signInWithGoogleAsync as jest.MockedFunction<
   typeof signInWithGoogleAsync
 >;
@@ -47,6 +67,9 @@ const { GoogleAuthError } = require("../../src/auth/google-auth") as {
 };
 const { router: mockRouter } = require("expo-router") as {
   router: { push: jest.Mock; replace: jest.Mock; back: jest.Mock };
+};
+const { Linking } = require("react-native") as {
+  Linking: { openURL: jest.Mock };
 };
 
 const mockHandleLoginResponse = jest.fn().mockResolvedValue(undefined);
@@ -89,6 +112,16 @@ beforeEach(() => {
       handleLoginResponse: mockHandleLoginResponse,
     } as ReturnType<typeof useAuthStore>;
   });
+  mockMobileBuildsApi.getLatestAndroidBuildMeta.mockResolvedValue({
+    versionName: "1.0.0",
+    versionCode: 100,
+    uploadedAt: "2026-04-19T10:00:00.000Z",
+    fileSize: 1024,
+    mimeType: "application/vnd.android.package-archive",
+  });
+  mockMobileBuildsApi.getLatestAndroidDownloadUrl.mockReturnValue(
+    "https://scolive.lisaweb.fr/api/mobile-builds/android/latest",
+  );
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -104,6 +137,53 @@ describe("En-tête", () => {
   it("affiche le tagline", () => {
     render(<LoginScreen />);
     expect(screen.getByText("Votre école en temps réel.")).toBeOnTheScreen();
+  });
+});
+
+describe("Mise à jour Android", () => {
+  it("affiche un bandeau quand une version plus récente est disponible", async () => {
+    mockMobileBuildsApi.getLatestAndroidBuildMeta.mockResolvedValueOnce({
+      versionName: "1.0.1",
+      versionCode: 101,
+      uploadedAt: "2026-04-19T10:00:00.000Z",
+      fileSize: 2048,
+      mimeType: "application/vnd.android.package-archive",
+      downloadUrl:
+        "https://scolive.lisaweb.fr/api/mobile-builds/android/latest",
+    });
+
+    render(<LoginScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("android-update-banner")).toBeOnTheScreen(),
+    );
+    expect(screen.getByText(/Dernière version: 1.0.1 \(101\)/)).toBeTruthy();
+  });
+
+  it("ouvre le téléchargement quand on appuie sur le bouton", async () => {
+    const openUrlSpy = jest
+      .spyOn(Linking, "openURL")
+      .mockResolvedValueOnce(undefined);
+    mockMobileBuildsApi.getLatestAndroidBuildMeta.mockResolvedValueOnce({
+      versionName: "1.0.2",
+      versionCode: 102,
+      uploadedAt: "2026-04-19T10:00:00.000Z",
+      fileSize: 4096,
+      mimeType: "application/vnd.android.package-archive",
+      downloadUrl:
+        "https://scolive.lisaweb.fr/api/mobile-builds/android/latest",
+    });
+
+    render(<LoginScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("android-update-download")).toBeOnTheScreen(),
+    );
+    fireEvent.press(screen.getByTestId("android-update-download"));
+
+    expect(openUrlSpy).toHaveBeenCalledWith(
+      "https://scolive.lisaweb.fr/api/mobile-builds/android/latest",
+    );
   });
 });
 

@@ -10,6 +10,20 @@ export interface AccountProfileResponse {
   email?: string | null;
   phone?: string | null;
   role: AppRole;
+  activeRole?: AppRole | null;
+  platformRoles?: Array<"SUPER_ADMIN" | "ADMIN" | "SALES" | "SUPPORT">;
+  memberships?: Array<{
+    schoolId: string;
+    role:
+      | "SCHOOL_ADMIN"
+      | "SCHOOL_MANAGER"
+      | "SUPERVISOR"
+      | "SCHOOL_ACCOUNTANT"
+      | "SCHOOL_STAFF"
+      | "TEACHER"
+      | "PARENT"
+      | "STUDENT";
+  }>;
   schoolSlug: string | null;
 }
 
@@ -58,4 +72,12 @@ export interface UpdateAccountRecoveryPayload {
   answers: Array<{ questionKey: string; answer: string }>;
   parentClassId?: string;
   parentStudentId?: string;
+}
+
+export interface SetActiveRolePayload {
+  role: AppRole;
+}
+
+export interface SetActiveRoleResponse {
+  activeRole: AppRole;
 }
