@@ -317,7 +317,7 @@ describe("ChildClassFeedScreen", () => {
     fireEvent.press(screen.getByTestId("child-class-feed-open-composer-poll"));
     expect(screen.getByTestId("feed-composer-card")).toBeTruthy();
     expect(screen.getByTestId("feed-composer-type-poll")).toHaveStyle({
-      backgroundColor: "#0C5FA8",
+      backgroundColor: "#08467D",
     });
   });
 

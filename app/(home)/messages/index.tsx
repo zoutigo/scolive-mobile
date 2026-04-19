@@ -154,6 +154,13 @@ function MessagesScreenContent() {
               <Ionicons name="close" size={20} color="rgba(255,255,255,0.8)" />
             </TouchableOpacity>
           </KeyboardAvoidingView>
+          <TouchableOpacity
+            style={styles.headerIconButton}
+            onPress={openDrawer}
+            testID="messages-menu-btn"
+          >
+            <Ionicons name="menu-outline" size={20} color={colors.white} />
+          </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.headerWrap}>
@@ -167,21 +174,30 @@ function MessagesScreenContent() {
               }
               router.back();
             }}
-            rightIcon={activeChildId ? "menu-outline" : "search-outline"}
-            onRightPress={
-              activeChildId ? openDrawer : () => setSearchVisible(true)
-            }
+            rightIcon="menu-outline"
+            onRightPress={openDrawer}
             testID="messages-header"
             backTestID="back-btn"
             titleTestID="messages-header-title"
             subtitleTestID="messages-header-subtitle"
-            rightTestID={
-              activeChildId ? "messages-menu-btn" : "messages-search-btn"
-            }
+            rightTestID="messages-menu-btn"
             topInset={insets.top}
           />
         </View>
       )}
+
+      {!activeChildId && !searchVisible ? (
+        <View style={styles.searchEntryRow}>
+          <TouchableOpacity
+            style={styles.searchEntryBtn}
+            onPress={() => setSearchVisible(true)}
+            testID="messages-search-btn"
+          >
+            <Ionicons name="search-outline" size={16} color={colors.primary} />
+            <Text style={styles.searchEntryLabel}>Rechercher un message</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       {/* Folder Tabs */}
       <FolderTabs
@@ -258,6 +274,27 @@ function MessagesScreenContent() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   headerWrap: { paddingHorizontal: 16 },
+  searchEntryRow: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  searchEntryBtn: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  searchEntryLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.primary,
+  },
 
   searchHeader: {
     flexDirection: "row",

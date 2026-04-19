@@ -31,6 +31,7 @@ const mockRouter = { back: mockBack, push: mockPush };
 jest.mock("expo-router", () => ({
   useRouter: () => mockRouter,
   useLocalSearchParams: () => ({ messageId: "m1" }),
+  usePathname: () => "/(home)/messages/[messageId]",
 }));
 
 const api = messagingApi as jest.Mocked<typeof messagingApi>;
@@ -107,6 +108,7 @@ describe("Rendu du détail", () => {
   it("affiche le titre de retour dans l'en-tête", async () => {
     await renderDetailAndWait();
     expect(screen.getByText("Retour à la messagerie")).toBeTruthy();
+    expect(screen.getByTestId("message-detail-menu-btn")).toBeTruthy();
   });
 
   it("affiche le sujet dans la carte de résumé", async () => {

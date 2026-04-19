@@ -158,6 +158,7 @@ describe("ClassNotesManagerScreen", () => {
     await waitFor(() => expect(screen.getByText("Composition 1")).toBeTruthy());
 
     expect(screen.getByTestId("class-notes-header")).toBeTruthy();
+    expect(screen.getByTestId("class-notes-menu-btn")).toBeTruthy();
     expect(screen.getByText("6e A")).toBeTruthy();
     expect(screen.getByText("Composition 1")).toBeTruthy();
     expect(screen.getByTestId("class-notes-tab-evaluations")).toBeTruthy();

@@ -105,6 +105,7 @@ describe("NotesClassesScreen", () => {
     await waitFor(() => expect(screen.getByText("6e A")).toBeTruthy());
 
     expect(screen.getByTestId("notes-classes-header")).toBeTruthy();
+    expect(screen.getByTestId("notes-classes-menu-btn")).toBeTruthy();
     expect(screen.getByText("Cahier de notes")).toBeTruthy();
     expect(screen.getByText("6e A")).toBeTruthy();
     expect(screen.getByText("Mathématiques")).toBeTruthy();

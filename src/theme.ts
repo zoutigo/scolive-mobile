@@ -1,6 +1,6 @@
 // Thème extrait du web (school-live/apps/web/tailwind.config.ts)
 export const colors = {
-  primary: "#0C5FA8",
+  primary: "#08467D",
   primaryDark: "#08467D",
   sidebarBg: "#0B4F86",
   background: "#F7F1E8",
@@ -9,6 +9,7 @@ export const colors = {
   textSecondary: "#5F5A52",
   border: "#E7D8C8",
   accentTeal: "#247C72",
+  accentTealDark: "#195E56",
   warmAccent: "#D89B5B",
   warmSurface: "#FFF8F0",
   warmBorder: "#E8CCAE",

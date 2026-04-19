@@ -22,6 +22,7 @@ interface ModuleHeaderProps {
   subtitleTestID?: string;
   rightTestID?: string;
   topInset?: number;
+  backgroundColor?: string;
 }
 
 export function ModuleHeader({
@@ -36,6 +37,7 @@ export function ModuleHeader({
   subtitleTestID = "module-header-subtitle",
   rightTestID = "module-header-right",
   topInset = 0,
+  backgroundColor = colors.primary,
 }: ModuleHeaderProps) {
   const androidStatusInset =
     Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0;
@@ -43,7 +45,10 @@ export function ModuleHeader({
 
   return (
     <View
-      style={[styles.headerCard, { paddingTop: resolvedTopInset + 10 }]}
+      style={[
+        styles.headerCard,
+        { paddingTop: resolvedTopInset + 10, backgroundColor },
+      ]}
       testID={testID}
     >
       <TouchableOpacity
@@ -88,7 +93,6 @@ export function ModuleHeader({
 
 const styles = StyleSheet.create({
   headerCard: {
-    backgroundColor: colors.primary,
     marginHorizontal: -16,
     paddingHorizontal: 16,
     paddingVertical: 10,

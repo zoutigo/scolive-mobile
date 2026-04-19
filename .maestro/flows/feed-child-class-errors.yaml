@@ -1,0 +1,132 @@
+appId: com.zoutigo.scoliveapp
+name: Child Class Feed Errors
+tags:
+  - feed
+  - child
+  - class
+  - error
+---
+- runFlow:
+    when:
+      visible: "Process system isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "tab-email"
+- tapOn:
+    id: "input-email"
+- inputText: "parent@ecole.cm"
+- hideKeyboard
+- tapOn:
+    id: "input-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible:
+      id: "child-card-child-1"
+    timeout: 20000
+- tapOn:
+    id: "child-card-child-1"
+- scrollUntilVisible:
+    element:
+      id: "child-home-link-class-life"
+    direction: DOWN
+    timeout: 10000
+    speed: 40
+    visibilityPercentage: 1
+    centerElement: false
+- extendedWaitUntil:
+    visible:
+      id: "child-home-link-class-life"
+    timeout: 15000
+- tapOn:
+    id: "child-home-link-class-life"
+- extendedWaitUntil:
+    visible:
+      id: "feed-post-like-feed-1"
+    timeout: 20000
+- tapOn:
+    id: "feed-post-like-feed-1"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Réaction indisponible"
+- assertVisible: "Like indisponible"
+- tapOn:
+    id: "feed-post-react-feed-1"
+- tapOn:
+    id: "feed-comment-input-feed-1"
+- inputText: "Erreur vie de classe"
+- hideKeyboard
+- tapOn:
+    id: "feed-comment-submit-feed-1"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Commentaire non envoyé"
+- assertVisible: "Commentaire fermé"
+- tapOn:
+    id: "child-class-feed-filter-polls"
+- tapOn:
+    id: "feed-post-poll-option-feed-2-poll-1"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Vote indisponible"
+- assertVisible: "Vote déjà enregistré"
+- tapOn:
+    id: "child-class-feed-filter-all"
+- tapOn:
+    id: "child-class-feed-open-composer-post"
+- extendedWaitUntil:
+    visible:
+      id: "feed-composer-title"
+    timeout: 10000
+- tapOn:
+    id: "feed-composer-title"
+- inputText: "Info erreur vie de classe"
+- hideKeyboard
+- tapOn:
+    point: 22%, 56%
+- inputText: "Publication erreur"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "feed-composer-submit"
+    direction: DOWN
+    timeout: 10000
+    speed: 40
+    visibilityPercentage: 1
+    centerElement: false
+- tapOn:
+    id: "feed-composer-submit"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Publication impossible"
+- assertVisible: "Publication verrouillée"

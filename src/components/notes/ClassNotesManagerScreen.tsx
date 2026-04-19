@@ -35,6 +35,7 @@ import {
   termLabel,
 } from "../../utils/notes";
 import { getViewType } from "../navigation/nav-config";
+import { useDrawer } from "../navigation/AppShell";
 import {
   EmptyState,
   ErrorBanner,
@@ -105,6 +106,7 @@ function createEmptyEvaluationForm(): UpsertEvaluationPayload {
 export function ClassNotesManagerScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { openDrawer } = useDrawer();
   const params = useLocalSearchParams<{
     classId?: string;
     schoolYearId?: string;
@@ -506,6 +508,13 @@ export function ClassNotesManagerScreen() {
               Évaluations, saisie des notes et appréciations de période.
             </Text>
           </View>
+          <TouchableOpacity
+            onPress={openDrawer}
+            style={styles.backBtn}
+            testID="class-notes-menu-btn"
+          >
+            <Ionicons name="menu-outline" size={20} color={colors.white} />
+          </TouchableOpacity>
         </View>
 
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}

@@ -189,6 +189,18 @@ const DISCIPLINE_SCENARIOS = {
   delete_error: "delete_error",
 };
 
+const FEED_SCENARIOS = {
+  happy_path: "happy_path",
+  list_error: "list_error",
+  list_error_once: "list_error_once",
+  create_error: "create_error",
+  like_error: "like_error",
+  comment_error: "comment_error",
+  vote_error: "vote_error",
+  delete_error: "delete_error",
+  action_errors: "action_errors",
+};
+
 // ────────────────────────── Scénarios récupération PIN ──────────────────────────
 
 /**
@@ -226,6 +238,7 @@ let currentOnboardingScenario = "email_parent_happy";
 let currentPinScenario = "happy_path";
 let currentPwdScenario = "happy_path";
 let currentDisciplineScenario = "happy_path";
+let currentFeedScenario = "happy_path";
 let server = null;
 
 const INLINE_IMAGE_PNG_BASE64 =
@@ -834,6 +847,7 @@ let mockMessages = createInitialMessages();
 let feedCounter = 10;
 let feedCommentCounter = 10;
 let mockFeedPosts = createInitialFeedPosts();
+let feedListErrorOnceConsumed = false;
 let lifeEventCounter = 10;
 let mockLifeEventsByStudent = createInitialLifeEventsByStudent();
 
@@ -845,6 +859,7 @@ function resetMockState() {
   feedCounter = 10;
   feedCommentCounter = 10;
   mockFeedPosts = createInitialFeedPosts();
+  feedListErrorOnceConsumed = false;
   timetableSlotCounter = 10;
   timetableOneOffCounter = 10;
   timetableEventCounter = 10;
@@ -1110,7 +1125,7 @@ function createInitialFeedPosts() {
       bodyHtml:
         "<p>La réunion parents-professeurs aura lieu vendredi à 16h30 dans la salle polyvalente.</p>",
       createdAt: "2026-04-04T08:30:00.000Z",
-      featuredUntil: "2026-04-10T08:30:00.000Z",
+      featuredUntil: "2030-04-10T08:30:00.000Z",
       audience: {
         scope: "PARENTS_ONLY",
         label: "Parents uniquement",
@@ -1384,6 +1399,7 @@ function handleRequest(req, res) {
     url === "/__scenario" ||
     url === "/__scenario/email-login" ||
     url === "/__scenario/onboarding" ||
+    url === "/__scenario/feed" ||
     url === "/__scenario/pin" ||
     url === "/__scenario/discipline" ||
     url === "/__scenario/password" ||
@@ -1414,6 +1430,14 @@ function handleRequest(req, res) {
             currentEmailLoginScenario = scenario;
           } else if (url === "/__scenario/onboarding") {
             currentOnboardingScenario = scenario;
+          } else if (url === "/__scenario/feed") {
+            if (!FEED_SCENARIOS[scenario]) {
+              return json(res, 400, {
+                error: `Scénario feed inconnu : "${scenario}"`,
+              });
+            }
+            currentFeedScenario = scenario;
+            feedListErrorOnceConsumed = false;
           } else if (url === "/__scenario/discipline") {
             if (!DISCIPLINE_SCENARIOS[scenario]) {
               return json(res, 400, {
@@ -1439,6 +1463,7 @@ function handleRequest(req, res) {
         login: currentScenario,
         emailLogin: currentEmailLoginScenario,
         onboarding: currentOnboardingScenario,
+        feed: currentFeedScenario,
         discipline: currentDisciplineScenario,
         pin: currentPinScenario,
         password: currentPwdScenario,
@@ -2377,6 +2402,22 @@ function handleRequest(req, res) {
   }
 
   if (method === "GET" && path === "/api/schools/ecole-demo/feed") {
+    if (currentFeedScenario === "list_error") {
+      return json(res, 500, {
+        message: "Chargement du fil impossible",
+        statusCode: 500,
+      });
+    }
+    if (
+      currentFeedScenario === "list_error_once" &&
+      !feedListErrorOnceConsumed
+    ) {
+      feedListErrorOnceConsumed = true;
+      return json(res, 500, {
+        message: "Chargement du fil impossible",
+        statusCode: 500,
+      });
+    }
     const items = filterFeedPosts(requestUrl.searchParams);
     return json(res, 200, {
       items,
@@ -2399,6 +2440,15 @@ function handleRequest(req, res) {
   }
 
   if (method === "POST" && path === "/api/schools/ecole-demo/feed") {
+    if (
+      currentFeedScenario === "create_error" ||
+      currentFeedScenario === "action_errors"
+    ) {
+      return json(res, 403, {
+        message: "Publication verrouillée",
+        statusCode: 403,
+      });
+    }
     readBody(req).then((raw) => {
       const payload = JSON.parse(raw || "{}");
       feedCounter += 1;
@@ -2459,6 +2509,15 @@ function handleRequest(req, res) {
     method === "POST" &&
     path.match(/^\/api\/schools\/ecole-demo\/feed\/[^/]+\/likes\/toggle$/)
   ) {
+    if (
+      currentFeedScenario === "like_error" ||
+      currentFeedScenario === "action_errors"
+    ) {
+      return json(res, 503, {
+        message: "Like indisponible",
+        statusCode: 503,
+      });
+    }
     const postId = path.split("/")[5];
     const post = mockFeedPosts.find((entry) => entry.id === postId);
     if (!post) {
@@ -2482,6 +2541,15 @@ function handleRequest(req, res) {
     method === "POST" &&
     path.match(/^\/api\/schools\/ecole-demo\/feed\/[^/]+\/comments$/)
   ) {
+    if (
+      currentFeedScenario === "comment_error" ||
+      currentFeedScenario === "action_errors"
+    ) {
+      return json(res, 403, {
+        message: "Commentaire fermé",
+        statusCode: 403,
+      });
+    }
     const postId = path.split("/")[5];
     const post = mockFeedPosts.find((entry) => entry.id === postId);
     if (!post) {
@@ -2512,6 +2580,15 @@ function handleRequest(req, res) {
     method === "POST" &&
     path.match(/^\/api\/schools\/ecole-demo\/feed\/[^/]+\/polls\/[^/]+\/vote$/)
   ) {
+    if (
+      currentFeedScenario === "vote_error" ||
+      currentFeedScenario === "action_errors"
+    ) {
+      return json(res, 400, {
+        message: "Vote déjà enregistré",
+        statusCode: 400,
+      });
+    }
     const segments = path.split("/");
     const postId = segments[5];
     const optionId = segments[7];
@@ -2557,6 +2634,15 @@ function handleRequest(req, res) {
     method === "DELETE" &&
     path.match(/^\/api\/schools\/ecole-demo\/feed\/[^/]+$/)
   ) {
+    if (
+      currentFeedScenario === "delete_error" ||
+      currentFeedScenario === "action_errors"
+    ) {
+      return json(res, 403, {
+        message: "Suppression refusée",
+        statusCode: 403,
+      });
+    }
     const postId = path.split("/")[5];
     mockFeedPosts = mockFeedPosts.filter((entry) => entry.id !== postId);
     return json(res, 200, { success: true, postId });

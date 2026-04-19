@@ -120,7 +120,7 @@ describe("VieScolaireScreen", () => {
     render(<VieScolaireScreen />);
 
     expect(screen.getByTestId("vie-scolaire-header")).toHaveStyle({
-      backgroundColor: "#0C5FA8",
+      backgroundColor: "#08467D",
       marginHorizontal: -16,
     });
     expect(screen.getByTestId("btn-back")).toHaveStyle({

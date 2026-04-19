@@ -93,7 +93,7 @@ describe("FeedPostCard", () => {
     const title = screen.getByText("RÉUNION DES PARENTS");
     expect(title).toBeTruthy();
     expect(title).toHaveStyle({
-      color: "#0C5FA8",
+      color: "#08467D",
       textTransform: "uppercase",
       fontSize: 13,
     });
@@ -178,7 +178,7 @@ describe("FeedPostCard", () => {
     expect(screen.getByTestId("feed-comment-submit-post-1")).toHaveStyle({
       borderRadius: 6,
       minHeight: 40,
-      backgroundColor: "#0C5FA8",
+      backgroundColor: "#08467D",
     });
     fireEvent.changeText(
       screen.getByTestId("feed-comment-input-post-1"),

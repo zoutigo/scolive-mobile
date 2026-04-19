@@ -27,6 +27,10 @@ import { useMessagingStore } from "../../../src/store/messaging.store";
 import { useSuccessToastStore } from "../../../src/store/success-toast.store";
 import { RichTextToolbar } from "../../../src/components/editor/RichTextToolbar";
 import { RecipientPickerModal } from "../../../src/components/messaging/RecipientPickerModal";
+import {
+  AppShell,
+  useDrawer,
+} from "../../../src/components/navigation/AppShell";
 import type {
   RecipientOption,
   MessagingRecipients,
@@ -226,6 +230,7 @@ function hasDraftContent(params: {
 export default function ComposeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { openDrawer } = useDrawer();
   const { schoolSlug } = useAuthStore();
   const { folder, loadMessages } = useMessagingStore();
   const showFeedbackToast = useSuccessToastStore((state) => state.show);
@@ -588,7 +593,7 @@ export default function ComposeScreen() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
-  return (
+  const content = (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -606,7 +611,13 @@ export default function ComposeScreen() {
           <Text style={styles.headerTitle}>
             {isReply ? "Répondre" : "Nouveau message"}
           </Text>
-          <View style={styles.headerSpacer} />
+          <TouchableOpacity
+            onPress={openDrawer}
+            style={styles.headerSpacer}
+            testID="compose-menu-btn"
+          >
+            <Ionicons name="menu-outline" size={20} color={colors.white} />
+          </TouchableOpacity>
         </View>
 
         {/* Inserting image indicator */}
@@ -839,6 +850,8 @@ export default function ComposeScreen() {
       />
     </KeyboardAvoidingView>
   );
+
+  return <AppShell showHeader={false}>{content}</AppShell>;
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -861,7 +874,16 @@ const styles = StyleSheet.create({
     color: colors.white,
     textAlign: "center",
   },
-  headerSpacer: { width: 22, height: 22 },
+  headerSpacer: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   banner: {
     flexDirection: "row",
     alignItems: "center",

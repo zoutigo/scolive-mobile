@@ -1,6 +1,8 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { ModuleHeader } from "../../src/components/navigation/ModuleHeader";
+import { colors } from "../../src/theme";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
@@ -27,5 +29,19 @@ describe("ModuleHeader", () => {
     render(<ModuleHeader title="Titre" onBack={jest.fn()} />);
 
     expect(screen.queryByTestId("module-header-right")).toBeNull();
+  });
+
+  it("supporte une couleur de fond personnalisée", () => {
+    render(
+      <ModuleHeader
+        title="Mon compte"
+        onBack={jest.fn()}
+        backgroundColor={colors.primaryDark}
+      />,
+    );
+
+    const header = screen.getByTestId("module-header");
+    const headerStyle = StyleSheet.flatten(header.props.style);
+    expect(headerStyle.backgroundColor).toBe(colors.primaryDark);
   });
 });

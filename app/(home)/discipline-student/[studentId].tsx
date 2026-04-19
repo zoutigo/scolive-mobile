@@ -29,6 +29,10 @@ import { useSuccessToastStore } from "../../../src/store/success-toast.store";
 import { DisciplineForm } from "../../../src/components/discipline/DisciplineForm";
 import { DisciplineList } from "../../../src/components/discipline/DisciplineList";
 import { DisciplineDeleteDialog } from "../../../src/components/discipline/DisciplineDeleteDialog";
+import {
+  AppShell,
+  useDrawer,
+} from "../../../src/components/navigation/AppShell";
 import type {
   CreateLifeEventPayload,
   StudentLifeEvent,
@@ -85,6 +89,7 @@ export default function DisciplineStudentScreen() {
     removeEvent,
   } = useDisciplineStore();
   const { showSuccess } = useSuccessToastStore();
+  const { openDrawer } = useDrawer();
 
   const [tab, setTab] = useState<TabKey>("saisie");
   const [isSaving, setIsSaving] = useState(false);
@@ -210,7 +215,7 @@ export default function DisciplineStudentScreen() {
 
   const displayName = studentName ?? "Élève";
 
-  return (
+  const content = (
     <KeyboardAvoidingView
       style={[styles.root, { paddingTop: insets.top }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -234,13 +239,22 @@ export default function DisciplineStudentScreen() {
             {displayName}
           </Text>
         </View>
-        <TouchableOpacity
-          onPress={refresh}
-          style={styles.iconBtn}
-          testID="btn-refresh"
-        >
-          <Ionicons name="refresh-outline" size={20} color={colors.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={refresh}
+            style={styles.iconBtn}
+            testID="btn-refresh"
+          >
+            <Ionicons name="refresh-outline" size={20} color={colors.white} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={openDrawer}
+            style={styles.iconBtn}
+            testID="btn-menu"
+          >
+            <Ionicons name="menu-outline" size={20} color={colors.white} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Onglets */}
@@ -347,6 +361,8 @@ export default function DisciplineStudentScreen() {
       />
     </KeyboardAvoidingView>
   );
+
+  return <AppShell showHeader={false}>{content}</AppShell>;
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -359,9 +375,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.warmBorder,
+    backgroundColor: colors.primary,
   },
   iconBtn: {
     width: 40,
@@ -369,10 +383,18 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.22)",
   },
   headerCenter: { flex: 1, alignItems: "center" },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: colors.textPrimary },
-  headerSub: { fontSize: 12, color: colors.textSecondary, marginTop: 1 },
+  headerTitle: { fontSize: 17, fontWeight: "700", color: colors.white },
+  headerSub: { fontSize: 12, color: "rgba(255,255,255,0.82)", marginTop: 1 },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
 
   tabs: {
     flexDirection: "row",
