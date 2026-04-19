@@ -8,6 +8,8 @@ import { useAuthStore } from "../../src/store/auth.store";
 import { useFeedStore } from "../../src/store/feed.store";
 import { feedApi } from "../../src/api/feed.api";
 import { FeedModuleScreen } from "../../src/components/feed/FeedModuleScreen";
+import { AppShell } from "../../src/components/navigation/AppShell";
+import { useDrawer } from "../../src/components/navigation/drawer-context";
 import type {
   CreateFeedPayload,
   FeedFilter,
@@ -34,9 +36,18 @@ function resolveViewerRole(
     : null;
 }
 
-export default function FeedScreen() {
+export default function FeedScreenRoute() {
+  return (
+    <AppShell showHeader={false}>
+      <FeedScreen />
+    </AppShell>
+  );
+}
+
+function FeedScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { openDrawer } = useDrawer();
   const { schoolSlug, user } = useAuthStore();
   const viewerRole = resolveViewerRole(user?.activeRole ?? user?.role ?? null);
 
@@ -96,6 +107,13 @@ export default function FeedScreen() {
             testID="feed-search-btn"
           >
             <Ionicons name="search-outline" size={20} color={colors.white} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerIcon}
+            onPress={openDrawer}
+            testID="feed-menu-btn"
+          >
+            <Ionicons name="menu-outline" size={20} color={colors.white} />
           </TouchableOpacity>
         </View>
       )}

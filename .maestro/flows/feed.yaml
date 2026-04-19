@@ -14,6 +14,11 @@ tags:
       visible: "System UI isn't responding"
     commands:
       - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
 - extendedWaitUntil:
     visible:
       id: "submit-login"
@@ -30,6 +35,11 @@ tags:
 - hideKeyboard
 - tapOn:
     id: "submit-login"
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
 - extendedWaitUntil:
     visible:
       id: "header-menu-btn"

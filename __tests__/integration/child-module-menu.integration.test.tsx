@@ -37,6 +37,26 @@ function ChildModuleHeaderHarness() {
   );
 }
 
+function ParentModuleHeaderHarness() {
+  const { openDrawer } = useDrawer();
+  const { setActiveChild } = useFamilyStore();
+
+  useEffect(() => {
+    setActiveChild(null);
+  }, [setActiveChild]);
+
+  return (
+    <ModuleHeader
+      title="Module parent"
+      subtitle="Robert Ntamack"
+      onBack={jest.fn()}
+      rightIcon="menu-outline"
+      onRightPress={openDrawer}
+      rightTestID="parent-module-menu-btn"
+    />
+  );
+}
+
 describe("Child module menu integration", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -78,5 +98,20 @@ describe("Child module menu integration", () => {
 
     expect(screen.getByTestId("drawer-root").props.pointerEvents).toBe("auto");
     expect(screen.getByTestId("drawer-section-child-child-1")).toBeTruthy();
+  });
+
+  it("ouvre le drawer en contexte parent quand aucun enfant n'est actif", () => {
+    render(
+      <AppShell>
+        <ParentModuleHeaderHarness />
+      </AppShell>,
+    );
+
+    expect(screen.getByTestId("drawer-root").props.pointerEvents).toBe("none");
+
+    fireEvent.press(screen.getByTestId("parent-module-menu-btn"));
+
+    expect(screen.getByTestId("drawer-root").props.pointerEvents).toBe("auto");
+    expect(screen.getByTestId("drawer-section-general")).toBeTruthy();
   });
 });

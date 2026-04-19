@@ -91,12 +91,12 @@ describe("feed.helpers", () => {
       {
         id: "featured-new",
         createdAt: "2026-04-17T09:00:00.000Z",
-        featuredUntil: "2026-04-18T09:00:00.000Z",
+        featuredUntil: "2099-04-18T09:00:00.000Z",
       },
       {
         id: "featured-old",
         createdAt: "2026-04-16T09:00:00.000Z",
-        featuredUntil: "2026-04-18T09:00:00.000Z",
+        featuredUntil: "2099-04-18T09:00:00.000Z",
       },
     ] as never;
 

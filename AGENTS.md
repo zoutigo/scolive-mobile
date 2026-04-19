@@ -68,9 +68,12 @@ Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignor
 - Le script `scripts/maestro-run-flow.sh` orchestre un run local :
   - démarre le mock server avec le scénario attendu
   - installe l'APK release si nécessaire
+  - tolère un temps d'installation plus long sur l'AVD Google Play E2E
+  - détecte automatiquement le bon `ANDROID_SERIAL` si un seul émulateur E2E cohérent est présent
   - réinitialise l'application Android
   - ouvre directement certains flows via deep link pour éviter une navigation parasite
-  - exécute ensuite le flow Maestro ciblé
+  - préchauffe le driver Maestro Android avant le vrai flow
+  - exécute ensuite le flow Maestro ciblé avec le driver déjà prêt
 - Les flows actuels sont :
   - `smoke`
   - `auth-email`
@@ -113,6 +116,10 @@ curl -sS --max-time 1 http://127.0.0.1:3001/api/health || true
 ```
 
 - Si `curl` retourne encore une réponse, ne pas lancer Maestro tant que `3001` n'est pas libre
+- Ne pas confondre les ports :
+  - `3001` = mock server Scolive
+  - `7001` = port interne du driver Maestro
+- Un message d'erreur lié à `7001` n'indique pas un problème de mock server
 - L'AVD Google Play de dev pointé par `npm run android:emulator:google` est `Scolive_GooglePlay_API33`
 - `npm run android:emulator` reste l'AVD AOSP de dev simple `Scolive_Dev_AOSP_API33`
 - L'AVD dédié aux tests E2E Maestro est `Scolive_E2E_GooglePlay_API33`
@@ -122,6 +129,9 @@ curl -sS --max-time 1 http://127.0.0.1:3001/api/health || true
 ```bash
 bash scripts/android-emulator-nvidia.sh Scolive_E2E_GooglePlay_API33
 ```
+
+- Le launcher peut réutiliser le snapshot `startup_ready` de `Scolive_E2E_GooglePlay_API33` s'il existe
+- Ce snapshot est préférable à un cold boot systématique, car le cold boot Google Play rallonge fortement l'installation APK et le démarrage du driver Maestro
 
 - Le binaire attendu par Maestro est l'APK `release`, pas l'APK `debug`
 - Chemin attendu :
@@ -140,6 +150,23 @@ npm run android:build:release
 ANDROID_SERIAL=emulator-5556 npm run e2e:test:notes:parent
 ANDROID_SERIAL=emulator-5556 npm run e2e:test:notes:crud
 ```
+
+- Ne pas supposer que le serial sera toujours `5556`
+- Vérifier le mapping réel après le boot :
+
+```bash
+adb devices -l
+adb -s emulator-5554 emu avd name || true
+adb -s emulator-5556 emu avd name || true
+```
+
+- Si un run E2E échoue avant les premières assertions d'un flow, lancer d'abord un canari existant comme :
+
+```bash
+ANDROID_SERIAL=<detected-serial> npm run e2e:test:discipline
+```
+
+- Si ce canari échoue aussi, le problème est côté runner / driver Maestro / émulateur, pas dans le nouveau flow
 
 - Couverture notes validée :
   - `notes-parent` couvre la consultation parent/enfant

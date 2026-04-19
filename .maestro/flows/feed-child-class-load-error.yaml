@@ -1,8 +1,11 @@
 appId: com.zoutigo.scoliveapp
-name: Feed Interactions
+name: Child Class Feed Load Error
 tags:
   - feed
-  - interactions
+  - child
+  - class
+  - error
+  - load
 ---
 - runFlow:
     when:
@@ -27,7 +30,7 @@ tags:
     id: "tab-email"
 - tapOn:
     id: "input-email"
-- inputText: "teacher@ecole.cm"
+- inputText: "parent@ecole.cm"
 - hideKeyboard
 - tapOn:
     id: "input-password"
@@ -42,40 +45,26 @@ tags:
       - tapOn: "Not now"
 - extendedWaitUntil:
     visible:
-      id: "header-menu-btn"
+      id: "child-card-child-1"
     timeout: 20000
 - tapOn:
-    id: "header-menu-btn"
-- extendedWaitUntil:
-    visible:
-      id: "nav-item-feed"
+    id: "child-card-child-1"
+- scrollUntilVisible:
+    element:
+      id: "child-home-link-class-life"
+    direction: DOWN
     timeout: 10000
-- tapOn:
-    id: "nav-item-feed"
+    speed: 40
+    visibilityPercentage: 1
+    centerElement: false
 - extendedWaitUntil:
     visible:
-      id: "feed-post-like-feed-1"
+      id: "child-home-link-class-life"
+    timeout: 15000
+- tapOn:
+    id: "child-home-link-class-life"
+- extendedWaitUntil:
+    visible:
+      id: "child-class-feed-error"
     timeout: 20000
-- assertVisible: "programme-reunion.pdf"
-- tapOn:
-    id: "feed-post-like-feed-1"
-- tapOn:
-    id: "feed-post-react-feed-1"
-- tapOn:
-    id: "feed-comment-input-feed-1"
-- inputText: "Merci pour ce rappel"
-- hideKeyboard
-- tapOn:
-    id: "feed-comment-submit-feed-1"
-- tapOn:
-    id: "feed-post-comments-toggle-feed-1"
-- assertVisible: "Merci pour ce rappel"
-- tapOn:
-    id: "feed-filter-polls"
-- assertVisible: "Horaire du forum orientation"
-- tapOn:
-    id: "feed-post-poll-option-feed-2-poll-1"
-- extendedWaitUntil:
-    visible:
-      id: "feed-poll-state-feed-2-poll-1-selected-5"
-    timeout: 10000
+- assertVisible: "Chargement du fil impossible"

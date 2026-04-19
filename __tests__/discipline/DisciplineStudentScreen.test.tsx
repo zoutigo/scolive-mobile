@@ -20,6 +20,7 @@ jest.mock("expo-router", () => ({
     studentId: "student-1",
     studentName: "Remi Ntamack",
   }),
+  usePathname: () => "/(home)/discipline-student/[studentId]",
 }));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -54,6 +55,7 @@ describe("DisciplineStudentScreen", () => {
     api.list.mockResolvedValueOnce([makeLifeEvent({ id: "event-1" })]);
 
     render(<DisciplineStudentScreen />);
+    expect(screen.getByTestId("btn-menu")).toBeOnTheScreen();
 
     await waitFor(() => {
       expect(api.list).toHaveBeenCalledWith("college-vogt", "student-1", {

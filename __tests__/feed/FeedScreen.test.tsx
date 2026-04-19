@@ -18,6 +18,7 @@ jest.mock("../../src/api/feed.api");
 const mockBack = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: mockBack, push: jest.fn() }),
+  usePathname: () => "/(home)/feed",
 }));
 
 const api = feedApi as jest.Mocked<typeof feedApi>;
@@ -181,6 +182,17 @@ describe("FeedScreen", () => {
     await renderFeedScreen();
 
     expect(screen.queryByText(/La vie de l'école|contexte actif/i)).toBeNull();
+  });
+
+  it("affiche le menu dans le header et ouvre le drawer contextuel", async () => {
+    await renderFeedScreen();
+
+    expect(screen.getByTestId("feed-menu-btn")).toBeTruthy();
+    expect(screen.getByTestId("drawer-root").props.pointerEvents).toBe("none");
+
+    fireEvent.press(screen.getByTestId("feed-menu-btn"));
+
+    expect(screen.getByTestId("drawer-root").props.pointerEvents).toBe("auto");
   });
 
   it("affiche les filtres dans une barre basse avec 'Tout' actif par défaut", async () => {

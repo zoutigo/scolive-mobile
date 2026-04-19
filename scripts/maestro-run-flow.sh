@@ -11,6 +11,7 @@ MAESTRO_BIN="${MAESTRO_BIN:-$HOME/.maestro/bin/maestro}"
 MAESTRO_DEVICE_ARGS=()
 ADB_BIN="${ADB_BIN:-$HOME/Android/Sdk/platform-tools/adb}"
 ADB_ARGS=()
+E2E_AVD_NAME="${E2E_AVD_NAME:-Scolive_E2E_GooglePlay_API33}"
 MOCK_SERVER_MODULE="$ROOT_DIR/.maestro/mock-server/server.js"
 MOCK_SERVER_PORT="${MOCK_SERVER_PORT:-3001}"
 MOCK_SERVER_API_BASE="http://localhost:${MOCK_SERVER_PORT}"
@@ -19,6 +20,7 @@ GOOGLE_E2E_APK_PATH="$ROOT_DIR/android/app/build/outputs/apk/release/app-release
 DEBUG_APK_PATH="$ROOT_DIR/android/app/build/outputs/apk/debug/app-debug.apk"
 SELECTED_APK_PATH=""
 MOCK_PID=""
+MAESTRO_WARMUP_PID=""
 APP_ID="com.zoutigo.scoliveapp"
 REMOTE_APK="/data/local/tmp/scolive-e2e.apk"
 GOOGLE_SSO_PROVIDER_ACCOUNT_ID="${GOOGLE_SSO_PROVIDER_ACCOUNT_ID:-114665872120651017460}"
@@ -41,6 +43,53 @@ adb_shell_timeout() {
   timeout "${seconds}s" "$ADB_BIN" "${ADB_ARGS[@]}" shell "$@" >/dev/null 2>&1 || true
 }
 
+configure_android_serial() {
+  local serial="$1"
+
+  ANDROID_SERIAL="$serial"
+  export ANDROID_SERIAL
+  ADB_ARGS=(-s "$ANDROID_SERIAL")
+  MAESTRO_DEVICE_ARGS=(--device "$ANDROID_SERIAL")
+}
+
+detect_android_serial() {
+  local serials=""
+  local serial=""
+  local avd_name=""
+  local first_serial=""
+  local count=0
+
+  if [[ -n "${ANDROID_SERIAL:-}" ]]; then
+    configure_android_serial "$ANDROID_SERIAL"
+    return 0
+  fi
+
+  serials="$("$ADB_BIN" devices | awk '$2 == "device" && $1 ~ /^emulator-/ { print $1 }')"
+
+  while IFS= read -r serial; do
+    [[ -z "$serial" ]] && continue
+    count=$((count + 1))
+    if [[ -z "$first_serial" ]]; then
+      first_serial="$serial"
+    fi
+
+    avd_name="$("$ADB_BIN" -s "$serial" emu avd name 2>/dev/null | tr -d '\r' || true)"
+    if [[ "$avd_name" == "$E2E_AVD_NAME" ]]; then
+      configure_android_serial "$serial"
+      return 0
+    fi
+  done <<<"$serials"
+
+  if [[ "$count" -eq 1 && -n "$first_serial" ]]; then
+    configure_android_serial "$first_serial"
+    return 0
+  fi
+
+  echo "[maestro] impossible de detecter un serial Android unique. Exporte ANDROID_SERIAL ou demarre seulement ${E2E_AVD_NAME}." >&2
+  "$ADB_BIN" devices -l >&2 || true
+  return 1
+}
+
 if [[ ! -f "$FLOW_PATH" ]]; then
   echo "[maestro] flow introuvable: $FLOW_PATH" >&2
   exit 1
@@ -52,6 +101,10 @@ if [[ ! -x "$MAESTRO_BIN" ]]; then
 fi
 
 cleanup() {
+  if [[ -n "$MAESTRO_WARMUP_PID" ]]; then
+    kill "$MAESTRO_WARMUP_PID" >/dev/null 2>&1 || true
+    wait "$MAESTRO_WARMUP_PID" 2>/dev/null || true
+  fi
   if [[ -n "$MOCK_PID" ]]; then
     kill "$MOCK_PID" >/dev/null 2>&1 || true
     wait "$MOCK_PID" 2>/dev/null || true
@@ -182,12 +235,12 @@ apply_e2e_device_tuning() {
 }
 
 install_selected_apk() {
-  if timeout 180s "$ADB_BIN" "${ADB_ARGS[@]}" install -r "$SELECTED_APK_PATH" \
+  if timeout 420s "$ADB_BIN" "${ADB_ARGS[@]}" install -r "$SELECTED_APK_PATH" \
     >/tmp/scolive-maestro-install.log 2>&1; then
     return 0
   fi
 
-  echo "[maestro] installation Android incomplète" >&2
+  echo "[maestro] installation Android incomplète ou trop lente (>420s)" >&2
   if [[ -f /tmp/scolive-maestro-install.log ]]; then
     tail -n 50 /tmp/scolive-maestro-install.log >&2 || true
   fi
@@ -239,6 +292,54 @@ cleanup_stale_maestro_port() {
     kill "$pid" >/dev/null 2>&1 || true
     sleep 1
   fi
+}
+
+warmup_maestro_driver() {
+  local retries="${1:-3}"
+  local attempt=""
+  local wait_seconds=45
+  local warmup_pid=""
+  local started=""
+
+  for attempt in $(seq 1 "$retries"); do
+    adb_shell_timeout 10 am force-stop dev.mobile.maestro
+    adb_shell_timeout 10 am force-stop dev.mobile.maestro.test
+
+    timeout 180s "$ADB_BIN" "${ADB_ARGS[@]}" shell am instrument -w \
+      dev.mobile.maestro.test/androidx.test.runner.AndroidJUnitRunner \
+      >/tmp/scolive-maestro-driver.log 2>&1 &
+    warmup_pid=$!
+
+    started=""
+    for _ in $(seq 1 "$wait_seconds"); do
+      if adb_cmd shell pidof dev.mobile.maestro >/dev/null 2>&1; then
+        started="1"
+        break
+      fi
+      if ! kill -0 "$warmup_pid" >/dev/null 2>&1; then
+        break
+      fi
+      sleep 1
+    done
+
+    if [[ "$started" == "1" ]]; then
+      MAESTRO_WARMUP_PID="$warmup_pid"
+      return 0
+    fi
+
+    kill "$warmup_pid" >/dev/null 2>&1 || true
+    wait "$warmup_pid" 2>/dev/null || true
+
+    echo "[maestro] warmup driver en echec (tentative ${attempt}/${retries}) sur ${ANDROID_SERIAL}" >&2
+    adb_cmd shell ps -A 2>/dev/null | grep "dev.mobile.maestro" >&2 || true
+    adb_cmd shell dumpsys window windows 2>/dev/null | grep -E "mCurrentFocus|Application Not Responding" >&2 || true
+    adb_shell_timeout 10 am force-stop dev.mobile.maestro
+    adb_shell_timeout 10 am force-stop dev.mobile.maestro.test
+    sleep 15
+  done
+
+  echo "[maestro] driver Maestro non pret apres warmup. Voir /tmp/scolive-maestro-driver.log" >&2
+  return 1
 }
 
 select_apk_path() {
@@ -311,6 +412,136 @@ assert_feed_interactions_state() {
 
     if (!commentOk) {
       console.error("[maestro] commentaire feed introuvable");
+      process.exit(1);
+    }
+  ' <<<"$payload"
+}
+
+assert_feed_child_class_state() {
+  local payload=""
+
+  payload="$(curl -fsS "${MOCK_SERVER_API_BASE}/__state/feed")"
+
+  node -e '
+    const fs = require("fs");
+    const payload = JSON.parse(fs.readFileSync(0, "utf8"));
+    const feed1 = payload.items.find((item) => item.id === "feed-1");
+    const feed2 = payload.items.find((item) => item.id === "feed-2");
+    const createdPoll = payload.items.find(
+      (item) => item.title === "Sondage E2E vie de classe" && item.type === "POLL",
+    );
+
+    if (!feed1) {
+      console.error("[maestro] feed-1 introuvable dans l état mock");
+      process.exit(1);
+    }
+
+    if (!feed2 || !feed2.poll) {
+      console.error("[maestro] feed-2 / poll introuvable dans l état mock");
+      process.exit(1);
+    }
+
+    const likedOk = feed1.likedByViewer === true && feed1.likesCount === 3;
+    const commentOk = Array.isArray(feed1.comments)
+      && feed1.comments.some((comment) => comment.text === "Merci pour la vie de classe");
+    const votedOk =
+      feed2.poll.votedOptionId === "poll-1"
+      && Array.isArray(feed2.poll.options)
+      && feed2.poll.options.some(
+        (option) => option.id === "poll-1" && option.votes === 5,
+      );
+    const deletedInfoOk = !payload.items.some(
+      (item) => item.title === "Info E2E vie de classe" && item.type === "POST",
+    );
+    const createdPollOk =
+      createdPoll
+      && createdPoll.poll
+      && createdPoll.poll.question === "Quel jour pour la sortie e2e ?"
+      && Array.isArray(createdPoll.poll.options)
+      && createdPoll.poll.options.length >= 2
+      && createdPoll.poll.options[0].label === "Mardi"
+      && createdPoll.poll.options[1].label === "Jeudi";
+
+    if (!likedOk) {
+      console.error("[maestro] like feed enfant invalide", {
+        likedByViewer: feed1.likedByViewer,
+        likesCount: feed1.likesCount,
+      });
+      process.exit(1);
+    }
+
+    if (!commentOk) {
+      console.error("[maestro] commentaire feed enfant introuvable");
+      process.exit(1);
+    }
+
+    if (!votedOk) {
+      console.error("[maestro] vote sondage feed enfant introuvable ou incorrect", {
+        votedOptionId: feed2.poll.votedOptionId,
+        options: feed2.poll.options,
+      });
+      process.exit(1);
+    }
+
+    if (!deletedInfoOk) {
+      console.error("[maestro] la publication info feed enfant aurait dû être supprimée");
+      process.exit(1);
+    }
+
+    if (!createdPollOk) {
+      console.error("[maestro] publication sondage feed enfant introuvable ou incorrecte");
+      process.exit(1);
+    }
+  ' <<<"$payload"
+}
+
+assert_feed_child_class_error_state() {
+  local payload=""
+
+  payload="$(curl -fsS "${MOCK_SERVER_API_BASE}/__state/feed")"
+
+  node -e '
+    const fs = require("fs");
+    const payload = JSON.parse(fs.readFileSync(0, "utf8"));
+    const feed1 = payload.items.find((item) => item.id === "feed-1");
+    const feed2 = payload.items.find((item) => item.id === "feed-2");
+    const unexpectedComment = payload.items
+      .flatMap((item) => item.comments || [])
+      .find((comment) => comment.text === "Erreur vie de classe");
+
+    if (!feed1 || !feed2 || !feed2.poll) {
+      console.error("[maestro] etat feed enfant invalide pour verification d erreur");
+      process.exit(1);
+    }
+
+    if (feed1.likedByViewer !== false || feed1.likesCount !== 2) {
+      console.error("[maestro] le like ne devait pas être persisté", {
+        likedByViewer: feed1.likedByViewer,
+        likesCount: feed1.likesCount,
+      });
+      process.exit(1);
+    }
+
+    if (unexpectedComment) {
+      console.error("[maestro] le commentaire erreur ne devait pas être persisté");
+      process.exit(1);
+    }
+
+    if (feed2.poll.votedOptionId !== null) {
+      console.error("[maestro] le vote erreur ne devait pas être persisté", {
+        votedOptionId: feed2.poll.votedOptionId,
+      });
+      process.exit(1);
+    }
+
+    if (
+      payload.items.some(
+        (item) =>
+          item.title === "Info erreur vie de classe" ||
+          item.title === "Sondage erreur vie de classe",
+      )
+    ) {
+      console.error("[maestro] une publication erreur ne devait pas être créée");
       process.exit(1);
     }
   ' <<<"$payload"
@@ -414,6 +645,7 @@ assert_discipline_crud_state() {
 
 start_mock_server
 
+detect_android_serial
 cleanup_stale_maestro_port
 wait_for_android_device
 reset_mock_state
@@ -421,6 +653,7 @@ if [[ "$IS_MOCK_SERVER" == "1" ]]; then
   set_scenario "/__scenario" "${PHONE_LOGIN_SCENARIO:-happy_path}"
   set_scenario "/__scenario/email-login" "${EMAIL_LOGIN_SCENARIO:-happy_path}"
   set_scenario "/__scenario/onboarding" "${ONBOARDING_SCENARIO:-email_parent_happy}"
+  set_scenario "/__scenario/feed" "${FEED_SCENARIO:-happy_path}"
   set_scenario "/__scenario/pin" "${PIN_SCENARIO:-happy_path}"
   set_scenario "/__scenario/password" "${PASSWORD_SCENARIO:-happy_path}"
   set_scenario "/__scenario/discipline" "${DISCIPLINE_SCENARIO:-happy_path}"
@@ -428,10 +661,6 @@ fi
 
 if [[ "$FLOW_NAME" == "messaging-compose" ]]; then
   seed_messaging_fixtures
-fi
-
-if [[ -n "${ANDROID_SERIAL:-}" ]]; then
-  MAESTRO_DEVICE_ARGS+=(--device "$ANDROID_SERIAL")
 fi
 
 select_apk_path
@@ -555,11 +784,20 @@ dismiss_system_anr
 wait_for_app_activity 20
 sleep 2
 wait_for_android_device
+warmup_maestro_driver 3
 
-"$MAESTRO_BIN" test "${MAESTRO_DEVICE_ARGS[@]}" "$FLOW_PATH" "$@"
+"$MAESTRO_BIN" test --no-reinstall-driver "${MAESTRO_DEVICE_ARGS[@]}" "$FLOW_PATH" "$@"
 
 if [[ "$FLOW_NAME" == "feed-interactions" ]]; then
   assert_feed_interactions_state
+fi
+
+if [[ "$FLOW_NAME" == "feed-child-class" ]]; then
+  assert_feed_child_class_state
+fi
+
+if [[ "$FLOW_NAME" == "feed-child-class-errors" ]]; then
+  assert_feed_child_class_error_state
 fi
 
 assert_discipline_crud_state

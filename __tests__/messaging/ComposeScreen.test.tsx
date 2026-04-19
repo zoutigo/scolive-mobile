@@ -40,6 +40,7 @@ let mockRouteParams: Record<string, string> = {};
 jest.mock("expo-router", () => ({
   useRouter: () => mockRouter,
   useLocalSearchParams: () => mockRouteParams,
+  usePathname: () => "/(home)/messages/compose",
 }));
 
 jest.mock("../../src/components/messaging/RecipientPickerModal", () => ({
@@ -143,6 +144,7 @@ describe("Rendu du formulaire", () => {
   it("affiche le titre 'Nouveau message'", () => {
     renderCompose();
     expect(screen.getByText("Nouveau message")).toBeTruthy();
+    expect(screen.getByTestId("compose-menu-btn")).toBeTruthy();
   });
 
   it("affiche le champ Objet", () => {

@@ -16,6 +16,7 @@ import { colors } from "../../theme";
 import { useAuthStore } from "../../store/auth.store";
 import { useNotesStore } from "../../store/notes.store";
 import { getViewType } from "../navigation/nav-config";
+import { useDrawer } from "../navigation/AppShell";
 import {
   EmptyState,
   ErrorBanner,
@@ -27,6 +28,7 @@ import {
 export function NotesClassesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { openDrawer } = useDrawer();
   const { schoolSlug, user } = useAuthStore();
   const {
     classOptions,
@@ -105,6 +107,13 @@ export function NotesClassesScreen() {
               publiées et les appréciations de période.
             </Text>
           </View>
+          <TouchableOpacity
+            onPress={openDrawer}
+            style={styles.headerMenuBtn}
+            testID="notes-classes-menu-btn"
+          >
+            <Ionicons name="menu-outline" size={20} color={colors.white} />
+          </TouchableOpacity>
         </View>
 
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
@@ -210,6 +219,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   headerIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerMenuBtn: {
     width: 42,
     height: 42,
     borderRadius: 14,

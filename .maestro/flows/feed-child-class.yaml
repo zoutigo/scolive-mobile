@@ -1,0 +1,201 @@
+appId: com.zoutigo.scoliveapp
+name: Child Class Feed
+tags:
+  - feed
+  - child
+  - class
+---
+- runFlow:
+    when:
+      visible: "Process system isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "tab-email"
+- tapOn:
+    id: "input-email"
+- inputText: "parent@ecole.cm"
+- hideKeyboard
+- tapOn:
+    id: "input-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible:
+      id: "child-card-child-1"
+    timeout: 20000
+- tapOn:
+    id: "child-card-child-1"
+- scrollUntilVisible:
+    element:
+      id: "child-home-link-class-life"
+    direction: DOWN
+    timeout: 10000
+    speed: 40
+    visibilityPercentage: 1
+    centerElement: false
+- extendedWaitUntil:
+    visible:
+      id: "child-home-link-class-life"
+    timeout: 15000
+- tapOn:
+    id: "child-home-link-class-life"
+- extendedWaitUntil:
+    visible:
+      id: "child-class-feed-hero-search-btn"
+    timeout: 20000
+- assertVisible:
+    id: "child-class-feed-open-composer-post"
+- assertVisible:
+    id: "child-class-feed-open-composer-poll"
+- tapOn:
+    id: "child-class-feed-hero-search-btn"
+- extendedWaitUntil:
+    visible:
+      id: "child-class-feed-search-input"
+    timeout: 10000
+- tapOn:
+    id: "child-class-feed-search-input"
+- inputText: "forum"
+- hideKeyboard
+- assertVisible: "HORAIRE DU FORUM ORIENTATION"
+- tapOn:
+    id: "child-class-feed-search-close"
+- extendedWaitUntil:
+    visible:
+      id: "feed-post-like-feed-1"
+    timeout: 10000
+- tapOn:
+    id: "child-class-feed-filter-featured"
+- assertVisible: "RÉUNION PARENTS-PROFESSEURS"
+- tapOn:
+    id: "child-class-feed-filter-all"
+- tapOn:
+    id: "feed-post-like-feed-1"
+- tapOn:
+    id: "feed-post-react-feed-1"
+- tapOn:
+    id: "feed-comment-input-feed-1"
+- inputText: "Merci pour la vie de classe"
+- hideKeyboard
+- tapOn:
+    id: "feed-comment-submit-feed-1"
+- tapOn:
+    id: "feed-post-comments-toggle-feed-1"
+- assertVisible: "Merci pour la vie de classe"
+- tapOn:
+    id: "child-class-feed-filter-polls"
+- assertVisible: "HORAIRE DU FORUM ORIENTATION"
+- tapOn:
+    id: "feed-post-poll-option-feed-2-poll-1"
+- extendedWaitUntil:
+    visible:
+      id: "feed-poll-state-feed-2-poll-1-selected-5"
+    timeout: 10000
+- tapOn:
+    id: "child-class-feed-filter-all"
+- tapOn:
+    id: "child-class-feed-open-composer-post"
+- extendedWaitUntil:
+    visible:
+      id: "feed-composer-title"
+    timeout: 10000
+- tapOn:
+    id: "feed-composer-title"
+- inputText: "Info E2E vie de classe"
+- hideKeyboard
+- tapOn:
+    point: 22%, 56%
+- inputText: "Publication e2e pour la vie de classe"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "feed-composer-submit"
+    direction: DOWN
+    timeout: 10000
+    speed: 40
+    visibilityPercentage: 1
+    centerElement: false
+- tapOn:
+    id: "feed-composer-submit"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Actualité publiée"
+- assertVisible: "INFO E2E VIE DE CLASSE"
+- tapOn:
+    id: "feed-post-delete-feed-11"
+- tapOn:
+    id: "confirm-dialog-confirm"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Publication supprimée"
+- tapOn:
+    id: "child-class-feed-open-composer-poll"
+- extendedWaitUntil:
+    visible:
+      id: "feed-composer-title"
+    timeout: 10000
+- tapOn:
+    id: "feed-composer-title"
+- inputText: "Sondage E2E vie de classe"
+- hideKeyboard
+- tapOn:
+    id: "feed-composer-poll-question"
+- inputText: "Quel jour pour la sortie e2e ?"
+- hideKeyboard
+- tapOn:
+    id: "feed-composer-poll-option-1"
+- inputText: "Mardi"
+- hideKeyboard
+- tapOn:
+    id: "feed-composer-poll-option-2"
+- inputText: "Jeudi"
+- hideKeyboard
+- tapOn:
+    point: 22%, 56%
+- inputText: "Merci pour votre participation"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "feed-composer-submit"
+    direction: DOWN
+    timeout: 10000
+    speed: 40
+    visibilityPercentage: 1
+    centerElement: false
+- tapOn:
+    id: "feed-composer-submit"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Sondage publié"
+- assertVisible: "SONDAGE E2E VIE DE CLASSE"
+- tapOn:
+    id: "child-class-feed-filter-mine"
+- assertVisible: "SONDAGE E2E VIE DE CLASSE"

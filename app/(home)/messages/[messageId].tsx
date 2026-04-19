@@ -19,6 +19,10 @@ import { useMessagingStore } from "../../../src/store/messaging.store";
 import { useAuthStore } from "../../../src/store/auth.store";
 import { useSuccessToastStore } from "../../../src/store/success-toast.store";
 import { ConfirmDialog } from "../../../src/components/ConfirmDialog";
+import {
+  AppShell,
+  useDrawer,
+} from "../../../src/components/navigation/AppShell";
 import type {
   MessageAttachment,
   MessageDetail,
@@ -116,6 +120,7 @@ export default function MessageDetailScreen() {
   const { schoolSlug } = useAuthStore();
   const { markLocalRead, markLocalUnread, removeLocal } = useMessagingStore();
   const showFeedbackToast = useSuccessToastStore((state) => state.show);
+  const { openDrawer } = useDrawer();
 
   const [message, setMessage] = useState<MessageDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -255,7 +260,7 @@ export default function MessageDetailScreen() {
     : false;
 
   if (isLoading) {
-    return (
+    const loadingContent = (
       <View style={[styles.root, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <TouchableOpacity
@@ -265,12 +270,21 @@ export default function MessageDetailScreen() {
             <Ionicons name="arrow-back" size={22} color={colors.white} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Retour à la messagerie</Text>
+          <TouchableOpacity
+            onPress={openDrawer}
+            style={styles.backBtn}
+            testID="message-detail-menu-btn"
+          >
+            <Ionicons name="menu-outline" size={22} color={colors.white} />
+          </TouchableOpacity>
         </View>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
+
+    return <AppShell showHeader={false}>{loadingContent}</AppShell>;
   }
 
   if (!message) return null;
@@ -279,7 +293,7 @@ export default function MessageDetailScreen() {
   const inlineImages = extractImageUrls(message.body);
   const displayDate = formatFullDate(message.sentAt ?? message.createdAt);
 
-  return (
+  const content = (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
@@ -293,6 +307,13 @@ export default function MessageDetailScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>
           Retour à la messagerie
         </Text>
+        <TouchableOpacity
+          onPress={openDrawer}
+          style={styles.backBtn}
+          testID="message-detail-menu-btn"
+        >
+          <Ionicons name="menu-outline" size={22} color={colors.white} />
+        </TouchableOpacity>
       </View>
 
       {/* Content */}
@@ -573,6 +594,8 @@ export default function MessageDetailScreen() {
       />
     </View>
   );
+
+  return <AppShell showHeader={false}>{content}</AppShell>;
 }
 
 const styles = StyleSheet.create({

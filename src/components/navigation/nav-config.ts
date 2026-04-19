@@ -114,6 +114,15 @@ function placeholder(label: string, icon: string, key: string): NavItem {
   };
 }
 
+function accountItem(): NavItem {
+  return {
+    key: "account",
+    label: "Mon compte",
+    icon: "settings-outline",
+    route: "/account",
+  };
+}
+
 function feedItem(): NavItem {
   return {
     key: "feed",
@@ -133,7 +142,7 @@ const PLATFORM_NAV: NavItem[] = [
   placeholder("Élèves", "people-outline", "students"),
   placeholder("Utilisateurs", "person-outline", "users"),
   placeholder("Indicateurs", "bar-chart-outline", "indicators"),
-  placeholder("Mon compte", "settings-outline", "account"),
+  accountItem(),
 ];
 
 const SCHOOL_NAV: NavItem[] = [
@@ -171,7 +180,7 @@ const SCHOOL_NAV: NavItem[] = [
     icon: "chatbubble-outline",
     route: "/messages",
   },
-  placeholder("Mon compte", "settings-outline", "account"),
+  accountItem(),
 ];
 
 const TEACHER_NAV: NavItem[] = [
@@ -202,7 +211,7 @@ const TEACHER_NAV: NavItem[] = [
     icon: "chatbubble-outline",
     route: "/messages",
   },
-  placeholder("Mon compte", "settings-outline", "account"),
+  accountItem(),
 ];
 
 const PARENT_NAV: NavItem[] = [
@@ -216,7 +225,7 @@ const PARENT_NAV: NavItem[] = [
     route: "/messages",
   },
   placeholder("Documents", "document-outline", "documents"),
-  placeholder("Mon compte", "settings-outline", "account"),
+  accountItem(),
 ];
 
 const STUDENT_NAV: NavItem[] = [
@@ -229,7 +238,7 @@ const STUDENT_NAV: NavItem[] = [
     route: "/messages",
   },
   placeholder("Documents", "document-outline", "documents"),
-  placeholder("Mon compte", "settings-outline", "account"),
+  accountItem(),
 ];
 
 export function buildChildNavItems(childId: string): NavItem[] {

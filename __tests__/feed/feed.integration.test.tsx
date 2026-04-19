@@ -20,6 +20,7 @@ jest.mock("../../src/api/feed.api");
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
+  usePathname: () => "/feed",
 }));
 
 const api = feedApi as jest.Mocked<typeof feedApi>;
