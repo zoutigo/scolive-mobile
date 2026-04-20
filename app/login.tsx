@@ -152,6 +152,7 @@ export default function LoginScreen() {
     try {
       const response = await authApi.loginPhone(`+237${digits}`, pin);
       await handleLoginResponse(response);
+      router.replace("/");
     } catch (err) {
       const apiErr = err as ApiClientError;
       if (apiErr?.code === "PROFILE_SETUP_REQUIRED" && apiErr.setupToken) {
@@ -178,6 +179,7 @@ export default function LoginScreen() {
     try {
       const response = await authApi.loginEmail(email.trim(), password);
       await handleLoginResponse(response);
+      router.replace("/");
     } catch (err) {
       const apiErr = err as ApiClientError;
       if (
