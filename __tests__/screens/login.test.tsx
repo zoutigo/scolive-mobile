@@ -347,6 +347,7 @@ describe("Formulaire Téléphone — soumission", () => {
         "123456",
       );
       expect(mockHandleLoginResponse).toHaveBeenCalledWith(fakeLoginResponse);
+      expect(mockRouter.replace).toHaveBeenCalledWith("/");
     });
   });
 
@@ -520,6 +521,7 @@ describe("Formulaire Email — soumission", () => {
         "motdepasse",
       );
       expect(mockHandleLoginResponse).toHaveBeenCalledWith(fakeLoginResponse);
+      expect(mockRouter.replace).toHaveBeenCalledWith("/");
     });
   });
 
