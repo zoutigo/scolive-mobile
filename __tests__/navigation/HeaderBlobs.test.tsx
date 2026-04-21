@@ -73,7 +73,6 @@ beforeEach(() => {
 function findBlobs(parentTestID: string) {
   const parent = screen.getByTestId(parentTestID);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function collect(node: React.ReactElement<any>): React.ReactElement<any>[] {
     if (!node || typeof node !== "object") return [];
     const flat = StyleSheet.flatten(node.props?.style ?? {});
@@ -101,7 +100,6 @@ describe("ModuleHeader — blobs décoratifs présents", () => {
   it("chaque blob a borderRadius 999 (cercle parfait)", () => {
     render(<ModuleHeader title="Notes" onBack={jest.fn()} />);
     const blobs = findBlobs("module-header");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     blobs.forEach((blob: React.ReactElement<any>) => {
       const flat = StyleSheet.flatten(blob.props.style);
       expect(flat.borderRadius).toBe(999);
@@ -111,7 +109,6 @@ describe("ModuleHeader — blobs décoratifs présents", () => {
   it("chaque blob est positionné en absolu", () => {
     render(<ModuleHeader title="Notes" onBack={jest.fn()} />);
     const blobs = findBlobs("module-header");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     blobs.forEach((blob: React.ReactElement<any>) => {
       const flat = StyleSheet.flatten(blob.props.style);
       expect(flat.position).toBe("absolute");
@@ -121,7 +118,6 @@ describe("ModuleHeader — blobs décoratifs présents", () => {
   it("chaque blob a pointerEvents='none' (non interactif)", () => {
     render(<ModuleHeader title="Notes" onBack={jest.fn()} />);
     const blobs = findBlobs("module-header");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     blobs.forEach((blob: React.ReactElement<any>) => {
       expect(blob.props.pointerEvents).toBe("none");
     });
@@ -130,7 +126,6 @@ describe("ModuleHeader — blobs décoratifs présents", () => {
   it("tous les blobs ont une opacité ≤ 0.15 (discrets)", () => {
     render(<ModuleHeader title="Notes" onBack={jest.fn()} />);
     const blobs = findBlobs("module-header");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     blobs.forEach((blob: React.ReactElement<any>) => {
       const flat = StyleSheet.flatten(blob.props.style);
       expect(flat.opacity).toBeLessThanOrEqual(0.15);
@@ -140,7 +135,6 @@ describe("ModuleHeader — blobs décoratifs présents", () => {
   it("tous les blobs ont une opacité > 0 (visibles)", () => {
     render(<ModuleHeader title="Notes" onBack={jest.fn()} />);
     const blobs = findBlobs("module-header");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     blobs.forEach((blob: React.ReactElement<any>) => {
       const flat = StyleSheet.flatten(blob.props.style);
       expect(flat.opacity).toBeGreaterThan(0);
@@ -224,7 +218,6 @@ describe("Cohérence visuelle des blobs", () => {
     render(<ModuleHeader title="Notes" onBack={jest.fn()} />);
     const blobs = findBlobs("module-header");
     const hasGold = blobs.some(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (b: React.ReactElement<any>) =>
         StyleSheet.flatten(b.props.style).backgroundColor === "#F7C260",
     );
@@ -235,7 +228,6 @@ describe("Cohérence visuelle des blobs", () => {
     render(<ModuleHeader title="Notes" onBack={jest.fn()} />);
     const blobs = findBlobs("module-header");
     const hasOrange = blobs.some(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (b: React.ReactElement<any>) =>
         StyleSheet.flatten(b.props.style).backgroundColor === "#E07B2A",
     );
@@ -246,7 +238,6 @@ describe("Cohérence visuelle des blobs", () => {
     render(<ModuleHeader title="Notes" onBack={jest.fn()} />);
     const blobs = findBlobs("module-header");
     const widths = blobs.map(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (b: React.ReactElement<any>) =>
         StyleSheet.flatten(b.props.style).width as number,
     );
@@ -257,12 +248,10 @@ describe("Cohérence visuelle des blobs", () => {
   it("ModuleHeader — les blobs sont aux coins opposés (top-right vs bottom-left)", () => {
     render(<ModuleHeader title="Notes" onBack={jest.fn()} />);
     const blobs = findBlobs("module-header");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hasTopRight = blobs.some((b: React.ReactElement<any>) => {
       const s = StyleSheet.flatten(b.props.style);
       return (s.top as number) < 0 && (s.right as number) < 0;
     });
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const hasBottomLeft = blobs.some((b: React.ReactElement<any>) => {
       const s = StyleSheet.flatten(b.props.style);
       return (s.bottom as number) < 0 && (s.left as number) < 0;

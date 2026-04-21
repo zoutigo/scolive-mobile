@@ -267,7 +267,10 @@ export default function MessageDetailScreen() {
         <View style={styles.header}>
           <HeaderBackButton onPress={() => router.back()} />
           <Text style={styles.headerTitle}>Retour à la messagerie</Text>
-          <HeaderMenuButton onPress={openDrawer} testID="message-detail-menu-btn" />
+          <HeaderMenuButton
+            onPress={openDrawer}
+            testID="message-detail-menu-btn"
+          />
         </View>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -292,7 +295,10 @@ export default function MessageDetailScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>
           Retour à la messagerie
         </Text>
-        <HeaderMenuButton onPress={openDrawer} testID="message-detail-menu-btn" />
+        <HeaderMenuButton
+          onPress={openDrawer}
+          testID="message-detail-menu-btn"
+        />
       </View>
 
       {/* Content */}

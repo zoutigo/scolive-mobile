@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  Platform,
-  StatusBar,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Platform, StatusBar, StyleSheet, Text, View } from "react-native";
 import { colors } from "../../theme";
 import { HeaderBackButton } from "./HeaderBackButton";
 import { HeaderMenuButton } from "./HeaderMenuButton";

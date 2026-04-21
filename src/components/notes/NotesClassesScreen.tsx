@@ -108,7 +108,10 @@ export function NotesClassesScreen() {
               publiées et les appréciations de période.
             </Text>
           </View>
-          <HeaderMenuButton onPress={openDrawer} testID="notes-classes-menu-btn" />
+          <HeaderMenuButton
+            onPress={openDrawer}
+            testID="notes-classes-menu-btn"
+          />
         </View>
 
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}

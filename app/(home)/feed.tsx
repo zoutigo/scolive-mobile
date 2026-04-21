@@ -93,7 +93,10 @@ function FeedScreen() {
       viewerRole={viewerRole}
       renderHeader={({ toggleSearch }) => (
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-          <HeaderBackButton onPress={() => router.back()} testID="feed-back-btn" />
+          <HeaderBackButton
+            onPress={() => router.back()}
+            testID="feed-back-btn"
+          />
           <View style={styles.headerCopy}>
             <Text style={styles.headerTitle}>Fil d&apos;actualité</Text>
           </View>

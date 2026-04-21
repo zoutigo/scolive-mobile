@@ -64,18 +64,14 @@ beforeEach(() => {
 
 describe("ModuleHeader — titre uppercase et centré", () => {
   it("applique textTransform uppercase au titre", () => {
-    render(
-      <ModuleHeader title="Emploi du temps" onBack={jest.fn()} />,
-    );
+    render(<ModuleHeader title="Emploi du temps" onBack={jest.fn()} />);
     const title = screen.getByTestId("module-header-title");
     const flat = StyleSheet.flatten(title.props.style);
     expect(flat.textTransform).toBe("uppercase");
   });
 
   it("centre le titre (textAlign center)", () => {
-    render(
-      <ModuleHeader title="Messagerie" onBack={jest.fn()} />,
-    );
+    render(<ModuleHeader title="Messagerie" onBack={jest.fn()} />);
     const flat = StyleSheet.flatten(
       screen.getByTestId("module-header-title").props.style,
     );
@@ -244,9 +240,7 @@ describe("ModuleHeader — titre + sous-titre ensemble", () => {
 
 describe("Cohérence de la couleur warmAccent (#D89B5B)", () => {
   it("ModuleHeader subtitle utilise exactement #D89B5B", () => {
-    render(
-      <ModuleHeader title="T" subtitle="Sous-titre" onBack={jest.fn()} />,
-    );
+    render(<ModuleHeader title="T" subtitle="Sous-titre" onBack={jest.fn()} />);
     const flat = StyleSheet.flatten(
       screen.getByTestId("module-header-subtitle").props.style,
     );

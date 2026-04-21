@@ -41,16 +41,16 @@ describe("HeaderBackButton — rendu", () => {
 
   it("a le label d'accessibilité 'Retour'", () => {
     render(<HeaderBackButton onPress={jest.fn()} />);
-    expect(
-      screen.getByTestId("header-back-btn").props.accessibilityLabel,
-    ).toBe("Retour");
+    expect(screen.getByTestId("header-back-btn").props.accessibilityLabel).toBe(
+      "Retour",
+    );
   });
 
   it("a le rôle d'accessibilité 'button'", () => {
     render(<HeaderBackButton onPress={jest.fn()} />);
-    expect(
-      screen.getByTestId("header-back-btn").props.accessibilityRole,
-    ).toBe("button");
+    expect(screen.getByTestId("header-back-btn").props.accessibilityRole).toBe(
+      "button",
+    );
   });
 
   it("affiche l'icône arrow-back", () => {
@@ -151,16 +151,16 @@ describe("HeaderMenuButton — rendu", () => {
 
   it("a le label d'accessibilité 'Ouvrir le menu'", () => {
     render(<HeaderMenuButton onPress={jest.fn()} />);
-    expect(
-      screen.getByTestId("header-menu-btn").props.accessibilityLabel,
-    ).toBe("Ouvrir le menu");
+    expect(screen.getByTestId("header-menu-btn").props.accessibilityLabel).toBe(
+      "Ouvrir le menu",
+    );
   });
 
   it("a le rôle d'accessibilité 'button'", () => {
     render(<HeaderMenuButton onPress={jest.fn()} />);
-    expect(
-      screen.getByTestId("header-menu-btn").props.accessibilityRole,
-    ).toBe("button");
+    expect(screen.getByTestId("header-menu-btn").props.accessibilityRole).toBe(
+      "button",
+    );
   });
 
   it("affiche l'icône menu-outline", () => {
@@ -208,10 +208,7 @@ describe("HeaderMenuButton — styles", () => {
 
   it("fusionne le style additionnel passé en props", () => {
     render(
-      <HeaderMenuButton
-        onPress={jest.fn()}
-        style={{ marginLeft: "auto" }}
-      />,
+      <HeaderMenuButton onPress={jest.fn()} style={{ marginLeft: "auto" }} />,
     );
     const flat = StyleSheet.flatten(
       screen.getByTestId("header-menu-btn").props.style,
@@ -266,12 +263,8 @@ describe("Distinction visuelle back vs menu", () => {
         <HeaderMenuButton onPress={jest.fn()} testID="menu" />
       </>,
     );
-    const backFlat = StyleSheet.flatten(
-      screen.getByTestId("back").props.style,
-    );
-    const menuFlat = StyleSheet.flatten(
-      screen.getByTestId("menu").props.style,
-    );
+    const backFlat = StyleSheet.flatten(screen.getByTestId("back").props.style);
+    const menuFlat = StyleSheet.flatten(screen.getByTestId("menu").props.style);
     expect(backFlat.backgroundColor).not.toBe(menuFlat.backgroundColor);
   });
 
@@ -283,10 +276,12 @@ describe("Distinction visuelle back vs menu", () => {
       </>,
     );
     expect(
-      StyleSheet.flatten(screen.getByTestId("back").props.style).backgroundColor,
+      StyleSheet.flatten(screen.getByTestId("back").props.style)
+        .backgroundColor,
     ).toBe("rgba(255,255,255,0.14)");
     expect(
-      StyleSheet.flatten(screen.getByTestId("menu").props.style).backgroundColor,
+      StyleSheet.flatten(screen.getByTestId("menu").props.style)
+        .backgroundColor,
     ).toBe("rgba(216,155,91,0.12)");
   });
 
@@ -297,12 +292,8 @@ describe("Distinction visuelle back vs menu", () => {
         <HeaderMenuButton onPress={jest.fn()} testID="menu" />
       </>,
     );
-    const backFlat = StyleSheet.flatten(
-      screen.getByTestId("back").props.style,
-    );
-    const menuFlat = StyleSheet.flatten(
-      screen.getByTestId("menu").props.style,
-    );
+    const backFlat = StyleSheet.flatten(screen.getByTestId("back").props.style);
+    const menuFlat = StyleSheet.flatten(screen.getByTestId("menu").props.style);
     expect(backFlat.width).toBe(menuFlat.width);
     expect(backFlat.height).toBe(menuFlat.height);
   });
@@ -313,9 +304,7 @@ describe("Distinction visuelle back vs menu", () => {
 describe("Intégration — ModuleHeader utilise les deux composants", () => {
   it("le bouton retour de ModuleHeader déclenche onBack", () => {
     const onBack = jest.fn();
-    render(
-      <ModuleHeader title="Test" onBack={onBack} backTestID="mh-back" />,
-    );
+    render(<ModuleHeader title="Test" onBack={onBack} backTestID="mh-back" />);
     fireEvent.press(screen.getByTestId("mh-back"));
     expect(onBack).toHaveBeenCalledTimes(1);
   });
@@ -339,9 +328,7 @@ describe("Intégration — ModuleHeader utilise les deux composants", () => {
     render(
       <ModuleHeader title="Test" onBack={jest.fn()} backTestID="mh-back" />,
     );
-    const flat = StyleSheet.flatten(
-      screen.getByTestId("mh-back").props.style,
-    );
+    const flat = StyleSheet.flatten(screen.getByTestId("mh-back").props.style);
     expect(flat.backgroundColor).toBe("rgba(255,255,255,0.14)");
   });
 
@@ -355,9 +342,7 @@ describe("Intégration — ModuleHeader utilise les deux composants", () => {
         rightTestID="mh-menu"
       />,
     );
-    const flat = StyleSheet.flatten(
-      screen.getByTestId("mh-menu").props.style,
-    );
+    const flat = StyleSheet.flatten(screen.getByTestId("mh-menu").props.style);
     expect(flat.backgroundColor).toBe("rgba(216,155,91,0.12)");
   });
 

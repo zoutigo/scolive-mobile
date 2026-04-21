@@ -490,7 +490,10 @@ export function ClassNotesManagerScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.headerCard} testID="class-notes-header">
-          <HeaderBackButton onPress={() => router.back()} testID="class-notes-back" />
+          <HeaderBackButton
+            onPress={() => router.back()}
+            testID="class-notes-back"
+          />
           <View style={styles.headerText}>
             <Text style={styles.eyebrow}>
               {viewType === "teacher"
@@ -504,7 +507,10 @@ export function ClassNotesManagerScreen() {
               Évaluations, saisie des notes et appréciations de période.
             </Text>
           </View>
-          <HeaderMenuButton onPress={openDrawer} testID="class-notes-menu-btn" />
+          <HeaderMenuButton
+            onPress={openDrawer}
+            testID="class-notes-menu-btn"
+          />
         </View>
 
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
