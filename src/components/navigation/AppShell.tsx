@@ -7,7 +7,6 @@ import { AppHeader } from "./AppHeader";
 import { AppDrawer } from "./AppDrawer";
 import {
   getNavItems,
-  getPortalLabel,
   getRoleLabel,
   getViewType,
   buildChildSections,
@@ -35,7 +34,6 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
 
   const viewType = user ? getViewType(user) : "unknown";
   const navItems = user ? getNavItems(user) : [];
-  const portalLabel = getPortalLabel(viewType);
 
   const userFullName = user ? `${user.firstName} ${user.lastName}` : "";
   const userInitials = user
@@ -65,7 +63,6 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
           onClose={closeDrawer}
           navItems={navItems}
           childSections={childSections}
-          portalLabel={portalLabel}
           userFullName={userFullName}
           userInitials={userInitials}
           userRole={userRole}
