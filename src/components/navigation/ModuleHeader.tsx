@@ -4,11 +4,11 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
+import { HeaderBackButton } from "./HeaderBackButton";
+import { HeaderMenuButton } from "./HeaderMenuButton";
 
 interface ModuleHeaderProps {
   title: string;
@@ -51,13 +51,12 @@ export function ModuleHeader({
       ]}
       testID={testID}
     >
-      <TouchableOpacity
-        onPress={onBack}
-        style={styles.backBtn}
-        testID={backTestID}
-      >
-        <Ionicons name="arrow-back" size={20} color={colors.white} />
-      </TouchableOpacity>
+      {/* Blobs décoratifs */}
+      <View style={styles.blobTopRight} pointerEvents="none" />
+      <View style={styles.blobBottomLeft} pointerEvents="none" />
+      <View style={styles.blobMid} pointerEvents="none" />
+
+      <HeaderBackButton onPress={onBack} testID={backTestID} />
       <View style={styles.headerText}>
         <Text style={styles.title} numberOfLines={1} testID={titleTestID}>
           {title}
@@ -73,17 +72,7 @@ export function ModuleHeader({
         ) : null}
       </View>
       {rightIcon && onRightPress ? (
-        <TouchableOpacity
-          onPress={onRightPress}
-          style={styles.backBtn}
-          testID={rightTestID}
-        >
-          <Ionicons
-            name={rightIcon as "refresh-outline"}
-            size={20}
-            color={colors.white}
-          />
-        </TouchableOpacity>
+        <HeaderMenuButton onPress={onRightPress} testID={rightTestID} />
       ) : (
         <View style={styles.rightSpacer} />
       )}
@@ -100,16 +89,37 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    overflow: "hidden",
   },
-  backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
+  blobTopRight: {
+    position: "absolute",
+    top: -60,
+    right: -45,
+    width: 160,
+    height: 160,
+    borderRadius: 999,
+    backgroundColor: "#F7C260",
+    opacity: 0.09,
+  },
+  blobBottomLeft: {
+    position: "absolute",
+    bottom: -50,
+    left: -25,
+    width: 110,
+    height: 110,
+    borderRadius: 999,
+    backgroundColor: "#E07B2A",
+    opacity: 0.11,
+  },
+  blobMid: {
+    position: "absolute",
+    top: -30,
+    right: 90,
+    width: 72,
+    height: 72,
+    borderRadius: 999,
+    backgroundColor: "#FFFFFF",
+    opacity: 0.05,
   },
   rightSpacer: {
     width: 38,
@@ -123,10 +133,13 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 19,
     fontWeight: "600",
+    textTransform: "uppercase",
+    textAlign: "center",
   },
   subtitle: {
-    color: "rgba(255,255,255,0.82)",
+    color: colors.warmAccent,
     fontSize: 11,
     lineHeight: 15,
+    textAlign: "center",
   },
 });

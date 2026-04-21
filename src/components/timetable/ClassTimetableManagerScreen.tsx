@@ -17,6 +17,7 @@ import { useAuthStore } from "../../store/auth.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { useTimetableStore } from "../../store/timetable.store";
 import { getViewType } from "../navigation/nav-config";
+import { HeaderBackButton } from "../navigation/HeaderBackButton";
 import {
   buildDefaultDateRange,
   formatHumanDate,
@@ -513,12 +514,7 @@ export function ClassTimetableManagerScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.headerRow}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backBtn}
-          >
-            <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
-          </TouchableOpacity>
+          <HeaderBackButton onPress={() => router.back()} />
           <View style={styles.headerText}>
             <Text style={styles.eyebrow}>Agenda de classe</Text>
             <Text style={styles.title}>
@@ -1008,16 +1004,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     alignItems: "flex-start",
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
   },
   headerText: {
     flex: 1,

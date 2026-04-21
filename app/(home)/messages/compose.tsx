@@ -31,6 +31,7 @@ import {
   AppShell,
   useDrawer,
 } from "../../../src/components/navigation/AppShell";
+import { HeaderMenuButton } from "../../../src/components/navigation/HeaderMenuButton";
 import type {
   RecipientOption,
   MessagingRecipients,
@@ -611,13 +612,7 @@ export default function ComposeScreen() {
           <Text style={styles.headerTitle}>
             {isReply ? "Répondre" : "Nouveau message"}
           </Text>
-          <TouchableOpacity
-            onPress={openDrawer}
-            style={styles.headerSpacer}
-            testID="compose-menu-btn"
-          >
-            <Ionicons name="menu-outline" size={20} color={colors.white} />
-          </TouchableOpacity>
+          <HeaderMenuButton onPress={openDrawer} testID="compose-menu-btn" />
         </View>
 
         {/* Inserting image indicator */}
@@ -873,16 +868,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.white,
     textAlign: "center",
-  },
-  headerSpacer: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    alignItems: "center",
-    justifyContent: "center",
+    textTransform: "uppercase",
   },
   banner: {
     flexDirection: "row",

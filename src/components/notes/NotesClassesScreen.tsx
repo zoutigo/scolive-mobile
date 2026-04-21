@@ -17,6 +17,7 @@ import { useAuthStore } from "../../store/auth.store";
 import { useNotesStore } from "../../store/notes.store";
 import { getViewType } from "../navigation/nav-config";
 import { useDrawer } from "../navigation/AppShell";
+import { HeaderMenuButton } from "../navigation/HeaderMenuButton";
 import {
   EmptyState,
   ErrorBanner,
@@ -107,13 +108,7 @@ export function NotesClassesScreen() {
               publiées et les appréciations de période.
             </Text>
           </View>
-          <TouchableOpacity
-            onPress={openDrawer}
-            style={styles.headerMenuBtn}
-            testID="notes-classes-menu-btn"
-          >
-            <Ionicons name="menu-outline" size={20} color={colors.white} />
-          </TouchableOpacity>
+          <HeaderMenuButton onPress={openDrawer} testID="notes-classes-menu-btn" />
         </View>
 
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
@@ -228,16 +223,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  headerMenuBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.22)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   headerText: { flex: 1, gap: 4 },
   eyebrow: {
     color: "rgba(255,255,255,0.78)",
@@ -246,9 +231,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
   },
-  title: { color: colors.white, fontSize: 22, fontWeight: "700" },
+  title: {
+    color: colors.white,
+    fontSize: 22,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
   subtitle: {
-    color: "rgba(255,255,255,0.86)",
+    color: colors.warmAccent,
     fontSize: 12,
     lineHeight: 18,
   },

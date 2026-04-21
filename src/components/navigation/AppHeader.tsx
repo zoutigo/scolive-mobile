@@ -1,12 +1,12 @@
 import React, { useMemo } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
 import { useDrawer } from "./drawer-context";
 import { useAuthStore } from "../../store/auth.store";
 import { getViewType } from "./nav-config";
 import { ScoliveLogo } from "../ScoliveLogo";
+import { HeaderMenuButton } from "./HeaderMenuButton";
 
 /** Convertit un slug en nom lisible : "college-vogt" → "College Vogt" */
 export function slugToDisplayName(slug: string): string {
@@ -30,6 +30,11 @@ export function AppHeader() {
   return (
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       <View style={styles.bar}>
+        {/* Blobs décoratifs */}
+        <View style={styles.blobTopRight} pointerEvents="none" />
+        <View style={styles.blobBottomLeft} pointerEvents="none" />
+        <View style={styles.blobMid} pointerEvents="none" />
+
         {/* Logo — gauche */}
         <ScoliveLogo size={34} testID="header-logo" />
 
@@ -44,16 +49,11 @@ export function AppHeader() {
         </Text>
 
         {/* Bouton menu — droite */}
-        <TouchableOpacity
+        <HeaderMenuButton
           onPress={openDrawer}
-          style={styles.menuBtn}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           testID="header-menu-btn"
-          accessibilityLabel="Ouvrir le menu"
-          accessibilityRole="button"
-        >
-          <Ionicons name="menu-outline" size={28} color={colors.white} />
-        </TouchableOpacity>
+          style={styles.menuBtnSpacer}
+        />
       </View>
     </SafeAreaView>
   );
@@ -73,6 +73,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
+    overflow: "hidden",
+  },
+  blobTopRight: {
+    position: "absolute",
+    top: -38,
+    right: -40,
+    width: 140,
+    height: 140,
+    borderRadius: 999,
+    backgroundColor: "#F7C260",
+    opacity: 0.09,
+  },
+  blobBottomLeft: {
+    position: "absolute",
+    bottom: -38,
+    left: -20,
+    width: 100,
+    height: 100,
+    borderRadius: 999,
+    backgroundColor: "#E07B2A",
+    opacity: 0.11,
+  },
+  blobMid: {
+    position: "absolute",
+    top: -24,
+    right: 100,
+    width: 64,
+    height: 64,
+    borderRadius: 999,
+    backgroundColor: "#FFFFFF",
+    opacity: 0.05,
   },
   title: {
     position: "absolute",
@@ -87,8 +118,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.5,
   },
-  menuBtn: {
+  menuBtnSpacer: {
     marginLeft: "auto",
-    padding: 4,
   },
 });

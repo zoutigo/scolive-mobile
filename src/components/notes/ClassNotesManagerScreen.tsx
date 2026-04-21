@@ -36,6 +36,8 @@ import {
 } from "../../utils/notes";
 import { getViewType } from "../navigation/nav-config";
 import { useDrawer } from "../navigation/AppShell";
+import { HeaderBackButton } from "../navigation/HeaderBackButton";
+import { HeaderMenuButton } from "../navigation/HeaderMenuButton";
 import {
   EmptyState,
   ErrorBanner,
@@ -488,13 +490,7 @@ export function ClassNotesManagerScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.headerCard} testID="class-notes-header">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backBtn}
-            testID="class-notes-back"
-          >
-            <Ionicons name="arrow-back" size={20} color={colors.white} />
-          </TouchableOpacity>
+          <HeaderBackButton onPress={() => router.back()} testID="class-notes-back" />
           <View style={styles.headerText}>
             <Text style={styles.eyebrow}>
               {viewType === "teacher"
@@ -508,13 +504,7 @@ export function ClassNotesManagerScreen() {
               Évaluations, saisie des notes et appréciations de période.
             </Text>
           </View>
-          <TouchableOpacity
-            onPress={openDrawer}
-            style={styles.backBtn}
-            testID="class-notes-menu-btn"
-          >
-            <Ionicons name="menu-outline" size={20} color={colors.white} />
-          </TouchableOpacity>
+          <HeaderMenuButton onPress={openDrawer} testID="class-notes-menu-btn" />
         </View>
 
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
@@ -1125,16 +1115,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 12,
   },
-  backBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.22)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   headerText: { flex: 1, gap: 4 },
   eyebrow: {
     color: "rgba(255,255,255,0.78)",
@@ -1143,9 +1123,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
   },
-  title: { color: colors.white, fontSize: 22, fontWeight: "700" },
+  title: {
+    color: colors.white,
+    fontSize: 22,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
   subtitle: {
-    color: "rgba(255,255,255,0.86)",
+    color: colors.warmAccent,
     fontSize: 12,
     lineHeight: 18,
   },

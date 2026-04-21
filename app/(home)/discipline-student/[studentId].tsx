@@ -33,6 +33,8 @@ import {
   AppShell,
   useDrawer,
 } from "../../../src/components/navigation/AppShell";
+import { HeaderBackButton } from "../../../src/components/navigation/HeaderBackButton";
+import { HeaderMenuButton } from "../../../src/components/navigation/HeaderMenuButton";
 import type {
   CreateLifeEventPayload,
   StudentLifeEvent,
@@ -223,14 +225,7 @@ export default function DisciplineStudentScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.iconBtn}
-          testID="btn-back"
-          accessibilityLabel="Retour"
-        >
-          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
+        <HeaderBackButton onPress={() => router.back()} testID="btn-back" />
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle} numberOfLines={1}>
             Discipline
@@ -247,13 +242,7 @@ export default function DisciplineStudentScreen() {
           >
             <Ionicons name="refresh-outline" size={20} color={colors.white} />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={openDrawer}
-            style={styles.iconBtn}
-            testID="btn-menu"
-          >
-            <Ionicons name="menu-outline" size={20} color={colors.white} />
-          </TouchableOpacity>
+          <HeaderMenuButton onPress={openDrawer} testID="btn-menu" />
         </View>
       </View>
 
@@ -388,8 +377,13 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.22)",
   },
   headerCenter: { flex: 1, alignItems: "center" },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: colors.white },
-  headerSub: { fontSize: 12, color: "rgba(255,255,255,0.82)", marginTop: 1 },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: colors.white,
+    textTransform: "uppercase",
+  },
+  headerSub: { fontSize: 12, color: colors.warmAccent, marginTop: 1 },
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
