@@ -26,8 +26,11 @@ import {
   TextField,
 } from "../timetable/TimetableCommon";
 import {
+  accountAddEmailSchema,
+  accountAddPhoneCredentialSchema,
   accountChangePasswordSchema,
   accountChangePinSchema,
+  accountCreatePasswordSchema,
   accountPersonalProfileSchema,
   accountRecoverySchema,
   formatDateInput,
@@ -46,7 +49,13 @@ import { useAuthStore } from "../../store/auth.store";
 import type { ApiClientError } from "../../api/client";
 
 type AccountTab = "personal" | "security" | "help" | "settings";
-type SecuritySection = "password" | "pin" | "recovery" | null;
+type SecuritySection =
+  | "password"
+  | "create-password"
+  | "pin"
+  | "add-phone"
+  | "recovery"
+  | null;
 type SettingsLanguage = "fr" | "en";
 
 type PersonalFormState = {
@@ -60,6 +69,21 @@ type PasswordFormState = {
   currentPassword: string;
   newPassword: string;
   confirmNewPassword: string;
+};
+
+type CreatePasswordFormState = {
+  newPassword: string;
+  confirmNewPassword: string;
+};
+
+type AddEmailFormState = {
+  email: string;
+};
+
+type AddPhoneFormState = {
+  phone: string;
+  pin: string;
+  confirmPin: string;
 };
 
 type PinFormState = {
@@ -333,10 +357,37 @@ function AccountScreenContent() {
     {},
   );
 
+  const [addEmailForm, setAddEmailForm] = useState<AddEmailFormState>({
+    email: "",
+  });
+  const [createPasswordForm, setCreatePasswordForm] =
+    useState<CreatePasswordFormState>({
+      newPassword: "",
+      confirmNewPassword: "",
+    });
+  const [addPhoneForm, setAddPhoneForm] = useState<AddPhoneFormState>({
+    phone: "",
+    pin: "",
+    confirmPin: "",
+  });
+
+  const [addEmailErrors, setAddEmailErrors] = useState<Record<string, string>>(
+    {},
+  );
+  const [createPasswordErrors, setCreatePasswordErrors] = useState<
+    Record<string, string>
+  >({});
+  const [addPhoneErrors, setAddPhoneErrors] = useState<Record<string, string>>(
+    {},
+  );
+
   const [savingPersonal, setSavingPersonal] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingPin, setSavingPin] = useState(false);
   const [savingRecovery, setSavingRecovery] = useState(false);
+  const [savingAddEmail, setSavingAddEmail] = useState(false);
+  const [savingCreatePassword, setSavingCreatePassword] = useState(false);
+  const [savingAddPhone, setSavingAddPhone] = useState(false);
   const [settingsLanguage, setSettingsLanguage] =
     useState<SettingsLanguage>("fr");
   const [selectedRole, setSelectedRole] = useState<AppRole | null>(null);
@@ -444,6 +495,48 @@ function AccountScreenContent() {
     setSelectedRole(currentActiveRole);
   }, [currentActiveRole]);
 
+  const validateAddEmail = useCallback(() => {
+    const result = accountAddEmailSchema.safeParse(addEmailForm);
+    if (result.success) {
+      setAddEmailErrors({});
+      return true;
+    }
+    const nextErrors: Record<string, string> = {};
+    for (const issue of result.error.issues) {
+      nextErrors[String(issue.path[0] ?? "form")] = issue.message;
+    }
+    setAddEmailErrors(nextErrors);
+    return false;
+  }, [addEmailForm]);
+
+  const validateCreatePassword = useCallback(() => {
+    const result = accountCreatePasswordSchema.safeParse(createPasswordForm);
+    if (result.success) {
+      setCreatePasswordErrors({});
+      return true;
+    }
+    const nextErrors: Record<string, string> = {};
+    for (const issue of result.error.issues) {
+      nextErrors[String(issue.path[0] ?? "form")] = issue.message;
+    }
+    setCreatePasswordErrors(nextErrors);
+    return false;
+  }, [createPasswordForm]);
+
+  const validateAddPhone = useCallback(() => {
+    const result = accountAddPhoneCredentialSchema.safeParse(addPhoneForm);
+    if (result.success) {
+      setAddPhoneErrors({});
+      return true;
+    }
+    const nextErrors: Record<string, string> = {};
+    for (const issue of result.error.issues) {
+      nextErrors[String(issue.path[0] ?? "form")] = issue.message;
+    }
+    setAddPhoneErrors(nextErrors);
+    return false;
+  }, [addPhoneForm]);
+
   const validatePersonal = useCallback(() => {
     const result = accountPersonalProfileSchema.safeParse(personalForm);
     if (result.success) {
@@ -507,6 +600,93 @@ function AccountScreenContent() {
   async function handleRefresh() {
     setRefreshing(true);
     await Promise.all([loadProfile(), recoveryOptions ? loadRecovery() : null]);
+  }
+
+  async function handleAddEmail() {
+    if (!validateAddEmail()) return;
+    try {
+      setSavingAddEmail(true);
+      await accountApi.addEmail({ email: addEmailForm.email });
+      setAddEmailForm({ email: "" });
+      setAddEmailErrors({});
+      showSuccess({
+        title: "Email envoyé",
+        message:
+          "Un lien de vérification a été envoyé. Vérifiez votre boite mail.",
+      });
+    } catch (error) {
+      showError({
+        title: "Ajout impossible",
+        message: getErrorMessage(
+          error,
+          "L'adresse email n'a pas pu être ajoutée.",
+        ),
+      });
+    } finally {
+      setSavingAddEmail(false);
+    }
+  }
+
+  async function handleCreatePassword() {
+    if (!validateCreatePassword()) return;
+    try {
+      setSavingCreatePassword(true);
+      await accountApi.createPassword({
+        newPassword: createPasswordForm.newPassword,
+      });
+      setCreatePasswordForm({ newPassword: "", confirmNewPassword: "" });
+      setCreatePasswordErrors({});
+      setOpenSecuritySection(null);
+      setProfile((current) =>
+        current ? { ...current, hasPassword: true } : current,
+      );
+      showSuccess({
+        title: "Mot de passe créé",
+        message: "Votre mot de passe a été configuré avec succès.",
+      });
+    } catch (error) {
+      showError({
+        title: "Création impossible",
+        message: getErrorMessage(
+          error,
+          "Le mot de passe n'a pas pu être créé.",
+        ),
+      });
+    } finally {
+      setSavingCreatePassword(false);
+    }
+  }
+
+  async function handleAddPhone() {
+    if (!validateAddPhone()) return;
+    try {
+      setSavingAddPhone(true);
+      await accountApi.addPhoneCredential({
+        phone: addPhoneForm.phone,
+        pin: addPhoneForm.pin,
+      });
+      setAddPhoneForm({ phone: "", pin: "", confirmPin: "" });
+      setAddPhoneErrors({});
+      setOpenSecuritySection(null);
+      setProfile((current) =>
+        current ? { ...current, hasPhoneCredential: true } : current,
+      );
+      await loadProfile();
+      showSuccess({
+        title: "Téléphone configuré",
+        message: "Votre numéro et PIN ont été ajoutés avec succès.",
+      });
+    } catch (error) {
+      showError({
+        title: "Configuration impossible",
+        message: getErrorMessage(
+          error,
+          "Le téléphone n'a pas pu être configuré.",
+        ),
+      });
+    } finally {
+      setSavingAddPhone(false);
+    }
   }
 
   async function handleSavePersonal() {
@@ -876,10 +1056,42 @@ function AccountScreenContent() {
                         : "Homme"
                   }
                 />
-                <InfoRow
-                  label="Email"
-                  value={profile?.email ?? "Non renseigné"}
-                />
+                {profile?.email ? (
+                  <InfoRow label="Email" value={profile.email} />
+                ) : (
+                  <View style={styles.addEmailBlock}>
+                    <Text style={styles.infoLabel}>EMAIL</Text>
+                    <Text style={styles.infoValueSecondary}>Non renseigné</Text>
+                    <TextInput
+                      value={addEmailForm.email}
+                      onChangeText={(value) =>
+                        setAddEmailForm((current) => ({
+                          ...current,
+                          email: value,
+                        }))
+                      }
+                      placeholder="votre@email.com"
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      style={styles.textAreaInput}
+                      testID="account-add-email-input"
+                    />
+                    {addEmailErrors.email ? (
+                      <Text style={styles.fieldError}>
+                        {addEmailErrors.email}
+                      </Text>
+                    ) : null}
+                    <ActionButton
+                      label={savingAddEmail ? "Envoi..." : "Ajouter l'email"}
+                      onPress={() => {
+                        void handleAddEmail();
+                      }}
+                      loading={savingAddEmail}
+                      testID="account-submit-add-email"
+                    />
+                  </View>
+                )}
                 <InfoRow
                   label="Téléphone"
                   value={toLocalPhoneDisplay(profile?.phone) || "Non renseigné"}
@@ -913,7 +1125,11 @@ function AccountScreenContent() {
 
                 <TouchableOpacity
                   style={styles.securityEntry}
-                  onPress={() => setOpenSecuritySection("password")}
+                  onPress={() =>
+                    setOpenSecuritySection(
+                      profile?.hasPassword ? "password" : "create-password",
+                    )
+                  }
                   testID="account-password-section-toggle"
                 >
                   <View style={styles.securityEntryIcon}>
@@ -926,7 +1142,9 @@ function AccountScreenContent() {
                   <View style={styles.securityEntryText}>
                     <Text style={styles.securityEntryTitle}>Mot de passe</Text>
                     <Text style={styles.securityEntrySubtitle}>
-                      Modifier votre mot de passe principal
+                      {profile?.hasPassword
+                        ? "Modifier votre mot de passe principal"
+                        : "Créer votre mot de passe (non configuré)"}
                     </Text>
                   </View>
                   <Ionicons
@@ -938,7 +1156,11 @@ function AccountScreenContent() {
 
                 <TouchableOpacity
                   style={styles.securityEntry}
-                  onPress={() => setOpenSecuritySection("pin")}
+                  onPress={() =>
+                    setOpenSecuritySection(
+                      profile?.hasPhoneCredential ? "pin" : "add-phone",
+                    )
+                  }
                   testID="account-pin-section-toggle"
                 >
                   <View style={styles.securityEntryIcon}>
@@ -951,7 +1173,9 @@ function AccountScreenContent() {
                   <View style={styles.securityEntryText}>
                     <Text style={styles.securityEntryTitle}>Code PIN</Text>
                     <Text style={styles.securityEntrySubtitle}>
-                      Mettre à jour votre code PIN
+                      {profile?.hasPhoneCredential
+                        ? "Mettre à jour votre code PIN"
+                        : "Configurer téléphone + PIN (non configuré)"}
                     </Text>
                   </View>
                   <Ionicons
@@ -1020,6 +1244,152 @@ function AccountScreenContent() {
                     <Text style={styles.securityBackInlineLabel}>Retour</Text>
                   </TouchableOpacity>
                 </View>
+
+                {openSecuritySection === "create-password" ? (
+                  <View style={styles.formStack}>
+                    <Text style={styles.securityIntroText}>
+                      Votre compte n&apos;a pas encore de mot de passe.
+                      Définissez-en un pour vous connecter avec votre email.
+                    </Text>
+                    <FieldLabel text="Nouveau mot de passe" />
+                    <SecureTextField
+                      value={createPasswordForm.newPassword}
+                      onChangeText={(value) =>
+                        setCreatePasswordForm((current) => ({
+                          ...current,
+                          newPassword: value,
+                        }))
+                      }
+                      placeholder="Nouveau mot de passe"
+                      testID="account-create-password-new-input"
+                    />
+                    {createPasswordErrors.newPassword ? (
+                      <Text style={styles.fieldError}>
+                        {createPasswordErrors.newPassword}
+                      </Text>
+                    ) : null}
+                    <FieldLabel text="Confirmation" />
+                    <SecureTextField
+                      value={createPasswordForm.confirmNewPassword}
+                      onChangeText={(value) =>
+                        setCreatePasswordForm((current) => ({
+                          ...current,
+                          confirmNewPassword: value,
+                        }))
+                      }
+                      placeholder="Confirmez le mot de passe"
+                      testID="account-create-password-confirm-input"
+                    />
+                    {createPasswordErrors.confirmNewPassword ? (
+                      <Text style={styles.fieldError}>
+                        {createPasswordErrors.confirmNewPassword}
+                      </Text>
+                    ) : null}
+                    <View style={styles.actionsRowSplit}>
+                      <ActionButton
+                        label="Annuler"
+                        variant="secondary"
+                        onPress={() => setOpenSecuritySection(null)}
+                        stretch
+                        testID="account-cancel-create-password"
+                      />
+                      <ActionButton
+                        label="Créer"
+                        onPress={() => {
+                          void handleCreatePassword();
+                        }}
+                        loading={savingCreatePassword}
+                        stretch
+                        testID="account-save-create-password"
+                      />
+                    </View>
+                  </View>
+                ) : null}
+
+                {openSecuritySection === "add-phone" ? (
+                  <View style={styles.formStack}>
+                    <Text style={styles.securityIntroText}>
+                      Ajoutez un numéro de téléphone et un code PIN pour vous
+                      connecter depuis l&apos;application mobile.
+                    </Text>
+                    <FieldLabel text="Téléphone (9 chiffres)" />
+                    <TextInput
+                      value={addPhoneForm.phone}
+                      onChangeText={(value) =>
+                        setAddPhoneForm((current) => ({
+                          ...current,
+                          phone: normalizePhoneInput(value),
+                        }))
+                      }
+                      placeholder="6XXXXXXXX"
+                      placeholderTextColor={colors.textSecondary}
+                      keyboardType="numeric"
+                      style={styles.textAreaInput}
+                      testID="account-add-phone-input"
+                    />
+                    {addPhoneErrors.phone ? (
+                      <Text style={styles.fieldError}>
+                        {addPhoneErrors.phone}
+                      </Text>
+                    ) : null}
+                    <FieldLabel text="Code PIN (6 chiffres)" />
+                    <SecureTextField
+                      variant="pin"
+                      keyboardType="numeric"
+                      value={addPhoneForm.pin}
+                      onChangeText={(value) =>
+                        setAddPhoneForm((current) => ({
+                          ...current,
+                          pin: value.replace(/\D/g, "").slice(0, 6),
+                        }))
+                      }
+                      placeholder="123456"
+                      testID="account-add-phone-pin-input"
+                    />
+                    {addPhoneErrors.pin ? (
+                      <Text style={styles.fieldError}>
+                        {addPhoneErrors.pin}
+                      </Text>
+                    ) : null}
+                    <FieldLabel text="Confirmer le PIN" />
+                    <SecureTextField
+                      variant="pin"
+                      keyboardType="numeric"
+                      value={addPhoneForm.confirmPin}
+                      onChangeText={(value) =>
+                        setAddPhoneForm((current) => ({
+                          ...current,
+                          confirmPin: value.replace(/\D/g, "").slice(0, 6),
+                        }))
+                      }
+                      placeholder="123456"
+                      testID="account-add-phone-confirm-pin-input"
+                    />
+                    {addPhoneErrors.confirmPin ? (
+                      <Text style={styles.fieldError}>
+                        {addPhoneErrors.confirmPin}
+                      </Text>
+                    ) : null}
+                    <View style={styles.actionsRowSplit}>
+                      <ActionButton
+                        label="Annuler"
+                        variant="secondary"
+                        onPress={() => setOpenSecuritySection(null)}
+                        stretch
+                        testID="account-cancel-add-phone"
+                      />
+                      <ActionButton
+                        label="Configurer"
+                        onPress={() => {
+                          void handleAddPhone();
+                        }}
+                        loading={savingAddPhone}
+                        stretch
+                        testID="account-save-add-phone"
+                      />
+                    </View>
+                  </View>
+                ) : null}
 
                 {openSecuritySection === "password" ? (
                   <View style={styles.formStack}>
@@ -1994,5 +2364,35 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     color: colors.textSecondary,
+  },
+  addEmailBlock: {
+    marginTop: 8,
+    gap: 8,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  infoValueSecondary: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: "italic",
+  },
+  statusBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  statusBadgeWarning: {
+    backgroundColor: "rgba(245,158,11,0.1)",
+    borderColor: "rgba(245,158,11,0.35)",
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  statusBadgeTextWarning: {
+    color: "#b45309",
   },
 });

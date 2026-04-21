@@ -40,6 +40,8 @@ const profileResponse = {
     { schoolId: "school-1", role: "TEACHER" as const },
   ],
   schoolSlug: "college-vogt",
+  hasPassword: true,
+  hasPhoneCredential: true,
 };
 
 const recoveryResponse = {

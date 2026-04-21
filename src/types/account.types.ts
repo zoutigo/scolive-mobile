@@ -25,6 +25,8 @@ export interface AccountProfileResponse {
       | "STUDENT";
   }>;
   schoolSlug: string | null;
+  hasPassword: boolean;
+  hasPhoneCredential: boolean;
 }
 
 export interface UpdateAccountProfilePayload {
@@ -37,6 +39,19 @@ export interface UpdateAccountProfilePayload {
 export interface ChangePasswordPayload {
   currentPassword: string;
   newPassword: string;
+}
+
+export interface CreatePasswordPayload {
+  newPassword: string;
+}
+
+export interface AddEmailPayload {
+  email: string;
+}
+
+export interface AddPhoneCredentialPayload {
+  phone: string;
+  pin: string;
 }
 
 export interface ChangePinPayload {

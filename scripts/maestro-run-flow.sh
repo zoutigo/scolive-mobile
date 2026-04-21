@@ -547,6 +547,24 @@ assert_feed_child_class_error_state() {
   ' <<<"$payload"
 }
 
+assert_account_state() {
+  local expected_field="$1"
+  local payload=""
+
+  payload="$(curl -fsS "${MOCK_SERVER_API_BASE}/__state/account")"
+
+  node -e '
+    const fs = require("fs");
+    const payload = JSON.parse(fs.readFileSync(0, "utf8"));
+    const field = process.argv[1];
+    if (!payload[field]) {
+      console.error("[maestro] account mutation manquante :", field, JSON.stringify(payload));
+      process.exit(1);
+    }
+    console.log("[maestro] account mutation confirmée :", field);
+  ' "$expected_field" <<<"$payload"
+}
+
 open_google_auth_callback() {
   open_android_deep_link \
     "scolive:///auth/callback?providerAccountId=${GOOGLE_SSO_PROVIDER_ACCOUNT_ID}&email=${GOOGLE_SSO_EMAIL//@/%40}&firstName=${GOOGLE_SSO_FIRST_NAME}&lastName=${GOOGLE_SSO_LAST_NAME}"
@@ -657,6 +675,7 @@ if [[ "$IS_MOCK_SERVER" == "1" ]]; then
   set_scenario "/__scenario/pin" "${PIN_SCENARIO:-happy_path}"
   set_scenario "/__scenario/password" "${PASSWORD_SCENARIO:-happy_path}"
   set_scenario "/__scenario/discipline" "${DISCIPLINE_SCENARIO:-happy_path}"
+  set_scenario "/__scenario/account" "${ACCOUNT_SCENARIO:-phone_only_user}"
 fi
 
 if [[ "$FLOW_NAME" == "messaging-compose" ]]; then
@@ -790,6 +809,18 @@ warmup_maestro_driver 3
 
 if [[ "$FLOW_NAME" == "feed-interactions" ]]; then
   assert_feed_interactions_state
+fi
+
+if [[ "$FLOW_NAME" == "account-add-email" ]]; then
+  assert_account_state "emailAdded"
+fi
+
+if [[ "$FLOW_NAME" == "account-create-password" ]]; then
+  assert_account_state "passwordCreated"
+fi
+
+if [[ "$FLOW_NAME" == "account-add-phone" ]]; then
+  assert_account_state "phoneCredentialAdded"
 fi
 
 if [[ "$FLOW_NAME" == "feed-child-class" ]]; then
