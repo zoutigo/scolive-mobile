@@ -2,8 +2,11 @@ import { apiFetch } from "./client";
 import type {
   AccountProfileResponse,
   AccountRecoveryOptionsResponse,
+  AddEmailPayload,
+  AddPhoneCredentialPayload,
   ChangePasswordPayload,
   ChangePinPayload,
+  CreatePasswordPayload,
   SetActiveRolePayload,
   SetActiveRoleResponse,
   UpdateAccountProfilePayload,
@@ -33,6 +36,45 @@ export const accountApi = {
       "/me/active-role",
       {
         method: "PUT",
+        body: JSON.stringify(payload),
+      },
+      true,
+    );
+  },
+
+  addEmail(
+    payload: AddEmailPayload,
+  ): Promise<{ success: boolean; message: string }> {
+    return apiFetch(
+      "/auth/add-email",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      true,
+    );
+  },
+
+  createPassword(
+    payload: CreatePasswordPayload,
+  ): Promise<{ success: boolean }> {
+    return apiFetch(
+      "/auth/create-password",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      true,
+    );
+  },
+
+  addPhoneCredential(
+    payload: AddPhoneCredentialPayload,
+  ): Promise<{ success: boolean }> {
+    return apiFetch(
+      "/auth/add-phone-credential",
+      {
+        method: "POST",
         body: JSON.stringify(payload),
       },
       true,

@@ -66,6 +66,8 @@ describe("account integration", () => {
         { schoolId: "school-1", role: "TEACHER" },
       ],
       schoolSlug: "college-vogt",
+      hasPassword: true,
+      hasPhoneCredential: true,
     });
     api.getRecoveryOptions.mockResolvedValue({
       schoolRoles: ["PARENT"],
@@ -94,6 +96,8 @@ describe("account integration", () => {
       phone: "237699000111",
       role: "PARENT",
       schoolSlug: "college-vogt",
+      hasPassword: true,
+      hasPhoneCredential: true,
     });
 
     render(

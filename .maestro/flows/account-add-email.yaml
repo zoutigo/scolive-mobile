@@ -1,0 +1,88 @@
+appId: com.zoutigo.scoliveapp
+name: Account — Add Email (phone-only user)
+tags:
+  - account
+  - credentials
+---
+# Garde-fous système Android
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
+- runFlow:
+    when:
+      visible: "Process system isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "Save password to Google?"
+    commands:
+      - tapOn: "Never"
+
+# Login via email (schoolSlug ecole-demo → home screen avec drawer)
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "tab-email"
+- tapOn:
+    id: "input-email"
+- inputText: "teacher@ecole.cm"
+- hideKeyboard
+- tapOn:
+    id: "input-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
+- runFlow:
+    when:
+      visible: "Save password to Google?"
+    commands:
+      - tapOn: "Never"
+
+# Naviguer vers Mon Compte via le menu hamburger
+- extendedWaitUntil:
+    visible:
+      id: "header-menu-btn"
+    timeout: 20000
+- tapOn:
+    id: "header-menu-btn"
+- extendedWaitUntil:
+    visible:
+      id: "nav-item-account"
+    timeout: 10000
+- tapOn:
+    id: "nav-item-account"
+
+# Vérifier que l'écran Compte est affiché — onglet Personnel actif par défaut
+- extendedWaitUntil:
+    visible:
+      id: "account-personal-card"
+    timeout: 15000
+
+# L'utilisateur phone-only n'a pas d'email : le bloc ajout email doit être visible
+- assertVisible:
+    id: "account-add-email-input"
+
+# Saisir l'adresse email et soumettre
+- tapOn:
+    id: "account-add-email-input"
+- inputText: "kofi.mensah@ecole.cm"
+- hideKeyboard
+- tapOn:
+    id: "account-submit-add-email"
+
+# Vérifier le toast de succès
+- extendedWaitUntil:
+    visible: "Email envoyé"
+    timeout: 10000
+- assertVisible: "Email envoyé"

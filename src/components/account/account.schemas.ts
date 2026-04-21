@@ -15,6 +15,41 @@ export const accountPersonalProfileSchema = z.object({
     .regex(/^\d{9}$/, "Numéro invalide (9 chiffres attendus)."),
 });
 
+export const accountAddEmailSchema = z.object({
+  email: z.string().email("Adresse email invalide."),
+});
+
+export const accountCreatePasswordSchema = z
+  .object({
+    newPassword: z
+      .string()
+      .regex(
+        PASSWORD_COMPLEXITY_REGEX,
+        "Le mot de passe doit contenir au moins 8 caractères avec majuscules, minuscules et chiffres.",
+      ),
+    confirmNewPassword: z.string().min(1, "Confirmez le nouveau mot de passe."),
+  })
+  .refine((value) => value.newPassword === value.confirmNewPassword, {
+    message: "La confirmation du nouveau mot de passe ne correspond pas.",
+    path: ["confirmNewPassword"],
+  });
+
+export const accountAddPhoneCredentialSchema = z
+  .object({
+    phone: z
+      .string()
+      .trim()
+      .regex(/^\d{9}$/, "Numéro invalide (9 chiffres attendus)."),
+    pin: z
+      .string()
+      .regex(/^\d{6}$/, "Le PIN doit contenir exactement 6 chiffres."),
+    confirmPin: z.string().min(1, "Confirmez le PIN."),
+  })
+  .refine((value) => value.pin === value.confirmPin, {
+    message: "Les PINs ne correspondent pas.",
+    path: ["confirmPin"],
+  });
+
 export const accountChangePasswordSchema = z
   .object({
     currentPassword: z

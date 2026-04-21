@@ -56,7 +56,11 @@
     "e2e:test:discipline:crud": "npm run e2e:test:discipline:crud:absence && npm run e2e:test:discipline:crud:retard && npm run e2e:test:discipline:crud:sanction",
     "e2e:test:recovery-password": "PASSWORD_SCENARIO=happy_path bash scripts/maestro-run-flow.sh recovery-password",
     "e2e:test:recovery-pin": "PIN_SCENARIO=happy_path bash scripts/maestro-run-flow.sh recovery-pin",
-    "e2e:test": "npm run e2e:test:smoke && npm run e2e:test:auth-email && npm run e2e:test:auth-phone && npm run e2e:test:auth-google && npm run e2e:test:onboarding-email && npm run e2e:test:onboarding-phone && npm run e2e:test:feed && npm run e2e:test:feed:interactions && npm run e2e:test:messaging && npm run e2e:test:discipline && npm run e2e:test:discipline:error && npm run e2e:test:discipline:crud && npm run e2e:test:recovery-password && npm run e2e:test:recovery-pin",
+    "e2e:test:account:add-email": "EMAIL_LOGIN_SCENARIO=happy_path ACCOUNT_SCENARIO=phone_only_user bash scripts/maestro-run-flow.sh account-add-email",
+    "e2e:test:account:create-password": "EMAIL_LOGIN_SCENARIO=happy_path ACCOUNT_SCENARIO=phone_only_user bash scripts/maestro-run-flow.sh account-create-password",
+    "e2e:test:account:add-phone": "EMAIL_LOGIN_SCENARIO=happy_path ACCOUNT_SCENARIO=email_only_user bash scripts/maestro-run-flow.sh account-add-phone",
+    "e2e:test:account": "npm run e2e:test:account:add-email && npm run e2e:test:account:create-password && npm run e2e:test:account:add-phone",
+    "e2e:test": "npm run e2e:test:smoke && npm run e2e:test:auth-email && npm run e2e:test:auth-phone && npm run e2e:test:auth-google && npm run e2e:test:onboarding-email && npm run e2e:test:onboarding-phone && npm run e2e:test:feed && npm run e2e:test:feed:interactions && npm run e2e:test:messaging && npm run e2e:test:discipline && npm run e2e:test:discipline:error && npm run e2e:test:discipline:crud && npm run e2e:test:recovery-password && npm run e2e:test:recovery-pin && npm run e2e:test:account",
     "e2e": "npm run e2e:build && npm run e2e:test",
     "maestro:install": "bash scripts/install-maestro.sh"
   },

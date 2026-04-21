@@ -27,6 +27,8 @@
  *   POST /__scenario/pin          → change le scénario de récupération PIN
  *   POST /__scenario/password     → change le scénario de récupération mot de passe
  *   POST /__scenario/discipline   → change le scénario discipline
+ *   POST /__scenario/account      → change le scénario compte (phone_only_user | email_only_user)
+ *   GET  /__state/account         → état des mutations compte (emailAdded, passwordCreated, etc.)
  *   POST /__reset                 → réinitialise les fixtures en mémoire
  */
 
@@ -239,7 +241,48 @@ let currentPinScenario = "happy_path";
 let currentPwdScenario = "happy_path";
 let currentDisciplineScenario = "happy_path";
 let currentFeedScenario = "happy_path";
+let currentAccountScenario = "phone_only_user";
+let mockAccountState = {
+  emailAdded: false,
+  passwordCreated: false,
+  phoneCredentialAdded: false,
+  addedEmail: null,
+  addedPhone: null,
+};
 let server = null;
+
+// ── Scénarios compte (GET /api/me) ──────────────────────────────
+
+const ACCOUNT_SCENARIOS = {
+  phone_only_user: {
+    firstName: "Kofi",
+    lastName: "Mensah",
+    gender: "M",
+    email: null,
+    phone: "237670000001",
+    role: "PARENT",
+    activeRole: "PARENT",
+    platformRoles: [],
+    memberships: [{ schoolId: "school-1", role: "PARENT" }],
+    schoolSlug: "ecole-demo",
+    hasPassword: false,
+    hasPhoneCredential: true,
+  },
+  email_only_user: {
+    firstName: "Awa",
+    lastName: "Diallo",
+    gender: "F",
+    email: "awa.diallo@ecole.cm",
+    phone: null,
+    role: "PARENT",
+    activeRole: "PARENT",
+    platformRoles: [],
+    memberships: [{ schoolId: "school-1", role: "PARENT" }],
+    schoolSlug: "ecole-demo",
+    hasPassword: true,
+    hasPhoneCredential: false,
+  },
+};
 
 const INLINE_IMAGE_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAb0lEQVR4nO3PQQ0AIBDAMMC/5yFjRxMFfXpn5g5A7zWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgfY5GAOQO2vByAAAAAElFTkSuQmCC";
@@ -868,6 +911,13 @@ function resetMockState() {
   mockNotesState = createInitialNotesState();
   lifeEventCounter = 10;
   mockLifeEventsByStudent = createInitialLifeEventsByStudent();
+  mockAccountState = {
+    emailAdded: false,
+    passwordCreated: false,
+    phoneCredentialAdded: false,
+    addedEmail: null,
+    addedPhone: null,
+  };
 }
 
 function parseJsonSafe(raw) {
@@ -1403,6 +1453,7 @@ function handleRequest(req, res) {
     url === "/__scenario/pin" ||
     url === "/__scenario/discipline" ||
     url === "/__scenario/password" ||
+    url === "/__scenario/account" ||
     url === "/__reset"
   ) {
     if (method === "POST") {
@@ -1447,6 +1498,13 @@ function handleRequest(req, res) {
             currentDisciplineScenario = scenario;
           } else if (url === "/__scenario/pin") {
             currentPinScenario = scenario;
+          } else if (url === "/__scenario/account") {
+            if (!ACCOUNT_SCENARIOS[scenario]) {
+              return json(res, 400, {
+                error: `Scénario account inconnu : "${scenario}"`,
+              });
+            }
+            currentAccountScenario = scenario;
           } else {
             currentPwdScenario = scenario;
           }
@@ -1474,6 +1532,98 @@ function handleRequest(req, res) {
   // ── Health check ─────────────────────────────────────────────
   if (method === "GET" && path === "/api/health") {
     return json(res, 200, { status: "mock-ok" });
+  }
+
+  // ── État compte (GET /__state/account) ────────────────────────
+  if (method === "GET" && path === "/__state/account") {
+    return json(res, 200, mockAccountState);
+  }
+
+  // ── Profil global GET /api/me ─────────────────────────────────
+  if (method === "GET" && path === "/api/me") {
+    const base =
+      ACCOUNT_SCENARIOS[currentAccountScenario] ||
+      ACCOUNT_SCENARIOS.phone_only_user;
+    // Refléter dynamiquement les mutations appliquées pendant le flow
+    const profile = Object.assign({}, base);
+    if (mockAccountState.emailAdded && mockAccountState.addedEmail) {
+      profile.email = mockAccountState.addedEmail;
+    }
+    if (mockAccountState.passwordCreated) {
+      profile.hasPassword = true;
+    }
+    if (mockAccountState.phoneCredentialAdded && mockAccountState.addedPhone) {
+      profile.hasPhoneCredential = true;
+      profile.phone = mockAccountState.addedPhone;
+    }
+    return json(res, 200, profile);
+  }
+
+  // ── Mise à jour profil PUT /api/me/profile ────────────────────
+  if (method === "PUT" && path === "/api/me/profile") {
+    readBody(req).then((raw) => {
+      const payload = parseJsonSafe(raw);
+      const base =
+        ACCOUNT_SCENARIOS[currentAccountScenario] ||
+        ACCOUNT_SCENARIOS.phone_only_user;
+      return json(res, 200, Object.assign({}, base, payload));
+    });
+    return;
+  }
+
+  // ── Ajout email POST /api/auth/add-email ──────────────────────
+  if (method === "POST" && path === "/api/auth/add-email") {
+    readBody(req).then((raw) => {
+      const payload = parseJsonSafe(raw);
+      mockAccountState.emailAdded = true;
+      mockAccountState.addedEmail = payload.email || "nouveau@example.cm";
+      console.log(`[mock] add-email → ${mockAccountState.addedEmail}`);
+      return json(res, 201, {
+        success: true,
+        message: "Un email de vérification a été envoyé.",
+      });
+    });
+    return;
+  }
+
+  // ── Création mot de passe POST /api/auth/create-password ──────
+  if (method === "POST" && path === "/api/auth/create-password") {
+    mockAccountState.passwordCreated = true;
+    console.log("[mock] create-password → ok");
+    return json(res, 201, { success: true });
+  }
+
+  // ── Ajout téléphone+PIN POST /api/auth/add-phone-credential ───
+  if (method === "POST" && path === "/api/auth/add-phone-credential") {
+    readBody(req).then((raw) => {
+      const payload = parseJsonSafe(raw);
+      mockAccountState.phoneCredentialAdded = true;
+      mockAccountState.addedPhone = payload.phone || "670000099";
+      console.log(
+        `[mock] add-phone-credential → ${mockAccountState.addedPhone}`,
+      );
+      return json(res, 201, { success: true });
+    });
+    return;
+  }
+
+  // ── Options récupération GET /api/auth/recovery/options ──────
+  if (method === "GET" && path === "/api/auth/recovery/options") {
+    return json(res, 200, {
+      schoolRoles: [],
+      questions: [],
+      classes: [],
+      students: [],
+      selectedQuestions: [],
+      birthDate: "",
+      parentClassId: null,
+      parentStudentId: null,
+    });
+  }
+
+  // ── Mise à jour récupération PUT /api/auth/recovery ───────────
+  if (method === "PUT" && path === "/api/auth/recovery") {
+    return json(res, 200, { success: true });
   }
 
   // ── SSO Google : point d'entrée web (remplace /auth/mobile-sso-start du web) ─

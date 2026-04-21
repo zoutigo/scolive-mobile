@@ -1,0 +1,115 @@
+appId: com.zoutigo.scoliveapp
+name: Account — Add Phone + PIN (email-only user)
+tags:
+  - account
+  - credentials
+---
+# Garde-fous système Android
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
+- runFlow:
+    when:
+      visible: "Process system isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "Save password to Google?"
+    commands:
+      - tapOn: "Never"
+
+# Login via email
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "tab-email"
+- tapOn:
+    id: "input-email"
+- inputText: "teacher@ecole.cm"
+- hideKeyboard
+- tapOn:
+    id: "input-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
+- runFlow:
+    when:
+      visible: "Save password to Google?"
+    commands:
+      - tapOn: "Never"
+
+# Naviguer vers Mon Compte
+- extendedWaitUntil:
+    visible:
+      id: "header-menu-btn"
+    timeout: 20000
+- tapOn:
+    id: "header-menu-btn"
+- extendedWaitUntil:
+    visible:
+      id: "nav-item-account"
+    timeout: 10000
+- tapOn:
+    id: "nav-item-account"
+
+# Basculer sur l'onglet Sécurité
+- extendedWaitUntil:
+    visible:
+      id: "account-tab-security"
+    timeout: 15000
+- tapOn:
+    id: "account-tab-security"
+
+# Vérifier que la carte sécurité est visible
+- extendedWaitUntil:
+    visible:
+      id: "account-security-card"
+    timeout: 10000
+# Vérifier que le toggle "PIN" est présent (état non configuré implicite)
+- assertVisible:
+    id: "account-pin-section-toggle"
+
+# Ouvrir le formulaire ajout téléphone + PIN
+- tapOn:
+    id: "account-pin-section-toggle"
+- extendedWaitUntil:
+    visible:
+      id: "account-add-phone-input"
+    timeout: 10000
+
+# Saisir le numéro de téléphone
+- tapOn:
+    id: "account-add-phone-input"
+- inputText: "670000099"
+- hideKeyboard
+
+# Saisir et confirmer le PIN
+- tapOn:
+    id: "account-add-phone-pin-input"
+- inputText: "654321"
+- hideKeyboard
+- tapOn:
+    id: "account-add-phone-confirm-pin-input"
+- inputText: "654321"
+- hideKeyboard
+
+# Soumettre
+- tapOn:
+    id: "account-save-add-phone"
+
+# Vérifier le toast de succès
+- extendedWaitUntil:
+    visible: "Téléphone configuré"
+    timeout: 10000
+- assertVisible: "Téléphone configuré"
