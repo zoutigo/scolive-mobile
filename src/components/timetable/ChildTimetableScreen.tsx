@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -561,6 +562,23 @@ function DayCard({
   );
 }
 
+// Horizontal space consumed by all containers wrapping the week timeline:
+//   content paddingHorizontal (16) + moduleCard padding+border (9) + weekGridCard padding+border (9)
+//   times 2 sides = 68px
+const WEEK_GRID_OUTER_H_PADDING = 68;
+const WEEK_CORNER_WIDTH = 36;
+const WEEK_COL_GAP = 2;
+const WEEK_MIN_DAY_COL_WIDTH = 56;
+
+export function computeWeekDayColumnWidth(
+  screenWidth: number,
+  nDays: number,
+): number {
+  const available = screenWidth - WEEK_GRID_OUTER_H_PADDING;
+  const raw = (available - WEEK_CORNER_WIDTH - nDays * WEEK_COL_GAP) / nDays;
+  return Math.max(WEEK_MIN_DAY_COL_WIDTH, Math.floor(raw));
+}
+
 function WeekGrid({
   visibleWeekDays,
   occurrences,
@@ -576,6 +594,12 @@ function WeekGrid({
   subjectColorById: Record<string, string>;
   today: Date;
 }) {
+  const { width: screenWidth } = useWindowDimensions();
+  const nDays = visibleWeekDays.length;
+  const dayColWidth = computeWeekDayColumnWidth(screenWidth, nDays);
+  const timelineWidth =
+    WEEK_CORNER_WIDTH + nDays * (dayColWidth + WEEK_COL_GAP);
+
   const timelineStartMinute = 7 * 60;
   const timelineEndMinute = 18 * 60;
   const timelinePxPerHour = 36;
@@ -593,7 +617,7 @@ function WeekGrid({
           style={[
             styles.weekTimeline,
             {
-              width: 36 + visibleWeekDays.length * 58,
+              width: timelineWidth,
             },
           ]}
         >
@@ -605,6 +629,7 @@ function WeekGrid({
               key={`week-head-${entry.weekday}`}
               style={[
                 styles.weekHeaderCell,
+                { width: dayColWidth },
                 sameDate(entry.date, today) && styles.weekHeaderCellToday,
               ]}
             >
@@ -650,7 +675,10 @@ function WeekGrid({
             return (
               <View
                 key={`week-col-${entry.weekday}`}
-                style={[styles.weekDayColumn, { height: timelineHeight }]}
+                style={[
+                  styles.weekDayColumn,
+                  { height: timelineHeight, width: dayColWidth },
+                ]}
                 testID={`child-timetable-week-col-${entry.weekday}`}
               >
                 {timelineHours.slice(0, -1).map((hourMinute) => (

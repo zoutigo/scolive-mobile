@@ -26,7 +26,6 @@ interface AppDrawerProps {
   navItems: NavItem[];
   /** Sections enfants — uniquement pour le rôle PARENT */
   childSections?: ParentChildSection[];
-  portalLabel: string;
   userFullName: string;
   userInitials: string;
   userRole: string;
@@ -38,7 +37,6 @@ export function AppDrawer({
   onClose,
   navItems,
   childSections,
-  portalLabel,
   userFullName,
   userInitials,
   userRole,
@@ -179,13 +177,6 @@ export function AppDrawer({
           </TouchableOpacity>
         </View>
 
-        {/* Portal badge */}
-        <View style={styles.portalBadgeRow}>
-          <View style={styles.portalBadge}>
-            <Text style={styles.portalBadgeText}>{portalLabel}</Text>
-          </View>
-        </View>
-
         {/* Nav — mode accordéon si parent avec enfants, sinon liste simple */}
         <ScrollView
           style={styles.navList}
@@ -196,28 +187,23 @@ export function AppDrawer({
             <>
               {/* ── Section "Mon espace famille" ── */}
               <TouchableOpacity
-                style={styles.sectionHeader}
-                onPress={() => setOpenSection("general")}
+                style={[
+                  styles.sectionHeader,
+                  openSection === "general" && styles.sectionHeaderActive,
+                ]}
+                onPress={() => {
+                  setOpenSection("general");
+                  setActiveChild(null);
+                }}
                 activeOpacity={0.7}
                 testID="drawer-section-general"
               >
                 <Ionicons
                   name="home-outline"
                   size={16}
-                  color={
-                    openSection === "general"
-                      ? colors.warmAccent
-                      : "rgba(255,255,255,0.5)"
-                  }
+                  color={colors.warmAccent}
                 />
-                <Text
-                  style={[
-                    styles.sectionHeaderText,
-                    openSection === "general" && styles.sectionHeaderTextActive,
-                  ]}
-                >
-                  Mon espace famille
-                </Text>
+                <Text style={styles.sectionHeaderText}>Mon espace famille</Text>
                 <Ionicons
                   name={
                     openSection === "general"
@@ -252,23 +238,30 @@ export function AppDrawer({
                 return (
                   <View key={child.id}>
                     <TouchableOpacity
-                      style={styles.sectionHeader}
+                      style={[
+                        styles.sectionHeader,
+                        isOpen && styles.sectionHeaderActive,
+                      ]}
                       onPress={() => setOpenSection(sectionKey)}
                       activeOpacity={0.7}
                       testID={`drawer-section-child-${child.id}`}
                     >
-                      <View style={styles.childAvatar}>
-                        <Text style={styles.childAvatarText}>
+                      <View
+                        style={[
+                          styles.childAvatar,
+                          isOpen && styles.childAvatarActive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.childAvatarText,
+                            isOpen && styles.childAvatarTextActive,
+                          ]}
+                        >
                           {childInitials}
                         </Text>
                       </View>
-                      <Text
-                        style={[
-                          styles.sectionHeaderText,
-                          isOpen && styles.sectionHeaderTextActive,
-                        ]}
-                        numberOfLines={1}
-                      >
+                      <Text style={styles.sectionHeaderText} numberOfLines={1}>
                         {child.lastName} {child.firstName}
                       </Text>
                       <Ionicons
@@ -441,21 +434,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-  portalBadgeRow: { paddingHorizontal: 20, paddingVertical: 12 },
-  portalBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 6,
-    alignSelf: "flex-start",
-  },
-  portalBadgeText: {
-    color: colors.warmAccent,
-    fontSize: 10,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
   navList: { flex: 1 },
   navContent: { paddingHorizontal: 12, paddingBottom: 8 },
 
@@ -469,15 +447,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 2,
   },
+  sectionHeaderActive: {
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
   sectionHeaderText: {
     flex: 1,
-    color: "rgba(255,255,255,0.55)",
+    color: colors.warmAccent,
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
-  sectionHeaderTextActive: { color: colors.warmAccent },
   childAvatar: {
     width: 28,
     height: 28,
@@ -486,10 +466,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  childAvatarActive: {
+    backgroundColor: colors.warmAccent,
+  },
   childAvatarText: {
-    color: colors.white,
+    color: "rgba(255,255,255,0.85)",
     fontSize: 11,
     fontWeight: "700",
+  },
+  childAvatarTextActive: {
+    color: colors.sidebarBg,
   },
 
   // ── Items de navigation ─────────────────────────────────────────────────────
@@ -504,7 +490,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   navItemActive: { backgroundColor: "rgba(255,255,255,0.12)" },
-  navItemIndented: { paddingLeft: 20 },
+  navItemIndented: { paddingLeft: 32 },
   navLabel: {
     color: "rgba(255,255,255,0.72)",
     fontSize: 14,

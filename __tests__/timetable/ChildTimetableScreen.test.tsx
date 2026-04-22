@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, useWindowDimensions } from "react-native";
 import {
   fireEvent,
   render,
@@ -13,6 +13,20 @@ import { colors } from "../../src/theme";
 import { useDrawer } from "../../src/components/navigation/drawer-context";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
+
+jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
+  default: jest
+    .fn()
+    .mockReturnValue({ width: 360, height: 800, scale: 2, fontScale: 1 }),
+}));
+
+const mockUseWindowDimensions = useWindowDimensions as jest.MockedFunction<
+  typeof useWindowDimensions
+>;
+
+function screen$(w: number, h = 800) {
+  return { width: w, height: h, scale: 2, fontScale: 1 } as const;
+}
 
 const mockBack = jest.fn();
 const mockPush = jest.fn();
@@ -44,6 +58,7 @@ afterAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockUseWindowDimensions.mockReturnValue(screen$(360));
   mockUseDrawer.mockReturnValue({
     openDrawer: mockOpenDrawer,
     closeDrawer: jest.fn(),
@@ -387,5 +402,100 @@ describe("ChildTimetableScreen", () => {
     // Colonnes de semaine toujours présentes
     expect(screen.getByText("L")).toBeTruthy();
     expect(screen.getByText("V")).toBeTruthy();
+  });
+});
+
+describe("WeekGrid — responsive (largeur colonnes)", () => {
+  it("sur téléphone 360px, les colonnes jour ont la largeur minimale 56px", () => {
+    mockUseWindowDimensions.mockReturnValue(screen$(360));
+    render(<ChildTimetableScreen />);
+    fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
+
+    // Sur téléphone le calcul donne raw < 56 → on clamp à 56
+    const col = screen.getByTestId("child-timetable-week-col-2");
+    const colStyle = StyleSheet.flatten(col.props.style);
+    expect(colStyle.width).toBe(56);
+  });
+
+  it("sur tablette 768px, les colonnes jour sont plus larges que 56px", () => {
+    mockUseWindowDimensions.mockReturnValue(screen$(768, 1024));
+    render(<ChildTimetableScreen />);
+    fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
+
+    const col = screen.getByTestId("child-timetable-week-col-2");
+    const colStyle = StyleSheet.flatten(col.props.style);
+    expect(colStyle.width).toBeGreaterThan(56);
+  });
+
+  it("sur tablette 768px / 5 jours, la largeur de colonne est 130px", () => {
+    // raw = (768-68-36-10)/5 = 130.8 → floor = 130
+    mockUseWindowDimensions.mockReturnValue(screen$(768, 1024));
+    render(<ChildTimetableScreen />);
+    fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
+
+    const col = screen.getByTestId("child-timetable-week-col-2");
+    const colStyle = StyleSheet.flatten(col.props.style);
+    expect(colStyle.width).toBe(130);
+  });
+
+  it("sur tablette 768px, les colonnes jour ont toutes la même largeur", () => {
+    mockUseWindowDimensions.mockReturnValue(screen$(768, 1024));
+    render(<ChildTimetableScreen />);
+    fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
+
+    // Récupérer la largeur d'une colonne corps
+    const col = screen.getByTestId("child-timetable-week-col-2");
+    const colWidth = StyleSheet.flatten(col.props.style).width as number;
+
+    // Vérifier que toutes les colonnes ont la même largeur (cohérence)
+    const col3 = screen.getByTestId("child-timetable-week-col-3");
+    const col3Width = StyleSheet.flatten(col3.props.style).width as number;
+    expect(colWidth).toBe(col3Width);
+  });
+
+  it("les créneaux restent cliquables sur tablette après adaptation de la largeur", async () => {
+    mockUseWindowDimensions.mockReturnValue(screen$(768, 1024));
+    render(<ChildTimetableScreen />);
+    fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
+
+    fireEvent.press(
+      screen.getByTestId("child-timetable-week-slot-occ-tech-15"),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Matiere: Technologie")).toBeTruthy();
+    });
+  });
+
+  it("sur téléphone 375px, les créneaux sont toujours visibles et navigables", async () => {
+    mockUseWindowDimensions.mockReturnValue(screen$(375, 812));
+    render(<ChildTimetableScreen />);
+    fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
+
+    expect(screen.getByTestId("child-timetable-week-grid")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("child-timetable-week-slot-occ-ang-14"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Matiere: Anglais")).toBeTruthy();
+    });
+  });
+
+  it("la grille s'adapte après un changement de dimensions (rotation)", () => {
+    // Portrait
+    mockUseWindowDimensions.mockReturnValue(screen$(360));
+    const { rerender } = render(<ChildTimetableScreen />);
+    fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
+
+    const colPortrait = screen.getByTestId("child-timetable-week-col-2");
+    const widthPortrait = StyleSheet.flatten(colPortrait.props.style).width;
+    expect(widthPortrait).toBe(56);
+
+    // Paysage (landscape) → réinitialiser les dimensions et re-render
+    mockUseWindowDimensions.mockReturnValue(screen$(800, 360));
+    rerender(<ChildTimetableScreen />);
+
+    const colLandscape = screen.getByTestId("child-timetable-week-col-2");
+    const widthLandscape = StyleSheet.flatten(colLandscape.props.style).width;
+    expect(widthLandscape).toBeGreaterThan(56);
   });
 });

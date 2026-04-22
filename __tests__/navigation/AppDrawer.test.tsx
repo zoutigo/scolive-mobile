@@ -25,7 +25,6 @@ jest.mock("expo-router", () => ({
 const baseProps = {
   isOpen: true,
   onClose: jest.fn(),
-  portalLabel: "Portail famille",
   userFullName: "Robert Ntamack",
   userInitials: "RN",
   userRole: "Parent",
@@ -141,9 +140,10 @@ describe("Informations utilisateur", () => {
     expect(screen.getByText("Parent")).toBeTruthy();
   });
 
-  it("affiche le label du portail", () => {
+  it("n'affiche plus le badge de portail (supprimé car redondant avec le rôle)", () => {
     renderDrawer();
-    expect(screen.getByText("Portail famille")).toBeTruthy();
+    expect(screen.queryByText("Portail famille")).toBeNull();
+    expect(screen.queryByText("PORTAIL FAMILLE")).toBeNull();
   });
 });
 
@@ -415,5 +415,121 @@ describe("Accordéon parent — sections enfants", () => {
     });
     expect(screen.queryByTestId("nav-item-child-c1-home")).toBeNull();
     expect(screen.getByTestId("nav-item-child-c2-home")).toBeTruthy();
+  });
+});
+
+// ── Accordéon : cycle complet ouverture/fermeture ─────────────────────────────
+
+describe("Accordéon — cycle ouverture/fermeture", () => {
+  const childSections = buildChildSections([child1, child2]);
+  const navItems = getNavItems(parentUser);
+
+  function renderParentDrawer(activeChildId: string | null = null) {
+    useFamilyStore.setState({ activeChildId, children: [] });
+    return render(
+      <AppDrawer
+        {...baseProps}
+        navItems={navItems}
+        childSections={childSections}
+      />,
+    );
+  }
+
+  it("cliquer sur un enfant ouvre son menu et ferme celui de Mon espace famille", () => {
+    // Départ : section générale ouverte (activeChildId null)
+    renderParentDrawer(null);
+
+    // Les items de Mon espace famille sont visibles
+    expect(screen.getByTestId("nav-item-home")).toBeTruthy();
+    // Les items de l'enfant sont absents
+    expect(screen.queryByTestId("nav-item-child-c1-home")).toBeNull();
+
+    // Clic sur la section enfant
+    fireEvent.press(screen.getByTestId("drawer-section-child-c1"));
+
+    // → Menu enfant ouvert
+    expect(screen.getByTestId("nav-item-child-c1-home")).toBeTruthy();
+    expect(screen.getByTestId("nav-item-child-c1-grades")).toBeTruthy();
+    // → Menu Mon espace famille fermé
+    expect(screen.queryByTestId("nav-item-home")).toBeNull();
+  });
+
+  it("recliquer sur Mon espace famille referme le menu enfant et rouvre Mon espace famille", () => {
+    // Départ : section enfant ouverte
+    renderParentDrawer("c1");
+
+    // Vérification état initial
+    expect(screen.getByTestId("nav-item-child-c1-home")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-home")).toBeNull();
+
+    // Clic sur Mon espace famille
+    fireEvent.press(screen.getByTestId("drawer-section-general"));
+
+    // → Menu Mon espace famille ouvert
+    expect(screen.getByTestId("nav-item-home")).toBeTruthy();
+    // → Menu enfant fermé
+    expect(screen.queryByTestId("nav-item-child-c1-home")).toBeNull();
+  });
+
+  it("cycle complet : général → enfant → général", () => {
+    renderParentDrawer(null);
+
+    // État 1 : Mon espace famille ouvert
+    expect(screen.getByTestId("nav-item-home")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-child-c1-home")).toBeNull();
+
+    // → Clic enfant
+    fireEvent.press(screen.getByTestId("drawer-section-child-c1"));
+
+    // État 2 : menu enfant ouvert, Mon espace famille fermé
+    expect(screen.getByTestId("nav-item-child-c1-home")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-home")).toBeNull();
+
+    // → Clic Mon espace famille
+    fireEvent.press(screen.getByTestId("drawer-section-general"));
+
+    // État 3 : Mon espace famille rouvert, menu enfant refermé
+    expect(screen.getByTestId("nav-item-home")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-child-c1-home")).toBeNull();
+  });
+
+  it("cliquer sur Mon espace famille remet activeChildId à null dans le store", () => {
+    renderParentDrawer("c1");
+
+    fireEvent.press(screen.getByTestId("drawer-section-general"));
+
+    expect(useFamilyStore.getState().activeChildId).toBeNull();
+  });
+
+  it("après reset du store, le drawer rouvre sur Mon espace famille et non sur l'enfant", () => {
+    // Simuler un remontage du composant après avoir cliqué sur Mon espace famille
+    renderParentDrawer("c1");
+    fireEvent.press(screen.getByTestId("drawer-section-general"));
+
+    // activeChildId est maintenant null dans le store
+    expect(useFamilyStore.getState().activeChildId).toBeNull();
+
+    // Si le composant remonte avec activeChildId=null, la section générale s'ouvre
+    const { unmount } = renderParentDrawer(
+      useFamilyStore.getState().activeChildId,
+    );
+    expect(screen.getByTestId("nav-item-home")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-child-c1-home")).toBeNull();
+    unmount();
+  });
+
+  it("avec deux enfants, ouvrir l'enfant 2 ferme l'enfant 1", () => {
+    renderParentDrawer("c1");
+
+    // Enfant 1 ouvert au départ
+    expect(screen.getByTestId("nav-item-child-c1-home")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-child-c2-home")).toBeNull();
+
+    // Clic sur enfant 2
+    fireEvent.press(screen.getByTestId("drawer-section-child-c2"));
+
+    // Enfant 2 ouvert, enfant 1 fermé
+    expect(screen.getByTestId("nav-item-child-c2-home")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-child-c1-home")).toBeNull();
   });
 });

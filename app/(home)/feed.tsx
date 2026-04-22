@@ -10,6 +10,8 @@ import { feedApi } from "../../src/api/feed.api";
 import { FeedModuleScreen } from "../../src/components/feed/FeedModuleScreen";
 import { AppShell } from "../../src/components/navigation/AppShell";
 import { useDrawer } from "../../src/components/navigation/drawer-context";
+import { HeaderBackButton } from "../../src/components/navigation/HeaderBackButton";
+import { HeaderMenuButton } from "../../src/components/navigation/HeaderMenuButton";
 import type {
   CreateFeedPayload,
   FeedFilter,
@@ -91,13 +93,10 @@ function FeedScreen() {
       viewerRole={viewerRole}
       renderHeader={({ toggleSearch }) => (
         <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-          <TouchableOpacity
-            style={styles.backBtn}
+          <HeaderBackButton
             onPress={() => router.back()}
             testID="feed-back-btn"
-          >
-            <Ionicons name="arrow-back" size={22} color={colors.white} />
-          </TouchableOpacity>
+          />
           <View style={styles.headerCopy}>
             <Text style={styles.headerTitle}>Fil d&apos;actualité</Text>
           </View>
@@ -108,13 +107,7 @@ function FeedScreen() {
           >
             <Ionicons name="search-outline" size={20} color={colors.white} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerIcon}
-            onPress={openDrawer}
-            testID="feed-menu-btn"
-          >
-            <Ionicons name="menu-outline" size={20} color={colors.white} />
-          </TouchableOpacity>
+          <HeaderMenuButton onPress={openDrawer} testID="feed-menu-btn" />
         </View>
       )}
       loadPage={loadPage}
@@ -146,9 +139,6 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     gap: 12,
   },
-  backBtn: {
-    marginTop: 2,
-  },
   headerCopy: {
     flex: 1,
     justifyContent: "center",
@@ -157,6 +147,8 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 20,
     fontWeight: "800",
+    textTransform: "uppercase",
+    textAlign: "center",
   },
   headerIcon: {
     width: 38,

@@ -20,6 +20,8 @@ import { FolderTabs } from "../../../src/components/messaging/FolderTabs";
 import { MessageRow } from "../../../src/components/messaging/MessageRow";
 import { InfiniteScrollList } from "../../../src/components/lists/InfiniteScrollList";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
+import { HeaderBackButton } from "../../../src/components/navigation/HeaderBackButton";
+import { HeaderMenuButton } from "../../../src/components/navigation/HeaderMenuButton";
 import { buildChildHomeTarget } from "../../../src/components/navigation/nav-config";
 import { AppShell } from "../../../src/components/navigation/AppShell";
 import { useDrawer } from "../../../src/components/navigation/drawer-context";
@@ -117,17 +119,13 @@ function MessagesScreenContent() {
     <View style={styles.root}>
       {searchVisible ? (
         <View style={[styles.searchHeader, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity
-            style={styles.headerIconButton}
+          <HeaderBackButton
             onPress={() => {
               setSearch("");
               setSearchVisible(false);
             }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             testID="back-btn"
-          >
-            <Ionicons name="arrow-back" size={20} color={colors.white} />
-          </TouchableOpacity>
+          />
           <KeyboardAvoidingView
             style={styles.searchContainer}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -154,13 +152,7 @@ function MessagesScreenContent() {
               <Ionicons name="close" size={20} color="rgba(255,255,255,0.8)" />
             </TouchableOpacity>
           </KeyboardAvoidingView>
-          <TouchableOpacity
-            style={styles.headerIconButton}
-            onPress={openDrawer}
-            testID="messages-menu-btn"
-          >
-            <Ionicons name="menu-outline" size={20} color={colors.white} />
-          </TouchableOpacity>
+          <HeaderMenuButton onPress={openDrawer} testID="messages-menu-btn" />
         </View>
       ) : (
         <View style={styles.headerWrap}>

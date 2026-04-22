@@ -23,6 +23,8 @@ import {
   AppShell,
   useDrawer,
 } from "../../../src/components/navigation/AppShell";
+import { HeaderBackButton } from "../../../src/components/navigation/HeaderBackButton";
+import { HeaderMenuButton } from "../../../src/components/navigation/HeaderMenuButton";
 import type {
   MessageAttachment,
   MessageDetail,
@@ -263,20 +265,12 @@ export default function MessageDetailScreen() {
     const loadingContent = (
       <View style={[styles.root, { paddingTop: insets.top }]}>
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backBtn}
-          >
-            <Ionicons name="arrow-back" size={22} color={colors.white} />
-          </TouchableOpacity>
+          <HeaderBackButton onPress={() => router.back()} />
           <Text style={styles.headerTitle}>Retour à la messagerie</Text>
-          <TouchableOpacity
+          <HeaderMenuButton
             onPress={openDrawer}
-            style={styles.backBtn}
             testID="message-detail-menu-btn"
-          >
-            <Ionicons name="menu-outline" size={22} color={colors.white} />
-          </TouchableOpacity>
+          />
         </View>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -297,23 +291,14 @@ export default function MessageDetailScreen() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => router.back()}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="arrow-back" size={22} color={colors.white} />
-        </TouchableOpacity>
+        <HeaderBackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle} numberOfLines={1}>
           Retour à la messagerie
         </Text>
-        <TouchableOpacity
+        <HeaderMenuButton
           onPress={openDrawer}
-          style={styles.backBtn}
           testID="message-detail-menu-btn"
-        >
-          <Ionicons name="menu-outline" size={22} color={colors.white} />
-        </TouchableOpacity>
+        />
       </View>
 
       {/* Content */}
@@ -609,12 +594,13 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 12,
   },
-  backBtn: { flexShrink: 0 },
   headerTitle: {
     flex: 1,
     fontSize: 17,
     fontWeight: "700",
     color: colors.white,
+    textTransform: "uppercase",
+    textAlign: "center",
   },
 
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
