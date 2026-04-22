@@ -217,7 +217,12 @@ const TEACHER_NAV: NavItem[] = [
 const PARENT_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
   feedItem(),
-  placeholder("Situation financière", "wallet-outline", "finance"),
+  {
+    key: "finance",
+    label: "Situation financière",
+    icon: "wallet-outline",
+    route: "/(home)/finance",
+  },
   {
     key: "messages",
     label: "Messagerie",
