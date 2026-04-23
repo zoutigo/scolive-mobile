@@ -304,6 +304,24 @@ export function AppDrawer({
           )}
         </ScrollView>
 
+        {/* Lien assistance — juste au-dessus de la déconnexion */}
+        <TouchableOpacity
+          style={styles.logoutRow}
+          onPress={() => {
+            onClose();
+            setTimeout(() => router.push("/(home)/tickets"), 120);
+          }}
+          activeOpacity={0.7}
+          testID="drawer-tickets-btn"
+        >
+          <Ionicons
+            name="help-circle-outline"
+            size={20}
+            color="rgba(255,255,255,0.55)"
+          />
+          <Text style={styles.logoutLabel}>Assistance</Text>
+        </TouchableOpacity>
+
         {/* Bouton de déconnexion */}
         <TouchableOpacity
           style={styles.logoutRow}

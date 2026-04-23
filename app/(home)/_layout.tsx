@@ -78,6 +78,18 @@ export default function HomeLayout() {
         name="children/[childId]/vie-de-classe"
         options={{ animation: "slide_from_right" }}
       />
+      <Stack.Screen
+        name="tickets/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="tickets/create"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="tickets/[ticketId]"
+        options={{ animation: "slide_from_right" }}
+      />
     </Stack>
   );
 }
