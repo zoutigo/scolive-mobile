@@ -11,11 +11,13 @@ import { colors } from "../../theme";
 type Props = {
   editorRef: React.RefObject<RichEditor | null>;
   onPressAddImage: () => void;
+  onPressAddVideo?: () => void;
   onPressColor: () => void;
   onPressHeading: () => void;
   onPressQuote: () => void;
   toolbarTestID?: string;
   quickToolsTestID?: string;
+  videoButtonTestID?: string;
   colorButtonTestID?: string;
   headingButtonTestID?: string;
   quoteButtonTestID?: string;
@@ -24,11 +26,13 @@ type Props = {
 export function RichTextToolbar({
   editorRef,
   onPressAddImage,
+  onPressAddVideo,
   onPressColor,
   onPressHeading,
   onPressQuote,
   toolbarTestID = "rich-toolbar",
   quickToolsTestID = "editor-quick-tools",
+  videoButtonTestID = "editor-video-btn",
   colorButtonTestID = "editor-color-btn",
   headingButtonTestID = "editor-heading-btn",
   quoteButtonTestID = "editor-quote-btn",
@@ -59,6 +63,15 @@ export function RichTextToolbar({
         testID={toolbarTestID}
       />
       <View style={styles.quickActions}>
+        <TouchableOpacity
+          style={styles.quickToolBtn}
+          onPress={onPressAddVideo}
+          testID={videoButtonTestID}
+          accessibilityLabel="Ajouter une vidéo"
+          disabled={!onPressAddVideo}
+        >
+          <Ionicons name="videocam-outline" size={18} color={colors.primary} />
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.quickToolBtn}
           onPress={onPressColor}
