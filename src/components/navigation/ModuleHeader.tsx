@@ -66,7 +66,13 @@ export function ModuleHeader({
         ) : null}
       </View>
       {rightIcon && onRightPress ? (
-        <HeaderMenuButton onPress={onRightPress} testID={rightTestID} />
+        <HeaderMenuButton
+          onPress={onRightPress}
+          icon={
+            rightIcon as React.ComponentProps<typeof HeaderMenuButton>["icon"]
+          }
+          testID={rightTestID}
+        />
       ) : (
         <View style={styles.rightSpacer} />
       )}

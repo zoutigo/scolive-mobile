@@ -5,12 +5,14 @@ import { colors } from "../../theme";
 
 interface HeaderMenuButtonProps {
   onPress: () => void;
+  icon?: React.ComponentProps<typeof Ionicons>["name"];
   testID?: string;
   style?: ViewStyle;
 }
 
 export function HeaderMenuButton({
   onPress,
+  icon = "menu-outline",
   testID = "header-menu-btn",
   style,
 }: HeaderMenuButtonProps) {
@@ -23,7 +25,7 @@ export function HeaderMenuButton({
       accessibilityLabel="Ouvrir le menu"
       accessibilityRole="button"
     >
-      <Ionicons name="menu-outline" size={24} color={colors.white} />
+      <Ionicons name={icon} size={24} color={colors.white} />
     </TouchableOpacity>
   );
 }

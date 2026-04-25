@@ -10,12 +10,14 @@ import { colors } from "../../theme";
 
 type Props = {
   editorRef: React.RefObject<RichEditor | null>;
-  onPressAddImage: () => void;
+  onPressAddImage?: () => void;
+  onPressAddVideo?: () => void;
   onPressColor: () => void;
   onPressHeading: () => void;
   onPressQuote: () => void;
   toolbarTestID?: string;
   quickToolsTestID?: string;
+  videoButtonTestID?: string;
   colorButtonTestID?: string;
   headingButtonTestID?: string;
   quoteButtonTestID?: string;
@@ -24,15 +26,27 @@ type Props = {
 export function RichTextToolbar({
   editorRef,
   onPressAddImage,
+  onPressAddVideo,
   onPressColor,
   onPressHeading,
   onPressQuote,
   toolbarTestID = "rich-toolbar",
   quickToolsTestID = "editor-quick-tools",
+  videoButtonTestID = "editor-video-btn",
   colorButtonTestID = "editor-color-btn",
   headingButtonTestID = "editor-heading-btn",
   quoteButtonTestID = "editor-quote-btn",
 }: Props) {
+  const actionsList = [
+    actions.setBold,
+    actions.setItalic,
+    actions.setUnderline,
+    actions.setStrikethrough,
+    actions.insertBulletsList,
+    actions.insertOrderedList,
+    ...(onPressAddImage ? [actions.insertImage] : []),
+  ];
+
   return (
     <View style={styles.row} testID={quickToolsTestID}>
       <RichToolbar
@@ -41,24 +55,38 @@ export function RichTextToolbar({
         iconTint={colors.textSecondary}
         selectedIconTint={colors.primary}
         disabledIconTint={colors.warmBorder}
-        actions={[
-          actions.setBold,
-          actions.setItalic,
-          actions.setUnderline,
-          actions.setStrikethrough,
-          actions.insertBulletsList,
-          actions.insertOrderedList,
-          actions.insertImage,
-        ]}
+        actions={actionsList}
         onPressAddImage={onPressAddImage}
-        iconMap={{
-          [actions.insertImage]: () => (
-            <Ionicons name="image-outline" size={20} color={colors.primary} />
-          ),
-        }}
+        iconMap={
+          onPressAddImage
+            ? {
+                [actions.insertImage]: () => (
+                  <Ionicons
+                    name="image-outline"
+                    size={20}
+                    color={colors.primary}
+                  />
+                ),
+              }
+            : undefined
+        }
         testID={toolbarTestID}
       />
       <View style={styles.quickActions}>
+        {onPressAddVideo ? (
+          <TouchableOpacity
+            style={styles.quickToolBtn}
+            onPress={onPressAddVideo}
+            testID={videoButtonTestID}
+            accessibilityLabel="Ajouter une vidéo"
+          >
+            <Ionicons
+              name="videocam-outline"
+              size={18}
+              color={colors.primary}
+            />
+          </TouchableOpacity>
+        ) : null}
         <TouchableOpacity
           style={styles.quickToolBtn}
           onPress={onPressColor}
