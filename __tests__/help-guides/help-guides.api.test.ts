@@ -20,8 +20,10 @@ describe("helpGuidesApi", () => {
 
   it("appelle getCurrent avec les bons paramètres", async () => {
     (apiFetch as jest.Mock).mockResolvedValue({
-      canManage: false,
-      guide: null,
+      permissions: { canManageGlobal: false, canManageSchool: false },
+      schoolScope: null,
+      sources: [],
+      defaultSourceKey: null,
       resolvedAudience: "PARENT",
     });
 
@@ -35,7 +37,7 @@ describe("helpGuidesApi", () => {
   });
 
   it("appelle search avec query string", async () => {
-    (apiFetch as jest.Mock).mockResolvedValue({ guide: null, items: [] });
+    (apiFetch as jest.Mock).mockResolvedValue({ sources: [], items: [] });
 
     await helpGuidesApi.search("message", { guideId: "g1" });
 

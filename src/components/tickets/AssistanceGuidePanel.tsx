@@ -22,6 +22,8 @@ import type {
   HelpChapterItem,
   HelpGuideAudience,
   HelpGuideItem,
+  HelpGuideScopeType,
+  HelpGuideSourceWithPlan,
   HelpPlanNode,
 } from "../../types/help-guides.types";
 import { RichTextToolbar } from "../editor/RichTextToolbar";
@@ -58,6 +60,15 @@ const chapterSchema = z
 type GuideFormValues = z.infer<typeof guideSchema>;
 type ChapterFormValues = z.infer<typeof chapterSchema>;
 type GuideViewMode = "plan" | "content";
+type ViewFilter = "all" | "GLOBAL" | "SCHOOL";
+type SearchItem = HelpChapterItem & {
+  guideId: string;
+  sourceKey: string;
+  scopeType: HelpGuideScopeType;
+  scopeLabel: string;
+  schoolId: string | null;
+  schoolName: string | null;
+};
 
 function flattenPlan(nodes: HelpPlanNode[]): HelpPlanNode[] {
   const result: HelpPlanNode[] = [];
@@ -79,12 +90,20 @@ export function AssistanceGuidePanel({
   canManageOverride = true,
 }: AssistanceGuidePanelProps) {
   const editorRef = useRef<RichEditor>(null);
-  const [canManage, setCanManage] = useState(false);
-  const [guide, setGuide] = useState<HelpGuideItem | null>(null);
-  const [plan, setPlan] = useState<HelpPlanNode[]>([]);
+  const [permissions, setPermissions] = useState({
+    canManageGlobal: false,
+    canManageSchool: false,
+  });
+  const [schoolScope, setSchoolScope] = useState<{
+    schoolId: string;
+    schoolName: string;
+  } | null>(null);
+  const [sources, setSources] = useState<HelpGuideSourceWithPlan[]>([]);
   const [chapter, setChapter] = useState<HelpChapterItem | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<ViewFilter>("all");
+  const [activeSourceKey, setActiveSourceKey] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [results, setResults] = useState<HelpChapterItem[]>([]);
+  const [results, setResults] = useState<SearchItem[]>([]);
   const [expandedChapterIds, setExpandedChapterIds] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<GuideViewMode>("plan");
   const [adminGuides, setAdminGuides] = useState<HelpGuideItem[]>([]);
@@ -113,6 +132,19 @@ export function AssistanceGuidePanel({
       videoUrl: "",
     },
   });
+  const adminMode = permissions.canManageGlobal
+    ? "GLOBAL"
+    : permissions.canManageSchool
+      ? "SCHOOL"
+      : null;
+  const visibleSources = sources.filter((source) =>
+    selectedFilter === "all" ? true : source.scopeType === selectedFilter,
+  );
+  const activeSource =
+    visibleSources.find((source) => source.key === activeSourceKey) ??
+    visibleSources[0] ??
+    null;
+  const guide = activeSource?.guide ?? null;
 
   async function load(guideId?: string) {
     setLoading(true);
@@ -121,31 +153,41 @@ export function AssistanceGuidePanel({
       const current = await helpGuidesApi.getCurrent({
         ...(guideId ? { guideId } : {}),
       });
-      const effectiveCanManage = current.canManage && canManageOverride;
-      setCanManage(effectiveCanManage);
-      setGuide(current.guide);
-      const resolvedGuideId = guideId ?? current.guide?.id ?? null;
+      const nextPermissions = {
+        canManageGlobal:
+          current.permissions.canManageGlobal && canManageOverride,
+        canManageSchool:
+          current.permissions.canManageSchool && canManageOverride,
+      };
+      setPermissions(nextPermissions);
+      setSchoolScope(current.schoolScope);
+      setActiveSourceKey(current.defaultSourceKey);
+      const resolvedGuideId = guideId ?? null;
       setActiveGuideId(resolvedGuideId);
 
       const planResponse = await helpGuidesApi.getPlan({
-        ...(resolvedGuideId ? { guideId: resolvedGuideId } : {}),
+        ...(guideId ? { guideId } : {}),
       });
-      setPlan(planResponse.items);
+      setSources(planResponse.sources);
       setExpandedChapterIds([]);
       setViewMode("plan");
 
-      const first = flattenPlan(planResponse.items)[0];
+      const firstSource = planResponse.sources[0] ?? null;
+      const first = firstSource ? flattenPlan(firstSource.items)[0] : undefined;
       if (first) {
         const detail = await helpGuidesApi.getChapter(first.id, {
-          ...(resolvedGuideId ? { guideId: resolvedGuideId } : {}),
+          ...(firstSource?.guide.id ? { guideId: firstSource.guide.id } : {}),
         });
         setChapter(detail.chapter);
       } else {
         setChapter(null);
       }
 
-      if (effectiveCanManage) {
-        const adminList = await helpGuidesApi.listAdmin();
+      if (nextPermissions.canManageGlobal) {
+        const adminList = await helpGuidesApi.listGlobalAdmin();
+        setAdminGuides(adminList.items);
+      } else if (nextPermissions.canManageSchool) {
+        const adminList = await helpGuidesApi.listSchoolAdmin();
         setAdminGuides(adminList.items);
       } else {
         setAdminGuides([]);
@@ -163,12 +205,17 @@ export function AssistanceGuidePanel({
     void load();
   }, [canManageOverride]);
 
-  async function openChapter(chapterId: string) {
+  async function openChapter(chapterId: string, guideId?: string) {
     try {
       const response = await helpGuidesApi.getChapter(chapterId, {
-        ...(activeGuideId ? { guideId: activeGuideId } : {}),
+        ...((guideId ?? activeGuideId)
+          ? { guideId: guideId ?? activeGuideId ?? undefined }
+          : {}),
       });
       setChapter(response.chapter);
+      if (response.source?.key) {
+        setActiveSourceKey(response.source.key);
+      }
       setViewMode("content");
     } catch (chapterError) {
       setError(
@@ -185,9 +232,7 @@ export function AssistanceGuidePanel({
       return;
     }
     try {
-      const response = await helpGuidesApi.search(search.trim(), {
-        ...(activeGuideId ? { guideId: activeGuideId } : {}),
-      });
+      const response = await helpGuidesApi.search(search.trim());
       setResults(response.items);
       setViewMode("plan");
     } catch (searchError) {
@@ -211,10 +256,16 @@ export function AssistanceGuidePanel({
     setSaving(true);
     setError(null);
     try {
-      const created = await helpGuidesApi.createGuide({
-        title: values.title,
-        audience: values.audience,
-      });
+      const created =
+        adminMode === "SCHOOL"
+          ? await helpGuidesApi.createSchoolGuide({
+              title: values.title,
+              audience: values.audience,
+            })
+          : await helpGuidesApi.createGlobalGuide({
+              title: values.title,
+              audience: values.audience,
+            });
       guideForm.reset({ title: "", audience: values.audience });
       await load(created.id);
     } catch (saveError) {
@@ -235,7 +286,7 @@ export function AssistanceGuidePanel({
     setSaving(true);
     setError(null);
     try {
-      await helpGuidesApi.createChapter(activeGuideId, {
+      const payload = {
         title: values.title,
         contentType: values.contentType,
         contentHtml:
@@ -248,7 +299,12 @@ export function AssistanceGuidePanel({
             : undefined,
         videoUrl:
           values.contentType === "VIDEO" ? values.videoUrl?.trim() : undefined,
-      });
+      };
+      if (adminMode === "SCHOOL") {
+        await helpGuidesApi.createSchoolChapter(activeGuideId, payload);
+      } else {
+        await helpGuidesApi.createGlobalChapter(activeGuideId, payload);
+      }
       chapterForm.reset({
         title: "",
         contentType: "RICH_TEXT",
@@ -421,6 +477,60 @@ export function AssistanceGuidePanel({
     >
       <View style={styles.headerCard}>
         <Text style={styles.title}>{guide?.title ?? "Guide utilisateur"}</Text>
+        <View style={styles.filterRow}>
+          {[
+            { key: "all", label: "Tous" },
+            { key: "GLOBAL", label: "Scolive" },
+            { key: "SCHOOL", label: "École" },
+          ].map((entry) => (
+            <TouchableOpacity
+              key={entry.key}
+              style={[
+                styles.filterChip,
+                selectedFilter === entry.key && styles.filterChipActive,
+              ]}
+              onPress={() => setSelectedFilter(entry.key as ViewFilter)}
+            >
+              <Text
+                style={[
+                  styles.filterChipLabel,
+                  selectedFilter === entry.key && styles.filterChipLabelActive,
+                ]}
+              >
+                {entry.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.sourceRow}>
+            {visibleSources.map((source) => (
+              <TouchableOpacity
+                key={source.key}
+                style={[
+                  styles.sourceCard,
+                  activeSource?.key === source.key && styles.sourceCardActive,
+                ]}
+                onPress={() => {
+                  setActiveSourceKey(source.key);
+                  setActiveGuideId(source.guide.id);
+                  setResults([]);
+                  setExpandedChapterIds([]);
+                }}
+              >
+                <Text style={styles.sourceEyebrow}>
+                  {source.scopeType === "GLOBAL"
+                    ? "Guide Scolive"
+                    : "Guide école"}
+                </Text>
+                <Text style={styles.sourceTitle}>{source.guide.title}</Text>
+                <Text style={styles.sourceMeta}>
+                  {source.scopeLabel} · {source.guide.chapterCount} chapitre(s)
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
         <View style={styles.searchRow}>
           <TextInput
             style={styles.searchInput}
@@ -438,7 +548,7 @@ export function AssistanceGuidePanel({
         </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {canManage ? (
+        {adminMode ? (
           <View style={styles.adminSwitchRow}>
             {adminGuides.slice(0, 4).map((entry) => (
               <TouchableOpacity
@@ -469,78 +579,94 @@ export function AssistanceGuidePanel({
             {results.length > 0
               ? results.map((item) => (
                   <TouchableOpacity
-                    key={item.id}
+                    key={`${item.guideId}:${item.id}`}
                     style={[
                       styles.planItem,
                       chapter?.id === item.id && styles.planItemActive,
                     ]}
-                    onPress={() => void openChapter(item.id)}
+                    onPress={() => void openChapter(item.id, item.guideId)}
                   >
-                    <Text
-                      style={[
-                        styles.planItemLabel,
-                        chapter?.id === item.id && styles.planItemLabelActive,
-                      ]}
-                    >
-                      {item.breadcrumb?.join(" > ") ?? item.title}
-                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={[
+                          styles.planItemLabel,
+                          chapter?.id === item.id && styles.planItemLabelActive,
+                        ]}
+                      >
+                        {item.breadcrumb?.join(" > ") ?? item.title}
+                      </Text>
+                      <Text style={styles.sourceMeta}>{item.scopeLabel}</Text>
+                    </View>
                   </TouchableOpacity>
                 ))
-              : plan.map((root) => {
-                  const isExpanded = expandedChapterIds.includes(root.id);
-                  const hasChildren = root.children.length > 0;
-                  return (
-                    <View key={root.id}>
-                      <TouchableOpacity
-                        style={[styles.planItem, styles.planRootItem]}
-                        onPress={() => {
-                          if (hasChildren) {
-                            toggleChapter(root.id);
-                            return;
-                          }
-                          void openChapter(root.id);
-                        }}
-                      >
-                        <Text style={styles.planItemLabel}>{root.title}</Text>
-                        {hasChildren ? (
-                          <Ionicons
-                            name={
-                              isExpanded
-                                ? "chevron-up-outline"
-                                : "chevron-down-outline"
-                            }
-                            size={16}
-                            color={colors.textSecondary}
-                          />
-                        ) : null}
-                      </TouchableOpacity>
-                      {isExpanded
-                        ? root.children.map((child) => (
-                            <TouchableOpacity
-                              key={child.id}
-                              style={[
-                                styles.planItem,
-                                styles.planChildItem,
-                                chapter?.id === child.id &&
-                                  styles.planItemActive,
-                              ]}
-                              onPress={() => void openChapter(child.id)}
-                            >
-                              <Text
-                                style={[
-                                  styles.planItemLabel,
-                                  chapter?.id === child.id &&
-                                    styles.planItemLabelActive,
-                                ]}
-                              >
-                                {child.title}
-                              </Text>
-                            </TouchableOpacity>
-                          ))
-                        : null}
-                    </View>
-                  );
-                })}
+              : visibleSources.map((source) => (
+                  <View key={source.key}>
+                    <Text style={styles.groupLabel}>{source.scopeLabel}</Text>
+                    {source.items.map((root) => {
+                      const isExpanded = expandedChapterIds.includes(root.id);
+                      const hasChildren = root.children.length > 0;
+                      return (
+                        <View key={`${source.key}:${root.id}`}>
+                          <TouchableOpacity
+                            style={[styles.planItem, styles.planRootItem]}
+                            onPress={() => {
+                              if (hasChildren) {
+                                toggleChapter(root.id);
+                                return;
+                              }
+                              setActiveSourceKey(source.key);
+                              setActiveGuideId(source.guide.id);
+                              void openChapter(root.id, source.guide.id);
+                            }}
+                          >
+                            <Text style={styles.planItemLabel}>
+                              {root.title}
+                            </Text>
+                            {hasChildren ? (
+                              <Ionicons
+                                name={
+                                  isExpanded
+                                    ? "chevron-up-outline"
+                                    : "chevron-down-outline"
+                                }
+                                size={16}
+                                color={colors.textSecondary}
+                              />
+                            ) : null}
+                          </TouchableOpacity>
+                          {isExpanded
+                            ? root.children.map((child) => (
+                                <TouchableOpacity
+                                  key={`${source.key}:${child.id}`}
+                                  style={[
+                                    styles.planItem,
+                                    styles.planChildItem,
+                                    chapter?.id === child.id &&
+                                      styles.planItemActive,
+                                  ]}
+                                  onPress={() => {
+                                    setActiveSourceKey(source.key);
+                                    setActiveGuideId(source.guide.id);
+                                    void openChapter(child.id, source.guide.id);
+                                  }}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.planItemLabel,
+                                      chapter?.id === child.id &&
+                                        styles.planItemLabelActive,
+                                    ]}
+                                  >
+                                    {child.title}
+                                  </Text>
+                                </TouchableOpacity>
+                              ))
+                            : null}
+                        </View>
+                      );
+                    })}
+                  </View>
+                ))}
           </View>
         ) : (
           <View style={styles.contentCard}>
@@ -558,6 +684,9 @@ export function AssistanceGuidePanel({
             </TouchableOpacity>
             {chapter ? (
               <>
+                <Text style={styles.groupLabel}>
+                  {activeSource?.scopeLabel ?? "Guide"}
+                </Text>
                 <Text style={styles.chapterTitle}>{chapter.title}</Text>
                 {chapter.summary ? (
                   <Text style={styles.chapterSummary}>{chapter.summary}</Text>
@@ -591,12 +720,21 @@ export function AssistanceGuidePanel({
         )}
       </View>
 
-      {canManage ? (
+      {adminMode ? (
         <View
           style={styles.adminForms}
           testID="assistance-guide-admin-forms-mobile"
         >
-          <Text style={styles.adminTitle}>Créer un guide</Text>
+          <Text style={styles.adminTitle}>
+            {adminMode === "SCHOOL"
+              ? `Guide de ${schoolScope?.schoolName ?? "l'école"}`
+              : "Guide Scolive"}
+          </Text>
+          <Text style={styles.adminSubtitle}>
+            {adminMode === "SCHOOL"
+              ? "Administration école"
+              : "Administration plateforme"}
+          </Text>
           <Controller
             control={guideForm.control}
             name="title"
@@ -835,6 +973,63 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.textPrimary,
   },
+  filterRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  filterChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.warmSurface,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  filterChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  filterChipLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
+  filterChipLabelActive: {
+    color: colors.white,
+  },
+  sourceRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  sourceCard: {
+    width: 220,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    backgroundColor: colors.warmSurface,
+    padding: 12,
+    gap: 4,
+  },
+  sourceCardActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + "10",
+  },
+  sourceEyebrow: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.primary,
+    textTransform: "uppercase",
+  },
+  sourceTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  sourceMeta: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
   searchRow: {
     flexDirection: "row",
     gap: 8,
@@ -891,6 +1086,15 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: colors.surface,
     paddingVertical: 6,
+  },
+  groupLabel: {
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 4,
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.primary,
+    textTransform: "uppercase",
   },
   planItem: {
     paddingVertical: 8,
@@ -991,6 +1195,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.primary,
     marginTop: 6,
+  },
+  adminSubtitle: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: -2,
   },
   input: {
     borderWidth: 1,

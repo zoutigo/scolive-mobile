@@ -19,6 +19,7 @@ import { useAuthStore } from "../../store/auth.store";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { useDrawer } from "../navigation/drawer-context";
+import { AssistanceFaqPanel } from "./AssistanceFaqPanel";
 import { TicketCard } from "./TicketCard";
 import { AssistanceGuidePanel } from "./AssistanceGuidePanel";
 import type {
@@ -116,9 +117,6 @@ export function TicketListScreen() {
   );
 
   const isPlatform = (user?.platformRoles.length ?? 0) > 0;
-  const isPlatformRoleActive =
-    !!user?.activeRole &&
-    user.platformRoles.some((role) => role === user.activeRole);
   const hasMore = meta ? tickets.length < meta.total : false;
 
   const androidStatusInset =
@@ -364,7 +362,9 @@ export function TicketListScreen() {
           </TouchableOpacity>
         </>
       ) : activeTab === "manual" ? (
-        <AssistanceGuidePanel canManageOverride={isPlatformRoleActive} />
+        <AssistanceGuidePanel />
+      ) : activeTab === "faq" ? (
+        <AssistanceFaqPanel />
       ) : (
         <View style={styles.placeholderContainer}>{placeholder}</View>
       )}

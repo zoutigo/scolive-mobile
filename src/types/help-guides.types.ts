@@ -11,6 +11,7 @@ export type HelpContentType = "RICH_TEXT" | "VIDEO";
 export interface HelpGuideItem {
   id: string;
   schoolId: string | null;
+  schoolName: string | null;
   audience: HelpGuideAudience;
   title: string;
   slug: string;
@@ -33,6 +34,21 @@ export interface HelpPlanNode {
   children: HelpPlanNode[];
 }
 
+export type HelpGuideScopeType = "GLOBAL" | "SCHOOL";
+
+export interface HelpGuideSource {
+  key: string;
+  scopeType: HelpGuideScopeType;
+  scopeLabel: string;
+  schoolId: string | null;
+  schoolName: string | null;
+  guide: HelpGuideItem;
+}
+
+export interface HelpGuideSourceWithPlan extends HelpGuideSource {
+  items: HelpPlanNode[];
+}
+
 export interface HelpChapterItem {
   id: string;
   guideId: string;
@@ -53,7 +69,15 @@ export interface HelpChapterItem {
 }
 
 export interface CurrentGuideResponse {
-  canManage: boolean;
-  guide: HelpGuideItem | null;
+  permissions: {
+    canManageGlobal: boolean;
+    canManageSchool: boolean;
+  };
+  schoolScope: {
+    schoolId: string;
+    schoolName: string;
+  } | null;
+  sources: HelpGuideSource[];
+  defaultSourceKey: string | null;
   resolvedAudience: HelpGuideAudience;
 }

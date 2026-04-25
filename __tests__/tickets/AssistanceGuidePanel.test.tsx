@@ -12,9 +12,12 @@ jest.mock("../../src/api/help-guides.api", () => ({
     getPlan: jest.fn(),
     getChapter: jest.fn(),
     search: jest.fn(),
-    listAdmin: jest.fn(),
-    createGuide: jest.fn(),
-    createChapter: jest.fn(),
+    listGlobalAdmin: jest.fn(),
+    listSchoolAdmin: jest.fn(),
+    createGlobalGuide: jest.fn(),
+    createSchoolGuide: jest.fn(),
+    createGlobalChapter: jest.fn(),
+    createSchoolChapter: jest.fn(),
     uploadInlineImage: jest.fn(),
     uploadInlineVideo: jest.fn(),
   },
@@ -27,41 +30,74 @@ describe("AssistanceGuidePanel", () => {
     jest.clearAllMocks();
 
     mockApi.getCurrent.mockResolvedValue({
-      canManage: true,
+      permissions: { canManageGlobal: true, canManageSchool: false },
+      schoolScope: null,
       resolvedAudience: "PARENT",
-      guide: {
-        id: "guide-1",
-        schoolId: "school-1",
-        audience: "PARENT",
-        title: "Guide parent",
-        slug: "guide-parent",
-        description: null,
-        status: "PUBLISHED",
-        chapterCount: 1,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
+      sources: [
+        {
+          key: "global",
+          scopeType: "GLOBAL",
+          scopeLabel: "Scolive",
+          schoolId: null,
+          schoolName: null,
+          guide: {
+            id: "guide-1",
+            schoolId: null,
+            schoolName: null,
+            audience: "PARENT",
+            title: "Guide parent",
+            slug: "guide-parent",
+            description: null,
+            status: "PUBLISHED",
+            chapterCount: 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      ],
+      defaultSourceKey: "global",
     });
 
     mockApi.getPlan.mockResolvedValue({
-      guide: null,
-      items: [
+      sources: [
         {
-          id: "c1",
-          title: "Messagerie",
-          slug: "messagerie",
-          parentId: null,
-          orderIndex: 1,
-          depth: 0,
-          contentType: "RICH_TEXT",
-          status: "PUBLISHED",
-          children: [],
+          key: "global",
+          scopeType: "GLOBAL",
+          scopeLabel: "Scolive",
+          schoolId: null,
+          schoolName: null,
+          guide: {
+            id: "guide-1",
+            schoolId: null,
+            schoolName: null,
+            audience: "PARENT",
+            title: "Guide parent",
+            slug: "guide-parent",
+            description: null,
+            status: "PUBLISHED",
+            chapterCount: 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          items: [
+            {
+              id: "c1",
+              title: "Messagerie",
+              slug: "messagerie",
+              parentId: null,
+              orderIndex: 1,
+              depth: 0,
+              contentType: "RICH_TEXT",
+              status: "PUBLISHED",
+              children: [],
+            },
+          ],
         },
       ],
     });
 
     mockApi.getChapter.mockResolvedValue({
-      guide: null,
+      source: undefined,
       chapter: {
         id: "c1",
         guideId: "guide-1",
@@ -81,11 +117,12 @@ describe("AssistanceGuidePanel", () => {
       },
     });
 
-    mockApi.listAdmin.mockResolvedValue({
+    mockApi.listGlobalAdmin.mockResolvedValue({
       items: [
         {
           id: "guide-1",
-          schoolId: "school-1",
+          schoolId: null,
+          schoolName: null,
           audience: "PARENT",
           title: "Guide parent",
           slug: "guide-parent",

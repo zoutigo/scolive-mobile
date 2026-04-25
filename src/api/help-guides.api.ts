@@ -5,7 +5,8 @@ import type {
   HelpContentType,
   HelpGuideAudience,
   HelpGuideItem,
-  HelpPlanNode,
+  HelpGuideSource,
+  HelpGuideSourceWithPlan,
   HelpPublicationStatus,
 } from "../types/help-guides.types";
 
@@ -30,7 +31,7 @@ export const helpGuidesApi = {
     if (params?.guideId) query.set("guideId", params.guideId);
     if (params?.audience) query.set("audience", params.audience);
     const qs = query.toString();
-    return apiFetch<{ guide: HelpGuideItem | null; items: HelpPlanNode[] }>(
+    return apiFetch<{ sources: HelpGuideSourceWithPlan[] }>(
       `/help-guides/current/plan${qs ? `?${qs}` : ""}`,
       {},
       true,
@@ -45,7 +46,7 @@ export const helpGuidesApi = {
     if (params?.guideId) query.set("guideId", params.guideId);
     if (params?.audience) query.set("audience", params.audience);
     const qs = query.toString();
-    return apiFetch<{ guide: HelpGuideItem | null; chapter: HelpChapterItem }>(
+    return apiFetch<{ source?: HelpGuideSource; chapter: HelpChapterItem }>(
       `/help-guides/current/chapters/${chapterId}${qs ? `?${qs}` : ""}`,
       {},
       true,
@@ -60,14 +61,22 @@ export const helpGuidesApi = {
     query.set("q", q);
     if (params?.guideId) query.set("guideId", params.guideId);
     if (params?.audience) query.set("audience", params.audience);
-    return apiFetch<{ guide: HelpGuideItem | null; items: HelpChapterItem[] }>(
-      `/help-guides/current/search?${query.toString()}`,
-      {},
-      true,
-    );
+    return apiFetch<{
+      sources: HelpGuideSource[];
+      items: Array<
+        HelpChapterItem & {
+          guideId: string;
+          sourceKey: string;
+          scopeType: "GLOBAL" | "SCHOOL";
+          scopeLabel: string;
+          schoolId: string | null;
+          schoolName: string | null;
+        }
+      >;
+    }>(`/help-guides/current/search?${query.toString()}`, {}, true);
   },
 
-  async listAdmin(params?: {
+  async listGlobalAdmin(params?: {
     audience?: HelpGuideAudience;
     status?: HelpPublicationStatus;
   }) {
@@ -76,27 +85,102 @@ export const helpGuidesApi = {
     if (params?.status) query.set("status", params.status);
     const qs = query.toString();
     return apiFetch<{ items: HelpGuideItem[] }>(
-      `/help-guides/admin/guides${qs ? `?${qs}` : ""}`,
+      `/help-guides/admin/global/guides${qs ? `?${qs}` : ""}`,
       {},
       true,
     );
   },
 
-  async createGuide(payload: {
+  async listSchoolAdmin(params?: {
+    audience?: HelpGuideAudience;
+    status?: HelpPublicationStatus;
+  }) {
+    const query = new URLSearchParams();
+    if (params?.audience) query.set("audience", params.audience);
+    if (params?.status) query.set("status", params.status);
+    const qs = query.toString();
+    return apiFetch<{ items: HelpGuideItem[] }>(
+      `/help-guides/admin/school/guides${qs ? `?${qs}` : ""}`,
+      {},
+      true,
+    );
+  },
+
+  async createGlobalGuide(payload: {
     title: string;
     audience: HelpGuideAudience;
     status?: HelpPublicationStatus;
     description?: string;
-    schoolId?: string;
   }) {
     return apiFetch<HelpGuideItem>(
-      "/help-guides/admin/guides",
+      "/help-guides/admin/global/guides",
       { method: "POST", body: JSON.stringify(payload) },
       true,
     );
   },
 
-  async createChapter(
+  async createSchoolGuide(payload: {
+    title: string;
+    audience: HelpGuideAudience;
+    status?: HelpPublicationStatus;
+    description?: string;
+  }) {
+    return apiFetch<HelpGuideItem>(
+      "/help-guides/admin/school/guides",
+      { method: "POST", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  async updateGlobalGuide(
+    guideId: string,
+    payload: Partial<{
+      title: string;
+      audience: HelpGuideAudience;
+      status: HelpPublicationStatus;
+      description: string;
+    }>,
+  ) {
+    return apiFetch<HelpGuideItem>(
+      `/help-guides/admin/global/guides/${guideId}`,
+      { method: "PATCH", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  async updateSchoolGuide(
+    guideId: string,
+    payload: Partial<{
+      title: string;
+      audience: HelpGuideAudience;
+      status: HelpPublicationStatus;
+      description: string;
+    }>,
+  ) {
+    return apiFetch<HelpGuideItem>(
+      `/help-guides/admin/school/guides/${guideId}`,
+      { method: "PATCH", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  async deleteGlobalGuide(guideId: string) {
+    return apiFetch<{ deleted: boolean }>(
+      `/help-guides/admin/global/guides/${guideId}`,
+      { method: "DELETE" },
+      true,
+    );
+  },
+
+  async deleteSchoolGuide(guideId: string) {
+    return apiFetch<{ deleted: boolean }>(
+      `/help-guides/admin/school/guides/${guideId}`,
+      { method: "DELETE" },
+      true,
+    );
+  },
+
+  async createGlobalChapter(
     guideId: string,
     payload: {
       title: string;
@@ -111,8 +195,87 @@ export const helpGuidesApi = {
     },
   ) {
     return apiFetch<HelpChapterItem>(
-      `/help-guides/admin/guides/${guideId}/chapters`,
+      `/help-guides/admin/global/guides/${guideId}/chapters`,
       { method: "POST", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  async createSchoolChapter(
+    guideId: string,
+    payload: {
+      title: string;
+      parentId?: string;
+      orderIndex?: number;
+      summary?: string;
+      contentType: HelpContentType;
+      contentHtml?: string;
+      contentJson?: Record<string, unknown>;
+      videoUrl?: string;
+      status?: HelpPublicationStatus;
+    },
+  ) {
+    return apiFetch<HelpChapterItem>(
+      `/help-guides/admin/school/guides/${guideId}/chapters`,
+      { method: "POST", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  async updateGlobalChapter(
+    chapterId: string,
+    payload: Partial<{
+      title: string;
+      parentId: string | null;
+      orderIndex: number;
+      summary: string;
+      contentType: HelpContentType;
+      contentHtml: string;
+      contentJson: Record<string, unknown>;
+      videoUrl: string;
+      status: HelpPublicationStatus;
+    }>,
+  ) {
+    return apiFetch<HelpChapterItem>(
+      `/help-guides/admin/global/chapters/${chapterId}`,
+      { method: "PATCH", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  async updateSchoolChapter(
+    chapterId: string,
+    payload: Partial<{
+      title: string;
+      parentId: string | null;
+      orderIndex: number;
+      summary: string;
+      contentType: HelpContentType;
+      contentHtml: string;
+      contentJson: Record<string, unknown>;
+      videoUrl: string;
+      status: HelpPublicationStatus;
+    }>,
+  ) {
+    return apiFetch<HelpChapterItem>(
+      `/help-guides/admin/school/chapters/${chapterId}`,
+      { method: "PATCH", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  async deleteGlobalChapter(chapterId: string) {
+    return apiFetch<{ deleted: boolean }>(
+      `/help-guides/admin/global/chapters/${chapterId}`,
+      { method: "DELETE" },
+      true,
+    );
+  },
+
+  async deleteSchoolChapter(chapterId: string) {
+    return apiFetch<{ deleted: boolean }>(
+      `/help-guides/admin/school/chapters/${chapterId}`,
+      { method: "DELETE" },
       true,
     );
   },
