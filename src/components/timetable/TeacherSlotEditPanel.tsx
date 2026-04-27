@@ -15,17 +15,26 @@ import { z } from "zod";
 import { colors } from "../../theme";
 import { timetableApi } from "../../api/timetable.api";
 import { useSuccessToastStore } from "../../store/success-toast.store";
+import { TimePickerField } from "../TimePickerField";
 import type { TimetableOccurrence } from "../../types/timetable.types";
 import { minuteToTimeLabel, timeLabelToMinute } from "../../utils/timetable";
 import { extractApiError } from "../../utils/api-error";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
-const schema = z
+export const teacherSlotEditSchema = z
   .object({
-    start: z.string().regex(/^\d{1,2}:\d{2}$/, { message: "Format HH:MM" }),
-    end: z.string().regex(/^\d{1,2}:\d{2}$/, { message: "Format HH:MM" }),
-    room: z.string(),
+    start: z
+      .string()
+      .trim()
+      .min(1, "Renseignez l'heure de début")
+      .regex(/^\d{1,2}:\d{2}$/, { message: "Format HH:MM" }),
+    end: z
+      .string()
+      .trim()
+      .min(1, "Renseignez l'heure de fin")
+      .regex(/^\d{1,2}:\d{2}$/, { message: "Format HH:MM" }),
+    room: z.string().trim().min(1, "Renseignez une salle"),
     scope: z.enum(["occurrence", "series"]),
   })
   .refine(
@@ -38,7 +47,7 @@ const schema = z
     { message: "La fin doit être après le début", path: ["end"] },
   );
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<typeof teacherSlotEditSchema>;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -73,7 +82,7 @@ export function TeacherSlotEditPanel({
     formState: { errors },
     watch,
   } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(teacherSlotEditSchema),
     defaultValues: {
       start: minuteToTimeLabel(occurrence.startMinute),
       end: minuteToTimeLabel(occurrence.endMinute),
@@ -89,7 +98,7 @@ export function TeacherSlotEditPanel({
   const onSave = handleSubmit(async (values) => {
     const startMinute = timeLabelToMinute(values.start)!;
     const endMinute = timeLabelToMinute(values.end)!;
-    const room = values.room.trim() || null;
+    const room = values.room.trim();
 
     setIsSaving(true);
     try {
@@ -292,14 +301,13 @@ export function TeacherSlotEditPanel({
               control={control}
               name="start"
               render={({ field: { value, onChange, onBlur } }) => (
-                <TextInput
-                  style={[styles.input, errors.start && styles.inputError]}
+                <TimePickerField
                   value={value}
-                  onChangeText={onChange}
+                  onChange={onChange}
                   onBlur={onBlur}
+                  title="Heure de début"
                   placeholder="07:30"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="numbers-and-punctuation"
+                  hasError={!!errors.start}
                   testID="teacher-slot-start-input"
                 />
               )}
@@ -317,14 +325,13 @@ export function TeacherSlotEditPanel({
               control={control}
               name="end"
               render={({ field: { value, onChange, onBlur } }) => (
-                <TextInput
-                  style={[styles.input, errors.end && styles.inputError]}
+                <TimePickerField
                   value={value}
-                  onChangeText={onChange}
+                  onChange={onChange}
                   onBlur={onBlur}
+                  title="Heure de fin"
                   placeholder="08:20"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="numbers-and-punctuation"
+                  hasError={!!errors.end}
                   testID="teacher-slot-end-input"
                 />
               )}
@@ -343,7 +350,7 @@ export function TeacherSlotEditPanel({
               name="room"
               render={({ field: { value, onChange, onBlur } }) => (
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, errors.room && styles.inputError]}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -354,6 +361,11 @@ export function TeacherSlotEditPanel({
                 />
               )}
             />
+            {errors.room ? (
+              <Text style={styles.errorText} testID="teacher-slot-room-error">
+                {errors.room.message}
+              </Text>
+            ) : null}
           </View>
         </View>
 

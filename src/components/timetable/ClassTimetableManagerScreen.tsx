@@ -16,6 +16,7 @@ import { colors } from "../../theme";
 import { useAuthStore } from "../../store/auth.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { useTimetableStore } from "../../store/timetable.store";
+import { TimePickerField } from "../TimePickerField";
 import { getViewType } from "../navigation/nav-config";
 import { HeaderBackButton } from "../navigation/HeaderBackButton";
 import {
@@ -635,24 +636,30 @@ export function ClassTimetableManagerScreen() {
                 ]}
               />
               <View style={styles.row}>
-                <TextField
-                  label="Début"
-                  value={slotForm.start}
-                  onChangeText={(start) =>
-                    setSlotForm((current) => ({ ...current, start }))
-                  }
-                  placeholder="07:30"
-                  testID="slot-form-start"
-                />
-                <TextField
-                  label="Fin"
-                  value={slotForm.end}
-                  onChangeText={(end) =>
-                    setSlotForm((current) => ({ ...current, end }))
-                  }
-                  placeholder="08:20"
-                  testID="slot-form-end"
-                />
+                <View style={styles.rowField}>
+                  <Text style={styles.rowFieldLabel}>Début</Text>
+                  <TimePickerField
+                    value={slotForm.start}
+                    onChange={(start) =>
+                      setSlotForm((current) => ({ ...current, start }))
+                    }
+                    title="Heure de début"
+                    placeholder="07:30"
+                    testID="slot-form-start"
+                  />
+                </View>
+                <View style={styles.rowField}>
+                  <Text style={styles.rowFieldLabel}>Fin</Text>
+                  <TimePickerField
+                    value={slotForm.end}
+                    onChange={(end) =>
+                      setSlotForm((current) => ({ ...current, end }))
+                    }
+                    title="Heure de fin"
+                    placeholder="08:20"
+                    testID="slot-form-end"
+                  />
+                </View>
               </View>
               <TextField
                 label="Salle"
@@ -802,24 +809,30 @@ export function ClassTimetableManagerScreen() {
                 testID="oneoff-form-date"
               />
               <View style={styles.row}>
-                <TextField
-                  label="Début"
-                  value={oneOffForm.start}
-                  onChangeText={(start) =>
-                    setOneOffForm((current) => ({ ...current, start }))
-                  }
-                  placeholder="10:00"
-                  testID="oneoff-form-start"
-                />
-                <TextField
-                  label="Fin"
-                  value={oneOffForm.end}
-                  onChangeText={(end) =>
-                    setOneOffForm((current) => ({ ...current, end }))
-                  }
-                  placeholder="10:50"
-                  testID="oneoff-form-end"
-                />
+                <View style={styles.rowField}>
+                  <Text style={styles.rowFieldLabel}>Début</Text>
+                  <TimePickerField
+                    value={oneOffForm.start}
+                    onChange={(start) =>
+                      setOneOffForm((current) => ({ ...current, start }))
+                    }
+                    title="Heure de début"
+                    placeholder="10:00"
+                    testID="oneoff-form-start"
+                  />
+                </View>
+                <View style={styles.rowField}>
+                  <Text style={styles.rowFieldLabel}>Fin</Text>
+                  <TimePickerField
+                    value={oneOffForm.end}
+                    onChange={(end) =>
+                      setOneOffForm((current) => ({ ...current, end }))
+                    }
+                    title="Heure de fin"
+                    placeholder="10:50"
+                    testID="oneoff-form-end"
+                  />
+                </View>
               </View>
               <TextField
                 label="Salle"
@@ -1029,6 +1042,15 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     gap: 10,
+  },
+  rowField: {
+    flex: 1,
+    gap: 6,
+  },
+  rowFieldLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textSecondary,
   },
   actionsRow: {
     flexDirection: "row",

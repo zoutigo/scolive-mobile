@@ -717,6 +717,19 @@ describe("TeacherAgendaScreen — modal de création", () => {
     fireEvent.press(screen.getByTestId("teacher-agenda-mine-fab-create"));
   }
 
+  async function pickTime(testID: string, hour: string, minute: string) {
+    fireEvent.press(screen.getByTestId(testID));
+    await waitFor(() =>
+      expect(screen.getByTestId(`${testID}-modal`)).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId(`${testID}-hour-${hour}`));
+    fireEvent.press(screen.getByTestId(`${testID}-minute-${minute}`));
+    fireEvent.press(screen.getByTestId(`${testID}-confirm`));
+    await waitFor(() =>
+      expect(screen.queryByTestId(`${testID}-modal`)).toBeNull(),
+    );
+  }
+
   it("ouvrir le FAB affiche le panneau de création", async () => {
     await openCreateModal();
     await waitFor(() =>
@@ -782,6 +795,12 @@ describe("TeacherAgendaScreen — modal de création", () => {
       screen.getByTestId("teacher-oneoff-date-input"),
       "2026-04-28",
     );
+    fireEvent.changeText(
+      screen.getByTestId("teacher-oneoff-room-input"),
+      "B45",
+    );
+    await pickTime("teacher-oneoff-start-input", "09", "10");
+    await pickTime("teacher-oneoff-end-input", "10", "00");
     jest.clearAllMocks();
     mockLoadClassOptions.mockResolvedValue(CLASS_OPTIONS);
     api.getClassTimetable.mockResolvedValue(

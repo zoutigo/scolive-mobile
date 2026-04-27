@@ -16,6 +16,7 @@ import { colors } from "../../theme";
 import { timetableApi } from "../../api/timetable.api";
 import { useAuthStore } from "../../store/auth.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
+import { TimePickerField } from "../TimePickerField";
 import type {
   ClassTimetableContextResponse,
   TimetableClassOption,
@@ -29,17 +30,25 @@ import { extractApiError } from "../../utils/api-error";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
-const schema = z
+export const teacherOneOffCreateSchema = z
   .object({
     classId: z.string().min(1, "Choisissez une classe"),
     occurrenceDate: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "Format YYYY-MM-DD"),
-    start: z.string().regex(/^\d{1,2}:\d{2}$/, "Format HH:MM"),
-    end: z.string().regex(/^\d{1,2}:\d{2}$/, "Format HH:MM"),
+    start: z
+      .string()
+      .trim()
+      .min(1, "Renseignez l'heure de début")
+      .regex(/^\d{1,2}:\d{2}$/, "Format HH:MM"),
+    end: z
+      .string()
+      .trim()
+      .min(1, "Renseignez l'heure de fin")
+      .regex(/^\d{1,2}:\d{2}$/, "Format HH:MM"),
     subjectId: z.string().min(1, "Choisissez une matière"),
     teacherUserId: z.string().min(1, "Choisissez un enseignant"),
-    room: z.string(),
+    room: z.string().trim().min(1, "Renseignez une salle"),
   })
   .refine(
     (d) => {
@@ -51,7 +60,7 @@ const schema = z
     { path: ["end"], message: "La fin doit être après le début" },
   );
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<typeof teacherOneOffCreateSchema>;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -92,7 +101,7 @@ export function TeacherOneOffCreatePanel({
     setValue,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(teacherOneOffCreateSchema),
     defaultValues: {
       classId: prefilledClassId ?? "",
       occurrenceDate: prefilledDate ?? toIsoDateString(new Date()),
@@ -198,7 +207,7 @@ export function TeacherOneOffCreatePanel({
     if (!classCtx) return;
     const startMinute = timeLabelToMinute(values.start)!;
     const endMinute = timeLabelToMinute(values.end)!;
-    const room = values.room.trim() || null;
+    const room = values.room.trim();
 
     setIsSaving(true);
     try {
@@ -428,20 +437,24 @@ export function TeacherOneOffCreatePanel({
                 control={control}
                 name="start"
                 render={({ field: { value, onChange, onBlur } }) => (
-                  <TextInput
-                    style={[styles.input, errors.start && styles.inputError]}
+                  <TimePickerField
                     value={value}
-                    onChangeText={onChange}
+                    onChange={onChange}
                     onBlur={onBlur}
+                    title="Heure de début"
                     placeholder="08:00"
-                    placeholderTextColor={colors.textSecondary}
-                    keyboardType="numbers-and-punctuation"
+                    hasError={!!errors.start}
                     testID="teacher-oneoff-start-input"
                   />
                 )}
               />
               {errors.start ? (
-                <Text style={styles.errorText}>{errors.start.message}</Text>
+                <Text
+                  style={styles.errorText}
+                  testID="teacher-oneoff-start-error"
+                >
+                  {errors.start.message}
+                </Text>
               ) : null}
             </View>
 
@@ -451,20 +464,24 @@ export function TeacherOneOffCreatePanel({
                 control={control}
                 name="end"
                 render={({ field: { value, onChange, onBlur } }) => (
-                  <TextInput
-                    style={[styles.input, errors.end && styles.inputError]}
+                  <TimePickerField
                     value={value}
-                    onChangeText={onChange}
+                    onChange={onChange}
                     onBlur={onBlur}
+                    title="Heure de fin"
                     placeholder="09:00"
-                    placeholderTextColor={colors.textSecondary}
-                    keyboardType="numbers-and-punctuation"
+                    hasError={!!errors.end}
                     testID="teacher-oneoff-end-input"
                   />
                 )}
               />
               {errors.end ? (
-                <Text style={styles.errorText}>{errors.end.message}</Text>
+                <Text
+                  style={styles.errorText}
+                  testID="teacher-oneoff-end-error"
+                >
+                  {errors.end.message}
+                </Text>
               ) : null}
             </View>
 
@@ -475,7 +492,7 @@ export function TeacherOneOffCreatePanel({
                 name="room"
                 render={({ field: { value, onChange, onBlur } }) => (
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, errors.room && styles.inputError]}
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
@@ -486,6 +503,14 @@ export function TeacherOneOffCreatePanel({
                   />
                 )}
               />
+              {errors.room ? (
+                <Text
+                  style={styles.errorText}
+                  testID="teacher-oneoff-room-error"
+                >
+                  {errors.room.message}
+                </Text>
+              ) : null}
             </View>
           </View>
 

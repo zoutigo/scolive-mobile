@@ -16,7 +16,10 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
-import { TeacherSlotEditPanel } from "../../src/components/timetable/TeacherSlotEditPanel";
+import {
+  TeacherSlotEditPanel,
+  teacherSlotEditSchema,
+} from "../../src/components/timetable/TeacherSlotEditPanel";
 import { timetableApi } from "../../src/api/timetable.api";
 import { useSuccessToastStore } from "../../src/store/success-toast.store";
 import type { TimetableOccurrence } from "../../src/types/timetable.types";
@@ -101,6 +104,19 @@ function renderPanel(
   );
 }
 
+async function pickTime(testID: string, hour: string, minute: string) {
+  fireEvent.press(screen.getByTestId(testID));
+  await waitFor(() =>
+    expect(screen.getByTestId(`${testID}-modal`)).toBeTruthy(),
+  );
+  fireEvent.press(screen.getByTestId(`${testID}-hour-${hour}`));
+  fireEvent.press(screen.getByTestId(`${testID}-minute-${minute}`));
+  fireEvent.press(screen.getByTestId(`${testID}-confirm`));
+  await waitFor(() =>
+    expect(screen.queryByTestId(`${testID}-modal`)).toBeNull(),
+  );
+}
+
 // ─── Setup ───────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
@@ -133,12 +149,8 @@ describe("TeacherSlotEditPanel — rendu", () => {
 
   it("pré-remplit les champs avec les valeurs de l'occurrence", () => {
     renderPanel();
-    expect(screen.getByTestId("teacher-slot-start-input").props.value).toBe(
-      "08:00",
-    );
-    expect(screen.getByTestId("teacher-slot-end-input").props.value).toBe(
-      "09:30",
-    );
+    expect(screen.getByText("08:00")).toBeTruthy();
+    expect(screen.getByText("09:30")).toBeTruthy();
     expect(screen.getByTestId("teacher-slot-room-input").props.value).toBe(
       "A01",
     );
@@ -199,26 +211,53 @@ describe("TeacherSlotEditPanel — scope toggle", () => {
 // ─── Validation ──────────────────────────────────────────────────────────────
 
 describe("TeacherSlotEditPanel — validation", () => {
-  it("affiche une erreur si le format de l'heure de début est invalide", async () => {
-    renderPanel();
-    fireEvent.changeText(screen.getByTestId("teacher-slot-start-input"), "abc");
-    fireEvent.press(screen.getByTestId("teacher-slot-save"));
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-slot-start-error")).toBeTruthy(),
-    );
-    expect(mockApi.createOneOffSlot).not.toHaveBeenCalled();
+  it("rejette un horaire de début vide au niveau du schéma", () => {
+    const result = teacherSlotEditSchema.safeParse({
+      start: "",
+      end: "09:30",
+      room: "A01",
+      scope: "occurrence",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejette un horaire de fin vide au niveau du schéma", () => {
+    const result = teacherSlotEditSchema.safeParse({
+      start: "08:00",
+      end: "",
+      room: "A01",
+      scope: "occurrence",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejette une salle vide au niveau du schéma", () => {
+    const result = teacherSlotEditSchema.safeParse({
+      start: "08:00",
+      end: "09:30",
+      room: " ",
+      scope: "occurrence",
+    });
+    expect(result.success).toBe(false);
   });
 
   it("affiche une erreur si la fin est avant le début", async () => {
     renderPanel();
-    fireEvent.changeText(
-      screen.getByTestId("teacher-slot-start-input"),
-      "9:00",
-    );
-    fireEvent.changeText(screen.getByTestId("teacher-slot-end-input"), "8:00");
+    await pickTime("teacher-slot-start-input", "09", "00");
+    await pickTime("teacher-slot-end-input", "08", "00");
     fireEvent.press(screen.getByTestId("teacher-slot-save"));
     await waitFor(() =>
       expect(screen.getByTestId("teacher-slot-end-error")).toBeTruthy(),
+    );
+    expect(mockApi.createOneOffSlot).not.toHaveBeenCalled();
+  });
+
+  it("affiche une erreur si la salle est vide", async () => {
+    renderPanel();
+    fireEvent.changeText(screen.getByTestId("teacher-slot-room-input"), "");
+    fireEvent.press(screen.getByTestId("teacher-slot-save"));
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-slot-room-error")).toBeTruthy(),
     );
     expect(mockApi.createOneOffSlot).not.toHaveBeenCalled();
   });
@@ -263,6 +302,23 @@ describe("TeacherSlotEditPanel — sauvegarde", () => {
       expect.objectContaining({ startMinute: 480, endMinute: 570 }),
     );
     expect(mockOnSuccess).toHaveBeenCalled();
+  });
+
+  it("transmet les horaires choisis via le sélecteur moderne", async () => {
+    renderPanel(RECURRING_OCC);
+    await pickTime("teacher-slot-start-input", "09", "15");
+    await pickTime("teacher-slot-end-input", "10", "05");
+    fireEvent.press(screen.getByTestId("teacher-slot-save"));
+
+    await waitFor(() => expect(mockApi.createOneOffSlot).toHaveBeenCalled());
+    expect(mockApi.createOneOffSlot).toHaveBeenCalledWith(
+      "college-vogt",
+      "class-1",
+      expect.objectContaining({
+        startMinute: 555,
+        endMinute: 605,
+      }),
+    );
   });
 
   it("source=ONE_OFF → updateOneOffSlot", async () => {
@@ -351,18 +407,6 @@ describe("TeacherSlotEditPanel — sauvegarde", () => {
       "college-vogt",
       "class-1",
       expect.objectContaining({ room: "C99" }),
-    );
-  });
-
-  it("une salle vide est transmise comme null", async () => {
-    renderPanel(RECURRING_OCC);
-    fireEvent.changeText(screen.getByTestId("teacher-slot-room-input"), "");
-    fireEvent.press(screen.getByTestId("teacher-slot-save"));
-    await waitFor(() => expect(mockApi.createOneOffSlot).toHaveBeenCalled());
-    expect(mockApi.createOneOffSlot).toHaveBeenCalledWith(
-      "college-vogt",
-      "class-1",
-      expect.objectContaining({ room: null }),
     );
   });
 });

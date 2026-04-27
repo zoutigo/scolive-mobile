@@ -18,7 +18,10 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
-import { TeacherOneOffCreatePanel } from "../../src/components/timetable/TeacherOneOffCreatePanel";
+import {
+  TeacherOneOffCreatePanel,
+  teacherOneOffCreateSchema,
+} from "../../src/components/timetable/TeacherOneOffCreatePanel";
 import { timetableApi } from "../../src/api/timetable.api";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useSuccessToastStore } from "../../src/store/success-toast.store";
@@ -156,6 +159,19 @@ function renderPanel(
   );
 }
 
+async function pickTime(testID: string, hour: string, minute: string) {
+  fireEvent.press(screen.getByTestId(testID));
+  await waitFor(() =>
+    expect(screen.getByTestId(`${testID}-modal`)).toBeTruthy(),
+  );
+  fireEvent.press(screen.getByTestId(`${testID}-hour-${hour}`));
+  fireEvent.press(screen.getByTestId(`${testID}-minute-${minute}`));
+  fireEvent.press(screen.getByTestId(`${testID}-confirm`));
+  await waitFor(() =>
+    expect(screen.queryByTestId(`${testID}-modal`)).toBeNull(),
+  );
+}
+
 // ─── Rendu ────────────────────────────────────────────────────────────────────
 
 describe("TeacherOneOffCreatePanel — rendu", () => {
@@ -235,6 +251,8 @@ describe("TeacherOneOffCreatePanel — chargement du contexte", () => {
     expect(screen.getByTestId("teacher-oneoff-start-input")).toBeTruthy();
     expect(screen.getByTestId("teacher-oneoff-end-input")).toBeTruthy();
     expect(screen.getByTestId("teacher-oneoff-room-input")).toBeTruthy();
+    expect(screen.getByText("08:00")).toBeTruthy();
+    expect(screen.getByText("09:00")).toBeTruthy();
   });
 
   it("pré-remplit la date avec prefilledDate", async () => {
@@ -273,6 +291,10 @@ describe("TeacherOneOffCreatePanel — pré-sélection enseignant", () => {
       screen.getByTestId("teacher-oneoff-date-input"),
       "2026-04-28",
     );
+    fireEvent.changeText(
+      screen.getByTestId("teacher-oneoff-room-input"),
+      "B45",
+    );
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() => expect(api.createOneOffSlot).toHaveBeenCalled());
     expect(api.createOneOffSlot).toHaveBeenCalledWith(
@@ -295,6 +317,10 @@ describe("TeacherOneOffCreatePanel — pré-sélection enseignant", () => {
     fireEvent.changeText(
       screen.getByTestId("teacher-oneoff-date-input"),
       "2026-04-28",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("teacher-oneoff-room-input"),
+      "B45",
     );
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() => expect(api.createOneOffSlot).toHaveBeenCalled());
@@ -346,6 +372,10 @@ describe("TeacherOneOffCreatePanel — filtrage enseignants par matière", () =>
       screen.getByTestId("teacher-oneoff-date-input"),
       "2026-04-28",
     );
+    fireEvent.changeText(
+      screen.getByTestId("teacher-oneoff-room-input"),
+      "B45",
+    );
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() => expect(api.createOneOffSlot).toHaveBeenCalled());
     expect(api.createOneOffSlot).toHaveBeenCalledWith(
@@ -369,6 +399,45 @@ describe("TeacherOneOffCreatePanel — validation zod", () => {
     );
   }
 
+  it("rejette un horaire de début vide au niveau du schéma", () => {
+    const result = teacherOneOffCreateSchema.safeParse({
+      classId: "class-6eC",
+      occurrenceDate: "2026-04-28",
+      start: "",
+      end: "09:00",
+      subjectId: "ang",
+      teacherUserId: "u1",
+      room: "B45",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejette un horaire de fin vide au niveau du schéma", () => {
+    const result = teacherOneOffCreateSchema.safeParse({
+      classId: "class-6eC",
+      occurrenceDate: "2026-04-28",
+      start: "08:00",
+      end: "",
+      subjectId: "ang",
+      teacherUserId: "u1",
+      room: "B45",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejette une salle vide au niveau du schéma", () => {
+    const result = teacherOneOffCreateSchema.safeParse({
+      classId: "class-6eC",
+      occurrenceDate: "2026-04-28",
+      start: "08:00",
+      end: "09:00",
+      subjectId: "ang",
+      teacherUserId: "u1",
+      room: "   ",
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("bloque si format date invalide", async () => {
     await getFormVisible();
     fireEvent.changeText(
@@ -379,38 +448,24 @@ describe("TeacherOneOffCreatePanel — validation zod", () => {
     await waitFor(() => expect(api.createOneOffSlot).not.toHaveBeenCalled());
   });
 
-  it("bloque si format heure de début invalide", async () => {
-    await getFormVisible();
-    fireEvent.changeText(
-      screen.getByTestId("teacher-oneoff-start-input"),
-      "abc",
-    );
-    fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
-    await waitFor(() => expect(api.createOneOffSlot).not.toHaveBeenCalled());
-  });
-
-  it("bloque si format heure de fin invalide", async () => {
-    await getFormVisible();
-    fireEvent.changeText(
-      screen.getByTestId("teacher-oneoff-end-input"),
-      "99:99",
-    );
-    fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
-    await waitFor(() => expect(api.createOneOffSlot).not.toHaveBeenCalled());
-  });
-
   it("bloque si la fin est avant le début", async () => {
     await getFormVisible();
-    fireEvent.changeText(
-      screen.getByTestId("teacher-oneoff-start-input"),
-      "10:00",
-    );
-    fireEvent.changeText(
-      screen.getByTestId("teacher-oneoff-end-input"),
-      "09:00",
-    );
+    await pickTime("teacher-oneoff-start-input", "10", "00");
+    await pickTime("teacher-oneoff-end-input", "09", "00");
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
-    await waitFor(() => expect(api.createOneOffSlot).not.toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-oneoff-end-error")).toBeTruthy(),
+    );
+    expect(api.createOneOffSlot).not.toHaveBeenCalled();
+  });
+
+  it("bloque si la salle est vide", async () => {
+    await getFormVisible();
+    fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-oneoff-room-error")).toBeTruthy(),
+    );
+    expect(api.createOneOffSlot).not.toHaveBeenCalled();
   });
 
   it("soumet si tous les champs sont valides", async () => {
@@ -418,6 +473,10 @@ describe("TeacherOneOffCreatePanel — validation zod", () => {
     fireEvent.changeText(
       screen.getByTestId("teacher-oneoff-date-input"),
       "2026-04-28",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("teacher-oneoff-room-input"),
+      "B45",
     );
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() => expect(api.createOneOffSlot).toHaveBeenCalled());
@@ -455,13 +514,27 @@ describe("TeacherOneOffCreatePanel — soumission", () => {
     );
   });
 
-  it("transmet room=null si la salle est vide", async () => {
-    await fillAndSubmit("");
+  it("transmet les horaires choisis via le sélecteur moderne", async () => {
+    renderPanel({ prefilledClassId: "class-6eC", prefilledDate: "2026-04-28" });
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-oneoff-start-input")).toBeTruthy(),
+    );
+    fireEvent.changeText(
+      screen.getByTestId("teacher-oneoff-room-input"),
+      "B45",
+    );
+    await pickTime("teacher-oneoff-start-input", "09", "10");
+    await pickTime("teacher-oneoff-end-input", "10", "00");
+    fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
+
     await waitFor(() => expect(api.createOneOffSlot).toHaveBeenCalled());
     expect(api.createOneOffSlot).toHaveBeenCalledWith(
       "college-vogt",
       "class-6eC",
-      expect.objectContaining({ room: null }),
+      expect.objectContaining({
+        startMinute: 550,
+        endMinute: 600,
+      }),
     );
   });
 
@@ -487,6 +560,10 @@ describe("TeacherOneOffCreatePanel — soumission", () => {
     await waitFor(() =>
       expect(screen.getByTestId("teacher-oneoff-start-input")).toBeTruthy(),
     );
+    fireEvent.changeText(
+      screen.getByTestId("teacher-oneoff-room-input"),
+      "B45",
+    );
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() => expect(mockShowError).toHaveBeenCalled());
     expect(mockOnSuccess).not.toHaveBeenCalled();
@@ -497,6 +574,10 @@ describe("TeacherOneOffCreatePanel — soumission", () => {
     renderPanel({ prefilledClassId: "class-6eC", prefilledDate: "2026-04-28" });
     await waitFor(() =>
       expect(screen.getByTestId("teacher-oneoff-start-input")).toBeTruthy(),
+    );
+    fireEvent.changeText(
+      screen.getByTestId("teacher-oneoff-room-input"),
+      "B45",
     );
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() => expect(mockShowError).toHaveBeenCalled());
@@ -509,6 +590,10 @@ describe("TeacherOneOffCreatePanel — soumission", () => {
     renderPanel({ prefilledClassId: "class-6eC", prefilledDate: "2026-04-28" });
     await waitFor(() =>
       expect(screen.getByTestId("teacher-oneoff-start-input")).toBeTruthy(),
+    );
+    fireEvent.changeText(
+      screen.getByTestId("teacher-oneoff-room-input"),
+      "B45",
     );
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() =>
@@ -584,6 +669,10 @@ describe("TeacherOneOffCreatePanel — flux via picker de classe", () => {
     fireEvent.changeText(
       screen.getByTestId("teacher-oneoff-date-input"),
       "2026-04-28",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("teacher-oneoff-room-input"),
+      "B45",
     );
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() => expect(api.createOneOffSlot).toHaveBeenCalled());
