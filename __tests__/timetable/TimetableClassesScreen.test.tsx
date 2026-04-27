@@ -12,14 +12,19 @@ import { useTimetableStore } from "../../src/store/timetable.store";
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
 const mockPush = jest.fn();
+const mockBack = jest.fn();
 const mockLoadClassOptions = jest.fn();
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, back: mockBack }),
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+
+jest.mock("../../src/components/navigation/AppShell", () => ({
+  useDrawer: () => ({ openDrawer: jest.fn(), closeDrawer: jest.fn() }),
 }));
 
 beforeEach(() => {
@@ -85,5 +90,46 @@ describe("TimetableClassesScreen", () => {
       pathname: "/(home)/timetable/class/[classId]",
       params: { classId: "class-1", schoolYearId: "sy1" },
     });
+  });
+
+  it("affiche le ModuleHeader avec back, menu et titre", () => {
+    render(<TimetableClassesScreen />);
+
+    expect(screen.getByTestId("timetable-classes-header")).toBeTruthy();
+    expect(screen.getByTestId("timetable-classes-back")).toBeTruthy();
+    expect(screen.getByTestId("timetable-classes-menu")).toBeTruthy();
+    expect(screen.getByTestId("module-header-title")).toBeTruthy();
+  });
+
+  it("n'affiche pas de sous-titre quand l'utilisateur n'a pas de schoolName", () => {
+    render(<TimetableClassesScreen />);
+
+    expect(screen.queryByTestId("module-header-subtitle")).toBeNull();
+  });
+
+  it("affiche le sous-titre école · classe quand l'utilisateur a les données", () => {
+    useAuthStore.setState((s) => ({
+      ...s,
+      user: s.user
+        ? {
+            ...s.user,
+            schoolName: "Collège Vogt",
+            referentClass: { name: "6eC" },
+          }
+        : null,
+    }));
+    render(<TimetableClassesScreen />);
+
+    expect(screen.getByTestId("module-header-subtitle").props.children).toBe(
+      "Collège Vogt · 6eC",
+    );
+  });
+
+  it("le bouton retour appelle router.back()", () => {
+    render(<TimetableClassesScreen />);
+
+    fireEvent.press(screen.getByTestId("timetable-classes-back"));
+
+    expect(mockBack).toHaveBeenCalledTimes(1);
   });
 });

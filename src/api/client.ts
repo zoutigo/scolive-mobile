@@ -89,12 +89,21 @@ export async function apiFetch<T>(
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
+    const rawMessage = body?.message;
     const message =
-      typeof body?.message === "string"
-        ? body.message
-        : response.status === 401
-          ? "Votre session a expiré. Veuillez vous reconnecter."
-          : "Request failed";
+      typeof rawMessage === "string"
+        ? rawMessage
+        : Array.isArray(rawMessage) && rawMessage.length > 0
+          ? (rawMessage as string[]).join(", ")
+          : response.status === 401
+            ? "Votre session a expiré. Veuillez vous reconnecter."
+            : response.status === 403
+              ? "Vous n'avez pas les droits pour effectuer cette action."
+              : response.status === 404
+                ? "Ressource introuvable."
+                : response.status === 409
+                  ? "Conflit : cette ressource existe déjà ou est en cours de modification."
+                  : `Erreur serveur (${response.status}).`;
 
     if (withAuth && response.status === 401) {
       await handleUnauthorized(message);

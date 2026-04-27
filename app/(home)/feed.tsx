@@ -1,17 +1,13 @@
 import React, { useCallback } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { colors } from "../../src/theme";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useFeedStore } from "../../src/store/feed.store";
 import { feedApi } from "../../src/api/feed.api";
 import { FeedModuleScreen } from "../../src/components/feed/FeedModuleScreen";
 import { AppShell } from "../../src/components/navigation/AppShell";
 import { useDrawer } from "../../src/components/navigation/drawer-context";
-import { HeaderBackButton } from "../../src/components/navigation/HeaderBackButton";
-import { HeaderMenuButton } from "../../src/components/navigation/HeaderMenuButton";
+import { ModuleHeader } from "../../src/components/navigation/ModuleHeader";
+import { buildTeacherSubtitle } from "../../src/components/navigation/nav-config";
 import type {
   CreateFeedPayload,
   FeedFilter,
@@ -47,11 +43,11 @@ export default function FeedScreenRoute() {
 }
 
 function FeedScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { openDrawer } = useDrawer();
   const { schoolSlug, user } = useAuthStore();
   const viewerRole = resolveViewerRole(user?.activeRole ?? user?.role ?? null);
+  const subtitle = user ? buildTeacherSubtitle(user) : null;
 
   const loadPage = useCallback(
     async ({
@@ -91,24 +87,17 @@ function FeedScreen() {
     <FeedModuleScreen
       schoolSlug={schoolSlug}
       viewerRole={viewerRole}
-      renderHeader={({ toggleSearch }) => (
-        <View style={[styles.header, { paddingTop: insets.top + 14 }]}>
-          <HeaderBackButton
-            onPress={() => router.back()}
-            testID="feed-back-btn"
-          />
-          <View style={styles.headerCopy}>
-            <Text style={styles.headerTitle}>Fil d&apos;actualité</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.headerIcon}
-            onPress={toggleSearch}
-            testID="feed-search-btn"
-          >
-            <Ionicons name="search-outline" size={20} color={colors.white} />
-          </TouchableOpacity>
-          <HeaderMenuButton onPress={openDrawer} testID="feed-menu-btn" />
-        </View>
+      renderHeader={() => (
+        <ModuleHeader
+          title="Fil d'actualité"
+          subtitle={subtitle}
+          onBack={() => router.back()}
+          rightIcon="menu-outline"
+          onRightPress={openDrawer}
+          testID="feed-header"
+          backTestID="feed-back-btn"
+          rightTestID="feed-menu-btn"
+        />
       )}
       loadPage={loadPage}
       testIDPrefix="feed"
@@ -129,33 +118,3 @@ function FeedScreen() {
     />
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    gap: 12,
-  },
-  headerCopy: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  headerTitle: {
-    color: colors.white,
-    fontSize: 20,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    textAlign: "center",
-  },
-  headerIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.14)",
-  },
-});

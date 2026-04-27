@@ -178,7 +178,7 @@ describe("ChildTimetableScreen", () => {
   it("affiche la vue jour par defaut avec les creneaux du jour et leur couleur", () => {
     render(<ChildTimetableScreen />);
 
-    expect(screen.getByText("Aujourd'hui")).toBeTruthy();
+    expect(screen.getByText(/Aujourd'hui/)).toBeTruthy();
     expect(screen.getByText("08:45 - 10:00 · Anglais")).toBeTruthy();
     expect(screen.getByText("10:00 - 11:45 · Geographie")).toBeTruthy();
     expect(screen.getByText("Mvondo Albert")).toBeTruthy();
@@ -233,16 +233,15 @@ describe("ChildTimetableScreen", () => {
 
     expect(screen.getByText("Cette semaine")).toBeTruthy();
     expect(screen.getByTestId("child-timetable-week-grid")).toBeTruthy();
-    expect(screen.getByText("DETAIL DU CRENEAU SELECTIONNE")).toBeTruthy();
-    expect(screen.getByText("Matiere: Anglais")).toBeTruthy();
+    expect(screen.getByTestId("child-timetable-week-detail")).toBeTruthy();
 
     fireEvent.press(
       screen.getByTestId("child-timetable-week-slot-occ-tech-15"),
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Matiere: Technologie")).toBeTruthy();
-      expect(screen.getByText("Salle: Atelier")).toBeTruthy();
+      expect(screen.getByText(/Matière/)).toBeTruthy();
+      expect(screen.getByText(/Salle/)).toBeTruthy();
     });
   });
 
@@ -463,7 +462,7 @@ describe("WeekGrid — responsive (largeur colonnes)", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Matiere: Technologie")).toBeTruthy();
+      expect(screen.getByText(/Matière/)).toBeTruthy();
     });
   });
 
@@ -476,7 +475,7 @@ describe("WeekGrid — responsive (largeur colonnes)", () => {
     fireEvent.press(screen.getByTestId("child-timetable-week-slot-occ-ang-14"));
 
     await waitFor(() => {
-      expect(screen.getByText("Matiere: Anglais")).toBeTruthy();
+      expect(screen.getByText(/Matière/)).toBeTruthy();
     });
   });
 

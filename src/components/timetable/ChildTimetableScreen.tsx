@@ -42,7 +42,7 @@ import {
 } from "../../utils/timetable";
 import { EmptyState, ErrorBanner, LoadingBlock } from "./TimetableCommon";
 
-const MODE_OPTIONS: Array<{
+export const MODE_OPTIONS: Array<{
   value: TimetableCalendarViewMode;
   label: string;
 }> = [
@@ -63,7 +63,7 @@ const WEEKDAY_LABELS_FULL = [
 
 const WEEKDAY_LABELS_COMPACT = ["L", "M", "M", "J", "V", "S", "D"] as const;
 
-type WeekSelection = {
+export type WeekSelection = {
   occurrence: TimetableOccurrence;
   date: Date;
 };
@@ -72,7 +72,7 @@ function teacherLabel(occurrence: TimetableOccurrence): string {
   return fullTeacherName(occurrence.teacherUser);
 }
 
-function buildWeekDays(cursorDate: Date) {
+export function buildWeekDays(cursorDate: Date) {
   const weekStart = startOfWeek(cursorDate);
   return Array.from({ length: 7 }, (_, index) => {
     const date = addDays(weekStart, index);
@@ -85,16 +85,18 @@ function buildWeekDays(cursorDate: Date) {
   });
 }
 
-function formatDayNavLabel(cursorDate: Date, today: Date) {
-  return sameDate(cursorDate, today)
-    ? "Aujourd'hui"
-    : new Intl.DateTimeFormat("fr-FR", {
-        day: "2-digit",
-        month: "short",
-      }).format(cursorDate);
+export function formatDayNavLabel(cursorDate: Date, today: Date) {
+  const full = new Intl.DateTimeFormat("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(cursorDate);
+  const label = full.charAt(0).toUpperCase() + full.slice(1);
+  return sameDate(cursorDate, today) ? `Aujourd'hui · ${label}` : label;
 }
 
-function formatDetailDay(date: Date) {
+export function formatDetailDay(date: Date) {
   return new Intl.DateTimeFormat("fr-FR", {
     weekday: "long",
     day: "numeric",
@@ -102,7 +104,7 @@ function formatDetailDay(date: Date) {
   }).format(date);
 }
 
-function findInitialWeekSelection(
+export function findInitialWeekSelection(
   occurrences: TimetableOccurrence[],
   visibleWeekDays: ReturnType<typeof buildWeekDays>,
   cursorDate: Date,
@@ -125,7 +127,7 @@ function findInitialWeekSelection(
   );
 }
 
-function findInitialMonthSelection(
+export function findInitialMonthSelection(
   monthCells: Array<{ date: Date | null; slotsCount: number }>,
   occurrences: TimetableOccurrence[],
   cursorDate: Date,
@@ -530,12 +532,18 @@ export function ChildTimetableScreen() {
   );
 }
 
-function DayCard({
+export function DayCard({
   occurrence,
   colorHex,
+  testIDPrefix = "child-timetable",
+  className,
+  onEditPress,
 }: {
   occurrence: TimetableOccurrence;
   colorHex?: string;
+  testIDPrefix?: string;
+  className?: string;
+  onEditPress?: () => void;
 }) {
   const tone = subjectVisualTone(colorHex);
 
@@ -548,16 +556,40 @@ function DayCard({
           borderColor: tone.border,
         },
       ]}
-      testID={`child-timetable-day-card-${occurrence.id}`}
+      testID={`${testIDPrefix}-day-card-${occurrence.id}`}
     >
-      <Text style={[styles.dayCardTitle, { color: tone.text }]}>
-        {minuteToTimeLabel(occurrence.startMinute)} -{" "}
-        {minuteToTimeLabel(occurrence.endMinute)} · {occurrence.subject.name}
-      </Text>
+      <View style={styles.dayCardHeader}>
+        <Text
+          style={[styles.dayCardTitle, { color: tone.text, flex: 1 }]}
+          numberOfLines={1}
+        >
+          {minuteToTimeLabel(occurrence.startMinute)} -{" "}
+          {minuteToTimeLabel(occurrence.endMinute)} · {occurrence.subject.name}
+        </Text>
+        {onEditPress ? (
+          <TouchableOpacity
+            onPress={onEditPress}
+            style={styles.dayCardEditBtn}
+            testID={`${testIDPrefix}-day-card-edit-${occurrence.id}`}
+          >
+            <Ionicons name="create-outline" size={16} color={tone.text} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
       <Text style={styles.dayCardTeacher}>{teacherLabel(occurrence)}</Text>
-      {occurrence.room ? (
-        <Text style={styles.dayCardRoom}>SALLE {occurrence.room}</Text>
-      ) : null}
+      <View style={styles.dayCardFooter}>
+        {occurrence.room ? (
+          <Text style={styles.dayCardRoom}>SALLE {occurrence.room}</Text>
+        ) : null}
+        {className ? (
+          <Text
+            style={styles.dayCardClass}
+            testID={`${testIDPrefix}-day-card-class-${occurrence.id}`}
+          >
+            {className}
+          </Text>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -579,13 +611,14 @@ export function computeWeekDayColumnWidth(
   return Math.max(WEEK_MIN_DAY_COL_WIDTH, Math.floor(raw));
 }
 
-function WeekGrid({
+export function WeekGrid({
   visibleWeekDays,
   occurrences,
   selectedWeekCell,
   setSelectedWeekCell,
   subjectColorById,
   today,
+  testIDPrefix = "child-timetable",
 }: {
   visibleWeekDays: ReturnType<typeof buildWeekDays>;
   occurrences: TimetableOccurrence[];
@@ -593,6 +626,7 @@ function WeekGrid({
   setSelectedWeekCell: (value: WeekSelection | null) => void;
   subjectColorById: Record<string, string>;
   today: Date;
+  testIDPrefix?: string;
 }) {
   const { width: screenWidth } = useWindowDimensions();
   const nDays = visibleWeekDays.length;
@@ -611,7 +645,7 @@ function WeekGrid({
   );
 
   return (
-    <View style={styles.weekGridCard} testID="child-timetable-week-grid">
+    <View style={styles.weekGridCard} testID={`${testIDPrefix}-week-grid`}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View
           style={[
@@ -679,7 +713,7 @@ function WeekGrid({
                   styles.weekDayColumn,
                   { height: timelineHeight, width: dayColWidth },
                 ]}
-                testID={`child-timetable-week-col-${entry.weekday}`}
+                testID={`${testIDPrefix}-week-col-${entry.weekday}`}
               >
                 {timelineHours.slice(0, -1).map((hourMinute) => (
                   <View
@@ -738,7 +772,7 @@ function WeekGrid({
                       onPress={() =>
                         setSelectedWeekCell({ occurrence, date: entry.date })
                       }
-                      testID={`child-timetable-week-slot-${occurrence.id}`}
+                      testID={`${testIDPrefix}-week-slot-${occurrence.id}`}
                     >
                       <Text
                         style={[
@@ -760,12 +794,18 @@ function WeekGrid({
   );
 }
 
-function WeekDetailCard({
+export function WeekDetailCard({
   selectedWeekCell,
   colorHex,
+  testIDPrefix = "child-timetable",
+  className,
+  onEditPress,
 }: {
   selectedWeekCell: WeekSelection | null;
   colorHex?: string;
+  testIDPrefix?: string;
+  className?: string;
+  onEditPress?: () => void;
 }) {
   const tone = subjectVisualTone(colorHex);
   return (
@@ -777,54 +817,79 @@ function WeekDetailCard({
           borderColor: tone.border,
         },
       ]}
-      testID="child-timetable-week-detail"
+      testID={`${testIDPrefix}-week-detail`}
     >
-      <Text style={styles.detailCardLabel}>DETAIL DU CRENEAU SELECTIONNE</Text>
+      <View style={styles.detailCardLabelRow}>
+        <Text style={styles.detailCardLabel}>
+          DETAIL DU CRENEAU SELECTIONNE
+        </Text>
+        {selectedWeekCell && onEditPress ? (
+          <TouchableOpacity
+            onPress={onEditPress}
+            style={styles.detailEditBtn}
+            testID={`${testIDPrefix}-week-detail-edit`}
+          >
+            <Ionicons name="create-outline" size={15} color={colors.primary} />
+            <Text style={styles.detailEditBtnText}>Modifier</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
       {selectedWeekCell ? (
         <View style={styles.detailCardBody}>
           <Text style={styles.detailCardText}>
-            <Text style={styles.detailCardTextStrong}>Matiere:</Text>{" "}
+            <Text style={styles.detailCardTextStrong}>Matière :</Text>{" "}
             {selectedWeekCell.occurrence.subject.name}
           </Text>
+          {className ? (
+            <Text
+              style={styles.detailCardText}
+              testID={`${testIDPrefix}-week-detail-class`}
+            >
+              <Text style={styles.detailCardTextStrong}>Classe :</Text>{" "}
+              {className}
+            </Text>
+          ) : null}
           <Text style={styles.detailCardText}>
-            <Text style={styles.detailCardTextStrong}>Jour:</Text>{" "}
+            <Text style={styles.detailCardTextStrong}>Jour :</Text>{" "}
             {formatDetailDay(selectedWeekCell.date)}
           </Text>
           <Text style={styles.detailCardText}>
-            <Text style={styles.detailCardTextStrong}>Plage horaire:</Text>{" "}
+            <Text style={styles.detailCardTextStrong}>Horaire :</Text>{" "}
             {minuteToTimeLabel(selectedWeekCell.occurrence.startMinute)} -{" "}
             {minuteToTimeLabel(selectedWeekCell.occurrence.endMinute)}
           </Text>
           <Text style={styles.detailCardText}>
-            <Text style={styles.detailCardTextStrong}>Enseignant:</Text>{" "}
+            <Text style={styles.detailCardTextStrong}>Enseignant :</Text>{" "}
             {teacherLabel(selectedWeekCell.occurrence)}
           </Text>
           <Text style={styles.detailCardText}>
-            <Text style={styles.detailCardTextStrong}>Salle:</Text>{" "}
+            <Text style={styles.detailCardTextStrong}>Salle :</Text>{" "}
             {selectedWeekCell.occurrence.room ?? "-"}
           </Text>
         </View>
       ) : (
         <Text style={styles.detailPlaceholder}>
-          Selectionnez un creneau dans le tableau pour afficher son detail.
+          Sélectionnez un créneau dans le tableau pour afficher son détail.
         </Text>
       )}
     </View>
   );
 }
 
-function MonthGrid({
+export function MonthGrid({
   cells,
   selectedDate,
   onSelectDate,
   showSaturday,
   showSunday,
+  testIDPrefix = "child-timetable",
 }: {
   cells: Array<{ date: Date | null; slotsCount: number }>;
   selectedDate: Date | null;
   onSelectDate: (date: Date | null) => void;
   showSaturday: boolean;
   showSunday: boolean;
+  testIDPrefix?: string;
 }) {
   const weekdayLabels = [
     ...WEEKDAY_LABELS_COMPACT.slice(0, 5),
@@ -839,7 +904,7 @@ function MonthGrid({
   }
 
   return (
-    <View style={styles.monthGridCard} testID="child-timetable-month-grid">
+    <View style={styles.monthGridCard} testID={`${testIDPrefix}-month-grid`}>
       <View style={styles.monthWeekdayRow}>
         {weekdayLabels.map((label, index) => (
           <Text key={`${label}-${index}`} style={styles.monthWeekdayText}>
@@ -852,7 +917,7 @@ function MonthGrid({
           <View
             key={`month-row-${rowIndex}`}
             style={styles.monthRow}
-            testID={`child-timetable-month-row-${rowIndex}`}
+            testID={`${testIDPrefix}-month-row-${rowIndex}`}
           >
             {row.map((entry, cellIndex) => {
               const selected =
@@ -871,7 +936,7 @@ function MonthGrid({
                   disabled={!entry.date}
                   testID={
                     entry.date
-                      ? `child-timetable-month-day-${toIsoDateString(entry.date)}`
+                      ? `${testIDPrefix}-month-day-${toIsoDateString(entry.date)}`
                       : undefined
                   }
                 >
@@ -914,17 +979,26 @@ function MonthGrid({
   );
 }
 
-function MonthAgenda({
+export function MonthAgenda({
   selectedDate,
   agenda,
   subjectColorById,
+  testIDPrefix = "child-timetable",
+  getClassName,
+  onEditPress,
 }: {
   selectedDate: Date | null;
   agenda: TimetableOccurrence[];
   subjectColorById: Record<string, string>;
+  testIDPrefix?: string;
+  getClassName?: (occId: string) => string | undefined;
+  onEditPress?: (occ: TimetableOccurrence) => void;
 }) {
   return (
-    <View style={styles.monthAgendaCard} testID="child-timetable-month-agenda">
+    <View
+      style={styles.monthAgendaCard}
+      testID={`${testIDPrefix}-month-agenda`}
+    >
       <Text style={styles.monthAgendaLabel}>AGENDA DU JOUR SELECTIONNE</Text>
       <Text style={styles.monthAgendaDate}>
         {selectedDate ? formatDetailDay(selectedDate) : "-"}
@@ -940,6 +1014,11 @@ function MonthAgenda({
               key={`month-agenda-${occurrence.id}`}
               occurrence={occurrence}
               colorHex={subjectColorById[occurrence.subject.id]}
+              testIDPrefix={testIDPrefix}
+              className={getClassName?.(occurrence.id)}
+              onEditPress={
+                onEditPress ? () => onEditPress(occurrence) : undefined
+              }
             />
           ))
         )}
@@ -1035,19 +1114,39 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 4,
   },
+  dayCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   dayCardTitle: {
     fontSize: 14,
     fontWeight: "800",
   },
+  dayCardEditBtn: {
+    padding: 2,
+    opacity: 0.8,
+  },
   dayCardTeacher: {
     color: "#4B5563",
     fontSize: 12,
+  },
+  dayCardFooter: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
   },
   dayCardRoom: {
     color: "#36557A",
     fontSize: 12,
     fontWeight: "800",
     textTransform: "uppercase",
+  },
+  dayCardClass: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#36557A",
+    opacity: 0.75,
   },
   weekSection: { gap: 12 },
   weekGridCard: {
@@ -1085,7 +1184,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   weekHeaderCellToday: {
-    backgroundColor: "#DCEBFF",
+    backgroundColor: colors.primary,
   },
   weekHeaderText: {
     fontSize: 8,
@@ -1094,7 +1193,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   weekHeaderTextToday: {
-    color: colors.primary,
+    color: colors.white,
   },
   weekHoursColumn: {
     width: 36,
@@ -1149,12 +1248,31 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 8,
   },
+  detailCardLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   detailCardLabel: {
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.8,
     color: "#4C6284",
     textTransform: "uppercase",
+  },
+  detailEditBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: "rgba(12,95,168,0.1)",
+  },
+  detailEditBtnText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.primary,
   },
   detailCardBody: {
     gap: 6,

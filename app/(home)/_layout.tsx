@@ -47,6 +47,10 @@ export default function HomeLayout() {
       />
       <Stack.Screen name="feed" options={{ animation: "slide_from_right" }} />
       <Stack.Screen
+        name="agenda/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
         name="timetable/index"
         options={{ animation: "slide_from_right" }}
       />
