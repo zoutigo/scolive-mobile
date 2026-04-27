@@ -768,9 +768,7 @@ describe("TeacherAgendaScreen — modal de création", () => {
     );
   });
 
-  it(
-    "après une création réussie : la modal se ferme et le planning recharge",
-    async () => {
+  it("après une création réussie : la modal se ferme et le planning recharge", async () => {
     await openCreateModal();
     await waitFor(() =>
       expect(screen.getByTestId("teacher-oneoff-class-class-6eC")).toBeTruthy(),
@@ -791,15 +789,13 @@ describe("TeacherAgendaScreen — modal de création", () => {
     );
     api.createOneOffSlot.mockResolvedValue(undefined as never);
 
-      fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
+    fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
 
-      await waitFor(() => expect(api.createOneOffSlot).toHaveBeenCalled());
-      await waitFor(() =>
-        expect(screen.queryByTestId("teacher-oneoff-create-panel")).toBeNull(),
-      );
-      // Le planning est rechargé (loadClassOptions + getClassTimetable appelés)
-      await waitFor(() => expect(mockLoadClassOptions).toHaveBeenCalled());
-    },
-    15000,
-  );
+    await waitFor(() => expect(api.createOneOffSlot).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.queryByTestId("teacher-oneoff-create-panel")).toBeNull(),
+    );
+    // Le planning est rechargé (loadClassOptions + getClassTimetable appelés)
+    await waitFor(() => expect(mockLoadClassOptions).toHaveBeenCalled());
+  }, 15000);
 });
