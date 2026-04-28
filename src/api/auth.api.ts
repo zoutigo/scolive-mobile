@@ -61,6 +61,10 @@ export const authApi = {
     return apiFetch(`/schools/${schoolSlug}/auth/me`, {}, true);
   },
 
+  meGlobal(): Promise<AuthUser> {
+    return apiFetch(`/me`, {}, true);
+  },
+
   getOnboardingOptions(input: {
     email?: string;
     setupToken?: string;

@@ -558,36 +558,41 @@ export function DayCard({
       ]}
       testID={`${testIDPrefix}-day-card-${occurrence.id}`}
     >
-      <View style={styles.dayCardHeader}>
-        <Text
-          style={[styles.dayCardTitle, { color: tone.text, flex: 1 }]}
-          numberOfLines={1}
-        >
-          {minuteToTimeLabel(occurrence.startMinute)} -{" "}
-          {minuteToTimeLabel(occurrence.endMinute)} · {occurrence.subject.name}
-        </Text>
+      <View style={styles.dayCardBody}>
+        <View style={styles.dayCardMain}>
+          <View style={styles.dayCardHeader}>
+            <Text
+              style={[styles.dayCardTitle, { color: tone.text, flex: 1 }]}
+              numberOfLines={1}
+            >
+              {minuteToTimeLabel(occurrence.startMinute)} -{" "}
+              {minuteToTimeLabel(occurrence.endMinute)} ·{" "}
+              {occurrence.subject.name}
+            </Text>
+          </View>
+          <Text style={styles.dayCardTeacher}>{teacherLabel(occurrence)}</Text>
+          <View style={styles.dayCardFooter}>
+            {occurrence.room ? (
+              <Text style={styles.dayCardRoom}>SALLE {occurrence.room}</Text>
+            ) : null}
+            {className ? (
+              <Text
+                style={styles.dayCardClass}
+                testID={`${testIDPrefix}-day-card-class-${occurrence.id}`}
+              >
+                {className}
+              </Text>
+            ) : null}
+          </View>
+        </View>
         {onEditPress ? (
           <TouchableOpacity
             onPress={onEditPress}
-            style={styles.dayCardEditBtn}
+            style={styles.dayCardEditRail}
             testID={`${testIDPrefix}-day-card-edit-${occurrence.id}`}
           >
-            <Ionicons name="create-outline" size={16} color={tone.text} />
+            <Ionicons name="pencil" size={18} color={colors.white} />
           </TouchableOpacity>
-        ) : null}
-      </View>
-      <Text style={styles.dayCardTeacher}>{teacherLabel(occurrence)}</Text>
-      <View style={styles.dayCardFooter}>
-        {occurrence.room ? (
-          <Text style={styles.dayCardRoom}>SALLE {occurrence.room}</Text>
-        ) : null}
-        {className ? (
-          <Text
-            style={styles.dayCardClass}
-            testID={`${testIDPrefix}-day-card-class-${occurrence.id}`}
-          >
-            {className}
-          </Text>
         ) : null}
       </View>
     </View>
@@ -819,59 +824,63 @@ export function WeekDetailCard({
       ]}
       testID={`${testIDPrefix}-week-detail`}
     >
-      <View style={styles.detailCardLabelRow}>
-        <Text style={styles.detailCardLabel}>
-          DETAIL DU CRENEAU SELECTIONNE
-        </Text>
+      <View style={styles.detailCardLayout}>
+        <View style={styles.detailCardContent}>
+          <View style={styles.detailCardLabelRow}>
+            <Text style={styles.detailCardLabel}>
+              DETAIL DU CRENEAU SELECTIONNE
+            </Text>
+          </View>
+          {selectedWeekCell ? (
+            <View style={styles.detailCardBody}>
+              <Text style={styles.detailCardText}>
+                <Text style={styles.detailCardTextStrong}>Matière :</Text>{" "}
+                {selectedWeekCell.occurrence.subject.name}
+              </Text>
+              {className ? (
+                <Text
+                  style={styles.detailCardText}
+                  testID={`${testIDPrefix}-week-detail-class`}
+                >
+                  <Text style={styles.detailCardTextStrong}>Classe :</Text>{" "}
+                  {className}
+                </Text>
+              ) : null}
+              <Text style={styles.detailCardText}>
+                <Text style={styles.detailCardTextStrong}>Jour :</Text>{" "}
+                {formatDetailDay(selectedWeekCell.date)}
+              </Text>
+              <Text style={styles.detailCardText}>
+                <Text style={styles.detailCardTextStrong}>Horaire :</Text>{" "}
+                {minuteToTimeLabel(selectedWeekCell.occurrence.startMinute)} -{" "}
+                {minuteToTimeLabel(selectedWeekCell.occurrence.endMinute)}
+              </Text>
+              <Text style={styles.detailCardText}>
+                <Text style={styles.detailCardTextStrong}>Enseignant :</Text>{" "}
+                {teacherLabel(selectedWeekCell.occurrence)}
+              </Text>
+              <Text style={styles.detailCardText}>
+                <Text style={styles.detailCardTextStrong}>Salle :</Text>{" "}
+                {selectedWeekCell.occurrence.room ?? "-"}
+              </Text>
+            </View>
+          ) : (
+            <Text style={styles.detailPlaceholder}>
+              Sélectionnez un créneau dans le tableau pour afficher son détail.
+            </Text>
+          )}
+        </View>
         {selectedWeekCell && onEditPress ? (
           <TouchableOpacity
             onPress={onEditPress}
-            style={styles.detailEditBtn}
+            style={styles.detailEditRail}
             testID={`${testIDPrefix}-week-detail-edit`}
           >
-            <Ionicons name="create-outline" size={15} color={colors.primary} />
-            <Text style={styles.detailEditBtnText}>Modifier</Text>
+            <Ionicons name="pencil" size={18} color={colors.white} />
+            <Text style={styles.detailEditRailText}>MODIFIER</Text>
           </TouchableOpacity>
         ) : null}
       </View>
-      {selectedWeekCell ? (
-        <View style={styles.detailCardBody}>
-          <Text style={styles.detailCardText}>
-            <Text style={styles.detailCardTextStrong}>Matière :</Text>{" "}
-            {selectedWeekCell.occurrence.subject.name}
-          </Text>
-          {className ? (
-            <Text
-              style={styles.detailCardText}
-              testID={`${testIDPrefix}-week-detail-class`}
-            >
-              <Text style={styles.detailCardTextStrong}>Classe :</Text>{" "}
-              {className}
-            </Text>
-          ) : null}
-          <Text style={styles.detailCardText}>
-            <Text style={styles.detailCardTextStrong}>Jour :</Text>{" "}
-            {formatDetailDay(selectedWeekCell.date)}
-          </Text>
-          <Text style={styles.detailCardText}>
-            <Text style={styles.detailCardTextStrong}>Horaire :</Text>{" "}
-            {minuteToTimeLabel(selectedWeekCell.occurrence.startMinute)} -{" "}
-            {minuteToTimeLabel(selectedWeekCell.occurrence.endMinute)}
-          </Text>
-          <Text style={styles.detailCardText}>
-            <Text style={styles.detailCardTextStrong}>Enseignant :</Text>{" "}
-            {teacherLabel(selectedWeekCell.occurrence)}
-          </Text>
-          <Text style={styles.detailCardText}>
-            <Text style={styles.detailCardTextStrong}>Salle :</Text>{" "}
-            {selectedWeekCell.occurrence.room ?? "-"}
-          </Text>
-        </View>
-      ) : (
-        <Text style={styles.detailPlaceholder}>
-          Sélectionnez un créneau dans le tableau pour afficher son détail.
-        </Text>
-      )}
     </View>
   );
 }
@@ -1110,6 +1119,14 @@ const styles = StyleSheet.create({
   dayCard: {
     borderRadius: 12,
     borderWidth: 1,
+    overflow: "hidden",
+  },
+  dayCardBody: {
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+  dayCardMain: {
+    flex: 1,
     paddingHorizontal: 14,
     paddingVertical: 12,
     gap: 4,
@@ -1117,15 +1134,20 @@ const styles = StyleSheet.create({
   dayCardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
   },
   dayCardTitle: {
     fontSize: 14,
     fontWeight: "800",
   },
-  dayCardEditBtn: {
-    padding: 2,
-    opacity: 0.8,
+  dayCardEditRail: {
+    width: "10%",
+    minWidth: 44,
+    maxWidth: 56,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#B45309",
+    borderLeftWidth: 1,
+    borderLeftColor: "rgba(255,255,255,0.25)",
   },
   dayCardTeacher: {
     color: "#4B5563",
@@ -1245,13 +1267,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#DCE8F7",
     backgroundColor: "#F9FCFF",
+    overflow: "hidden",
+  },
+  detailCardLayout: {
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+  detailCardContent: {
+    flex: 1,
     padding: 14,
     gap: 8,
   },
   detailCardLabelRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
   },
   detailCardLabel: {
     fontSize: 11,
@@ -1260,19 +1289,21 @@ const styles = StyleSheet.create({
     color: "#4C6284",
     textTransform: "uppercase",
   },
-  detailEditBtn: {
-    flexDirection: "row",
+  detailEditRail: {
+    width: "10%",
+    minWidth: 52,
+    maxWidth: 68,
     alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: "rgba(12,95,168,0.1)",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#B45309",
   },
-  detailEditBtnText: {
-    fontSize: 11,
+  detailEditRailText: {
+    fontSize: 9,
     fontWeight: "700",
-    color: colors.primary,
+    color: colors.white,
+    letterSpacing: 0.5,
+    textAlign: "center",
   },
   detailCardBody: {
     gap: 6,

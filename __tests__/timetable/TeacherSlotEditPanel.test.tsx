@@ -32,6 +32,7 @@ jest.mock("../../src/api/timetable.api", () => ({
     updateRecurringSlot: jest.fn(),
     deleteOneOffSlot: jest.fn(),
     deleteRecurringSlot: jest.fn(),
+    getClassContext: jest.fn(),
   },
 }));
 jest.mock("../../src/store/success-toast.store", () => ({
@@ -138,13 +139,14 @@ describe("TeacherSlotEditPanel — rendu", () => {
   it("affiche le titre et le nom de la matière", () => {
     renderPanel();
     expect(screen.getByTestId("teacher-slot-edit-panel")).toBeTruthy();
-    expect(screen.getByText("Modifier ce créneau")).toBeTruthy();
+    expect(screen.getByText("MODIFIER CE CRÉNEAU")).toBeTruthy();
     expect(screen.getByText(/Mathématiques/)).toBeTruthy();
   });
 
-  it("affiche le nom de la classe dans le sous-titre", () => {
+  it("affiche matière, classe et enseignant dans le sous-titre", () => {
     renderPanel(RECURRING_OCC, { className: "6e B" });
     expect(screen.getByText(/6e B/)).toBeTruthy();
+    expect(screen.getByText(/Dupont Alice/)).toBeTruthy();
   });
 
   it("pré-remplit les champs avec les valeurs de l'occurrence", () => {
@@ -171,6 +173,7 @@ describe("TeacherSlotEditPanel — rendu", () => {
   it("affiche les boutons de suppression", () => {
     renderPanel();
     expect(screen.getByTestId("teacher-slot-delete-occurrence")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("teacher-slot-scope-series"));
     expect(screen.getByTestId("teacher-slot-delete-series")).toBeTruthy();
   });
 
@@ -191,20 +194,22 @@ describe("TeacherSlotEditPanel — rendu", () => {
 describe("TeacherSlotEditPanel — scope toggle", () => {
   it("scope par défaut : 'Ce créneau'", () => {
     renderPanel();
-    expect(screen.getByText("Enregistrer ce créneau")).toBeTruthy();
+    expect(screen.getByTestId("teacher-slot-scope-target")).toBeTruthy();
+    expect(screen.getByText("R")).toBeTruthy();
+    expect(screen.getByText("Modifier")).toBeTruthy();
   });
 
-  it("passer en scope 'série' change le label du bouton", () => {
+  it("passer en scope 'série' met à jour la cible affichée", () => {
     renderPanel();
     fireEvent.press(screen.getByTestId("teacher-slot-scope-series"));
-    expect(screen.getByText("Modifier toute la série")).toBeTruthy();
+    expect(screen.getAllByText("Toute la série").length).toBeGreaterThan(0);
   });
 
-  it("repasser en scope 'occurrence' restaure le label", () => {
+  it("repasser en scope 'occurrence' restaure la cible", () => {
     renderPanel();
     fireEvent.press(screen.getByTestId("teacher-slot-scope-series"));
     fireEvent.press(screen.getByTestId("teacher-slot-scope-occurrence"));
-    expect(screen.getByText("Enregistrer ce créneau")).toBeTruthy();
+    expect(screen.getAllByText("Ce créneau").length).toBeGreaterThan(0);
   });
 });
 
@@ -439,6 +444,7 @@ describe("TeacherSlotEditPanel — suppression", () => {
 
   it("suppression série RECURRING → deleteRecurringSlot", async () => {
     renderPanel(RECURRING_OCC);
+    fireEvent.press(screen.getByTestId("teacher-slot-scope-series"));
     fireEvent.press(screen.getByTestId("teacher-slot-delete-series"));
     await waitFor(() => expect(mockApi.deleteRecurringSlot).toHaveBeenCalled());
     expect(mockApi.deleteRecurringSlot).toHaveBeenCalledWith(
@@ -495,11 +501,162 @@ describe("TeacherSlotEditPanel — suppression", () => {
   it("Alert série a le bon titre", () => {
     jest.spyOn(Alert, "alert").mockImplementation(() => {});
     renderPanel(RECURRING_OCC);
+    fireEvent.press(screen.getByTestId("teacher-slot-scope-series"));
     fireEvent.press(screen.getByTestId("teacher-slot-delete-series"));
     expect(Alert.alert).toHaveBeenCalledWith(
       "Supprimer toute la série ?",
       expect.any(String),
       expect.any(Array),
     );
+  });
+});
+
+// ─── Mode admin ───────────────────────────────────────────────────────────────
+
+describe("TeacherSlotEditPanel — adminMode", () => {
+  const CLASS_CTX_ADMIN = {
+    class: {
+      id: "class-1",
+      name: "6eC",
+      schoolId: "s1",
+      schoolYearId: "sy1",
+      academicLevelId: null,
+      curriculumId: null,
+      referentTeacherUserId: "t1",
+    },
+    allowedSubjects: [
+      { id: "math", name: "Mathématiques" },
+      { id: "ang", name: "Anglais" },
+    ],
+    assignments: [
+      {
+        teacherUserId: "t1",
+        subjectId: "math",
+        subject: { id: "math", name: "Mathématiques" },
+        teacherUser: { id: "t1", firstName: "Alice", lastName: "Dupont" },
+      },
+      {
+        teacherUserId: "t2",
+        subjectId: "ang",
+        subject: { id: "ang", name: "Anglais" },
+        teacherUser: { id: "t2", firstName: "Bob", lastName: "Martin" },
+      },
+    ],
+    subjectStyles: [],
+    schoolYears: [{ id: "sy1", label: "2025-2026", isActive: true }],
+    selectedSchoolYearId: "sy1",
+  };
+
+  beforeEach(() => {
+    (mockApi as jest.Mocked<typeof timetableApi>).getClassContext =
+      jest.fn().mockResolvedValue(CLASS_CTX_ADMIN);
+  });
+
+  function renderAdminPanel(occurrence = RECURRING_OCC) {
+    return render(
+      <TeacherSlotEditPanel
+        occurrence={occurrence}
+        className="6eC"
+        classId="class-1"
+        schoolYearId="sy1"
+        schoolSlug="college-vogt"
+        adminMode
+        onClose={mockOnClose}
+        onSuccess={mockOnSuccess}
+      />,
+    );
+  }
+
+  it("charge getClassContext au montage en adminMode", async () => {
+    renderAdminPanel();
+    await waitFor(() =>
+      expect(mockApi.getClassContext).toHaveBeenCalledWith(
+        "college-vogt",
+        "class-1",
+      ),
+    );
+  });
+
+  it("affiche la section enseignant avec les pills après chargement du contexte", async () => {
+    renderAdminPanel();
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-slot-admin-teacher-section"),
+      ).toBeTruthy(),
+    );
+    expect(screen.getByTestId("teacher-slot-admin-teacher-t1")).toBeTruthy();
+    expect(screen.getByTestId("teacher-slot-admin-teacher-t2")).toBeTruthy();
+    expect(screen.getByText("Dupont Alice")).toBeTruthy();
+    expect(screen.getByText("Martin Bob")).toBeTruthy();
+  });
+
+  it("sauvegarde occurrence avec teacherUserId original si pas changé", async () => {
+    renderAdminPanel();
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-slot-admin-teacher-section"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("teacher-slot-save"));
+    await waitFor(() =>
+      expect(mockApi.createOneOffSlot).toHaveBeenCalledWith(
+        "college-vogt",
+        "class-1",
+        expect.objectContaining({ teacherUserId: "t1" }),
+      ),
+    );
+  });
+
+  it("sauvegarde occurrence avec le nouvel enseignant si changé", async () => {
+    renderAdminPanel();
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-slot-admin-teacher-t2"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("teacher-slot-admin-teacher-t2"));
+    fireEvent.press(screen.getByTestId("teacher-slot-save"));
+    await waitFor(() =>
+      expect(mockApi.createOneOffSlot).toHaveBeenCalledWith(
+        "college-vogt",
+        "class-1",
+        expect.objectContaining({ teacherUserId: "t2" }),
+      ),
+    );
+  });
+
+  it("sauvegarde série avec teacherUserId en adminMode", async () => {
+    renderAdminPanel();
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-slot-admin-teacher-section"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("teacher-slot-scope-series"));
+    fireEvent.press(screen.getByTestId("teacher-slot-save"));
+    await waitFor(() =>
+      expect(mockApi.updateRecurringSlot).toHaveBeenCalledWith(
+        "college-vogt",
+        "slot-1",
+        expect.objectContaining({ teacherUserId: "t1" }),
+      ),
+    );
+  });
+
+  it("n'affiche pas le picker enseignant hors adminMode", () => {
+    render(
+      <TeacherSlotEditPanel
+        occurrence={RECURRING_OCC}
+        className="6eC"
+        classId="class-1"
+        schoolYearId="sy1"
+        schoolSlug="college-vogt"
+        onClose={mockOnClose}
+        onSuccess={mockOnSuccess}
+      />,
+    );
+    expect(
+      screen.queryByTestId("teacher-slot-admin-teacher-section"),
+    ).toBeNull();
   });
 });

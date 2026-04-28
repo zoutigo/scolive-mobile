@@ -231,12 +231,12 @@ export function TimePickerField({
 
 const styles = StyleSheet.create({
   trigger: {
-    height: 40,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "#E0D0BA",
     backgroundColor: colors.white,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   triggerValue: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "700",
     color: colors.textPrimary,
   },

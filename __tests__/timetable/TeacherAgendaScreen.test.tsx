@@ -472,6 +472,9 @@ describe("TeacherAgendaScreen — onglet Mon agenda", () => {
       expect(screen.getByTestId("teacher-agenda-mine-week-grid")).toBeTruthy(),
     );
     expect(screen.getByTestId("teacher-agenda-mine-week-detail")).toBeTruthy();
+    expect(
+      screen.getByTestId("teacher-agenda-mine-day-card-occ-ang-14"),
+    ).toBeTruthy();
   });
 
   it("vue Mois : contient la grille et l'agenda du jour sélectionné", async () => {
@@ -648,8 +651,12 @@ describe("TeacherAgendaScreen — intégration state & navigation", () => {
     fireEvent.press(
       screen.getByTestId("teacher-agenda-mine-week-slot-occ-ang-14"),
     );
-    // WeekDetailCard affiche le nom complet (texte imbriqué → regex)
-    await waitFor(() => expect(screen.getByText(/Anglais/)).toBeTruthy());
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-mine-day-card-occ-ang-14"),
+      ).toBeTruthy(),
+    );
+    expect(screen.getByText("08:45 - 10:00 · Anglais")).toBeTruthy();
     expect(screen.getByTestId("teacher-agenda-mine-week-detail")).toBeTruthy();
   });
 
@@ -817,4 +824,70 @@ describe("TeacherAgendaScreen — modal de création", () => {
     // Le planning est rechargé (loadClassOptions + getClassTimetable appelés)
     await waitFor(() => expect(mockLoadClassOptions).toHaveBeenCalled());
   }, 15000);
+});
+
+// ── Tests — Modal d'édition ───────────────────────────────────────────────
+
+describe("TeacherAgendaScreen — modal d'édition", () => {
+  it("dans 'Mon agenda' : ouvrir puis fermer la modale d'édition depuis une card jour", async () => {
+    render(<TeacherAgendaScreen />);
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-mine-day-card-edit-occ-ang-14"),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-mine-day-card-edit-occ-ang-14"),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-agenda-mine-edit-modal")).toBeTruthy(),
+    );
+    expect(screen.getByTestId("teacher-slot-edit-panel")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("teacher-slot-edit-close"));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("teacher-slot-edit-panel")).toBeNull(),
+    );
+  });
+
+  it("dans 'Mes classes' : ouvrir la modale d'édition depuis une card jour", async () => {
+    setupStores({
+      classTimetable: makeClassTimetable(
+        [
+          {
+            ...CLASS_OCCS[0]!,
+            id: "occ-class-edit",
+            teacherUser: {
+              id: "u1",
+              firstName: "Albert",
+              lastName: "Mvondo",
+            },
+          },
+        ],
+        [STYLE_MATH],
+      ),
+    });
+    render(<TeacherAgendaScreen />);
+    fireEvent.press(screen.getByTestId("teacher-agenda-tab-classes"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-class-day-card-edit-occ-class-edit"),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-class-day-card-edit-occ-class-edit"),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-class-edit-modal-content"),
+      ).toBeTruthy(),
+    );
+    expect(screen.getByTestId("teacher-slot-edit-panel")).toBeTruthy();
+  });
 });

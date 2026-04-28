@@ -164,6 +164,111 @@ describe("auth.store — handleLoginResponse", () => {
   });
 });
 
+// ── Cas schoolSlug null (utilisateur plateforme ou multi-école) ───────────────
+//
+// Régression : quand le login retourne schoolSlug:null, me() n'était jamais
+// appelé et user restait null → spinner infini dans HomeScreen.
+
+describe("auth.store — initialize() avec accessToken mais schoolSlug null", () => {
+  it("appelle meGlobal() et charge le user", async () => {
+    mockStorage.getAccessToken.mockResolvedValue("access-token");
+    mockStorage.getRefreshToken.mockResolvedValue("refresh-token");
+    mockStorage.getSchoolSlug.mockResolvedValue(null);
+    mockAuthApi.meGlobal.mockResolvedValue(fakeUser);
+
+    await act(async () => {
+      await useAuthStore.getState().initialize();
+    });
+
+    expect(mockAuthApi.meGlobal).toHaveBeenCalledTimes(1);
+    expect(mockAuthApi.me).not.toHaveBeenCalled();
+    const state = useAuthStore.getState();
+    expect(state.isAuthenticated).toBe(true);
+    expect(state.isLoading).toBe(false);
+    expect(state.user).toEqual(fakeUser);
+  });
+
+  it("reste authentifié si meGlobal() échoue (user null, pas de spinner infini)", async () => {
+    mockStorage.getAccessToken.mockResolvedValue("access-token");
+    mockStorage.getRefreshToken.mockResolvedValue("refresh-token");
+    mockStorage.getSchoolSlug.mockResolvedValue(null);
+    mockAuthApi.meGlobal.mockRejectedValue(new Error("401"));
+
+    await act(async () => {
+      await useAuthStore.getState().initialize();
+    });
+
+    const state = useAuthStore.getState();
+    expect(state.isAuthenticated).toBe(true);
+    expect(state.isLoading).toBe(false);
+    expect(state.user).toBeNull();
+  });
+
+  it("n'appelle pas meGlobal() quand schoolSlug est présent", async () => {
+    mockStorage.getAccessToken.mockResolvedValue("access-token");
+    mockStorage.getRefreshToken.mockResolvedValue("refresh-token");
+    mockStorage.getSchoolSlug.mockResolvedValue("ecole-test");
+    mockAuthApi.me.mockResolvedValue(fakeUser);
+
+    await act(async () => {
+      await useAuthStore.getState().initialize();
+    });
+
+    expect(mockAuthApi.meGlobal).not.toHaveBeenCalled();
+    expect(mockAuthApi.me).toHaveBeenCalledWith("ecole-test");
+  });
+});
+
+describe("auth.store — handleLoginResponse() avec schoolSlug null", () => {
+  const noSlugResponse: LoginResponse = {
+    ...fakeLoginResponse,
+    schoolSlug: null,
+  };
+
+  it("appelle meGlobal() et set le user quand schoolSlug est null", async () => {
+    mockStorage.setTokens.mockResolvedValue(undefined);
+    mockAuthApi.meGlobal.mockResolvedValue(fakeUser);
+
+    await act(async () => {
+      await useAuthStore.getState().handleLoginResponse(noSlugResponse);
+    });
+
+    expect(mockAuthApi.meGlobal).toHaveBeenCalledTimes(1);
+    expect(mockAuthApi.me).not.toHaveBeenCalled();
+    expect(mockStorage.setSchoolSlug).not.toHaveBeenCalled();
+    const state = useAuthStore.getState();
+    expect(state.isAuthenticated).toBe(true);
+    expect(state.user).toEqual(fakeUser);
+    expect(state.schoolSlug).toBeNull();
+  });
+
+  it("reste authentifié si meGlobal() échoue après login sans schoolSlug", async () => {
+    mockStorage.setTokens.mockResolvedValue(undefined);
+    mockAuthApi.meGlobal.mockRejectedValue(new Error("502"));
+
+    await act(async () => {
+      await useAuthStore.getState().handleLoginResponse(noSlugResponse);
+    });
+
+    const state = useAuthStore.getState();
+    expect(state.isAuthenticated).toBe(true);
+    expect(state.user).toBeNull();
+  });
+
+  it("appelle me() avec schoolSlug quand il est présent (comportement nominal inchangé)", async () => {
+    mockStorage.setTokens.mockResolvedValue(undefined);
+    mockAuthApi.me.mockResolvedValue(fakeUser);
+
+    await act(async () => {
+      await useAuthStore.getState().handleLoginResponse(fakeLoginResponse);
+    });
+
+    expect(mockAuthApi.me).toHaveBeenCalledWith("ecole-test");
+    expect(mockAuthApi.meGlobal).not.toHaveBeenCalled();
+    expect(useAuthStore.getState().user).toEqual(fakeUser);
+  });
+});
+
 describe("auth.store — logout", () => {
   it("efface le state et appelle authApi.logout", async () => {
     useAuthStore.setState({

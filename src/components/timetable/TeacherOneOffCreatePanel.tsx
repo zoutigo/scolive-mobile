@@ -70,8 +70,10 @@ interface TeacherOneOffCreatePanelProps {
   prefilledClassId?: string;
   /** Date initiale (curseur affiché) */
   prefilledDate?: string;
-  /** Liste des classes accessibles à l'enseignant */
+  /** Liste des classes accessibles */
   allClasses: TimetableClassOption[];
+  /** En mode admin : pré-sélectionne cet enseignant au lieu de l'utilisateur courant */
+  prefilledTeacherId?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -83,6 +85,7 @@ export function TeacherOneOffCreatePanel({
   prefilledClassId,
   prefilledDate,
   allClasses,
+  prefilledTeacherId,
   onClose,
   onSuccess,
 }: TeacherOneOffCreatePanelProps) {
@@ -127,15 +130,16 @@ export function TeacherOneOffCreatePanel({
       .getClassContext(schoolSlug, classId)
       .then((ctx) => {
         setClassCtx(ctx);
-        // Pre-fill: current user if they appear in assignments, otherwise first
+        // Pre-fill: prefilledTeacherId (admin) > current user > first assignment
         const firstSubjectId = ctx.assignments[0]?.subjectId ?? "";
         setValue("subjectId", firstSubjectId);
-        const myAssignment = ctx.assignments.find(
-          (a) => a.teacherUserId === user?.id,
+        const preferredId = prefilledTeacherId ?? user?.id;
+        const preferredAssignment = ctx.assignments.find(
+          (a) => a.teacherUserId === preferredId,
         );
         setValue(
           "teacherUserId",
-          myAssignment?.teacherUserId ??
+          preferredAssignment?.teacherUserId ??
             ctx.assignments[0]?.teacherUserId ??
             "",
         );
@@ -169,19 +173,20 @@ export function TeacherOneOffCreatePanel({
   useEffect(() => {
     if (!classCtx || subjectId === prevSubjectId.current) return;
     prevSubjectId.current = subjectId;
-    const myAssignmentForSubject = classCtx.assignments.find(
-      (a) => a.subjectId === subjectId && a.teacherUserId === user?.id,
+    const preferredId = prefilledTeacherId ?? user?.id;
+    const preferredForSubject = classCtx.assignments.find(
+      (a) => a.subjectId === subjectId && a.teacherUserId === preferredId,
     );
     const firstForSubject = classCtx.assignments.find(
       (a) => a.subjectId === subjectId,
     );
     setValue(
       "teacherUserId",
-      myAssignmentForSubject?.teacherUserId ??
+      preferredForSubject?.teacherUserId ??
         firstForSubject?.teacherUserId ??
         "",
     );
-  }, [subjectId, classCtx, user?.id, setValue]);
+  }, [subjectId, classCtx, prefilledTeacherId, user?.id, setValue]);
 
   const subjectOptions = useMemo(
     () =>

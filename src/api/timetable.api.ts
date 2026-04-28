@@ -66,6 +66,17 @@ export const timetableApi = {
     };
   },
 
+  async getAdminClassList(
+    schoolSlug: string,
+    schoolYearId?: string,
+  ): Promise<TimetableClassOptionsResponse> {
+    return apiFetch(
+      `/schools/${schoolSlug}/timetable/classes${toQuery({ schoolYearId })}`,
+      {},
+      true,
+    );
+  },
+
   getClassContext(
     schoolSlug: string,
     classId: string,

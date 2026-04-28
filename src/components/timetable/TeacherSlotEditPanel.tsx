@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,8 +17,15 @@ import { colors } from "../../theme";
 import { timetableApi } from "../../api/timetable.api";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { TimePickerField } from "../TimePickerField";
-import type { TimetableOccurrence } from "../../types/timetable.types";
-import { minuteToTimeLabel, timeLabelToMinute } from "../../utils/timetable";
+import type {
+  ClassTimetableContextResponse,
+  TimetableOccurrence,
+} from "../../types/timetable.types";
+import {
+  fullTeacherName,
+  minuteToTimeLabel,
+  timeLabelToMinute,
+} from "../../utils/timetable";
 import { extractApiError } from "../../utils/api-error";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -36,6 +44,7 @@ export const teacherSlotEditSchema = z
       .regex(/^\d{1,2}:\d{2}$/, { message: "Format HH:MM" }),
     room: z.string().trim().min(1, "Renseignez une salle"),
     scope: z.enum(["occurrence", "series"]),
+    teacherUserId: z.string().optional(),
   })
   .refine(
     (data) => {
@@ -54,9 +63,12 @@ type FormValues = z.infer<typeof teacherSlotEditSchema>;
 interface TeacherSlotEditPanelProps {
   occurrence: TimetableOccurrence;
   className?: string;
+  teacherDisplayName?: string;
   classId: string;
   schoolYearId: string;
   schoolSlug: string;
+  /** En mode admin : montre le picker d'enseignant et inclut teacherUserId dans tous les payloads */
+  adminMode?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -66,15 +78,27 @@ interface TeacherSlotEditPanelProps {
 export function TeacherSlotEditPanel({
   occurrence,
   className,
+  teacherDisplayName,
   classId,
   schoolYearId,
   schoolSlug,
+  adminMode,
   onClose,
   onSuccess,
 }: TeacherSlotEditPanelProps) {
   const { showSuccess, showError } = useSuccessToastStore();
   const [isSaving, setIsSaving] = useState(false);
+  const [classCtx, setClassCtx] =
+    useState<ClassTimetableContextResponse | null>(null);
   const isRecurring = occurrence.source === "RECURRING";
+
+  // Load class context in admin mode to populate teacher picker
+  const prevClassId = useRef("");
+  useEffect(() => {
+    if (!adminMode || !classId || classId === prevClassId.current) return;
+    prevClassId.current = classId;
+    timetableApi.getClassContext(schoolSlug, classId).then(setClassCtx).catch(() => {});
+  }, [adminMode, classId, schoolSlug]);
 
   const {
     control,
@@ -88,10 +112,36 @@ export function TeacherSlotEditPanel({
       end: minuteToTimeLabel(occurrence.endMinute),
       room: occurrence.room ?? "",
       scope: "occurrence",
+      teacherUserId: occurrence.teacherUser.id,
     },
   });
 
+  // Teacher options derived from class context (admin mode only)
+  const teacherOptions = useMemo(() => {
+    if (!adminMode || !classCtx) return [];
+    const seen = new Map<string, string>();
+    for (const a of classCtx.assignments) {
+      if (!seen.has(a.teacherUserId)) {
+        seen.set(a.teacherUserId, fullTeacherName(a.teacherUser));
+      }
+    }
+    return Array.from(seen.entries()).map(([value, label]) => ({ value, label }));
+  }, [adminMode, classCtx]);
+
   const scope = watch("scope");
+  const targetsSeries = isRecurring && scope === "series";
+  const headerTeacherLabel =
+    teacherDisplayName ??
+    [occurrence.teacherUser.lastName, occurrence.teacherUser.firstName]
+      .filter(Boolean)
+      .join(" ");
+  const headerMeta = [
+    occurrence.subject.name,
+    className,
+    headerTeacherLabel || undefined,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   // ── Save ─────────────────────────────────────────────────────────────────
 
@@ -99,40 +149,47 @@ export function TeacherSlotEditPanel({
     const startMinute = timeLabelToMinute(values.start)!;
     const endMinute = timeLabelToMinute(values.end)!;
     const room = values.room.trim();
+    const teacherUserId =
+      adminMode && values.teacherUserId
+        ? values.teacherUserId
+        : occurrence.teacherUser.id;
 
     setIsSaving(true);
     try {
       if (values.scope === "series" && isRecurring && occurrence.slotId) {
-        // Modifier toute la série récurrente
         await timetableApi.updateRecurringSlot(schoolSlug, occurrence.slotId, {
           startMinute,
           endMinute,
           room,
+          ...(adminMode ? { teacherUserId } : {}),
         });
         showSuccess({
           title: "Série modifiée",
           message: "Tous les cours de cette série ont été mis à jour.",
         });
       } else if (occurrence.source === "ONE_OFF" && occurrence.oneOffSlotId) {
-        // Modifier ce créneau ponctuel
         await timetableApi.updateOneOffSlot(
           schoolSlug,
           occurrence.oneOffSlotId,
-          { startMinute, endMinute, room },
+          {
+            startMinute,
+            endMinute,
+            room,
+            ...(adminMode ? { teacherUserId } : {}),
+          },
         );
         showSuccess({
           title: "Créneau modifié",
           message: "Ce cours a été mis à jour.",
         });
       } else {
-        // Créer un créneau ponctuel qui remplace cette occurrence récurrente
         await timetableApi.createOneOffSlot(schoolSlug, classId, {
           schoolYearId,
           occurrenceDate: occurrence.occurrenceDate,
           startMinute,
           endMinute,
           subjectId: occurrence.subject.id,
-          teacherUserId: occurrence.teacherUser.id,
+          teacherUserId,
           room,
           status: "PLANNED",
           sourceSlotId: occurrence.slotId ?? null,
@@ -223,200 +280,244 @@ export function TeacherSlotEditPanel({
 
   return (
     <View style={styles.panel} testID="teacher-slot-edit-panel">
-      {/* Header */}
       <View style={styles.panelHeader}>
-        <View style={styles.panelHeaderIcon}>
-          <Ionicons name="create-outline" size={16} color={colors.primary} />
+        <View style={styles.panelHeaderMain}>
+          <View style={styles.panelHeaderIcon}>
+            <Ionicons name="create-outline" size={18} color={colors.white} />
+          </View>
+          <View style={styles.panelHeaderText}>
+            <Text style={styles.panelTitle}>MODIFIER CE CRÉNEAU</Text>
+            <Text style={styles.panelSubtitle} numberOfLines={1}>
+              {headerMeta}
+            </Text>
+          </View>
         </View>
-        <View style={styles.panelHeaderText}>
-          <Text style={styles.panelTitle}>Modifier ce créneau</Text>
-          <Text style={styles.panelSubtitle} numberOfLines={1}>
-            {occurrence.subject.name}
-            {className ? ` · ${className}` : ""}
-          </Text>
+        <View style={styles.scopePill} testID="teacher-slot-scope-target">
+          <Text style={styles.scopePillText}>{isRecurring ? "R" : "P"}</Text>
         </View>
-        <TouchableOpacity
-          onPress={onClose}
-          style={styles.closeBtn}
-          testID="teacher-slot-edit-close"
-        >
-          <Ionicons name="close" size={18} color={colors.textSecondary} />
-        </TouchableOpacity>
       </View>
 
-      {/* Scope (series / occurrence) — uniquement pour les récurrents */}
-      {isRecurring ? (
-        <View style={styles.scopeRow} testID="teacher-slot-scope-row">
-          <Controller
-            control={control}
-            name="scope"
-            render={({ field: { value, onChange } }) => (
-              <>
-                <TouchableOpacity
-                  style={[
-                    styles.scopeBtn,
-                    value === "occurrence" && styles.scopeBtnActive,
-                  ]}
-                  onPress={() => onChange("occurrence")}
-                  testID="teacher-slot-scope-occurrence"
-                >
-                  <Text
+      <View style={styles.panelBody}>
+        {isRecurring ? (
+          <View style={styles.scopeRow} testID="teacher-slot-scope-row">
+            <Controller
+              control={control}
+              name="scope"
+              render={({ field: { value, onChange } }) => (
+                <>
+                  <TouchableOpacity
                     style={[
-                      styles.scopeBtnText,
-                      value === "occurrence" && styles.scopeBtnTextActive,
+                      styles.scopeBtn,
+                      value === "occurrence" && styles.scopeBtnActive,
                     ]}
+                    onPress={() => onChange("occurrence")}
+                    testID="teacher-slot-scope-occurrence"
                   >
-                    Ce créneau
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.scopeBtn,
-                    value === "series" && styles.scopeBtnActive,
-                  ]}
-                  onPress={() => onChange("series")}
-                  testID="teacher-slot-scope-series"
-                >
-                  <Text
+                    <Text
+                      style={[
+                        styles.scopeBtnText,
+                        value === "occurrence" && styles.scopeBtnTextActive,
+                      ]}
+                    >
+                      Ce créneau
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     style={[
-                      styles.scopeBtnText,
-                      value === "series" && styles.scopeBtnTextActive,
+                      styles.scopeBtn,
+                      value === "series" && styles.scopeBtnActive,
                     ]}
+                    onPress={() => onChange("series")}
+                    testID="teacher-slot-scope-series"
                   >
-                    Toute la série
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-          />
+                    <Text
+                      style={[
+                        styles.scopeBtnText,
+                        value === "series" && styles.scopeBtnTextActive,
+                      ]}
+                    >
+                      Toute la série
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            />
+          </View>
+        ) : null}
+
+        {/* Teacher picker — admin mode only */}
+        {adminMode && teacherOptions.length > 0 ? (
+          <View testID="teacher-slot-admin-teacher-section">
+            <Text style={styles.fieldLabel}>Enseignant</Text>
+            <Controller
+              control={control}
+              name="teacherUserId"
+              render={({ field: { value, onChange } }) => (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.pillRow}
+                >
+                  {teacherOptions.map((opt) => (
+                    <TouchableOpacity
+                      key={opt.value}
+                      style={[
+                        styles.pill,
+                        value === opt.value && styles.pillActive,
+                      ]}
+                      onPress={() => onChange(opt.value)}
+                      testID={`teacher-slot-admin-teacher-${opt.value}`}
+                    >
+                      <Text
+                        style={[
+                          styles.pillText,
+                          value === opt.value && styles.pillTextActive,
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+            />
+          </View>
+        ) : null}
+
+        <View style={styles.fields}>
+          <View style={styles.timeRow}>
+            <View style={styles.timeField}>
+              <Text style={styles.fieldLabel}>Début</Text>
+              <Controller
+                control={control}
+                name="start"
+                render={({ field: { value, onChange, onBlur } }) => (
+                  <TimePickerField
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    title="Heure de début"
+                    placeholder="07:30"
+                    hasError={!!errors.start}
+                    testID="teacher-slot-start-input"
+                  />
+                )}
+              />
+              {errors.start ? (
+                <Text
+                  style={styles.errorText}
+                  testID="teacher-slot-start-error"
+                >
+                  {errors.start.message}
+                </Text>
+              ) : null}
+            </View>
+
+            <View style={styles.timeField}>
+              <Text style={styles.fieldLabel}>Fin</Text>
+              <Controller
+                control={control}
+                name="end"
+                render={({ field: { value, onChange, onBlur } }) => (
+                  <TimePickerField
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    title="Heure de fin"
+                    placeholder="08:20"
+                    hasError={!!errors.end}
+                    testID="teacher-slot-end-input"
+                  />
+                )}
+              />
+              {errors.end ? (
+                <Text style={styles.errorText} testID="teacher-slot-end-error">
+                  {errors.end.message}
+                </Text>
+              ) : null}
+            </View>
+
+            <View style={[styles.timeField, styles.roomField]}>
+              <Text style={styles.fieldLabel}>Salle</Text>
+              <Controller
+                control={control}
+                name="room"
+                render={({ field: { value, onChange, onBlur } }) => (
+                  <TextInput
+                    style={[styles.input, errors.room && styles.inputError]}
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder="A01"
+                    placeholderTextColor={colors.textSecondary}
+                    autoCapitalize="characters"
+                    testID="teacher-slot-room-input"
+                  />
+                )}
+              />
+              {errors.room ? (
+                <Text style={styles.errorText} testID="teacher-slot-room-error">
+                  {errors.room.message}
+                </Text>
+              ) : null}
+            </View>
+          </View>
         </View>
-      ) : null}
 
-      {/* Form fields */}
-      <View style={styles.fields}>
-        <View style={styles.timeRow}>
-          <View style={styles.timeField}>
-            <Text style={styles.fieldLabel}>Début</Text>
-            <Controller
-              control={control}
-              name="start"
-              render={({ field: { value, onChange, onBlur } }) => (
-                <TimePickerField
-                  value={value}
-                  onChange={onChange}
-                  onBlur={onBlur}
-                  title="Heure de début"
-                  placeholder="07:30"
-                  hasError={!!errors.start}
-                  testID="teacher-slot-start-input"
-                />
-              )}
-            />
-            {errors.start ? (
-              <Text style={styles.errorText} testID="teacher-slot-start-error">
-                {errors.start.message}
-              </Text>
-            ) : null}
-          </View>
-
-          <View style={styles.timeField}>
-            <Text style={styles.fieldLabel}>Fin</Text>
-            <Controller
-              control={control}
-              name="end"
-              render={({ field: { value, onChange, onBlur } }) => (
-                <TimePickerField
-                  value={value}
-                  onChange={onChange}
-                  onBlur={onBlur}
-                  title="Heure de fin"
-                  placeholder="08:20"
-                  hasError={!!errors.end}
-                  testID="teacher-slot-end-input"
-                />
-              )}
-            />
-            {errors.end ? (
-              <Text style={styles.errorText} testID="teacher-slot-end-error">
-                {errors.end.message}
-              </Text>
-            ) : null}
-          </View>
-
-          <View style={[styles.timeField, styles.roomField]}>
-            <Text style={styles.fieldLabel}>Salle</Text>
-            <Controller
-              control={control}
-              name="room"
-              render={({ field: { value, onChange, onBlur } }) => (
-                <TextInput
-                  style={[styles.input, errors.room && styles.inputError]}
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="A01"
-                  placeholderTextColor={colors.textSecondary}
-                  autoCapitalize="characters"
-                  testID="teacher-slot-room-input"
-                />
-              )}
-            />
-            {errors.room ? (
-              <Text style={styles.errorText} testID="teacher-slot-room-error">
-                {errors.room.message}
-              </Text>
-            ) : null}
-          </View>
-        </View>
-
-        {/* Save */}
-        <TouchableOpacity
-          style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]}
-          onPress={() => void onSave()}
-          disabled={isSaving}
-          testID="teacher-slot-save"
-        >
-          {isSaving ? (
-            <ActivityIndicator size="small" color={colors.white} />
-          ) : (
-            <Text style={styles.saveBtnText}>
-              {scope === "series"
-                ? "Modifier toute la série"
-                : "Enregistrer ce créneau"}
-            </Text>
-          )}
-        </TouchableOpacity>
-
-        {/* Delete actions */}
-        <View style={styles.deleteRow}>
-          <TouchableOpacity
-            style={styles.deleteBtn}
-            onPress={() => confirmDelete(false)}
-            disabled={isSaving}
-            testID="teacher-slot-delete-occurrence"
-          >
-            <Ionicons
-              name="trash-outline"
-              size={13}
-              color={colors.notification}
-            />
-            <Text style={styles.deleteBtnText}>Annuler ce créneau</Text>
-          </TouchableOpacity>
-          {isRecurring ? (
+        <View style={styles.footerBar}>
+          <View style={styles.actionsRow}>
             <TouchableOpacity
-              style={styles.deleteBtn}
-              onPress={() => confirmDelete(true)}
+              style={[styles.actionBtn, styles.actionBtnNeutral]}
+              onPress={onClose}
               disabled={isSaving}
-              testID="teacher-slot-delete-series"
+              testID="teacher-slot-edit-close"
             >
               <Ionicons
-                name="trash-outline"
-                size={13}
-                color={colors.notification}
+                name="arrow-back-outline"
+                size={15}
+                color={colors.primary}
               />
-              <Text style={styles.deleteBtnText}>Supprimer la série</Text>
+              <Text style={styles.actionBtnNeutralText}>Retour</Text>
             </TouchableOpacity>
-          ) : null}
+
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.actionBtnDanger]}
+              onPress={() => confirmDelete(targetsSeries)}
+              disabled={isSaving}
+              testID={
+                targetsSeries
+                  ? "teacher-slot-delete-series"
+                  : "teacher-slot-delete-occurrence"
+              }
+            >
+              <Ionicons name="trash-outline" size={15} color={colors.white} />
+              <Text style={styles.actionBtnDangerText}>Supprimer</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.actionBtn,
+                styles.actionBtnPrimary,
+                isSaving && styles.actionBtnDisabled,
+              ]}
+              onPress={() => void onSave()}
+              disabled={isSaving}
+              testID="teacher-slot-save"
+            >
+              {isSaving ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <>
+                  <Ionicons
+                    name="checkmark-outline"
+                    size={16}
+                    color={colors.white}
+                  />
+                  <Text style={styles.actionBtnPrimaryText}>Modifier</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </View>
@@ -427,65 +528,113 @@ export function TeacherSlotEditPanel({
 
 const styles = StyleSheet.create({
   panel: {
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: "rgba(12,95,168,0.22)",
-    backgroundColor: "#F0F6FF",
-    padding: 12,
-    gap: 10,
+    borderRadius: 24,
+    overflow: "hidden",
+    backgroundColor: "#FFF8EE",
   },
   panelHeader: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "space-between",
+  },
+  panelHeaderMain: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   panelHeaderIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    backgroundColor: "rgba(12,95,168,0.1)",
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "rgba(243,179,77,0.28)",
     alignItems: "center",
     justifyContent: "center",
   },
   panelHeaderText: { flex: 1 },
   panelTitle: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: colors.primary,
+    fontSize: 16,
+    fontWeight: "800",
+    color: colors.white,
+    textTransform: "uppercase",
   },
   panelSubtitle: {
-    fontSize: 11,
-    color: colors.textSecondary,
+    fontSize: 13,
+    color: "rgba(255,244,227,0.9)",
   },
-  closeBtn: {
-    padding: 4,
+  scopePill: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(243,179,77,0.22)",
+    borderWidth: 1,
+    borderColor: "rgba(255,244,227,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  scopePillText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#FFF4E3",
+  },
+  panelBody: {
+    backgroundColor: "#FFF9F1",
+    padding: 18,
+    gap: 14,
+  },
+  footerBar: {
+    marginHorizontal: -18,
+    marginBottom: -18,
+    marginTop: 2,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 18,
+    backgroundColor: "#F8ECDC",
+    borderTopWidth: 1,
+    borderTopColor: "#EAD8BF",
   },
   scopeRow: {
     flexDirection: "row",
-    gap: 6,
-    padding: 3,
-    borderRadius: 10,
+    gap: 8,
+    padding: 4,
+    borderRadius: 14,
     backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: "#E8D8C2",
   },
   scopeBtn: {
     flex: 1,
-    paddingVertical: 6,
-    borderRadius: 7,
+    paddingVertical: 10,
+    borderRadius: 10,
     alignItems: "center",
   },
   scopeBtnActive: {
     backgroundColor: colors.primary,
   },
   scopeBtnText: {
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
     color: colors.textSecondary,
   },
   scopeBtnTextActive: {
     color: colors.white,
   },
+  pillRow: { flexDirection: "row", gap: 6, paddingBottom: 2 },
+  pill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E0D0BA",
+    backgroundColor: colors.white,
+  },
+  pillActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  pillText: { fontSize: 12, fontWeight: "600", color: colors.textPrimary },
+  pillTextActive: { color: colors.white },
+
   fields: { gap: 10 },
   timeRow: {
     flexDirection: "row",
@@ -494,21 +643,21 @@ const styles = StyleSheet.create({
   timeField: { flex: 1 },
   roomField: { flex: 1.2 },
   fieldLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
-    color: colors.textSecondary,
+    color: "#5F5A52",
     textTransform: "uppercase",
-    letterSpacing: 0.4,
-    marginBottom: 4,
+    letterSpacing: 0.6,
+    marginBottom: 6,
   },
   input: {
-    height: 40,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "#E0D0BA",
     backgroundColor: colors.white,
-    paddingHorizontal: 10,
-    fontSize: 14,
+    paddingHorizontal: 14,
+    fontSize: 16,
     color: colors.textPrimary,
   },
   inputError: {
@@ -517,42 +666,49 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 10,
     color: colors.notification,
-    marginTop: 2,
+    marginTop: 4,
   },
-  saveBtn: {
-    height: 42,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
+  actionsRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  actionBtn: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 14,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 10,
   },
-  saveBtnDisabled: {
-    opacity: 0.6,
+  actionBtnNeutral: {
+    backgroundColor: colors.white,
+    borderWidth: 1.5,
+    borderColor: "#E8D8C2",
   },
-  saveBtnText: {
+  actionBtnDanger: {
+    backgroundColor: "#E84D5B",
+  },
+  actionBtnPrimary: {
+    backgroundColor: colors.primary,
+  },
+  actionBtnDisabled: {
+    opacity: 0.7,
+  },
+  actionBtnNeutralText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  actionBtnDangerText: {
     color: colors.white,
     fontSize: 13,
     fontWeight: "700",
   },
-  deleteRow: {
-    flexDirection: "row",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  deleteBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(239,68,68,0.3)",
-    backgroundColor: "rgba(239,68,68,0.06)",
-  },
-  deleteBtnText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: colors.notification,
+  actionBtnPrimaryText: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: "700",
   },
 });

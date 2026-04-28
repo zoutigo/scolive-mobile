@@ -78,12 +78,10 @@ export const useAuthStore = create<AuthState>((set) => ({
           isLoading: false,
           authErrorMessage: null,
         });
-        if (schoolSlug) {
-          authApi
-            .me(schoolSlug)
-            .then((user) => set({ user }))
-            .catch(() => {});
-        }
+        const fetchUser = schoolSlug
+          ? authApi.me(schoolSlug)
+          : authApi.meGlobal();
+        fetchUser.then((user) => set({ user })).catch(() => {});
         return;
       }
 
@@ -138,13 +136,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       isAuthenticated: true,
       authErrorMessage: null,
     });
-    if (response.schoolSlug) {
-      try {
-        const user = await authApi.me(response.schoolSlug);
-        set({ user });
-      } catch {
-        // user stays null; will retry on next initialize
-      }
+    try {
+      const user = response.schoolSlug
+        ? await authApi.me(response.schoolSlug)
+        : await authApi.meGlobal();
+      set({ user });
+    } catch {
+      // user stays null; home screen will handle gracefully
     }
   },
 

@@ -11,11 +11,21 @@ import { StudentHome } from "../../src/components/home/StudentHome";
 import { colors } from "../../src/theme";
 
 export default function HomeScreen() {
-  const { user, schoolSlug } = useAuthStore();
+  const { user, schoolSlug, logout } = useAuthStore();
+
+  // Si user ne charge pas dans les 8 secondes, on déconnecte proprement.
+  // Le logout doit être dans un useEffect — jamais pendant le rendu.
+  React.useEffect(() => {
+    if (user) return;
+    const t = setTimeout(() => {
+      void logout();
+    }, 8000);
+    return () => clearTimeout(t);
+  }, [user, logout]);
 
   if (!user) {
     return (
-      <View style={styles.loading}>
+      <View style={styles.loading} testID="home-loading-spinner">
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );

@@ -158,10 +158,10 @@ const SCHOOL_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
   feedItem(),
   {
-    key: "timetable",
-    label: "Emploi du temps",
-    icon: "calendar-outline",
-    route: "/timetable",
+    key: "agenda",
+    label: "Agenda",
+    icon: "calendar-number-outline",
+    route: "/agenda",
   },
   placeholder("Classes", "book-outline", "classes"),
   placeholder("Matières", "library-outline", "subjects"),
@@ -327,6 +327,10 @@ export function buildTeacherSubtitle(user: AuthUser): string | null {
   if (user.schoolName) parts.push(user.schoolName);
   if (user.referentClass?.name) parts.push(user.referentClass.name);
   return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+export function buildAdminSubtitle(user: AuthUser): string | null {
+  return user.schoolName ?? null;
 }
 
 export function getNavItems(user: AuthUser): NavItem[] {
