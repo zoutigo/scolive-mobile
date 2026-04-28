@@ -62,7 +62,9 @@ const FULL_USER: AuthUser = {
   referentClass: { name: "6eC" },
 };
 
-function setupStore(overrides: Partial<ReturnType<typeof useAuthStore.getState>> = {}) {
+function setupStore(
+  overrides: Partial<ReturnType<typeof useAuthStore.getState>> = {},
+) {
   useAuthStore.setState({
     user: null,
     accessToken: "tok",

@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -92,7 +98,9 @@ export function TeacherAgendaScreen() {
       ? buildAdminSubtitle(user)
       : buildTeacherSubtitle(user)
     : null;
-  const [activeTab, setActiveTab] = useState<AgendaTab>(admin ? "users" : "mine");
+  const [activeTab, setActiveTab] = useState<AgendaTab>(
+    admin ? "users" : "mine",
+  );
 
   return (
     <KeyboardAvoidingView
@@ -116,7 +124,10 @@ export function TeacherAgendaScreen() {
         {admin ? (
           <>
             <TouchableOpacity
-              style={[styles.tabBtn, activeTab === "users" && styles.tabBtnActive]}
+              style={[
+                styles.tabBtn,
+                activeTab === "users" && styles.tabBtnActive,
+              ]}
               onPress={() => setActiveTab("users")}
               testID={`${P}-tab-users`}
             >
@@ -130,7 +141,10 @@ export function TeacherAgendaScreen() {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.tabBtn, activeTab === "classes" && styles.tabBtnActive]}
+              style={[
+                styles.tabBtn,
+                activeTab === "classes" && styles.tabBtnActive,
+              ]}
               onPress={() => setActiveTab("classes")}
               testID={`${P}-tab-classes`}
             >
@@ -147,7 +161,10 @@ export function TeacherAgendaScreen() {
         ) : (
           <>
             <TouchableOpacity
-              style={[styles.tabBtn, activeTab === "mine" && styles.tabBtnActive]}
+              style={[
+                styles.tabBtn,
+                activeTab === "mine" && styles.tabBtnActive,
+              ]}
               onPress={() => setActiveTab("mine")}
               testID={`${P}-tab-mine`}
             >
@@ -431,9 +448,7 @@ function AdminUserAgendaPane({ insetBottom }: { insetBottom: number }) {
         setTeachers(sorted);
       })
       .catch(() =>
-        setTeacherLoadError(
-          "Impossible de charger la liste des enseignants.",
-        ),
+        setTeacherLoadError("Impossible de charger la liste des enseignants."),
       )
       .finally(() => setIsLoadingTeachers(false));
   }, [loadClassOptions, schoolSlug]);
@@ -776,7 +791,7 @@ function TeacherClassAgendaPane({
   );
 
   const classes = useMemo(
-    () => (isAdminMode ? adminClasses : classOptions?.classes ?? []),
+    () => (isAdminMode ? adminClasses : (classOptions?.classes ?? [])),
     [isAdminMode, adminClasses, classOptions?.classes],
   );
 
@@ -1069,7 +1084,10 @@ function TimetablePane({
   useEffect(() => {
     if (viewMode !== "week" || !selectedWeekCell) return;
     const id = requestAnimationFrame(() => {
-      scrollRef.current?.scrollTo({ y: weekDetailY.current - 12, animated: true });
+      scrollRef.current?.scrollTo({
+        y: weekDetailY.current - 12,
+        animated: true,
+      });
     });
     return () => cancelAnimationFrame(id);
   }, [selectedWeekCell, viewMode]);
@@ -1078,7 +1096,10 @@ function TimetablePane({
   useEffect(() => {
     if (viewMode !== "month" || !selectedMonthDate) return;
     const id = requestAnimationFrame(() => {
-      scrollRef.current?.scrollTo({ y: monthAgendaY.current - 12, animated: true });
+      scrollRef.current?.scrollTo({
+        y: monthAgendaY.current - 12,
+        animated: true,
+      });
     });
     return () => cancelAnimationFrame(id);
   }, [selectedMonthDate, viewMode]);

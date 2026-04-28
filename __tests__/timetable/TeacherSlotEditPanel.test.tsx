@@ -548,8 +548,9 @@ describe("TeacherSlotEditPanel — adminMode", () => {
   };
 
   beforeEach(() => {
-    (mockApi as jest.Mocked<typeof timetableApi>).getClassContext =
-      jest.fn().mockResolvedValue(CLASS_CTX_ADMIN);
+    (mockApi as jest.Mocked<typeof timetableApi>).getClassContext = jest
+      .fn()
+      .mockResolvedValue(CLASS_CTX_ADMIN);
   });
 
   function renderAdminPanel(occurrence = RECURRING_OCC) {
@@ -610,9 +611,7 @@ describe("TeacherSlotEditPanel — adminMode", () => {
   it("sauvegarde occurrence avec le nouvel enseignant si changé", async () => {
     renderAdminPanel();
     await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-slot-admin-teacher-t2"),
-      ).toBeTruthy(),
+      expect(screen.getByTestId("teacher-slot-admin-teacher-t2")).toBeTruthy(),
     );
     fireEvent.press(screen.getByTestId("teacher-slot-admin-teacher-t2"));
     fireEvent.press(screen.getByTestId("teacher-slot-save"));

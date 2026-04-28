@@ -97,7 +97,10 @@ export function TeacherSlotEditPanel({
   useEffect(() => {
     if (!adminMode || !classId || classId === prevClassId.current) return;
     prevClassId.current = classId;
-    timetableApi.getClassContext(schoolSlug, classId).then(setClassCtx).catch(() => {});
+    timetableApi
+      .getClassContext(schoolSlug, classId)
+      .then(setClassCtx)
+      .catch(() => {});
   }, [adminMode, classId, schoolSlug]);
 
   const {
@@ -125,7 +128,10 @@ export function TeacherSlotEditPanel({
         seen.set(a.teacherUserId, fullTeacherName(a.teacherUser));
       }
     }
-    return Array.from(seen.entries()).map(([value, label]) => ({ value, label }));
+    return Array.from(seen.entries()).map(([value, label]) => ({
+      value,
+      label,
+    }));
   }, [adminMode, classCtx]);
 
   const scope = watch("scope");

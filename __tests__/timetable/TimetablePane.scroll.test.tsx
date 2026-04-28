@@ -266,7 +266,9 @@ describe("TimetablePane — vue semaine — affichage du détail", () => {
     fireEvent.press(screen.getByTestId("teacher-agenda-mine-mode-week"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("teacher-agenda-mine-week-detail")).toBeTruthy(),
+      expect(
+        screen.getByTestId("teacher-agenda-mine-week-detail"),
+      ).toBeTruthy(),
     );
   });
 
@@ -279,7 +281,9 @@ describe("TimetablePane — vue semaine — affichage du détail", () => {
     fireEvent.press(screen.getByTestId("teacher-agenda-mine-mode-week"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("teacher-agenda-mine-week-detail")).toBeTruthy(),
+      expect(
+        screen.getByTestId("teacher-agenda-mine-week-detail"),
+      ).toBeTruthy(),
     );
 
     expect(
@@ -305,9 +309,11 @@ describe("TimetablePane — vue semaine — affichage du détail", () => {
     if (cells.length > 0) {
       fireEvent.press(cells[0]);
       await waitFor(() =>
-        expect(screen.queryByText(
-          "Sélectionnez un créneau dans le tableau pour afficher son détail.",
-        )).toBeNull(),
+        expect(
+          screen.queryByText(
+            "Sélectionnez un créneau dans le tableau pour afficher son détail.",
+          ),
+        ).toBeNull(),
       );
     }
   });
@@ -321,7 +327,9 @@ describe("TimetablePane — vue semaine — affichage du détail", () => {
     fireEvent.press(screen.getByTestId("teacher-agenda-mine-mode-week"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("teacher-agenda-mine-week-detail")).toBeTruthy(),
+      expect(
+        screen.getByTestId("teacher-agenda-mine-week-detail"),
+      ).toBeTruthy(),
     );
 
     const weekDetail = screen.getByTestId("teacher-agenda-mine-week-detail");
@@ -358,7 +366,9 @@ describe("TimetablePane — vue mois — affichage de l'agenda du jour", () => {
     fireEvent.press(screen.getByTestId("teacher-agenda-mine-mode-month"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("teacher-agenda-mine-month-agenda")).toBeTruthy(),
+      expect(
+        screen.getByTestId("teacher-agenda-mine-month-agenda"),
+      ).toBeTruthy(),
     );
   });
 
