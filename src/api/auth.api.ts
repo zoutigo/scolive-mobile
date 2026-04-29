@@ -1,4 +1,5 @@
 import { apiFetch, tokenStorage } from "./client";
+import { Platform } from "react-native";
 import type { AuthUser, LoginResponse, SsoProvider } from "../types/auth.types";
 import type {
   OnboardingCompletePayload,
@@ -65,6 +66,38 @@ export const authApi = {
     return apiFetch(`/me`, {}, true);
   },
 
+  registerPushToken(
+    schoolSlug: string,
+    payload: {
+      token: string;
+      platform: "IOS" | "ANDROID" | "UNKNOWN";
+      deviceId?: string;
+      deviceName?: string;
+      appVersion?: string;
+      projectId?: string;
+    },
+  ) {
+    return apiFetch(
+      `/schools/${schoolSlug}/me/push-tokens`,
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      true,
+    );
+  },
+
+  unregisterPushToken(schoolSlug: string, token: string) {
+    return apiFetch(
+      `/schools/${schoolSlug}/me/push-tokens`,
+      {
+        method: "DELETE",
+        body: JSON.stringify({ token }),
+      },
+      true,
+    );
+  },
+
   getOnboardingOptions(input: {
     email?: string;
     setupToken?: string;
@@ -88,3 +121,9 @@ export const authApi = {
     });
   },
 };
+
+export function mobilePushPlatform(): "IOS" | "ANDROID" | "UNKNOWN" {
+  if (Platform.OS === "ios") return "IOS";
+  if (Platform.OS === "android") return "ANDROID";
+  return "UNKNOWN";
+}

@@ -2,6 +2,10 @@ import { create } from "zustand";
 import { registerSessionExpiredHandler } from "../auth/session-events";
 import { authApi } from "../api/auth.api";
 import { tokenStorage } from "../api/client";
+import {
+  syncPushRegistration,
+  unregisterPushRegistration,
+} from "../notifications/push-registration";
 import type { AuthUser, LoginResponse } from "../types/auth.types";
 
 const STORAGE_TIMEOUT_MS = 1500;
@@ -78,6 +82,9 @@ export const useAuthStore = create<AuthState>((set) => ({
           isLoading: false,
           authErrorMessage: null,
         });
+        if (schoolSlug) {
+          void syncPushRegistration(schoolSlug).catch(() => {});
+        }
         const fetchUser = schoolSlug
           ? authApi.me(schoolSlug)
           : authApi.meGlobal();
@@ -106,6 +113,9 @@ export const useAuthStore = create<AuthState>((set) => ({
           isLoading: false,
           authErrorMessage: null,
         });
+        if (response.schoolSlug) {
+          void syncPushRegistration(response.schoolSlug).catch(() => {});
+        }
         if (response.schoolSlug) {
           authApi
             .me(response.schoolSlug)
@@ -136,6 +146,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       isAuthenticated: true,
       authErrorMessage: null,
     });
+    if (response.schoolSlug) {
+      void syncPushRegistration(response.schoolSlug).catch(() => {});
+    }
     try {
       const user = response.schoolSlug
         ? await authApi.me(response.schoolSlug)
@@ -147,6 +160,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
+    const currentSchoolSlug = useAuthStore.getState().schoolSlug;
+    await unregisterPushRegistration(currentSchoolSlug).catch(() => {});
     await authApi.logout().catch(() => {});
     set({
       user: null,
