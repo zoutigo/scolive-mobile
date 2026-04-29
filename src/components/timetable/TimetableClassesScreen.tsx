@@ -15,7 +15,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
 import { useAuthStore } from "../../store/auth.store";
 import { useTimetableStore } from "../../store/timetable.store";
-import { getViewType } from "../navigation/nav-config";
+import { buildTeacherSubtitle } from "../navigation/nav-config";
+import { ModuleHeader } from "../navigation/ModuleHeader";
+import { useDrawer } from "../navigation/AppShell";
 import {
   EmptyState,
   ErrorBanner,
@@ -27,6 +29,7 @@ import {
 export function TimetableClassesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { openDrawer } = useDrawer();
   const { schoolSlug, user } = useAuthStore();
   const {
     classOptions,
@@ -36,7 +39,6 @@ export function TimetableClassesScreen() {
     clearError,
   } = useTimetableStore();
   const [selectedSchoolYearId, setSelectedSchoolYearId] = useState("");
-  const viewType = user ? getViewType(user) : "unknown";
 
   const load = useCallback(
     async (schoolYearId?: string) => {
@@ -65,25 +67,28 @@ export function TimetableClassesScreen() {
     );
   }, [classOptions, effectiveYearId]);
 
-  const screenTitle =
-    viewType === "teacher"
-      ? "Mes agendas de classe"
-      : "Gestion des emplois du temps";
-  const screenSubtitle =
-    viewType === "teacher"
-      ? "Accès rapide aux classes enseignées. Ouvrez une classe pour consulter ou gérer son planning."
-      : "Point d'entrée mobile pour les classes, les créneaux et les fermetures d'établissement.";
+  const subtitle = user ? buildTeacherSubtitle(user) : null;
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.root}
     >
+      <ModuleHeader
+        title="Mes classes"
+        subtitle={subtitle}
+        onBack={() => router.back()}
+        rightIcon="menu-outline"
+        onRightPress={openDrawer}
+        testID="timetable-classes-header"
+        backTestID="timetable-classes-back"
+        rightTestID="timetable-classes-menu"
+      />
       <ScrollView
         style={styles.root}
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 24 },
+          { paddingTop: 8, paddingBottom: insets.bottom + 24 },
         ]}
         refreshControl={
           <RefreshControl
@@ -97,20 +102,6 @@ export function TimetableClassesScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <View style={styles.headerBadge}>
-            <Ionicons
-              name="calendar-outline"
-              size={18}
-              color={colors.primary}
-            />
-          </View>
-          <View style={styles.headerText}>
-            <Text style={styles.title}>{screenTitle}</Text>
-            <Text style={styles.subtitle}>{screenSubtitle}</Text>
-          </View>
-        </View>
-
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
         <SectionCard
@@ -214,35 +205,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     gap: 16,
-  },
-  header: {
-    flexDirection: "row",
-    gap: 12,
-    alignItems: "flex-start",
-  },
-  headerBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: `${colors.primary}12`,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-  },
-  headerText: {
-    flex: 1,
-    gap: 4,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.textSecondary,
   },
   classList: {
     gap: 10,

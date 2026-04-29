@@ -142,4 +142,40 @@ describe("ClassTimetableManagerScreen", () => {
       );
     });
   });
+
+  it("utilise le sélecteur d'heure réutilisable pour le formulaire récurrent", async () => {
+    render(<ClassTimetableManagerScreen />);
+
+    await waitFor(() => {
+      expect(mockLoadClassContext).toHaveBeenCalled();
+    });
+    fireEvent.press(screen.getByTestId("class-timetable-tab-slots"));
+    fireEvent.press(screen.getByTestId("slot-form-start"));
+    await waitFor(() =>
+      expect(screen.getByTestId("slot-form-start-modal")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("slot-form-start-hour-09"));
+    fireEvent.press(screen.getByTestId("slot-form-start-minute-15"));
+    fireEvent.press(screen.getByTestId("slot-form-start-confirm"));
+
+    fireEvent.press(screen.getByTestId("slot-form-end"));
+    await waitFor(() =>
+      expect(screen.getByTestId("slot-form-end-modal")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("slot-form-end-hour-10"));
+    fireEvent.press(screen.getByTestId("slot-form-end-minute-05"));
+    fireEvent.press(screen.getByTestId("slot-form-end-confirm"));
+    fireEvent.press(screen.getByTestId("slot-form-submit"));
+
+    await waitFor(() => {
+      expect(mockCreateRecurringSlot).toHaveBeenCalledWith(
+        "college-vogt",
+        "class-1",
+        expect.objectContaining({
+          startMinute: 555,
+          endMinute: 605,
+        }),
+      );
+    });
+  });
 });

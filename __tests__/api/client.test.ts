@@ -59,4 +59,102 @@ describe("apiFetch()", () => {
 
     expect(onExpired).not.toHaveBeenCalled();
   });
+
+  it("extrait le message texte d'un body NestJS string", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      json: async () => ({
+        message:
+          "Only class referent teacher can manage timetable for this class",
+        statusCode: 403,
+      }),
+    });
+
+    await expect(
+      apiFetch("/schools/test/timetable/slots/s1", {}, true),
+    ).rejects.toMatchObject({
+      message:
+        "Only class referent teacher can manage timetable for this class",
+      statusCode: 403,
+    });
+  });
+
+  it("joint les messages d'un tableau (NestJS class-validator)", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({
+        message: ["startMinute must be a number", "endMinute must be a number"],
+        statusCode: 400,
+      }),
+    });
+
+    await expect(
+      apiFetch("/schools/test/timetable/slots", {}, true),
+    ).rejects.toMatchObject({
+      message: "startMinute must be a number, endMinute must be a number",
+      statusCode: 400,
+    });
+  });
+
+  it("retourne un message générique 403 si body vide", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      json: async () => ({}),
+    });
+
+    await expect(
+      apiFetch("/schools/test/slots", {}, true),
+    ).rejects.toMatchObject({
+      message: "Vous n'avez pas les droits pour effectuer cette action.",
+      statusCode: 403,
+    });
+  });
+
+  it("retourne un message générique 404 si body vide", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      json: async () => ({}),
+    });
+
+    await expect(
+      apiFetch("/schools/test/unknown", {}, true),
+    ).rejects.toMatchObject({
+      message: "Ressource introuvable.",
+      statusCode: 404,
+    });
+  });
+
+  it("retourne un message générique 409 si body vide", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: async () => ({}),
+    });
+
+    await expect(
+      apiFetch("/schools/test/duplicate", {}, true),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining("Conflit"),
+      statusCode: 409,
+    });
+  });
+
+  it("retourne un message générique avec code HTTP pour les autres erreurs", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({}),
+    });
+
+    await expect(
+      apiFetch("/schools/test/crash", {}, true),
+    ).rejects.toMatchObject({
+      message: "Erreur serveur (500).",
+      statusCode: 500,
+    });
+  });
 });

@@ -42,6 +42,23 @@ describe("HomeLayout", () => {
     expect(mockReplace).toHaveBeenCalledTimes(1);
   });
 
+  it("ne relance pas la redirection sur un rerender identique", async () => {
+    mockUseAuthStore.mockReturnValue({
+      isAuthenticated: false,
+      isLoading: false,
+    } as ReturnType<typeof useAuthStore>);
+
+    const { rerender } = render(<HomeLayout />);
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(<HomeLayout />);
+
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+  });
+
   it("affiche la stack protégée si l'utilisateur est authentifié", () => {
     mockUseAuthStore.mockReturnValue({
       isAuthenticated: true,

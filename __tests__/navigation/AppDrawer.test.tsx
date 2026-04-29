@@ -179,7 +179,7 @@ describe("Items de navigation — établissement", () => {
   const expectedKeys = [
     "home",
     "feed",
-    "timetable",
+    "agenda",
     "classes",
     "subjects",
     "curriculums",

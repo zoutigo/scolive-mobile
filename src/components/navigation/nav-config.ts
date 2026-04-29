@@ -57,6 +57,15 @@ function getEffectiveRole(user: AuthUser): AppRole | null {
 }
 
 export function getViewType(user: AuthUser): ViewType {
+  // If the user explicitly chose an active role, respect it before platform defaults
+  if (user.activeRole) {
+    const active = user.activeRole;
+    if (!SCHOOL_ROLES.has(active)) return "platform";
+    if (SCHOOL_STAFF_ROLES.includes(active as SchoolRole)) return "school";
+    if (active === "TEACHER") return "teacher";
+    if (active === "PARENT") return "parent";
+    if (active === "STUDENT") return "student";
+  }
   if (user.platformRoles.length > 0) return "platform";
   const role = getEffectiveRole(user);
   if (!role || !SCHOOL_ROLES.has(role)) return "unknown";
@@ -149,10 +158,10 @@ const SCHOOL_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
   feedItem(),
   {
-    key: "timetable",
-    label: "Emploi du temps",
-    icon: "calendar-outline",
-    route: "/timetable",
+    key: "agenda",
+    label: "Agenda",
+    icon: "calendar-number-outline",
+    route: "/agenda",
   },
   placeholder("Classes", "book-outline", "classes"),
   placeholder("Matières", "library-outline", "subjects"),
@@ -186,6 +195,12 @@ const SCHOOL_NAV: NavItem[] = [
 const TEACHER_NAV: NavItem[] = [
   { key: "home", label: "Tableau de bord", icon: "home-outline", route: "/" },
   feedItem(),
+  {
+    key: "agenda",
+    label: "Agenda",
+    icon: "calendar-number-outline",
+    route: "/agenda",
+  },
   {
     key: "timetable",
     label: "Mes classes",
@@ -305,6 +320,17 @@ export function buildChildSections(
     ...child,
     navItems: buildChildNavItems(child.id),
   }));
+}
+
+export function buildTeacherSubtitle(user: AuthUser): string | null {
+  const parts: string[] = [];
+  if (user.schoolName) parts.push(user.schoolName);
+  if (user.referentClass?.name) parts.push(user.referentClass.name);
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+export function buildAdminSubtitle(user: AuthUser): string | null {
+  return user.schoolName ?? null;
 }
 
 export function getNavItems(user: AuthUser): NavItem[] {

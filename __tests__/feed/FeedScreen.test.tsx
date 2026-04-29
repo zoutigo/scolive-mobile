@@ -167,21 +167,37 @@ describe("FeedScreen", () => {
     expect(screen.getByText("RÉUNION DES PARENTS")).toBeTruthy();
   });
 
-  it("ouvre et referme la recherche", async () => {
+  it("affiche un ModuleHeader avec back et menu", async () => {
     await renderFeedScreen();
 
-    fireEvent.press(screen.getByTestId("feed-search-btn"));
-    expect(screen.getByTestId("feed-search-input")).toBeTruthy();
-
-    fireEvent.changeText(screen.getByTestId("feed-search-input"), "forum");
-    fireEvent.press(screen.getByTestId("feed-search-close"));
-    expect(screen.queryByTestId("feed-search-input")).toBeNull();
+    expect(screen.getByTestId("feed-header")).toBeTruthy();
+    expect(screen.getByTestId("feed-back-btn")).toBeTruthy();
+    expect(screen.getByTestId("feed-menu-btn")).toBeTruthy();
+    expect(screen.getByTestId("module-header-title")).toBeTruthy();
   });
 
-  it("affiche un header sans sous-titre", async () => {
+  it("n'affiche pas de sous-titre quand l'utilisateur n'a pas d'école ni de classe référente", async () => {
     await renderFeedScreen();
 
-    expect(screen.queryByText(/La vie de l'école|contexte actif/i)).toBeNull();
+    expect(screen.queryByTestId("module-header-subtitle")).toBeNull();
+  });
+
+  it("affiche un sous-titre école · classe quand l'utilisateur a les données référentes", async () => {
+    useAuthStore.setState((s) => ({
+      ...s,
+      user: s.user
+        ? {
+            ...s.user,
+            schoolName: "Collège Vogt",
+            referentClass: { name: "6eC" },
+          }
+        : null,
+    }));
+    await renderFeedScreen();
+
+    expect(screen.getByTestId("module-header-subtitle").props.children).toBe(
+      "Collège Vogt · 6eC",
+    );
   });
 
   it("affiche le menu dans le header et ouvre le drawer contextuel", async () => {
@@ -223,20 +239,6 @@ describe("FeedScreen", () => {
       expect(api.list).toHaveBeenLastCalledWith(
         "college-vogt",
         expect.objectContaining({ filter: "featured" }),
-      );
-    });
-  });
-
-  it("recherche une publication", async () => {
-    await renderFeedScreen();
-
-    fireEvent.press(screen.getByTestId("feed-search-btn"));
-    fireEvent.changeText(screen.getByTestId("feed-search-input"), "transport");
-
-    await waitFor(() => {
-      expect(api.list).toHaveBeenLastCalledWith(
-        "college-vogt",
-        expect.objectContaining({ q: "transport" }),
       );
     });
   });

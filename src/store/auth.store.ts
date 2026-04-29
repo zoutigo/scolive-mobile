@@ -2,6 +2,10 @@ import { create } from "zustand";
 import { registerSessionExpiredHandler } from "../auth/session-events";
 import { authApi } from "../api/auth.api";
 import { tokenStorage } from "../api/client";
+import {
+  syncPushRegistration,
+  unregisterPushRegistration,
+} from "../notifications/push-registration";
 import type { AuthUser, LoginResponse } from "../types/auth.types";
 
 const STORAGE_TIMEOUT_MS = 1500;
@@ -79,11 +83,12 @@ export const useAuthStore = create<AuthState>((set) => ({
           authErrorMessage: null,
         });
         if (schoolSlug) {
-          authApi
-            .me(schoolSlug)
-            .then((user) => set({ user }))
-            .catch(() => {});
+          void syncPushRegistration(schoolSlug).catch(() => {});
         }
+        const fetchUser = schoolSlug
+          ? authApi.me(schoolSlug)
+          : authApi.meGlobal();
+        fetchUser.then((user) => set({ user })).catch(() => {});
         return;
       }
 
@@ -108,6 +113,9 @@ export const useAuthStore = create<AuthState>((set) => ({
           isLoading: false,
           authErrorMessage: null,
         });
+        if (response.schoolSlug) {
+          void syncPushRegistration(response.schoolSlug).catch(() => {});
+        }
         if (response.schoolSlug) {
           authApi
             .me(response.schoolSlug)
@@ -139,16 +147,21 @@ export const useAuthStore = create<AuthState>((set) => ({
       authErrorMessage: null,
     });
     if (response.schoolSlug) {
-      try {
-        const user = await authApi.me(response.schoolSlug);
-        set({ user });
-      } catch {
-        // user stays null; will retry on next initialize
-      }
+      void syncPushRegistration(response.schoolSlug).catch(() => {});
+    }
+    try {
+      const user = response.schoolSlug
+        ? await authApi.me(response.schoolSlug)
+        : await authApi.meGlobal();
+      set({ user });
+    } catch {
+      // user stays null; home screen will handle gracefully
     }
   },
 
   logout: async () => {
+    const currentSchoolSlug = useAuthStore.getState().schoolSlug;
+    await unregisterPushRegistration(currentSchoolSlug).catch(() => {});
     await authApi.logout().catch(() => {});
     set({
       user: null,

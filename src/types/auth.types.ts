@@ -26,6 +26,8 @@ export interface AuthUser {
   activationStatus?: "PENDING" | "ACTIVE" | "SUSPENDED";
   role: AppRole | null;
   activeRole: AppRole | null;
+  schoolName?: string | null;
+  referentClass?: { name: string } | null;
 }
 
 export interface AuthTokens {

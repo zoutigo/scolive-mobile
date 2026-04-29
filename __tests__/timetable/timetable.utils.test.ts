@@ -9,6 +9,7 @@ import {
   timeLabelToMinute,
   toWeekdayMondayFirst,
 } from "../../src/utils/timetable";
+import { formatDayNavLabel } from "../../src/components/timetable/ChildTimetableScreen";
 
 describe("timetable utils", () => {
   it("convertit correctement les minutes en heure texte", () => {
@@ -294,5 +295,42 @@ describe("timetable utils", () => {
         (entry) => entry.date?.getMonth() === 3 && entry.date?.getDate() === 5,
       ),
     ).toBeTruthy();
+  });
+});
+
+describe("formatDayNavLabel", () => {
+  const TODAY = new Date("2026-04-27T12:00:00Z"); // Lundi 27 avril 2026
+  const TOMORROW = new Date("2026-04-28T12:00:00Z"); // Mardi 28 avril 2026
+  const OTHER = new Date("2026-04-15T12:00:00Z"); // Mercredi 15 avril 2026
+
+  it("affiche 'Aujourd'hui · <jour complet>' quand c'est le jour courant", () => {
+    const label = formatDayNavLabel(TODAY, TODAY);
+    expect(label).toMatch(/^Aujourd'hui · /);
+    expect(label).toMatch(/Lundi/i);
+    expect(label).toMatch(/27/);
+    expect(label).toMatch(/avr/i);
+    expect(label).toMatch(/2026/);
+  });
+
+  it("affiche le jour de la semaine capitalisé et l'année pour un autre jour", () => {
+    const label = formatDayNavLabel(TOMORROW, TODAY);
+    expect(label).not.toMatch(/Aujourd'hui/);
+    expect(label).toMatch(/^Mardi/i);
+    expect(label).toMatch(/28/);
+    expect(label).toMatch(/avr/i);
+    expect(label).toMatch(/2026/);
+  });
+
+  it("n'affiche pas 'Aujourd'hui' quand ce n'est pas le jour courant", () => {
+    const label = formatDayNavLabel(OTHER, TODAY);
+    expect(label).not.toContain("Aujourd'hui");
+    expect(label).toMatch(/15/);
+  });
+
+  it("la première lettre est toujours en majuscule", () => {
+    const labelToday = formatDayNavLabel(TODAY, TODAY);
+    const labelOther = formatDayNavLabel(TOMORROW, TODAY);
+    expect(labelToday.charAt(0)).toBe(labelToday.charAt(0).toUpperCase());
+    expect(labelOther.charAt(0)).toBe(labelOther.charAt(0).toUpperCase());
   });
 });

@@ -12,12 +12,17 @@ import { useNotesStore } from "../../src/store/notes.store";
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
 const mockPush = jest.fn();
+const mockBack = jest.fn();
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, back: mockBack }),
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+
+jest.mock("../../src/components/navigation/AppShell", () => ({
+  useDrawer: () => ({ openDrawer: jest.fn(), closeDrawer: jest.fn() }),
 }));
 
 describe("NotesClassesScreen", () => {
@@ -100,15 +105,53 @@ describe("NotesClassesScreen", () => {
     } as never);
   });
 
-  it("affiche un header primaire et les classes accessibles", async () => {
+  it("affiche le ModuleHeader avec back, menu et titre", async () => {
     render(<NotesClassesScreen />);
     await waitFor(() => expect(screen.getByText("6e A")).toBeTruthy());
 
     expect(screen.getByTestId("notes-classes-header")).toBeTruthy();
+    expect(screen.getByTestId("notes-classes-back")).toBeTruthy();
     expect(screen.getByTestId("notes-classes-menu-btn")).toBeTruthy();
-    expect(screen.getByText("Cahier de notes")).toBeTruthy();
+    expect(screen.getByTestId("module-header-title")).toBeTruthy();
     expect(screen.getByText("6e A")).toBeTruthy();
     expect(screen.getByText("Mathématiques")).toBeTruthy();
+  });
+
+  it("n'affiche pas de sous-titre quand l'utilisateur n'a pas de schoolName", async () => {
+    render(<NotesClassesScreen />);
+    await waitFor(() => expect(screen.getByText("6e A")).toBeTruthy());
+
+    expect(screen.queryByTestId("module-header-subtitle")).toBeNull();
+  });
+
+  it("affiche le sous-titre école · classe quand l'utilisateur a les données", async () => {
+    useAuthStore.setState((s) => ({
+      ...s,
+      user: s.user
+        ? {
+            ...s.user,
+            schoolName: "Collège Vogt",
+            referentClass: { name: "6eC" },
+          }
+        : null,
+    }));
+    render(<NotesClassesScreen />);
+    await waitFor(() => expect(screen.getByText("6e A")).toBeTruthy());
+
+    expect(screen.getByTestId("module-header-subtitle").props.children).toBe(
+      "Collège Vogt · 6eC",
+    );
+  });
+
+  it("le bouton retour appelle router.back()", async () => {
+    render(<NotesClassesScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId("notes-classes-back")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("notes-classes-back"));
+
+    expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
   it("navigue vers le gestionnaire de classe", async () => {

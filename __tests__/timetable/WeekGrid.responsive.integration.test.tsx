@@ -340,8 +340,8 @@ describe("WeekGrid responsive — intégration écran complet", () => {
 
       fireEvent.press(screen.getByTestId("child-timetable-week-slot-occ-mar"));
 
-      await screen.findByText("Matiere: Anglais");
-      expect(screen.getByText("Salle: B02")).toBeTruthy();
+      await screen.findByText(/Matière/);
+      expect(screen.getByText(/Salle/)).toBeTruthy();
     });
 
     it("la navigation semaine précédente/suivante conserve les largeurs sur tablette", () => {

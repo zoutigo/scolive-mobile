@@ -2,11 +2,13 @@ import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { useAuthStore } from "../src/store/auth.store";
 import { SuccessToastHost } from "../src/components/feedback/SuccessToastHost";
+import { configurePushNotifications } from "../src/notifications/push-registration";
 
 export default function RootLayout() {
   const initialize = useAuthStore((s) => s.initialize);
 
   useEffect(() => {
+    configurePushNotifications();
     initialize();
   }, [initialize]);
 
