@@ -1,18 +1,29 @@
 import Constants from "expo-constants";
 import * as Device from "expo-device";
-import * as Notifications from "expo-notifications";
+import type * as NotificationsType from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
 import { authApi, mobilePushPlatform } from "../api/auth.api";
 
 const PUSH_TOKEN_KEY = "scolive_push_token";
 let notificationsConfigured = false;
 
+// Remote push notifications are unavailable in Expo Go since SDK 53.
+// expo-notifications initializes push token registration at module load time,
+// which throws on Android in Expo Go. We load it lazily to avoid the crash.
+function isRunningInExpoGo() {
+  return Constants.appOwnership === "expo";
+}
+
+function getNotifications(): typeof NotificationsType {
+  return require("expo-notifications");
+}
+
 export function configurePushNotifications() {
-  if (notificationsConfigured) {
+  if (isRunningInExpoGo() || notificationsConfigured) {
     return;
   }
 
-  Notifications.setNotificationHandler({
+  getNotifications().setNotificationHandler({
     handleNotification: async () => ({
       shouldShowBanner: true,
       shouldShowList: true,
@@ -46,11 +57,17 @@ function resolveProjectId() {
 }
 
 async function ensureExpoPushToken() {
+  if (isRunningInExpoGo()) {
+    return null;
+  }
+
   configurePushNotifications();
 
   if (!Device.isDevice) {
     return null;
   }
+
+  const Notifications = getNotifications();
 
   const permissions = await Notifications.getPermissionsAsync();
   let status = permissions.status;
