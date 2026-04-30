@@ -2,14 +2,14 @@ import React, { useState, useCallback, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
 import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
+import { useTeacherClassNavStore } from "../../store/teacher-class-nav.store";
 import { colors } from "../../theme";
 import { AppHeader } from "./AppHeader";
 import { AppDrawer } from "./AppDrawer";
 import {
-  getNavItems,
   getRoleLabel,
   getViewType,
-  buildChildSections,
+  buildDrawerNavigationConfig,
 } from "./nav-config";
 import { DrawerContext } from "./drawer-context";
 
@@ -28,12 +28,18 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
     loadChildren,
     clearChildren,
   } = useFamilyStore();
+  const {
+    classOptions: teacherClassOptions,
+    isLoadingClassOptions: isLoadingTeacherClassOptions,
+    errorMessage: teacherClassNavError,
+    loadClassOptions: loadTeacherClassOptions,
+    reset: resetTeacherClassNav,
+  } = useTeacherClassNavStore();
 
   const openDrawer = useCallback(() => setIsDrawerOpen(true), []);
   const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
 
   const viewType = user ? getViewType(user) : "unknown";
-  const navItems = user ? getNavItems(user) : [];
 
   const userFullName = user ? `${user.firstName} ${user.lastName}` : "";
   const userInitials = user
@@ -50,8 +56,20 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
     }
   }, [viewType, schoolSlug, loadChildren, clearChildren]);
 
-  const childSections =
-    viewType === "parent" ? buildChildSections(familyChildren) : undefined;
+  useEffect(() => {
+    if (viewType === "teacher" && schoolSlug) {
+      void loadTeacherClassOptions(schoolSlug).catch(() => {});
+    } else {
+      resetTeacherClassNav();
+    }
+  }, [viewType, schoolSlug, loadTeacherClassOptions, resetTeacherClassNav]);
+
+  const { navItems, childSections, teacherClassSections } =
+    buildDrawerNavigationConfig({
+      user,
+      familyChildren,
+      teacherClasses: teacherClassOptions?.classes ?? [],
+    });
 
   return (
     <DrawerContext.Provider value={{ openDrawer, closeDrawer, isDrawerOpen }}>
@@ -63,6 +81,14 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
           onClose={closeDrawer}
           navItems={navItems}
           childSections={childSections}
+          teacherClassSections={teacherClassSections}
+          isTeacherClassNavEnabled={viewType === "teacher"}
+          isLoadingTeacherClassSections={
+            viewType === "teacher" && isLoadingTeacherClassOptions
+          }
+          teacherClassSectionsError={
+            viewType === "teacher" ? teacherClassNavError : null
+          }
           userFullName={userFullName}
           userInitials={userInitials}
           userRole={userRole}

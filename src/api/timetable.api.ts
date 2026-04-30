@@ -1,13 +1,10 @@
 import { apiFetch } from "./client";
-import {
-  buildDefaultDateRange,
-  buildTimetableClassOptions,
-} from "../utils/timetable";
+import { buildDefaultDateRange } from "../utils/timetable";
+import { teacherClassNavApi } from "./teacher-class-nav.api";
 import type {
   ClassTimetableContextResponse,
   ClassTimetableResponse,
   MyTimetableResponse,
-  TimetableClassOptionsContext,
   TimetableClassOptionsResponse,
   TimetableCalendarEvent,
   TimetableOneOffSlot,
@@ -54,16 +51,7 @@ export const timetableApi = {
     schoolSlug: string,
     schoolYearId?: string,
   ): Promise<TimetableClassOptionsResponse> {
-    const payload = await apiFetch<TimetableClassOptionsContext>(
-      `/schools/${schoolSlug}/student-grades/context${toQuery({ schoolYearId })}`,
-      {},
-      true,
-    );
-    return {
-      schoolYears: payload.schoolYears,
-      selectedSchoolYearId: payload.selectedSchoolYearId,
-      classes: buildTimetableClassOptions(payload),
-    };
+    return teacherClassNavApi.getClassOptions(schoolSlug, schoolYearId);
   },
 
   async getAdminClassList(

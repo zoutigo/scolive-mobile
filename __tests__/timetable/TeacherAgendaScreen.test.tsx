@@ -6,7 +6,10 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { useWindowDimensions } from "react-native";
-import { TeacherAgendaScreen } from "../../src/components/timetable/TeacherAgendaScreen";
+import {
+  TeacherAgendaScreen,
+  TeacherAgendaScreenInner,
+} from "../../src/components/timetable/TeacherAgendaScreen";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useTimetableStore } from "../../src/store/timetable.store";
 import { timetableApi } from "../../src/api/timetable.api";
@@ -592,6 +595,92 @@ describe("TeacherAgendaScreen — onglet Mes classes", () => {
       expect(screen.getByText("Aucune classe accessible")).toBeTruthy(),
     );
   });
+
+  it("en mode classe verrouillée, ouvre directement l'onglet Mes classes", async () => {
+    render(
+      <TeacherAgendaScreenInner
+        initialTab="classes"
+        lockedClassId="class-6eC"
+        lockedClassName="6eC"
+        hideClassPicker
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-agenda-class-day-list")).toBeTruthy(),
+    );
+    expect(screen.queryByTestId("teacher-agenda-mine-pane")).toBeNull();
+  });
+
+  it("en mode classe verrouillée, affiche le sous-titre de la classe ouverte", async () => {
+    render(
+      <TeacherAgendaScreenInner
+        lockedClassId="class-6eC"
+        lockedClassName="6eC"
+        hideClassPicker
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-agenda-class-day-list")).toBeTruthy(),
+    );
+    expect(screen.getByTestId("module-header-subtitle").props.children).toBe(
+      "Collège Vogt · 6eC",
+    );
+  });
+
+  it("en mode classe verrouillée, affiche l'onglet contextualisé en premier", async () => {
+    render(
+      <TeacherAgendaScreenInner
+        lockedClassId="class-6eC"
+        lockedClassName="6eC"
+        hideClassPicker
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-agenda-class-day-list")).toBeTruthy(),
+    );
+    expect(screen.getByText("Agenda 6eC")).toBeTruthy();
+    expect(screen.getByTestId("teacher-agenda-tab-classes")).toBeTruthy();
+    expect(screen.getByTestId("teacher-agenda-tab-mine")).toBeTruthy();
+    expect(screen.queryByText("Mes classes")).toBeNull();
+  });
+
+  it("en mode classe verrouillée, masque le filtre de classe", async () => {
+    render(
+      <TeacherAgendaScreenInner
+        initialTab="classes"
+        lockedClassId="class-6eC"
+        lockedClassName="6eC"
+        hideClassPicker
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-agenda-class-day-list")).toBeTruthy(),
+    );
+    expect(screen.queryByTestId("teacher-agenda-class-picker")).toBeNull();
+  });
+
+  it("en mode classe verrouillée, charge l'agenda de la classe imposée", async () => {
+    render(
+      <TeacherAgendaScreenInner
+        initialTab="classes"
+        lockedClassId="class-5eB"
+        lockedClassName="5eB"
+        hideClassPicker
+      />,
+    );
+
+    await waitFor(() =>
+      expect(mockLoadClassTimetable).toHaveBeenCalledWith(
+        "college-vogt",
+        "class-5eB",
+        expect.any(Object),
+      ),
+    );
+  });
 });
 
 // ── Tests d'intégration ────────────────────────────────────────────────────
@@ -615,7 +704,6 @@ describe("TeacherAgendaScreen — intégration state & navigation", () => {
     await waitFor(() =>
       expect(screen.getByTestId("teacher-agenda-class-picker")).toBeTruthy(),
     );
-    // L'onglet classes commence en vue Jour
     await waitFor(() =>
       expect(screen.getByTestId("teacher-agenda-class-day-list")).toBeTruthy(),
     );
@@ -633,7 +721,6 @@ describe("TeacherAgendaScreen — intégration state & navigation", () => {
     await waitFor(() =>
       expect(screen.getByTestId("teacher-agenda-mine-pane")).toBeTruthy(),
     );
-    // Mine revient en jour (unmount/remount)
     expect(screen.getByTestId("teacher-agenda-mine-day-list")).toBeTruthy();
   });
 

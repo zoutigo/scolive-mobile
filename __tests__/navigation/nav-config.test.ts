@@ -2,6 +2,14 @@ import {
   getViewType,
   getRoleLabel,
   buildTeacherSubtitle,
+  buildTeacherClassItems,
+  buildTeacherClassSections,
+  buildTeacherClassFeedTarget,
+  buildTeacherClassNotesTarget,
+  buildTeacherClassDisciplineTarget,
+  buildTeacherClassTimetableTarget,
+  buildTeacherClassHomeworkTarget,
+  buildDrawerNavigationConfig,
 } from "../../src/components/navigation/nav-config";
 import type { AuthUser } from "../../src/types/auth.types";
 
@@ -183,5 +191,164 @@ describe("getRoleLabel", () => {
   it("retourne une chaîne vide si aucun rôle n'est défini", () => {
     const user = makeUser({});
     expect(getRoleLabel(user)).toBe("");
+  });
+});
+
+describe("teacher class navigation model", () => {
+  it("construit les 5 sous-modules attendus pour une classe enseignant", () => {
+    expect(buildTeacherClassItems("class-1")).toEqual([
+      {
+        key: "teacher-class-class-1-feed",
+        label: "Fil de classe",
+        icon: "newspaper-outline",
+        route: "/(home)/classes/[classId]/feed",
+        params: { classId: "class-1" },
+      },
+      {
+        key: "teacher-class-class-1-notes",
+        label: "Notes",
+        icon: "journal-outline",
+        route: "/(home)/classes/[classId]/notes",
+        params: { classId: "class-1" },
+      },
+      {
+        key: "teacher-class-class-1-discipline",
+        label: "Discipline",
+        icon: "shield-outline",
+        route: "/(home)/classes/[classId]/discipline",
+        params: { classId: "class-1" },
+      },
+      {
+        key: "teacher-class-class-1-timetable",
+        label: "Emploi du temps",
+        icon: "calendar-outline",
+        route: "/(home)/classes/[classId]/timetable",
+        params: { classId: "class-1" },
+      },
+      {
+        key: "teacher-class-class-1-homework",
+        label: "Devoirs",
+        icon: "document-text-outline",
+        route: "/(home)/classes/[classId]/homework",
+        params: { classId: "class-1" },
+      },
+    ]);
+  });
+
+  it("enveloppe une liste de classes dans des sections prêtes pour le drawer", () => {
+    const sections = buildTeacherClassSections([
+      {
+        classId: "class-1",
+        className: "6e C",
+        schoolYearId: "sy1",
+        schoolYearLabel: "2025-2026",
+        subjects: [{ id: "math", name: "Mathématiques" }],
+        studentCount: 12,
+      },
+    ]);
+
+    expect(sections).toHaveLength(1);
+    expect(sections[0]).toMatchObject({
+      classId: "class-1",
+      className: "6e C",
+      schoolYearId: "sy1",
+    });
+    expect(sections[0].navItems.map((item) => item.label)).toEqual([
+      "Fil de classe",
+      "Notes",
+      "Discipline",
+      "Emploi du temps",
+      "Devoirs",
+    ]);
+  });
+
+  it("expose les route builders cibles pour les modules de classe", () => {
+    expect(buildTeacherClassFeedTarget("class-1")).toEqual({
+      pathname: "/(home)/classes/[classId]/feed",
+      params: { classId: "class-1" },
+    });
+    expect(buildTeacherClassNotesTarget("class-1")).toEqual({
+      pathname: "/(home)/classes/[classId]/notes",
+      params: { classId: "class-1" },
+    });
+    expect(buildTeacherClassDisciplineTarget("class-1")).toEqual({
+      pathname: "/(home)/classes/[classId]/discipline",
+      params: { classId: "class-1" },
+    });
+    expect(buildTeacherClassTimetableTarget("class-1")).toEqual({
+      pathname: "/(home)/classes/[classId]/timetable",
+      params: { classId: "class-1" },
+    });
+    expect(buildTeacherClassHomeworkTarget("class-1")).toEqual({
+      pathname: "/(home)/classes/[classId]/homework",
+      params: { classId: "class-1" },
+    });
+  });
+});
+
+describe("buildDrawerNavigationConfig", () => {
+  it("conserve la navigation générale enseignant tout en préparant les sections par classe", () => {
+    const teacherUser = makeUser({
+      role: "TEACHER",
+      activeRole: "TEACHER",
+      memberships: [{ schoolId: "s1", role: "TEACHER" }],
+    });
+
+    const config = buildDrawerNavigationConfig({
+      user: teacherUser,
+      teacherClasses: [
+        {
+          classId: "class-1",
+          className: "6e C",
+          schoolYearId: "sy1",
+          schoolYearLabel: "2025-2026",
+          subjects: [{ id: "math", name: "Mathématiques" }],
+          studentCount: 12,
+        },
+      ],
+    });
+
+    expect(config.navItems.map((item) => item.key)).toEqual([
+      "home",
+      "feed",
+      "agenda",
+      "timetable",
+      "gradebook",
+      "discipline",
+      "messages",
+      "account",
+    ]);
+    expect(config.teacherClassSections).toHaveLength(1);
+    expect(config.childSections).toBeUndefined();
+  });
+
+  it("réutilise les sections enfant pour un parent", () => {
+    const parentUser = makeUser({
+      role: "PARENT",
+      activeRole: "PARENT",
+      memberships: [{ schoolId: "s1", role: "PARENT" }],
+    });
+
+    const config = buildDrawerNavigationConfig({
+      user: parentUser,
+      familyChildren: [
+        {
+          id: "child-1",
+          firstName: "Lisa",
+          lastName: "Ntamack",
+        },
+      ],
+    });
+
+    expect(config.childSections).toHaveLength(1);
+    expect(config.teacherClassSections).toBeUndefined();
+  });
+
+  it("retourne une config vide sans utilisateur", () => {
+    expect(
+      buildDrawerNavigationConfig({
+        user: null,
+      }),
+    ).toEqual({ navItems: [] });
   });
 });

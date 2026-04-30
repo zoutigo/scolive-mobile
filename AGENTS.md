@@ -25,6 +25,293 @@ l'instruction explicite de l'utilisateur avant tout `git commit` ou `git push`.
 - [x] Faire tourner les validations locales ciblées puis la vérification complète
 - [x] Réaligner l'UI parent/enfant `Notes` sur la version web small-screen (`Eval`, `Moy`, `Graph`)
 
+## TODO — Navigation enseignant par classe
+
+Objectif produit :
+
+- reproduire sur mobile la logique web de sous-menu par classe pour les enseignants
+- faire de chaque classe un contexte de navigation autonome dans le drawer
+- exposer sous chaque classe les modules :
+  - `Fil de classe`
+  - `Notes`
+  - `Discipline`
+  - `Emploi du temps`
+  - `Devoirs`
+- brancher en priorité les modules déjà existants côté mobile (`Notes`, `Emploi du temps`)
+- harmoniser ensuite les headers, tabs et parcours des modules de classe
+
+Ordre d'exécution obligatoire :
+
+- ne pas commencer par refaire `Notes`
+- commencer par la fondation navigation + données de classes enseignant
+- seulement ensuite brancher les modules classe un par un
+
+### Phase 1 — Source de données des classes enseignant
+
+- [x] Recenser la source de données mobile la plus fiable pour lister les classes accessibles à l'enseignant
+- [x] Vérifier si la source actuelle de `TimetableClassesScreen` ou `NotesClassesScreen` peut être réutilisée sans couplage fort au métier d'écran
+- [x] Si nécessaire, créer une source canonique dédiée à la navigation enseignant (store léger, sélecteur ou helper)
+- [x] Standardiser le payload minimal attendu pour le drawer :
+  - `classId`
+  - `className`
+  - `schoolYearId`
+  - `schoolYearLabel` si utile pour debug ou affichage
+  - permissions/modules disponibles si nécessaires plus tard
+- [x] Documenter clairement dans le code quelle source est désormais la référence pour les classes enseignant
+
+Source canonique retenue :
+
+- endpoint backend : `/schools/${schoolSlug}/student-grades/context`
+- normalisation unique : `buildTimetableClassOptions(...)`
+- API partagée de référence : `src/api/teacher-class-nav.api.ts`
+- store neutre prêt pour le drawer : `src/store/teacher-class-nav.store.ts`
+- `notesApi.getClassOptions(...)` et `timetableApi.getClassOptions(...)` doivent déléguer vers cette source au lieu de la réimplémenter
+
+### Phase 2 — Modèle de navigation contextuelle par classe
+
+- [x] Figer la structure de sous-menu enseignant par classe, alignée web :
+  - `Fil de classe`
+  - `Notes`
+  - `Discipline`
+  - `Emploi du temps`
+  - `Devoirs`
+- [x] Définir le mapping de routes mobile cible pour chaque entrée
+- [x] Prévoir une structure stable de type `buildTeacherClassItems(classId)` dans `nav-config`
+- [x] Prévoir dès cette étape le marquage actif par route courante pour chaque sous-item
+
+Contrat de navigation retenu :
+
+- helpers de routes :
+  - `buildTeacherClassFeedTarget(classId)`
+  - `buildTeacherClassNotesTarget(classId)`
+  - `buildTeacherClassDisciplineTarget(classId)`
+  - `buildTeacherClassTimetableTarget(classId)`
+  - `buildTeacherClassHomeworkTarget(classId)`
+- fabrique des items :
+  - `buildTeacherClassItems(classId)`
+- structure de sections prête pour le drawer :
+  - `buildTeacherClassSections(classes)`
+- routes mobiles cibles :
+  - `/(home)/classes/[classId]/feed`
+  - `/(home)/classes/[classId]/notes`
+  - `/(home)/classes/[classId]/discipline`
+  - `/(home)/classes/[classId]/timetable`
+  - `/(home)/classes/[classId]/homework`
+
+### Phase 3 — Extension de `nav-config`
+
+- [x] Ajouter dans `src/components/navigation/nav-config.ts` une fabrique d'items de navigation par classe enseignant
+- [x] Réutiliser autant que possible la logique de sections déjà existante côté parent/enfant
+- [x] Conserver temporairement la navigation générale enseignant existante (`Mes classes`, `Cahier de notes`, etc.) pour éviter une régression brutale
+- [x] Préparer la coexistence entre :
+  - navigation générale enseignant
+  - sections contextuelles par classe
+
+Convention de coexistence retenue :
+
+- la navigation générale continue d'être fournie par `getNavItems(user)`
+- les sections contextuelles restent construites séparément :
+  - `buildChildSections(children)` pour les parents
+  - `buildTeacherClassSections(classes)` pour les enseignants
+- un agrégateur unique prépare désormais le modèle du drawer :
+  - `buildDrawerNavigationConfig({ user, familyChildren, teacherClasses })`
+- tant que la phase 4 n'est pas livrée, le drawer enseignant conserve son menu général existant
+- l'intégration visible des sections enseignant dans `AppDrawer` sera faite uniquement en phase 4
+
+### Phase 4 — Intégration des classes enseignant dans `AppDrawer`
+
+- [x] Modifier `src/components/navigation/AppDrawer.tsx` pour afficher les classes de l'enseignant sous forme de sections dédiées
+- [x] Faire apparaître une section par classe, par exemple `6eC`
+- [x] Sous chaque classe, afficher les sous-modules contextuels
+- [x] Rendre l'UX proche du web :
+  - section classe identifiable immédiatement
+  - ouverture/fermeture claire
+  - item actif visuellement distingué
+- [x] Veiller à ce que le drawer reste performant même avec plusieurs classes
+
+Livraison phase 4 :
+
+- `AppShell` charge désormais les classes enseignant via `useTeacherClassNavStore`
+- `AppDrawer` accepte et rend `teacherClassSections`
+- le drawer enseignant affiche maintenant :
+  - une section `Menu enseignant`
+  - une section par classe comme `6eC`
+  - les sous-modules contextuels de chaque classe
+- les routes dynamiques de classe sont prises en compte dans la détection d'item actif
+
+### Phase 5 — Gestion d'état du drawer pour les sections classe
+
+- [x] Ajouter l'état d'ouverture/fermeture des sections enseignant par classe
+- [x] Définir la règle d'ouverture par défaut :
+  - classe active ouverte automatiquement
+  - autres classes fermées ou selon meilleur compromis UX
+- [x] Gérer proprement le cas où aucune classe n'est disponible
+- [x] Gérer proprement les états :
+  - chargement
+  - erreur
+  - vide
+- [x] Ajouter le calcul de l'item actif selon `pathname`
+
+Comportement retenu :
+
+- si la route active correspond à un sous-module de classe, la section de cette classe s'ouvre automatiquement
+- sinon le drawer enseignant s'ouvre sur `Menu enseignant`
+- les classes non actives restent repliées
+- le drawer enseignant affiche désormais des états dédiés :
+  - `drawer-teacher-classes-loading`
+  - `drawer-teacher-classes-error`
+  - `drawer-teacher-classes-empty`
+
+### Phase 6 — Convention de routing contextuel par classe
+
+- [x] Définir une convention cible de routes de classe cohérente
+- [x] Recommandation à suivre autant que possible :
+  - `/(home)/classes/[classId]/feed`
+  - `/(home)/classes/[classId]/notes`
+  - `/(home)/classes/[classId]/discipline`
+  - `/(home)/classes/[classId]/timetable`
+  - `/(home)/classes/[classId]/homework`
+- [x] Décider quelles routes existantes peuvent être conservées comme alias internes ou points d'entrée transitoires
+- [x] Éviter les duplications inutiles entre routes globales et routes contextuelles
+- [x] S'assurer que le `classId` reste toujours le contexte principal
+
+Décision de transition :
+
+- `/(home)/classes/[classId]/notes` réutilise `ClassNotesManagerScreen`
+- `/(home)/classes/[classId]/timetable` réutilise `ClassTimetableManagerScreen`
+- les anciennes routes globales restent disponibles comme points d'entrée transitoires :
+  - `/(home)/notes/class/[classId]`
+  - `/(home)/timetable/class/[classId]`
+- `feed`, `discipline` et `homework` disposent désormais de vraies routes contextuelles de classe, même si leur métier complet sera branché dans les phases dédiées
+
+### Phase 7 — Branchement prioritaire des modules déjà existants
+
+- [ ] Brancher `Notes` depuis le sous-menu de classe vers son écran de classe mobile
+- [ ] Brancher `Emploi du temps` depuis le sous-menu de classe vers l'écran agenda/emploi du temps déjà existant
+- [ ] Vérifier que ces deux entrées n'obligent plus l'enseignant à repasser par un écran global de sélection de classe
+- [ ] Préserver temporairement les écrans globaux existants pour éviter les régressions de parcours
+
+### Phase 8 — Refonte du module `Notes` dans son contexte classe
+
+- [ ] Réutiliser le moteur existant du module `Notes`, sans le réécrire depuis zéro
+- [ ] Faire de l'entrée `classe > Notes` le parcours enseignant principal
+- [ ] Refondre le header avec `ModuleHeader`
+- [ ] Remplacer la navigation interne actuelle par de vrais top tabs visuellement alignés avec les autres modules mobiles
+- [ ] Revoir la hiérarchie visuelle du module :
+  - liste des évaluations
+  - création / édition
+  - saisie des notes
+  - conseil / appréciations
+  - aide si elle reste pertinente
+- [ ] Améliorer les états :
+  - chargement
+  - vide
+  - erreur
+  - retour visuel métier
+- [ ] Vérifier les écarts fonctionnels avec le web et les combler si nécessaire
+
+### Phase 9 — Harmonisation du module `Emploi du temps`
+
+- [ ] Brancher l'entrée drawer `Emploi du temps` sur le bon écran de classe
+- [ ] Harmoniser le libellé mobile avec l'attendu produit web (`Emploi du temps`) tout en conservant une terminologie interne cohérente si l'écran parle encore d'agenda
+- [ ] Aligner le header de l'écran avec les autres modules de classe
+- [ ] Vérifier la cohérence visuelle et ergonomique avec `Notes`
+- [ ] Vérifier les permissions enseignant / établissement déjà en place
+
+### Phase 10 — Module `Fil de classe`
+
+- [ ] Vérifier si un écran mobile enseignant de fil de classe par classe existe déjà
+- [ ] Si oui, le raccorder à la navigation contextuelle par classe
+- [ ] Si non, créer une route mobile de classe dédiée au `Fil de classe`
+- [ ] Prévoir un header cohérent, un contexte `classId` clair et les états standards
+- [ ] Garantir que l'ouverture depuis le drawer mène directement au fil de la bonne classe
+
+### Phase 11 — Module `Discipline`
+
+- [ ] Vérifier l'existence réelle du module `Discipline` côté mobile
+- [ ] Si le module existe, le brancher à la navigation contextuelle par classe
+- [ ] S'il n'existe pas encore, créer au minimum une route contextuelle propre et une structure prête à recevoir le métier
+- [ ] Éviter un placeholder brut sans contexte de classe
+- [ ] Prévoir la visibilité correcte selon rôle et permissions
+
+### Phase 12 — Module `Devoirs`
+
+- [ ] Vérifier l'existence réelle du module `Devoirs` côté mobile
+- [ ] Si le module existe, le brancher à la navigation contextuelle par classe
+- [ ] S'il n'existe pas encore, créer une route contextuelle propre et préparée pour l'implémentation future
+- [ ] Prévoir un header homogène avec les autres modules de classe
+- [ ] Prévoir les états standard même si le métier est livré plus tard
+
+### Phase 13 — Harmonisation visuelle transversale des modules de classe
+
+- [ ] Définir une grammaire UI commune à tous les modules de classe
+- [ ] Standardiser :
+  - `ModuleHeader`
+  - sous-titre contextuel avec nom de classe
+  - bouton menu
+  - top tabs si sous-vues
+  - pull-to-refresh
+  - états vides / erreurs / chargement
+  - testIDs cohérents
+- [ ] Veiller à ce que `Notes`, `Emploi du temps`, `Fil de classe`, `Discipline` et `Devoirs` paraissent appartenir au même système
+
+### Phase 14 — Tests unitaires
+
+- [ ] Ajouter les tests unitaires de la logique de navigation par classe
+- [ ] Couvrir :
+  - fabrique `buildTeacherClassItems(...)`
+  - mapping des routes
+  - détection d'item actif
+  - comportement des sections de classes
+- [ ] Compléter si nécessaire les tests unitaires `notes` et `timetable` touchés par le refactor
+
+### Phase 15 — Tests fonctionnels
+
+- [ ] Ajouter les tests fonctionnels du drawer enseignant avec sections par classe
+- [ ] Vérifier :
+  - affichage des classes
+  - ouverture d'une section classe
+  - présence des sous-modules
+  - navigation au clic
+  - état actif visuel
+- [ ] Ajouter les tests fonctionnels des écrans modules classe mis à jour :
+  - `Notes`
+  - `Emploi du temps`
+  - `Fil de classe`
+  - `Discipline`
+  - `Devoirs` si applicable
+
+### Phase 16 — Tests d'intégration
+
+- [ ] Ajouter des tests d'intégration du parcours complet enseignant
+- [ ] Couvrir les scénarios :
+  - ouverture du drawer
+  - sélection d'une classe
+  - entrée dans un sous-module
+  - propagation correcte du `classId`
+  - chargement des bonnes données
+- [ ] Ajouter une couverture d'intégration spécifique au parcours `classe > Notes`
+- [ ] Ajouter une couverture d'intégration spécifique au parcours `classe > Emploi du temps`
+
+### Phase 17 — Validation finale
+
+- [ ] Exécuter les validations ciblées navigation / notes / timetable
+- [ ] Exécuter ensuite la suite qualité complète :
+  - `npm run format`
+  - `npm run format:check`
+  - `npm run lint`
+  - `npm run typecheck`
+  - `npm run test`
+- [ ] Vérifier que les parcours parent/enfant et enseignant existants n'ont pas régressé
+
+### Règle de reprise par un autre agent
+
+- toujours reprendre depuis la première case non cochée
+- ne pas commencer par `Notes` tant que la navigation par classe n'est pas en place
+- brancher d'abord la structure de navigation, puis les modules déjà existants
+- traiter `Discipline` et `Devoirs` après `Notes` et `Emploi du temps`
+- si le contexte est coupé, relire cette section avant toute modification
+
 ## Comportement clavier Android — règle absolue
 
 `android:windowSoftInputMode="adjustPan"` est configuré dans `android/app/src/main/AndroidManifest.xml`.

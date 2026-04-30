@@ -14,7 +14,11 @@ import { useRouter, usePathname } from "expo-router";
 import { colors } from "../../theme";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { useFamilyStore } from "../../store/family.store";
-import type { NavItem, ParentChildSection } from "./nav-config";
+import type {
+  NavItem,
+  ParentChildSection,
+  TeacherClassSection,
+} from "./nav-config";
 
 const DRAWER_WIDTH = 288;
 const BAR_HEIGHT = 56;
@@ -26,6 +30,11 @@ interface AppDrawerProps {
   navItems: NavItem[];
   /** Sections enfants — uniquement pour le rôle PARENT */
   childSections?: ParentChildSection[];
+  /** Sections classes — uniquement pour le rôle TEACHER */
+  teacherClassSections?: TeacherClassSection[];
+  isTeacherClassNavEnabled?: boolean;
+  isLoadingTeacherClassSections?: boolean;
+  teacherClassSectionsError?: string | null;
   userFullName: string;
   userInitials: string;
   userRole: string;
@@ -37,6 +46,10 @@ export function AppDrawer({
   onClose,
   navItems,
   childSections,
+  teacherClassSections,
+  isTeacherClassNavEnabled = false,
+  isLoadingTeacherClassSections = false,
+  teacherClassSectionsError = null,
   userFullName,
   userInitials,
   userRole,
@@ -48,7 +61,9 @@ export function AppDrawer({
 
   const [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false);
   const { activeChildId, setActiveChild } = useFamilyStore();
-  // "general" = section parent ouverte ; "child-{id}" = section enfant ouverte
+  // "general" = section menu principal ouverte
+  // "child-{id}" = section enfant ouverte
+  // "teacher-class-{id}" = section classe enseignant ouverte
   const [openSection, setOpenSection] = useState<string>(
     activeChildId ? `child-${activeChildId}` : "general",
   );
@@ -59,11 +74,31 @@ export function AppDrawer({
   const pathname = usePathname();
 
   const hasChildren = (childSections?.length ?? 0) > 0;
+  const hasTeacherClasses = (teacherClassSections?.length ?? 0) > 0;
+  const hasTeacherDrawerMode =
+    isTeacherClassNavEnabled ||
+    hasTeacherClasses ||
+    isLoadingTeacherClassSections ||
+    Boolean(teacherClassSectionsError);
 
   // Synchronise la section ouverte quand l'enfant actif change dans le store
   useEffect(() => {
-    setOpenSection(activeChildId ? `child-${activeChildId}` : "general");
-  }, [activeChildId]);
+    if (hasChildren) {
+      setOpenSection(activeChildId ? `child-${activeChildId}` : "general");
+    }
+  }, [activeChildId, hasChildren]);
+
+  useEffect(() => {
+    if (!hasTeacherClasses) return;
+    const matchingSection = teacherClassSections?.find((section) =>
+      section.navItems.some((item) => isItemActive(item)),
+    );
+    if (matchingSection) {
+      setOpenSection(`teacher-class-${matchingSection.classId}`);
+      return;
+    }
+    setOpenSection("general");
+  }, [hasTeacherClasses, pathname, teacherClassSections]);
 
   useEffect(() => {
     if (isOpen) {
@@ -114,6 +149,16 @@ export function AppDrawer({
     }, 120);
   };
 
+  const resolveItemRoute = (item: NavItem) => {
+    if (!item.params) return item.route;
+    return Object.entries(item.params).reduce(
+      (route, [key, value]) => route.replace(`[${key}]`, value),
+      item.route,
+    );
+  };
+
+  const normalizeRoute = (route: string) => route.replace("/(home)", "");
+
   const isItemActive = (item: NavItem): boolean => {
     if (item.key === "home" || item.key.endsWith("-home")) {
       return pathname === "/" || pathname === "/index" || pathname === "";
@@ -121,7 +166,14 @@ export function AppDrawer({
     if (!item.route || item.route === "/placeholder") {
       return false;
     }
-    return pathname === item.route || pathname.startsWith(`${item.route}/`);
+    const normalizedPathname = normalizeRoute(pathname);
+    const candidates = [item.route, resolveItemRoute(item)].map(normalizeRoute);
+
+    return candidates.some(
+      (route) =>
+        normalizedPathname === route ||
+        normalizedPathname.startsWith(`${route}/`),
+    );
   };
 
   function initials(firstName: string, lastName: string): string {
@@ -273,6 +325,131 @@ export function AppDrawer({
 
                     {isOpen &&
                       child.navItems.map((item) => {
+                        const active = isItemActive(item);
+                        return (
+                          <NavRow
+                            key={item.key}
+                            item={item}
+                            active={active}
+                            onPress={handleNavPress}
+                            indented
+                          />
+                        );
+                      })}
+                  </View>
+                );
+              })}
+            </>
+          ) : hasTeacherDrawerMode ? (
+            <>
+              <TouchableOpacity
+                style={[
+                  styles.sectionHeader,
+                  openSection === "general" && styles.sectionHeaderActive,
+                ]}
+                onPress={() => setOpenSection("general")}
+                activeOpacity={0.7}
+                testID="drawer-section-teacher-general"
+              >
+                <Ionicons
+                  name="school-outline"
+                  size={16}
+                  color={colors.warmAccent}
+                />
+                <Text style={styles.sectionHeaderText}>Menu enseignant</Text>
+                <Ionicons
+                  name={
+                    openSection === "general"
+                      ? "chevron-down"
+                      : "chevron-forward"
+                  }
+                  size={14}
+                  color="rgba(255,255,255,0.4)"
+                />
+              </TouchableOpacity>
+
+              {openSection === "general" &&
+                navItems.map((item) => {
+                  const active = isItemActive(item);
+                  return (
+                    <NavRow
+                      key={item.key}
+                      item={item}
+                      active={active}
+                      onPress={handleNavPress}
+                      indented
+                    />
+                  );
+                })}
+
+              {isLoadingTeacherClassSections ? (
+                <Text
+                  style={styles.inlineStateText}
+                  testID="drawer-teacher-classes-loading"
+                >
+                  Chargement des classes...
+                </Text>
+              ) : null}
+
+              {!isLoadingTeacherClassSections && teacherClassSectionsError ? (
+                <Text
+                  style={styles.inlineStateError}
+                  testID="drawer-teacher-classes-error"
+                >
+                  {teacherClassSectionsError}
+                </Text>
+              ) : null}
+
+              {!isLoadingTeacherClassSections &&
+              !teacherClassSectionsError &&
+              !hasTeacherClasses ? (
+                <Text
+                  style={styles.inlineStateText}
+                  testID="drawer-teacher-classes-empty"
+                >
+                  Aucune classe accessible pour ce profil.
+                </Text>
+              ) : null}
+
+              {teacherClassSections?.map((section) => {
+                const sectionKey = `teacher-class-${section.classId}`;
+                const isOpen = openSection === sectionKey;
+
+                return (
+                  <View key={section.classId}>
+                    <TouchableOpacity
+                      style={[
+                        styles.sectionHeader,
+                        isOpen && styles.sectionHeaderActive,
+                      ]}
+                      onPress={() => setOpenSection(sectionKey)}
+                      activeOpacity={0.7}
+                      testID={`drawer-section-teacher-class-${section.classId}`}
+                    >
+                      <View
+                        style={[
+                          styles.childAvatar,
+                          isOpen && styles.childAvatarActive,
+                        ]}
+                      >
+                        <Ionicons
+                          name="school-outline"
+                          size={14}
+                          color={isOpen ? colors.primary : colors.warmAccent}
+                        />
+                      </View>
+                      <Text style={styles.sectionHeaderText} numberOfLines={1}>
+                        {section.className}
+                      </Text>
+                      <Ionicons
+                        name={isOpen ? "chevron-down" : "chevron-forward"}
+                        size={14}
+                        color="rgba(255,255,255,0.4)"
+                      />
+                    </TouchableOpacity>
+
+                    {isOpen &&
+                      section.navItems.map((item) => {
                         const active = isItemActive(item);
                         return (
                           <NavRow
@@ -516,6 +693,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   navLabelActive: { color: colors.white, fontWeight: "600" },
+  inlineStateText: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 13,
+    lineHeight: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  inlineStateError: {
+    color: "#FFD7D3",
+    fontSize: 13,
+    lineHeight: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
   activeBar: {
     position: "absolute",
     left: 0,
