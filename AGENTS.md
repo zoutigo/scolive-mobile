@@ -186,53 +186,102 @@ Décision de transition :
 
 ### Phase 7 — Branchement prioritaire des modules déjà existants
 
-- [ ] Brancher `Notes` depuis le sous-menu de classe vers son écran de classe mobile
-- [ ] Brancher `Emploi du temps` depuis le sous-menu de classe vers l'écran agenda/emploi du temps déjà existant
-- [ ] Vérifier que ces deux entrées n'obligent plus l'enseignant à repasser par un écran global de sélection de classe
-- [ ] Préserver temporairement les écrans globaux existants pour éviter les régressions de parcours
+- [x] Brancher `Notes` depuis le sous-menu de classe vers son écran de classe mobile
+- [x] Brancher `Emploi du temps` depuis le sous-menu de classe vers l'écran agenda/emploi du temps déjà existant
+- [x] Vérifier que ces deux entrées n'obligent plus l'enseignant à repasser par un écran global de sélection de classe
+- [x] Préserver temporairement les écrans globaux existants pour éviter les régressions de parcours
+
+Livraison phase 7 :
+
+- `/(home)/classes/[classId]/notes` ouvre directement `ClassNotesManagerScreen`
+- `/(home)/classes/[classId]/timetable` ouvre l'agenda enseignant contextualisé via `TeacherAgendaScreenInner`
+- l'enseignant accède désormais à `Notes` et `Emploi du temps` depuis une classe sans repasser par un sélecteur global
+- les anciens points d'entrée globaux restent disponibles comme parcours transitoires
 
 ### Phase 8 — Refonte du module `Notes` dans son contexte classe
 
-- [ ] Réutiliser le moteur existant du module `Notes`, sans le réécrire depuis zéro
-- [ ] Faire de l'entrée `classe > Notes` le parcours enseignant principal
-- [ ] Refondre le header avec `ModuleHeader`
-- [ ] Remplacer la navigation interne actuelle par de vrais top tabs visuellement alignés avec les autres modules mobiles
-- [ ] Revoir la hiérarchie visuelle du module :
+- [x] Réutiliser le moteur existant du module `Notes`, sans le réécrire depuis zéro
+- [x] Garantir que l'entrée `classe > Notes` donne directement accès au module `Notes` / `Evaluations` de la classe courante
+- [x] Refondre le header avec `ModuleHeader`
+- [x] Remplacer la navigation interne actuelle par de vrais top tabs visuellement alignés avec les autres modules mobiles
+- [x] Revoir la hiérarchie visuelle du module :
   - liste des évaluations
   - création / édition
   - saisie des notes
   - conseil / appréciations
   - aide si elle reste pertinente
-- [ ] Améliorer les états :
+- [x] Améliorer les états :
   - chargement
   - vide
   - erreur
   - retour visuel métier
 - [ ] Vérifier les écarts fonctionnels avec le web et les combler si nécessaire
 
+Livraison phase 8 :
+
+- le module `Notes` / `Evaluations` mobile enseignant a été amélioré dans son contexte classe sans réécriture du moteur métier
+- l'entrée contextuelle d'une classe ouvre directement le cahier de notes de cette classe
+- le module utilise `ModuleHeader`, des top tabs dédiés et les retours visuels globaux `success/error`
+- il reste à vérifier les derniers écarts fonctionnels ou UX avec le web si de nouveaux cas produit apparaissent
+
 ### Phase 9 — Harmonisation du module `Emploi du temps`
 
-- [ ] Brancher l'entrée drawer `Emploi du temps` sur le bon écran de classe
-- [ ] Harmoniser le libellé mobile avec l'attendu produit web (`Emploi du temps`) tout en conservant une terminologie interne cohérente si l'écran parle encore d'agenda
-- [ ] Aligner le header de l'écran avec les autres modules de classe
+- [x] Brancher l'entrée drawer `Emploi du temps` sur le bon écran de classe
+- [x] Harmoniser le libellé mobile avec l'attendu produit web (`Emploi du temps`) tout en conservant une terminologie interne cohérente si l'écran parle encore d'agenda
+- [x] Aligner le header de l'écran avec les autres modules de classe
 - [ ] Vérifier la cohérence visuelle et ergonomique avec `Notes`
 - [ ] Vérifier les permissions enseignant / établissement déjà en place
 
+Livraison phase 9 :
+
+- la sous-route `classe > Emploi du temps` ouvre toujours le moteur `Agenda` existant, mais expose désormais un libellé produit `Emploi du temps`
+- le header et l'onglet verrouillé de la vue de classe utilisent maintenant ce libellé côté enseignant
+
 ### Phase 10 — Module `Fil de classe`
 
-- [ ] Vérifier si un écran mobile enseignant de fil de classe par classe existe déjà
-- [ ] Si oui, le raccorder à la navigation contextuelle par classe
-- [ ] Si non, créer une route mobile de classe dédiée au `Fil de classe`
-- [ ] Prévoir un header cohérent, un contexte `classId` clair et les états standards
-- [ ] Garantir que l'ouverture depuis le drawer mène directement au fil de la bonne classe
+- [x] Réutiliser le moteur de `Fil de classe` déjà utilisé dans les parcours de classe existants
+- [x] Raccorder ce moteur à la navigation contextuelle enseignant par classe
+- [x] Garantir que le flux métier reste le même que celui vu dans la classe côté élève, avec adaptations d'actions selon le rôle
+- [x] Prévoir un header cohérent, un contexte `classId` clair et les états standards
+- [x] Garantir que l'ouverture depuis le drawer mène directement au fil de la bonne classe
+
+Livraison phase 10 :
+
+- `/(home)/classes/[classId]/feed` n'est plus un placeholder
+- la route enseignant charge le même fil métier de classe (`viewScope: CLASS`, `classId` courant) que les autres parcours de classe
+- la publication depuis cet écran est forcée sur la classe courante pour éviter tout décalage de contexte
 
 ### Phase 11 — Module `Discipline`
 
-- [ ] Vérifier l'existence réelle du module `Discipline` côté mobile
-- [ ] Si le module existe, le brancher à la navigation contextuelle par classe
-- [ ] S'il n'existe pas encore, créer au minimum une route contextuelle propre et une structure prête à recevoir le métier
-- [ ] Éviter un placeholder brut sans contexte de classe
-- [ ] Prévoir la visibilité correcte selon rôle et permissions
+- [x] Vérifier l'existence réelle du module `Discipline` côté mobile
+- [x] Si le module existe, le brancher à la navigation contextuelle par classe
+- [x] Réutiliser les briques existantes `discipline` et `vie scolaire` au lieu de dupliquer le métier
+- [x] Remplacer le placeholder par une vraie route contextuelle de classe avec `classId`
+- [x] Prévoir la visibilité correcte selon rôle et permissions
+
+Livraison phase 11 :
+
+- `/(home)/classes/[classId]/discipline` ouvre maintenant un vrai écran enseignant contextualisé par classe
+- l'écran expose deux tabs type messagerie :
+  - `Événements`
+  - `Carnets`
+- `Événements` :
+  - charge et agrège les événements de discipline de tous les élèves de la classe
+  - trie du plus récent au plus ancien
+  - propose un filtre élève via liste déroulante
+  - conserve les actions `modifier/supprimer` selon permissions :
+    - auteur
+    - professeur référent
+    - rôles puissants établissement
+  - propose un FAB de création
+- le formulaire enseignant utilise désormais `react-hook-form` + `zodResolver`
+- le brouillon de création est persisté en Zustand par `classId`
+- `Carnets` réutilise la vue synthèse vie scolaire de l'élève au lieu de la réécrire
+- factorisations livrées :
+  - `DisciplineSummaryOverview`
+  - `UnderlineTabs`
+  - `StudentSelectField`
+  - extension de `DisciplineList` avec infinite scroll
 
 ### Phase 12 — Module `Devoirs`
 

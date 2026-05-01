@@ -18,6 +18,8 @@ export default function TeacherClassTimetableRoute() {
         lockedClassId={classId}
         lockedClassName={lockedClassName ?? undefined}
         hideClassPicker
+        headerTitle="Emploi du temps"
+        lockedClassTabLabel="Emploi du temps"
       />
     </AppShell>
   );

@@ -96,6 +96,8 @@ type TeacherAgendaScreenProps = {
   lockedClassId?: string;
   lockedClassName?: string;
   hideClassPicker?: boolean;
+  headerTitle?: string;
+  lockedClassTabLabel?: string;
 };
 
 export function TeacherAgendaScreenInner({
@@ -103,6 +105,8 @@ export function TeacherAgendaScreenInner({
   lockedClassId,
   lockedClassName,
   hideClassPicker = false,
+  headerTitle = "Agenda",
+  lockedClassTabLabel,
 }: TeacherAgendaScreenProps = {}) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -117,9 +121,9 @@ export function TeacherAgendaScreenInner({
         ? [user.schoolName, lockedClassName].filter(Boolean).join(" · ") || null
         : buildTeacherSubtitle(user)
     : null;
-  const classTabLabel = lockedClassName
-    ? `Agenda ${lockedClassName}`
-    : "Agenda de classe";
+  const classTabLabel =
+    lockedClassTabLabel ??
+    (lockedClassName ? `Agenda ${lockedClassName}` : "Agenda de classe");
   const [activeTab, setActiveTab] = useState<AgendaTab>(
     isLockedClassView ? "classes" : (initialTab ?? (admin ? "users" : "mine")),
   );
@@ -130,7 +134,7 @@ export function TeacherAgendaScreenInner({
       style={styles.root}
     >
       <ModuleHeader
-        title="Agenda"
+        title={headerTitle}
         subtitle={subtitle}
         onBack={() => router.back()}
         rightIcon="menu-outline"

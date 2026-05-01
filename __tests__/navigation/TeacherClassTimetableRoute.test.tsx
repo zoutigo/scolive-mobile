@@ -44,11 +44,15 @@ jest.mock("../../src/components/timetable/TeacherAgendaScreen", () => ({
     lockedClassId,
     lockedClassName,
     hideClassPicker,
+    headerTitle,
+    lockedClassTabLabel,
   }: {
     initialTab?: string;
     lockedClassId?: string;
     lockedClassName?: string;
     hideClassPicker?: boolean;
+    headerTitle?: string;
+    lockedClassTabLabel?: string;
   }) => {
     const { Text } = require("react-native");
     return (
@@ -57,6 +61,8 @@ jest.mock("../../src/components/timetable/TeacherAgendaScreen", () => ({
         <Text>{lockedClassId ?? "no-class"}</Text>
         <Text>{lockedClassName ?? "no-class-name"}</Text>
         <Text>{hideClassPicker ? "hide-picker" : "show-picker"}</Text>
+        <Text>{headerTitle ?? "no-header-title"}</Text>
+        <Text>{lockedClassTabLabel ?? "no-class-tab-label"}</Text>
       </>
     );
   },
@@ -71,5 +77,6 @@ describe("TeacherClassTimetableRoute", () => {
     expect(screen.getByText("class-6eC")).toBeTruthy();
     expect(screen.getByText("6eC")).toBeTruthy();
     expect(screen.getByText("hide-picker")).toBeTruthy();
+    expect(screen.getAllByText("Emploi du temps")).toHaveLength(2);
   });
 });
