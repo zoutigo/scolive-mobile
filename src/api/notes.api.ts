@@ -226,6 +226,18 @@ export const notesApi = {
     );
   },
 
+  deleteEvaluation(
+    schoolSlug: string,
+    classId: string,
+    evaluationId: string,
+  ): Promise<void> {
+    return apiFetch(
+      `/schools/${schoolSlug}/classes/${classId}/evaluations/${evaluationId}`,
+      { method: "DELETE" },
+      true,
+    );
+  },
+
   async uploadAttachment(
     schoolSlug: string,
     file: {
