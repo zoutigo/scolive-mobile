@@ -227,7 +227,7 @@ describe("teacher class navigation model", () => {
       },
       {
         key: "teacher-class-class-1-homework",
-        label: "Devoirs",
+        label: "Homework",
         icon: "document-text-outline",
         route: "/(home)/classes/[classId]/homework",
         params: { classId: "class-1" },
@@ -258,7 +258,7 @@ describe("teacher class navigation model", () => {
       "Notes",
       "Discipline",
       "Emploi du temps",
-      "Devoirs",
+      "Homework",
     ]);
   });
 

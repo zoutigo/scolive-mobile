@@ -36,7 +36,7 @@ Objectif produit :
   - `Notes`
   - `Discipline`
   - `Emploi du temps`
-  - `Devoirs`
+  - `Homework`
 - brancher en priorité les modules déjà existants côté mobile (`Notes`, `Emploi du temps`)
 - harmoniser ensuite les headers, tabs et parcours des modules de classe
 
@@ -74,7 +74,7 @@ Source canonique retenue :
   - `Notes`
   - `Discipline`
   - `Emploi du temps`
-  - `Devoirs`
+  - `Homework`
 - [x] Définir le mapping de routes mobile cible pour chaque entrée
 - [x] Prévoir une structure stable de type `buildTeacherClassItems(classId)` dans `nav-config`
 - [x] Prévoir dès cette étape le marquage actif par route courante pour chaque sous-item
@@ -283,9 +283,10 @@ Livraison phase 11 :
   - `StudentSelectField`
   - extension de `DisciplineList` avec infinite scroll
 
-### Phase 12 — Module `Devoirs`
+### Phase 12 — Module `Homework`
 
-- [ ] Vérifier l'existence réelle du module `Devoirs` côté mobile
+- Prochaine étape produit maintenant que `Discipline` est livrée
+- [ ] Vérifier l'existence réelle du module `Homework` côté mobile
 - [ ] Si le module existe, le brancher à la navigation contextuelle par classe
 - [ ] S'il n'existe pas encore, créer une route contextuelle propre et préparée pour l'implémentation future
 - [ ] Prévoir un header homogène avec les autres modules de classe
@@ -302,7 +303,7 @@ Livraison phase 11 :
   - pull-to-refresh
   - états vides / erreurs / chargement
   - testIDs cohérents
-- [ ] Veiller à ce que `Notes`, `Emploi du temps`, `Fil de classe`, `Discipline` et `Devoirs` paraissent appartenir au même système
+- [ ] Veiller à ce que `Notes`, `Emploi du temps`, `Fil de classe`, `Discipline` et `Homework` paraissent appartenir au même système
 
 ### Phase 14 — Tests unitaires
 
@@ -328,7 +329,7 @@ Livraison phase 11 :
   - `Emploi du temps`
   - `Fil de classe`
   - `Discipline`
-  - `Devoirs` si applicable
+  - `Homework` si applicable
 
 ### Phase 16 — Tests d'intégration
 
@@ -358,7 +359,9 @@ Livraison phase 11 :
 - toujours reprendre depuis la première case non cochée
 - ne pas commencer par `Notes` tant que la navigation par classe n'est pas en place
 - brancher d'abord la structure de navigation, puis les modules déjà existants
-- traiter `Discipline` et `Devoirs` après `Notes` et `Emploi du temps`
+- `Discipline` est désormais livrée
+- prochaine brique produit à traiter : `Homework`
+- après `Homework`, enchaîner sur harmonisation visuelle puis tests
 - si le contexte est coupé, relire cette section avant toute modification
 
 ## Comportement clavier Android — règle absolue

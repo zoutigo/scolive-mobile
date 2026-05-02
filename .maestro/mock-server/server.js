@@ -433,6 +433,9 @@ const MOCK_PARENT_ME = {
       firstName: "Remi",
       lastName: "Ntamack",
       avatarUrl: null,
+      currentEnrollment: {
+        class: { id: "class-6a", name: "6e A" },
+      },
     },
   ],
 };

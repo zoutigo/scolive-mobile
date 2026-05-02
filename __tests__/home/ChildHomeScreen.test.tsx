@@ -241,4 +241,35 @@ describe("ChildHomeScreen", () => {
     fireEvent.press(screen.getByTestId("child-home-menu"));
     expect(mockOpenDrawer).toHaveBeenCalledTimes(1);
   });
+
+  it("affiche le lien Devoirs quand l'enfant a une classe et navigue vers le bon écran", async () => {
+    render(<ChildHomeScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("child-home-link-homework")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("child-home-link-homework"));
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/classes/[classId]/homework",
+      params: { classId: "class-1", childId: "child-1" },
+    });
+  });
+
+  it("n'affiche pas le lien Devoirs quand l'enfant n'a pas de classe connue", async () => {
+    useFamilyStore.setState({
+      children: [{ id: "child-1", firstName: "Remi", lastName: "Ntamack" }],
+      activeChildId: null,
+      isLoading: false,
+    });
+    mockTimetableApi.getMyTimetable.mockRejectedValue(new Error("not found"));
+
+    render(<ChildHomeScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("child-home-links-card")).toBeTruthy();
+    });
+
+    expect(screen.queryByTestId("child-home-link-homework")).toBeNull();
+  });
 });

@@ -30,6 +30,10 @@ interface Props {
   pageSize?: number;
 }
 
+function DisciplineSeparator() {
+  return <View style={styles.separator} />;
+}
+
 export function DisciplineList({
   events,
   isLoading = false,
@@ -56,7 +60,8 @@ export function DisciplineList({
   );
 
   React.useEffect(() => {
-    setVisibleCount(Math.min(pageSize, events.length));
+    const nextCount = Math.min(pageSize, events.length);
+    setVisibleCount((current) => (current === nextCount ? current : nextCount));
   }, [eventIdsKey, events.length, pageSize]);
 
   if (isLoading && events.length === 0) {
@@ -105,14 +110,16 @@ export function DisciplineList({
       refreshing={isRefreshing}
       onLoadMore={() => {
         setVisibleCount((current) =>
-          Math.min(current + pageSize, events.length),
+          current >= events.length
+            ? current
+            : Math.min(current + pageSize, events.length),
         );
       }}
       hasMore={hasMore}
       emptyComponent={null}
       contentContainerStyle={styles.content}
       testID={testID ?? "discipline-list"}
-      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      ItemSeparatorComponent={DisciplineSeparator}
       endOfListLabel="Tous les événements ont été chargés"
       refreshControl={
         onRefresh ? (

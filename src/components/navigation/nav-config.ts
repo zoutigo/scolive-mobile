@@ -19,6 +19,16 @@ export function buildChildHomeTarget(childId: string) {
   } as const;
 }
 
+export function buildChildHomeworkTarget(childId: string, classId: string) {
+  return {
+    pathname: "/(home)/classes/[classId]/homework",
+    params: {
+      classId,
+      childId,
+    },
+  } as const;
+}
+
 export function buildTeacherClassFeedTarget(classId: string) {
   return {
     pathname: "/(home)/classes/[classId]/feed",
@@ -296,7 +306,7 @@ const PARENT_NAV: NavItem[] = [
 
 const STUDENT_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
-  placeholder("Notes & devoirs", "ribbon-outline", "grades"),
+  placeholder("Notes & homework", "ribbon-outline", "grades"),
   {
     key: "messages",
     label: "Messagerie",
@@ -307,7 +317,10 @@ const STUDENT_NAV: NavItem[] = [
   accountItem(),
 ];
 
-export function buildChildNavItems(childId: string): NavItem[] {
+export function buildChildNavItems(child: ParentChild): NavItem[] {
+  const childId = child.id;
+  const classId = child.classId ?? child.currentEnrollment?.class?.id ?? null;
+
   return [
     {
       key: `child-${childId}-home`,
@@ -323,6 +336,17 @@ export function buildChildNavItems(childId: string): NavItem[] {
       route: "/(home)/notes/child/[childId]",
       params: { childId },
     },
+    ...(classId
+      ? [
+          {
+            key: `child-${childId}-homework`,
+            label: "Homework",
+            icon: "document-text-outline",
+            route: buildChildHomeworkTarget(childId, classId).pathname,
+            params: buildChildHomeworkTarget(childId, classId).params,
+          } satisfies NavItem,
+        ]
+      : []),
     {
       key: `child-${childId}-schedule`,
       label: "Emploi du temps",
@@ -364,7 +388,7 @@ export function buildChildSections(
 ): ParentChildSection[] {
   return children.map((child) => ({
     ...child,
-    navItems: buildChildNavItems(child.id),
+    navItems: buildChildNavItems(child),
   }));
 }
 
@@ -400,7 +424,7 @@ export function buildTeacherClassItems(classId: string): NavItem[] {
     },
     {
       key: `teacher-class-${classId}-homework`,
-      label: "Devoirs",
+      label: "Homework",
       icon: "document-text-outline",
       route: buildTeacherClassHomeworkTarget(classId).pathname,
       params: buildTeacherClassHomeworkTarget(classId).params,

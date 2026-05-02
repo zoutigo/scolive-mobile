@@ -70,15 +70,32 @@ export function EmptyState(props: {
   );
 }
 
-export function ErrorBanner({ message }: { message: string }) {
+export function ErrorBanner({
+  message,
+  onDismiss,
+  testID,
+}: {
+  message: string;
+  onDismiss?: () => void;
+  testID?: string;
+}) {
   return (
-    <View style={styles.errorBanner}>
+    <View style={styles.errorBanner} testID={testID}>
       <Ionicons
         name="alert-circle-outline"
         size={16}
         color={colors.warmAccent}
       />
       <Text style={styles.errorText}>{message}</Text>
+      {onDismiss ? (
+        <TouchableOpacity
+          onPress={onDismiss}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          testID={testID ? `${testID}-dismiss` : undefined}
+        >
+          <Ionicons name="close" size={16} color={colors.textSecondary} />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }

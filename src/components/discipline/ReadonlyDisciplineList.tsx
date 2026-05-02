@@ -8,6 +8,10 @@ import { LifeEventCard } from "./LifeEventCard";
 
 const DEFAULT_PAGE_SIZE = 8;
 
+function DisciplineSeparator() {
+  return <View style={styles.separator} />;
+}
+
 interface Props {
   events: StudentLifeEvent[];
   isLoading?: boolean;
@@ -40,7 +44,8 @@ export function ReadonlyDisciplineList({
   );
 
   React.useEffect(() => {
-    setVisibleCount(Math.min(pageSize, events.length));
+    const nextCount = Math.min(pageSize, events.length);
+    setVisibleCount((current) => (current === nextCount ? current : nextCount));
   }, [eventIdsKey, events.length, pageSize]);
 
   if (isLoading && events.length === 0) {
@@ -63,7 +68,9 @@ export function ReadonlyDisciplineList({
       refreshing={isRefreshing}
       onLoadMore={() => {
         setVisibleCount((current) =>
-          Math.min(current + pageSize, events.length),
+          current >= events.length
+            ? current
+            : Math.min(current + pageSize, events.length),
         );
       }}
       hasMore={hasMore}
@@ -81,7 +88,7 @@ export function ReadonlyDisciplineList({
         </View>
       }
       contentContainerStyle={styles.content}
-      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      ItemSeparatorComponent={DisciplineSeparator}
       testID={testID ?? "discipline-list"}
       endOfListLabel="Tous les événements ont été chargés"
     />
