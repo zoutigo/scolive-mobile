@@ -88,18 +88,44 @@ function isSchoolAdmin(user: AuthUser | null): boolean {
 // ─── Main exported screen ────────────────────────────────────────────────────
 
 export function TeacherAgendaScreen() {
+  return <TeacherAgendaScreenInner />;
+}
+
+type TeacherAgendaScreenProps = {
+  initialTab?: AgendaTab;
+  lockedClassId?: string;
+  lockedClassName?: string;
+  hideClassPicker?: boolean;
+  headerTitle?: string;
+  lockedClassTabLabel?: string;
+};
+
+export function TeacherAgendaScreenInner({
+  initialTab,
+  lockedClassId,
+  lockedClassName,
+  hideClassPicker = false,
+  headerTitle = "Agenda",
+  lockedClassTabLabel,
+}: TeacherAgendaScreenProps = {}) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { openDrawer } = useDrawer();
   const { user } = useAuthStore();
   const admin = isSchoolAdmin(user);
+  const isLockedClassView = !admin && Boolean(lockedClassId);
   const subtitle = user
     ? admin
       ? buildAdminSubtitle(user)
-      : buildTeacherSubtitle(user)
+      : isLockedClassView
+        ? [user.schoolName, lockedClassName].filter(Boolean).join(" · ") || null
+        : buildTeacherSubtitle(user)
     : null;
+  const classTabLabel =
+    lockedClassTabLabel ??
+    (lockedClassName ? `Agenda ${lockedClassName}` : "Agenda de classe");
   const [activeTab, setActiveTab] = useState<AgendaTab>(
-    admin ? "users" : "mine",
+    isLockedClassView ? "classes" : (initialTab ?? (admin ? "users" : "mine")),
   );
 
   return (
@@ -108,7 +134,7 @@ export function TeacherAgendaScreen() {
       style={styles.root}
     >
       <ModuleHeader
-        title="Agenda"
+        title={headerTitle}
         subtitle={subtitle}
         onBack={() => router.back()}
         rightIcon="menu-outline"
@@ -160,40 +186,81 @@ export function TeacherAgendaScreen() {
           </>
         ) : (
           <>
-            <TouchableOpacity
-              style={[
-                styles.tabBtn,
-                activeTab === "mine" && styles.tabBtnActive,
-              ]}
-              onPress={() => setActiveTab("mine")}
-              testID={`${P}-tab-mine`}
-            >
-              <Text
-                style={[
-                  styles.tabBtnText,
-                  activeTab === "mine" && styles.tabBtnTextActive,
-                ]}
-              >
-                Mon agenda
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.tabBtn,
-                activeTab === "classes" && styles.tabBtnActive,
-              ]}
-              onPress={() => setActiveTab("classes")}
-              testID={`${P}-tab-classes`}
-            >
-              <Text
-                style={[
-                  styles.tabBtnText,
-                  activeTab === "classes" && styles.tabBtnTextActive,
-                ]}
-              >
-                Mes classes
-              </Text>
-            </TouchableOpacity>
+            {isLockedClassView ? (
+              <>
+                <TouchableOpacity
+                  style={[
+                    styles.tabBtn,
+                    activeTab === "classes" && styles.tabBtnActive,
+                  ]}
+                  onPress={() => setActiveTab("classes")}
+                  testID={`${P}-tab-classes`}
+                >
+                  <Text
+                    style={[
+                      styles.tabBtnText,
+                      activeTab === "classes" && styles.tabBtnTextActive,
+                    ]}
+                  >
+                    {classTabLabel}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.tabBtn,
+                    activeTab === "mine" && styles.tabBtnActive,
+                  ]}
+                  onPress={() => setActiveTab("mine")}
+                  testID={`${P}-tab-mine`}
+                >
+                  <Text
+                    style={[
+                      styles.tabBtnText,
+                      activeTab === "mine" && styles.tabBtnTextActive,
+                    ]}
+                  >
+                    Mon agenda
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={[
+                    styles.tabBtn,
+                    activeTab === "mine" && styles.tabBtnActive,
+                  ]}
+                  onPress={() => setActiveTab("mine")}
+                  testID={`${P}-tab-mine`}
+                >
+                  <Text
+                    style={[
+                      styles.tabBtnText,
+                      activeTab === "mine" && styles.tabBtnTextActive,
+                    ]}
+                  >
+                    Mon agenda
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.tabBtn,
+                    activeTab === "classes" && styles.tabBtnActive,
+                  ]}
+                  onPress={() => setActiveTab("classes")}
+                  testID={`${P}-tab-classes`}
+                >
+                  <Text
+                    style={[
+                      styles.tabBtnText,
+                      activeTab === "classes" && styles.tabBtnTextActive,
+                    ]}
+                  >
+                    Mes classes
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
           </>
         )}
       </View>
@@ -206,6 +273,8 @@ export function TeacherAgendaScreen() {
         <TeacherClassAgendaPane
           insetBottom={insets.bottom}
           isAdminMode={admin}
+          lockedClassId={lockedClassId}
+          hideClassPicker={hideClassPicker}
         />
       )}
     </KeyboardAvoidingView>
@@ -677,9 +746,13 @@ function AdminUserAgendaPane({ insetBottom }: { insetBottom: number }) {
 function TeacherClassAgendaPane({
   insetBottom,
   isAdminMode,
+  lockedClassId,
+  hideClassPicker,
 }: {
   insetBottom: number;
   isAdminMode?: boolean;
+  lockedClassId?: string;
+  hideClassPicker?: boolean;
 }) {
   const { schoolSlug, user } = useAuthStore();
   const {
@@ -699,7 +772,9 @@ function TeacherClassAgendaPane({
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const today = useMemo(() => stripTime(new Date()), []);
-  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(
+    lockedClassId ?? null,
+  );
   const [viewMode, setViewMode] = useState<TimetableCalendarViewMode>("day");
   const [cursorDate, setCursorDate] = useState(today);
   const [selectedWeekCell, setSelectedWeekCell] =
@@ -736,9 +811,13 @@ function TeacherClassAgendaPane({
   // Auto-select first class when list loads (teacher mode)
   useEffect(() => {
     if (isAdminMode) return;
+    if (lockedClassId) {
+      setSelectedClassId(lockedClassId);
+      return;
+    }
     if (selectedClassId || !classOptions?.classes.length) return;
     setSelectedClassId(classOptions.classes[0]?.classId ?? null);
-  }, [classOptions, selectedClassId, isAdminMode]);
+  }, [classOptions, selectedClassId, isAdminMode, lockedClassId]);
 
   // Load timetable for selected class
   const loadClass = useCallback(async () => {
@@ -814,7 +893,7 @@ function TeacherClassAgendaPane({
         />
       ) : (
         <>
-          {isAdminMode ? (
+          {hideClassPicker ? null : isAdminMode ? (
             /* Dropdown pour admin : toutes les classes de l'école */
             <>
               <TouchableOpacity

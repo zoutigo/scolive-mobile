@@ -4,6 +4,7 @@ import { AppDrawer } from "../../src/components/navigation/AppDrawer";
 import {
   getNavItems,
   buildChildSections,
+  buildTeacherClassSections,
 } from "../../src/components/navigation/nav-config";
 import { useFamilyStore } from "../../src/store/family.store";
 import type { AuthUser } from "../../src/types/auth.types";
@@ -15,9 +16,10 @@ jest.mock("@expo/vector-icons", () => ({
 }));
 
 const mockPush = jest.fn();
+let mockPathname = "/";
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
-  usePathname: () => "/",
+  usePathname: () => mockPathname,
 }));
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -72,10 +74,21 @@ const studentUser = makeUser({
 
 const child1 = { id: "c1", firstName: "Lisa", lastName: "Ntamack" };
 const child2 = { id: "c2", firstName: "Paul", lastName: "Ntamack" };
+const teacherClassSections = buildTeacherClassSections([
+  {
+    classId: "class-1",
+    className: "6eC",
+    schoolYearId: "sy1",
+    schoolYearLabel: "2025-2026",
+    subjects: [{ id: "math", name: "Mathématiques" }],
+    studentCount: 20,
+  },
+]);
 
 beforeEach(() => {
   jest.clearAllMocks();
   jest.useFakeTimers();
+  mockPathname = "/";
   useFamilyStore.setState({ activeChildId: null, children: [] });
 });
 
@@ -218,6 +231,103 @@ describe("Items de navigation — enseignant", () => {
       renderDrawer(items);
       expect(screen.getByTestId(`nav-item-${key}`)).toBeTruthy();
     });
+  });
+
+  it("affiche une section 'Menu enseignant' et une section par classe quand les classes sont fournies", () => {
+    renderDrawer(items, {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+
+    expect(screen.getByTestId("drawer-section-teacher-general")).toBeTruthy();
+    expect(
+      screen.getByTestId("drawer-section-teacher-class-class-1"),
+    ).toBeTruthy();
+    expect(screen.getByText("6eC")).toBeTruthy();
+  });
+
+  it("ouvre le sous-menu de classe et affiche ses modules", () => {
+    renderDrawer(items, {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+
+    fireEvent.press(screen.getByTestId("drawer-section-teacher-class-class-1"));
+
+    expect(
+      screen.getByTestId("nav-item-teacher-class-class-1-feed"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("nav-item-teacher-class-class-1-notes"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("nav-item-teacher-class-class-1-discipline"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("nav-item-teacher-class-class-1-timetable"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("nav-item-teacher-class-class-1-homework"),
+    ).toBeTruthy();
+  });
+
+  it("replie le menu général quand une section classe est ouverte", () => {
+    renderDrawer(items, {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+
+    expect(screen.getByTestId("nav-item-home")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("drawer-section-teacher-class-class-1"));
+
+    expect(screen.queryByTestId("nav-item-home")).toBeNull();
+    expect(
+      screen.getByTestId("nav-item-teacher-class-class-1-feed"),
+    ).toBeTruthy();
+  });
+
+  it("ouvre automatiquement la classe active quand la route correspond à un sous-module de classe", () => {
+    mockPathname = "/classes/class-1/notes";
+
+    renderDrawer(items, {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+
+    expect(screen.queryByTestId("nav-item-home")).toBeNull();
+    expect(
+      screen.getByTestId("nav-item-teacher-class-class-1-notes"),
+    ).toBeTruthy();
+  });
+
+  it("affiche un état de chargement des classes enseignant", () => {
+    renderDrawer(items, {
+      teacherClassSections: [],
+      isTeacherClassNavEnabled: true,
+      isLoadingTeacherClassSections: true,
+    });
+
+    expect(screen.getByTestId("drawer-teacher-classes-loading")).toBeTruthy();
+  });
+
+  it("affiche un état d'erreur des classes enseignant", () => {
+    renderDrawer(items, {
+      teacherClassSections: [],
+      isTeacherClassNavEnabled: true,
+      teacherClassSectionsError: "Erreur API",
+    });
+
+    expect(screen.getByTestId("drawer-teacher-classes-error")).toBeTruthy();
+    expect(screen.getByText("Erreur API")).toBeTruthy();
+  });
+
+  it("affiche un état vide quand aucune classe enseignant n'est disponible", () => {
+    renderDrawer(items, {
+      teacherClassSections: [],
+      isTeacherClassNavEnabled: true,
+    });
+
+    expect(screen.getByTestId("drawer-teacher-classes-empty")).toBeTruthy();
   });
 });
 

@@ -10,6 +10,7 @@ import { LifeEventTypeBadge } from "./LifeEventTypeBadge";
 
 interface Props {
   event: StudentLifeEvent;
+  headline?: string | null;
   /** Affiché si true — réservé aux vues teacher/admin. */
   showActions?: boolean;
   canEdit?: boolean;
@@ -20,6 +21,7 @@ interface Props {
 
 export function LifeEventCard({
   event,
+  headline,
   showActions = false,
   canEdit = false,
   canDelete = false,
@@ -63,6 +65,11 @@ export function LifeEventCard({
       </View>
 
       {/* Motif */}
+      {headline ? (
+        <Text style={styles.headline} numberOfLines={1}>
+          {headline}
+        </Text>
+      ) : null}
       <Text style={styles.reason} numberOfLines={expanded ? undefined : 2}>
         {event.reason}
       </Text>
@@ -243,6 +250,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textPrimary,
     lineHeight: 20,
+  },
+  headline: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
 
   expandRow: {

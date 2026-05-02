@@ -83,7 +83,7 @@ export function StudentHome({ user, schoolSlug }: StudentHomeProps) {
           },
           {
             icon: "checkmark-circle",
-            label: "Devoirs",
+            label: "Homework",
             value: "—",
             color: colors.warmAccent,
           },
@@ -144,7 +144,7 @@ export function StudentHome({ user, schoolSlug }: StudentHomeProps) {
       </Text>
       <View style={styles.quickRow}>
         {[
-          { icon: "journal-outline", label: "Devoirs", color: colors.primary },
+          { icon: "journal-outline", label: "Homework", color: colors.primary },
           { icon: "chatbubble-outline", label: "Messages", color: "#6B5EA8" },
           {
             icon: "document-outline",

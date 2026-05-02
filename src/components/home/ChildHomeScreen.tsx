@@ -217,6 +217,7 @@ export function ChildHomeScreen() {
     () => getBestSubject(snapshot?.subjects ?? []),
     [snapshot?.subjects],
   );
+  const classId = child?.classId ?? state.timetable?.class?.id ?? null;
   const subtitle = buildSubtitle(child, state.timetable);
 
   return (
@@ -432,6 +433,19 @@ export function ChildHomeScreen() {
                   }
                   testID="child-home-link-timetable"
                 />
+                {classId ? (
+                  <QuickLink
+                    label="Devoirs"
+                    hint="Travaux à rendre"
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(home)/classes/[classId]/homework",
+                        params: { classId, childId },
+                      })
+                    }
+                    testID="child-home-link-homework"
+                  />
+                ) : null}
                 <QuickLink
                   label="Messagerie"
                   hint="Échanges et suivi"

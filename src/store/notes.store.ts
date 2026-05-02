@@ -78,6 +78,11 @@ type NotesState = {
     term: StudentNotesTerm,
     payload: UpsertTermReportsPayload,
   ) => Promise<TermReport[]>;
+  deleteEvaluation: (
+    schoolSlug: string,
+    classId: string,
+    evaluationId: string,
+  ) => Promise<void>;
   clearError: () => void;
   reset: () => void;
 };
@@ -355,6 +360,28 @@ export const useNotesStore = create<NotesState>((set) => ({
           error,
           "Impossible d'enregistrer les appréciations.",
         ),
+      });
+      throw error;
+    } finally {
+      set({ isSubmitting: false });
+    }
+  },
+
+  async deleteEvaluation(schoolSlug, classId, evaluationId) {
+    set({ isSubmitting: true, errorMessage: null });
+    try {
+      await notesApi.deleteEvaluation(schoolSlug, classId, evaluationId);
+      set((state) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [evaluationId]: _, ...restDetails } = state.evaluationDetails;
+        return {
+          evaluations: state.evaluations.filter((e) => e.id !== evaluationId),
+          evaluationDetails: restDetails,
+        };
+      });
+    } catch (error) {
+      set({
+        errorMessage: toMessage(error, "Impossible de supprimer l'évaluation."),
       });
       throw error;
     } finally {

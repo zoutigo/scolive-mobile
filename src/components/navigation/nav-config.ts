@@ -1,5 +1,6 @@
 import type { AuthUser, AppRole, SchoolRole } from "../../types/auth.types";
 import type { ParentChild } from "../../types/family.types";
+import type { TimetableClassOption } from "../../types/timetable.types";
 
 export type NavItem = {
   key: string;
@@ -18,8 +19,63 @@ export function buildChildHomeTarget(childId: string) {
   } as const;
 }
 
+export function buildChildHomeworkTarget(childId: string, classId: string) {
+  return {
+    pathname: "/(home)/classes/[classId]/homework",
+    params: {
+      classId,
+      childId,
+    },
+  } as const;
+}
+
+export function buildTeacherClassFeedTarget(classId: string) {
+  return {
+    pathname: "/(home)/classes/[classId]/feed",
+    params: { classId },
+  } as const;
+}
+
+export function buildTeacherClassNotesTarget(classId: string) {
+  return {
+    pathname: "/(home)/classes/[classId]/notes",
+    params: { classId },
+  } as const;
+}
+
+export function buildTeacherClassDisciplineTarget(classId: string) {
+  return {
+    pathname: "/(home)/classes/[classId]/discipline",
+    params: { classId },
+  } as const;
+}
+
+export function buildTeacherClassTimetableTarget(classId: string) {
+  return {
+    pathname: "/(home)/classes/[classId]/timetable",
+    params: { classId },
+  } as const;
+}
+
+export function buildTeacherClassHomeworkTarget(classId: string) {
+  return {
+    pathname: "/(home)/classes/[classId]/homework",
+    params: { classId },
+  } as const;
+}
+
 export type ParentChildSection = ParentChild & {
   navItems: NavItem[];
+};
+
+export type TeacherClassSection = TimetableClassOption & {
+  navItems: NavItem[];
+};
+
+export type DrawerNavigationConfig = {
+  navItems: NavItem[];
+  childSections?: ParentChildSection[];
+  teacherClassSections?: TeacherClassSection[];
 };
 
 export type ViewType =
@@ -250,7 +306,7 @@ const PARENT_NAV: NavItem[] = [
 
 const STUDENT_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
-  placeholder("Notes & devoirs", "ribbon-outline", "grades"),
+  placeholder("Notes & homework", "ribbon-outline", "grades"),
   {
     key: "messages",
     label: "Messagerie",
@@ -261,7 +317,10 @@ const STUDENT_NAV: NavItem[] = [
   accountItem(),
 ];
 
-export function buildChildNavItems(childId: string): NavItem[] {
+export function buildChildNavItems(child: ParentChild): NavItem[] {
+  const childId = child.id;
+  const classId = child.classId ?? child.currentEnrollment?.class?.id ?? null;
+
   return [
     {
       key: `child-${childId}-home`,
@@ -277,6 +336,17 @@ export function buildChildNavItems(childId: string): NavItem[] {
       route: "/(home)/notes/child/[childId]",
       params: { childId },
     },
+    ...(classId
+      ? [
+          {
+            key: `child-${childId}-homework`,
+            label: "Homework",
+            icon: "document-text-outline",
+            route: buildChildHomeworkTarget(childId, classId).pathname,
+            params: buildChildHomeworkTarget(childId, classId).params,
+          } satisfies NavItem,
+        ]
+      : []),
     {
       key: `child-${childId}-schedule`,
       label: "Emploi du temps",
@@ -318,8 +388,87 @@ export function buildChildSections(
 ): ParentChildSection[] {
   return children.map((child) => ({
     ...child,
-    navItems: buildChildNavItems(child.id),
+    navItems: buildChildNavItems(child),
   }));
+}
+
+export function buildTeacherClassItems(classId: string): NavItem[] {
+  return [
+    {
+      key: `teacher-class-${classId}-feed`,
+      label: "Fil de classe",
+      icon: "newspaper-outline",
+      route: buildTeacherClassFeedTarget(classId).pathname,
+      params: buildTeacherClassFeedTarget(classId).params,
+    },
+    {
+      key: `teacher-class-${classId}-notes`,
+      label: "Notes",
+      icon: "journal-outline",
+      route: buildTeacherClassNotesTarget(classId).pathname,
+      params: buildTeacherClassNotesTarget(classId).params,
+    },
+    {
+      key: `teacher-class-${classId}-discipline`,
+      label: "Discipline",
+      icon: "shield-outline",
+      route: buildTeacherClassDisciplineTarget(classId).pathname,
+      params: buildTeacherClassDisciplineTarget(classId).params,
+    },
+    {
+      key: `teacher-class-${classId}-timetable`,
+      label: "Emploi du temps",
+      icon: "calendar-outline",
+      route: buildTeacherClassTimetableTarget(classId).pathname,
+      params: buildTeacherClassTimetableTarget(classId).params,
+    },
+    {
+      key: `teacher-class-${classId}-homework`,
+      label: "Homework",
+      icon: "document-text-outline",
+      route: buildTeacherClassHomeworkTarget(classId).pathname,
+      params: buildTeacherClassHomeworkTarget(classId).params,
+    },
+  ];
+}
+
+export function buildTeacherClassSections(
+  classes: TimetableClassOption[],
+): TeacherClassSection[] {
+  return classes.map((entry) => ({
+    ...entry,
+    navItems: buildTeacherClassItems(entry.classId),
+  }));
+}
+
+export function buildDrawerNavigationConfig(input: {
+  user: AuthUser | null;
+  familyChildren?: ParentChild[];
+  teacherClasses?: TimetableClassOption[];
+}): DrawerNavigationConfig {
+  const { user, familyChildren = [], teacherClasses = [] } = input;
+  if (!user) {
+    return { navItems: [] };
+  }
+
+  const view = getViewType(user);
+  const navItems = getNavItems(user);
+
+  if (view === "parent") {
+    return {
+      navItems,
+      childSections: buildChildSections(familyChildren),
+    };
+  }
+
+  if (view === "teacher") {
+    return {
+      navItems,
+      teacherClassSections: buildTeacherClassSections(teacherClasses),
+    };
+  }
+
+  return { navItems };
 }
 
 export function buildTeacherSubtitle(user: AuthUser): string | null {

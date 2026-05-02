@@ -1,10 +1,9 @@
 import { apiFetch, BASE_URL, tokenStorage } from "./client";
-import { buildTimetableClassOptions } from "../utils/timetable";
+import { teacherClassNavApi } from "./teacher-class-nav.api";
 import type {
   EvaluationAttachmentDraft,
   EvaluationDetail,
   EvaluationRow,
-  NotesClassOptionsContext,
   NotesClassOptionsResponse,
   NotesTeacherContext,
   StudentNotesResponse,
@@ -115,17 +114,7 @@ export const notesApi = {
     schoolSlug: string,
     schoolYearId?: string,
   ): Promise<NotesClassOptionsResponse> {
-    const payload = await apiFetch<NotesClassOptionsContext>(
-      `/schools/${schoolSlug}/student-grades/context${toQuery({ schoolYearId })}`,
-      {},
-      true,
-    );
-
-    return {
-      schoolYears: payload.schoolYears,
-      selectedSchoolYearId: payload.selectedSchoolYearId,
-      classes: buildTimetableClassOptions(payload),
-    };
+    return teacherClassNavApi.getClassOptions(schoolSlug, schoolYearId);
   },
 
   getTeacherContext(
@@ -233,6 +222,18 @@ export const notesApi = {
         method: "PATCH",
         body: JSON.stringify(payload),
       },
+      true,
+    );
+  },
+
+  deleteEvaluation(
+    schoolSlug: string,
+    classId: string,
+    evaluationId: string,
+  ): Promise<void> {
+    return apiFetch(
+      `/schools/${schoolSlug}/classes/${classId}/evaluations/${evaluationId}`,
+      { method: "DELETE" },
       true,
     );
   },

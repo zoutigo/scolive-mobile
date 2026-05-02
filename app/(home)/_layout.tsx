@@ -90,6 +90,26 @@ export default function HomeLayout() {
         options={{ animation: "slide_from_right" }}
       />
       <Stack.Screen
+        name="classes/[classId]/feed"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="classes/[classId]/notes"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="classes/[classId]/discipline"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="classes/[classId]/timetable"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="classes/[classId]/homework"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
         name="tickets/index"
         options={{ animation: "slide_from_right" }}
       />

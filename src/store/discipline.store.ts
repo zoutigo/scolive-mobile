@@ -53,6 +53,14 @@ interface DisciplineState {
   /** Retire un événement de la liste (après suppression). */
   removeEvent: (studentId: string, eventId: string) => void;
 
+  /** Remplace intégralement les événements d'un élève. */
+  replaceStudentEvents: (studentId: string, events: StudentLifeEvent[]) => void;
+
+  /** Hydrate plusieurs élèves en une seule mise à jour. */
+  replaceManyStudentEvents: (
+    entries: Array<{ studentId: string; events: StudentLifeEvent[] }>,
+  ) => void;
+
   /** Vide le cache d'un étudiant (force rechargement à la prochaine ouverture). */
   invalidateStudent: (studentId: string) => void;
 
@@ -152,6 +160,25 @@ export const useDisciplineStore = create<DisciplineState>((set, get) => ({
           [studentId]: existing.filter((e) => e.id !== eventId),
         },
       };
+    });
+  },
+
+  replaceStudentEvents(studentId, events) {
+    set((state) => ({
+      eventsMap: {
+        ...state.eventsMap,
+        [studentId]: events,
+      },
+    }));
+  },
+
+  replaceManyStudentEvents(entries) {
+    set((state) => {
+      const nextEventsMap = { ...state.eventsMap };
+      entries.forEach((entry) => {
+        nextEventsMap[entry.studentId] = entry.events;
+      });
+      return { eventsMap: nextEventsMap };
     });
   },
 
