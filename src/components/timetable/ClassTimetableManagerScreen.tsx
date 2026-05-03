@@ -18,7 +18,7 @@ import { useSuccessToastStore } from "../../store/success-toast.store";
 import { useTimetableStore } from "../../store/timetable.store";
 import { TimePickerField } from "../TimePickerField";
 import { getViewType } from "../navigation/nav-config";
-import { HeaderBackButton } from "../navigation/HeaderBackButton";
+import { ModuleHeader } from "../navigation/ModuleHeader";
 import {
   buildDefaultDateRange,
   formatHumanDate,
@@ -492,515 +492,520 @@ export function ClassTimetableManagerScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.root}
-    >
-      <ScrollView
-        style={styles.root}
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 32 },
-        ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={isLoadingClassContext || isLoadingClassTimetable}
-            onRefresh={() => {
-              clearError();
-              void load().catch(() => {});
-            }}
-            tintColor={colors.primary}
-          />
-        }
-        showsVerticalScrollIndicator={false}
+    <View style={styles.root}>
+      <ModuleHeader
+        title={classContext?.class.name ?? "Emploi du temps"}
+        subtitle="Emploi du temps de la classe"
+        onBack={() => router.back()}
+        topInset={insets.top}
+        testID="class-timetable-header"
+        backTestID="class-timetable-back-btn"
+        titleTestID="class-timetable-title"
+      />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1 }}
       >
-        <View style={styles.headerRow}>
-          <HeaderBackButton onPress={() => router.back()} />
-          <View style={styles.headerText}>
-            <Text style={styles.eyebrow}>Agenda de classe</Text>
-            <Text style={styles.title}>
-              {classContext?.class.name ?? "Chargement..."}
-            </Text>
-            <Text style={styles.subtitle}>
-              Création, lecture, mise à jour et suppression des créneaux depuis
-              mobile, avec scroll vertical complet pour éviter les problèmes de
-              clavier.
-            </Text>
-          </View>
-        </View>
-
-        {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
-
-        {classContext ? (
-          <MiniIdentityCard
-            title={classContext.class.name}
-            subtitle={`${classContext.selectedSchoolYearId ?? classContext.class.schoolYearId} • ${formatHumanDate(range.fromDate)} au ${formatHumanDate(range.toDate)}`}
-            accent={colors.primary}
-          />
-        ) : null}
-
-        <SectionCard
-          title="Navigation"
-          subtitle="Passez du planning visualisé aux formulaires de gestion."
+        <ScrollView
+          style={styles.root}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: insets.bottom + 32 },
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={isLoadingClassContext || isLoadingClassTimetable}
+              onRefresh={() => {
+                clearError();
+                void load().catch(() => {});
+              }}
+              tintColor={colors.primary}
+            />
+          }
+          showsVerticalScrollIndicator={false}
         >
-          <PillSelector
-            label="Onglet"
-            value={tab}
-            onChange={(value) => setTab(value as TabKey)}
-            options={[
-              { value: "agenda", label: "Agenda" },
-              { value: "slots", label: "Créneaux" },
-              { value: "oneoff", label: "Exceptions" },
-              ...(canManageCalendarEvents
-                ? [{ value: "holidays", label: "Fermetures" }]
-                : []),
-            ]}
-            testIDPrefix="class-timetable-tab"
-          />
-        </SectionCard>
+          {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
-        {isLoadingClassContext || isLoadingClassTimetable ? (
-          <SectionCard title="Chargement">
-            <LoadingBlock label="Chargement de la classe..." />
-          </SectionCard>
-        ) : !classContext || !classTimetable ? (
-          <SectionCard title="Accès">
-            <EmptyState
-              icon="lock-closed-outline"
-              title="Classe indisponible"
-              message="Le backend n'autorise peut-être pas la gestion de cette classe pour votre rôle."
+          {classContext ? (
+            <MiniIdentityCard
+              title={classContext.class.name}
+              subtitle={`${classContext.selectedSchoolYearId ?? classContext.class.schoolYearId} • ${formatHumanDate(range.fromDate)} au ${formatHumanDate(range.toDate)}`}
+              accent={colors.primary}
             />
-          </SectionCard>
-        ) : tab === "agenda" ? (
+          ) : null}
+
           <SectionCard
-            title="Agenda consolidé"
-            subtitle="Vue unifiée des créneaux récurrents, ajustements et annulations."
+            title="Navigation"
+            subtitle="Passez du planning visualisé aux formulaires de gestion."
           >
-            <OccurrencesAgenda
-              occurrences={classTimetable.occurrences}
-              subjectStyles={classTimetable.subjectStyles}
-              emptyTitle="Aucun créneau chargé"
-              emptyMessage="Commencez par ajouter un créneau ou élargir la période côté écran."
-              testID="class-timetable-occurrences"
+            <PillSelector
+              label="Onglet"
+              value={tab}
+              onChange={(value) => setTab(value as TabKey)}
+              options={[
+                { value: "agenda", label: "Agenda" },
+                { value: "slots", label: "Créneaux" },
+                { value: "oneoff", label: "Exceptions" },
+                ...(canManageCalendarEvents
+                  ? [{ value: "holidays", label: "Fermetures" }]
+                  : []),
+              ]}
+              testIDPrefix="class-timetable-tab"
             />
           </SectionCard>
-        ) : tab === "slots" ? (
-          <>
-            <SectionCard
-              title={
-                slotForm.id
-                  ? "Modifier un créneau"
-                  : "Nouveau créneau hebdomadaire"
-              }
-              subtitle="Le formulaire reste scrollable pour laisser de la place au clavier et sécuriser la saisie E2E."
-            >
-              <PillSelector
-                label="Matière"
-                value={slotForm.subjectId}
-                onChange={(subjectId) => {
-                  const assignment =
-                    classContext.assignments.find(
-                      (entry) => entry.subjectId === subjectId,
-                    ) ?? classContext.assignments[0];
-                  setSlotForm((current) => ({
-                    ...current,
-                    subjectId,
-                    teacherUserId:
-                      assignment?.teacherUserId ?? current.teacherUserId,
-                  }));
-                }}
-                options={subjectOptions}
-              />
-              <PillSelector
-                label="Enseignant"
-                value={slotForm.teacherUserId}
-                onChange={(teacherUserId) =>
-                  setSlotForm((current) => ({ ...current, teacherUserId }))
-                }
-                options={subjectScopedTeachers}
-              />
-              <PillSelector
-                label="Jour"
-                value={slotForm.weekday}
-                onChange={(weekday) =>
-                  setSlotForm((current) => ({ ...current, weekday }))
-                }
-                options={[
-                  { value: "1", label: "Lun" },
-                  { value: "2", label: "Mar" },
-                  { value: "3", label: "Mer" },
-                  { value: "4", label: "Jeu" },
-                  { value: "5", label: "Ven" },
-                  { value: "6", label: "Sam" },
-                  { value: "7", label: "Dim" },
-                ]}
-              />
-              <View style={styles.row}>
-                <View style={styles.rowField}>
-                  <Text style={styles.rowFieldLabel}>Début</Text>
-                  <TimePickerField
-                    value={slotForm.start}
-                    onChange={(start) =>
-                      setSlotForm((current) => ({ ...current, start }))
-                    }
-                    title="Heure de début"
-                    placeholder="07:30"
-                    testID="slot-form-start"
-                  />
-                </View>
-                <View style={styles.rowField}>
-                  <Text style={styles.rowFieldLabel}>Fin</Text>
-                  <TimePickerField
-                    value={slotForm.end}
-                    onChange={(end) =>
-                      setSlotForm((current) => ({ ...current, end }))
-                    }
-                    title="Heure de fin"
-                    placeholder="08:20"
-                    testID="slot-form-end"
-                  />
-                </View>
-              </View>
-              <TextField
-                label="Salle"
-                value={slotForm.room}
-                onChangeText={(room) =>
-                  setSlotForm((current) => ({ ...current, room }))
-                }
-                placeholder="Salle A2"
-                testID="slot-form-room"
-              />
-              <View style={styles.row}>
-                <TextField
-                  label="Actif du"
-                  value={slotForm.activeFromDate}
-                  onChangeText={(activeFromDate) =>
-                    setSlotForm((current) => ({ ...current, activeFromDate }))
-                  }
-                  placeholder="2026-04-13"
-                />
-                <TextField
-                  label="Actif au"
-                  value={slotForm.activeToDate}
-                  onChangeText={(activeToDate) =>
-                    setSlotForm((current) => ({ ...current, activeToDate }))
-                  }
-                  placeholder="2026-05-03"
-                />
-              </View>
-              <View style={styles.actionsRow}>
-                <TouchableOpacity
-                  style={styles.primaryButton}
-                  onPress={() => void handleSaveRecurringSlot()}
-                  disabled={isSubmitting}
-                  testID="slot-form-submit"
-                >
-                  <Text style={styles.primaryButtonText}>
-                    {slotForm.id ? "Mettre à jour" : "Ajouter le créneau"}
-                  </Text>
-                </TouchableOpacity>
-                {slotForm.id ? (
-                  <TouchableOpacity
-                    style={styles.secondaryButton}
-                    onPress={resetSlotForm}
-                  >
-                    <Text style={styles.secondaryButtonText}>Annuler</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            </SectionCard>
 
+          {isLoadingClassContext || isLoadingClassTimetable ? (
+            <SectionCard title="Chargement">
+              <LoadingBlock label="Chargement de la classe..." />
+            </SectionCard>
+          ) : !classContext || !classTimetable ? (
+            <SectionCard title="Accès">
+              <EmptyState
+                icon="lock-closed-outline"
+                title="Classe indisponible"
+                message="Le backend n'autorise peut-être pas la gestion de cette classe pour votre rôle."
+              />
+            </SectionCard>
+          ) : tab === "agenda" ? (
             <SectionCard
-              title="Créneaux existants"
-              subtitle="Chaque ligne peut être modifiée ou supprimée."
+              title="Agenda consolidé"
+              subtitle="Vue unifiée des créneaux récurrents, ajustements et annulations."
             >
-              {classTimetable.slots.length === 0 ? (
-                <EmptyState
-                  icon="time-outline"
-                  title="Pas encore de créneau récurrent"
-                  message="Ajoutez le premier cours hebdomadaire pour cette classe."
+              <OccurrencesAgenda
+                occurrences={classTimetable.occurrences}
+                subjectStyles={classTimetable.subjectStyles}
+                emptyTitle="Aucun créneau chargé"
+                emptyMessage="Commencez par ajouter un créneau ou élargir la période côté écran."
+                testID="class-timetable-occurrences"
+              />
+            </SectionCard>
+          ) : tab === "slots" ? (
+            <>
+              <SectionCard
+                title={
+                  slotForm.id
+                    ? "Modifier un créneau"
+                    : "Nouveau créneau hebdomadaire"
+                }
+                subtitle="Le formulaire reste scrollable pour laisser de la place au clavier et sécuriser la saisie E2E."
+              >
+                <PillSelector
+                  label="Matière"
+                  value={slotForm.subjectId}
+                  onChange={(subjectId) => {
+                    const assignment =
+                      classContext.assignments.find(
+                        (entry) => entry.subjectId === subjectId,
+                      ) ?? classContext.assignments[0];
+                    setSlotForm((current) => ({
+                      ...current,
+                      subjectId,
+                      teacherUserId:
+                        assignment?.teacherUserId ?? current.teacherUserId,
+                    }));
+                  }}
+                  options={subjectOptions}
                 />
-              ) : (
-                <View style={styles.list}>
-                  {classTimetable.slots.map((slot) => (
-                    <View key={slot.id} style={styles.entryRow}>
-                      <View style={styles.entryBody}>
-                        <Text style={styles.entryTitle}>
-                          {slot.subject.name} •{" "}
-                          {minuteToTimeLabel(slot.startMinute)}-
-                          {minuteToTimeLabel(slot.endMinute)}
-                        </Text>
-                        <Text style={styles.entryMeta}>
-                          {fullTeacherName(slot.teacherUser)} • jour{" "}
-                          {slot.weekday} •{" "}
-                          {slot.room?.trim() ? slot.room : "Salle à confirmer"}
-                        </Text>
+                <PillSelector
+                  label="Enseignant"
+                  value={slotForm.teacherUserId}
+                  onChange={(teacherUserId) =>
+                    setSlotForm((current) => ({ ...current, teacherUserId }))
+                  }
+                  options={subjectScopedTeachers}
+                />
+                <PillSelector
+                  label="Jour"
+                  value={slotForm.weekday}
+                  onChange={(weekday) =>
+                    setSlotForm((current) => ({ ...current, weekday }))
+                  }
+                  options={[
+                    { value: "1", label: "Lun" },
+                    { value: "2", label: "Mar" },
+                    { value: "3", label: "Mer" },
+                    { value: "4", label: "Jeu" },
+                    { value: "5", label: "Ven" },
+                    { value: "6", label: "Sam" },
+                    { value: "7", label: "Dim" },
+                  ]}
+                />
+                <View style={styles.row}>
+                  <View style={styles.rowField}>
+                    <Text style={styles.rowFieldLabel}>Début</Text>
+                    <TimePickerField
+                      value={slotForm.start}
+                      onChange={(start) =>
+                        setSlotForm((current) => ({ ...current, start }))
+                      }
+                      title="Heure de début"
+                      placeholder="07:30"
+                      testID="slot-form-start"
+                    />
+                  </View>
+                  <View style={styles.rowField}>
+                    <Text style={styles.rowFieldLabel}>Fin</Text>
+                    <TimePickerField
+                      value={slotForm.end}
+                      onChange={(end) =>
+                        setSlotForm((current) => ({ ...current, end }))
+                      }
+                      title="Heure de fin"
+                      placeholder="08:20"
+                      testID="slot-form-end"
+                    />
+                  </View>
+                </View>
+                <TextField
+                  label="Salle"
+                  value={slotForm.room}
+                  onChangeText={(room) =>
+                    setSlotForm((current) => ({ ...current, room }))
+                  }
+                  placeholder="Salle A2"
+                  testID="slot-form-room"
+                />
+                <View style={styles.row}>
+                  <TextField
+                    label="Actif du"
+                    value={slotForm.activeFromDate}
+                    onChangeText={(activeFromDate) =>
+                      setSlotForm((current) => ({ ...current, activeFromDate }))
+                    }
+                    placeholder="2026-04-13"
+                  />
+                  <TextField
+                    label="Actif au"
+                    value={slotForm.activeToDate}
+                    onChangeText={(activeToDate) =>
+                      setSlotForm((current) => ({ ...current, activeToDate }))
+                    }
+                    placeholder="2026-05-03"
+                  />
+                </View>
+                <View style={styles.actionsRow}>
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={() => void handleSaveRecurringSlot()}
+                    disabled={isSubmitting}
+                    testID="slot-form-submit"
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {slotForm.id ? "Mettre à jour" : "Ajouter le créneau"}
+                    </Text>
+                  </TouchableOpacity>
+                  {slotForm.id ? (
+                    <TouchableOpacity
+                      style={styles.secondaryButton}
+                      onPress={resetSlotForm}
+                    >
+                      <Text style={styles.secondaryButtonText}>Annuler</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              </SectionCard>
+
+              <SectionCard
+                title="Créneaux existants"
+                subtitle="Chaque ligne peut être modifiée ou supprimée."
+              >
+                {classTimetable.slots.length === 0 ? (
+                  <EmptyState
+                    icon="time-outline"
+                    title="Pas encore de créneau récurrent"
+                    message="Ajoutez le premier cours hebdomadaire pour cette classe."
+                  />
+                ) : (
+                  <View style={styles.list}>
+                    {classTimetable.slots.map((slot) => (
+                      <View key={slot.id} style={styles.entryRow}>
+                        <View style={styles.entryBody}>
+                          <Text style={styles.entryTitle}>
+                            {slot.subject.name} •{" "}
+                            {minuteToTimeLabel(slot.startMinute)}-
+                            {minuteToTimeLabel(slot.endMinute)}
+                          </Text>
+                          <Text style={styles.entryMeta}>
+                            {fullTeacherName(slot.teacherUser)} • jour{" "}
+                            {slot.weekday} •{" "}
+                            {slot.room?.trim()
+                              ? slot.room
+                              : "Salle à confirmer"}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          style={styles.iconBtn}
+                          onPress={() => fillRecurringSlot(slot)}
+                          testID={`slot-edit-${slot.id}`}
+                        >
+                          <Ionicons
+                            name="create-outline"
+                            size={18}
+                            color={colors.primary}
+                          />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.iconBtn}
+                          onPress={() => void handleDeleteRecurringSlot(slot)}
+                          testID={`slot-delete-${slot.id}`}
+                        >
+                          <Ionicons
+                            name="trash-outline"
+                            size={18}
+                            color={colors.notification}
+                          />
+                        </TouchableOpacity>
                       </View>
-                      <TouchableOpacity
-                        style={styles.iconBtn}
-                        onPress={() => fillRecurringSlot(slot)}
-                        testID={`slot-edit-${slot.id}`}
-                      >
-                        <Ionicons
-                          name="create-outline"
-                          size={18}
-                          color={colors.primary}
-                        />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.iconBtn}
-                        onPress={() => void handleDeleteRecurringSlot(slot)}
-                        testID={`slot-delete-${slot.id}`}
-                      >
-                        <Ionicons
-                          name="trash-outline"
-                          size={18}
-                          color={colors.notification}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </SectionCard>
-          </>
-        ) : tab === "oneoff" ? (
-          <>
-            <SectionCard
-              title={
-                oneOffForm.id
-                  ? "Modifier une séance"
-                  : "Nouvelle séance ponctuelle"
-              }
-              subtitle="Utilisez cet onglet pour les permutations, remplacements et cours exceptionnels."
-            >
-              <PillSelector
-                label="Matière"
-                value={oneOffForm.subjectId}
-                onChange={(subjectId) => {
-                  const assignment =
-                    classContext.assignments.find(
-                      (entry) => entry.subjectId === subjectId,
-                    ) ?? classContext.assignments[0];
-                  setOneOffForm((current) => ({
-                    ...current,
-                    subjectId,
-                    teacherUserId:
-                      assignment?.teacherUserId ?? current.teacherUserId,
-                  }));
-                }}
-                options={subjectOptions}
-              />
-              <PillSelector
-                label="Enseignant"
-                value={oneOffForm.teacherUserId}
-                onChange={(teacherUserId) =>
-                  setOneOffForm((current) => ({ ...current, teacherUserId }))
-                }
-                options={teacherOptions}
-              />
-              <TextField
-                label="Date"
-                value={oneOffForm.occurrenceDate}
-                onChangeText={(occurrenceDate) =>
-                  setOneOffForm((current) => ({ ...current, occurrenceDate }))
-                }
-                placeholder="2026-04-17"
-                testID="oneoff-form-date"
-              />
-              <View style={styles.row}>
-                <View style={styles.rowField}>
-                  <Text style={styles.rowFieldLabel}>Début</Text>
-                  <TimePickerField
-                    value={oneOffForm.start}
-                    onChange={(start) =>
-                      setOneOffForm((current) => ({ ...current, start }))
-                    }
-                    title="Heure de début"
-                    placeholder="10:00"
-                    testID="oneoff-form-start"
-                  />
-                </View>
-                <View style={styles.rowField}>
-                  <Text style={styles.rowFieldLabel}>Fin</Text>
-                  <TimePickerField
-                    value={oneOffForm.end}
-                    onChange={(end) =>
-                      setOneOffForm((current) => ({ ...current, end }))
-                    }
-                    title="Heure de fin"
-                    placeholder="10:50"
-                    testID="oneoff-form-end"
-                  />
-                </View>
-              </View>
-              <TextField
-                label="Salle"
-                value={oneOffForm.room}
-                onChangeText={(room) =>
-                  setOneOffForm((current) => ({ ...current, room }))
-                }
-                placeholder="Salle polyvalente"
-              />
-              <PillSelector
-                label="Statut"
-                value={oneOffForm.status}
-                onChange={(status) =>
-                  setOneOffForm((current) => ({ ...current, status }))
-                }
-                options={[
-                  { value: "PLANNED", label: "Prévu" },
-                  { value: "CANCELLED", label: "Annulé" },
-                ]}
-              />
-              <View style={styles.actionsRow}>
-                <TouchableOpacity
-                  style={styles.primaryButton}
-                  onPress={() => void handleSaveOneOffSlot()}
-                  disabled={isSubmitting}
-                  testID="oneoff-form-submit"
-                >
-                  <Text style={styles.primaryButtonText}>
-                    {oneOffForm.id ? "Mettre à jour" : "Ajouter la séance"}
-                  </Text>
-                </TouchableOpacity>
-                {oneOffForm.id ? (
-                  <TouchableOpacity
-                    style={styles.secondaryButton}
-                    onPress={resetOneOffForm}
-                  >
-                    <Text style={styles.secondaryButtonText}>Annuler</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            </SectionCard>
-
-            <SectionCard
-              title="Séances ponctuelles"
-              subtitle="Historique des exceptions déjà créées pour cette classe."
-            >
-              {classTimetable.oneOffSlots.length === 0 ? (
-                <EmptyState
-                  icon="flash-outline"
-                  title="Aucune exception"
-                  message="Les cours ponctuels, reports et annulations apparaîtront ici."
-                />
-              ) : (
-                <View style={styles.list}>
-                  {classTimetable.oneOffSlots.map((slot) => (
-                    <View key={slot.id} style={styles.entryRow}>
-                      <View style={styles.entryBody}>
-                        <Text style={styles.entryTitle}>
-                          {slot.subject.name} •{" "}
-                          {formatHumanDate(slot.occurrenceDate)}
-                        </Text>
-                        <Text style={styles.entryMeta}>
-                          {minuteToTimeLabel(slot.startMinute)}-
-                          {minuteToTimeLabel(slot.endMinute)} • {slot.status} •{" "}
-                          {slot.room?.trim() ? slot.room : "Salle à confirmer"}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        style={styles.iconBtn}
-                        onPress={() => fillOneOffSlot(slot)}
-                        testID={`oneoff-edit-${slot.id}`}
-                      >
-                        <Ionicons
-                          name="create-outline"
-                          size={18}
-                          color={colors.primary}
-                        />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.iconBtn}
-                        onPress={() => void handleDeleteOneOffSlot(slot)}
-                        testID={`oneoff-delete-${slot.id}`}
-                      >
-                        <Ionicons
-                          name="trash-outline"
-                          size={18}
-                          color={colors.notification}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </SectionCard>
-          </>
-        ) : (
-          <>
-            <SectionCard
-              title={
-                holidayForm.id ? "Modifier une fermeture" : "Nouvelle fermeture"
-              }
-              subtitle="Réservé aux rôles établissement. Sert pour congés, ponts et jours fériés."
-            >
-              <TextField
-                label="Libellé"
-                value={holidayForm.label}
-                onChangeText={(label) =>
-                  setHolidayForm((current) => ({ ...current, label }))
-                }
-                placeholder="Fête de la jeunesse"
-                testID="holiday-form-label"
-              />
-              <View style={styles.row}>
-                <TextField
-                  label="Début"
-                  value={holidayForm.startDate}
-                  onChangeText={(startDate) =>
-                    setHolidayForm((current) => ({ ...current, startDate }))
-                  }
-                  placeholder="2026-05-20"
-                />
-                <TextField
-                  label="Fin"
-                  value={holidayForm.endDate}
-                  onChangeText={(endDate) =>
-                    setHolidayForm((current) => ({ ...current, endDate }))
-                  }
-                  placeholder="2026-05-20"
-                />
-              </View>
-              <View style={styles.actionsRow}>
-                <TouchableOpacity
-                  style={styles.primaryButton}
-                  onPress={() => void handleSaveHoliday()}
-                  disabled={isSubmitting}
-                  testID="holiday-form-submit"
-                >
-                  <Text style={styles.primaryButtonText}>
-                    {holidayForm.id ? "Mettre à jour" : "Ajouter la fermeture"}
-                  </Text>
-                </TouchableOpacity>
-                {holidayForm.id ? (
-                  <TouchableOpacity
-                    style={styles.secondaryButton}
-                    onPress={resetHolidayForm}
-                  >
-                    <Text style={styles.secondaryButtonText}>Annuler</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            </SectionCard>
-
-            <SectionCard
-              title="Calendrier établissement"
-              subtitle="Événements école répercutés dans la lecture des emplois du temps."
-            >
-              <CalendarEventList
-                events={classTimetable.calendarEvents.filter(
-                  (event) => event.scope === "SCHOOL",
+                    ))}
+                  </View>
                 )}
-                onEdit={fillHoliday}
-                onDelete={(event) => void handleDeleteHoliday(event)}
-              />
-            </SectionCard>
-          </>
-        )}
-      </ScrollView>
-    </KeyboardAvoidingView>
+              </SectionCard>
+            </>
+          ) : tab === "oneoff" ? (
+            <>
+              <SectionCard
+                title={
+                  oneOffForm.id
+                    ? "Modifier une séance"
+                    : "Nouvelle séance ponctuelle"
+                }
+                subtitle="Utilisez cet onglet pour les permutations, remplacements et cours exceptionnels."
+              >
+                <PillSelector
+                  label="Matière"
+                  value={oneOffForm.subjectId}
+                  onChange={(subjectId) => {
+                    const assignment =
+                      classContext.assignments.find(
+                        (entry) => entry.subjectId === subjectId,
+                      ) ?? classContext.assignments[0];
+                    setOneOffForm((current) => ({
+                      ...current,
+                      subjectId,
+                      teacherUserId:
+                        assignment?.teacherUserId ?? current.teacherUserId,
+                    }));
+                  }}
+                  options={subjectOptions}
+                />
+                <PillSelector
+                  label="Enseignant"
+                  value={oneOffForm.teacherUserId}
+                  onChange={(teacherUserId) =>
+                    setOneOffForm((current) => ({ ...current, teacherUserId }))
+                  }
+                  options={teacherOptions}
+                />
+                <TextField
+                  label="Date"
+                  value={oneOffForm.occurrenceDate}
+                  onChangeText={(occurrenceDate) =>
+                    setOneOffForm((current) => ({ ...current, occurrenceDate }))
+                  }
+                  placeholder="2026-04-17"
+                  testID="oneoff-form-date"
+                />
+                <View style={styles.row}>
+                  <View style={styles.rowField}>
+                    <Text style={styles.rowFieldLabel}>Début</Text>
+                    <TimePickerField
+                      value={oneOffForm.start}
+                      onChange={(start) =>
+                        setOneOffForm((current) => ({ ...current, start }))
+                      }
+                      title="Heure de début"
+                      placeholder="10:00"
+                      testID="oneoff-form-start"
+                    />
+                  </View>
+                  <View style={styles.rowField}>
+                    <Text style={styles.rowFieldLabel}>Fin</Text>
+                    <TimePickerField
+                      value={oneOffForm.end}
+                      onChange={(end) =>
+                        setOneOffForm((current) => ({ ...current, end }))
+                      }
+                      title="Heure de fin"
+                      placeholder="10:50"
+                      testID="oneoff-form-end"
+                    />
+                  </View>
+                </View>
+                <TextField
+                  label="Salle"
+                  value={oneOffForm.room}
+                  onChangeText={(room) =>
+                    setOneOffForm((current) => ({ ...current, room }))
+                  }
+                  placeholder="Salle polyvalente"
+                />
+                <PillSelector
+                  label="Statut"
+                  value={oneOffForm.status}
+                  onChange={(status) =>
+                    setOneOffForm((current) => ({ ...current, status }))
+                  }
+                  options={[
+                    { value: "PLANNED", label: "Prévu" },
+                    { value: "CANCELLED", label: "Annulé" },
+                  ]}
+                />
+                <View style={styles.actionsRow}>
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={() => void handleSaveOneOffSlot()}
+                    disabled={isSubmitting}
+                    testID="oneoff-form-submit"
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {oneOffForm.id ? "Mettre à jour" : "Ajouter la séance"}
+                    </Text>
+                  </TouchableOpacity>
+                  {oneOffForm.id ? (
+                    <TouchableOpacity
+                      style={styles.secondaryButton}
+                      onPress={resetOneOffForm}
+                    >
+                      <Text style={styles.secondaryButtonText}>Annuler</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              </SectionCard>
+
+              <SectionCard
+                title="Séances ponctuelles"
+                subtitle="Historique des exceptions déjà créées pour cette classe."
+              >
+                {classTimetable.oneOffSlots.length === 0 ? (
+                  <EmptyState
+                    icon="flash-outline"
+                    title="Aucune exception"
+                    message="Les cours ponctuels, reports et annulations apparaîtront ici."
+                  />
+                ) : (
+                  <View style={styles.list}>
+                    {classTimetable.oneOffSlots.map((slot) => (
+                      <View key={slot.id} style={styles.entryRow}>
+                        <View style={styles.entryBody}>
+                          <Text style={styles.entryTitle}>
+                            {slot.subject.name} •{" "}
+                            {formatHumanDate(slot.occurrenceDate)}
+                          </Text>
+                          <Text style={styles.entryMeta}>
+                            {minuteToTimeLabel(slot.startMinute)}-
+                            {minuteToTimeLabel(slot.endMinute)} • {slot.status}{" "}
+                            •{" "}
+                            {slot.room?.trim()
+                              ? slot.room
+                              : "Salle à confirmer"}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          style={styles.iconBtn}
+                          onPress={() => fillOneOffSlot(slot)}
+                          testID={`oneoff-edit-${slot.id}`}
+                        >
+                          <Ionicons
+                            name="create-outline"
+                            size={18}
+                            color={colors.primary}
+                          />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.iconBtn}
+                          onPress={() => void handleDeleteOneOffSlot(slot)}
+                          testID={`oneoff-delete-${slot.id}`}
+                        >
+                          <Ionicons
+                            name="trash-outline"
+                            size={18}
+                            color={colors.notification}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </SectionCard>
+            </>
+          ) : (
+            <>
+              <SectionCard
+                title={
+                  holidayForm.id
+                    ? "Modifier une fermeture"
+                    : "Nouvelle fermeture"
+                }
+                subtitle="Réservé aux rôles établissement. Sert pour congés, ponts et jours fériés."
+              >
+                <TextField
+                  label="Libellé"
+                  value={holidayForm.label}
+                  onChangeText={(label) =>
+                    setHolidayForm((current) => ({ ...current, label }))
+                  }
+                  placeholder="Fête de la jeunesse"
+                  testID="holiday-form-label"
+                />
+                <View style={styles.row}>
+                  <TextField
+                    label="Début"
+                    value={holidayForm.startDate}
+                    onChangeText={(startDate) =>
+                      setHolidayForm((current) => ({ ...current, startDate }))
+                    }
+                    placeholder="2026-05-20"
+                  />
+                  <TextField
+                    label="Fin"
+                    value={holidayForm.endDate}
+                    onChangeText={(endDate) =>
+                      setHolidayForm((current) => ({ ...current, endDate }))
+                    }
+                    placeholder="2026-05-20"
+                  />
+                </View>
+                <View style={styles.actionsRow}>
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={() => void handleSaveHoliday()}
+                    disabled={isSubmitting}
+                    testID="holiday-form-submit"
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {holidayForm.id
+                        ? "Mettre à jour"
+                        : "Ajouter la fermeture"}
+                    </Text>
+                  </TouchableOpacity>
+                  {holidayForm.id ? (
+                    <TouchableOpacity
+                      style={styles.secondaryButton}
+                      onPress={resetHolidayForm}
+                    >
+                      <Text style={styles.secondaryButtonText}>Annuler</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              </SectionCard>
+
+              <SectionCard
+                title="Calendrier établissement"
+                subtitle="Événements école répercutés dans la lecture des emplois du temps."
+              >
+                <CalendarEventList
+                  events={classTimetable.calendarEvents.filter(
+                    (event) => event.scope === "SCHOOL",
+                  )}
+                  onEdit={fillHoliday}
+                  onDelete={(event) => void handleDeleteHoliday(event)}
+                />
+              </SectionCard>
+            </>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -1012,32 +1017,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     gap: 16,
-  },
-  headerRow: {
-    flexDirection: "row",
-    gap: 12,
-    alignItems: "flex-start",
-  },
-  headerText: {
-    flex: 1,
-    gap: 4,
-  },
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.7,
-    color: colors.primary,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.textSecondary,
   },
   row: {
     flexDirection: "row",

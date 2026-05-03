@@ -112,6 +112,9 @@ describe("ClassTimetableManagerScreen", () => {
   it("charge le contexte et l'agenda de classe au montage", async () => {
     render(<ClassTimetableManagerScreen />);
 
+    expect(screen.getByTestId("class-timetable-header")).toBeOnTheScreen();
+    expect(screen.getByTestId("class-timetable-back-btn")).toBeOnTheScreen();
+
     await waitFor(() => {
       expect(mockLoadClassContext).toHaveBeenCalledWith(
         "college-vogt",

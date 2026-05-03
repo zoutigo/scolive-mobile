@@ -31,7 +31,7 @@ import {
   AppShell,
   useDrawer,
 } from "../../../src/components/navigation/AppShell";
-import { HeaderMenuButton } from "../../../src/components/navigation/HeaderMenuButton";
+import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import type {
   RecipientOption,
   MessagingRecipients,
@@ -599,21 +599,19 @@ export default function ComposeScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={[styles.root, { paddingTop: insets.top }]}>
+      <View style={styles.root}>
         {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            testID="compose-back"
-          >
-            <Ionicons name="close" size={22} color={colors.white} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {isReply ? "Répondre" : "Nouveau message"}
-          </Text>
-          <HeaderMenuButton onPress={openDrawer} testID="compose-menu-btn" />
-        </View>
+        <ModuleHeader
+          title={isReply ? "Répondre" : "Nouveau message"}
+          onBack={() => router.back()}
+          rightIcon="menu-outline"
+          onRightPress={openDrawer}
+          topInset={insets.top}
+          testID="compose-header"
+          backTestID="compose-back"
+          titleTestID="compose-header-title"
+          rightTestID="compose-menu-btn"
+        />
 
         {/* Inserting image indicator */}
         {isInsertingImage && (
@@ -854,22 +852,6 @@ export default function ComposeScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
 
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: "700",
-    color: colors.white,
-    textAlign: "center",
-    textTransform: "uppercase",
-  },
   banner: {
     flexDirection: "row",
     alignItems: "center",

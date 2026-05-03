@@ -105,15 +105,26 @@ describe("Rendu du détail", () => {
     });
   });
 
-  it("affiche le titre de retour dans l'en-tête", async () => {
+  it("affiche le header en état loading", () => {
+    api.get.mockImplementation(() => new Promise(() => {}));
+    render(<MessageDetailScreen />);
+    expect(screen.getByTestId("message-detail-header")).toBeTruthy();
+    expect(screen.getByTestId("msg-back-btn")).toBeTruthy();
+    expect(screen.getByTestId("message-detail-menu-btn")).toBeTruthy();
+  });
+
+  it("affiche l'en-tête du message avec les bons testIDs", async () => {
     await renderDetailAndWait();
-    expect(screen.getByText("Retour à la messagerie")).toBeTruthy();
+    expect(screen.getByTestId("message-detail-header")).toBeTruthy();
+    expect(screen.getByTestId("msg-back-btn")).toBeTruthy();
     expect(screen.getByTestId("message-detail-menu-btn")).toBeTruthy();
   });
 
   it("affiche le sujet dans la carte de résumé", async () => {
     await renderDetailAndWait();
-    expect(screen.getByText("Convocation réunion parents")).toBeTruthy();
+    expect(
+      screen.getAllByText("Convocation réunion parents").length,
+    ).toBeGreaterThan(0);
   });
 
   it("affiche le corps du message (texte)", async () => {

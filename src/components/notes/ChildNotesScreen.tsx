@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -45,6 +45,8 @@ import {
   SectionCard,
 } from "../timetable/TimetableCommon";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 type DetailState =
   | {
       type: "evaluation";
@@ -60,16 +62,24 @@ const VIEW_OPTIONS: Array<{ value: StudentNotesView; label: string }> = [
   { value: "charts", label: "Graph" },
 ];
 
-export function ChildNotesScreen() {
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const { openDrawer } = useDrawer();
-  const params = useLocalSearchParams<{ childId?: string }>();
-  const childId = typeof params.childId === "string" ? params.childId : "";
-  const { schoolSlug } = useAuthStore();
-  const { children, setActiveChild, updateChild } = useFamilyStore();
+export type StudentNotesPanelProps = {
+  studentId: string;
+  schoolSlug: string;
+  bottomInset?: number;
+  subjectFilter?: string; // subject id, "" ou undefined = toutes les matières
+};
+
+// ─── StudentNotesPanel ───────────────────────────────────────────────────────
+
+export function StudentNotesPanel({
+  studentId,
+  schoolSlug,
+  bottomInset = 0,
+  subjectFilter,
+}: StudentNotesPanelProps) {
   const {
     studentNotes,
+    scoresVersion,
     isLoadingStudentNotes,
     errorMessage,
     loadStudentNotes,
@@ -81,24 +91,33 @@ export function ChildNotesScreen() {
   const [detail, setDetail] = useState<DetailState>(null);
 
   const load = useCallback(async () => {
-    if (!schoolSlug || !childId) return;
-    await loadStudentNotes(schoolSlug, childId);
-  }, [childId, loadStudentNotes, schoolSlug]);
+    if (!schoolSlug || !studentId) return;
+    await loadStudentNotes(schoolSlug, studentId);
+  }, [studentId, loadStudentNotes, schoolSlug]);
 
   useEffect(() => {
     void load().catch(() => {});
-  }, [load]);
+  }, [load, scoresVersion]);
 
+  // Reset view when student changes
   useEffect(() => {
-    if (!childId) return;
-    setActiveChild(childId);
-  }, [childId, setActiveChild]);
+    setView("evaluations");
+  }, [studentId]);
 
-  const snapshots = studentNotes[childId] ?? [];
+  const snapshots = studentNotes[studentId] ?? [];
   const currentSnapshot =
     snapshots.find((entry) => entry.term === selectedTerm) ??
     snapshots[0] ??
     null;
+
+  const filteredSnapshot = useMemo(() => {
+    if (!currentSnapshot) return null;
+    if (!subjectFilter) return currentSnapshot;
+    return {
+      ...currentSnapshot,
+      subjects: currentSnapshot.subjects.filter((s) => s.id === subjectFilter),
+    };
+  }, [currentSnapshot, subjectFilter]);
 
   useEffect(() => {
     if (
@@ -109,26 +128,13 @@ export function ChildNotesScreen() {
     }
   }, [selectedTerm, snapshots]);
 
-  const child = children.find((entry) => entry.id === childId);
-  const title = "Evaluations et moyennes";
-  const subtitle = buildHeaderSubtitle(child, currentSnapshot);
-  const classLabel = extractClassLabel(currentSnapshot?.councilLabel ?? "");
-
-  useEffect(() => {
-    if (!childId || !classLabel) return;
-    updateChild(childId, { className: classLabel });
-  }, [childId, classLabel, updateChild]);
-
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.root}
-    >
+    <>
       <ScrollView
         style={styles.root}
         contentContainerStyle={[
           styles.content,
-          { paddingTop: 0, paddingBottom: insets.bottom + 24 },
+          { paddingTop: 0, paddingBottom: bottomInset + 24 },
         ]}
         refreshControl={
           <RefreshControl
@@ -142,20 +148,6 @@ export function ChildNotesScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <ModuleHeader
-          title={title}
-          subtitle={subtitle}
-          onBack={() => router.push(buildChildHomeTarget(childId) as never)}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
-          testID="child-notes-header"
-          backTestID="child-notes-back"
-          titleTestID="child-notes-header-title"
-          subtitleTestID="child-notes-header-subtitle"
-          rightTestID="child-notes-menu"
-          topInset={insets.top}
-        />
-
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
         <View style={styles.switcherCard}>
@@ -191,22 +183,24 @@ export function ChildNotesScreen() {
           </SectionCard>
         ) : currentSnapshot ? (
           <>
-            {view === "evaluations" ? (
+            {view === "evaluations" && filteredSnapshot ? (
               <EvaluationsView
-                snapshot={currentSnapshot}
+                snapshot={filteredSnapshot}
                 onOpenDetail={setDetail}
               />
             ) : null}
-            {view === "averages" ? (
+            {view === "averages" && filteredSnapshot ? (
               <AveragesView
-                snapshot={currentSnapshot}
+                snapshot={filteredSnapshot}
                 onOpenDetail={setDetail}
               />
             ) : null}
-            {view === "charts" ? (
-              <ChartsView snapshot={currentSnapshot} />
+            {view === "charts" && filteredSnapshot ? (
+              <ChartsView snapshot={filteredSnapshot} />
             ) : null}
-            <PeriodHero snapshot={currentSnapshot} />
+            {filteredSnapshot ? (
+              <PeriodHero snapshot={filteredSnapshot} />
+            ) : null}
           </>
         ) : (
           <SectionCard title="Notes">
@@ -220,6 +214,63 @@ export function ChildNotesScreen() {
       </ScrollView>
 
       <DetailModal detail={detail} onClose={() => setDetail(null)} />
+    </>
+  );
+}
+
+// ─── ChildNotesScreen ────────────────────────────────────────────────────────
+
+export function ChildNotesScreen() {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { openDrawer } = useDrawer();
+  const params = useLocalSearchParams<{ childId?: string }>();
+  const childId = typeof params.childId === "string" ? params.childId : "";
+  const { schoolSlug } = useAuthStore();
+  const { children, setActiveChild, updateChild } = useFamilyStore();
+  const { studentNotes } = useNotesStore();
+
+  useEffect(() => {
+    if (!childId) return;
+    setActiveChild(childId);
+  }, [childId, setActiveChild]);
+
+  const snapshots = studentNotes[childId] ?? [];
+  const currentSnapshot = snapshots[0] ?? null;
+
+  const child = children.find((entry) => entry.id === childId);
+  const title = "Evaluations et moyennes";
+  const subtitle = buildHeaderSubtitle(child, currentSnapshot);
+  const classLabel = extractClassLabel(currentSnapshot?.councilLabel ?? "");
+
+  useEffect(() => {
+    if (!childId || !classLabel) return;
+    updateChild(childId, { className: classLabel });
+  }, [childId, classLabel, updateChild]);
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.root}
+    >
+      <ModuleHeader
+        title={title}
+        subtitle={subtitle}
+        onBack={() => router.push(buildChildHomeTarget(childId) as never)}
+        rightIcon="menu-outline"
+        onRightPress={openDrawer}
+        testID="child-notes-header"
+        backTestID="child-notes-back"
+        titleTestID="child-notes-header-title"
+        subtitleTestID="child-notes-header-subtitle"
+        rightTestID="child-notes-menu"
+        topInset={insets.top}
+      />
+      <StudentNotesPanel
+        studentId={childId}
+        schoolSlug={schoolSlug ?? ""}
+        bottomInset={insets.bottom}
+      />
     </KeyboardAvoidingView>
   );
 }

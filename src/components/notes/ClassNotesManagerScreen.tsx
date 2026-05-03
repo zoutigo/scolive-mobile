@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -19,13 +21,15 @@ import { useAuthStore } from "../../store/auth.store";
 import { useNotesStore } from "../../store/notes.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import type {
-  EvaluationDetail,
   EvaluationRow,
-  StudentEvaluationStatus,
   StudentNotesTerm,
   TermReport,
   UpsertEvaluationPayload,
 } from "../../types/notes.types";
+import {
+  StudentScoreCard,
+  type StudentScoreSaveData,
+} from "./StudentScoreCard";
 import {
   buildEvaluationProgress,
   formatEvaluationDate,
@@ -53,15 +57,6 @@ import {
 
 const DANGER_COLOR = "#DC3545";
 
-type ScoreDrafts = Record<
-  string,
-  {
-    score: string;
-    status: StudentEvaluationStatus;
-    comment: string;
-  }
->;
-
 type CouncilDrafts = Record<
   string,
   {
@@ -74,16 +69,6 @@ const TERM_OPTIONS: Array<{ value: StudentNotesTerm; label: string }> = [
   { value: "TERM_1", label: "T1" },
   { value: "TERM_2", label: "T2" },
   { value: "TERM_3", label: "T3" },
-];
-
-const SCORE_STATUS_OPTIONS: Array<{
-  value: StudentEvaluationStatus;
-  label: string;
-}> = [
-  { value: "ENTERED", label: "Noté" },
-  { value: "ABSENT", label: "Absent" },
-  { value: "EXCUSED", label: "Disp." },
-  { value: "NOT_GRADED", label: "NE" },
 ];
 
 function createEmptyEvaluationForm(): UpsertEvaluationPayload {
@@ -116,6 +101,7 @@ export function ClassNotesManagerScreen() {
     teacherContext,
     evaluations,
     termReports,
+    evaluationDetails,
     isLoadingTeacherContext,
     isLoadingEvaluations,
     isLoadingEvaluationDetail,
@@ -143,7 +129,10 @@ export function ClassNotesManagerScreen() {
     "list" | "form" | "detail" | "scores"
   >("list");
   const [evalSearchQuery, setEvalSearchQuery] = useState("");
-  const [scoresSearchQuery, setScoresSearchQuery] = useState("");
+  const [scoresFilterStudentId, setScoresFilterStudentId] = useState<
+    string | null
+  >(null);
+  const [studentFilterOpen, setStudentFilterOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [evaluationMode, setEvaluationMode] = useState<"create" | "edit">(
     "create",
@@ -152,9 +141,7 @@ export function ClassNotesManagerScreen() {
     createEmptyEvaluationForm(),
   );
   const [selectedEvaluationId, setSelectedEvaluationId] = useState("");
-  const [selectedEvaluation, setSelectedEvaluation] =
-    useState<EvaluationDetail | null>(null);
-  const [scoreDrafts, setScoreDrafts] = useState<ScoreDrafts>({});
+  const selectedEvaluation = evaluationDetails[selectedEvaluationId] ?? null;
   const [councilTerm, setCouncilTerm] = useState<StudentNotesTerm>("TERM_1");
   const [councilStatus, setCouncilStatus] = useState<"DRAFT" | "PUBLISHED">(
     "DRAFT",
@@ -180,21 +167,25 @@ export function ClassNotesManagerScreen() {
     [sortedEvaluations, selectedEvaluationId],
   );
 
-  const filteredStudents = useMemo(() => {
-    if (!teacherContext) return [];
-    const sorted = [...teacherContext.students].sort(
+  const sortedScoreStudents = useMemo(() => {
+    if (!selectedEvaluation) return [];
+    return [...selectedEvaluation.students].sort(
       (a, b) =>
         a.lastName.localeCompare(b.lastName) ||
         a.firstName.localeCompare(b.firstName),
     );
-    const q = scoresSearchQuery.trim().toLowerCase();
-    if (!q) return sorted;
-    return sorted.filter(
-      (s) =>
-        s.lastName.toLowerCase().includes(q) ||
-        s.firstName.toLowerCase().includes(q),
-    );
-  }, [teacherContext, scoresSearchQuery]);
+  }, [selectedEvaluation]);
+
+  const filteredScoreStudents = useMemo(() => {
+    if (!scoresFilterStudentId) return sortedScoreStudents;
+    return sortedScoreStudents.filter((s) => s.id === scoresFilterStudentId);
+  }, [sortedScoreStudents, scoresFilterStudentId]);
+
+  const filterStudentLabel = useMemo(() => {
+    if (!scoresFilterStudentId) return "Tous les élèves";
+    const s = sortedScoreStudents.find((x) => x.id === scoresFilterStudentId);
+    return s ? `${s.lastName} ${s.firstName}` : "Tous les élèves";
+  }, [scoresFilterStudentId, sortedScoreStudents]);
 
   const load = useCallback(async () => {
     if (!schoolSlug || !classId || !canManage) return;
@@ -233,26 +224,10 @@ export function ClassNotesManagerScreen() {
   }, [load]);
 
   useEffect(() => {
-    if (!schoolSlug || !classId || !selectedEvaluationId) {
-      setSelectedEvaluation(null);
-      return;
-    }
-
-    void loadEvaluationDetail(schoolSlug, classId, selectedEvaluationId)
-      .then((detail) => {
-        setSelectedEvaluation(detail);
-        setScoreDrafts(
-          detail.students.reduce<ScoreDrafts>((acc, student) => {
-            acc[student.id] = {
-              score: student.score === null ? "" : String(student.score),
-              status: student.scoreStatus,
-              comment: student.comment ?? "",
-            };
-            return acc;
-          }, {}),
-        );
-      })
-      .catch(() => {});
+    if (!schoolSlug || !classId || !selectedEvaluationId) return;
+    void loadEvaluationDetail(schoolSlug, classId, selectedEvaluationId).catch(
+      () => {},
+    );
   }, [classId, loadEvaluationDetail, schoolSlug, selectedEvaluationId]);
 
   function hydrateCouncilState(reports: TermReport[]) {
@@ -315,38 +290,32 @@ export function ClassNotesManagerScreen() {
     setSelectedEvaluationId(entry.id);
   }
 
-  async function handleSaveScores() {
-    if (!schoolSlug || !classId || !selectedEvaluationId || !selectedEvaluation)
-      return;
+  async function handleSaveSingleScore(data: StudentScoreSaveData) {
+    if (!schoolSlug || !classId || !selectedEvaluationId) return;
     try {
       await saveScores(schoolSlug, classId, selectedEvaluationId, {
-        scores: selectedEvaluation.students.map((student) => {
-          const draft = scoreDrafts[student.id];
-          return {
-            studentId: student.id,
-            status: draft?.status ?? "NOT_GRADED",
-            score:
-              draft?.status === "ENTERED" && draft.score.trim()
-                ? Number(draft.score)
-                : null,
-            comment: draft?.comment?.trim() || null,
-          };
-        }),
+        scores: [
+          {
+            studentId: data.studentId,
+            score: data.score,
+            status: data.status,
+            comment: data.comment,
+          },
+        ],
       });
       showSuccess({
-        title: "Notes enregistrées",
-        message: "La saisie des scores a bien été sauvegardée.",
+        title: "Note enregistrée",
+        message: "La note a bien été sauvegardée.",
       });
-      setEvaluationView("list");
-      setScoresSearchQuery("");
     } catch (error) {
       showError({
         title: "Saisie impossible",
         message:
           error instanceof Error
             ? error.message
-            : "Impossible d'enregistrer les notes.",
+            : "Impossible d'enregistrer la note.",
       });
+      throw error;
     }
   }
 
@@ -848,26 +817,49 @@ export function ClassNotesManagerScreen() {
             ) : null}
           </View>
 
-          {/* Recherche élève */}
-          <View style={styles.searchRow} testID="class-notes-scores-search-bar">
+          {/* Bandeau brouillon */}
+          {selectedEvalRow?.status === "DRAFT" ? (
+            <View
+              style={styles.draftBanner}
+              testID="class-notes-scores-draft-warning"
+            >
+              <Ionicons
+                name="alert-circle-outline"
+                size={15}
+                color={colors.warmAccent}
+              />
+              <Text style={styles.draftBannerText}>
+                Brouillon — les notes ne seront visibles dans l'onglet Notes
+                qu'après publication de l'évaluation.
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Filtre élève — liste déroulante */}
+          <View style={styles.filterRow} testID="class-notes-scores-filter-bar">
             <Ionicons
-              name="search-outline"
+              name="person-outline"
               size={18}
               color={colors.textSecondary}
             />
-            <TextInput
-              style={styles.searchInput}
-              value={scoresSearchQuery}
-              onChangeText={setScoresSearchQuery}
-              placeholder="Rechercher un élève…"
-              placeholderTextColor={colors.textSecondary}
-              clearButtonMode="while-editing"
-              testID="class-notes-scores-search-input"
-            />
-            {scoresSearchQuery.length > 0 ? (
+            <TouchableOpacity
+              style={styles.filterDropdown}
+              onPress={() => setStudentFilterOpen(true)}
+              testID="class-notes-scores-filter-btn"
+            >
+              <Text style={styles.filterDropdownText}>
+                {filterStudentLabel}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={14}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+            {scoresFilterStudentId ? (
               <TouchableOpacity
-                onPress={() => setScoresSearchQuery("")}
-                testID="class-notes-scores-search-clear"
+                onPress={() => setScoresFilterStudentId(null)}
+                testID="class-notes-scores-filter-clear"
               >
                 <Ionicons
                   name="close-circle"
@@ -878,6 +870,85 @@ export function ClassNotesManagerScreen() {
             ) : null}
           </View>
 
+          {/* Modal filtre élève */}
+          <Modal
+            visible={studentFilterOpen}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setStudentFilterOpen(false)}
+          >
+            <Pressable
+              style={styles.modalOverlay}
+              onPress={() => setStudentFilterOpen(false)}
+              testID="class-notes-scores-filter-modal"
+            >
+              <Pressable
+                style={styles.pickerCard}
+                onPress={(e) => e.stopPropagation()}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.pickerOption,
+                    !scoresFilterStudentId && styles.pickerOptionSelected,
+                  ]}
+                  onPress={() => {
+                    setScoresFilterStudentId(null);
+                    setStudentFilterOpen(false);
+                  }}
+                  testID="class-notes-scores-filter-all"
+                >
+                  <Text
+                    style={[
+                      styles.pickerOptionText,
+                      !scoresFilterStudentId && styles.pickerOptionTextSelected,
+                    ]}
+                  >
+                    Tous les élèves
+                  </Text>
+                  {!scoresFilterStudentId ? (
+                    <Ionicons
+                      name="checkmark"
+                      size={14}
+                      color={colors.primary}
+                    />
+                  ) : null}
+                </TouchableOpacity>
+                {sortedScoreStudents.map((s) => (
+                  <TouchableOpacity
+                    key={s.id}
+                    style={[
+                      styles.pickerOption,
+                      scoresFilterStudentId === s.id &&
+                        styles.pickerOptionSelected,
+                    ]}
+                    onPress={() => {
+                      setScoresFilterStudentId(s.id);
+                      setStudentFilterOpen(false);
+                    }}
+                    testID={`class-notes-scores-filter-${s.id}`}
+                  >
+                    <Text
+                      style={[
+                        styles.pickerOptionText,
+                        scoresFilterStudentId === s.id &&
+                          styles.pickerOptionTextSelected,
+                      ]}
+                    >
+                      {s.lastName} {s.firstName}
+                    </Text>
+                    {scoresFilterStudentId === s.id ? (
+                      <Ionicons
+                        name="checkmark"
+                        size={14}
+                        color={colors.primary}
+                      />
+                    ) : null}
+                  </TouchableOpacity>
+                ))}
+              </Pressable>
+            </Pressable>
+          </Modal>
+
           {/* Liste élèves */}
           {isLoadingEvaluationDetail && !selectedEvaluation ? (
             <View style={styles.centered}>
@@ -885,125 +956,32 @@ export function ClassNotesManagerScreen() {
             </View>
           ) : (
             <InfiniteScrollList
-              data={filteredStudents}
+              data={filteredScoreStudents}
               keyExtractor={(student) => student.id}
-              renderItem={({ item: student }) => {
-                const draft = scoreDrafts[student.id] ?? {
-                  score: "",
-                  status: "NOT_GRADED" as const,
-                  comment: "",
-                };
-                return (
-                  <View
-                    style={styles.studentCard}
-                    testID={`scores-student-${student.id}`}
-                  >
-                    <Text style={styles.studentName}>
-                      {student.lastName} {student.firstName}
-                    </Text>
-                    <PillSelector
-                      label="Statut"
-                      value={draft.status}
-                      options={SCORE_STATUS_OPTIONS}
-                      onChange={(value) =>
-                        setScoreDrafts((current) => ({
-                          ...current,
-                          [student.id]: {
-                            score:
-                              value === "ENTERED"
-                                ? (current[student.id]?.score ?? "")
-                                : "",
-                            status: value as StudentEvaluationStatus,
-                            comment: current[student.id]?.comment ?? "",
-                          },
-                        }))
-                      }
-                      testIDPrefix={`scores-status-${student.id}`}
-                    />
-                    {draft.status === "ENTERED" ? (
-                      <TextField
-                        label="Note"
-                        value={draft.score}
-                        onChangeText={(score) =>
-                          setScoreDrafts((current) => ({
-                            ...current,
-                            [student.id]: {
-                              score,
-                              status: current[student.id]?.status ?? "ENTERED",
-                              comment: current[student.id]?.comment ?? "",
-                            },
-                          }))
-                        }
-                        keyboardType="numeric"
-                        placeholder={
-                          selectedEvalRow ? `/ ${selectedEvalRow.maxScore}` : ""
-                        }
-                        testID={`scores-note-${student.id}`}
-                      />
-                    ) : null}
-                    <View style={styles.fieldBlock}>
-                      <Text style={styles.fieldLabel}>Commentaire</Text>
-                      <TextInput
-                        value={draft.comment}
-                        onChangeText={(comment) =>
-                          setScoreDrafts((current) => ({
-                            ...current,
-                            [student.id]: {
-                              score: current[student.id]?.score ?? "",
-                              status:
-                                current[student.id]?.status ?? "NOT_GRADED",
-                              comment,
-                            },
-                          }))
-                        }
-                        placeholder="Observation individuelle"
-                        placeholderTextColor={colors.textSecondary}
-                        multiline
-                        style={[styles.compactTextArea, styles.textInputShared]}
-                        testID={`scores-comment-${student.id}`}
-                      />
-                    </View>
-                  </View>
-                );
-              }}
+              renderItem={({ item: student }) => (
+                <StudentScoreCard
+                  key={`${selectedEvaluationId}-${student.id}`}
+                  student={student}
+                  maxScore={selectedEvaluation?.maxScore ?? 20}
+                  onSave={handleSaveSingleScore}
+                />
+              )}
               emptyComponent={
                 <View style={styles.centered}>
                   <EmptyState
                     icon="people-outline"
                     title="Aucun élève"
-                    message="Aucun élève ne correspond à la recherche."
+                    message="Sélectionnez un élève dans le filtre ou vérifiez le chargement."
                   />
                 </View>
               }
               contentContainerStyle={[
                 styles.listContent,
-                { paddingBottom: insets.bottom + 80 },
+                { paddingBottom: insets.bottom + 24 },
               ]}
               testID="class-scores-list"
             />
           )}
-
-          {/* Bouton submit sticky */}
-          <View
-            style={[
-              styles.scoresSubmitBar,
-              { paddingBottom: insets.bottom + 12 },
-            ]}
-          >
-            <TouchableOpacity
-              style={[
-                styles.submitBtn,
-                isSubmitting && styles.submitBtnDisabled,
-              ]}
-              onPress={() => void handleSaveScores()}
-              disabled={isSubmitting}
-              testID="class-notes-save-scores-page"
-            >
-              <Text style={styles.submitBtnText}>
-                Enregistrer toutes les notes
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
       ) : null}
 
@@ -1092,98 +1070,15 @@ export function ClassNotesManagerScreen() {
                     <LoadingBlock label="Chargement du détail de l'évaluation..." />
                   ) : selectedEvaluation ? (
                     <View style={styles.studentList}>
-                      {selectedEvaluation.students.map((student) => {
-                        const draft = scoreDrafts[student.id] ?? {
-                          score: "",
-                          status: "NOT_GRADED",
-                          comment: "",
-                        };
-                        return (
-                          <View key={student.id} style={styles.studentCard}>
-                            <Text style={styles.studentName}>
-                              {student.lastName} {student.firstName}
-                            </Text>
-                            <PillSelector
-                              label="Statut"
-                              value={draft.status}
-                              options={SCORE_STATUS_OPTIONS}
-                              onChange={(value) =>
-                                setScoreDrafts((current) => ({
-                                  ...current,
-                                  [student.id]: {
-                                    ...current[student.id],
-                                    score:
-                                      value === "ENTERED"
-                                        ? (current[student.id]?.score ?? "")
-                                        : "",
-                                    status: value as StudentEvaluationStatus,
-                                    comment: current[student.id]?.comment ?? "",
-                                  },
-                                }))
-                              }
-                              testIDPrefix={`class-notes-score-status-${student.id}`}
-                            />
-                            <TextField
-                              label="Note"
-                              value={draft.score}
-                              onChangeText={(score) =>
-                                setScoreDrafts((current) => ({
-                                  ...current,
-                                  [student.id]: {
-                                    ...current[student.id],
-                                    score,
-                                    status:
-                                      current[student.id]?.status ?? "ENTERED",
-                                    comment: current[student.id]?.comment ?? "",
-                                  },
-                                }))
-                              }
-                              keyboardType="numeric"
-                              placeholder={`/ ${selectedEvaluation.maxScore}`}
-                              testID={`class-notes-score-value-${student.id}`}
-                            />
-                            <View style={styles.fieldBlock}>
-                              <Text style={styles.fieldLabel}>Commentaire</Text>
-                              <TextInput
-                                value={draft.comment}
-                                onChangeText={(comment) =>
-                                  setScoreDrafts((current) => ({
-                                    ...current,
-                                    [student.id]: {
-                                      ...current[student.id],
-                                      score: current[student.id]?.score ?? "",
-                                      status:
-                                        current[student.id]?.status ??
-                                        "NOT_GRADED",
-                                      comment,
-                                    },
-                                  }))
-                                }
-                                placeholder="Observation individuelle"
-                                placeholderTextColor={colors.textSecondary}
-                                multiline
-                                style={[
-                                  styles.compactTextArea,
-                                  styles.textInputShared,
-                                ]}
-                              />
-                            </View>
-                          </View>
-                        );
-                      })}
-                      <TouchableOpacity
-                        style={[
-                          styles.submitBtn,
-                          isSubmitting && styles.submitBtnDisabled,
-                        ]}
-                        onPress={() => void handleSaveScores()}
-                        disabled={isSubmitting}
-                        testID="class-notes-save-scores"
-                      >
-                        <Text style={styles.submitBtnText}>
-                          Enregistrer la saisie
-                        </Text>
-                      </TouchableOpacity>
+                      {sortedScoreStudents.map((student) => (
+                        <StudentScoreCard
+                          key={`tab-${selectedEvaluationId}-${student.id}`}
+                          student={student}
+                          maxScore={selectedEvaluation.maxScore}
+                          onSave={handleSaveSingleScore}
+                          testID={`class-notes-score-card-${student.id}`}
+                        />
+                      ))}
                     </View>
                   ) : (
                     <EmptyState
@@ -1346,6 +1241,81 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     paddingVertical: 0,
   },
+  draftBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#FFF8EE",
+    borderBottomWidth: 1,
+    borderBottomColor: colors.warmBorder,
+  },
+  draftBannerText: {
+    flex: 1,
+    fontSize: 12,
+    color: colors.warmAccent,
+    fontWeight: "600",
+    lineHeight: 17,
+  },
+  filterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.warmBorder,
+  },
+  filterDropdown: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 6,
+  },
+  filterDropdownText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  pickerCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    paddingVertical: 8,
+    minWidth: 240,
+    maxHeight: 400,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  pickerOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  pickerOptionSelected: { backgroundColor: "#eef5fb" },
+  pickerOptionText: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.textPrimary,
+    fontWeight: "500",
+  },
+  pickerOptionTextSelected: {
+    color: colors.primary,
+    fontWeight: "700",
+  },
   listContent: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -1397,16 +1367,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   compactTextArea: { minHeight: 84, textAlignVertical: "top" },
-  submitBtn: {
-    borderRadius: 18,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  submitBtnDisabled: { opacity: 0.6 },
-  submitBtnText: { color: colors.white, fontSize: 14, fontWeight: "800" },
   evaluationRow: {
     borderRadius: 18,
     borderWidth: 1,
@@ -1477,13 +1437,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   scoresInfoMeta: { fontSize: 12, color: colors.textSecondary },
-  scoresSubmitBar: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.warmBorder,
-    backgroundColor: colors.surface,
-  },
   detailRow: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -1537,4 +1490,14 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   studentName: { color: colors.textPrimary, fontSize: 15, fontWeight: "800" },
+  submitBtn: {
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  submitBtnDisabled: { opacity: 0.6 },
+  submitBtnText: { color: colors.white, fontSize: 14, fontWeight: "800" },
 });

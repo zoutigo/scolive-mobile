@@ -33,8 +33,7 @@ import {
   AppShell,
   useDrawer,
 } from "../../../src/components/navigation/AppShell";
-import { HeaderBackButton } from "../../../src/components/navigation/HeaderBackButton";
-import { HeaderMenuButton } from "../../../src/components/navigation/HeaderMenuButton";
+import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import type {
   CreateLifeEventPayload,
   StudentLifeEvent,
@@ -219,32 +218,24 @@ export default function DisciplineStudentScreen() {
 
   const content = (
     <KeyboardAvoidingView
-      style={[styles.root, { paddingTop: insets.top }]}
+      style={styles.root}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       testID="discipline-student-screen"
     >
       {/* Header */}
-      <View style={styles.header}>
-        <HeaderBackButton onPress={() => router.back()} testID="btn-back" />
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            Discipline
-          </Text>
-          <Text style={styles.headerSub} numberOfLines={1}>
-            {displayName}
-          </Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            onPress={refresh}
-            style={styles.iconBtn}
-            testID="btn-refresh"
-          >
-            <Ionicons name="refresh-outline" size={20} color={colors.white} />
-          </TouchableOpacity>
-          <HeaderMenuButton onPress={openDrawer} testID="btn-menu" />
-        </View>
-      </View>
+      <ModuleHeader
+        title="Discipline"
+        subtitle={displayName}
+        onBack={() => router.back()}
+        rightIcon="menu-outline"
+        onRightPress={openDrawer}
+        topInset={insets.top}
+        testID="module-header"
+        backTestID="btn-back"
+        titleTestID="discipline-header-title"
+        subtitleTestID="discipline-header-subtitle"
+        rightTestID="btn-menu"
+      />
 
       {/* Onglets */}
       <View style={styles.tabs}>
@@ -358,37 +349,6 @@ export default function DisciplineStudentScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: colors.primary,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.22)",
-  },
-  headerCenter: { flex: 1, alignItems: "center" },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: colors.white,
-    textTransform: "uppercase",
-  },
-  headerSub: { fontSize: 12, color: colors.warmAccent, marginTop: 1 },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
 
   tabs: {
     flexDirection: "row",

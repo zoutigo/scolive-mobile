@@ -19,6 +19,7 @@ type NotesState = {
   teacherContext: NotesTeacherContext | null;
   evaluations: EvaluationRow[];
   evaluationDetails: Record<string, EvaluationDetail>;
+  scoresVersion: number;
   termReports: Record<StudentNotesTerm, TermReport | null>;
   isLoadingStudentNotes: boolean;
   isLoadingClassOptions: boolean;
@@ -111,6 +112,7 @@ export const useNotesStore = create<NotesState>((set) => ({
   teacherContext: null,
   evaluations: [],
   evaluationDetails: {},
+  scoresVersion: 0,
   termReports: {
     TERM_1: null,
     TERM_2: null,
@@ -302,6 +304,7 @@ export const useNotesStore = create<NotesState>((set) => ({
           ...state.evaluationDetails,
           [evaluationId]: detail,
         },
+        scoresVersion: state.scoresVersion + 1,
       }));
       return detail;
     } catch (error) {
@@ -400,6 +403,7 @@ export const useNotesStore = create<NotesState>((set) => ({
       teacherContext: null,
       evaluations: [],
       evaluationDetails: {},
+      scoresVersion: 0,
       termReports: {
         TERM_1: null,
         TERM_2: null,

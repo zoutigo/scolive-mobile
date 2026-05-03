@@ -119,6 +119,8 @@ function setupStore(
   useNotesStore.setState({
     teacherContext: TEACHER_CONTEXT,
     evaluations: [EVAL_1, EVAL_2],
+    // Pre-populate le détail pour que selectedEvaluation soit disponible dès le mount
+    evaluationDetails: { "eval-1": EVAL_DETAIL },
     termReports: { TERM_1: null, TERM_2: null, TERM_3: null },
     isLoadingTeacherContext: false,
     isLoadingEvaluations: false,
@@ -128,7 +130,15 @@ function setupStore(
     errorMessage: null,
     loadTeacherContext: jest.fn().mockResolvedValue(TEACHER_CONTEXT),
     loadEvaluations: jest.fn().mockResolvedValue([EVAL_1, EVAL_2]),
-    loadEvaluationDetail: jest.fn().mockResolvedValue(EVAL_DETAIL),
+    loadEvaluationDetail: jest
+      .fn()
+      .mockImplementation((_slug, _classId, evalId) => {
+        // Simule la mise à jour du store comme le ferait la vraie action
+        useNotesStore.setState((s) => ({
+          evaluationDetails: { ...s.evaluationDetails, [evalId]: EVAL_DETAIL },
+        }));
+        return Promise.resolve(EVAL_DETAIL);
+      }),
     createEvaluation: jest.fn().mockResolvedValue({ id: "eval-new" }),
     updateEvaluation: jest.fn().mockResolvedValue(undefined),
     deleteEvaluation: jest.fn().mockResolvedValue(undefined),
@@ -326,12 +336,13 @@ describe("Vue saisie notes", () => {
     await flushAsync();
   }
 
-  it("affiche la barre de recherche élève et le bouton submit", async () => {
+  it("affiche la barre filtre élève sans bouton submit global", async () => {
     await openScoresView();
     await waitFor(() =>
-      expect(screen.getByTestId("class-notes-scores-search-bar")).toBeTruthy(),
+      expect(screen.getByTestId("class-notes-scores-filter-bar")).toBeTruthy(),
     );
-    expect(screen.getByTestId("class-notes-save-scores-page")).toBeTruthy();
+    expect(screen.getByTestId("class-notes-scores-filter-btn")).toBeTruthy();
+    expect(screen.queryByTestId("class-notes-save-scores-page")).toBeNull();
   });
 
   it("affiche les élèves triés alphabétiquement (Abega avant Ntamack)", async () => {
@@ -341,25 +352,28 @@ describe("Vue saisie notes", () => {
     );
     expect(screen.getByTestId("scores-student-stu-1")).toBeTruthy();
 
-    // Vérification ordre : stu-2 (Abega) doit apparaître dans le rendu
     const abega = screen.getByText("Abega Paul");
     const ntamack = screen.getByText("Ntamack Lisa");
     expect(abega).toBeTruthy();
     expect(ntamack).toBeTruthy();
   });
 
-  it("filtre les élèves via la recherche", async () => {
+  it("filtre les élèves via le dropdown", async () => {
     await openScoresView();
     await waitFor(() =>
-      expect(
-        screen.getByTestId("class-notes-scores-search-input"),
-      ).toBeTruthy(),
+      expect(screen.getByTestId("class-notes-scores-filter-btn")).toBeTruthy(),
     );
 
-    fireEvent.changeText(
-      screen.getByTestId("class-notes-scores-search-input"),
-      "Abega",
+    // Ouvre le modal
+    fireEvent.press(screen.getByTestId("class-notes-scores-filter-btn"));
+
+    // Sélectionne Abega (stu-2)
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-notes-scores-filter-stu-2"),
+      ).toBeTruthy(),
     );
+    fireEvent.press(screen.getByTestId("class-notes-scores-filter-stu-2"));
 
     await waitFor(() => {
       expect(screen.getByTestId("scores-student-stu-2")).toBeTruthy();
@@ -379,23 +393,67 @@ describe("Vue saisie notes", () => {
     );
   });
 
-  it("sauvegarde et retourne à la liste après submit", async () => {
-    await openScoresView();
+  it("affiche le bandeau brouillon si l'évaluation est en DRAFT", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    // eval-2 a status DRAFT
     await waitFor(() =>
-      expect(screen.getByTestId("class-notes-save-scores-page")).toBeTruthy(),
+      expect(screen.getByTestId("eval-action-scores-eval-2")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("eval-action-scores-eval-2"));
+    await flushAsync();
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-notes-scores-draft-warning"),
+      ).toBeTruthy(),
+    );
+  });
+
+  it("n'affiche pas le bandeau brouillon si l'évaluation est PUBLISHED", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    // eval-1 a status PUBLISHED
+    await waitFor(() =>
+      expect(screen.getByTestId("eval-action-scores-eval-1")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("eval-action-scores-eval-1"));
+    await flushAsync();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-notes-scores-filter-bar")).toBeTruthy(),
+    );
+    expect(screen.queryByTestId("class-notes-scores-draft-warning")).toBeNull();
+  });
+
+  it("sauvegarde la note d'un élève via le bouton Enregistrer de sa carte", async () => {
+    await openScoresView();
+
+    // stu-1 a déjà une note (score=15, ENTERED) → mode view → bouton "Modifier"
+    await waitFor(() =>
+      expect(screen.getByTestId("scores-submit-stu-1")).toBeTruthy(),
+    );
+    expect(screen.getByTestId("scores-submit-stu-1")).toHaveTextContent(
+      "Modifier",
+    );
+
+    // stu-2 n'a pas de note → mode édition → bouton "Enregistrer"
+    expect(screen.getByTestId("scores-submit-stu-2")).toHaveTextContent(
+      "Enregistrer",
     );
 
     await act(async () => {
-      fireEvent.press(screen.getByTestId("class-notes-save-scores-page"));
+      fireEvent.press(screen.getByTestId("scores-submit-stu-2"));
       await Promise.resolve();
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    await waitFor(() =>
-      expect(screen.getByTestId("class-evaluations-list")).toBeTruthy(),
-    );
     expect(useNotesStore.getState().saveScores).toHaveBeenCalledTimes(1);
+    // La vue ne navigue pas vers la liste : on reste sur la vue scores
+    expect(screen.queryByTestId("class-evaluations-list")).toBeNull();
   });
 });
 
