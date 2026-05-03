@@ -1,17 +1,27 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppShell } from "../../src/components/navigation/AppShell";
+import { ModuleHeader } from "../../src/components/navigation/ModuleHeader";
 import { colors } from "../../src/theme";
 
 export default function PlaceholderScreen() {
   const { title } = useLocalSearchParams<{ title?: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const label = title ?? "Module";
 
   return (
-    <AppShell>
+    <AppShell showHeader={false}>
+      <ModuleHeader
+        title={label}
+        onBack={() => router.back()}
+        testID="placeholder-header"
+        backTestID="placeholder-back-btn"
+        topInset={insets.top}
+      />
       <View style={styles.container}>
         <View style={styles.card}>
           <View style={styles.iconWrap}>
@@ -26,14 +36,6 @@ export default function PlaceholderScreen() {
           <Text style={styles.body}>
             Cette fonctionnalité sera disponible prochainement.
           </Text>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => router.back()}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="arrow-back" size={18} color={colors.white} />
-            <Text style={styles.backBtnText}>Retour</Text>
-          </TouchableOpacity>
         </View>
       </View>
     </AppShell>
@@ -87,20 +89,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
     marginTop: 4,
-  },
-  backBtn: {
-    marginTop: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  backBtnText: {
-    color: colors.white,
-    fontSize: 15,
-    fontWeight: "600",
   },
 });

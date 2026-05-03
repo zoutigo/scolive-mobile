@@ -23,8 +23,7 @@ import {
   AppShell,
   useDrawer,
 } from "../../../src/components/navigation/AppShell";
-import { HeaderBackButton } from "../../../src/components/navigation/HeaderBackButton";
-import { HeaderMenuButton } from "../../../src/components/navigation/HeaderMenuButton";
+import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import type {
   MessageAttachment,
   MessageDetail,
@@ -263,15 +262,17 @@ export default function MessageDetailScreen() {
 
   if (isLoading) {
     const loadingContent = (
-      <View style={[styles.root, { paddingTop: insets.top }]}>
-        <View style={styles.header}>
-          <HeaderBackButton onPress={() => router.back()} />
-          <Text style={styles.headerTitle}>Retour à la messagerie</Text>
-          <HeaderMenuButton
-            onPress={openDrawer}
-            testID="message-detail-menu-btn"
-          />
-        </View>
+      <View style={styles.root}>
+        <ModuleHeader
+          title="Messagerie"
+          onBack={() => router.back()}
+          rightIcon="menu-outline"
+          onRightPress={openDrawer}
+          topInset={insets.top}
+          testID="message-detail-header"
+          backTestID="msg-back-btn"
+          rightTestID="message-detail-menu-btn"
+        />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -288,18 +289,18 @@ export default function MessageDetailScreen() {
   const displayDate = formatFullDate(message.sentAt ?? message.createdAt);
 
   const content = (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={styles.root}>
       {/* Header */}
-      <View style={styles.header}>
-        <HeaderBackButton onPress={() => router.back()} />
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          Retour à la messagerie
-        </Text>
-        <HeaderMenuButton
-          onPress={openDrawer}
-          testID="message-detail-menu-btn"
-        />
-      </View>
+      <ModuleHeader
+        title={message.subject}
+        onBack={() => router.back()}
+        rightIcon="menu-outline"
+        onRightPress={openDrawer}
+        topInset={insets.top}
+        testID="message-detail-header"
+        backTestID="msg-back-btn"
+        rightTestID="message-detail-menu-btn"
+      />
 
       {/* Content */}
       <ScrollView
@@ -585,23 +586,6 @@ export default function MessageDetailScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
-  },
-  headerTitle: {
-    flex: 1,
-    fontSize: 17,
-    fontWeight: "700",
-    color: colors.white,
-    textTransform: "uppercase",
-    textAlign: "center",
-  },
 
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
 

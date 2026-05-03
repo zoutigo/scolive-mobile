@@ -3,6 +3,7 @@ import {
   formatDelta,
   formatPlainEvaluationScore,
   formatScore,
+  getCurrentTerm,
   termLabel,
 } from "../../src/utils/notes";
 
@@ -48,5 +49,35 @@ describe("notes utils", () => {
     expect(buildEvaluationProgress({ _count: { scores: 18 } }, 32)).toBe(
       "18/32",
     );
+  });
+});
+
+// ─── Cohérence trimestre automatique ─────────────────────────────────────────
+
+describe("getCurrentTerm — détection automatique du trimestre", () => {
+  it("septembre → TERM_1", () => {
+    expect(getCurrentTerm(new Date("2026-09-01"))).toBe("TERM_1");
+  });
+  it("octobre → TERM_1", () => {
+    expect(getCurrentTerm(new Date("2026-10-15"))).toBe("TERM_1");
+  });
+  it("décembre → TERM_1", () => {
+    expect(getCurrentTerm(new Date("2026-12-31"))).toBe("TERM_1");
+  });
+  it("janvier → TERM_2", () => {
+    expect(getCurrentTerm(new Date("2026-01-15"))).toBe("TERM_2");
+  });
+  it("mars → TERM_2", () => {
+    expect(getCurrentTerm(new Date("2026-03-31"))).toBe("TERM_2");
+  });
+  it("avril → TERM_3", () => {
+    expect(getCurrentTerm(new Date("2026-04-01"))).toBe("TERM_3");
+  });
+  it("août → TERM_3", () => {
+    expect(getCurrentTerm(new Date("2026-08-31"))).toBe("TERM_3");
+  });
+  it("frontière sept/août : le 1er sept est TERM_1, le 31 août est TERM_3", () => {
+    expect(getCurrentTerm(new Date("2026-09-01"))).toBe("TERM_1");
+    expect(getCurrentTerm(new Date("2026-08-31"))).toBe("TERM_3");
   });
 });

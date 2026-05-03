@@ -144,6 +144,8 @@ describe("Rendu du formulaire", () => {
   it("affiche le titre 'Nouveau message'", () => {
     renderCompose();
     expect(screen.getByText("Nouveau message")).toBeTruthy();
+    expect(screen.getByTestId("compose-header")).toBeTruthy();
+    expect(screen.getByTestId("compose-back")).toBeTruthy();
     expect(screen.getByTestId("compose-menu-btn")).toBeTruthy();
   });
 

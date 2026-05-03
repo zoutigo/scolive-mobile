@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
+  Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,37 +19,49 @@ import { RichEditor } from "react-native-pell-rich-editor";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
 import { RichTextToolbar } from "../editor/RichTextToolbar";
+import { DatePickerField } from "../DatePickerField";
+import { TimePickerField } from "../TimePickerField";
+import { getCurrentTerm, termLabel } from "../../utils/notes";
+import { parseDateInput, toIsoDateString } from "../../utils/timetable";
 import type {
   EvaluationAttachmentDraft,
   NotesTeacherContext,
+  StudentNotesTerm,
   UpsertEvaluationPayload,
 } from "../../types/notes.types";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function isoToDisplay(iso: string): string {
+function isoToDatePart(iso: string): string {
   if (!iso) return "";
   try {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return "";
-    const dd = String(d.getDate()).padStart(2, "0");
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const yyyy = d.getFullYear();
-    const hh = String(d.getHours()).padStart(2, "0");
-    const min = String(d.getMinutes()).padStart(2, "0");
-    return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+    return toIsoDateString(d);
   } catch {
     return "";
   }
 }
 
-function displayToIso(display: string): string {
-  const m = display
-    .trim()
-    .match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?$/);
-  if (!m) return "";
-  const [, dd, mm, yyyy, hh = "08", min = "00"] = m;
-  return `${yyyy}-${mm}-${dd}T${hh}:${min}:00.000Z`;
+function isoToTimePart(iso: string): string {
+  if (!iso) return "08:00";
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "08:00";
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  } catch {
+    return "08:00";
+  }
+}
+
+function combineToIso(date: string, time: string): string {
+  const [hh = "08", min = "00"] = time.split(":");
+  return `${date}T${hh}:${min}:00.000Z`;
+}
+
+function termFromDate(dateIso: string): StudentNotesTerm {
+  const d = parseDateInput(dateIso);
+  return d ? getCurrentTerm(d) : getCurrentTerm();
 }
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -61,15 +75,11 @@ const evalSchema = z.object({
   subjectId: z.string().min(1, "Matière requise"),
   subjectBranchId: z.string().optional(),
   evaluationTypeId: z.string().min(1, "Type d'évaluation requis"),
-  term: z.enum(["TERM_1", "TERM_2", "TERM_3"]),
-  status: z.enum(["DRAFT", "PUBLISHED"]),
-  scheduledAt: z
+  scheduledDate: z
     .string()
     .min(1, "Date requise")
-    .refine(
-      (v) => /^\d{2}\/\d{2}\/\d{4}(\s+\d{2}:\d{2})?$/.test(v.trim()),
-      "Format : JJ/MM/AAAA HH:MM",
-    ),
+    .refine((v) => /^\d{4}-\d{2}-\d{2}$/.test(v), "Date invalide"),
+  scheduledTime: z.string().regex(/^\d{2}:\d{2}$/, "Heure invalide"),
   coefficient: z
     .string()
     .min(1, "Coefficient requis")
@@ -82,7 +92,7 @@ const evalSchema = z.object({
 
 type FormValues = z.infer<typeof evalSchema>;
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const COLOR_PRESETS = [
   { label: "Bleu", value: "#0C5FA8" },
@@ -91,11 +101,106 @@ const COLOR_PRESETS = [
   { label: "Noir", value: "#1F2933" },
 ];
 
-const TERM_LABELS: Record<string, string> = {
-  TERM_1: "T1",
-  TERM_2: "T2",
-  TERM_3: "T3",
-};
+// ─── SelectField ──────────────────────────────────────────────────────────────
+
+type SelectOption = { label: string; value: string };
+
+function SelectField({
+  options,
+  value,
+  onChange,
+  onBlur,
+  placeholder = "Sélectionner…",
+  hasError = false,
+  testID,
+  disabled = false,
+}: {
+  options: SelectOption[];
+  value: string;
+  onChange: (v: string) => void;
+  onBlur?: () => void;
+  placeholder?: string;
+  hasError?: boolean;
+  testID?: string;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((o) => o.value === value);
+
+  function close() {
+    setOpen(false);
+    onBlur?.();
+  }
+
+  return (
+    <>
+      <TouchableOpacity
+        style={[
+          styles.selectTrigger,
+          hasError && styles.selectTriggerError,
+          disabled && styles.selectTriggerDisabled,
+        ]}
+        onPress={() => !disabled && setOpen(true)}
+        disabled={disabled}
+        testID={testID}
+      >
+        <Text
+          style={[styles.selectValue, !selected && styles.selectPlaceholder]}
+          numberOfLines={1}
+        >
+          {selected ? selected.label : placeholder}
+        </Text>
+        <Ionicons
+          name="chevron-down"
+          size={16}
+          color={hasError ? "#DC3545" : colors.textSecondary}
+        />
+      </TouchableOpacity>
+
+      <Modal
+        transparent
+        visible={open}
+        animationType="fade"
+        onRequestClose={close}
+      >
+        <Pressable style={styles.selectBackdrop} onPress={close}>
+          <Pressable
+            style={styles.selectSheet}
+            onPress={(e) => e.stopPropagation()}
+            testID={testID ? `${testID}-sheet` : undefined}
+          >
+            {options.map((opt) => (
+              <TouchableOpacity
+                key={opt.value}
+                style={[
+                  styles.selectOption,
+                  opt.value === value && styles.selectOptionActive,
+                ]}
+                onPress={() => {
+                  onChange(opt.value);
+                  close();
+                }}
+                testID={testID ? `${testID}-option-${opt.value}` : undefined}
+              >
+                <Text
+                  style={[
+                    styles.selectOptionText,
+                    opt.value === value && styles.selectOptionTextActive,
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+                {opt.value === value ? (
+                  <Ionicons name="checkmark" size={16} color={colors.primary} />
+                ) : null}
+              </TouchableOpacity>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -133,9 +238,13 @@ export function EvaluationForm({
     initialValues?.attachments ?? [],
   );
   const [titleFocused, setTitleFocused] = useState(false);
-  const [dateFocused, setDateFocused] = useState(false);
   const [coeffFocused, setCoeffFocused] = useState(false);
   const [maxScoreFocused, setMaxScoreFocused] = useState(false);
+
+  const defaultType =
+    teacherContext.evaluationTypes.find((t) => t.isDefault)?.id ??
+    teacherContext.evaluationTypes[0]?.id ??
+    "";
 
   const {
     control,
@@ -150,26 +259,39 @@ export function EvaluationForm({
       subjectId:
         initialValues?.subjectId ?? teacherContext.subjects[0]?.id ?? "",
       subjectBranchId: initialValues?.subjectBranchId ?? "",
-      evaluationTypeId:
-        initialValues?.evaluationTypeId ??
-        teacherContext.evaluationTypes[0]?.id ??
-        "",
-      term: (initialValues?.term ?? "TERM_1") as "TERM_1" | "TERM_2" | "TERM_3",
-      status: (initialValues?.status ?? "DRAFT") as "DRAFT" | "PUBLISHED",
-      scheduledAt: isoToDisplay(initialValues?.scheduledAt ?? ""),
+      evaluationTypeId: initialValues?.evaluationTypeId ?? defaultType,
+      scheduledDate: isoToDatePart(initialValues?.scheduledAt ?? ""),
+      scheduledTime: isoToTimePart(initialValues?.scheduledAt ?? ""),
       coefficient: String(initialValues?.coefficient ?? 1),
       maxScore: String(initialValues?.maxScore ?? 20),
     },
   });
 
   const watchedSubjectId = watch("subjectId");
+  const watchedDate = watch("scheduledDate");
 
+  const prevSubjectRef = useRef(watchedSubjectId);
   useEffect(() => {
-    setValue("subjectBranchId", "");
+    if (prevSubjectRef.current !== watchedSubjectId) {
+      prevSubjectRef.current = watchedSubjectId;
+      setValue("subjectBranchId", "");
+    }
   }, [watchedSubjectId, setValue]);
 
   const selectedSubject =
     teacherContext.subjects.find((s) => s.id === watchedSubjectId) ?? null;
+  const autoTerm = watchedDate ? termFromDate(watchedDate) : getCurrentTerm();
+
+  const subjectOptions: SelectOption[] = teacherContext.subjects.map((s) => ({
+    value: s.id,
+    label: s.name,
+  }));
+  const typeOptions: SelectOption[] = teacherContext.evaluationTypes.map(
+    (t) => ({ value: t.id, label: t.label }),
+  );
+  const branchOptions: SelectOption[] =
+    selectedSubject?.branches.map((b) => ({ value: b.id, label: b.name })) ??
+    [];
 
   function openColorMenu() {
     Alert.alert("Couleur du texte", "Choisissez une couleur", [
@@ -220,29 +342,31 @@ export function EvaluationForm({
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
 
-  const onFormSubmit = handleSubmit(async (values) => {
-    const editorHtml = await richEditorRef.current?.getContentHtml?.();
-    const finalHtml =
-      typeof editorHtml === "string" && editorHtml.trim()
-        ? editorHtml
-        : descriptionHtml;
+  function buildSubmitHandler(status: "DRAFT" | "PUBLISHED") {
+    return handleSubmit(async (values) => {
+      const editorHtml = await richEditorRef.current?.getContentHtml?.();
+      const finalHtml =
+        typeof editorHtml === "string" && editorHtml.trim()
+          ? editorHtml
+          : descriptionHtml;
 
-    const payload: UpsertEvaluationPayload = {
-      subjectId: values.subjectId,
-      subjectBranchId: values.subjectBranchId || undefined,
-      evaluationTypeId: values.evaluationTypeId,
-      title: values.title.trim(),
-      description: finalHtml || undefined,
-      coefficient: Number(values.coefficient),
-      maxScore: Number(values.maxScore),
-      term: values.term,
-      scheduledAt: displayToIso(values.scheduledAt),
-      status: values.status,
-      attachments,
-    };
+      const payload: UpsertEvaluationPayload = {
+        subjectId: values.subjectId,
+        subjectBranchId: values.subjectBranchId || undefined,
+        evaluationTypeId: values.evaluationTypeId,
+        title: values.title.trim(),
+        description: finalHtml || undefined,
+        coefficient: Number(values.coefficient),
+        maxScore: Number(values.maxScore),
+        term: termFromDate(values.scheduledDate),
+        scheduledAt: combineToIso(values.scheduledDate, values.scheduledTime),
+        status,
+        attachments,
+      };
 
-    await onSubmit(payload);
-  });
+      await onSubmit(payload);
+    });
+  }
 
   return (
     <ScrollView
@@ -303,50 +427,6 @@ export function EvaluationForm({
         )}
       />
 
-      {/* Statut */}
-      <Controller
-        control={control}
-        name="status"
-        render={({ field: { onChange, value } }) => (
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Statut</Text>
-            <View style={styles.chipRow}>
-              <TouchableOpacity
-                style={[styles.chip, value === "DRAFT" && styles.chipActive]}
-                onPress={() => onChange("DRAFT")}
-                testID="eval-form-status-draft"
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    value === "DRAFT" && styles.chipTextActive,
-                  ]}
-                >
-                  Brouillon
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.chip,
-                  value === "PUBLISHED" && styles.chipActive,
-                ]}
-                onPress={() => onChange("PUBLISHED")}
-                testID="eval-form-status-published"
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    value === "PUBLISHED" && styles.chipTextActive,
-                  ]}
-                >
-                  Publié
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-      />
-
       {/* ════ CLASSIFICATION ════════════════════════════════════ */}
       <SectionHeader label="Classification" />
 
@@ -354,30 +434,20 @@ export function EvaluationForm({
       <Controller
         control={control}
         name="subjectId"
-        render={({ field: { onChange, value } }) => (
+        render={({ field: { onChange, onBlur, value } }) => (
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>
               Matière <Text style={styles.required}>*</Text>
             </Text>
-            <View style={styles.chipRow}>
-              {teacherContext.subjects.map((s) => (
-                <TouchableOpacity
-                  key={s.id}
-                  style={[styles.chip, value === s.id && styles.chipActive]}
-                  onPress={() => onChange(s.id)}
-                  testID={`eval-form-subject-${s.id}`}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      value === s.id && styles.chipTextActive,
-                    ]}
-                  >
-                    {s.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <SelectField
+              options={subjectOptions}
+              value={value}
+              onChange={onChange}
+              onBlur={onBlur}
+              placeholder="Sélectionner une matière"
+              hasError={!!errors.subjectId}
+              testID="eval-form-subject"
+            />
             {errors.subjectId ? (
               <Text style={styles.errorText} testID="eval-form-subject-error">
                 {errors.subjectId.message}
@@ -388,32 +458,21 @@ export function EvaluationForm({
       />
 
       {/* Sous-branche */}
-      {selectedSubject && selectedSubject.branches.length > 0 ? (
+      {selectedSubject && branchOptions.length > 0 ? (
         <Controller
           control={control}
           name="subjectBranchId"
-          render={({ field: { onChange, value } }) => (
+          render={({ field: { onChange, onBlur, value } }) => (
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>Sous-branche</Text>
-              <View style={styles.chipRow}>
-                {selectedSubject.branches.map((b) => (
-                  <TouchableOpacity
-                    key={b.id}
-                    style={[styles.chip, value === b.id && styles.chipActive]}
-                    onPress={() => onChange(b.id)}
-                    testID={`eval-form-branch-${b.id}`}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        value === b.id && styles.chipTextActive,
-                      ]}
-                    >
-                      {b.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <SelectField
+                options={branchOptions}
+                value={value ?? ""}
+                onChange={onChange}
+                onBlur={onBlur}
+                placeholder="Sélectionner une sous-branche"
+                testID="eval-form-branch"
+              />
             </View>
           )}
         />
@@ -423,30 +482,20 @@ export function EvaluationForm({
       <Controller
         control={control}
         name="evaluationTypeId"
-        render={({ field: { onChange, value } }) => (
+        render={({ field: { onChange, onBlur, value } }) => (
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>
               Type <Text style={styles.required}>*</Text>
             </Text>
-            <View style={styles.chipRow}>
-              {teacherContext.evaluationTypes.map((t) => (
-                <TouchableOpacity
-                  key={t.id}
-                  style={[styles.chip, value === t.id && styles.chipActive]}
-                  onPress={() => onChange(t.id)}
-                  testID={`eval-form-type-${t.id}`}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      value === t.id && styles.chipTextActive,
-                    ]}
-                  >
-                    {t.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <SelectField
+              options={typeOptions}
+              value={value}
+              onChange={onChange}
+              onBlur={onBlur}
+              placeholder="Sélectionner un type"
+              hasError={!!errors.evaluationTypeId}
+              testID="eval-form-type"
+            />
             {errors.evaluationTypeId ? (
               <Text style={styles.errorText} testID="eval-form-type-error">
                 {errors.evaluationTypeId.message}
@@ -459,71 +508,69 @@ export function EvaluationForm({
       {/* ════ PLANIFICATION ════════════════════════════════════ */}
       <SectionHeader label="Planification" />
 
-      {/* Période + Date */}
-      <View style={styles.planRow}>
+      {/* Date + Heure */}
+      <View style={styles.dualRow}>
         <Controller
           control={control}
-          name="term"
-          render={({ field: { onChange, value } }) => (
-            <View style={[styles.fieldGroup, styles.planCol]}>
-              <Text style={styles.fieldLabel}>Période</Text>
-              <View style={styles.termStack}>
-                {(["TERM_1", "TERM_2", "TERM_3"] as const).map((t) => (
-                  <TouchableOpacity
-                    key={t}
-                    style={[styles.chip, value === t && styles.chipActive]}
-                    onPress={() => onChange(t)}
-                    testID={`eval-form-term-${t}`}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        value === t && styles.chipTextActive,
-                      ]}
-                    >
-                      {TERM_LABELS[t]}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+          name="scheduledDate"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <View style={[styles.fieldGroup, { flex: 2 }]}>
+              <Text style={styles.fieldLabel}>
+                Date prévue <Text style={styles.required}>*</Text>
+              </Text>
+              <DatePickerField
+                value={value}
+                onChange={onChange}
+                onBlur={onBlur}
+                placeholder="Choisir une date"
+                title="Date de l'évaluation"
+                hasError={!!errors.scheduledDate}
+                testID="eval-form-date"
+              />
+              {errors.scheduledDate ? (
+                <Text style={styles.errorText} testID="eval-form-date-error">
+                  {errors.scheduledDate.message}
+                </Text>
+              ) : null}
             </View>
           )}
         />
 
         <Controller
           control={control}
-          name="scheduledAt"
+          name="scheduledTime"
           render={({ field: { onChange, onBlur, value } }) => (
-            <View style={[styles.fieldGroup, styles.planColDate]}>
-              <Text style={styles.fieldLabel}>
-                Date prévue <Text style={styles.required}>*</Text>
-              </Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  dateFocused && styles.inputFocused,
-                  errors.scheduledAt && styles.inputError,
-                ]}
+            <View style={[styles.fieldGroup, { flex: 1 }]}>
+              <Text style={styles.fieldLabel}>Heure</Text>
+              <TimePickerField
                 value={value}
-                onChangeText={onChange}
-                onBlur={() => {
-                  setDateFocused(false);
-                  onBlur();
-                }}
-                onFocus={() => setDateFocused(true)}
-                placeholder="JJ/MM/AAAA HH:MM"
-                placeholderTextColor={colors.textSecondary}
-                keyboardType="numbers-and-punctuation"
-                testID="eval-form-date"
+                onChange={onChange}
+                onBlur={onBlur}
+                placeholder="Heure"
+                title="Heure de l'évaluation"
+                hasError={!!errors.scheduledTime}
+                testID="eval-form-time"
               />
-              {errors.scheduledAt ? (
-                <Text style={styles.errorText} testID="eval-form-date-error">
-                  {errors.scheduledAt.message}
+              {errors.scheduledTime ? (
+                <Text style={styles.errorText} testID="eval-form-time-error">
+                  {errors.scheduledTime.message}
                 </Text>
               ) : null}
             </View>
           )}
         />
+      </View>
+
+      {/* Trimestre auto-détecté */}
+      <View style={styles.termBadgeRow}>
+        <Ionicons
+          name="calendar-clear-outline"
+          size={14}
+          color={colors.primary}
+        />
+        <Text style={styles.termBadgeText} testID="eval-form-term-auto">
+          {termLabel(autoTerm)} — calculé automatiquement d'après la date
+        </Text>
       </View>
 
       {/* Coefficient + Barème */}
@@ -553,7 +600,10 @@ export function EvaluationForm({
                 testID="eval-form-coefficient"
               />
               {errors.coefficient ? (
-                <Text style={styles.errorText}>
+                <Text
+                  style={styles.errorText}
+                  testID="eval-form-coefficient-error"
+                >
                   {errors.coefficient.message}
                 </Text>
               ) : null}
@@ -586,7 +636,12 @@ export function EvaluationForm({
                 testID="eval-form-maxscore"
               />
               {errors.maxScore ? (
-                <Text style={styles.errorText}>{errors.maxScore.message}</Text>
+                <Text
+                  style={styles.errorText}
+                  testID="eval-form-maxscore-error"
+                >
+                  {errors.maxScore.message}
+                </Text>
               ) : null}
             </View>
           )}
@@ -670,17 +725,30 @@ export function EvaluationForm({
         ) : null}
       </View>
 
-      {/* ════ SUBMIT ════════════════════════════════════════════ */}
-      <TouchableOpacity
-        style={[styles.submitBtn, isSubmitting && styles.submitBtnDisabled]}
-        onPress={() => void onFormSubmit()}
-        disabled={isSubmitting}
-        testID="eval-form-submit"
-      >
-        <Text style={styles.submitBtnText}>
-          {mode === "create" ? "Créer l'évaluation" : "Mettre à jour"}
-        </Text>
-      </TouchableOpacity>
+      {/* ════ ACTIONS ═══════════════════════════════════════════ */}
+      <View style={styles.actionRow}>
+        <TouchableOpacity
+          style={[styles.draftBtn, isSubmitting && styles.actionBtnDisabled]}
+          onPress={() => void buildSubmitHandler("DRAFT")()}
+          disabled={isSubmitting}
+          testID="eval-form-save-draft"
+        >
+          <Ionicons name="save-outline" size={16} color={colors.primary} />
+          <Text style={styles.draftBtnText}>
+            {mode === "create" ? "Sauvegarder brouillon" : "Enregistrer"}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.publishBtn, isSubmitting && styles.actionBtnDisabled]}
+          onPress={() => void buildSubmitHandler("PUBLISHED")()}
+          disabled={isSubmitting}
+          testID="eval-form-publish"
+        >
+          <Ionicons name="paper-plane-outline" size={16} color={colors.white} />
+          <Text style={styles.publishBtnText}>Publier</Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 }
@@ -773,12 +841,74 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, fontWeight: "600", color: colors.textSecondary },
   chipTextActive: { color: colors.white },
 
-  planRow: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
-  planCol: { width: 80 },
-  planColDate: { flex: 1 },
-  termStack: { gap: 6 },
-
   dualRow: { flexDirection: "row", gap: 12 },
+
+  termBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    alignSelf: "flex-start",
+  },
+  termBadgeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.primary,
+  },
+
+  // SelectField
+  selectTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    minHeight: 48,
+  },
+  selectTriggerError: { borderColor: "#DC3545" },
+  selectTriggerDisabled: { opacity: 0.5 },
+  selectValue: { fontSize: 15, color: colors.textPrimary, flex: 1 },
+  selectPlaceholder: { color: colors.textSecondary },
+  selectBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  selectSheet: {
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    overflow: "hidden",
+    width: "100%",
+    maxWidth: 400,
+  },
+  selectOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.warmBorder,
+  },
+  selectOptionActive: { backgroundColor: `${colors.primary}12` },
+  selectOptionText: {
+    fontSize: 15,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  selectOptionTextActive: { color: colors.primary, fontWeight: "700" },
 
   editorContainer: {
     borderRadius: 12,
@@ -841,18 +971,47 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
 
-  submitBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: "center",
+  actionRow: {
+    flexDirection: "row",
+    gap: 12,
     marginTop: 24,
+  },
+  draftBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    backgroundColor: colors.white,
+    paddingVertical: 14,
+  },
+  draftBtnText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  publishBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
     shadowColor: colors.primary,
     shadowOpacity: 0.25,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
-  submitBtnDisabled: { opacity: 0.6 },
-  submitBtnText: { color: colors.white, fontSize: 15, fontWeight: "800" },
+  publishBtnText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  actionBtnDisabled: { opacity: 0.6 },
 });
