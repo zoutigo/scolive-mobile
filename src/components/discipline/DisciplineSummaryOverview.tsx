@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -10,9 +10,11 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
-import type {
-  DisciplineSummary,
-  StudentLifeEvent,
+import {
+  DISCIPLINE_TYPE_CONFIG,
+  type DisciplineSummary,
+  type StudentLifeEvent,
+  type StudentLifeEventType,
 } from "../../types/discipline.types";
 import { DisciplineSummaryKpis } from "./DisciplineSummaryKpis";
 import { LifeEventCard } from "./LifeEventCard";
@@ -23,8 +25,6 @@ type Props = {
   isLoading?: boolean;
   isRefreshing?: boolean;
   onRefresh?: () => void;
-  onAbsencesPress?: () => void;
-  onSanctionsPress?: () => void;
   emptyTitle?: string;
   emptySub?: string;
   testID?: string;
@@ -36,12 +36,14 @@ export function DisciplineSummaryOverview({
   isLoading = false,
   isRefreshing = false,
   onRefresh,
-  onAbsencesPress,
-  onSanctionsPress,
   emptyTitle = "Tout va bien !",
   emptySub = "Aucun événement de vie scolaire enregistré sur l'année en cours.",
   testID = "discipline-summary-overview",
 }: Props) {
+  const [activeFilter, setActiveFilter] = useState<StudentLifeEventType | null>(
+    null,
+  );
+
   if (isLoading) {
     return (
       <View style={styles.centered} testID={`${testID}-loading`}>
@@ -50,21 +52,18 @@ export function DisciplineSummaryOverview({
     );
   }
 
-  const hasAny = events.length > 0;
-  const recentEvents = events.slice(0, 3);
-
-  const handleSeeAll = () => {
-    const latest = recentEvents[0];
-    if (
-      latest &&
-      (latest.type === "SANCTION" || latest.type === "PUNITION") &&
-      onSanctionsPress
-    ) {
-      onSanctionsPress();
-      return;
-    }
-    onAbsencesPress?.();
+  const handleFilterPress = (type: StudentLifeEventType) => {
+    setActiveFilter((current) => (current === type ? null : type));
   };
+
+  const displayedEvents = activeFilter
+    ? events.filter((e) => e.type === activeFilter)
+    : events;
+
+  const hasAny = events.length > 0;
+  const sectionTitle = activeFilter
+    ? `Derniers événements : ${DISCIPLINE_TYPE_CONFIG[activeFilter].pluralLabel}`
+    : "Derniers événements";
 
   return (
     <ScrollView
@@ -88,10 +87,7 @@ export function DisciplineSummaryOverview({
 
       <DisciplineSummaryKpis
         summary={summary}
-        onAbsencesPress={onAbsencesPress}
-        onRetardsPress={onAbsencesPress}
-        onSanctionsPress={onSanctionsPress}
-        onPunitionsPress={onSanctionsPress}
+        onFilterPress={handleFilterPress}
       />
 
       {summary.unjustifiedAbsences > 0 ? (
@@ -115,30 +111,39 @@ export function DisciplineSummaryOverview({
       {hasAny ? (
         <>
           <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>Derniers événements</Text>
-            {onAbsencesPress || onSanctionsPress ? (
-              <TouchableOpacity onPress={handleSeeAll} testID="btn-see-all">
+            <Text
+              style={styles.sectionTitle}
+              testID="events-section-title"
+              numberOfLines={1}
+            >
+              {sectionTitle}
+            </Text>
+            {activeFilter ? (
+              <TouchableOpacity
+                onPress={() => setActiveFilter(null)}
+                testID="btn-see-all"
+              >
                 <Text style={styles.sectionLink}>Tout voir</Text>
               </TouchableOpacity>
             ) : null}
           </View>
 
-          {recentEvents.map((event) => (
-            <LifeEventCard key={event.id} event={event} />
-          ))}
-
-          {events.length > 3 && (onAbsencesPress || onSanctionsPress) ? (
-            <TouchableOpacity
-              style={styles.moreBtn}
-              onPress={handleSeeAll}
-              testID="btn-more"
-            >
-              <Text style={styles.moreBtnText}>
-                Voir tous les événements ({events.length})
+          {displayedEvents.length > 0 ? (
+            displayedEvents.map((event) => (
+              <LifeEventCard key={event.id} event={event} />
+            ))
+          ) : (
+            <View style={styles.filterEmpty} testID="filter-empty">
+              <Ionicons
+                name="funnel-outline"
+                size={32}
+                color={colors.warmBorder}
+              />
+              <Text style={styles.filterEmptyText}>
+                Aucun événement de ce type.
               </Text>
-              <Ionicons name="arrow-forward" size={15} color={colors.primary} />
-            </TouchableOpacity>
-          ) : null}
+            </View>
+          )}
         </>
       ) : (
         <View style={styles.emptyState} testID="synthese-empty">
@@ -171,11 +176,13 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.8,
+    flexShrink: 1,
   },
   sectionRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 8,
   },
   sectionLink: {
     fontSize: 13,
@@ -201,21 +208,14 @@ const styles = StyleSheet.create({
   alertStrong: {
     fontWeight: "700",
   },
-  moreBtn: {
-    flexDirection: "row",
+  filterEmpty: {
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    paddingVertical: 13,
+    paddingVertical: 24,
+    gap: 10,
   },
-  moreBtnText: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: "600",
+  filterEmptyText: {
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   emptyState: {
     alignItems: "center",

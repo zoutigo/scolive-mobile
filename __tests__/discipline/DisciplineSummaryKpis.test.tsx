@@ -23,22 +23,86 @@ describe("DisciplineSummaryKpis", () => {
     expect(screen.getByTestId("warn-dot-kpi-absences")).toBeOnTheScreen();
   });
 
-  it("declenche les callbacks de navigation des KPI", () => {
-    const onAbsencesPress = jest.fn();
-    const onSanctionsPress = jest.fn();
+  it("declenche onFilterPress avec le bon type au clic sur chaque KPI", () => {
+    const onFilterPress = jest.fn();
 
     render(
       <DisciplineSummaryKpis
         summary={makeSummary()}
-        onAbsencesPress={onAbsencesPress}
-        onSanctionsPress={onSanctionsPress}
+        onFilterPress={onFilterPress}
       />,
     );
 
     fireEvent.press(screen.getByTestId("kpi-absences"));
-    fireEvent.press(screen.getByTestId("kpi-sanctions"));
+    expect(onFilterPress).toHaveBeenCalledWith("ABSENCE");
 
-    expect(onAbsencesPress).toHaveBeenCalledTimes(1);
-    expect(onSanctionsPress).toHaveBeenCalledTimes(1);
+    fireEvent.press(screen.getByTestId("kpi-retards"));
+    expect(onFilterPress).toHaveBeenCalledWith("RETARD");
+
+    fireEvent.press(screen.getByTestId("kpi-sanctions"));
+    expect(onFilterPress).toHaveBeenCalledWith("SANCTION");
+
+    fireEvent.press(screen.getByTestId("kpi-punitions"));
+    expect(onFilterPress).toHaveBeenCalledWith("PUNITION");
+
+    expect(onFilterPress).toHaveBeenCalledTimes(4);
+  });
+
+  it("les cartes sont non-interactives sans onFilterPress", () => {
+    render(<DisciplineSummaryKpis summary={makeSummary()} />);
+    // pas d'erreur — les cartes sont de simples View
+    fireEvent.press(screen.getByTestId("kpi-absences"));
+  });
+
+  it("aucune carte n'a d'opacite modifiee — ni avant ni apres un clic", () => {
+    const onFilterPress = jest.fn();
+    render(
+      <DisciplineSummaryKpis
+        summary={makeSummary()}
+        onFilterPress={onFilterPress}
+      />,
+    );
+
+    // Avant clic
+    expect(screen.getByTestId("kpi-absences")).not.toHaveStyle({
+      opacity: expect.any(Number),
+    });
+    expect(screen.getByTestId("kpi-retards")).not.toHaveStyle({
+      opacity: expect.any(Number),
+    });
+
+    // Après clic sur RETARDS
+    fireEvent.press(screen.getByTestId("kpi-retards"));
+
+    // Aucune des 4 cartes ne doit avoir d'opacité modifiée
+    expect(screen.getByTestId("kpi-absences")).not.toHaveStyle({
+      opacity: 0.45,
+    });
+    expect(screen.getByTestId("kpi-retards")).not.toHaveStyle({
+      opacity: 0.45,
+    });
+    expect(screen.getByTestId("kpi-sanctions")).not.toHaveStyle({
+      opacity: 0.45,
+    });
+    expect(screen.getByTestId("kpi-punitions")).not.toHaveStyle({
+      opacity: 0.45,
+    });
+  });
+
+  it("utilise Pressable et non TouchableOpacity pour eviter la corruption d'opacite Fabric", () => {
+    const onFilterPress = jest.fn();
+    render(
+      <DisciplineSummaryKpis
+        summary={makeSummary()}
+        onFilterPress={onFilterPress}
+      />,
+    );
+
+    // Pressable n'a pas de prop activeOpacity — vérifier qu'aucune carte
+    // n'a de style opacity lié à un activeOpacity de TouchableOpacity
+    const absCard = screen.getByTestId("kpi-absences");
+    const retCard = screen.getByTestId("kpi-retards");
+    expect(absCard.props).not.toHaveProperty("activeOpacity");
+    expect(retCard.props).not.toHaveProperty("activeOpacity");
   });
 });

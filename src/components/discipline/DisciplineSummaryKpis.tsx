@@ -1,10 +1,11 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
 import {
   DISCIPLINE_TYPE_CONFIG,
   type DisciplineSummary,
+  type StudentLifeEventType,
 } from "../../types/discipline.types";
 
 interface KpiCardProps {
@@ -28,8 +29,8 @@ function KpiCard({
   onPress,
   testID,
 }: KpiCardProps) {
-  const Wrapper = onPress ? TouchableOpacity : View;
-  const wrapperProps = onPress ? { onPress, activeOpacity: 0.8 as number } : {};
+  const Wrapper = onPress ? Pressable : View;
+  const wrapperProps = onPress ? { onPress } : {};
 
   return (
     <Wrapper
@@ -66,19 +67,10 @@ function KpiCard({
 
 interface Props {
   summary: DisciplineSummary;
-  onAbsencesPress?: () => void;
-  onRetardsPress?: () => void;
-  onSanctionsPress?: () => void;
-  onPunitionsPress?: () => void;
+  onFilterPress?: (type: StudentLifeEventType) => void;
 }
 
-export function DisciplineSummaryKpis({
-  summary,
-  onAbsencesPress,
-  onRetardsPress,
-  onSanctionsPress,
-  onPunitionsPress,
-}: Props) {
+export function DisciplineSummaryKpis({ summary, onFilterPress }: Props) {
   return (
     <View style={styles.grid} testID="discipline-summary-kpis">
       <KpiCard
@@ -88,7 +80,7 @@ export function DisciplineSummaryKpis({
         backgroundColor="#2E8FE1"
         iconBubble="rgba(255,255,255,0.18)"
         warning={summary.unjustifiedAbsences > 0}
-        onPress={onAbsencesPress}
+        onPress={onFilterPress ? () => onFilterPress("ABSENCE") : undefined}
         testID="kpi-absences"
       />
       <KpiCard
@@ -97,7 +89,7 @@ export function DisciplineSummaryKpis({
         count={summary.retards}
         backgroundColor="#FF6B39"
         iconBubble="rgba(255,255,255,0.18)"
-        onPress={onRetardsPress}
+        onPress={onFilterPress ? () => onFilterPress("RETARD") : undefined}
         testID="kpi-retards"
       />
       <KpiCard
@@ -106,7 +98,7 @@ export function DisciplineSummaryKpis({
         count={summary.sanctions}
         backgroundColor="#E9151A"
         iconBubble="rgba(255,255,255,0.18)"
-        onPress={onSanctionsPress}
+        onPress={onFilterPress ? () => onFilterPress("SANCTION") : undefined}
         testID="kpi-sanctions"
       />
       <KpiCard
@@ -115,7 +107,7 @@ export function DisciplineSummaryKpis({
         count={summary.punitions}
         backgroundColor="#B432D6"
         iconBubble="rgba(255,255,255,0.18)"
-        onPress={onPunitionsPress}
+        onPress={onFilterPress ? () => onFilterPress("PUNITION") : undefined}
         testID="kpi-punitions"
       />
     </View>

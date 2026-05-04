@@ -155,6 +155,7 @@ export interface DisciplineSummary {
 
 export interface TypeConfig {
   label: string;
+  pluralLabel: string;
   bg: string;
   text: string;
   accent: string;
@@ -165,6 +166,7 @@ export const DISCIPLINE_TYPE_CONFIG: Record<StudentLifeEventType, TypeConfig> =
   {
     ABSENCE: {
       label: "Absence",
+      pluralLabel: "ABSENCES",
       bg: "#EAF3FF",
       text: "#1E5FAF",
       accent: "#1E5FAF",
@@ -172,6 +174,7 @@ export const DISCIPLINE_TYPE_CONFIG: Record<StudentLifeEventType, TypeConfig> =
     },
     RETARD: {
       label: "Retard",
+      pluralLabel: "RETARDS",
       bg: "#FFF2E8",
       text: "#C15600",
       accent: "#C15600",
@@ -179,6 +182,7 @@ export const DISCIPLINE_TYPE_CONFIG: Record<StudentLifeEventType, TypeConfig> =
     },
     SANCTION: {
       label: "Sanction",
+      pluralLabel: "SANCTIONS",
       bg: "#FFF0F0",
       text: "#C0392B",
       accent: "#C0392B",
@@ -186,6 +190,7 @@ export const DISCIPLINE_TYPE_CONFIG: Record<StudentLifeEventType, TypeConfig> =
     },
     PUNITION: {
       label: "Punition",
+      pluralLabel: "PUNITIONS",
       bg: "#F5F0FF",
       text: "#6B5EA8",
       accent: "#6B5EA8",

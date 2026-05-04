@@ -143,7 +143,54 @@ describe("VieScolaireScreen", () => {
     });
   });
 
-  it("bascule vers l'onglet absences depuis le KPI", () => {
+  it("filtre les evenements inline depuis le KPI dans l'onglet synthese", () => {
+    const events = makeEventsByTypes(["ABSENCE", "RETARD", "SANCTION"]).map(
+      (event) => ({ ...event, studentId: "child-1" }),
+    );
+    useDisciplineStore.setState({ eventsMap: { "child-1": events } });
+
+    render(<VieScolaireScreen />);
+
+    // Avant filtre : tous les événements visibles dans la synthèse
+    expect(screen.getByTestId("synthese-tab")).toBeOnTheScreen();
+    expect(screen.getByText("ABSENCE reason 1")).toBeOnTheScreen();
+
+    // Clic sur KPI ABSENCES → filtre inline
+    fireEvent.press(screen.getByTestId("kpi-absences"));
+    expect(screen.getByTestId("events-section-title")).toHaveTextContent(
+      "Derniers événements : ABSENCES",
+    );
+    expect(screen.getByText("ABSENCE reason 1")).toBeOnTheScreen();
+    expect(screen.queryByText("RETARD reason 2")).toBeNull();
+
+    // On est toujours dans l'onglet synthèse, pas de navigation
+    expect(screen.getByTestId("synthese-tab")).toBeOnTheScreen();
+    expect(screen.queryByTestId("list-absences")).toBeNull();
+  });
+
+  it("Tout voir reinitialise le filtre dans l'onglet synthese", () => {
+    const events = makeEventsByTypes(["ABSENCE", "RETARD"]).map((event) => ({
+      ...event,
+      studentId: "child-1",
+    }));
+    useDisciplineStore.setState({ eventsMap: { "child-1": events } });
+
+    render(<VieScolaireScreen />);
+
+    fireEvent.press(screen.getByTestId("kpi-retards"));
+    expect(screen.getByTestId("events-section-title")).toHaveTextContent(
+      "Derniers événements : RETARDS",
+    );
+
+    fireEvent.press(screen.getByTestId("btn-see-all"));
+    expect(screen.getByTestId("events-section-title")).toHaveTextContent(
+      "Derniers événements",
+    );
+    expect(screen.getByText("ABSENCE reason 1")).toBeOnTheScreen();
+    expect(screen.getByText("RETARD reason 2")).toBeOnTheScreen();
+  });
+
+  it("les onglets Absences et Sanctions restent navigables via la barre d'onglets", () => {
     useDisciplineStore.setState({
       eventsMap: {
         "child-1": makeEventsByTypes(["ABSENCE", "RETARD", "SANCTION"]).map(
@@ -154,37 +201,10 @@ describe("VieScolaireScreen", () => {
 
     render(<VieScolaireScreen />);
 
-    fireEvent.press(screen.getByTestId("kpi-absences"));
+    fireEvent.press(screen.getByTestId("tab-absences"));
     expect(screen.getByTestId("list-absences")).toBeOnTheScreen();
 
     fireEvent.press(screen.getByTestId("tab-sanctions"));
-    expect(screen.getByTestId("list-sanctions")).toBeOnTheScreen();
-  });
-
-  it("redirige le bouton tout voir vers l'onglet sanctions si le dernier evenement en est une", () => {
-    useDisciplineStore.setState({
-      eventsMap: {
-        "child-1": [
-          makeLifeEvent({
-            id: "san-1",
-            studentId: "child-1",
-            type: "SANCTION",
-            occurredAt: "2026-04-15T10:20:00.000Z",
-          }),
-          makeLifeEvent({
-            id: "ret-1",
-            studentId: "child-1",
-            type: "RETARD",
-            occurredAt: "2026-04-02T12:49:00.000Z",
-          }),
-        ],
-      },
-    });
-
-    render(<VieScolaireScreen />);
-
-    fireEvent.press(screen.getByTestId("btn-see-all"));
-
     expect(screen.getByTestId("list-sanctions")).toBeOnTheScreen();
   });
 

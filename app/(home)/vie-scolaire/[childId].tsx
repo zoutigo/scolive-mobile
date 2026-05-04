@@ -193,8 +193,6 @@ function VieScolaireScreenContent() {
             isLoading={isLoading && !isCached}
             isRefreshing={isRefreshing}
             onRefresh={refresh}
-            onAbsencesPress={() => setTab("absences")}
-            onSanctionsPress={() => setTab("sanctions")}
           />
         )}
 
@@ -236,8 +234,6 @@ interface SyntheseProps {
   isLoading: boolean;
   isRefreshing: boolean;
   onRefresh: () => void;
-  onAbsencesPress: () => void;
-  onSanctionsPress: () => void;
 }
 
 function SyntheseTab({
@@ -246,8 +242,6 @@ function SyntheseTab({
   isLoading,
   isRefreshing,
   onRefresh,
-  onAbsencesPress,
-  onSanctionsPress,
 }: SyntheseProps) {
   return (
     <DisciplineSummaryOverview
@@ -256,8 +250,6 @@ function SyntheseTab({
       isLoading={isLoading}
       isRefreshing={isRefreshing}
       onRefresh={onRefresh}
-      onAbsencesPress={onAbsencesPress}
-      onSanctionsPress={onSanctionsPress}
       testID="synthese-tab"
     />
   );
