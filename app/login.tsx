@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -17,7 +16,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authApi } from "../src/api/auth.api";
 import { type ApiClientError } from "../src/api/client";
-import { mobileBuildsApi } from "../src/api/mobile-builds.api";
 import {
   GoogleAuthError,
   signInWithGoogleAsync,
@@ -27,19 +25,6 @@ import { SecureTextField } from "../src/components/SecureTextField";
 import { useAuthStore } from "../src/store/auth.store";
 
 type AuthTab = "phone" | "email" | "google";
-type AndroidUpdateNotice = {
-  versionName: string;
-  versionCode: number;
-  downloadUrl: string;
-};
-
-function parseVersionCode(value?: string | null) {
-  if (!value) {
-    return null;
-  }
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) ? parsed : null;
-}
 
 function routeToOnboarding(err: ApiClientError, fallbackEmail?: string) {
   const email = err.email ?? fallbackEmail ?? undefined;
@@ -81,8 +66,6 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [androidUpdate, setAndroidUpdate] =
-    useState<AndroidUpdateNotice | null>(null);
 
   useEffect(() => {
     if (params.tab === "google") {
@@ -92,50 +75,6 @@ export default function LoginScreen() {
       setError(params.error.trim());
     }
   }, [params.error, params.tab]);
-
-  useEffect(() => {
-    if (Platform.OS !== "android") {
-      return;
-    }
-
-    let cancelled = false;
-
-    async function checkAndroidUpdate() {
-      try {
-        const latest = await mobileBuildsApi.getLatestAndroidBuildMeta();
-        const latestCode = Number(latest.versionCode);
-        const installedCode = parseVersionCode(
-          Application.nativeBuildVersion ?? null,
-        );
-
-        if (
-          !Number.isFinite(latestCode) ||
-          installedCode === null ||
-          latestCode <= installedCode
-        ) {
-          return;
-        }
-
-        if (!cancelled) {
-          setAndroidUpdate({
-            versionName: latest.versionName,
-            versionCode: latestCode,
-            downloadUrl:
-              latest.downloadUrl ||
-              mobileBuildsApi.getLatestAndroidDownloadUrl(),
-          });
-        }
-      } catch {
-        // La vérification de version ne doit jamais bloquer la connexion.
-      }
-    }
-
-    void checkAndroidUpdate();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   async function handlePhoneLogin() {
     const digits = phone.replace(/\D/g, "");
@@ -433,37 +372,14 @@ export default function LoginScreen() {
                 </Pressable>
               </View>
             ) : null}
-
-            {androidUpdate ? (
-              <View style={styles.updateCard} testID="android-update-banner">
-                <Text style={styles.updateTitle}>
-                  Une mise à jour Android est disponible
-                </Text>
-                <Text style={styles.updateText}>
-                  Version installée:{" "}
-                  {Application.nativeApplicationVersion ?? "inconnue"} (
-                  {Application.nativeBuildVersion ?? "?"}){"\n"}
-                  Dernière version: {androidUpdate.versionName} (
-                  {androidUpdate.versionCode})
-                </Text>
-                <Pressable
-                  style={styles.updateButton}
-                  testID="android-update-download"
-                  onPress={() => {
-                    void Linking.openURL(androidUpdate.downloadUrl);
-                  }}
-                >
-                  <Text style={styles.updateButtonText}>
-                    Télécharger la mise à jour
-                  </Text>
-                </Pressable>
-              </View>
-            ) : null}
           </ScrollView>
         </KeyboardAvoidingView>
 
-        {/* Copyright — juste au-dessus de la barre de navigation */}
+        {/* Version + Copyright — ancrés en bas */}
         <View style={[styles.copyrightBar, { bottom: insets.bottom }]}>
+          <Text style={styles.appVersion} testID="login-app-version">
+            build {Application.nativeBuildVersion ?? "—"}
+          </Text>
           <Text style={styles.copyright}>
             © 2026 Scolive. Tous droits réservés.
           </Text>
@@ -775,53 +691,28 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
 
-  // ── Mise à jour Android ───────────────────────────────────
-  updateCard: {
-    borderWidth: 1,
-    borderColor: "#BFDBFE",
-    backgroundColor: "#EFF6FF",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    gap: 10,
-  },
-  updateTitle: {
-    color: BLUE,
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  updateText: {
-    color: "#1E3A5F",
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  updateButton: {
-    alignSelf: "flex-start",
-    backgroundColor: BLUE,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  updateButtonText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "800",
-  },
-
   // ── Copyright (ancré en bas) ───────────────────────────────
   copyrightBar: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    paddingVertical: 12,
+    paddingVertical: 10,
     backgroundColor: "#FFFCF8",
     zIndex: 10,
     elevation: 10,
+    alignItems: "center",
+    gap: 2,
+  },
+  appVersion: {
+    color: "#C0B6AC",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
   copyright: {
     color: "#B0A496",
-    fontSize: 12,
+    fontSize: 11,
     textAlign: "center",
   },
 });

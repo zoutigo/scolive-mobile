@@ -313,8 +313,6 @@ describe("buildDrawerNavigationConfig", () => {
       "feed",
       "agenda",
       "timetable",
-      "gradebook",
-      "discipline",
       "messages",
       "account",
     ]);

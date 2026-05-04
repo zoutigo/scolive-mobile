@@ -8,6 +8,7 @@ import {
   ScrollView,
   Dimensions,
 } from "react-native";
+import * as Application from "expo-application";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, usePathname } from "expo-router";
@@ -513,6 +514,13 @@ export function AppDrawer({
           />
           <Text style={styles.logoutLabel}>Se déconnecter</Text>
         </TouchableOpacity>
+
+        {/* Version de l'application */}
+        <View style={styles.versionRow} testID="drawer-app-version">
+          <Text style={styles.versionText}>
+            build {Application.nativeBuildVersion ?? "—"}
+          </Text>
+        </View>
       </Animated.View>
 
       {/* Dialog confirmation déconnexion */}
@@ -728,5 +736,18 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   logoutLabel: { color: "rgba(255,255,255,0.55)", fontSize: 15 },
+
+  // ── Version ──────────────────────────────────────────────────────────────────
+  versionRow: {
+    alignItems: "center",
+    paddingBottom: 14,
+    paddingTop: 2,
+  },
+  versionText: {
+    color: "rgba(255,255,255,0.25)",
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+  },
   sideHitArea: { position: "absolute", top: 0, bottom: 0 },
 });

@@ -220,8 +220,8 @@ describe("Items de navigation — enseignant", () => {
   const expectedKeys = [
     "home",
     "feed",
+    "agenda",
     "timetable",
-    "gradebook",
     "messages",
     "account",
   ];

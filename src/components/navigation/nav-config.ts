@@ -264,19 +264,6 @@ const TEACHER_NAV: NavItem[] = [
     route: "/timetable",
   },
   {
-    key: "gradebook",
-    label: "Cahier de notes",
-    icon: "journal-outline",
-    route: "/notes",
-  },
-  {
-    key: "discipline",
-    label: "Discipline",
-    icon: "shield-outline",
-    route: "/placeholder",
-    params: { title: "Discipline" },
-  },
-  {
     key: "messages",
     label: "Messagerie",
     icon: "chatbubble-outline",

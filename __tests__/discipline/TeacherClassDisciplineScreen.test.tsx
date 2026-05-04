@@ -234,4 +234,77 @@ describe("TeacherClassDisciplineScreen", () => {
     expect(screen.getByTestId("discipline-summary-kpis")).toBeTruthy();
     expect(screen.getByText("[DEMO] Sanction signée")).toBeTruthy();
   });
+
+  it("filtre les evenements du carnet au clic sur un KPI et les remet a zero avec Tout voir", async () => {
+    mockDisciplineApi.list.mockImplementation(async (_slug, studentId) => {
+      if (studentId === "student-1") {
+        return [
+          makeLifeEvent({
+            id: "ret-s1",
+            studentId: "student-1",
+            classId: "class-1",
+            reason: "Bus arrivé en retard",
+            type: "RETARD",
+            authorUserId: "teacher-2",
+          }),
+        ];
+      }
+      return [
+        makeLifeEvent({
+          id: "san-s2",
+          studentId: "student-2",
+          classId: "class-1",
+          reason: "Carnet sanction S2",
+          type: "SANCTION",
+          authorUserId: "teacher-2",
+        }),
+        makeLifeEvent({
+          id: "ret-s2",
+          studentId: "student-2",
+          classId: "class-1",
+          reason: "Carnet retard S2",
+          type: "RETARD",
+          authorUserId: "teacher-2",
+        }),
+      ];
+    });
+
+    render(<TeacherClassDisciplineScreen />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-class-discipline-tab-carnets"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-tab-carnets"));
+    fireEvent.press(
+      screen.getByTestId("teacher-class-discipline-carnets-student-trigger"),
+    );
+    fireEvent.press(
+      screen.getByTestId(
+        "teacher-class-discipline-carnets-student-option-student-2",
+      ),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText("Carnet sanction S2")).toBeTruthy(),
+    );
+    expect(screen.getByText("Carnet retard S2")).toBeTruthy();
+
+    // Clic KPI SANCTIONS → seule la sanction reste visible
+    fireEvent.press(screen.getByTestId("kpi-sanctions"));
+    expect(screen.getByTestId("events-section-title")).toHaveTextContent(
+      "Derniers événements : SANCTIONS",
+    );
+    expect(screen.getByText("Carnet sanction S2")).toBeTruthy();
+    expect(screen.queryByText("Carnet retard S2")).toBeNull();
+
+    // Tout voir → remet tous les événements
+    fireEvent.press(screen.getByTestId("btn-see-all"));
+    expect(screen.getByTestId("events-section-title")).toHaveTextContent(
+      "Derniers événements",
+    );
+    expect(screen.getByText("Carnet retard S2")).toBeTruthy();
+    expect(screen.getByText("Carnet sanction S2")).toBeTruthy();
+  });
 });
