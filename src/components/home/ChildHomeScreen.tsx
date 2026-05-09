@@ -17,50 +17,43 @@ import { useDrawer } from "../navigation/drawer-context";
 import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { notesApi } from "../../api/notes.api";
-import { disciplineApi } from "../../api/discipline.api";
 import { timetableApi } from "../../api/timetable.api";
 import { messagingApi } from "../../api/messaging.api";
-import {
-  computeDisciplineSummary,
-  type StudentLifeEvent,
-} from "../../types/discipline.types";
+import { homeworkApi } from "../../api/homework.api";
+import { feedApi } from "../../api/feed.api";
 import type { MessageListItem } from "../../types/messaging.types";
 import type { StudentNotesResponse } from "../../types/notes.types";
-import type {
-  MyTimetableResponse,
-  TimetableOccurrence,
-} from "../../types/timetable.types";
+import type { MyTimetableResponse } from "../../types/timetable.types";
+import type { HomeworkRow } from "../../types/homework.types";
+import type { FeedPost } from "../../types/feed.types";
+import { ErrorBanner } from "../timetable/TimetableCommon";
 import {
-  EmptyState,
-  ErrorBanner,
-  SectionCard,
-} from "../timetable/TimetableCommon";
-import { formatScore, getBestSubject, getCurrentTerm } from "../../utils/notes";
-import { minuteToTimeLabel } from "../../utils/timetable";
+  formatEvaluationDate,
+  formatScore,
+  getCurrentTerm,
+} from "../../utils/notes";
 
 type DashboardState = {
   notes: StudentNotesResponse;
-  events: StudentLifeEvent[];
   timetable: MyTimetableResponse | null;
   unreadCount: number;
-  latestMessage: MessageListItem | null;
+  unreadMessages: MessageListItem[];
+  homework: HomeworkRow[];
+  feedPosts: FeedPost[];
 };
 
 const INITIAL_STATE: DashboardState = {
   notes: [],
-  events: [],
   timetable: null,
   unreadCount: 0,
-  latestMessage: null,
+  unreadMessages: [],
+  homework: [],
+  feedPosts: [],
 };
 
 function buildSubtitle(
   child:
-    | {
-        firstName: string;
-        lastName: string;
-        className?: string | null;
-      }
+    | { firstName: string; lastName: string; className?: string | null }
     | undefined,
   timetable: MyTimetableResponse | null,
 ) {
@@ -74,35 +67,57 @@ function buildSubtitle(
   return classLabel ? `${childLabel} • ${classLabel}` : childLabel;
 }
 
-function findNextOccurrence(occurrences: TimetableOccurrence[]) {
-  const now = Date.now();
-  return occurrences
-    .filter((entry) => (entry.status ?? "PLANNED") === "PLANNED")
-    .sort((a, b) =>
-      `${a.occurrenceDate}-${a.startMinute}`.localeCompare(
-        `${b.occurrenceDate}-${b.startMinute}`,
-      ),
-    )
-    .find((entry) => {
-      const startsAt = new Date(
-        `${entry.occurrenceDate}T${minuteToTimeLabel(entry.startMinute)}:00`,
-      ).getTime();
-      return startsAt >= now - 15 * 60 * 1000;
-    });
-}
-
-function formatMessageDate(value?: string | null) {
+function formatShortDate(value?: string | null) {
   if (!value) return "";
   try {
     return new Intl.DateTimeFormat("fr-FR", {
       day: "2-digit",
       month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
     }).format(new Date(value));
   } catch {
     return value;
   }
+}
+
+function authorInitials(fullName: string): string {
+  return fullName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("");
+}
+
+type FlatEvaluation = {
+  subject: string;
+  score: number | null;
+  maxScore: number;
+  recordedAt: string;
+};
+
+function extractLatestEvaluations(
+  notes: StudentNotesResponse,
+  count: number,
+): FlatEvaluation[] {
+  const all: FlatEvaluation[] = [];
+  for (const snapshot of notes) {
+    for (const subject of snapshot.subjects) {
+      for (const ev of subject.evaluations) {
+        all.push({
+          subject: subject.subjectLabel,
+          score: ev.score,
+          maxScore: ev.maxScore,
+          recordedAt: ev.recordedAt,
+        });
+      }
+    }
+  }
+  return all
+    .sort(
+      (a, b) =>
+        new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime(),
+    )
+    .slice(0, count);
 }
 
 export function ChildHomeScreen() {
@@ -123,47 +138,55 @@ export function ChildHomeScreen() {
   const load = useCallback(
     async (mode: "load" | "refresh" = "load") => {
       if (!schoolSlug || !childId) return;
-      if (mode === "load") {
-        setIsLoading(true);
-      } else {
-        setIsRefreshing(true);
-      }
+      if (mode === "load") setIsLoading(true);
+      else setIsRefreshing(true);
       setErrorMessage(null);
 
-      const results = await Promise.allSettled([
-        notesApi.listStudentNotes(schoolSlug, childId),
-        disciplineApi.list(schoolSlug, childId, {
-          scope: "current",
-          limit: 20,
-        }),
-        timetableApi.getMyTimetable(schoolSlug, { childId }),
-        messagingApi.unreadCount(schoolSlug),
-        messagingApi.list(schoolSlug, { folder: "inbox", page: 1, limit: 1 }),
-      ]);
+      const currentChild = useFamilyStore
+        .getState()
+        .children.find((c) => c.id === childId);
+      const classIdForHw = currentChild?.classId ?? null;
+
+      const [notesRes, timetableRes, unreadRes, inboxRes, feedRes, hwRes] =
+        await Promise.allSettled([
+          notesApi.listStudentNotes(schoolSlug, childId),
+          timetableApi.getMyTimetable(schoolSlug, { childId }),
+          messagingApi.unreadCount(schoolSlug),
+          messagingApi.list(schoolSlug, {
+            folder: "inbox",
+            page: 1,
+            limit: 20,
+          }),
+          feedApi.list(schoolSlug, { viewScope: "GENERAL", limit: 2 }),
+          classIdForHw
+            ? homeworkApi.listClassHomework(schoolSlug, classIdForHw, {
+                studentId: childId,
+              })
+            : Promise.resolve([] as HomeworkRow[]),
+        ]);
 
       const notes =
-        results[0].status === "fulfilled"
-          ? results[0].value
-          : INITIAL_STATE.notes;
-      const events =
-        results[1].status === "fulfilled"
-          ? results[1].value
-          : INITIAL_STATE.events;
+        notesRes.status === "fulfilled" ? notesRes.value : INITIAL_STATE.notes;
       const timetable =
-        results[2].status === "fulfilled"
-          ? results[2].value
+        timetableRes.status === "fulfilled"
+          ? timetableRes.value
           : INITIAL_STATE.timetable;
       const unreadCount =
-        results[3].status === "fulfilled"
-          ? results[3].value
+        unreadRes.status === "fulfilled"
+          ? unreadRes.value
           : INITIAL_STATE.unreadCount;
-      const latestMessage =
-        results[4].status === "fulfilled"
-          ? (results[4].value.items[0] ?? null)
-          : INITIAL_STATE.latestMessage;
+      const allInbox =
+        inboxRes.status === "fulfilled" ? inboxRes.value.items : [];
+      const unreadMessages = allInbox.filter((m) => m.unread).slice(0, 3);
+      const feedPosts =
+        feedRes.status === "fulfilled"
+          ? feedRes.value.items
+          : INITIAL_STATE.feedPosts;
+      const homework =
+        hwRes.status === "fulfilled" ? hwRes.value : INITIAL_STATE.homework;
 
-      const hasAnySuccess = results.some(
-        (entry) => entry.status === "fulfilled",
+      const hasAnySuccess = [notesRes, timetableRes, unreadRes, inboxRes].some(
+        (r) => r.status === "fulfilled",
       );
       if (!hasAnySuccess) {
         setErrorMessage("Impossible de charger la synthèse de l'enfant.");
@@ -180,10 +203,11 @@ export function ChildHomeScreen() {
 
       setState({
         notes,
-        events,
         timetable,
         unreadCount,
-        latestMessage,
+        unreadMessages,
+        homework,
+        feedPosts,
       });
       setIsLoading(false);
       setIsRefreshing(false);
@@ -205,20 +229,39 @@ export function ChildHomeScreen() {
     state.notes.find((entry) => entry.term === currentTerm) ??
     state.notes[0] ??
     null;
-  const disciplineSummary = useMemo(
-    () => computeDisciplineSummary(state.events),
-    [state.events],
+  const undoneHomework = useMemo(
+    () => state.homework.filter((hw) => !hw.myDoneAt).length,
+    [state.homework],
   );
-  const nextOccurrence = useMemo(
-    () => findNextOccurrence(state.timetable?.occurrences ?? []),
-    [state.timetable?.occurrences],
-  );
-  const bestSubject = useMemo(
-    () => getBestSubject(snapshot?.subjects ?? []),
-    [snapshot?.subjects],
+  const latestEvaluations = useMemo(
+    () => extractLatestEvaluations(state.notes, 3),
+    [state.notes],
   );
   const classId = child?.classId ?? state.timetable?.class?.id ?? null;
   const subtitle = buildSubtitle(child, state.timetable);
+
+  function goToNotes() {
+    router.push({
+      pathname: "/(home)/notes/child/[childId]",
+      params: { childId },
+    });
+  }
+  function goToHomework() {
+    if (!classId) return;
+    router.push({
+      pathname: "/(home)/classes/[classId]/homework",
+      params: { classId, childId },
+    });
+  }
+  function goToMessages() {
+    router.push("/(home)/messages" as never);
+  }
+  function goToFeed() {
+    router.push({
+      pathname: "/(home)/children/[childId]/vie-de-classe",
+      params: { childId },
+    });
+  }
 
   return (
     <View style={styles.root}>
@@ -261,225 +304,129 @@ export function ChildHomeScreen() {
           </View>
         ) : (
           <>
-            <View style={styles.heroCard} testID="child-home-hero">
-              <View style={styles.heroBadge}>
-                <Ionicons
-                  name="grid-outline"
-                  size={18}
-                  color={colors.primary}
-                />
-              </View>
-              <View style={styles.heroCopy}>
-                <Text style={styles.heroTitle}>Vue d&apos;ensemble</Text>
-                <Text style={styles.heroSubtitle}>
-                  Retrouvez en un coup d&apos;oeil les notes, la vie scolaire,
-                  la messagerie et les prochains cours de l&apos;enfant.
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.statsGrid}>
-              <SummaryStat
-                testID="child-home-stat-average"
-                label="Moyenne générale"
+            <View style={styles.kpiRow} testID="child-home-kpi-row">
+              <KpiCard
+                testID="child-home-kpi-average"
+                icon="school-outline"
+                label="Moyenne"
                 value={formatScore(snapshot?.generalAverage.student ?? null)}
-                hint={snapshot?.label ?? "Aucune période publiée"}
+                sub={snapshot?.label ?? "Aucune période"}
                 accent={colors.primary}
                 tone="#DDEBFA"
+                onPress={goToNotes}
               />
-              <SummaryStat
-                testID="child-home-stat-messages"
-                label="Messages non lus"
-                value={`${state.unreadCount}`}
-                hint={
-                  state.latestMessage?.subject
-                    ? state.latestMessage.subject
-                    : "Aucun message récent"
-                }
-                accent={colors.accentTeal}
-                tone="#DCF3EE"
-              />
-              <SummaryStat
-                testID="child-home-stat-discipline"
-                label="Vie scolaire"
-                value={`${state.events.length}`}
-                hint={
-                  disciplineSummary.unjustifiedAbsences > 0
-                    ? `${disciplineSummary.unjustifiedAbsences} absence non justifiée`
-                    : "Aucun point de vigilance"
-                }
+              <KpiCard
+                testID="child-home-kpi-homework"
+                icon="book-outline"
+                label="Devoirs"
+                value={classId ? `${undoneHomework}` : "–"}
+                sub={classId ? "non faits" : "Classe inconnue"}
                 accent={colors.warmAccent}
                 tone="#F8E9D8"
+                onPress={classId ? goToHomework : undefined}
+              />
+              <KpiCard
+                testID="child-home-kpi-messages"
+                icon="mail-outline"
+                label="Messages"
+                value={`${state.unreadCount}`}
+                sub="non lus"
+                accent={colors.accentTeal}
+                tone="#DCF3EE"
+                onPress={goToMessages}
               />
             </View>
 
-            <SectionCard
-              title="Aujourd'hui"
-              subtitle="Prochain créneau identifié"
-              testID="child-home-today-card"
+            <SectionBlock
+              testID="child-home-evals-block"
+              title="Dernières évaluations"
+              icon="clipboard-outline"
+              iconColor={colors.primary}
+              iconTone="#DDEBFA"
+              onPress={goToNotes}
+              linkLabel="Toutes les notes"
             >
-              {nextOccurrence ? (
-                <View style={styles.detailBlock}>
-                  <Text style={styles.detailTitle}>
-                    {minuteToTimeLabel(nextOccurrence.startMinute)} -{" "}
-                    {minuteToTimeLabel(nextOccurrence.endMinute)} ·{" "}
-                    {nextOccurrence.subject.name}
-                  </Text>
-                  <Text style={styles.detailMeta}>
-                    {nextOccurrence.teacherUser.lastName.toUpperCase()}{" "}
-                    {nextOccurrence.teacherUser.firstName}
-                  </Text>
-                  <Text style={styles.detailAccent}>
-                    {nextOccurrence.room?.trim()
-                      ? `Salle ${nextOccurrence.room}`
-                      : "Salle à confirmer"}
-                  </Text>
-                </View>
+              {latestEvaluations.length === 0 ? (
+                <EmptyRow
+                  testID="child-home-evals-empty"
+                  label="Aucune évaluation publiée"
+                />
               ) : (
-                <EmptyState
-                  icon="calendar-clear-outline"
-                  title="Aucun prochain cours"
-                  message="Le prochain créneau de l'enfant apparaîtra ici."
-                />
+                latestEvaluations.map((ev, idx) => (
+                  <EvalRow
+                    key={`${ev.subject}-${ev.recordedAt}-${idx}`}
+                    testID={`child-home-eval-row-${idx}`}
+                    subject={ev.subject}
+                    score={ev.score}
+                    maxScore={ev.maxScore}
+                    date={ev.recordedAt}
+                    isLast={idx === latestEvaluations.length - 1}
+                  />
+                ))
               )}
-            </SectionCard>
+            </SectionBlock>
 
-            <View style={styles.row}>
-              <SectionCard
-                title="Suivi scolaire"
-                subtitle={snapshot?.generatedAtLabel || "Aucune note publiée"}
-                testID="child-home-notes-card"
-              >
-                <View style={styles.detailBlock}>
-                  <MetricLine
-                    label="Moyenne"
-                    value={formatScore(
-                      snapshot?.generalAverage.student ?? null,
-                    )}
-                  />
-                  <MetricLine
-                    label="Matière forte"
-                    value={
-                      bestSubject
-                        ? `${bestSubject.subjectLabel} · ${formatScore(bestSubject.studentAverage)}`
-                        : "-"
-                    }
-                  />
-                </View>
-              </SectionCard>
-
-              <SectionCard
-                title="Vie scolaire"
-                subtitle="Synthèse de l'année en cours"
-                testID="child-home-discipline-card"
-              >
-                <View style={styles.detailBlock}>
-                  <MetricLine
-                    label="Absences non justifiées"
-                    value={`${disciplineSummary.unjustifiedAbsences}`}
-                  />
-                  <MetricLine
-                    label="Sanctions / punitions"
-                    value={`${disciplineSummary.sanctions + disciplineSummary.punitions}`}
-                  />
-                </View>
-              </SectionCard>
-            </View>
-
-            <SectionCard
-              title="Accès rapides"
-              subtitle="Modules de l'enfant"
-              testID="child-home-links-card"
+            <SectionBlock
+              testID="child-home-feed-block"
+              title="Fil d'actualité"
+              icon="newspaper-outline"
+              iconColor="#6B5EA8"
+              iconTone="#EAE7F8"
+              onPress={goToFeed}
+              linkLabel="Voir le fil"
             >
-              <View style={styles.quickGrid}>
-                <QuickLink
-                  label="Notes"
-                  hint="Évaluations et moyennes"
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(home)/notes/child/[childId]",
-                      params: { childId },
-                    })
-                  }
-                  testID="child-home-link-notes"
+              {state.feedPosts.length === 0 ? (
+                <EmptyRow
+                  testID="child-home-feed-empty"
+                  label="Aucune actualité récente"
                 />
-                <QuickLink
-                  label="Vie scolaire"
-                  hint="Absences et sanctions"
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(home)/vie-scolaire/[childId]",
-                      params: { childId },
-                    })
-                  }
-                  testID="child-home-link-life"
-                />
-                <QuickLink
-                  label="Vie de classe"
-                  hint="Fil et actualités"
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(home)/children/[childId]/vie-de-classe",
-                      params: { childId },
-                    })
-                  }
-                  testID="child-home-link-class-life"
-                />
-                <QuickLink
-                  label="Emploi du temps"
-                  hint="Cours et créneaux"
-                  onPress={() =>
-                    router.push(`/timetable/child/${childId}` as never)
-                  }
-                  testID="child-home-link-timetable"
-                />
-                {classId ? (
-                  <QuickLink
-                    label="Devoirs"
-                    hint="Travaux à rendre"
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(home)/classes/[classId]/homework",
-                        params: { classId, childId },
-                      })
-                    }
-                    testID="child-home-link-homework"
-                  />
-                ) : null}
-                <QuickLink
-                  label="Messagerie"
-                  hint="Échanges et suivi"
-                  onPress={() => router.push("/(home)/messages" as never)}
-                  testID="child-home-link-messages"
-                />
-              </View>
-            </SectionCard>
-
-            <SectionCard
-              title="Dernier message"
-              subtitle="Boîte de réception"
-              testID="child-home-last-message-card"
-            >
-              {state.latestMessage ? (
-                <View style={styles.detailBlock}>
-                  <Text style={styles.detailTitle}>
-                    {state.latestMessage.subject}
-                  </Text>
-                  <Text style={styles.detailMeta}>
-                    {state.latestMessage.preview}
-                  </Text>
-                  <Text style={styles.detailMuted}>
-                    {formatMessageDate(state.latestMessage.createdAt)}
-                  </Text>
-                </View>
               ) : (
-                <EmptyState
-                  icon="mail-open-outline"
-                  title="Aucun message récent"
-                  message="Les derniers échanges apparaîtront ici."
-                />
+                state.feedPosts.map((post, idx) => (
+                  <DataRow
+                    key={post.id}
+                    testID={`child-home-feed-row-${idx}`}
+                    main={post.title}
+                    secondary={authorInitials(post.author.fullName)}
+                    date={post.createdAt}
+                    isLast={idx === state.feedPosts.length - 1}
+                    onPress={goToFeed}
+                  />
+                ))
               )}
-            </SectionCard>
+            </SectionBlock>
+
+            <SectionBlock
+              testID="child-home-unread-block"
+              title="Messages non lus"
+              icon="chatbubble-ellipses-outline"
+              iconColor={colors.accentTeal}
+              iconTone="#DCF3EE"
+              onPress={goToMessages}
+              linkLabel="Messagerie"
+            >
+              {state.unreadMessages.length === 0 ? (
+                <EmptyRow
+                  testID="child-home-unread-empty"
+                  label="Aucun message non lu"
+                />
+              ) : (
+                state.unreadMessages.map((msg, idx) => (
+                  <DataRow
+                    key={msg.id}
+                    testID={`child-home-msg-row-${idx}`}
+                    main={msg.subject}
+                    secondary={
+                      msg.sender
+                        ? `${msg.sender.firstName} ${msg.sender.lastName}`
+                        : "Expéditeur inconnu"
+                    }
+                    date={msg.createdAt}
+                    isLast={idx === state.unreadMessages.length - 1}
+                    onPress={goToMessages}
+                  />
+                ))
+              )}
+            </SectionBlock>
           </>
         )}
       </ScrollView>
@@ -487,53 +434,163 @@ export function ChildHomeScreen() {
   );
 }
 
-function SummaryStat(props: {
+function KpiCard(props: {
   label: string;
   value: string;
-  hint: string;
+  sub: string;
   accent: string;
   tone: string;
+  icon: string;
   testID: string;
-}) {
-  return (
-    <View
-      style={[styles.statCard, { backgroundColor: props.tone }]}
-      testID={props.testID}
-    >
-      <Text style={styles.statLabel}>{props.label}</Text>
-      <Text style={[styles.statValue, { color: props.accent }]}>
-        {props.value}
-      </Text>
-      <Text style={styles.statHint}>{props.hint}</Text>
-    </View>
-  );
-}
-
-function MetricLine(props: { label: string; value: string }) {
-  return (
-    <View style={styles.metricRow}>
-      <Text style={styles.metricLabel}>{props.label}</Text>
-      <Text style={styles.metricValue}>{props.value}</Text>
-    </View>
-  );
-}
-
-function QuickLink(props: {
-  label: string;
-  hint: string;
-  onPress: () => void;
-  testID: string;
+  onPress?: () => void;
 }) {
   return (
     <TouchableOpacity
-      style={styles.quickCard}
+      style={[styles.kpiCard, { backgroundColor: props.tone }]}
+      activeOpacity={props.onPress ? 0.82 : 1}
       onPress={props.onPress}
-      activeOpacity={0.82}
+      testID={props.testID}
+      accessibilityRole="button"
+    >
+      <View style={styles.kpiTopRow}>
+        <View
+          style={[styles.kpiIconWrap, { backgroundColor: props.accent + "22" }]}
+        >
+          <Ionicons
+            name={props.icon as "home"}
+            size={15}
+            color={props.accent}
+          />
+        </View>
+        <Text
+          style={[styles.kpiValue, { color: props.accent }]}
+          numberOfLines={1}
+        >
+          {props.value}
+        </Text>
+      </View>
+      <Text style={styles.kpiLabel}>{props.label}</Text>
+      <Text style={styles.kpiSub} numberOfLines={1}>
+        {props.sub}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+function SectionBlock(props: {
+  testID: string;
+  title: string;
+  icon: string;
+  iconColor: string;
+  iconTone: string;
+  onPress: () => void;
+  linkLabel: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.sectionBlock} testID={props.testID}>
+      <View style={styles.sectionBlockHeader}>
+        <View style={styles.sectionBlockLeft}>
+          <View
+            style={[
+              styles.sectionBlockIcon,
+              { backgroundColor: props.iconTone },
+            ]}
+          >
+            <Ionicons
+              name={props.icon as "home"}
+              size={15}
+              color={props.iconColor}
+            />
+          </View>
+          <Text style={styles.sectionBlockTitle}>{props.title}</Text>
+        </View>
+        <TouchableOpacity
+          onPress={props.onPress}
+          testID={`${props.testID}-link`}
+        >
+          <Text style={[styles.sectionBlockLink, { color: props.iconColor }]}>
+            {props.linkLabel}
+          </Text>
+        </TouchableOpacity>
+      </View>
+      {props.children}
+    </View>
+  );
+}
+
+function EvalRow(props: {
+  testID: string;
+  subject: string;
+  score: number | null;
+  maxScore: number;
+  date: string;
+  isLast: boolean;
+}) {
+  const scoreNum = props.score ?? -1;
+  const ratio = props.maxScore > 0 ? scoreNum / props.maxScore : 0;
+  const scoreColor =
+    props.score === null
+      ? colors.textSecondary
+      : ratio >= 0.7
+        ? colors.accentTeal
+        : ratio >= 0.5
+          ? colors.warmAccent
+          : colors.notification;
+
+  const scoreMain = props.score !== null ? formatScore(props.score) : "–";
+  const scoreSub = `/${formatScore(props.maxScore)}`;
+
+  return (
+    <View
+      style={[styles.dataRow, !props.isLast && styles.dataRowBorder]}
       testID={props.testID}
     >
-      <Text style={styles.quickLabel}>{props.label}</Text>
-      <Text style={styles.quickHint}>{props.hint}</Text>
+      <Text style={styles.dataRowMain} numberOfLines={1}>
+        {props.subject}
+      </Text>
+      <View style={styles.evalScoreWrap}>
+        <Text style={[styles.evalScoreMain, { color: scoreColor }]}>
+          {scoreMain}
+        </Text>
+        <Text style={styles.evalScoreSub}>{scoreSub}</Text>
+      </View>
+      <Text style={styles.dataRowDate}>{formatEvaluationDate(props.date)}</Text>
+    </View>
+  );
+}
+
+function DataRow(props: {
+  testID: string;
+  main: string;
+  secondary: string;
+  date: string;
+  isLast: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.dataRow, !props.isLast && styles.dataRowBorder]}
+      activeOpacity={0.75}
+      testID={props.testID}
+      onPress={props.onPress}
+    >
+      <Text style={styles.dataRowMain} numberOfLines={1}>
+        {props.main}
+      </Text>
+      <Text style={styles.dataRowSecondary} numberOfLines={1}>
+        {props.secondary}
+      </Text>
+      <Text style={styles.dataRowDate}>{formatShortDate(props.date)}</Text>
     </TouchableOpacity>
+  );
+}
+
+function EmptyRow(props: { testID: string; label: string }) {
+  return (
+    <View style={styles.emptyRow} testID={props.testID}>
+      <Text style={styles.emptyRowText}>{props.label}</Text>
+    </View>
   );
 }
 
@@ -551,126 +608,142 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  heroCard: {
-    marginTop: 14,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    backgroundColor: colors.surface,
-    padding: 18,
+
+  kpiRow: {
     flexDirection: "row",
-    gap: 14,
-    alignItems: "center",
-  },
-  heroBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
-    backgroundColor: "#DDEBFA",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  heroTitle: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: colors.textPrimary,
-  },
-  heroSubtitle: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: colors.textSecondary,
-  },
-  statsGrid: {
     gap: 10,
+    marginTop: 14,
   },
-  statCard: {
+  kpiCard: {
+    flex: 1,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.warmBorder,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 14,
+    gap: 4,
+    alignItems: "flex-start",
   },
-  statLabel: {
-    fontSize: 11,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    color: colors.textSecondary,
-    fontWeight: "700",
-  },
-  statValue: {
-    marginTop: 8,
-    fontSize: 29,
-    fontWeight: "800",
-  },
-  statHint: {
-    marginTop: 4,
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  row: {
-    gap: 14,
-  },
-  detailBlock: {
+  kpiTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
-  detailTitle: {
-    fontSize: 16,
+  kpiIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  kpiValue: {
+    fontSize: 22,
+    fontWeight: "800",
+    lineHeight: 26,
+  },
+  kpiLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  kpiSub: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    lineHeight: 14,
+  },
+
+  sectionBlock: {
+    backgroundColor: colors.surface,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    overflow: "hidden",
+  },
+  sectionBlockHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.warmBorder,
+  },
+  sectionBlockLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  sectionBlockIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionBlockTitle: {
+    fontSize: 13,
     fontWeight: "800",
     color: colors.textPrimary,
+    letterSpacing: 0.1,
   },
-  detailMeta: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  detailAccent: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.primary,
-  },
-  detailMuted: {
+  sectionBlockLink: {
     fontSize: 12,
-    color: colors.textSecondary,
+    fontWeight: "600",
   },
-  metricRow: {
+
+  dataRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    gap: 8,
   },
-  metricLabel: {
+  dataRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.warmBorder,
+  },
+  dataRowMain: {
     flex: 1,
     fontSize: 13,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+  evalScoreWrap: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 1,
+  },
+  evalScoreMain: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  evalScoreSub: {
+    fontSize: 10,
     color: colors.textSecondary,
   },
-  metricValue: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  quickGrid: {
-    gap: 10,
-  },
-  quickCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-  },
-  quickLabel: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: colors.textPrimary,
-  },
-  quickHint: {
-    marginTop: 4,
+  dataRowSecondary: {
     fontSize: 12,
     color: colors.textSecondary,
+    maxWidth: 110,
+    textAlign: "right",
+  },
+  dataRowDate: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    minWidth: 44,
+    textAlign: "right",
+  },
+
+  emptyRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    alignItems: "center",
+  },
+  emptyRowText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: "italic",
   },
 });
