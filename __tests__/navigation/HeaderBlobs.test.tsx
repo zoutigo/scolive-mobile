@@ -59,6 +59,7 @@ beforeEach(() => {
   mockUseDrawer.mockReturnValue({
     openDrawer: jest.fn(),
     closeDrawer: jest.fn(),
+    openDrawerForClass: jest.fn(),
     isDrawerOpen: false,
   });
   mockUseAuthStore.mockReturnValue({

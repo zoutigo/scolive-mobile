@@ -18,7 +18,11 @@ jest.mock("expo-router", () => ({
 }));
 jest.mock("../../src/components/navigation/AppShell", () => ({
   AppShell: ({ children }: { children: React.ReactNode }) => children,
-  useDrawer: () => ({ openDrawer: jest.fn(), closeDrawer: jest.fn() }),
+  useDrawer: () => ({
+    openDrawer: jest.fn(),
+    openDrawerForClass: jest.fn(),
+    closeDrawer: jest.fn(),
+  }),
 }));
 
 const api = accountApi as jest.Mocked<typeof accountApi>;

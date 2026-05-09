@@ -117,13 +117,9 @@ function VieScolaireScreenContent() {
   const subtitle = classLabel ? `${childName} • ${classLabel}` : childName;
 
   useEffect(() => {
-    if (!childId || !classLabel || !child) return;
-    updateChild(childId, {
-      className: classLabel,
-      firstName: child.firstName,
-      lastName: child.lastName,
-    });
-  }, [child, childId, classLabel, updateChild]);
+    if (!childId || !classLabel || child?.className === classLabel) return;
+    updateChild(childId, { className: classLabel });
+  }, [childId, classLabel, child?.className, updateChild]);
 
   return (
     <View style={styles.root} testID="vie-scolaire-screen">

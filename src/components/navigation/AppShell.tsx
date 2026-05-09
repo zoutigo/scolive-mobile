@@ -22,6 +22,7 @@ interface AppShellProps {
 
 export function AppShell({ children, showHeader = true }: AppShellProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [pendingSection, setPendingSection] = useState<string | null>(null);
   const { user, schoolSlug, logout } = useAuthStore();
   const {
     children: familyChildren,
@@ -37,7 +38,14 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
   } = useTeacherClassNavStore();
 
   const openDrawer = useCallback(() => setIsDrawerOpen(true), []);
-  const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
+  const closeDrawer = useCallback(() => {
+    setIsDrawerOpen(false);
+    setPendingSection(null);
+  }, []);
+  const openDrawerForClass = useCallback((classId: string) => {
+    setPendingSection(`teacher-class-${classId}`);
+    setIsDrawerOpen(true);
+  }, []);
 
   const viewType = user ? getViewType(user) : "unknown";
 
@@ -47,7 +55,6 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
     : "?";
   const userRole = user ? getRoleLabel(user) : "";
 
-  // Charge les enfants quand l'utilisateur est un parent avec un schoolSlug
   useEffect(() => {
     if (viewType === "parent" && schoolSlug) {
       void loadChildren(schoolSlug);
@@ -72,7 +79,9 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
     });
 
   return (
-    <DrawerContext.Provider value={{ openDrawer, closeDrawer, isDrawerOpen }}>
+    <DrawerContext.Provider
+      value={{ openDrawer, openDrawerForClass, closeDrawer, isDrawerOpen }}
+    >
       <View style={styles.container}>
         {showHeader ? <AppHeader /> : null}
         <View style={styles.content}>{children}</View>
@@ -89,6 +98,7 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
           teacherClassSectionsError={
             viewType === "teacher" ? teacherClassNavError : null
           }
+          forcedSection={pendingSection}
           userFullName={userFullName}
           userInitials={userInitials}
           userRole={userRole}

@@ -243,7 +243,7 @@ describe("Items de navigation — enseignant", () => {
     expect(
       screen.getByTestId("drawer-section-teacher-class-class-1"),
     ).toBeTruthy();
-    expect(screen.getByText("6eC")).toBeTruthy();
+    expect(screen.getByText("Menu classe 6eC")).toBeTruthy();
   });
 
   it("ouvre le sous-menu de classe et affiche ses modules", () => {
@@ -641,5 +641,1037 @@ describe("Accordéon — cycle ouverture/fermeture", () => {
     // Enfant 2 ouvert, enfant 1 fermé
     expect(screen.getByTestId("nav-item-child-c2-home")).toBeTruthy();
     expect(screen.queryByTestId("nav-item-child-c1-home")).toBeNull();
+  });
+});
+
+// ── Mon compte — toujours en premier, quel que soit le rôle ──────────────────
+
+describe("Mon compte — premier lien du aside", () => {
+  it("est visible dans le mode simple (plateforme)", () => {
+    renderDrawer(getNavItems(platformUser));
+    expect(screen.getByTestId("nav-item-account")).toBeTruthy();
+  });
+
+  it("est visible dans le mode simple (élève)", () => {
+    renderDrawer(getNavItems(studentUser));
+    expect(screen.getByTestId("nav-item-account")).toBeTruthy();
+  });
+
+  it("est visible dans le mode enseignant avec section générale ouverte", () => {
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    expect(screen.getByTestId("nav-item-account")).toBeTruthy();
+  });
+
+  it("reste visible quand une section classe enseignant est ouverte", () => {
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+
+    // Ouvrir une section classe (ferme la section générale = nav-item-home disparaît)
+    fireEvent.press(screen.getByTestId("drawer-section-teacher-class-class-1"));
+    expect(screen.queryByTestId("nav-item-home")).toBeNull();
+
+    // Mon compte doit rester visible
+    expect(screen.getByTestId("nav-item-account")).toBeTruthy();
+  });
+
+  it("reste visible dans le mode parent avec section générale ouverte", () => {
+    const childSections = buildChildSections([child1]);
+    render(
+      <AppDrawer
+        {...baseProps}
+        navItems={getNavItems(parentUser)}
+        childSections={childSections}
+      />,
+    );
+    expect(screen.getByTestId("nav-item-account")).toBeTruthy();
+  });
+
+  it("reste visible quand une section enfant est ouverte (mode parent)", () => {
+    const childSections = buildChildSections([child1]);
+    useFamilyStore.setState({ activeChildId: null, children: [] });
+    render(
+      <AppDrawer
+        {...baseProps}
+        navItems={getNavItems(parentUser)}
+        childSections={childSections}
+      />,
+    );
+
+    // Ouvrir la section enfant (ferme la section générale = nav-item-home disparaît)
+    fireEvent.press(screen.getByTestId("drawer-section-child-c1"));
+    expect(screen.queryByTestId("nav-item-home")).toBeNull();
+
+    // Mon compte doit rester visible
+    expect(screen.getByTestId("nav-item-account")).toBeTruthy();
+  });
+
+  it("n'est pas dans la section générale enseignant (pas dupliqué)", () => {
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    // openSection = "general" → les items de section s'affichent
+    // On vérifie qu'account n'apparaît qu'une seule fois
+    const allAccountItems = screen.queryAllByTestId("nav-item-account");
+    expect(allAccountItems).toHaveLength(1);
+  });
+
+  it("n'est pas dupliqué dans la section générale parent", () => {
+    const childSections = buildChildSections([child1]);
+    useFamilyStore.setState({ activeChildId: null, children: [] });
+    render(
+      <AppDrawer
+        {...baseProps}
+        navItems={getNavItems(parentUser)}
+        childSections={childSections}
+      />,
+    );
+    // La section générale est ouverte — account ne doit apparaître qu'une fois
+    const allAccountItems = screen.queryAllByTestId("nav-item-account");
+    expect(allAccountItems).toHaveLength(1);
+  });
+});
+
+// ── Nommage des sections classes enseignant ───────────────────────────────────
+
+describe("Nommage des sections classes enseignant", () => {
+  it("affiche 'Menu classe 6eC' pour une section classe", () => {
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    expect(screen.getByText("Menu classe 6eC")).toBeTruthy();
+  });
+
+  it("n'affiche plus le nom brut de la classe comme en-tête de section", () => {
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    // Le texte brut "6eC" ne doit pas apparaître en tant que titre de section
+    // (il peut apparaître dans les items enfants mais pas comme sectionHeaderText direct)
+    const allTexts = screen.queryAllByText("6eC");
+    expect(allTexts).toHaveLength(0);
+  });
+
+  it("préfixe chaque section classe avec 'Menu classe '", () => {
+    const twoClassSections = buildTeacherClassSections([
+      {
+        classId: "cl-a",
+        className: "6eA",
+        schoolYearId: "sy1",
+        schoolYearLabel: "2025-2026",
+        subjects: [],
+        studentCount: 25,
+      },
+      {
+        classId: "cl-b",
+        className: "5eB",
+        schoolYearId: "sy1",
+        schoolYearLabel: "2025-2026",
+        subjects: [],
+        studentCount: 22,
+      },
+    ]);
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections: twoClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    expect(screen.getByText("Menu classe 6eA")).toBeTruthy();
+    expect(screen.getByText("Menu classe 5eB")).toBeTruthy();
+  });
+});
+
+// ── forcedSection ─────────────────────────────────────────────────────────────
+
+describe("forcedSection — ouverture directe d'une section classe", () => {
+  it("ouvre la section de classe correspondante quand forcedSection est fournie", () => {
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+      isOpen: true,
+      forcedSection: "teacher-class-class-1",
+    });
+    // La section de classe est ouverte : ses items de navigation sont visibles
+    expect(
+      screen.getByTestId("drawer-section-teacher-class-class-1"),
+    ).toBeTruthy();
+  });
+
+  it("expand la section forcée — les nav items de la classe sont affichés", () => {
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+      isOpen: true,
+      forcedSection: "teacher-class-class-1",
+    });
+    // Quand la section est ouverte, les items fils apparaissent
+    expect(
+      screen.getByTestId("nav-item-teacher-class-class-1-notes"),
+    ).toBeTruthy();
+  });
+
+  it("ne force aucune section si forcedSection est null", () => {
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+      isOpen: true,
+      forcedSection: null,
+    });
+    // Aucun item de classe n'est visible par défaut (section "general" ouverte)
+    expect(
+      screen.queryByTestId("nav-item-teacher-class-class-1-notes"),
+    ).toBeNull();
+  });
+
+  it("ne force aucune section si isOpen est false", () => {
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+      isOpen: false,
+      forcedSection: "teacher-class-class-1",
+    });
+    // Le drawer est fermé → les items ne sont pas visibles
+    expect(
+      screen.queryByTestId("nav-item-teacher-class-class-1-notes"),
+    ).toBeNull();
+  });
+});
+
+// ── Style visuel des sections classes et enfants = navItem (comme "Mon compte") ─
+
+describe("Style visuel — sections classes enseignant identiques à Mon compte (navItem)", () => {
+  it("le bouton de section classe a le même paddingVertical que un navItem", () => {
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+
+    const { StyleSheet } = require("react-native");
+    const accountBtn = screen.getByTestId("nav-item-account");
+    const classBtn = screen.getByTestId("drawer-section-teacher-class-class-1");
+
+    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
+      paddingVertical?: number;
+    };
+    const flatClass = StyleSheet.flatten(classBtn.props.style) as {
+      paddingVertical?: number;
+    };
+
+    expect(flatClass.paddingVertical).toBe(flatAccount.paddingVertical);
+  });
+
+  it("le bouton de section classe a le même paddingHorizontal que un navItem", () => {
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+
+    const { StyleSheet } = require("react-native");
+    const accountBtn = screen.getByTestId("nav-item-account");
+    const classBtn = screen.getByTestId("drawer-section-teacher-class-class-1");
+
+    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
+      paddingHorizontal?: number;
+    };
+    const flatClass = StyleSheet.flatten(classBtn.props.style) as {
+      paddingHorizontal?: number;
+    };
+
+    expect(flatClass.paddingHorizontal).toBe(flatAccount.paddingHorizontal);
+  });
+
+  it("avec deux classes, les deux boutons ont le même style que Mon compte", () => {
+    const twoClassSections = buildTeacherClassSections([
+      {
+        classId: "cl-a",
+        className: "6eA",
+        schoolYearId: "sy1",
+        schoolYearLabel: "2025-2026",
+        subjects: [],
+        studentCount: 25,
+      },
+      {
+        classId: "cl-b",
+        className: "5eB",
+        schoolYearId: "sy1",
+        schoolYearLabel: "2025-2026",
+        subjects: [],
+        studentCount: 22,
+      },
+    ]);
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections: twoClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+
+    const { StyleSheet } = require("react-native");
+    const accountBtn = screen.getByTestId("nav-item-account");
+    const clABtn = screen.getByTestId("drawer-section-teacher-class-cl-a");
+    const clBBtn = screen.getByTestId("drawer-section-teacher-class-cl-b");
+
+    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
+      paddingVertical?: number;
+      paddingHorizontal?: number;
+    };
+    const flatA = StyleSheet.flatten(clABtn.props.style) as {
+      paddingVertical?: number;
+      paddingHorizontal?: number;
+    };
+    const flatB = StyleSheet.flatten(clBBtn.props.style) as {
+      paddingVertical?: number;
+      paddingHorizontal?: number;
+    };
+
+    expect(flatA.paddingVertical).toBe(flatAccount.paddingVertical);
+    expect(flatA.paddingHorizontal).toBe(flatAccount.paddingHorizontal);
+    expect(flatB.paddingVertical).toBe(flatAccount.paddingVertical);
+    expect(flatB.paddingHorizontal).toBe(flatAccount.paddingHorizontal);
+  });
+});
+
+describe("Style visuel — sections enfants identiques à Mon compte (navItem)", () => {
+  const childSections = buildChildSections([child1, child2]);
+
+  function renderParentDrawer2(activeChildId: string | null = null) {
+    useFamilyStore.setState({ activeChildId, children: [] });
+    return render(
+      <AppDrawer
+        {...baseProps}
+        navItems={getNavItems(parentUser)}
+        childSections={childSections}
+      />,
+    );
+  }
+
+  it("le bouton de section enfant a le même paddingVertical que Mon compte", () => {
+    renderParentDrawer2(null);
+
+    const { StyleSheet } = require("react-native");
+    const accountBtn = screen.getByTestId("nav-item-account");
+    const childBtn = screen.getByTestId("drawer-section-child-c1");
+
+    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
+      paddingVertical?: number;
+    };
+    const flatChild = StyleSheet.flatten(childBtn.props.style) as {
+      paddingVertical?: number;
+    };
+
+    expect(flatChild.paddingVertical).toBe(flatAccount.paddingVertical);
+  });
+
+  it("le bouton de section enfant a le même paddingHorizontal que Mon compte", () => {
+    renderParentDrawer2(null);
+
+    const { StyleSheet } = require("react-native");
+    const accountBtn = screen.getByTestId("nav-item-account");
+    const childBtn = screen.getByTestId("drawer-section-child-c1");
+
+    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
+      paddingHorizontal?: number;
+    };
+    const flatChild = StyleSheet.flatten(childBtn.props.style) as {
+      paddingHorizontal?: number;
+    };
+
+    expect(flatChild.paddingHorizontal).toBe(flatAccount.paddingHorizontal);
+  });
+
+  it("les deux sections enfant ont le même style que Mon compte", () => {
+    renderParentDrawer2(null);
+
+    const { StyleSheet } = require("react-native");
+    const accountBtn = screen.getByTestId("nav-item-account");
+    const c1Btn = screen.getByTestId("drawer-section-child-c1");
+    const c2Btn = screen.getByTestId("drawer-section-child-c2");
+
+    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
+      paddingVertical?: number;
+      paddingHorizontal?: number;
+    };
+    const flat1 = StyleSheet.flatten(c1Btn.props.style) as {
+      paddingVertical?: number;
+      paddingHorizontal?: number;
+    };
+    const flat2 = StyleSheet.flatten(c2Btn.props.style) as {
+      paddingVertical?: number;
+      paddingHorizontal?: number;
+    };
+
+    expect(flat1.paddingVertical).toBe(flatAccount.paddingVertical);
+    expect(flat1.paddingHorizontal).toBe(flatAccount.paddingHorizontal);
+    expect(flat2.paddingVertical).toBe(flatAccount.paddingVertical);
+    expect(flat2.paddingHorizontal).toBe(flatAccount.paddingHorizontal);
+  });
+});
+
+// ── Hiérarchie visuelle — liseré top-level ────────────────────────────────────
+//
+// Règle : tout élément top-level inactif affiche un topLevelBar (liseré tamisé)
+// et un texte navLabelTopLevel (lumineux + gras).  Tout élément actif affiche
+// un activeBar (plein) et navLabelActive.  Les sous-éléments indentés n'ont
+// aucun liseré.
+
+// ── Helpers de style ──────────────────────────────────────────────────────────
+
+function flatStyle(element: ReturnType<typeof screen.getByTestId>) {
+  const { StyleSheet } = require("react-native");
+  return StyleSheet.flatten(element.props.style) as Record<string, unknown>;
+}
+
+// ── Mode simple (NavRow sans indent) ─────────────────────────────────────────
+
+describe("Hiérarchie visuelle — NavRow top-level inactif (mode simple)", () => {
+  // En mode "simple" (ex. élève), tous les items sont des NavRow sans indent.
+  // mockPathname = "/" → seul "home" est actif ; "account" reste inactif.
+
+  it("un item inactif top-level a un topLevelBar", () => {
+    mockPathname = "/";
+    renderDrawer(getNavItems(studentUser));
+    expect(screen.getByTestId("account-top-level-bar")).toBeTruthy();
+  });
+
+  it("un item inactif top-level n'a pas d'activeBar", () => {
+    mockPathname = "/";
+    renderDrawer(getNavItems(studentUser));
+    expect(screen.queryByTestId("account-active-bar")).toBeNull();
+  });
+
+  it("un item actif a un activeBar et pas de topLevelBar", () => {
+    mockPathname = "/";
+    renderDrawer(getNavItems(studentUser));
+    expect(screen.getByTestId("home-active-bar")).toBeTruthy();
+    expect(screen.queryByTestId("home-top-level-bar")).toBeNull();
+  });
+
+  it("le label d'un item inactif top-level a la couleur navLabelTopLevel", () => {
+    mockPathname = "/";
+    renderDrawer(getNavItems(studentUser));
+    const style = flatStyle(screen.getByTestId("account-label"));
+    expect(style.color).toBe("rgba(255,255,255,0.92)");
+  });
+
+  it("le label d'un item inactif top-level a fontWeight 600", () => {
+    mockPathname = "/";
+    renderDrawer(getNavItems(studentUser));
+    const style = flatStyle(screen.getByTestId("account-label"));
+    expect(style.fontWeight).toBe("600");
+  });
+
+  it("le label d'un item actif a la couleur navLabelActive (blanc)", () => {
+    mockPathname = "/";
+    renderDrawer(getNavItems(studentUser));
+    const style = flatStyle(screen.getByTestId("home-label"));
+    expect(style.color).toBe("#FFFFFF");
+  });
+
+  it("quand account devient la route active, il passe à activeBar et perd topLevelBar", () => {
+    mockPathname = "/account";
+    renderDrawer(getNavItems(studentUser));
+    expect(screen.getByTestId("account-active-bar")).toBeTruthy();
+    expect(screen.queryByTestId("account-top-level-bar")).toBeNull();
+  });
+});
+
+// ── Sous-éléments indentés (NavRow avec indent) ───────────────────────────────
+
+describe("Hiérarchie visuelle — sous-éléments indentés sans liseré", () => {
+  // Les sous-items du menu enseignant (section générale ouverte) sont indentés.
+  // Ils ne doivent avoir ni topLevelBar ni activeBar quand inactifs.
+
+  it("un sous-item inactif n'a pas de topLevelBar", () => {
+    mockPathname = "/";
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    // La section générale est ouverte par défaut → les items sont visibles.
+    expect(screen.queryByTestId("feed-top-level-bar")).toBeNull();
+  });
+
+  it("un sous-item inactif n'a pas d'activeBar non plus", () => {
+    mockPathname = "/";
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    expect(screen.queryByTestId("feed-active-bar")).toBeNull();
+  });
+
+  it("un sous-item actif a un activeBar mais pas de topLevelBar", () => {
+    mockPathname = "/feed";
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    expect(screen.getByTestId("feed-active-bar")).toBeTruthy();
+    expect(screen.queryByTestId("feed-top-level-bar")).toBeNull();
+  });
+
+  it("le label d'un sous-item inactif a la couleur dim (0.72)", () => {
+    mockPathname = "/";
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    const style = flatStyle(screen.getByTestId("feed-label"));
+    expect(style.color).toBe("rgba(255,255,255,0.72)");
+  });
+
+  it("le label d'un sous-item inactif a fontWeight 400", () => {
+    mockPathname = "/";
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    const style = flatStyle(screen.getByTestId("feed-label"));
+    expect(style.fontWeight).toBe("400");
+  });
+});
+
+// ── sectionHeader "Menu enseignant" ──────────────────────────────────────────
+// Le style visuel suit la ROUTE (isGeneralRouteActive), pas l'accordéon.
+// L'accordéon (openSection) contrôle uniquement l'affichage des sous-items.
+
+describe("Hiérarchie visuelle — sectionHeader 'Menu enseignant'", () => {
+  function renderTeacher() {
+    return renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+  }
+
+  it("a un activeBar quand la route courante est dans la section générale (/)", () => {
+    mockPathname = "/";
+    renderTeacher();
+    expect(
+      screen.getByTestId("drawer-section-teacher-general-active-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("drawer-section-teacher-general-top-level-bar"),
+    ).toBeNull();
+  });
+
+  it("a un topLevelBar quand la route est dans une section classe", () => {
+    // La route appartient à la classe → isGeneralRouteActive=false → topLevelBar
+    mockPathname = "/classes/class-1/notes";
+    renderTeacher();
+    expect(
+      screen.getByTestId("drawer-section-teacher-general-top-level-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("drawer-section-teacher-general-active-bar"),
+    ).toBeNull();
+  });
+
+  it("son label a navLabelActive quand la route est dans la section générale", () => {
+    mockPathname = "/";
+    renderTeacher();
+    const style = flatStyle(
+      screen.getByTestId("drawer-section-teacher-general-label"),
+    );
+    expect(style.color).toBe("#FFFFFF");
+    expect(style.fontWeight).toBe("600");
+  });
+
+  it("son label a navLabelTopLevel quand la route est hors section générale", () => {
+    mockPathname = "/account";
+    renderTeacher();
+    const style = flatStyle(
+      screen.getByTestId("drawer-section-teacher-general-label"),
+    );
+    expect(style.color).toBe("rgba(255,255,255,0.92)");
+    expect(style.fontWeight).toBe("600");
+  });
+
+  it("sur /account : n'est pas visuellement actif — pas de double actif avec Mon compte", () => {
+    // Scénario utilisateur : on est sur Mon compte, Menu enseignant doit être inactif.
+    mockPathname = "/account";
+    renderTeacher();
+    expect(
+      screen.getByTestId("drawer-section-teacher-general-top-level-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("drawer-section-teacher-general-active-bar"),
+    ).toBeNull();
+    // Mon compte lui est actif
+    expect(screen.getByTestId("account-active-bar")).toBeTruthy();
+  });
+});
+
+// ── ExpandableNavRow — sections classes enseignant ────────────────────────────
+// active = isClassRouteActive (route uniquement, pas isOpen).
+
+describe("Hiérarchie visuelle — ExpandableNavRow sections classes", () => {
+  function renderTeacher() {
+    return renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+  }
+
+  it("une section classe inactive a un topLevelBar quand la route ne la concerne pas", () => {
+    mockPathname = "/";
+    renderTeacher();
+    expect(
+      screen.getByTestId("drawer-section-teacher-class-class-1-top-level-bar"),
+    ).toBeTruthy();
+  });
+
+  it("une section classe inactive n'a pas d'activeBar", () => {
+    mockPathname = "/";
+    renderTeacher();
+    expect(
+      screen.queryByTestId("drawer-section-teacher-class-class-1-active-bar"),
+    ).toBeNull();
+  });
+
+  it("une section classe active a un activeBar quand la route lui appartient", () => {
+    mockPathname = "/classes/class-1/notes";
+    renderTeacher();
+    expect(
+      screen.getByTestId("drawer-section-teacher-class-class-1-active-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId(
+        "drawer-section-teacher-class-class-1-top-level-bar",
+      ),
+    ).toBeNull();
+  });
+
+  it("son label a navLabelTopLevel quand la route n'appartient pas à la classe", () => {
+    mockPathname = "/";
+    renderTeacher();
+    const style = flatStyle(
+      screen.getByTestId("drawer-section-teacher-class-class-1-label"),
+    );
+    expect(style.color).toBe("rgba(255,255,255,0.92)");
+    expect(style.fontWeight).toBe("600");
+  });
+
+  it("son label a navLabelActive quand la route appartient à la classe", () => {
+    mockPathname = "/classes/class-1/notes";
+    renderTeacher();
+    const style = flatStyle(
+      screen.getByTestId("drawer-section-teacher-class-class-1-label"),
+    );
+    expect(style.color).toBe("#FFFFFF");
+    expect(style.fontWeight).toBe("600");
+  });
+
+  it("détecte automatiquement sa route active sans interaction utilisateur", () => {
+    mockPathname = "/classes/class-1/notes";
+    renderTeacher();
+    expect(
+      screen.getByTestId("drawer-section-teacher-class-class-1-active-bar"),
+    ).toBeTruthy();
+  });
+
+  it("ouvrir l'accordéon (clic) sans naviguer ne rend pas la section visuellement active", () => {
+    mockPathname = "/";
+    renderTeacher();
+    fireEvent.press(screen.getByTestId("drawer-section-teacher-class-class-1"));
+    // L'accordéon est ouvert mais la route est "/" → pas d'activeBar
+    expect(
+      screen.queryByTestId("drawer-section-teacher-class-class-1-active-bar"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("drawer-section-teacher-class-class-1-top-level-bar"),
+    ).toBeTruthy();
+  });
+});
+
+// ── sectionHeader "Mon espace famille" (mode parent) ─────────────────────────
+
+describe("Hiérarchie visuelle — sectionHeader 'Mon espace famille'", () => {
+  const childSections = buildChildSections([child1, child2]);
+
+  function renderParentWithChildren(activeChildId: string | null = null) {
+    useFamilyStore.setState({ activeChildId, children: [] });
+    return render(
+      <AppDrawer
+        {...baseProps}
+        navItems={getNavItems(parentUser)}
+        childSections={childSections}
+      />,
+    );
+  }
+
+  it("a un activeBar quand la route courante est dans la section générale (/)", () => {
+    mockPathname = "/";
+    renderParentWithChildren(null);
+    expect(
+      screen.getByTestId("drawer-section-general-active-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("drawer-section-general-top-level-bar"),
+    ).toBeNull();
+  });
+
+  it("a un topLevelBar quand la route est dans un item enfant (hors section générale)", () => {
+    // /notes/child/c1 = route Notes de c1 → pas dans les navItems généraux
+    mockPathname = "/notes/child/c1";
+    renderParentWithChildren(null);
+    expect(
+      screen.getByTestId("drawer-section-general-top-level-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("drawer-section-general-active-bar"),
+    ).toBeNull();
+  });
+
+  it("son label a navLabelActive quand la route est dans la section générale", () => {
+    mockPathname = "/";
+    renderParentWithChildren(null);
+    const style = flatStyle(screen.getByTestId("drawer-section-general-label"));
+    expect(style.color).toBe("#FFFFFF");
+    expect(style.fontWeight).toBe("600");
+  });
+
+  it("son label a navLabelTopLevel quand la route est hors section générale", () => {
+    mockPathname = "/notes/child/c1";
+    renderParentWithChildren(null);
+    const style = flatStyle(screen.getByTestId("drawer-section-general-label"));
+    expect(style.color).toBe("rgba(255,255,255,0.92)");
+    expect(style.fontWeight).toBe("600");
+  });
+
+  it("sur /account : n'est pas visuellement actif — pas de double actif avec Mon compte", () => {
+    mockPathname = "/account";
+    renderParentWithChildren(null);
+    expect(
+      screen.getByTestId("drawer-section-general-top-level-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("drawer-section-general-active-bar"),
+    ).toBeNull();
+    expect(screen.getByTestId("account-active-bar")).toBeTruthy();
+  });
+
+  it("ouvrir l'accordéon d'un enfant (clic) ne rend pas Mon espace famille inactif si la route y est", () => {
+    mockPathname = "/";
+    renderParentWithChildren(null);
+    fireEvent.press(screen.getByTestId("drawer-section-child-c1"));
+    // Route "/" appartient à la section générale → toujours activeBar
+    expect(
+      screen.getByTestId("drawer-section-general-active-bar"),
+    ).toBeTruthy();
+  });
+});
+
+// ── ExpandableNavRow — sections enfants (mode parent) ─────────────────────────
+// active = isChildRouteActive (route uniquement, pas isOpen).
+
+describe("Hiérarchie visuelle — ExpandableNavRow sections enfants", () => {
+  const childSections = buildChildSections([child1, child2]);
+
+  function renderParentWithChildren(activeChildId: string | null = null) {
+    useFamilyStore.setState({ activeChildId, children: [] });
+    return render(
+      <AppDrawer
+        {...baseProps}
+        navItems={getNavItems(parentUser)}
+        childSections={childSections}
+      />,
+    );
+  }
+
+  it("une section enfant inactive a un topLevelBar sur /account", () => {
+    mockPathname = "/account";
+    renderParentWithChildren(null);
+    expect(
+      screen.getByTestId("drawer-section-child-c1-top-level-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("drawer-section-child-c2-top-level-bar"),
+    ).toBeTruthy();
+  });
+
+  it("une section enfant inactive n'a pas d'activeBar", () => {
+    mockPathname = "/account";
+    renderParentWithChildren(null);
+    expect(
+      screen.queryByTestId("drawer-section-child-c1-active-bar"),
+    ).toBeNull();
+  });
+
+  it("la section enfant active a un activeBar quand la route lui appartient", () => {
+    // /notes/child/c1 = route grades de c1
+    mockPathname = "/notes/child/c1";
+    renderParentWithChildren(null);
+    expect(
+      screen.getByTestId("drawer-section-child-c1-active-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("drawer-section-child-c1-top-level-bar"),
+    ).toBeNull();
+  });
+
+  it("l'autre section enfant reste avec un topLevelBar quand c1 est actif par route", () => {
+    mockPathname = "/notes/child/c1";
+    renderParentWithChildren(null);
+    // c2 n'a pas d'item sur /notes/child/c1 → inactive
+    expect(
+      screen.getByTestId("drawer-section-child-c2-top-level-bar"),
+    ).toBeTruthy();
+  });
+
+  it("son label a navLabelTopLevel quand la route n'appartient pas à l'enfant", () => {
+    mockPathname = "/account";
+    renderParentWithChildren(null);
+    const style = flatStyle(
+      screen.getByTestId("drawer-section-child-c1-label"),
+    );
+    expect(style.color).toBe("rgba(255,255,255,0.92)");
+    expect(style.fontWeight).toBe("600");
+  });
+
+  it("son label a navLabelActive quand la route appartient à l'enfant", () => {
+    mockPathname = "/notes/child/c1";
+    renderParentWithChildren(null);
+    const style = flatStyle(
+      screen.getByTestId("drawer-section-child-c1-label"),
+    );
+    expect(style.color).toBe("#FFFFFF");
+    expect(style.fontWeight).toBe("600");
+  });
+
+  it("ouvrir l'accordéon enfant (clic) sans naviguer ne rend pas la section visuellement active", () => {
+    mockPathname = "/account";
+    renderParentWithChildren(null);
+    fireEvent.press(screen.getByTestId("drawer-section-child-c1"));
+    // Accordéon ouvert mais route /account → pas d'activeBar
+    expect(
+      screen.queryByTestId("drawer-section-child-c1-active-bar"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("drawer-section-child-c1-top-level-bar"),
+    ).toBeTruthy();
+  });
+});
+
+// ── Cohérence globale : "Mon compte" a toujours le bon liseré ─────────────────
+
+describe("Hiérarchie visuelle — 'Mon compte' top-level dans tous les modes", () => {
+  it("mode simple : inactif → topLevelBar", () => {
+    mockPathname = "/";
+    renderDrawer(getNavItems(studentUser));
+    expect(screen.getByTestId("account-top-level-bar")).toBeTruthy();
+  });
+
+  it("mode enseignant, section générale ouverte : inactif → topLevelBar", () => {
+    mockPathname = "/";
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    expect(screen.getByTestId("account-top-level-bar")).toBeTruthy();
+  });
+
+  it("mode enseignant, section classe ouverte : inactif → topLevelBar", () => {
+    mockPathname = "/";
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    fireEvent.press(screen.getByTestId("drawer-section-teacher-class-class-1"));
+    expect(screen.getByTestId("account-top-level-bar")).toBeTruthy();
+  });
+
+  it("mode parent, section générale ouverte : inactif → topLevelBar", () => {
+    mockPathname = "/";
+    const childSecs = buildChildSections([child1]);
+    useFamilyStore.setState({ activeChildId: null, children: [] });
+    render(
+      <AppDrawer
+        {...baseProps}
+        navItems={getNavItems(parentUser)}
+        childSections={childSecs}
+      />,
+    );
+    expect(screen.getByTestId("account-top-level-bar")).toBeTruthy();
+  });
+
+  it("mode parent, section enfant ouverte : inactif → topLevelBar", () => {
+    mockPathname = "/";
+    const childSecs = buildChildSections([child1]);
+    useFamilyStore.setState({ activeChildId: "c1", children: [] });
+    render(
+      <AppDrawer
+        {...baseProps}
+        navItems={getNavItems(parentUser)}
+        childSections={childSecs}
+      />,
+    );
+    expect(screen.getByTestId("account-top-level-bar")).toBeTruthy();
+  });
+
+  it("actif (/account) → activeBar, pas de topLevelBar", () => {
+    mockPathname = "/account";
+    renderDrawer(getNavItems(studentUser));
+    expect(screen.getByTestId("account-active-bar")).toBeTruthy();
+    expect(screen.queryByTestId("account-top-level-bar")).toBeNull();
+  });
+});
+
+// ── isItemActive — clés "-home" enfant utilisent le matching de route ─────────
+// Avant le fix, les clés "-home" matchaient uniquement "/".
+// Après fix : seul item.key === "home" (racine) matche "/".
+// Les items enfants "-home" utilisent la route réelle (/children/c1, etc.)
+
+describe("isItemActive — clés '-home' enfant : route réelle, pas la racine '/'", () => {
+  const childSections = buildChildSections([child1, child2]);
+
+  function renderParentOnRoute(
+    pathname: string,
+    activeChildId: string | null = null,
+  ) {
+    mockPathname = pathname;
+    useFamilyStore.setState({ activeChildId, children: [] });
+    return render(
+      <AppDrawer
+        {...baseProps}
+        navItems={getNavItems(parentUser)}
+        childSections={childSections}
+      />,
+    );
+  }
+
+  it("sur /children/c1 : MBELE Lisa est visuellement active (activeBar)", () => {
+    renderParentOnRoute("/children/c1");
+    expect(
+      screen.getByTestId("drawer-section-child-c1-active-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("drawer-section-child-c1-top-level-bar"),
+    ).toBeNull();
+  });
+
+  it("sur /children/c1 : c2 reste inactive (topLevelBar)", () => {
+    renderParentOnRoute("/children/c1");
+    expect(
+      screen.getByTestId("drawer-section-child-c2-top-level-bar"),
+    ).toBeTruthy();
+  });
+
+  it("sur /children/c2 : c2 active, c1 inactive", () => {
+    renderParentOnRoute("/children/c2");
+    expect(
+      screen.getByTestId("drawer-section-child-c2-active-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("drawer-section-child-c1-top-level-bar"),
+    ).toBeTruthy();
+  });
+
+  it("sur / : item home racine actif, Mon espace famille actif, enfants inactifs", () => {
+    renderParentOnRoute("/");
+    // Home racine actif via navRow top-level (mode simple non parent, pas visible ici)
+    // Mon espace famille : isGeneralNavActive = home racine matche "/" → active
+    expect(
+      screen.getByTestId("drawer-section-general-active-bar"),
+    ).toBeTruthy();
+    // Sections enfant : leurs items "-home" ne matchent plus "/" → inactives
+    expect(
+      screen.getByTestId("drawer-section-child-c1-top-level-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("drawer-section-child-c2-top-level-bar"),
+    ).toBeTruthy();
+  });
+
+  it("sur /account : Mon compte seul actif, Mon espace famille et enfants inactifs", () => {
+    renderParentOnRoute("/account");
+    expect(screen.getByTestId("account-active-bar")).toBeTruthy();
+    expect(
+      screen.getByTestId("drawer-section-general-top-level-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("drawer-section-child-c1-top-level-bar"),
+    ).toBeTruthy();
+  });
+
+  it("label MBELE Lisa : navLabelActive sur /children/c1", () => {
+    renderParentOnRoute("/children/c1");
+    const style = flatStyle(
+      screen.getByTestId("drawer-section-child-c1-label"),
+    );
+    expect(style.color).toBe("#FFFFFF");
+    expect(style.fontWeight).toBe("600");
+  });
+
+  it("label MBELE Lisa : navLabelTopLevel sur /", () => {
+    renderParentOnRoute("/");
+    const style = flatStyle(
+      screen.getByTestId("drawer-section-child-c1-label"),
+    );
+    expect(style.color).toBe("rgba(255,255,255,0.92)");
+    expect(style.fontWeight).toBe("600");
+  });
+});
+
+// ── Effect A — auto-ouvre la section enfant correspondant à la route ──────────
+// Effect A détecte la route courante et ouvre (accordéon) la section enfant
+// correspondante, en plus de la rendre visuellement active.
+
+describe("Effect A — auto-ouverture de la section enfant par route", () => {
+  const childSections = buildChildSections([child1, child2]);
+
+  function renderParentOnRoute(
+    pathname: string,
+    activeChildId: string | null = null,
+  ) {
+    mockPathname = pathname;
+    useFamilyStore.setState({ activeChildId, children: [] });
+    return render(
+      <AppDrawer
+        {...baseProps}
+        navItems={getNavItems(parentUser)}
+        childSections={childSections}
+      />,
+    );
+  }
+
+  it("sur /children/c1 : accordéon c1 ouvert (sous-items visibles)", () => {
+    renderParentOnRoute("/children/c1");
+    // L'accordéon de c1 doit être ouvert → sous-items visibles
+    expect(screen.getByTestId("nav-item-child-c1-grades")).toBeTruthy();
+  });
+
+  it("sur /notes/child/c1 : accordéon c1 ouvert (route grades)", () => {
+    renderParentOnRoute("/notes/child/c1");
+    expect(screen.getByTestId("nav-item-child-c1-grades")).toBeTruthy();
+  });
+
+  it("sur /children/c2 : accordéon c2 ouvert, c1 fermé", () => {
+    renderParentOnRoute("/children/c2");
+    expect(screen.getByTestId("nav-item-child-c2-grades")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-child-c1-grades")).toBeNull();
+  });
+
+  it("sur /account : aucun accordéon ouvert (openSection='none')", () => {
+    renderParentOnRoute("/account");
+    // Ni les sous-items de la section générale ni ceux des enfants ne sont visibles
+    expect(screen.queryByTestId("nav-item-home")).toBeNull();
+    expect(screen.queryByTestId("nav-item-child-c1-grades")).toBeNull();
+    expect(screen.queryByTestId("nav-item-child-c2-grades")).toBeNull();
+  });
+
+  it("sur / : accordéon de la section générale ouvert (activeChildId=null)", () => {
+    renderParentOnRoute("/", null);
+    // Section générale ouverte → items nav parent visibles
+    expect(screen.getByTestId("nav-item-home")).toBeTruthy();
+  });
+
+  it("sur / avec activeChildId=c1 : accordéon c1 ouvert (ambiguïté levée par store)", () => {
+    renderParentOnRoute("/", "c1");
+    expect(screen.getByTestId("nav-item-child-c1-grades")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-home")).toBeNull();
   });
 });

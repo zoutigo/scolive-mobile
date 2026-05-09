@@ -33,6 +33,7 @@ jest.mock("../../src/components/navigation/drawer-context", () => ({
   DrawerContext: require("react").createContext({
     openDrawer: () => {},
     closeDrawer: () => {},
+    openDrawerForClass: jest.fn(),
     isDrawerOpen: false,
   }),
   useDrawer: jest.fn(),
@@ -50,6 +51,7 @@ beforeEach(() => {
   mockUseDrawer.mockReturnValue({
     openDrawer: mockOpenDrawer,
     closeDrawer: jest.fn(),
+    openDrawerForClass: jest.fn(),
     isDrawerOpen: false,
   });
   useDisciplineStore.getState().reset();
