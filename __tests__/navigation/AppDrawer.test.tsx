@@ -787,6 +787,62 @@ describe("Nommage des sections classes enseignant", () => {
   });
 });
 
+// ── forcedSection ─────────────────────────────────────────────────────────────
+
+describe("forcedSection — ouverture directe d'une section classe", () => {
+  it("ouvre la section de classe correspondante quand forcedSection est fournie", () => {
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+      isOpen: true,
+      forcedSection: "teacher-class-class-1",
+    });
+    // La section de classe est ouverte : ses items de navigation sont visibles
+    expect(
+      screen.getByTestId("drawer-section-teacher-class-class-1"),
+    ).toBeTruthy();
+  });
+
+  it("expand la section forcée — les nav items de la classe sont affichés", () => {
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+      isOpen: true,
+      forcedSection: "teacher-class-class-1",
+    });
+    // Quand la section est ouverte, les items fils apparaissent
+    expect(
+      screen.getByTestId("nav-item-teacher-class-class-1-notes"),
+    ).toBeTruthy();
+  });
+
+  it("ne force aucune section si forcedSection est null", () => {
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+      isOpen: true,
+      forcedSection: null,
+    });
+    // Aucun item de classe n'est visible par défaut (section "general" ouverte)
+    expect(
+      screen.queryByTestId("nav-item-teacher-class-class-1-notes"),
+    ).toBeNull();
+  });
+
+  it("ne force aucune section si isOpen est false", () => {
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+      isOpen: false,
+      forcedSection: "teacher-class-class-1",
+    });
+    // Le drawer est fermé → les items ne sont pas visibles
+    expect(
+      screen.queryByTestId("nav-item-teacher-class-class-1-notes"),
+    ).toBeNull();
+  });
+});
+
 // ── Style visuel des sections classes et enfants = navItem (comme "Mon compte") ─
 
 describe("Style visuel — sections classes enseignant identiques à Mon compte (navItem)", () => {
@@ -800,8 +856,12 @@ describe("Style visuel — sections classes enseignant identiques à Mon compte 
     const accountBtn = screen.getByTestId("nav-item-account");
     const classBtn = screen.getByTestId("drawer-section-teacher-class-class-1");
 
-    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as { paddingVertical?: number };
-    const flatClass = StyleSheet.flatten(classBtn.props.style) as { paddingVertical?: number };
+    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
+      paddingVertical?: number;
+    };
+    const flatClass = StyleSheet.flatten(classBtn.props.style) as {
+      paddingVertical?: number;
+    };
 
     expect(flatClass.paddingVertical).toBe(flatAccount.paddingVertical);
   });
@@ -816,8 +876,12 @@ describe("Style visuel — sections classes enseignant identiques à Mon compte 
     const accountBtn = screen.getByTestId("nav-item-account");
     const classBtn = screen.getByTestId("drawer-section-teacher-class-class-1");
 
-    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as { paddingHorizontal?: number };
-    const flatClass = StyleSheet.flatten(classBtn.props.style) as { paddingHorizontal?: number };
+    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
+      paddingHorizontal?: number;
+    };
+    const flatClass = StyleSheet.flatten(classBtn.props.style) as {
+      paddingHorizontal?: number;
+    };
 
     expect(flatClass.paddingHorizontal).toBe(flatAccount.paddingHorizontal);
   });
@@ -851,9 +915,18 @@ describe("Style visuel — sections classes enseignant identiques à Mon compte 
     const clABtn = screen.getByTestId("drawer-section-teacher-class-cl-a");
     const clBBtn = screen.getByTestId("drawer-section-teacher-class-cl-b");
 
-    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as { paddingVertical?: number; paddingHorizontal?: number };
-    const flatA = StyleSheet.flatten(clABtn.props.style) as { paddingVertical?: number; paddingHorizontal?: number };
-    const flatB = StyleSheet.flatten(clBBtn.props.style) as { paddingVertical?: number; paddingHorizontal?: number };
+    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
+      paddingVertical?: number;
+      paddingHorizontal?: number;
+    };
+    const flatA = StyleSheet.flatten(clABtn.props.style) as {
+      paddingVertical?: number;
+      paddingHorizontal?: number;
+    };
+    const flatB = StyleSheet.flatten(clBBtn.props.style) as {
+      paddingVertical?: number;
+      paddingHorizontal?: number;
+    };
 
     expect(flatA.paddingVertical).toBe(flatAccount.paddingVertical);
     expect(flatA.paddingHorizontal).toBe(flatAccount.paddingHorizontal);
@@ -883,8 +956,12 @@ describe("Style visuel — sections enfants identiques à Mon compte (navItem)",
     const accountBtn = screen.getByTestId("nav-item-account");
     const childBtn = screen.getByTestId("drawer-section-child-c1");
 
-    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as { paddingVertical?: number };
-    const flatChild = StyleSheet.flatten(childBtn.props.style) as { paddingVertical?: number };
+    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
+      paddingVertical?: number;
+    };
+    const flatChild = StyleSheet.flatten(childBtn.props.style) as {
+      paddingVertical?: number;
+    };
 
     expect(flatChild.paddingVertical).toBe(flatAccount.paddingVertical);
   });
@@ -896,8 +973,12 @@ describe("Style visuel — sections enfants identiques à Mon compte (navItem)",
     const accountBtn = screen.getByTestId("nav-item-account");
     const childBtn = screen.getByTestId("drawer-section-child-c1");
 
-    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as { paddingHorizontal?: number };
-    const flatChild = StyleSheet.flatten(childBtn.props.style) as { paddingHorizontal?: number };
+    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
+      paddingHorizontal?: number;
+    };
+    const flatChild = StyleSheet.flatten(childBtn.props.style) as {
+      paddingHorizontal?: number;
+    };
 
     expect(flatChild.paddingHorizontal).toBe(flatAccount.paddingHorizontal);
   });
@@ -910,9 +991,18 @@ describe("Style visuel — sections enfants identiques à Mon compte (navItem)",
     const c1Btn = screen.getByTestId("drawer-section-child-c1");
     const c2Btn = screen.getByTestId("drawer-section-child-c2");
 
-    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as { paddingVertical?: number; paddingHorizontal?: number };
-    const flat1 = StyleSheet.flatten(c1Btn.props.style) as { paddingVertical?: number; paddingHorizontal?: number };
-    const flat2 = StyleSheet.flatten(c2Btn.props.style) as { paddingVertical?: number; paddingHorizontal?: number };
+    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
+      paddingVertical?: number;
+      paddingHorizontal?: number;
+    };
+    const flat1 = StyleSheet.flatten(c1Btn.props.style) as {
+      paddingVertical?: number;
+      paddingHorizontal?: number;
+    };
+    const flat2 = StyleSheet.flatten(c2Btn.props.style) as {
+      paddingVertical?: number;
+      paddingHorizontal?: number;
+    };
 
     expect(flat1.paddingVertical).toBe(flatAccount.paddingVertical);
     expect(flat1.paddingHorizontal).toBe(flatAccount.paddingHorizontal);
@@ -1060,22 +1150,32 @@ describe("Hiérarchie visuelle — sectionHeader 'Menu enseignant'", () => {
   it("a un activeBar quand la route courante est dans la section générale (/)", () => {
     mockPathname = "/";
     renderTeacher();
-    expect(screen.getByTestId("drawer-section-teacher-general-active-bar")).toBeTruthy();
-    expect(screen.queryByTestId("drawer-section-teacher-general-top-level-bar")).toBeNull();
+    expect(
+      screen.getByTestId("drawer-section-teacher-general-active-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("drawer-section-teacher-general-top-level-bar"),
+    ).toBeNull();
   });
 
   it("a un topLevelBar quand la route est dans une section classe", () => {
     // La route appartient à la classe → isGeneralRouteActive=false → topLevelBar
     mockPathname = "/classes/class-1/notes";
     renderTeacher();
-    expect(screen.getByTestId("drawer-section-teacher-general-top-level-bar")).toBeTruthy();
-    expect(screen.queryByTestId("drawer-section-teacher-general-active-bar")).toBeNull();
+    expect(
+      screen.getByTestId("drawer-section-teacher-general-top-level-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("drawer-section-teacher-general-active-bar"),
+    ).toBeNull();
   });
 
   it("son label a navLabelActive quand la route est dans la section générale", () => {
     mockPathname = "/";
     renderTeacher();
-    const style = flatStyle(screen.getByTestId("drawer-section-teacher-general-label"));
+    const style = flatStyle(
+      screen.getByTestId("drawer-section-teacher-general-label"),
+    );
     expect(style.color).toBe("#FFFFFF");
     expect(style.fontWeight).toBe("600");
   });
@@ -1083,7 +1183,9 @@ describe("Hiérarchie visuelle — sectionHeader 'Menu enseignant'", () => {
   it("son label a navLabelTopLevel quand la route est hors section générale", () => {
     mockPathname = "/account";
     renderTeacher();
-    const style = flatStyle(screen.getByTestId("drawer-section-teacher-general-label"));
+    const style = flatStyle(
+      screen.getByTestId("drawer-section-teacher-general-label"),
+    );
     expect(style.color).toBe("rgba(255,255,255,0.92)");
     expect(style.fontWeight).toBe("600");
   });
@@ -1092,8 +1194,12 @@ describe("Hiérarchie visuelle — sectionHeader 'Menu enseignant'", () => {
     // Scénario utilisateur : on est sur Mon compte, Menu enseignant doit être inactif.
     mockPathname = "/account";
     renderTeacher();
-    expect(screen.getByTestId("drawer-section-teacher-general-top-level-bar")).toBeTruthy();
-    expect(screen.queryByTestId("drawer-section-teacher-general-active-bar")).toBeNull();
+    expect(
+      screen.getByTestId("drawer-section-teacher-general-top-level-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("drawer-section-teacher-general-active-bar"),
+    ).toBeNull();
     // Mon compte lui est actif
     expect(screen.getByTestId("account-active-bar")).toBeTruthy();
   });
@@ -1133,7 +1239,9 @@ describe("Hiérarchie visuelle — ExpandableNavRow sections classes", () => {
       screen.getByTestId("drawer-section-teacher-class-class-1-active-bar"),
     ).toBeTruthy();
     expect(
-      screen.queryByTestId("drawer-section-teacher-class-class-1-top-level-bar"),
+      screen.queryByTestId(
+        "drawer-section-teacher-class-class-1-top-level-bar",
+      ),
     ).toBeNull();
   });
 
@@ -1198,16 +1306,24 @@ describe("Hiérarchie visuelle — sectionHeader 'Mon espace famille'", () => {
   it("a un activeBar quand la route courante est dans la section générale (/)", () => {
     mockPathname = "/";
     renderParentWithChildren(null);
-    expect(screen.getByTestId("drawer-section-general-active-bar")).toBeTruthy();
-    expect(screen.queryByTestId("drawer-section-general-top-level-bar")).toBeNull();
+    expect(
+      screen.getByTestId("drawer-section-general-active-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("drawer-section-general-top-level-bar"),
+    ).toBeNull();
   });
 
   it("a un topLevelBar quand la route est dans un item enfant (hors section générale)", () => {
     // /notes/child/c1 = route Notes de c1 → pas dans les navItems généraux
     mockPathname = "/notes/child/c1";
     renderParentWithChildren(null);
-    expect(screen.getByTestId("drawer-section-general-top-level-bar")).toBeTruthy();
-    expect(screen.queryByTestId("drawer-section-general-active-bar")).toBeNull();
+    expect(
+      screen.getByTestId("drawer-section-general-top-level-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("drawer-section-general-active-bar"),
+    ).toBeNull();
   });
 
   it("son label a navLabelActive quand la route est dans la section générale", () => {
@@ -1229,8 +1345,12 @@ describe("Hiérarchie visuelle — sectionHeader 'Mon espace famille'", () => {
   it("sur /account : n'est pas visuellement actif — pas de double actif avec Mon compte", () => {
     mockPathname = "/account";
     renderParentWithChildren(null);
-    expect(screen.getByTestId("drawer-section-general-top-level-bar")).toBeTruthy();
-    expect(screen.queryByTestId("drawer-section-general-active-bar")).toBeNull();
+    expect(
+      screen.getByTestId("drawer-section-general-top-level-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("drawer-section-general-active-bar"),
+    ).toBeNull();
     expect(screen.getByTestId("account-active-bar")).toBeTruthy();
   });
 
@@ -1239,7 +1359,9 @@ describe("Hiérarchie visuelle — sectionHeader 'Mon espace famille'", () => {
     renderParentWithChildren(null);
     fireEvent.press(screen.getByTestId("drawer-section-child-c1"));
     // Route "/" appartient à la section générale → toujours activeBar
-    expect(screen.getByTestId("drawer-section-general-active-bar")).toBeTruthy();
+    expect(
+      screen.getByTestId("drawer-section-general-active-bar"),
+    ).toBeTruthy();
   });
 });
 
@@ -1263,35 +1385,49 @@ describe("Hiérarchie visuelle — ExpandableNavRow sections enfants", () => {
   it("une section enfant inactive a un topLevelBar sur /account", () => {
     mockPathname = "/account";
     renderParentWithChildren(null);
-    expect(screen.getByTestId("drawer-section-child-c1-top-level-bar")).toBeTruthy();
-    expect(screen.getByTestId("drawer-section-child-c2-top-level-bar")).toBeTruthy();
+    expect(
+      screen.getByTestId("drawer-section-child-c1-top-level-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("drawer-section-child-c2-top-level-bar"),
+    ).toBeTruthy();
   });
 
   it("une section enfant inactive n'a pas d'activeBar", () => {
     mockPathname = "/account";
     renderParentWithChildren(null);
-    expect(screen.queryByTestId("drawer-section-child-c1-active-bar")).toBeNull();
+    expect(
+      screen.queryByTestId("drawer-section-child-c1-active-bar"),
+    ).toBeNull();
   });
 
   it("la section enfant active a un activeBar quand la route lui appartient", () => {
     // /notes/child/c1 = route grades de c1
     mockPathname = "/notes/child/c1";
     renderParentWithChildren(null);
-    expect(screen.getByTestId("drawer-section-child-c1-active-bar")).toBeTruthy();
-    expect(screen.queryByTestId("drawer-section-child-c1-top-level-bar")).toBeNull();
+    expect(
+      screen.getByTestId("drawer-section-child-c1-active-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("drawer-section-child-c1-top-level-bar"),
+    ).toBeNull();
   });
 
   it("l'autre section enfant reste avec un topLevelBar quand c1 est actif par route", () => {
     mockPathname = "/notes/child/c1";
     renderParentWithChildren(null);
     // c2 n'a pas d'item sur /notes/child/c1 → inactive
-    expect(screen.getByTestId("drawer-section-child-c2-top-level-bar")).toBeTruthy();
+    expect(
+      screen.getByTestId("drawer-section-child-c2-top-level-bar"),
+    ).toBeTruthy();
   });
 
   it("son label a navLabelTopLevel quand la route n'appartient pas à l'enfant", () => {
     mockPathname = "/account";
     renderParentWithChildren(null);
-    const style = flatStyle(screen.getByTestId("drawer-section-child-c1-label"));
+    const style = flatStyle(
+      screen.getByTestId("drawer-section-child-c1-label"),
+    );
     expect(style.color).toBe("rgba(255,255,255,0.92)");
     expect(style.fontWeight).toBe("600");
   });
@@ -1299,7 +1435,9 @@ describe("Hiérarchie visuelle — ExpandableNavRow sections enfants", () => {
   it("son label a navLabelActive quand la route appartient à l'enfant", () => {
     mockPathname = "/notes/child/c1";
     renderParentWithChildren(null);
-    const style = flatStyle(screen.getByTestId("drawer-section-child-c1-label"));
+    const style = flatStyle(
+      screen.getByTestId("drawer-section-child-c1-label"),
+    );
     expect(style.color).toBe("#FFFFFF");
     expect(style.fontWeight).toBe("600");
   });

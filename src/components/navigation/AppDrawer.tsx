@@ -36,6 +36,8 @@ interface AppDrawerProps {
   isTeacherClassNavEnabled?: boolean;
   isLoadingTeacherClassSections?: boolean;
   teacherClassSectionsError?: string | null;
+  /** Forçe l'ouverture d'une section au prochain open (ex: "teacher-class-{id}"). */
+  forcedSection?: string | null;
   userFullName: string;
   userInitials: string;
   userRole: string;
@@ -51,6 +53,7 @@ export function AppDrawer({
   isTeacherClassNavEnabled = false,
   isLoadingTeacherClassSections = false,
   teacherClassSectionsError = null,
+  forcedSection,
   userFullName,
   userInitials,
   userRole,
@@ -165,6 +168,14 @@ export function AppDrawer({
       ]).start();
     }
   }, [isOpen, overlayOpacity, translateX]);
+
+  // Priorité maximale : ouvre directement la section demandée au prochain open.
+  // Déclaré après tous les effets de synchronisation route/store pour les écraser.
+  useEffect(() => {
+    if (isOpen && forcedSection) {
+      setOpenSection(forcedSection);
+    }
+  }, [isOpen, forcedSection]);
 
   const handleNavPress = (item: NavItem) => {
     const childItemMatch = item.key.match(/^child-([^-]+)-/);

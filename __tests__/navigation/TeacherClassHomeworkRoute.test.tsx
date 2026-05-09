@@ -22,7 +22,11 @@ jest.mock("../../src/components/navigation/AppShell", () => ({
       </>
     );
   },
-  useDrawer: () => ({ openDrawer: jest.fn(), closeDrawer: jest.fn() }),
+  useDrawer: () => ({
+    openDrawer: jest.fn(),
+    openDrawerForClass: jest.fn(),
+    closeDrawer: jest.fn(),
+  }),
 }));
 
 jest.mock("../../src/components/homework/ClassHomeworkScreen", () => ({

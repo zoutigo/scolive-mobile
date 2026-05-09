@@ -55,7 +55,11 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock("../../src/components/navigation/AppShell", () => ({
-  useDrawer: () => ({ openDrawer: jest.fn(), closeDrawer: jest.fn() }),
+  useDrawer: () => ({
+    openDrawer: jest.fn(),
+    openDrawerForClass: jest.fn(),
+    closeDrawer: jest.fn(),
+  }),
 }));
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
