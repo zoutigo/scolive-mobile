@@ -12,6 +12,9 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { colors } from "../../theme";
 import { useAuthStore } from "../../store/auth.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
@@ -44,6 +47,40 @@ import {
 } from "./TimetableCommon";
 
 type TabKey = "agenda" | "slots" | "oneoff" | "holidays";
+
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_REGEX = /^\d{2}:\d{2}$/;
+
+const slotSchema = z.object({
+  subjectId: z.string().min(1, "Choisissez une matière."),
+  teacherUserId: z.string().min(1, "Choisissez un enseignant."),
+  weekday: z.string(),
+  start: z.string().regex(TIME_REGEX, "Format HH:MM attendu."),
+  end: z.string().regex(TIME_REGEX, "Format HH:MM attendu."),
+  room: z.string(),
+  activeFromDate: z.string().regex(ISO_DATE_REGEX, "Format AAAA-MM-JJ attendu."),
+  activeToDate: z.string().regex(ISO_DATE_REGEX, "Format AAAA-MM-JJ attendu."),
+});
+
+const oneOffSchema = z.object({
+  subjectId: z.string().min(1, "Choisissez une matière."),
+  teacherUserId: z.string().min(1, "Choisissez un enseignant."),
+  occurrenceDate: z.string().regex(ISO_DATE_REGEX, "Format AAAA-MM-JJ attendu."),
+  start: z.string().regex(TIME_REGEX, "Format HH:MM attendu."),
+  end: z.string().regex(TIME_REGEX, "Format HH:MM attendu."),
+  room: z.string(),
+  status: z.enum(["PLANNED", "CANCELLED"]),
+});
+
+const holidaySchema = z.object({
+  label: z.string().trim().min(1, "Le libellé de fermeture est obligatoire."),
+  startDate: z.string().regex(ISO_DATE_REGEX, "Format AAAA-MM-JJ attendu."),
+  endDate: z.string().regex(ISO_DATE_REGEX, "Format AAAA-MM-JJ attendu."),
+});
+
+type SlotValues = z.infer<typeof slotSchema>;
+type OneOffValues = z.infer<typeof oneOffSchema>;
+type HolidayValues = z.infer<typeof holidaySchema>;
 
 function parseMinuteOrThrow(value: string, fieldLabel: string): number {
   const parsed = timeLabelToMinute(value);
@@ -101,33 +138,54 @@ export function ClassTimetableManagerScreen() {
   const [tab, setTab] = useState<TabKey>("agenda");
   const [range] = useState(buildDefaultDateRange());
 
-  const [slotForm, setSlotForm] = useState({
-    id: "",
-    subjectId: "",
-    teacherUserId: "",
-    weekday: "1",
-    start: "07:30",
-    end: "08:20",
-    room: "",
-    activeFromDate: range.fromDate,
-    activeToDate: range.toDate,
+  // Editing IDs — tracked outside RHF since they're not validated fields
+  const [slotEditId, setSlotEditId] = useState("");
+  const [oneOffEditId, setOneOffEditId] = useState("");
+  const [holidayEditId, setHolidayEditId] = useState("");
+
+  const slotRhf = useForm<SlotValues>({
+    mode: "onChange",
+    reValidateMode: "onChange",
+    resolver: zodResolver(slotSchema),
+    defaultValues: {
+      subjectId: "",
+      teacherUserId: "",
+      weekday: "1",
+      start: "07:30",
+      end: "08:20",
+      room: "",
+      activeFromDate: range.fromDate,
+      activeToDate: range.toDate,
+    },
   });
-  const [oneOffForm, setOneOffForm] = useState({
-    id: "",
-    subjectId: "",
-    teacherUserId: "",
-    occurrenceDate: range.fromDate,
-    start: "10:00",
-    end: "10:50",
-    room: "",
-    status: "PLANNED",
+
+  const oneOffRhf = useForm<OneOffValues>({
+    mode: "onChange",
+    reValidateMode: "onChange",
+    resolver: zodResolver(oneOffSchema),
+    defaultValues: {
+      subjectId: "",
+      teacherUserId: "",
+      occurrenceDate: range.fromDate,
+      start: "10:00",
+      end: "10:50",
+      room: "",
+      status: "PLANNED",
+    },
   });
-  const [holidayForm, setHolidayForm] = useState({
-    id: "",
-    label: "",
-    startDate: range.fromDate,
-    endDate: range.toDate,
+
+  const holidayRhf = useForm<HolidayValues>({
+    mode: "onChange",
+    reValidateMode: "onChange",
+    resolver: zodResolver(holidaySchema),
+    defaultValues: {
+      label: "",
+      startDate: range.fromDate,
+      endDate: range.toDate,
+    },
   });
+
+  const slotSubjectId = slotRhf.watch("subjectId");
 
   const load = useCallback(async () => {
     if (!schoolSlug || !classId) return;
@@ -142,28 +200,23 @@ export function ClassTimetableManagerScreen() {
       toDate: range.toDate,
     });
 
-    if (!slotForm.subjectId && context.assignments.length > 0) {
+    if (!slotRhf.getValues("subjectId") && context.assignments.length > 0) {
       const first = context.assignments[0];
-      setSlotForm((current) => ({
-        ...current,
-        subjectId: first.subjectId,
-        teacherUserId: first.teacherUserId,
-      }));
-      setOneOffForm((current) => ({
-        ...current,
-        subjectId: first.subjectId,
-        teacherUserId: first.teacherUserId,
-      }));
+      slotRhf.setValue("subjectId", first.subjectId);
+      slotRhf.setValue("teacherUserId", first.teacherUserId);
+      oneOffRhf.setValue("subjectId", first.subjectId);
+      oneOffRhf.setValue("teacherUserId", first.teacherUserId);
     }
   }, [
     classId,
     initialSchoolYearId,
     loadClassContext,
     loadClassTimetable,
+    oneOffRhf,
     range.fromDate,
     range.toDate,
     schoolSlug,
-    slotForm.subjectId,
+    slotRhf,
   ]);
 
   useEffect(() => {
@@ -196,13 +249,13 @@ export function ClassTimetableManagerScreen() {
   const subjectScopedTeachers = useMemo(() => {
     if (!classContext) return teacherOptions;
     const filtered = classContext.assignments
-      .filter((assignment) => assignment.subjectId === slotForm.subjectId)
+      .filter((assignment) => assignment.subjectId === slotSubjectId)
       .map((assignment) => ({
         value: assignment.teacherUserId,
         label: fullTeacherName(assignment.teacherUser),
       }));
     return filtered.length > 0 ? filtered : teacherOptions;
-  }, [classContext, slotForm.subjectId, teacherOptions]);
+  }, [classContext, slotSubjectId, teacherOptions]);
 
   function resetSlotForm() {
     const assignment =
@@ -211,8 +264,8 @@ export function ClassTimetableManagerScreen() {
         classContext.assignments,
         classContext.assignments[0].subjectId,
       );
-    setSlotForm({
-      id: "",
+    setSlotEditId("");
+    slotRhf.reset({
       subjectId: assignment?.subjectId ?? "",
       teacherUserId: assignment?.teacherUserId ?? "",
       weekday: "1",
@@ -226,8 +279,8 @@ export function ClassTimetableManagerScreen() {
 
   function resetOneOffForm() {
     const assignment = classContext?.assignments[0];
-    setOneOffForm({
-      id: "",
+    setOneOffEditId("");
+    oneOffRhf.reset({
       subjectId: assignment?.subjectId ?? "",
       teacherUserId: assignment?.teacherUserId ?? "",
       occurrenceDate: range.fromDate,
@@ -239,152 +292,146 @@ export function ClassTimetableManagerScreen() {
   }
 
   function resetHolidayForm() {
-    setHolidayForm({
-      id: "",
+    setHolidayEditId("");
+    holidayRhf.reset({
       label: "",
       startDate: range.fromDate,
       endDate: range.toDate,
     });
   }
 
-  async function handleSaveRecurringSlot() {
-    if (!schoolSlug || !classId || !classContext) return;
-    try {
-      const payload = {
-        schoolYearId:
-          classContext.selectedSchoolYearId ?? classContext.class.schoolYearId,
-        weekday: Number(slotForm.weekday),
-        startMinute: parseMinuteOrThrow(slotForm.start, "Début"),
-        endMinute: parseMinuteOrThrow(slotForm.end, "Fin"),
-        subjectId: slotForm.subjectId,
-        teacherUserId: slotForm.teacherUserId,
-        room: slotForm.room.trim() || null,
-        activeFromDate: slotForm.activeFromDate,
-        activeToDate: slotForm.activeToDate,
-      };
+  const handleSaveRecurringSlot = slotRhf.handleSubmit(
+    async (data: SlotValues) => {
+      if (!schoolSlug || !classId || !classContext) return;
+      try {
+        const payload = {
+          schoolYearId:
+            classContext.selectedSchoolYearId ?? classContext.class.schoolYearId,
+          weekday: Number(data.weekday),
+          startMinute: parseMinuteOrThrow(data.start, "Début"),
+          endMinute: parseMinuteOrThrow(data.end, "Fin"),
+          subjectId: data.subjectId,
+          teacherUserId: data.teacherUserId,
+          room: data.room.trim() || null,
+          activeFromDate: data.activeFromDate,
+          activeToDate: data.activeToDate,
+        };
+        if (slotEditId) {
+          await updateRecurringSlot(schoolSlug, slotEditId, payload);
+          showToast({
+            variant: "success",
+            title: "Créneau mis à jour",
+            message: "Le planning hebdomadaire a été actualisé.",
+          });
+        } else {
+          await createRecurringSlot(schoolSlug, classId, payload);
+          showToast({
+            variant: "success",
+            title: "Créneau ajouté",
+            message: "Le nouveau cours apparaît maintenant dans l'agenda.",
+          });
+        }
+        resetSlotForm();
+        await load();
+      } catch (error) {
+        showToast({
+          variant: "error",
+          title: "Créneau refusé",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Impossible d'enregistrer ce créneau.",
+        });
+      }
+    },
+  );
 
-      if (!payload.subjectId || !payload.teacherUserId) {
-        throw new Error("Choisissez la matière et l'enseignant.");
+  const handleSaveOneOffSlot = oneOffRhf.handleSubmit(
+    async (data: OneOffValues) => {
+      if (!schoolSlug || !classId || !classContext) return;
+      try {
+        const payload = {
+          schoolYearId:
+            classContext.selectedSchoolYearId ?? classContext.class.schoolYearId,
+          occurrenceDate: data.occurrenceDate,
+          startMinute: parseMinuteOrThrow(data.start, "Début"),
+          endMinute: parseMinuteOrThrow(data.end, "Fin"),
+          subjectId: data.subjectId,
+          teacherUserId: data.teacherUserId,
+          room: data.room.trim() || null,
+          status: data.status,
+        };
+        if (oneOffEditId) {
+          await updateOneOffSlot(schoolSlug, oneOffEditId, payload);
+          showToast({
+            variant: "success",
+            title: "Séance modifiée",
+            message: "L'exception de planning a été mise à jour.",
+          });
+        } else {
+          await createOneOffSlot(schoolSlug, classId, payload);
+          showToast({
+            variant: "success",
+            title: "Séance exceptionnelle ajoutée",
+            message: "Le créneau ponctuel apparaît maintenant dans l'agenda.",
+          });
+        }
+        resetOneOffForm();
+        await load();
+      } catch (error) {
+        showToast({
+          variant: "error",
+          title: "Séance non enregistrée",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Impossible d'enregistrer cette séance.",
+        });
       }
+    },
+  );
 
-      if (slotForm.id) {
-        await updateRecurringSlot(schoolSlug, slotForm.id, payload);
+  const handleSaveHoliday = holidayRhf.handleSubmit(
+    async (data: HolidayValues) => {
+      if (!schoolSlug || !classContext) return;
+      try {
+        const payload = {
+          schoolYearId:
+            classContext.selectedSchoolYearId ?? classContext.class.schoolYearId,
+          label: data.label.trim(),
+          startDate: data.startDate,
+          endDate: data.endDate,
+          scope: "SCHOOL" as const,
+        };
+        if (holidayEditId) {
+          await updateCalendarEvent(schoolSlug, holidayEditId, payload);
+          showToast({
+            variant: "success",
+            title: "Fermeture mise à jour",
+            message: "Le calendrier école a été actualisé.",
+          });
+        } else {
+          await createCalendarEvent(schoolSlug, payload);
+          showToast({
+            variant: "success",
+            title: "Fermeture ajoutée",
+            message: "Le calendrier de l'école a été mis à jour.",
+          });
+        }
+        resetHolidayForm();
+        await load();
+      } catch (error) {
         showToast({
-          variant: "success",
-          title: "Créneau mis à jour",
-          message: "Le planning hebdomadaire a été actualisé.",
-        });
-      } else {
-        await createRecurringSlot(schoolSlug, classId, payload);
-        showToast({
-          variant: "success",
-          title: "Créneau ajouté",
-          message: "Le nouveau cours apparaît maintenant dans l'agenda.",
-        });
-      }
-      resetSlotForm();
-      await load();
-    } catch (error) {
-      showToast({
-        variant: "error",
-        title: "Créneau refusé",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Impossible d'enregistrer ce créneau.",
-      });
-    }
-  }
-
-  async function handleSaveOneOffSlot() {
-    if (!schoolSlug || !classId || !classContext) return;
-    try {
-      const payload = {
-        schoolYearId:
-          classContext.selectedSchoolYearId ?? classContext.class.schoolYearId,
-        occurrenceDate: oneOffForm.occurrenceDate,
-        startMinute: parseMinuteOrThrow(oneOffForm.start, "Début"),
-        endMinute: parseMinuteOrThrow(oneOffForm.end, "Fin"),
-        subjectId: oneOffForm.subjectId,
-        teacherUserId: oneOffForm.teacherUserId,
-        room: oneOffForm.room.trim() || null,
-        status: oneOffForm.status as "PLANNED" | "CANCELLED",
-      };
-      if (!payload.subjectId || !payload.teacherUserId) {
-        throw new Error("Choisissez la matière et l'enseignant.");
-      }
-
-      if (oneOffForm.id) {
-        await updateOneOffSlot(schoolSlug, oneOffForm.id, payload);
-        showToast({
-          variant: "success",
-          title: "Séance modifiée",
-          message: "L'exception de planning a été mise à jour.",
-        });
-      } else {
-        await createOneOffSlot(schoolSlug, classId, payload);
-        showToast({
-          variant: "success",
-          title: "Séance exceptionnelle ajoutée",
-          message: "Le créneau ponctuel apparaît maintenant dans l'agenda.",
+          variant: "error",
+          title: "Fermeture refusée",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Impossible d'enregistrer cette fermeture.",
         });
       }
-      resetOneOffForm();
-      await load();
-    } catch (error) {
-      showToast({
-        variant: "error",
-        title: "Séance non enregistrée",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Impossible d'enregistrer cette séance.",
-      });
-    }
-  }
-
-  async function handleSaveHoliday() {
-    if (!schoolSlug || !classContext) return;
-    try {
-      const payload = {
-        schoolYearId:
-          classContext.selectedSchoolYearId ?? classContext.class.schoolYearId,
-        label: holidayForm.label.trim(),
-        startDate: holidayForm.startDate,
-        endDate: holidayForm.endDate,
-        scope: "SCHOOL" as const,
-      };
-      if (!payload.label) {
-        throw new Error("Le libellé de fermeture est obligatoire.");
-      }
-      if (holidayForm.id) {
-        await updateCalendarEvent(schoolSlug, holidayForm.id, payload);
-        showToast({
-          variant: "success",
-          title: "Fermeture mise à jour",
-          message: "Le calendrier école a été actualisé.",
-        });
-      } else {
-        await createCalendarEvent(schoolSlug, payload);
-        showToast({
-          variant: "success",
-          title: "Fermeture ajoutée",
-          message: "Le calendrier de l'école a été mis à jour.",
-        });
-      }
-      resetHolidayForm();
-      await load();
-    } catch (error) {
-      showToast({
-        variant: "error",
-        title: "Fermeture refusée",
-        message:
-          error instanceof Error
-            ? error.message
-            : "Impossible d'enregistrer cette fermeture.",
-      });
-    }
-  }
+    },
+  );
 
   async function handleDeleteRecurringSlot(slot: TimetableRecurringSlot) {
     if (!schoolSlug) return;
@@ -454,8 +501,8 @@ export function ClassTimetableManagerScreen() {
 
   function fillRecurringSlot(slot: TimetableRecurringSlot) {
     setTab("slots");
-    setSlotForm({
-      id: slot.id,
+    setSlotEditId(slot.id);
+    slotRhf.reset({
       subjectId: slot.subject.id,
       teacherUserId: slot.teacherUser.id,
       weekday: String(slot.weekday),
@@ -469,8 +516,8 @@ export function ClassTimetableManagerScreen() {
 
   function fillOneOffSlot(slot: TimetableOneOffSlot) {
     setTab("oneoff");
-    setOneOffForm({
-      id: slot.id,
+    setOneOffEditId(slot.id);
+    oneOffRhf.reset({
       subjectId: slot.subject.id,
       teacherUserId: slot.teacherUser.id,
       occurrenceDate: slot.occurrenceDate,
@@ -483,8 +530,8 @@ export function ClassTimetableManagerScreen() {
 
   function fillHoliday(event: TimetableCalendarEvent) {
     setTab("holidays");
-    setHolidayForm({
-      id: event.id,
+    setHolidayEditId(event.id);
+    holidayRhf.reset({
       label: event.label,
       startDate: event.startDate,
       endDate: event.endDate,
@@ -582,105 +629,150 @@ export function ClassTimetableManagerScreen() {
           ) : tab === "slots" ? (
             <>
               <SectionCard
-                title={
-                  slotForm.id
-                    ? "Modifier un créneau"
-                    : "Nouveau créneau hebdomadaire"
-                }
+                title={slotEditId ? "Modifier un créneau" : "Nouveau créneau hebdomadaire"}
                 subtitle="Le formulaire reste scrollable pour laisser de la place au clavier et sécuriser la saisie E2E."
               >
-                <PillSelector
-                  label="Matière"
-                  value={slotForm.subjectId}
-                  onChange={(subjectId) => {
-                    const assignment =
-                      classContext.assignments.find(
-                        (entry) => entry.subjectId === subjectId,
-                      ) ?? classContext.assignments[0];
-                    setSlotForm((current) => ({
-                      ...current,
-                      subjectId,
-                      teacherUserId:
-                        assignment?.teacherUserId ?? current.teacherUserId,
-                    }));
-                  }}
-                  options={subjectOptions}
+                <Controller
+                  control={slotRhf.control}
+                  name="subjectId"
+                  render={({ field }) => (
+                    <PillSelector
+                      label="Matière"
+                      value={field.value}
+                      onChange={(subjectId) => {
+                        const assignment =
+                          classContext.assignments.find(
+                            (entry) => entry.subjectId === subjectId,
+                          ) ?? classContext.assignments[0];
+                        field.onChange(subjectId);
+                        slotRhf.setValue(
+                          "teacherUserId",
+                          assignment?.teacherUserId ?? field.value,
+                        );
+                      }}
+                      options={subjectOptions}
+                    />
+                  )}
                 />
-                <PillSelector
-                  label="Enseignant"
-                  value={slotForm.teacherUserId}
-                  onChange={(teacherUserId) =>
-                    setSlotForm((current) => ({ ...current, teacherUserId }))
-                  }
-                  options={subjectScopedTeachers}
+                <Controller
+                  control={slotRhf.control}
+                  name="teacherUserId"
+                  render={({ field }) => (
+                    <PillSelector
+                      label="Enseignant"
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={subjectScopedTeachers}
+                    />
+                  )}
                 />
-                <PillSelector
-                  label="Jour"
-                  value={slotForm.weekday}
-                  onChange={(weekday) =>
-                    setSlotForm((current) => ({ ...current, weekday }))
-                  }
-                  options={[
-                    { value: "1", label: "Lun" },
-                    { value: "2", label: "Mar" },
-                    { value: "3", label: "Mer" },
-                    { value: "4", label: "Jeu" },
-                    { value: "5", label: "Ven" },
-                    { value: "6", label: "Sam" },
-                    { value: "7", label: "Dim" },
-                  ]}
+                <Controller
+                  control={slotRhf.control}
+                  name="weekday"
+                  render={({ field }) => (
+                    <PillSelector
+                      label="Jour"
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={[
+                        { value: "1", label: "Lun" },
+                        { value: "2", label: "Mar" },
+                        { value: "3", label: "Mer" },
+                        { value: "4", label: "Jeu" },
+                        { value: "5", label: "Ven" },
+                        { value: "6", label: "Sam" },
+                        { value: "7", label: "Dim" },
+                      ]}
+                    />
+                  )}
                 />
                 <View style={styles.row}>
                   <View style={styles.rowField}>
                     <Text style={styles.rowFieldLabel}>Début</Text>
-                    <TimePickerField
-                      value={slotForm.start}
-                      onChange={(start) =>
-                        setSlotForm((current) => ({ ...current, start }))
-                      }
-                      title="Heure de début"
-                      placeholder="07:30"
-                      testID="slot-form-start"
+                    <Controller
+                      control={slotRhf.control}
+                      name="start"
+                      render={({ field }) => (
+                        <TimePickerField
+                          value={field.value}
+                          onChange={field.onChange}
+                          title="Heure de début"
+                          placeholder="07:30"
+                          testID="slot-form-start"
+                        />
+                      )}
                     />
                   </View>
                   <View style={styles.rowField}>
                     <Text style={styles.rowFieldLabel}>Fin</Text>
-                    <TimePickerField
-                      value={slotForm.end}
-                      onChange={(end) =>
-                        setSlotForm((current) => ({ ...current, end }))
-                      }
-                      title="Heure de fin"
-                      placeholder="08:20"
-                      testID="slot-form-end"
+                    <Controller
+                      control={slotRhf.control}
+                      name="end"
+                      render={({ field }) => (
+                        <TimePickerField
+                          value={field.value}
+                          onChange={field.onChange}
+                          title="Heure de fin"
+                          placeholder="08:20"
+                          testID="slot-form-end"
+                        />
+                      )}
                     />
                   </View>
                 </View>
-                <TextField
-                  label="Salle"
-                  value={slotForm.room}
-                  onChangeText={(room) =>
-                    setSlotForm((current) => ({ ...current, room }))
-                  }
-                  placeholder="Salle A2"
-                  testID="slot-form-room"
+                <Controller
+                  control={slotRhf.control}
+                  name="room"
+                  render={({ field }) => (
+                    <TextField
+                      label="Salle"
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      placeholder="Salle A2"
+                      testID="slot-form-room"
+                    />
+                  )}
                 />
                 <View style={styles.row}>
-                  <TextField
-                    label="Actif du"
-                    value={slotForm.activeFromDate}
-                    onChangeText={(activeFromDate) =>
-                      setSlotForm((current) => ({ ...current, activeFromDate }))
-                    }
-                    placeholder="2026-04-13"
+                  <Controller
+                    control={slotRhf.control}
+                    name="activeFromDate"
+                    render={({ field, fieldState }) => (
+                      <View style={{ flex: 1 }}>
+                        <TextField
+                          label="Actif du"
+                          value={field.value}
+                          onChangeText={field.onChange}
+                          placeholder="AAAA-MM-JJ"
+                          hasError={!!fieldState.error}
+                        />
+                        {fieldState.error ? (
+                          <Text style={styles.fieldError}>
+                            {fieldState.error.message}
+                          </Text>
+                        ) : null}
+                      </View>
+                    )}
                   />
-                  <TextField
-                    label="Actif au"
-                    value={slotForm.activeToDate}
-                    onChangeText={(activeToDate) =>
-                      setSlotForm((current) => ({ ...current, activeToDate }))
-                    }
-                    placeholder="2026-05-03"
+                  <Controller
+                    control={slotRhf.control}
+                    name="activeToDate"
+                    render={({ field, fieldState }) => (
+                      <View style={{ flex: 1 }}>
+                        <TextField
+                          label="Actif au"
+                          value={field.value}
+                          onChangeText={field.onChange}
+                          placeholder="AAAA-MM-JJ"
+                          hasError={!!fieldState.error}
+                        />
+                        {fieldState.error ? (
+                          <Text style={styles.fieldError}>
+                            {fieldState.error.message}
+                          </Text>
+                        ) : null}
+                      </View>
+                    )}
                   />
                 </View>
                 <View style={styles.actionsRow}>
@@ -691,10 +783,10 @@ export function ClassTimetableManagerScreen() {
                     testID="slot-form-submit"
                   >
                     <Text style={styles.primaryButtonText}>
-                      {slotForm.id ? "Mettre à jour" : "Ajouter le créneau"}
+                      {slotEditId ? "Mettre à jour" : "Ajouter le créneau"}
                     </Text>
                   </TouchableOpacity>
-                  {slotForm.id ? (
+                  {slotEditId ? (
                     <TouchableOpacity
                       style={styles.secondaryButton}
                       onPress={resetSlotForm}
@@ -764,91 +856,124 @@ export function ClassTimetableManagerScreen() {
           ) : tab === "oneoff" ? (
             <>
               <SectionCard
-                title={
-                  oneOffForm.id
-                    ? "Modifier une séance"
-                    : "Nouvelle séance ponctuelle"
-                }
+                title={oneOffEditId ? "Modifier une séance" : "Nouvelle séance ponctuelle"}
                 subtitle="Utilisez cet onglet pour les permutations, remplacements et cours exceptionnels."
               >
-                <PillSelector
-                  label="Matière"
-                  value={oneOffForm.subjectId}
-                  onChange={(subjectId) => {
-                    const assignment =
-                      classContext.assignments.find(
-                        (entry) => entry.subjectId === subjectId,
-                      ) ?? classContext.assignments[0];
-                    setOneOffForm((current) => ({
-                      ...current,
-                      subjectId,
-                      teacherUserId:
-                        assignment?.teacherUserId ?? current.teacherUserId,
-                    }));
-                  }}
-                  options={subjectOptions}
+                <Controller
+                  control={oneOffRhf.control}
+                  name="subjectId"
+                  render={({ field }) => (
+                    <PillSelector
+                      label="Matière"
+                      value={field.value}
+                      onChange={(subjectId) => {
+                        const assignment =
+                          classContext.assignments.find(
+                            (entry) => entry.subjectId === subjectId,
+                          ) ?? classContext.assignments[0];
+                        field.onChange(subjectId);
+                        oneOffRhf.setValue(
+                          "teacherUserId",
+                          assignment?.teacherUserId ?? field.value,
+                        );
+                      }}
+                      options={subjectOptions}
+                    />
+                  )}
                 />
-                <PillSelector
-                  label="Enseignant"
-                  value={oneOffForm.teacherUserId}
-                  onChange={(teacherUserId) =>
-                    setOneOffForm((current) => ({ ...current, teacherUserId }))
-                  }
-                  options={teacherOptions}
+                <Controller
+                  control={oneOffRhf.control}
+                  name="teacherUserId"
+                  render={({ field }) => (
+                    <PillSelector
+                      label="Enseignant"
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={teacherOptions}
+                    />
+                  )}
                 />
-                <TextField
-                  label="Date"
-                  value={oneOffForm.occurrenceDate}
-                  onChangeText={(occurrenceDate) =>
-                    setOneOffForm((current) => ({ ...current, occurrenceDate }))
-                  }
-                  placeholder="2026-04-17"
-                  testID="oneoff-form-date"
+                <Controller
+                  control={oneOffRhf.control}
+                  name="occurrenceDate"
+                  render={({ field, fieldState }) => (
+                    <>
+                      <TextField
+                        label="Date"
+                        value={field.value}
+                        onChangeText={field.onChange}
+                        placeholder="AAAA-MM-JJ"
+                        hasError={!!fieldState.error}
+                        testID="oneoff-form-date"
+                      />
+                      {fieldState.error ? (
+                        <Text style={styles.fieldError}>
+                          {fieldState.error.message}
+                        </Text>
+                      ) : null}
+                    </>
+                  )}
                 />
                 <View style={styles.row}>
                   <View style={styles.rowField}>
                     <Text style={styles.rowFieldLabel}>Début</Text>
-                    <TimePickerField
-                      value={oneOffForm.start}
-                      onChange={(start) =>
-                        setOneOffForm((current) => ({ ...current, start }))
-                      }
-                      title="Heure de début"
-                      placeholder="10:00"
-                      testID="oneoff-form-start"
+                    <Controller
+                      control={oneOffRhf.control}
+                      name="start"
+                      render={({ field }) => (
+                        <TimePickerField
+                          value={field.value}
+                          onChange={field.onChange}
+                          title="Heure de début"
+                          placeholder="10:00"
+                          testID="oneoff-form-start"
+                        />
+                      )}
                     />
                   </View>
                   <View style={styles.rowField}>
                     <Text style={styles.rowFieldLabel}>Fin</Text>
-                    <TimePickerField
-                      value={oneOffForm.end}
-                      onChange={(end) =>
-                        setOneOffForm((current) => ({ ...current, end }))
-                      }
-                      title="Heure de fin"
-                      placeholder="10:50"
-                      testID="oneoff-form-end"
+                    <Controller
+                      control={oneOffRhf.control}
+                      name="end"
+                      render={({ field }) => (
+                        <TimePickerField
+                          value={field.value}
+                          onChange={field.onChange}
+                          title="Heure de fin"
+                          placeholder="10:50"
+                          testID="oneoff-form-end"
+                        />
+                      )}
                     />
                   </View>
                 </View>
-                <TextField
-                  label="Salle"
-                  value={oneOffForm.room}
-                  onChangeText={(room) =>
-                    setOneOffForm((current) => ({ ...current, room }))
-                  }
-                  placeholder="Salle polyvalente"
+                <Controller
+                  control={oneOffRhf.control}
+                  name="room"
+                  render={({ field }) => (
+                    <TextField
+                      label="Salle"
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      placeholder="Salle polyvalente"
+                    />
+                  )}
                 />
-                <PillSelector
-                  label="Statut"
-                  value={oneOffForm.status}
-                  onChange={(status) =>
-                    setOneOffForm((current) => ({ ...current, status }))
-                  }
-                  options={[
-                    { value: "PLANNED", label: "Prévu" },
-                    { value: "CANCELLED", label: "Annulé" },
-                  ]}
+                <Controller
+                  control={oneOffRhf.control}
+                  name="status"
+                  render={({ field }) => (
+                    <PillSelector
+                      label="Statut"
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={[
+                        { value: "PLANNED", label: "Prévu" },
+                        { value: "CANCELLED", label: "Annulé" },
+                      ]}
+                    />
+                  )}
                 />
                 <View style={styles.actionsRow}>
                   <TouchableOpacity
@@ -858,10 +983,10 @@ export function ClassTimetableManagerScreen() {
                     testID="oneoff-form-submit"
                   >
                     <Text style={styles.primaryButtonText}>
-                      {oneOffForm.id ? "Mettre à jour" : "Ajouter la séance"}
+                      {oneOffEditId ? "Mettre à jour" : "Ajouter la séance"}
                     </Text>
                   </TouchableOpacity>
-                  {oneOffForm.id ? (
+                  {oneOffEditId ? (
                     <TouchableOpacity
                       style={styles.secondaryButton}
                       onPress={resetOneOffForm}
@@ -931,38 +1056,70 @@ export function ClassTimetableManagerScreen() {
           ) : (
             <>
               <SectionCard
-                title={
-                  holidayForm.id
-                    ? "Modifier une fermeture"
-                    : "Nouvelle fermeture"
-                }
+                title={holidayEditId ? "Modifier une fermeture" : "Nouvelle fermeture"}
                 subtitle="Réservé aux rôles établissement. Sert pour congés, ponts et jours fériés."
               >
-                <TextField
-                  label="Libellé"
-                  value={holidayForm.label}
-                  onChangeText={(label) =>
-                    setHolidayForm((current) => ({ ...current, label }))
-                  }
-                  placeholder="Fête de la jeunesse"
-                  testID="holiday-form-label"
+                <Controller
+                  control={holidayRhf.control}
+                  name="label"
+                  render={({ field, fieldState }) => (
+                    <>
+                      <TextField
+                        label="Libellé"
+                        value={field.value}
+                        onChangeText={field.onChange}
+                        placeholder="Fête de la jeunesse"
+                        hasError={!!fieldState.error}
+                        testID="holiday-form-label"
+                      />
+                      {fieldState.error ? (
+                        <Text style={styles.fieldError}>
+                          {fieldState.error.message}
+                        </Text>
+                      ) : null}
+                    </>
+                  )}
                 />
                 <View style={styles.row}>
-                  <TextField
-                    label="Début"
-                    value={holidayForm.startDate}
-                    onChangeText={(startDate) =>
-                      setHolidayForm((current) => ({ ...current, startDate }))
-                    }
-                    placeholder="2026-05-20"
+                  <Controller
+                    control={holidayRhf.control}
+                    name="startDate"
+                    render={({ field, fieldState }) => (
+                      <View style={{ flex: 1 }}>
+                        <TextField
+                          label="Début"
+                          value={field.value}
+                          onChangeText={field.onChange}
+                          placeholder="AAAA-MM-JJ"
+                          hasError={!!fieldState.error}
+                        />
+                        {fieldState.error ? (
+                          <Text style={styles.fieldError}>
+                            {fieldState.error.message}
+                          </Text>
+                        ) : null}
+                      </View>
+                    )}
                   />
-                  <TextField
-                    label="Fin"
-                    value={holidayForm.endDate}
-                    onChangeText={(endDate) =>
-                      setHolidayForm((current) => ({ ...current, endDate }))
-                    }
-                    placeholder="2026-05-20"
+                  <Controller
+                    control={holidayRhf.control}
+                    name="endDate"
+                    render={({ field, fieldState }) => (
+                      <View style={{ flex: 1 }}>
+                        <TextField
+                          label="Fin"
+                          value={field.value}
+                          onChangeText={field.onChange}
+                          placeholder="AAAA-MM-JJ"
+                          hasError={!!fieldState.error}
+                        />
+                        {fieldState.error ? (
+                          <Text style={styles.fieldError}>
+                            {fieldState.error.message}
+                          </Text>
+                        ) : null}
+                      </View>
+                    )}
                   />
                 </View>
                 <View style={styles.actionsRow}>
@@ -973,12 +1130,10 @@ export function ClassTimetableManagerScreen() {
                     testID="holiday-form-submit"
                   >
                     <Text style={styles.primaryButtonText}>
-                      {holidayForm.id
-                        ? "Mettre à jour"
-                        : "Ajouter la fermeture"}
+                      {holidayEditId ? "Mettre à jour" : "Ajouter la fermeture"}
                     </Text>
                   </TouchableOpacity>
-                  {holidayForm.id ? (
+                  {holidayEditId ? (
                     <TouchableOpacity
                       style={styles.secondaryButton}
                       onPress={resetHolidayForm}
@@ -1095,5 +1250,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.warmBorder,
+  },
+  fieldError: {
+    fontSize: 12,
+    color: colors.notification,
+    marginTop: -4,
   },
 });

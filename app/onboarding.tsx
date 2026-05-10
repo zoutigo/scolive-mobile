@@ -11,6 +11,8 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
@@ -27,6 +29,16 @@ const PASSWORD_COMPLEXITY_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 const PHONE_PIN_REGEX = /^\d{6}$/;
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6;
+type Step1FormValues = {
+  email: string;
+  temporaryPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+  setupToken: string;
+};
+type Step2FormValues = z.infer<typeof onboardingProfileStepSchema>;
+type Step3FormValues = z.infer<typeof onboardingPinStepSchema>;
+type RecoveryFormValues = z.infer<typeof onboardingRecoveryStepSchema>;
 
 export const emailOnboardingStep1Schema = z
   .object({
@@ -256,45 +268,107 @@ export default function OnboardingScreen() {
   const successStep = (totalSteps + 1) as Step;
 
   const [step, setStep] = useState<Step>(1);
-  const [email, setEmail] = useState(initialEmail);
-  const [temporaryPassword, setTemporaryPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [setupToken, setSetupToken] = useState(initialSetupToken);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [gender, setGender] = useState<Gender | "">("");
-  const [birthDate, setBirthDate] = useState("");
-  const [newPin, setNewPin] = useState("");
-  const [confirmPin, setConfirmPin] = useState("");
-  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [parentClassId, setParentClassId] = useState("");
-  const [parentStudentId, setParentStudentId] = useState("");
   const [options, setOptions] = useState<OnboardingOptionsResponse | null>(
     null,
   );
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const isParent = useMemo(
     () => (options?.schoolRoles ?? []).includes("PARENT"),
     [options?.schoolRoles],
   );
 
+  const step1Form = useForm<Step1FormValues>({
+    resolver: zodResolver(
+      isTokenFlow ? phoneOnboardingStep1Schema : emailOnboardingStep1Schema,
+    ) as never,
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: {
+      email: initialEmail,
+      temporaryPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+      setupToken: initialSetupToken,
+    },
+  });
+
+  const step2Form = useForm<Step2FormValues>({
+    resolver: zodResolver(onboardingProfileStepSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      gender: undefined as unknown as Gender,
+      birthDate: "",
+    },
+  });
+
+  const step3Form = useForm<Step3FormValues>({
+    resolver: zodResolver(onboardingPinStepSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: {
+      newPin: "",
+      confirmPin: "",
+    },
+  });
+
+  const recoveryForm = useForm<RecoveryFormValues>({
+    resolver: zodResolver(onboardingRecoveryStepSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: {
+      selectedQuestions: [],
+      answers: {},
+      isParent: false,
+      parentClassId: "",
+      parentStudentId: "",
+    },
+  });
+
+  const watchedEmail = step1Form.watch("email");
+  const watchedSetupToken = step1Form.watch("setupToken");
+  const watchedGender = (step2Form.watch("gender") ?? "") as Gender | "";
+  const selectedQuestions = recoveryForm.watch("selectedQuestions") ?? [];
+  const parentClassId = recoveryForm.watch("parentClassId") ?? "";
+  const parentStudentId = recoveryForm.watch("parentStudentId") ?? "";
+
   useEffect(() => {
-    setEmail(initialEmail);
-    setSetupToken(initialSetupToken);
+    step1Form.reset({
+      email: initialEmail,
+      temporaryPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+      setupToken: initialSetupToken,
+    });
+    step2Form.reset({
+      firstName: "",
+      lastName: "",
+      gender: undefined as unknown as Gender,
+      birthDate: "",
+    });
+    step3Form.reset({
+      newPin: "",
+      confirmPin: "",
+    });
+    recoveryForm.reset({
+      selectedQuestions: [],
+      answers: {},
+      isParent: false,
+      parentClassId: "",
+      parentStudentId: "",
+    });
     setStep(1);
     setError(null);
-    setFieldErrors({});
     setOptions(null);
   }, [initialEmail, initialSetupToken]);
 
   useEffect(() => {
-    if (!email && !setupToken) {
+    if (!watchedEmail && !watchedSetupToken) {
       setError("Lien d'activation invalide.");
       return;
     }
@@ -305,8 +379,8 @@ export default function OnboardingScreen() {
       setError(null);
       try {
         const response = await authApi.getOnboardingOptions({
-          ...(email ? { email } : {}),
-          ...(setupToken ? { setupToken } : {}),
+          ...(watchedEmail ? { email: watchedEmail } : {}),
+          ...(watchedSetupToken ? { setupToken: watchedSetupToken } : {}),
         });
         if (!active) {
           return;
@@ -328,11 +402,14 @@ export default function OnboardingScreen() {
     return () => {
       active = false;
     };
-  }, [email, setupToken]);
+  }, [watchedEmail, watchedSetupToken]);
+
+  useEffect(() => {
+    recoveryForm.setValue("isParent", isParent, { shouldValidate: false });
+  }, [isParent, recoveryForm]);
 
   function clearErrors() {
     setError(null);
-    setFieldErrors({});
   }
 
   function handleBack() {
@@ -348,98 +425,6 @@ export default function OnboardingScreen() {
     setStep((current) => (current - 1) as Step);
   }
 
-  function validateStep1() {
-    clearErrors();
-    const result = isTokenFlow
-      ? phoneOnboardingStep1Schema.safeParse({ email, setupToken })
-      : emailOnboardingStep1Schema.safeParse({
-          email,
-          temporaryPassword,
-          newPassword,
-          confirmPassword,
-        });
-    if (!result.success) {
-      const nextErrors: Record<string, string> = {};
-      result.error.issues.forEach((issue) => {
-        const key = String(issue.path[0]);
-        if (!nextErrors[key]) {
-          nextErrors[key] = issue.message;
-        }
-      });
-      setFieldErrors(nextErrors);
-      return false;
-    }
-    return true;
-  }
-
-  function validateProfileStep() {
-    clearErrors();
-    const result = onboardingProfileStepSchema.safeParse({
-      firstName,
-      lastName,
-      gender,
-      birthDate,
-    });
-    if (!result.success) {
-      const nextErrors: Record<string, string> = {};
-      result.error.issues.forEach((issue) => {
-        const key = String(issue.path[0]);
-        if (!nextErrors[key]) {
-          nextErrors[key] = issue.message;
-        }
-      });
-      setFieldErrors(nextErrors);
-      return false;
-    }
-    return true;
-  }
-
-  function validatePinStep() {
-    clearErrors();
-    const result = onboardingPinStepSchema.safeParse({ newPin, confirmPin });
-    if (!result.success) {
-      const nextErrors: Record<string, string> = {};
-      result.error.issues.forEach((issue) => {
-        const key = String(issue.path[0]);
-        if (!nextErrors[key]) {
-          nextErrors[key] = issue.message;
-        }
-      });
-      setFieldErrors(nextErrors);
-      return false;
-    }
-    return true;
-  }
-
-  function validateRecoveryStep() {
-    clearErrors();
-    const result = onboardingRecoveryStepSchema.safeParse({
-      selectedQuestions,
-      answers,
-      isParent,
-      parentClassId,
-      parentStudentId,
-    });
-    if (!result.success) {
-      const nextErrors: Record<string, string> = {};
-      result.error.issues.forEach((issue) => {
-        const key =
-          issue.path[0] === "answers" && issue.path[1]
-            ? `answer:${String(issue.path[1])}`
-            : String(issue.path[0]);
-        if (!nextErrors[key]) {
-          nextErrors[key] = issue.message;
-        }
-      });
-      setFieldErrors(nextErrors);
-      if (!nextErrors.selectedQuestions && result.error.issues.length > 0) {
-        setError(result.error.issues[0]?.message ?? null);
-      }
-      return false;
-    }
-    return true;
-  }
-
   function validateRecoverySelectionStep() {
     clearErrors();
     const result = onboardingRecoverySelectionStepSchema.safeParse({
@@ -448,25 +433,29 @@ export default function OnboardingScreen() {
     if (!result.success) {
       const message =
         result.error.issues[0]?.message ?? "Choisissez exactement 3 questions.";
-      setFieldErrors({ selectedQuestions: message });
       setError(message);
       return false;
     }
     return true;
   }
 
-  function goNext() {
-    const valid =
-      step === 1
-        ? validateStep1()
-        : step === 2
-          ? validateProfileStep()
-          : isTokenFlow && step === 3
-            ? validatePinStep()
-            : (!isTokenFlow && step === 3) || (isTokenFlow && step === 4)
-              ? validateRecoverySelectionStep()
-              : validateRecoveryStep();
-    if (!valid) {
+  const goNextStep1 = step1Form.handleSubmit(() => {
+    clearErrors();
+    setStep((current) => (current + 1) as Step);
+  });
+
+  const goNextStep2 = step2Form.handleSubmit(() => {
+    clearErrors();
+    setStep((current) => (current + 1) as Step);
+  });
+
+  const goNextStep3 = step3Form.handleSubmit(() => {
+    clearErrors();
+    setStep((current) => (current + 1) as Step);
+  });
+
+  function goNextSelection() {
+    if (!validateRecoverySelectionStep()) {
       return;
     }
     setStep((current) => (current + 1) as Step);
@@ -474,54 +463,71 @@ export default function OnboardingScreen() {
 
   function toggleQuestion(questionKey: string) {
     clearErrors();
-    setSelectedQuestions((current) => {
-      if (current.includes(questionKey)) {
-        const next = current.filter((entry) => entry !== questionKey);
-        return next;
-      }
-      if (current.length >= 3) {
-        setError("Choisissez exactement 3 questions.");
-        return current;
-      }
-      return [...current, questionKey];
+    const current = recoveryForm.getValues("selectedQuestions") ?? [];
+    if (current.includes(questionKey)) {
+      recoveryForm.setValue(
+        "selectedQuestions",
+        current.filter((entry) => entry !== questionKey),
+        { shouldDirty: true, shouldValidate: true },
+      );
+      return;
+    }
+    if (current.length >= 3) {
+      setError("Choisissez exactement 3 questions.");
+      return;
+    }
+    recoveryForm.setValue("selectedQuestions", [...current, questionKey], {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    recoveryForm.setValue(`answers.${questionKey}` as const, "", {
+      shouldDirty: false,
+      shouldValidate: false,
     });
   }
 
-  async function handleSubmit() {
-    if (!validateRecoveryStep()) {
-      return;
-    }
+  const handleSubmit = recoveryForm.handleSubmit(async (values) => {
+    clearErrors();
+    const birthDate = step2Form.getValues("birthDate");
     const isoBirthDate = parseDateToISO(birthDate);
     if (!isoBirthDate) {
-      setFieldErrors((current) => ({
-        ...current,
-        birthDate: "Date de naissance invalide.",
-      }));
+      step2Form.setError("birthDate", {
+        message: "Date de naissance invalide.",
+      });
+      return;
+    }
+
+    if (!validateRecoverySelectionStep()) {
       return;
     }
 
     setIsSubmitting(true);
-    clearErrors();
     try {
+      const step1Values = step1Form.getValues();
+      const step2Values = step2Form.getValues();
+      const step3Values = step3Form.getValues();
       await authApi.completeOnboarding({
         ...(isTokenFlow
           ? {
-              setupToken,
-              email: email.trim() || undefined,
-              newPin,
+              setupToken: step1Values.setupToken,
+              email: step1Values.email.trim() || undefined,
+              newPin: step3Values.newPin,
             }
           : {
-              email: email.trim(),
-              temporaryPassword,
-              newPassword,
+              email: step1Values.email.trim(),
+              temporaryPassword: step1Values.temporaryPassword,
+              newPassword: step1Values.newPassword,
             }),
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        gender: gender as Gender,
+        firstName: step2Values.firstName.trim(),
+        lastName: step2Values.lastName.trim(),
+        gender: step2Values.gender as Gender,
         birthDate: isoBirthDate,
-        answers: buildOnboardingRecoveryRows(selectedQuestions, answers),
-        parentClassId: parentClassId || undefined,
-        parentStudentId: parentStudentId || undefined,
+        answers: buildOnboardingRecoveryRows(
+          values.selectedQuestions,
+          values.answers,
+        ),
+        parentClassId: values.parentClassId || undefined,
+        parentStudentId: values.parentStudentId || undefined,
       });
       setStep(successStep);
     } catch (err) {
@@ -529,7 +535,7 @@ export default function OnboardingScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }
+  });
 
   const progressWidth =
     `${((Math.min(step, totalSteps) / totalSteps) * 100).toFixed(0)}%` as `${number}%`;
@@ -621,38 +627,66 @@ export default function OnboardingScreen() {
                       <Text style={styles.label}>
                         Adresse email optionnelle
                       </Text>
-                      <TextInput
-                        testID="input-email"
-                        value={email}
-                        onChangeText={setEmail}
-                        placeholder="nom@etablissement.cm"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        style={styles.input}
-                        placeholderTextColor="#9B9490"
+                      <Controller
+                        control={step1Form.control}
+                        name="email"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            ref={field.ref}
+                            testID="input-email"
+                            value={field.value}
+                            onBlur={field.onBlur}
+                            onChangeText={(value) => {
+                              clearErrors();
+                              field.onChange(value);
+                            }}
+                            placeholder="nom@etablissement.cm"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            style={[
+                              styles.input,
+                              fieldState.error && styles.inputError,
+                            ]}
+                            placeholderTextColor="#9B9490"
+                          />
+                        )}
                       />
-                      {fieldErrors.email ? (
+                      {step1Form.formState.errors.email?.message ? (
                         <Text style={styles.fieldError} testID="error-email">
-                          {fieldErrors.email}
+                          {step1Form.formState.errors.email.message}
                         </Text>
                       ) : null}
                     </View>
                     <View style={styles.fieldGroup}>
                       <Text style={styles.label}>Jeton d'activation</Text>
-                      <TextInput
-                        testID="input-setup-token"
-                        value={setupToken}
-                        onChangeText={setSetupToken}
-                        autoCapitalize="none"
-                        style={styles.input}
-                        placeholderTextColor="#9B9490"
+                      <Controller
+                        control={step1Form.control}
+                        name="setupToken"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            ref={field.ref}
+                            testID="input-setup-token"
+                            value={field.value}
+                            onBlur={field.onBlur}
+                            onChangeText={(value) => {
+                              clearErrors();
+                              field.onChange(value);
+                            }}
+                            autoCapitalize="none"
+                            style={[
+                              styles.input,
+                              fieldState.error && styles.inputError,
+                            ]}
+                            placeholderTextColor="#9B9490"
+                          />
+                        )}
                       />
-                      {fieldErrors.setupToken ? (
+                      {step1Form.formState.errors.setupToken?.message ? (
                         <Text
                           style={styles.fieldError}
                           testID="error-setup-token"
                         >
-                          {fieldErrors.setupToken}
+                          {step1Form.formState.errors.setupToken.message}
                         </Text>
                       ) : null}
                     </View>
@@ -661,53 +695,95 @@ export default function OnboardingScreen() {
                   <>
                     <View style={styles.fieldGroup}>
                       <Text style={styles.label}>Adresse email</Text>
-                      <TextInput
-                        testID="input-email"
-                        value={email}
-                        onChangeText={setEmail}
-                        placeholder="nom@etablissement.cm"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        style={styles.input}
-                        placeholderTextColor="#9B9490"
+                      <Controller
+                        control={step1Form.control}
+                        name="email"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            ref={field.ref}
+                            testID="input-email"
+                            value={field.value}
+                            onBlur={field.onBlur}
+                            onChangeText={(value) => {
+                              clearErrors();
+                              field.onChange(value);
+                            }}
+                            placeholder="nom@etablissement.cm"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                            style={[
+                              styles.input,
+                              fieldState.error && styles.inputError,
+                            ]}
+                            placeholderTextColor="#9B9490"
+                          />
+                        )}
                       />
-                      {fieldErrors.email ? (
+                      {step1Form.formState.errors.email?.message ? (
                         <Text style={styles.fieldError} testID="error-email">
-                          {fieldErrors.email}
+                          {step1Form.formState.errors.email.message}
                         </Text>
                       ) : null}
                     </View>
                     <View style={styles.fieldGroup}>
                       <Text style={styles.label}>Mot de passe provisoire</Text>
-                      <SecureTextField
-                        testID="input-temporary-password"
-                        value={temporaryPassword}
-                        onChangeText={setTemporaryPassword}
-                        placeholderTextColor="#9B9490"
+                      <Controller
+                        control={step1Form.control}
+                        name="temporaryPassword"
+                        render={({ field, fieldState }) => (
+                          <SecureTextField
+                            ref={field.ref}
+                            testID="input-temporary-password"
+                            value={field.value}
+                            onBlur={field.onBlur}
+                            onChangeText={(value) => {
+                              clearErrors();
+                              field.onChange(value);
+                            }}
+                            placeholderTextColor="#9B9490"
+                            containerStyle={
+                              fieldState.error ? styles.inputError : undefined
+                            }
+                          />
+                        )}
                       />
-                      {fieldErrors.temporaryPassword ? (
+                      {step1Form.formState.errors.temporaryPassword?.message ? (
                         <Text
                           style={styles.fieldError}
                           testID="error-temporary-password"
                         >
-                          {fieldErrors.temporaryPassword}
+                          {step1Form.formState.errors.temporaryPassword.message}
                         </Text>
                       ) : null}
                     </View>
                     <View style={styles.fieldGroup}>
                       <Text style={styles.label}>Nouveau mot de passe</Text>
-                      <SecureTextField
-                        testID="input-new-password"
-                        value={newPassword}
-                        onChangeText={setNewPassword}
-                        placeholderTextColor="#9B9490"
+                      <Controller
+                        control={step1Form.control}
+                        name="newPassword"
+                        render={({ field, fieldState }) => (
+                          <SecureTextField
+                            ref={field.ref}
+                            testID="input-new-password"
+                            value={field.value}
+                            onBlur={field.onBlur}
+                            onChangeText={(value) => {
+                              clearErrors();
+                              field.onChange(value);
+                            }}
+                            placeholderTextColor="#9B9490"
+                            containerStyle={
+                              fieldState.error ? styles.inputError : undefined
+                            }
+                          />
+                        )}
                       />
-                      {fieldErrors.newPassword ? (
+                      {step1Form.formState.errors.newPassword?.message ? (
                         <Text
                           style={styles.fieldError}
                           testID="error-new-password"
                         >
-                          {fieldErrors.newPassword}
+                          {step1Form.formState.errors.newPassword.message}
                         </Text>
                       ) : null}
                     </View>
@@ -715,18 +791,32 @@ export default function OnboardingScreen() {
                       <Text style={styles.label}>
                         Confirmer le mot de passe
                       </Text>
-                      <SecureTextField
-                        testID="input-confirm-password"
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                        placeholderTextColor="#9B9490"
+                      <Controller
+                        control={step1Form.control}
+                        name="confirmPassword"
+                        render={({ field, fieldState }) => (
+                          <SecureTextField
+                            ref={field.ref}
+                            testID="input-confirm-password"
+                            value={field.value}
+                            onBlur={field.onBlur}
+                            onChangeText={(value) => {
+                              clearErrors();
+                              field.onChange(value);
+                            }}
+                            placeholderTextColor="#9B9490"
+                            containerStyle={
+                              fieldState.error ? styles.inputError : undefined
+                            }
+                          />
+                        )}
                       />
-                      {fieldErrors.confirmPassword ? (
+                      {step1Form.formState.errors.confirmPassword?.message ? (
                         <Text
                           style={styles.fieldError}
                           testID="error-confirm-password"
                         >
-                          {fieldErrors.confirmPassword}
+                          {step1Form.formState.errors.confirmPassword.message}
                         </Text>
                       ) : null}
                     </View>
@@ -735,7 +825,7 @@ export default function OnboardingScreen() {
 
                 <Pressable
                   testID="btn-step1"
-                  onPress={goNext}
+                  onPress={goNextStep1}
                   style={styles.primaryButton}
                 >
                   <Text style={styles.primaryButtonText}>Continuer</Text>
@@ -747,32 +837,60 @@ export default function OnboardingScreen() {
               <View style={styles.form} testID="step-2">
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Prénom</Text>
-                  <TextInput
-                    testID="input-first-name"
-                    value={firstName}
-                    onChangeText={setFirstName}
-                    style={styles.input}
-                    placeholderTextColor="#9B9490"
+                  <Controller
+                    control={step2Form.control}
+                    name="firstName"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        ref={field.ref}
+                        testID="input-first-name"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          clearErrors();
+                          field.onChange(value);
+                        }}
+                        style={[
+                          styles.input,
+                          fieldState.error && styles.inputError,
+                        ]}
+                        placeholderTextColor="#9B9490"
+                      />
+                    )}
                   />
-                  {fieldErrors.firstName ? (
+                  {step2Form.formState.errors.firstName?.message ? (
                     <Text style={styles.fieldError} testID="error-firstName">
-                      {fieldErrors.firstName}
+                      {step2Form.formState.errors.firstName.message}
                     </Text>
                   ) : null}
                 </View>
 
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Nom</Text>
-                  <TextInput
-                    testID="input-last-name"
-                    value={lastName}
-                    onChangeText={setLastName}
-                    style={styles.input}
-                    placeholderTextColor="#9B9490"
+                  <Controller
+                    control={step2Form.control}
+                    name="lastName"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        ref={field.ref}
+                        testID="input-last-name"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          clearErrors();
+                          field.onChange(value);
+                        }}
+                        style={[
+                          styles.input,
+                          fieldState.error && styles.inputError,
+                        ]}
+                        placeholderTextColor="#9B9490"
+                      />
+                    )}
                   />
-                  {fieldErrors.lastName ? (
+                  {step2Form.formState.errors.lastName?.message ? (
                     <Text style={styles.fieldError} testID="error-lastName">
-                      {fieldErrors.lastName}
+                      {step2Form.formState.errors.lastName.message}
                     </Text>
                   ) : null}
                 </View>
@@ -783,52 +901,82 @@ export default function OnboardingScreen() {
                     <GenderButton
                       value="F"
                       label="Femme"
-                      currentValue={gender}
-                      onPress={setGender}
+                      currentValue={watchedGender}
+                      onPress={(value) => {
+                        clearErrors();
+                        step2Form.setValue("gender", value, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                      }}
                     />
                     <GenderButton
                       value="M"
                       label="Homme"
-                      currentValue={gender}
-                      onPress={setGender}
+                      currentValue={watchedGender}
+                      onPress={(value) => {
+                        clearErrors();
+                        step2Form.setValue("gender", value, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                      }}
                     />
                     <GenderButton
                       value="OTHER"
                       label="Autre"
-                      currentValue={gender}
-                      onPress={setGender}
+                      currentValue={watchedGender}
+                      onPress={(value) => {
+                        clearErrors();
+                        step2Form.setValue("gender", value, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                      }}
                     />
                   </View>
-                  {fieldErrors.gender ? (
+                  {step2Form.formState.errors.gender?.message ? (
                     <Text style={styles.fieldError} testID="error-gender">
-                      {fieldErrors.gender}
+                      {step2Form.formState.errors.gender.message}
                     </Text>
                   ) : null}
                 </View>
 
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Date de naissance</Text>
-                  <TextInput
-                    testID="input-birthdate"
-                    value={birthDate}
-                    onChangeText={(value) =>
-                      setBirthDate(formatDateInput(value))
-                    }
-                    keyboardType="number-pad"
-                    placeholder="JJ/MM/AAAA"
-                    style={styles.input}
-                    placeholderTextColor="#9B9490"
+                  <Controller
+                    control={step2Form.control}
+                    name="birthDate"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        ref={field.ref}
+                        testID="input-birthdate"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          clearErrors();
+                          field.onChange(formatDateInput(value));
+                        }}
+                        keyboardType="number-pad"
+                        placeholder="JJ/MM/AAAA"
+                        style={[
+                          styles.input,
+                          fieldState.error && styles.inputError,
+                        ]}
+                        placeholderTextColor="#9B9490"
+                      />
+                    )}
                   />
-                  {fieldErrors.birthDate ? (
+                  {step2Form.formState.errors.birthDate?.message ? (
                     <Text style={styles.fieldError} testID="error-birthDate">
-                      {fieldErrors.birthDate}
+                      {step2Form.formState.errors.birthDate.message}
                     </Text>
                   ) : null}
                 </View>
 
                 <Pressable
                   testID="btn-step2"
-                  onPress={goNext}
+                  onPress={goNextStep2}
                   style={styles.primaryButton}
                 >
                   <Text style={styles.primaryButtonText}>Continuer</Text>
@@ -840,41 +988,69 @@ export default function OnboardingScreen() {
               <View style={styles.form} testID="step-3">
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Nouveau PIN</Text>
-                  <SecureTextField
-                    testID="input-new-pin"
-                    value={newPin}
-                    onChangeText={setNewPin}
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    placeholderTextColor="#9B9490"
-                    variant="pin"
+                  <Controller
+                    control={step3Form.control}
+                    name="newPin"
+                    render={({ field, fieldState }) => (
+                      <SecureTextField
+                        ref={field.ref}
+                        testID="input-new-pin"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          clearErrors();
+                          field.onChange(value);
+                        }}
+                        keyboardType="number-pad"
+                        maxLength={6}
+                        placeholderTextColor="#9B9490"
+                        variant="pin"
+                        containerStyle={
+                          fieldState.error ? styles.inputError : undefined
+                        }
+                      />
+                    )}
                   />
-                  {fieldErrors.newPin ? (
+                  {step3Form.formState.errors.newPin?.message ? (
                     <Text style={styles.fieldError} testID="error-newPin">
-                      {fieldErrors.newPin}
+                      {step3Form.formState.errors.newPin.message}
                     </Text>
                   ) : null}
                 </View>
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Confirmer le PIN</Text>
-                  <SecureTextField
-                    testID="input-confirm-pin"
-                    value={confirmPin}
-                    onChangeText={setConfirmPin}
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    placeholderTextColor="#9B9490"
-                    variant="pin"
+                  <Controller
+                    control={step3Form.control}
+                    name="confirmPin"
+                    render={({ field, fieldState }) => (
+                      <SecureTextField
+                        ref={field.ref}
+                        testID="input-confirm-pin"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          clearErrors();
+                          field.onChange(value);
+                        }}
+                        keyboardType="number-pad"
+                        maxLength={6}
+                        placeholderTextColor="#9B9490"
+                        variant="pin"
+                        containerStyle={
+                          fieldState.error ? styles.inputError : undefined
+                        }
+                      />
+                    )}
                   />
-                  {fieldErrors.confirmPin ? (
+                  {step3Form.formState.errors.confirmPin?.message ? (
                     <Text style={styles.fieldError} testID="error-confirmPin">
-                      {fieldErrors.confirmPin}
+                      {step3Form.formState.errors.confirmPin.message}
                     </Text>
                   ) : null}
                 </View>
                 <Pressable
                   testID="btn-step3"
-                  onPress={goNext}
+                  onPress={goNextStep3}
                   style={styles.primaryButton}
                 >
                   <Text style={styles.primaryButtonText}>Continuer</Text>
@@ -937,7 +1113,7 @@ export default function OnboardingScreen() {
 
                 <Pressable
                   testID={`btn-step${step}`}
-                  onPress={goNext}
+                  onPress={goNextSelection}
                   style={styles.primaryButton}
                 >
                   <Text style={styles.primaryButtonText}>Continuer</Text>
@@ -973,29 +1149,43 @@ export default function OnboardingScreen() {
                           {question?.label ?? questionKey}
                         </Text>
                       ) : null}
-                      <TextInput
-                        testID={`input-answer-${index}`}
-                        value={answers[questionKey] ?? ""}
-                        onChangeText={(value) =>
-                          setAnswers((current) => ({
-                            ...current,
-                            [questionKey]: value,
-                          }))
-                        }
-                        style={[
-                          styles.input,
-                          selectedQuestions.length === 3 && styles.inputCompact,
-                          !isParent && styles.inputUltraCompact,
-                        ]}
-                        placeholder={!isParent ? question?.label : undefined}
-                        placeholderTextColor="#9B9490"
+                      <Controller
+                        control={recoveryForm.control}
+                        name={`answers.${questionKey}` as const}
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            ref={field.ref}
+                            testID={`input-answer-${index}`}
+                            value={field.value ?? ""}
+                            onBlur={field.onBlur}
+                            onChangeText={(value) => {
+                              clearErrors();
+                              field.onChange(value);
+                            }}
+                            style={[
+                              styles.input,
+                              selectedQuestions.length === 3 &&
+                                styles.inputCompact,
+                              !isParent && styles.inputUltraCompact,
+                              fieldState.error && styles.inputError,
+                            ]}
+                            placeholder={
+                              !isParent ? question?.label : undefined
+                            }
+                            placeholderTextColor="#9B9490"
+                          />
+                        )}
                       />
-                      {fieldErrors[`answer:${questionKey}`] ? (
+                      {recoveryForm.formState.errors.answers?.[questionKey]
+                        ?.message ? (
                         <Text
                           style={styles.fieldError}
                           testID={`error-answer-${index}`}
                         >
-                          {fieldErrors[`answer:${questionKey}`]}
+                          {
+                            recoveryForm.formState.errors.answers?.[questionKey]
+                              ?.message
+                          }
                         </Text>
                       ) : null}
                     </View>
@@ -1027,7 +1217,17 @@ export default function OnboardingScreen() {
                             <Pressable
                               key={classroom.id}
                               testID={`parent-class-${classroom.id}`}
-                              onPress={() => setParentClassId(classroom.id)}
+                              onPress={() => {
+                                clearErrors();
+                                recoveryForm.setValue(
+                                  "parentClassId",
+                                  classroom.id,
+                                  {
+                                    shouldDirty: true,
+                                    shouldValidate: true,
+                                  },
+                                );
+                              }}
                               style={[
                                 styles.optionCard,
                                 selectedQuestions.length === 3 &&
@@ -1057,12 +1257,12 @@ export default function OnboardingScreen() {
                           );
                         })}
                       </View>
-                      {fieldErrors.parentClassId ? (
+                      {recoveryForm.formState.errors.parentClassId?.message ? (
                         <Text
                           style={styles.fieldError}
                           testID="error-parentClassId"
                         >
-                          {fieldErrors.parentClassId}
+                          {recoveryForm.formState.errors.parentClassId.message}
                         </Text>
                       ) : null}
                     </View>
@@ -1090,7 +1290,17 @@ export default function OnboardingScreen() {
                             <Pressable
                               key={student.id}
                               testID={`parent-student-${student.id}`}
-                              onPress={() => setParentStudentId(student.id)}
+                              onPress={() => {
+                                clearErrors();
+                                recoveryForm.setValue(
+                                  "parentStudentId",
+                                  student.id,
+                                  {
+                                    shouldDirty: true,
+                                    shouldValidate: true,
+                                  },
+                                );
+                              }}
                               style={[
                                 styles.optionCard,
                                 selectedQuestions.length === 3 &&
@@ -1111,12 +1321,15 @@ export default function OnboardingScreen() {
                           );
                         })}
                       </View>
-                      {fieldErrors.parentStudentId ? (
+                      {recoveryForm.formState.errors.parentStudentId?.message ? (
                         <Text
                           style={styles.fieldError}
                           testID="error-parentStudentId"
                         >
-                          {fieldErrors.parentStudentId}
+                          {
+                            recoveryForm.formState.errors.parentStudentId
+                              .message
+                          }
                         </Text>
                       ) : null}
                     </View>
@@ -1335,6 +1548,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 16,
     color: "#1F2933",
+  },
+  inputError: {
+    borderColor: "#FCA5A5",
   },
   inputCompact: {
     paddingHorizontal: 14,

@@ -795,7 +795,7 @@ export function AssistanceGuidePanel({
             onPress={guideForm.handleSubmit(
               (values) => void createGuide(values),
             )}
-            disabled={!guideForm.formState.isValid || saving}
+            disabled={saving}
           >
             <Text style={styles.primaryBtnLabel}>Créer guide</Text>
           </TouchableOpacity>
@@ -936,7 +936,7 @@ export function AssistanceGuidePanel({
             onPress={chapterForm.handleSubmit(
               (values) => void createChapter(values),
             )}
-            disabled={!chapterForm.formState.isValid || saving}
+            disabled={saving}
           >
             <Text style={styles.primaryBtnLabel}>Créer chapitre</Text>
           </TouchableOpacity>

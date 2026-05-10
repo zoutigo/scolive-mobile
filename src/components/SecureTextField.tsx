@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 import type { ComponentProps } from "react";
 import {
   Pressable,
@@ -19,53 +19,62 @@ export interface SecureTextFieldProps extends NativeTextInputProps {
   inputStyle?: StyleProp<TextStyle>;
   variant?: "pin" | "password";
   visibilityToggleTestID?: string;
+  hasError?: boolean;
 }
 
-export function SecureTextField({
-  containerStyle,
-  inputStyle,
-  variant = "password",
-  visibilityToggleTestID,
-  testID,
-  ...props
-}: SecureTextFieldProps) {
-  const [isVisible, setIsVisible] = useState(false);
-  const toggleTestID = visibilityToggleTestID ?? `${testID}-toggle-visibility`;
-  const accessibilityLabel = isVisible
-    ? variant === "pin"
-      ? "Masquer le code PIN"
-      : "Masquer le mot de passe"
-    : variant === "pin"
-      ? "Afficher le code PIN"
-      : "Afficher le mot de passe";
+export const SecureTextField = forwardRef<TextInput, SecureTextFieldProps>(
+  function SecureTextField(
+    {
+      containerStyle,
+      inputStyle,
+      variant = "password",
+      visibilityToggleTestID,
+      hasError,
+      testID,
+      ...props
+    },
+    ref,
+  ) {
+    const [isVisible, setIsVisible] = useState(false);
+    const toggleTestID =
+      visibilityToggleTestID ?? `${testID}-toggle-visibility`;
+    const accessibilityLabel = isVisible
+      ? variant === "pin"
+        ? "Masquer le code PIN"
+        : "Masquer le mot de passe"
+      : variant === "pin"
+        ? "Afficher le code PIN"
+        : "Afficher le mot de passe";
 
-  return (
-    <View style={[styles.container, containerStyle]}>
-      <TextInput
-        {...props}
-        testID={testID}
-        secureTextEntry={!isVisible}
-        style={[styles.input, inputStyle]}
-      />
-      <Pressable
-        testID={toggleTestID}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-        onPress={() => setIsVisible((current) => !current)}
-        style={({ pressed }) => [
-          styles.toggleButton,
-          pressed && styles.toggleButtonPressed,
-        ]}
-      >
-        <Ionicons
-          name={isVisible ? "eye-outline" : "eye-off-outline"}
-          size={20}
-          color={isVisible ? colors.primary : colors.textSecondary}
+    return (
+      <View style={[styles.container, hasError && styles.containerError, containerStyle]}>
+        <TextInput
+          {...props}
+          ref={ref}
+          testID={testID}
+          secureTextEntry={!isVisible}
+          style={[styles.input, inputStyle]}
         />
-      </Pressable>
-    </View>
-  );
-}
+        <Pressable
+          testID={toggleTestID}
+          accessibilityRole="button"
+          accessibilityLabel={accessibilityLabel}
+          onPress={() => setIsVisible((current) => !current)}
+          style={({ pressed }) => [
+            styles.toggleButton,
+            pressed && styles.toggleButtonPressed,
+          ]}
+        >
+          <Ionicons
+            name={isVisible ? "eye-outline" : "eye-off-outline"}
+            size={20}
+            color={isVisible ? colors.primary : colors.textSecondary}
+          />
+        </Pressable>
+      </View>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   container: {
@@ -76,6 +85,9 @@ const styles = StyleSheet.create({
     borderColor: "#E2D6CA",
     borderRadius: 14,
     overflow: "hidden",
+  },
+  containerError: {
+    borderColor: "#FCA5A5",
   },
   input: {
     flex: 1,

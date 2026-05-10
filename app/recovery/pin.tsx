@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -11,6 +11,8 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
@@ -48,6 +50,11 @@ export const pinRecoveryStep3Schema = z
 // ── Types internes ────────────────────────────────────────────────────────────
 
 type Step = 1 | 2 | 3 | 4;
+
+type PinRecoveryStep2Values = {
+  birthDate: string;
+  answers: Record<string, string>;
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -94,40 +101,100 @@ export default function PinRecoveryScreen() {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>(1);
 
-  const [phone, setPhone] = useState("");
-
   const [principalHint, setPrincipalHint] = useState("");
   const [questions, setQuestions] = useState<RecoveryQuestion[]>([]);
-  const [birthDate, setBirthDate] = useState("");
-  const [answers, setAnswers] = useState<Record<string, string>>({});
 
   const [recoveryToken, setRecoveryToken] = useState("");
-  const [newPin, setNewPin] = useState("");
-  const [confirmPin, setConfirmPin] = useState("");
 
   const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function clearErrors() {
+  const step1Form = useForm<z.infer<typeof pinRecoveryStep1PhoneSchema>>({
+    resolver: zodResolver(pinRecoveryStep1PhoneSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: {
+      phone: "",
+    },
+  });
+
+  const step2Schema = useMemo(
+    () =>
+      z
+        .object({
+          birthDate: z
+            .string()
+            .min(1, "La date de naissance est obligatoire.")
+            .refine((value) => /^\d{2}\/\d{2}\/\d{4}$/.test(value), {
+              message: "Format attendu : JJ/MM/AAAA.",
+            })
+            .refine((value) => parseDateToISO(value) !== null, {
+              message: "Date de naissance invalide.",
+            }),
+          answers: z.record(z.string(), z.string().trim()),
+        })
+        .superRefine((value, ctx) => {
+          questions.forEach((question) => {
+            const answer = value.answers[question.key] ?? "";
+            if (answer.trim().length < 2) {
+              ctx.addIssue({
+                code: "custom",
+                path: ["answers", question.key],
+                message:
+                  "Réponse obligatoire (au moins 2 caractères).",
+              });
+            }
+          });
+        }),
+    [questions],
+  );
+
+  const step2Form = useForm<PinRecoveryStep2Values>({
+    resolver: zodResolver(step2Schema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: {
+      birthDate: "",
+      answers: {},
+    },
+  });
+
+  const step3Form = useForm<z.infer<typeof pinRecoveryStep3Schema>>({
+    resolver: zodResolver(pinRecoveryStep3Schema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: {
+      newPin: "",
+      confirmPin: "",
+    },
+  });
+
+  useEffect(() => {
+    if (step !== 2) {
+      return;
+    }
+    step2Form.reset((currentValues) => ({
+      birthDate: currentValues.birthDate ?? "",
+      answers: Object.fromEntries(
+        questions.map((question) => [
+          question.key,
+          currentValues.answers?.[question.key] ?? "",
+        ]),
+      ),
+    }));
+  }, [questions, step, step2Form]);
+
+  function clearUiErrors() {
     setError(null);
-    setFieldErrors({});
   }
 
   // ── Step 1 : Identification par téléphone ─────────────────────────────────
 
-  async function handleStep1() {
-    clearErrors();
-
-    const result = pinRecoveryStep1PhoneSchema.safeParse({ phone });
-    if (!result.success) {
-      setFieldErrors({ phone: result.error.issues[0].message });
-      return;
-    }
-
+  const handleStep1 = step1Form.handleSubmit(async (values) => {
+    clearUiErrors();
     setIsSubmitting(true);
     try {
-      const res = await recoveryApi.forgotPinOptions({ phone });
+      const res = await recoveryApi.forgotPinOptions({ phone: values.phone });
       setPrincipalHint(res.principalHint);
       setQuestions(res.questions);
       setStep(2);
@@ -136,45 +203,24 @@ export default function PinRecoveryScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }
+  });
 
   // ── Step 2 : Vérification identité ───────────────────────────────────────
 
-  async function handleStep2() {
-    clearErrors();
-
-    if (!birthDate.trim()) {
-      setFieldErrors({ birthDate: "La date de naissance est obligatoire." });
-      return;
-    }
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(birthDate)) {
-      setFieldErrors({ birthDate: "Format attendu : JJ/MM/AAAA." });
-      return;
-    }
-    const isoDate = parseDateToISO(birthDate);
+  const handleStep2 = step2Form.handleSubmit(async (values) => {
+    clearUiErrors();
+    const isoDate = parseDateToISO(values.birthDate);
     if (!isoDate) {
-      setFieldErrors({ birthDate: "Date de naissance invalide." });
       return;
     }
-
-    const unanswered = questions.find(
-      (q) => !answers[q.key]?.trim() || answers[q.key].trim().length < 2,
-    );
-    if (unanswered) {
-      setError(
-        "Répondez à toutes les questions de sécurité (min. 2 caractères).",
-      );
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const res = await recoveryApi.forgotPinVerify({
-        phone,
+        phone: step1Form.getValues("phone"),
         birthDate: isoDate,
         answers: questions.map((q) => ({
           questionKey: q.key,
-          answer: answers[q.key].trim(),
+          answer: (values.answers[q.key] ?? "").trim(),
         })),
       });
       setRecoveryToken(res.recoveryToken);
@@ -184,33 +230,25 @@ export default function PinRecoveryScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }
+  });
 
   // ── Step 3 : Nouveau PIN ──────────────────────────────────────────────────
 
-  async function handleStep3() {
-    clearErrors();
-
-    const result = pinRecoveryStep3Schema.safeParse({ newPin, confirmPin });
-    if (!result.success) {
-      const errs: Record<string, string> = {};
-      result.error.issues.forEach((i) => {
-        if (i.path.length > 0) errs[String(i.path[0])] = i.message;
-      });
-      setFieldErrors(errs);
-      return;
-    }
-
+  const handleStep3 = step3Form.handleSubmit(async (values) => {
+    clearUiErrors();
     setIsSubmitting(true);
     try {
-      await recoveryApi.forgotPinComplete({ recoveryToken, newPin });
+      await recoveryApi.forgotPinComplete({
+        recoveryToken,
+        newPin: values.newPin,
+      });
       setStep(4);
     } catch (err) {
       setError(parseRecoveryApiError(err));
     } finally {
       setIsSubmitting(false);
     }
-  }
+  });
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -237,7 +275,7 @@ export default function PinRecoveryScreen() {
               onPress={() => {
                 if (step === 1) router.back();
                 else {
-                  clearErrors();
+                  clearUiErrors();
                   setStep((s) => (s - 1) as Step);
                 }
               }}
@@ -296,23 +334,34 @@ export default function PinRecoveryScreen() {
                     <View style={styles.dialCode}>
                       <Text style={styles.dialCodeText}>+237</Text>
                     </View>
-                    <TextInput
-                      testID="input-phone"
-                      value={phone}
-                      onChangeText={setPhone}
-                      placeholder="6XX XXX XXX"
-                      keyboardType="phone-pad"
-                      style={[
-                        styles.input,
-                        styles.inputFlex,
-                        fieldErrors.phone ? styles.inputError : null,
-                      ]}
-                      placeholderTextColor="#9B9490"
+                    <Controller
+                      control={step1Form.control}
+                      name="phone"
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          ref={field.ref}
+                          testID="input-phone"
+                          value={field.value}
+                          onBlur={field.onBlur}
+                          onChangeText={(value) => {
+                            clearUiErrors();
+                            field.onChange(value);
+                          }}
+                          placeholder="6XX XXX XXX"
+                          keyboardType="phone-pad"
+                          style={[
+                            styles.input,
+                            styles.inputFlex,
+                            fieldState.error ? styles.inputError : null,
+                          ]}
+                          placeholderTextColor="#9B9490"
+                        />
+                      )}
                     />
                   </View>
-                  {fieldErrors.phone ? (
+                  {step1Form.formState.errors.phone ? (
                     <Text style={styles.fieldErrorText} testID="error-phone">
-                      {fieldErrors.phone}
+                      {step1Form.formState.errors.phone.message}
                     </Text>
                   ) : null}
                 </View>
@@ -366,27 +415,38 @@ export default function PinRecoveryScreen() {
                     <View style={styles.fieldIcon}>
                       <Text style={styles.fieldIconText}>📅</Text>
                     </View>
-                    <Text style={styles.label}>Date de naissance</Text>
+                  <Text style={styles.label}>Date de naissance</Text>
                   </View>
-                  <TextInput
-                    testID="input-birthdate"
-                    value={birthDate}
-                    onChangeText={(t) => setBirthDate(formatDateInput(t))}
-                    placeholder="JJ/MM/AAAA"
-                    keyboardType="numeric"
-                    style={[
-                      styles.input,
-                      fieldErrors.birthDate ? styles.inputError : null,
-                    ]}
-                    placeholderTextColor="#9B9490"
-                    maxLength={10}
+                  <Controller
+                    control={step2Form.control}
+                    name="birthDate"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        ref={field.ref}
+                        testID="input-birthdate"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          clearUiErrors();
+                          field.onChange(formatDateInput(value));
+                        }}
+                        placeholder="JJ/MM/AAAA"
+                        keyboardType="numeric"
+                        style={[
+                          styles.input,
+                          fieldState.error ? styles.inputError : null,
+                        ]}
+                        placeholderTextColor="#9B9490"
+                        maxLength={10}
+                      />
+                    )}
                   />
-                  {fieldErrors.birthDate ? (
+                  {step2Form.formState.errors.birthDate ? (
                     <Text
                       style={styles.fieldErrorText}
                       testID="error-birthdate"
                     >
-                      {fieldErrors.birthDate}
+                      {step2Form.formState.errors.birthDate.message}
                     </Text>
                   ) : null}
                 </View>
@@ -399,16 +459,38 @@ export default function PinRecoveryScreen() {
                       </View>
                       <Text style={styles.label}>{q.label}</Text>
                     </View>
-                    <TextInput
-                      testID={`input-answer-${idx}`}
-                      value={answers[q.key] ?? ""}
-                      onChangeText={(v) =>
-                        setAnswers((prev) => ({ ...prev, [q.key]: v }))
-                      }
-                      placeholder="Votre réponse"
-                      autoCapitalize="none"
-                      style={styles.input}
-                      placeholderTextColor="#9B9490"
+                    <Controller
+                      control={step2Form.control}
+                      name={`answers.${q.key}` as const}
+                      render={({ field, fieldState }) => (
+                        <>
+                          <TextInput
+                            ref={field.ref}
+                            testID={`input-answer-${idx}`}
+                            value={field.value ?? ""}
+                            onBlur={field.onBlur}
+                            onChangeText={(value) => {
+                              clearUiErrors();
+                              field.onChange(value);
+                            }}
+                            placeholder="Votre réponse"
+                            autoCapitalize="none"
+                            style={[
+                              styles.input,
+                              fieldState.error ? styles.inputError : null,
+                            ]}
+                            placeholderTextColor="#9B9490"
+                          />
+                          {fieldState.error ? (
+                            <Text
+                              style={styles.fieldErrorText}
+                              testID={`error-answer-${idx}`}
+                            >
+                              {fieldState.error.message}
+                            </Text>
+                          ) : null}
+                        </>
+                      )}
                     />
                   </View>
                 ))}
@@ -455,22 +537,33 @@ export default function PinRecoveryScreen() {
                     </View>
                     <Text style={styles.label}>Nouveau PIN</Text>
                   </View>
-                  <SecureTextField
-                    testID="input-new-pin"
-                    value={newPin}
-                    onChangeText={setNewPin}
-                    placeholder="6 chiffres"
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    containerStyle={
-                      fieldErrors.newPin ? styles.inputError : null
-                    }
-                    placeholderTextColor="#9B9490"
-                    variant="pin"
+                  <Controller
+                    control={step3Form.control}
+                    name="newPin"
+                    render={({ field, fieldState }) => (
+                      <SecureTextField
+                        ref={field.ref}
+                        testID="input-new-pin"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          clearUiErrors();
+                          field.onChange(value);
+                        }}
+                        placeholder="6 chiffres"
+                        keyboardType="number-pad"
+                        maxLength={6}
+                        containerStyle={
+                          fieldState.error ? styles.inputError : null
+                        }
+                        placeholderTextColor="#9B9490"
+                        variant="pin"
+                      />
+                    )}
                   />
-                  {fieldErrors.newPin ? (
+                  {step3Form.formState.errors.newPin ? (
                     <Text style={styles.fieldErrorText} testID="error-new-pin">
-                      {fieldErrors.newPin}
+                      {step3Form.formState.errors.newPin.message}
                     </Text>
                   ) : null}
                 </View>
@@ -482,25 +575,36 @@ export default function PinRecoveryScreen() {
                     </View>
                     <Text style={styles.label}>Confirmer le PIN</Text>
                   </View>
-                  <SecureTextField
-                    testID="input-confirm-pin"
-                    value={confirmPin}
-                    onChangeText={setConfirmPin}
-                    placeholder="Confirmez votre PIN"
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    containerStyle={
-                      fieldErrors.confirmPin ? styles.inputError : null
-                    }
-                    placeholderTextColor="#9B9490"
-                    variant="pin"
+                  <Controller
+                    control={step3Form.control}
+                    name="confirmPin"
+                    render={({ field, fieldState }) => (
+                      <SecureTextField
+                        ref={field.ref}
+                        testID="input-confirm-pin"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          clearUiErrors();
+                          field.onChange(value);
+                        }}
+                        placeholder="Confirmez votre PIN"
+                        keyboardType="number-pad"
+                        maxLength={6}
+                        containerStyle={
+                          fieldState.error ? styles.inputError : null
+                        }
+                        placeholderTextColor="#9B9490"
+                        variant="pin"
+                      />
+                    )}
                   />
-                  {fieldErrors.confirmPin ? (
+                  {step3Form.formState.errors.confirmPin ? (
                     <Text
                       style={styles.fieldErrorText}
                       testID="error-confirm-pin"
                     >
-                      {fieldErrors.confirmPin}
+                      {step3Form.formState.errors.confirmPin.message}
                     </Text>
                   ) : null}
                 </View>

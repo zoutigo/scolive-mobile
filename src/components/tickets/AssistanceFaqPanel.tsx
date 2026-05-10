@@ -817,7 +817,7 @@ export function AssistanceFaqPanel({ canManageOverride = true }: Props) {
           <TouchableOpacity
             style={styles.primaryBtn}
             onPress={faqForm.handleSubmit((values) => void saveFaq(values))}
-            disabled={!faqForm.formState.isValid || savingFaq}
+            disabled={savingFaq}
           >
             <Text style={styles.primaryBtnLabel}>
               {editableFaqId ? "Mettre à jour" : "Créer"}
@@ -860,7 +860,7 @@ export function AssistanceFaqPanel({ canManageOverride = true }: Props) {
           <TouchableOpacity
             style={styles.primaryBtn}
             onPress={themeForm.handleSubmit((values) => void saveTheme(values))}
-            disabled={!themeForm.formState.isValid || savingTheme}
+            disabled={savingTheme}
           >
             <Text style={styles.primaryBtnLabel}>
               {editableThemeId ? "Mettre à jour" : "Créer"}
@@ -953,7 +953,7 @@ export function AssistanceFaqPanel({ canManageOverride = true }: Props) {
           <TouchableOpacity
             style={styles.primaryBtn}
             onPress={itemForm.handleSubmit((values) => void saveItem(values))}
-            disabled={!itemForm.formState.isValid || savingItem}
+            disabled={savingItem}
           >
             <Text style={styles.primaryBtnLabel}>
               {editableItemId ? "Mettre à jour" : "Créer"}

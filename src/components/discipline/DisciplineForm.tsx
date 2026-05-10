@@ -14,6 +14,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { colors } from "../../theme";
 import {
   buildLifeEventPayload,
@@ -89,56 +91,36 @@ export function DisciplineForm({
   onCancel,
   submitLabel,
 }: Props) {
-  const [values, setValues] = React.useState<DisciplineFormInput>(
-    editing ? eventToFormValues(editing) : defaultValues(),
-  );
-  const [errors, setErrors] = React.useState<
-    Partial<Record<keyof DisciplineFormInput, string>>
-  >({});
+  const {
+    control,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<DisciplineFormInput>({
+    resolver: zodResolver(disciplineFormSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: editing ? eventToFormValues(editing) : defaultValues(),
+  });
+
+  const selectedType = watch("type");
 
   // Resync si l'événement édité change (ex. ouverture d'un autre événement)
   useEffect(() => {
-    setValues(editing ? eventToFormValues(editing) : defaultValues());
-    setErrors({});
+    reset(editing ? eventToFormValues(editing) : defaultValues());
   }, [editing?.id]);
 
-  function set<K extends keyof DisciplineFormInput>(
-    key: K,
-    value: DisciplineFormInput[K],
-  ) {
-    setValues((prev) => ({ ...prev, [key]: value }));
-    setErrors((prev) => ({ ...prev, [key]: undefined }));
-  }
-
-  function validate(): boolean {
-    const result = disciplineFormSchema.safeParse(values);
-
-    if (result.success) {
-      setErrors({});
-      return true;
-    }
-
-    const newErrors: Partial<Record<keyof DisciplineFormInput, string>> = {};
-    result.error.issues.forEach((issue) => {
-      const key = issue.path[0];
-      if (typeof key === "string" && !(key in newErrors)) {
-        newErrors[key as keyof DisciplineFormInput] = issue.message;
-      }
-    });
-    setErrors(newErrors);
-    return false;
-  }
-
-  function handleSubmit() {
-    if (!validate()) return;
-    onSubmit(buildLifeEventPayload(values));
-  }
-
-  const showJustified = typeHasJustified(values.type);
+  const showJustified = typeHasJustified(selectedType);
   const isEditing = Boolean(editing);
   const label =
     submitLabel ??
     (isEditing ? "Enregistrer les modifications" : "Enregistrer l'événement");
+
+  const onSave = handleSubmit((values) => {
+    onSubmit(buildLifeEventPayload(values));
+  });
 
   return (
     <View style={styles.root} testID="discipline-form">
@@ -154,7 +136,7 @@ export function DisciplineForm({
           <View style={styles.typeRow}>
             {TYPES.map((t) => {
               const cfg = DISCIPLINE_TYPE_CONFIG[t];
-              const active = values.type === t;
+              const active = selectedType === t;
               return (
                 <TouchableOpacity
                   key={t}
@@ -166,9 +148,17 @@ export function DisciplineForm({
                     },
                   ]}
                   onPress={() => {
-                    set("type", t);
+                    setValue("type", t, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
                     // Effacer "justified" si le type ne le supporte pas
-                    if (!typeHasJustified(t)) set("justified", false);
+                    if (!typeHasJustified(t)) {
+                      setValue("justified", false, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+                    }
                   }}
                   activeOpacity={0.75}
                   testID={`type-chip-${t}`}
@@ -197,57 +187,83 @@ export function DisciplineForm({
         {/* Date et heure */}
         <View style={styles.field}>
           <Text style={styles.label}>Date et heure *</Text>
-          <TextInput
-            style={[styles.input, errors.occurredAt && styles.inputError]}
-            value={values.occurredAt}
-            onChangeText={(v) => set("occurredAt", v)}
-            placeholder="YYYY-MM-DDTHH:mm"
-            placeholderTextColor={colors.textSecondary}
-            autoCapitalize="none"
-            selectTextOnFocus={isEditing}
-            testID="input-occurred-at"
+          <Controller
+            control={control}
+            name="occurredAt"
+            render={({ field, fieldState }) => (
+              <TextInput
+                ref={field.ref}
+                style={[styles.input, fieldState.error && styles.inputError]}
+                value={field.value}
+                onBlur={field.onBlur}
+                onChangeText={field.onChange}
+                placeholder="2026-04-09T08:30"
+                placeholderTextColor={colors.textSecondary}
+                autoCapitalize="none"
+                selectTextOnFocus={isEditing}
+                testID="input-occurred-at"
+              />
+            )}
           />
-          {errors.occurredAt && (
-            <Text style={styles.fieldError}>{errors.occurredAt}</Text>
-          )}
+          {errors.occurredAt?.message ? (
+            <Text style={styles.fieldError}>{errors.occurredAt.message}</Text>
+          ) : null}
         </View>
 
         {/* Motif */}
         <View style={styles.field}>
           <Text style={styles.label}>Motif *</Text>
-          <TextInput
-            style={[styles.input, errors.reason && styles.inputError]}
-            value={values.reason}
-            onChangeText={(v) => set("reason", v)}
-            placeholder="Ex : travail non rendu, absence non justifiée…"
-            placeholderTextColor={colors.textSecondary}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-            selectTextOnFocus={isEditing}
-            testID="input-reason"
+          <Controller
+            control={control}
+            name="reason"
+            render={({ field, fieldState }) => (
+              <TextInput
+                ref={field.ref}
+                style={[styles.input, fieldState.error && styles.inputError]}
+                value={field.value}
+                onBlur={field.onBlur}
+                onChangeText={field.onChange}
+                placeholder="Ex : travail non rendu, absence non justifiée…"
+                placeholderTextColor={colors.textSecondary}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+                selectTextOnFocus={isEditing}
+                testID="input-reason"
+              />
+            )}
           />
-          {errors.reason && (
-            <Text style={styles.fieldError}>{errors.reason}</Text>
-          )}
+          {errors.reason?.message ? (
+            <Text style={styles.fieldError}>{errors.reason.message}</Text>
+          ) : null}
         </View>
 
         {/* Durée */}
         <View style={styles.field}>
           <Text style={styles.label}>Durée (minutes, optionnel)</Text>
-          <TextInput
-            style={[styles.input, errors.durationMinutes && styles.inputError]}
-            value={values.durationMinutes}
-            onChangeText={(v) => set("durationMinutes", v)}
-            placeholder="Ex : 15"
-            placeholderTextColor={colors.textSecondary}
-            keyboardType="numeric"
-            selectTextOnFocus={isEditing}
-            testID="input-duration"
+          <Controller
+            control={control}
+            name="durationMinutes"
+            render={({ field, fieldState }) => (
+              <TextInput
+                ref={field.ref}
+                style={[styles.input, fieldState.error && styles.inputError]}
+                value={field.value}
+                onBlur={field.onBlur}
+                onChangeText={field.onChange}
+                placeholder="Ex : 15"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="numeric"
+                selectTextOnFocus={isEditing}
+                testID="input-duration"
+              />
+            )}
           />
-          {errors.durationMinutes && (
-            <Text style={styles.fieldError}>{errors.durationMinutes}</Text>
-          )}
+          {errors.durationMinutes?.message ? (
+            <Text style={styles.fieldError}>
+              {errors.durationMinutes.message}
+            </Text>
+          ) : null}
         </View>
 
         {/* Justifié (uniquement ABSENCE / RETARD) */}
@@ -259,17 +275,23 @@ export function DisciplineForm({
                 Absence ou retard justifié par les parents / administration
               </Text>
             </View>
-            <Switch
-              value={values.justified}
-              onValueChange={(v) => set("justified", v)}
-              thumbColor={
-                values.justified ? colors.accentTeal : colors.warmBorder
-              }
-              trackColor={{
-                false: colors.border,
-                true: colors.accentTeal + "66",
-              }}
-              testID="switch-justified"
+            <Controller
+              control={control}
+              name="justified"
+              render={({ field }) => (
+                <Switch
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  thumbColor={
+                    field.value ? colors.accentTeal : colors.warmBorder
+                  }
+                  trackColor={{
+                    false: colors.border,
+                    true: colors.accentTeal + "66",
+                  }}
+                  testID="switch-justified"
+                />
+              )}
             />
           </View>
         )}
@@ -277,17 +299,25 @@ export function DisciplineForm({
         {/* Commentaire */}
         <View style={styles.field}>
           <Text style={styles.label}>Commentaire (optionnel)</Text>
-          <TextInput
-            style={[styles.input, styles.textarea]}
-            value={values.comment}
-            onChangeText={(v) => set("comment", v)}
-            placeholder="Observations supplémentaires…"
-            placeholderTextColor={colors.textSecondary}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-            selectTextOnFocus={isEditing}
-            testID="input-comment"
+          <Controller
+            control={control}
+            name="comment"
+            render={({ field }) => (
+              <TextInput
+                ref={field.ref}
+                style={[styles.input, styles.textarea]}
+                value={field.value}
+                onBlur={field.onBlur}
+                onChangeText={field.onChange}
+                placeholder="Observations supplémentaires…"
+                placeholderTextColor={colors.textSecondary}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+                selectTextOnFocus={isEditing}
+                testID="input-comment"
+              />
+            )}
           />
         </View>
 
@@ -318,7 +348,7 @@ export function DisciplineForm({
           )}
           <TouchableOpacity
             style={[styles.submitBtn, isSaving && styles.submitBtnDisabled]}
-            onPress={handleSubmit}
+            onPress={onSave}
             disabled={isSaving}
             testID="btn-submit"
             accessibilityLabel={label}

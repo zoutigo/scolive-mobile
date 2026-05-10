@@ -12,8 +12,11 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as Application from "expo-application";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { z } from "zod";
 import { authApi } from "../src/api/auth.api";
 import { type ApiClientError } from "../src/api/client";
 import {
@@ -25,6 +28,27 @@ import { SecureTextField } from "../src/components/SecureTextField";
 import { useAuthStore } from "../src/store/auth.store";
 
 type AuthTab = "phone" | "email" | "google";
+
+const phoneLoginSchema = z.object({
+  phone: z
+    .string()
+    .trim()
+    .refine((value) => value.replace(/\D/g, "").length >= 8, {
+      message: "Numéro de téléphone invalide.",
+    }),
+  pin: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Le code PIN doit contenir exactement 6 chiffres."),
+});
+
+const emailLoginSchema = z.object({
+  email: z.string().trim().email("Adresse email invalide."),
+  password: z.string().min(1, "Mot de passe requis."),
+});
+
+type PhoneLoginValues = z.infer<typeof phoneLoginSchema>;
+type EmailLoginValues = z.infer<typeof emailLoginSchema>;
 
 function routeToOnboarding(err: ApiClientError, fallbackEmail?: string) {
   const email = err.email ?? fallbackEmail ?? undefined;
@@ -60,12 +84,28 @@ export default function LoginScreen() {
   const { handleLoginResponse } = useAuthStore();
 
   const [tab, setTab] = useState<AuthTab>("phone");
-  const [phone, setPhone] = useState("");
-  const [pin, setPin] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const phoneForm = useForm<PhoneLoginValues>({
+    resolver: zodResolver(phoneLoginSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: {
+      phone: "",
+      pin: "",
+    },
+  });
+
+  const emailForm = useForm<EmailLoginValues>({
+    resolver: zodResolver(emailLoginSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
   useEffect(() => {
     if (params.tab === "google") {
@@ -76,20 +116,12 @@ export default function LoginScreen() {
     }
   }, [params.error, params.tab]);
 
-  async function handlePhoneLogin() {
-    const digits = phone.replace(/\D/g, "");
-    if (!digits || digits.length < 8) {
-      setError("Numéro de téléphone invalide.");
-      return;
-    }
-    if (!/^\d{6}$/.test(pin)) {
-      setError("Le code PIN doit contenir exactement 6 chiffres.");
-      return;
-    }
+  const handlePhoneLogin = phoneForm.handleSubmit(async (values) => {
+    const digits = values.phone.replace(/\D/g, "");
     setIsSubmitting(true);
     setError(null);
     try {
-      const response = await authApi.loginPhone(`+237${digits}`, pin);
+      const response = await authApi.loginPhone(`+237${digits}`, values.pin);
       await handleLoginResponse(response);
       router.replace("/");
     } catch (err) {
@@ -102,21 +134,16 @@ export default function LoginScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }
+  });
 
-  async function handleEmailLogin() {
-    if (!email.trim() || !email.includes("@")) {
-      setError("Adresse email invalide.");
-      return;
-    }
-    if (!password) {
-      setError("Mot de passe requis.");
-      return;
-    }
+  const handleEmailLogin = emailForm.handleSubmit(async (values) => {
     setIsSubmitting(true);
     setError(null);
     try {
-      const response = await authApi.loginEmail(email.trim(), password);
+      const response = await authApi.loginEmail(
+        values.email.trim(),
+        values.password,
+      );
       await handleLoginResponse(response);
       router.replace("/");
     } catch (err) {
@@ -125,14 +152,14 @@ export default function LoginScreen() {
         apiErr?.code === "PASSWORD_CHANGE_REQUIRED" ||
         apiErr?.code === "PROFILE_SETUP_REQUIRED"
       ) {
-        routeToOnboarding(apiErr, email.trim());
+        routeToOnboarding(apiErr, values.email.trim());
         return;
       }
       setError(parseApiError(apiErr));
     } finally {
       setIsSubmitting(false);
     }
-  }
+  });
 
   async function handleGoogleLogin() {
     setIsSubmitting(true);
@@ -219,29 +246,68 @@ export default function LoginScreen() {
                     <View style={styles.dialCode}>
                       <Text style={styles.dialCodeText}>+237</Text>
                     </View>
-                    <TextInput
-                      testID="input-phone"
-                      value={phone}
-                      onChangeText={setPhone}
-                      placeholder="6XX XXX XXX"
-                      keyboardType="phone-pad"
-                      style={[styles.input, styles.inputFlex]}
-                      placeholderTextColor="#9B9490"
+                    <Controller
+                      control={phoneForm.control}
+                      name="phone"
+                      render={({ field, fieldState }) => (
+                        <TextInput
+                          ref={field.ref}
+                          testID="input-phone"
+                          value={field.value}
+                          onBlur={field.onBlur}
+                          onChangeText={(value) => {
+                            setError(null);
+                            field.onChange(value);
+                          }}
+                          placeholder="6XX XXX XXX"
+                          keyboardType="phone-pad"
+                          style={[
+                            styles.input,
+                            styles.inputFlex,
+                            fieldState.error && styles.inputError,
+                          ]}
+                          placeholderTextColor="#9B9490"
+                        />
+                      )}
                     />
                   </View>
+                  {phoneForm.formState.errors.phone ? (
+                    <Text style={styles.fieldError} testID="error-phone">
+                      {phoneForm.formState.errors.phone.message}
+                    </Text>
+                  ) : null}
                 </View>
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Code PIN</Text>
-                  <SecureTextField
-                    testID="input-pin"
-                    value={pin}
-                    onChangeText={setPin}
-                    placeholder="6 chiffres"
-                    keyboardType="number-pad"
-                    placeholderTextColor="#9B9490"
-                    maxLength={6}
-                    variant="pin"
+                  <Controller
+                    control={phoneForm.control}
+                    name="pin"
+                    render={({ field, fieldState }) => (
+                      <SecureTextField
+                        ref={field.ref}
+                        testID="input-pin"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          setError(null);
+                          field.onChange(value);
+                        }}
+                        placeholder="6 chiffres"
+                        keyboardType="number-pad"
+                        placeholderTextColor="#9B9490"
+                        maxLength={6}
+                        variant="pin"
+                        containerStyle={
+                          fieldState.error ? styles.secureFieldError : undefined
+                        }
+                      />
+                    )}
                   />
+                  {phoneForm.formState.errors.pin ? (
+                    <Text style={styles.fieldError} testID="error-pin">
+                      {phoneForm.formState.errors.pin.message}
+                    </Text>
+                  ) : null}
                 </View>
                 {error ? (
                   <View style={styles.errorBox} testID="error-message">
@@ -278,26 +344,61 @@ export default function LoginScreen() {
               <View style={styles.form} testID="panel-email">
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Adresse email</Text>
-                  <TextInput
-                    testID="input-email"
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="nom@etablissement.cm"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    style={styles.input}
-                    placeholderTextColor="#9B9490"
+                  <Controller
+                    control={emailForm.control}
+                    name="email"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        ref={field.ref}
+                        testID="input-email"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          setError(null);
+                          field.onChange(value);
+                        }}
+                        placeholder="nom@etablissement.cm"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        style={[styles.input, fieldState.error && styles.inputError]}
+                        placeholderTextColor="#9B9490"
+                      />
+                    )}
                   />
+                  {emailForm.formState.errors.email ? (
+                    <Text style={styles.fieldError} testID="error-email">
+                      {emailForm.formState.errors.email.message}
+                    </Text>
+                  ) : null}
                 </View>
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Mot de passe</Text>
-                  <SecureTextField
-                    testID="input-password"
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="Votre mot de passe"
-                    placeholderTextColor="#9B9490"
+                  <Controller
+                    control={emailForm.control}
+                    name="password"
+                    render={({ field, fieldState }) => (
+                      <SecureTextField
+                        ref={field.ref}
+                        testID="input-password"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          setError(null);
+                          field.onChange(value);
+                        }}
+                        placeholder="Votre mot de passe"
+                        placeholderTextColor="#9B9490"
+                        containerStyle={
+                          fieldState.error ? styles.secureFieldError : undefined
+                        }
+                      />
+                    )}
                   />
+                  {emailForm.formState.errors.password ? (
+                    <Text style={styles.fieldError} testID="error-password">
+                      {emailForm.formState.errors.password.message}
+                    </Text>
+                  ) : null}
                 </View>
                 {error ? (
                   <View style={styles.errorBox} testID="error-message">
@@ -536,6 +637,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#1F2933",
   },
+  inputError: {
+    borderColor: "#FCA5A5",
+  },
   inputFlex: {
     flex: 1,
     borderLeftWidth: 0,
@@ -560,6 +664,15 @@ const styles = StyleSheet.create({
     color: AMBER,
     fontSize: 15,
     fontWeight: "700",
+  },
+  secureFieldError: {
+    borderColor: "#FCA5A5",
+  },
+  fieldError: {
+    color: "#B91C1C",
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "600",
   },
 
   // ── Bouton principal ───────────────────────────────────────

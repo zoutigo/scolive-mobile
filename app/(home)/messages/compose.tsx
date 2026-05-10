@@ -11,6 +11,9 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from "react-native";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -212,6 +215,11 @@ function getMultipartError(error: unknown): MessagingMultipartError | null {
 
 const EMPTY_DRAFT_HTML = "<p>&nbsp;</p>";
 
+const composeSchema = z.object({
+  subject: z.string().trim().min(1, "L'objet est obligatoire."),
+});
+type ComposeValues = z.infer<typeof composeSchema>;
+
 function hasDraftContent(params: {
   subject: string;
   hasBody: boolean;
@@ -246,15 +254,27 @@ export default function ComposeScreen() {
 
   const isReply = !!replyToSubject;
 
-  const [subject, setSubject] = useState(
-    replyToSubject
-      ? replyToSubject.startsWith("Re:") || replyToSubject.startsWith("RE:")
-        ? replyToSubject
-        : `Re: ${replyToSubject}`
-      : "",
-  );
+  const initialSubject = replyToSubject
+    ? replyToSubject.startsWith("Re:") || replyToSubject.startsWith("RE:")
+      ? replyToSubject
+      : `Re: ${replyToSubject}`
+    : "";
+
+  const { control, handleSubmit, formState, getValues, watch } =
+    useForm<ComposeValues>({
+      mode: "onChange",
+      reValidateMode: "onChange",
+      resolver: zodResolver(composeSchema),
+      defaultValues: { subject: initialSubject },
+    });
+
+  const { submitCount } = formState;
+  const watchedSubject = watch("subject");
+
   const [bodyHtml, setBodyHtml] = useState("");
   const [hasBody, setHasBody] = useState(false);
+  const [recipientsError, setRecipientsError] = useState<string | null>(null);
+  const [bodyError, setBodyError] = useState<string | null>(null);
   const [selectedRecipients, setSelectedRecipients] = useState<
     RecipientOption[]
   >(
@@ -293,6 +313,7 @@ export default function ComposeScreen() {
   function handleEditorChange(html: string) {
     setBodyHtml(html);
     setHasBody(hasTextContent(html));
+    if (bodyError) setBodyError(null);
   }
 
   // ── Inline image insertion ──────────────────────────────────────────────────
@@ -478,33 +499,39 @@ export default function ComposeScreen() {
 
   // ── Send ─────────────────────────────────────────────────────────────────────
 
-  const canSend =
-    !isSending &&
-    !isInsertingImage &&
-    selectedRecipients.length > 0 &&
-    subject.trim().length > 0 &&
-    hasBody;
   const canSaveDraft =
     !isSending &&
     !isInsertingImage &&
     hasDraftContent({
-      subject,
+      subject: watchedSubject,
       hasBody,
       selectedRecipients,
       attachedFiles,
     });
 
-  async function handleSend() {
-    if (!canSend || !schoolSlug) return;
-    await doSend();
-  }
+  const handleSend = handleSubmit(async (data: ComposeValues) => {
+    if (selectedRecipients.length === 0) {
+      setRecipientsError("Choisissez au moins un destinataire.");
+      return;
+    }
+    setRecipientsError(null);
+
+    if (!hasBody) {
+      setBodyError("Rédigez un message avant d'envoyer.");
+      return;
+    }
+    setBodyError(null);
+
+    await doSend(data.subject.trim());
+  });
 
   async function handleSaveDraft() {
     if (!canSaveDraft || !schoolSlug) return;
     setIsSending(true);
     try {
+      const currentSubject = getValues("subject");
       await messagingApi.send(schoolSlug, {
-        subject: subject.trim() || "Brouillon sans objet",
+        subject: currentSubject.trim() || "Brouillon sans objet",
         body: hasBody ? bodyHtml : EMPTY_DRAFT_HTML,
         recipientUserIds: selectedRecipients.map((r) => r.value),
         isDraft: true,
@@ -540,12 +567,12 @@ export default function ComposeScreen() {
     }
   }
 
-  async function doSend() {
+  async function doSend(subject: string) {
     if (!schoolSlug) return;
     setIsSending(true);
     try {
       await messagingApi.send(schoolSlug, {
-        subject: subject.trim(),
+        subject,
         body: bodyHtml,
         recipientUserIds: selectedRecipients.map((r) => r.value),
         attachments: attachedFiles.map((file) => ({
@@ -632,7 +659,10 @@ export default function ComposeScreen() {
             <Text style={styles.fieldLabel}>À</Text>
             <TouchableOpacity
               style={styles.recipientField}
-              onPress={() => setPickerVisible(true)}
+              onPress={() => {
+                setPickerVisible(true);
+                setRecipientsError(null);
+              }}
               activeOpacity={0.7}
               testID="recipients-field"
             >
@@ -660,23 +690,49 @@ export default function ComposeScreen() {
               />
             </TouchableOpacity>
           </View>
+          {recipientsError ? (
+            <Text style={styles.inlineError} testID="recipients-error">
+              {recipientsError}
+            </Text>
+          ) : null}
 
           <View style={styles.divider} />
 
           {/* Subject */}
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Objet</Text>
-            <TextInput
-              style={styles.subjectInput}
-              placeholder="Objet du message"
-              placeholderTextColor={colors.textSecondary}
-              value={subject}
-              onChangeText={setSubject}
-              maxLength={180}
-              returnKeyType="next"
-              testID="subject-input"
-            />
-          </View>
+          <Controller
+            control={control}
+            name="subject"
+            render={({ field, fieldState }) => {
+              const showErr =
+                !!fieldState.error &&
+                (fieldState.isDirty || submitCount > 0);
+              return (
+                <>
+                  <View style={styles.fieldRow}>
+                    <Text style={styles.fieldLabel}>Objet</Text>
+                    <TextInput
+                      style={styles.subjectInput}
+                      placeholder="Objet du message"
+                      placeholderTextColor={colors.textSecondary}
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      maxLength={180}
+                      returnKeyType="next"
+                      testID="subject-input"
+                    />
+                  </View>
+                  {showErr ? (
+                    <Text
+                      style={styles.inlineError}
+                      testID="subject-error"
+                    >
+                      {fieldState.error?.message}
+                    </Text>
+                  ) : null}
+                </>
+              );
+            }}
+          />
 
           <View style={styles.divider} />
 
@@ -711,6 +767,13 @@ export default function ComposeScreen() {
             initialFocus={false}
             testID="rich-editor"
           />
+
+          {/* Body error */}
+          {bodyError ? (
+            <Text style={styles.inlineError} testID="body-error">
+              {bodyError}
+            </Text>
+          ) : null}
 
           {/* Attached files list */}
           {attachedFiles.length > 0 && (
@@ -807,10 +870,10 @@ export default function ComposeScreen() {
               style={[
                 styles.actionBarBtn,
                 styles.sendActionBarBtn,
-                !canSend && styles.actionBarBtnDisabled,
+                (isSending || isInsertingImage) && styles.actionBarBtnDisabled,
               ]}
-              onPress={handleSend}
-              disabled={!canSend}
+              onPress={() => { void handleSend(); }}
+              disabled={isSending || isInsertingImage}
               testID="send-btn"
             >
               {isSending ? (
@@ -904,6 +967,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.textPrimary,
     padding: 0,
+  },
+  inlineError: {
+    fontSize: 12,
+    color: colors.notification,
+    paddingHorizontal: 16,
+    marginTop: -6,
   },
   divider: { height: 1, backgroundColor: colors.warmBorder, marginLeft: 76 },
 

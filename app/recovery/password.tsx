@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -11,6 +11,8 @@ import {
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
@@ -63,6 +65,11 @@ export const pwdRecoveryStep4Schema = z
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
+type PasswordRecoveryStep3Values = {
+  birthDate: string;
+  answers: Record<string, string>;
+};
+
 // ── Helper erreur API ─────────────────────────────────────────────────────────
 
 export function parsePasswordRecoveryApiError(err: unknown): string {
@@ -97,62 +104,123 @@ export function parsePasswordRecoveryApiError(err: unknown): string {
 export default function PasswordRecoveryScreen() {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>(1);
-
-  const [email, setEmail] = useState("");
-  const [token, setToken] = useState("");
   const [emailHint, setEmailHint] = useState("");
   const [questions, setQuestions] = useState<RecoveryQuestion[]>([]);
-  const [birthDate, setBirthDate] = useState("");
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function clearErrors() {
+  const step1Form = useForm<z.infer<typeof pwdRecoveryStep1Schema>>({
+    resolver: zodResolver(pwdRecoveryStep1Schema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: {
+      email: "",
+    },
+  });
+
+  const step2Form = useForm<z.infer<typeof pwdRecoveryStep2Schema>>({
+    resolver: zodResolver(pwdRecoveryStep2Schema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: {
+      token: "",
+    },
+  });
+
+  const step3Schema = useMemo(
+    () =>
+      z
+        .object({
+          birthDate: z
+            .string()
+            .min(1, "La date de naissance est obligatoire.")
+            .refine((value) => /^\d{2}\/\d{2}\/\d{4}$/.test(value), {
+              message: "Format attendu : JJ/MM/AAAA.",
+            })
+            .refine((value) => parseDateToISO(value) !== null, {
+              message: "Date de naissance invalide.",
+            }),
+          answers: z.record(z.string(), z.string().trim()),
+        })
+        .superRefine((value, ctx) => {
+          questions.forEach((question) => {
+            const answer = value.answers[question.key] ?? "";
+            if (answer.trim().length < 2) {
+              ctx.addIssue({
+                code: "custom",
+                path: ["answers", question.key],
+                message:
+                  "Réponse obligatoire (au moins 2 caractères).",
+              });
+            }
+          });
+        }),
+    [questions],
+  );
+
+  const step3Form = useForm<PasswordRecoveryStep3Values>({
+    resolver: zodResolver(step3Schema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: {
+      birthDate: "",
+      answers: {},
+    },
+  });
+
+  const step4Form = useForm<z.infer<typeof pwdRecoveryStep4Schema>>({
+    resolver: zodResolver(pwdRecoveryStep4Schema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: {
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  useEffect(() => {
+    if (step !== 3) {
+      return;
+    }
+    step3Form.reset((currentValues) => ({
+      birthDate: currentValues.birthDate ?? "",
+      answers: Object.fromEntries(
+        questions.map((question) => [
+          question.key,
+          currentValues.answers?.[question.key] ?? "",
+        ]),
+      ),
+    }));
+  }, [questions, step, step3Form]);
+
+  function clearUiErrors() {
     setError(null);
-    setFieldErrors({});
   }
 
   // ── Step 1 : Demande de réinitialisation ──────────────────────────────────
 
-  async function handleStep1() {
-    clearErrors();
-
-    const result = pwdRecoveryStep1Schema.safeParse({ email });
-    if (!result.success) {
-      setFieldErrors({ email: result.error.issues[0].message });
-      return;
-    }
-
+  const handleStep1 = step1Form.handleSubmit(async (values) => {
+    clearUiErrors();
     setIsSubmitting(true);
     try {
-      await recoveryApi.forgotPasswordRequest({ email: email.trim() });
+      await recoveryApi.forgotPasswordRequest({ email: values.email.trim() });
       setStep(2);
     } catch (err) {
       setError(parsePasswordRecoveryApiError(err));
     } finally {
       setIsSubmitting(false);
     }
-  }
+  });
 
   // ── Step 2 : Saisie du token (depuis l'email) ─────────────────────────────
 
-  async function handleStep2() {
-    clearErrors();
-
-    const result = pwdRecoveryStep2Schema.safeParse({ token });
-    if (!result.success) {
-      setFieldErrors({ token: result.error.issues[0].message });
-      return;
-    }
-
+  const handleStep2 = step2Form.handleSubmit(async (values) => {
+    clearUiErrors();
     setIsSubmitting(true);
     try {
       const res = await recoveryApi.forgotPasswordOptions({
-        token: token.trim(),
+        token: values.token.trim(),
       });
       setEmailHint(res.emailHint);
       setQuestions(res.questions);
@@ -162,45 +230,24 @@ export default function PasswordRecoveryScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }
+  });
 
   // ── Step 3 : Vérification identité ───────────────────────────────────────
 
-  async function handleStep3() {
-    clearErrors();
-
-    if (!birthDate.trim()) {
-      setFieldErrors({ birthDate: "La date de naissance est obligatoire." });
-      return;
-    }
-    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(birthDate)) {
-      setFieldErrors({ birthDate: "Format attendu : JJ/MM/AAAA." });
-      return;
-    }
-    const isoDate = parseDateToISO(birthDate);
+  const handleStep3 = step3Form.handleSubmit(async (values) => {
+    clearUiErrors();
+    const isoDate = parseDateToISO(values.birthDate);
     if (!isoDate) {
-      setFieldErrors({ birthDate: "Date de naissance invalide." });
       return;
     }
-
-    const unanswered = questions.find(
-      (q) => !answers[q.key]?.trim() || answers[q.key].trim().length < 2,
-    );
-    if (unanswered) {
-      setError(
-        "Répondez à toutes les questions de sécurité (min. 2 caractères).",
-      );
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       await recoveryApi.forgotPasswordVerify({
-        token: token.trim(),
+        token: step2Form.getValues("token").trim(),
         birthDate: isoDate,
         answers: questions.map((q) => ({
           questionKey: q.key,
-          answer: answers[q.key].trim(),
+          answer: (values.answers[q.key] ?? "").trim(),
         })),
       });
       setStep(4);
@@ -209,34 +256,17 @@ export default function PasswordRecoveryScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }
+  });
 
   // ── Step 4 : Nouveau mot de passe ─────────────────────────────────────────
 
-  async function handleStep4() {
-    clearErrors();
-
-    const result = pwdRecoveryStep4Schema.safeParse({
-      newPassword,
-      confirmPassword,
-    });
-    if (!result.success) {
-      const errs: Record<string, string> = {};
-      // Première erreur par champ (priorité aux erreurs de format sur la mismatch)
-      result.error.issues.forEach((i) => {
-        if (i.path.length > 0 && !errs[String(i.path[0])]) {
-          errs[String(i.path[0])] = i.message;
-        }
-      });
-      setFieldErrors(errs);
-      return;
-    }
-
+  const handleStep4 = step4Form.handleSubmit(async (values) => {
+    clearUiErrors();
     setIsSubmitting(true);
     try {
       await recoveryApi.forgotPasswordComplete({
-        token: token.trim(),
-        newPassword,
+        token: step2Form.getValues("token").trim(),
+        newPassword: values.newPassword,
       });
       setStep(5);
     } catch (err) {
@@ -244,7 +274,7 @@ export default function PasswordRecoveryScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }
+  });
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -272,7 +302,7 @@ export default function PasswordRecoveryScreen() {
               onPress={() => {
                 if (step === 1) router.back();
                 else {
-                  clearErrors();
+                  clearUiErrors();
                   setStep((s) => (s - 1) as Step);
                 }
               }}
@@ -334,22 +364,33 @@ export default function PasswordRecoveryScreen() {
                     </View>
                     <Text style={styles.label}>Adresse email</Text>
                   </View>
-                  <TextInput
-                    testID="input-email"
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="nom@etablissement.cm"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    style={[
-                      styles.input,
-                      fieldErrors.email ? styles.inputError : null,
-                    ]}
-                    placeholderTextColor="#9B9490"
+                  <Controller
+                    control={step1Form.control}
+                    name="email"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        ref={field.ref}
+                        testID="input-email"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          clearUiErrors();
+                          field.onChange(value);
+                        }}
+                        placeholder="nom@etablissement.cm"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        style={[
+                          styles.input,
+                          fieldState.error ? styles.inputError : null,
+                        ]}
+                        placeholderTextColor="#9B9490"
+                      />
+                    )}
                   />
-                  {fieldErrors.email ? (
+                  {step1Form.formState.errors.email ? (
                     <Text style={styles.fieldErrorText} testID="error-email">
-                      {fieldErrors.email}
+                      {step1Form.formState.errors.email.message}
                     </Text>
                   ) : null}
                 </View>
@@ -391,7 +432,9 @@ export default function PasswordRecoveryScreen() {
                 <View style={styles.infoBox}>
                   <Text style={styles.infoText}>
                     Un email a été envoyé à{" "}
-                    <Text style={styles.infoValueBold}>{email}</Text>.{"\n"}
+                    <Text style={styles.infoValueBold}>
+                      {step1Form.getValues("email")}
+                    </Text>.{"\n"}
                     Ouvrez le lien dans l'email et copiez le code de
                     réinitialisation ci-dessous.
                   </Text>
@@ -404,22 +447,33 @@ export default function PasswordRecoveryScreen() {
                     </View>
                     <Text style={styles.label}>Code de réinitialisation</Text>
                   </View>
-                  <TextInput
-                    testID="input-token"
-                    value={token}
-                    onChangeText={setToken}
-                    placeholder="Collez votre code ici"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    style={[
-                      styles.input,
-                      fieldErrors.token ? styles.inputError : null,
-                    ]}
-                    placeholderTextColor="#9B9490"
+                  <Controller
+                    control={step2Form.control}
+                    name="token"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        ref={field.ref}
+                        testID="input-token"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          clearUiErrors();
+                          field.onChange(value);
+                        }}
+                        placeholder="Collez votre code ici"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        style={[
+                          styles.input,
+                          fieldState.error ? styles.inputError : null,
+                        ]}
+                        placeholderTextColor="#9B9490"
+                      />
+                    )}
                   />
-                  {fieldErrors.token ? (
+                  {step2Form.formState.errors.token ? (
                     <Text style={styles.fieldErrorText} testID="error-token">
-                      {fieldErrors.token}
+                      {step2Form.formState.errors.token.message}
                     </Text>
                   ) : null}
                 </View>
@@ -482,25 +536,36 @@ export default function PasswordRecoveryScreen() {
                     </View>
                     <Text style={styles.label}>Date de naissance</Text>
                   </View>
-                  <TextInput
-                    testID="input-birthdate"
-                    value={birthDate}
-                    onChangeText={(t) => setBirthDate(formatDateInput(t))}
-                    placeholder="JJ/MM/AAAA"
-                    keyboardType="numeric"
-                    style={[
-                      styles.input,
-                      fieldErrors.birthDate ? styles.inputError : null,
-                    ]}
-                    placeholderTextColor="#9B9490"
-                    maxLength={10}
+                  <Controller
+                    control={step3Form.control}
+                    name="birthDate"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        ref={field.ref}
+                        testID="input-birthdate"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          clearUiErrors();
+                          field.onChange(formatDateInput(value));
+                        }}
+                        placeholder="JJ/MM/AAAA"
+                        keyboardType="numeric"
+                        style={[
+                          styles.input,
+                          fieldState.error ? styles.inputError : null,
+                        ]}
+                        placeholderTextColor="#9B9490"
+                        maxLength={10}
+                      />
+                    )}
                   />
-                  {fieldErrors.birthDate ? (
+                  {step3Form.formState.errors.birthDate ? (
                     <Text
                       style={styles.fieldErrorText}
                       testID="error-birthdate"
                     >
-                      {fieldErrors.birthDate}
+                      {step3Form.formState.errors.birthDate.message}
                     </Text>
                   ) : null}
                 </View>
@@ -513,16 +578,38 @@ export default function PasswordRecoveryScreen() {
                       </View>
                       <Text style={styles.label}>{q.label}</Text>
                     </View>
-                    <TextInput
-                      testID={`input-answer-${idx}`}
-                      value={answers[q.key] ?? ""}
-                      onChangeText={(v) =>
-                        setAnswers((prev) => ({ ...prev, [q.key]: v }))
-                      }
-                      placeholder="Votre réponse"
-                      autoCapitalize="none"
-                      style={styles.input}
-                      placeholderTextColor="#9B9490"
+                    <Controller
+                      control={step3Form.control}
+                      name={`answers.${q.key}` as const}
+                      render={({ field, fieldState }) => (
+                        <>
+                          <TextInput
+                            ref={field.ref}
+                            testID={`input-answer-${idx}`}
+                            value={field.value ?? ""}
+                            onBlur={field.onBlur}
+                            onChangeText={(value) => {
+                              clearUiErrors();
+                              field.onChange(value);
+                            }}
+                            placeholder="Votre réponse"
+                            autoCapitalize="none"
+                            style={[
+                              styles.input,
+                              fieldState.error ? styles.inputError : null,
+                            ]}
+                            placeholderTextColor="#9B9490"
+                          />
+                          {fieldState.error ? (
+                            <Text
+                              style={styles.fieldErrorText}
+                              testID={`error-answer-${idx}`}
+                            >
+                              {fieldState.error.message}
+                            </Text>
+                          ) : null}
+                        </>
+                      )}
                     />
                   </View>
                 ))}
@@ -569,24 +656,35 @@ export default function PasswordRecoveryScreen() {
                     </View>
                     <Text style={styles.label}>Nouveau mot de passe</Text>
                   </View>
-                  <SecureTextField
-                    testID="input-new-password"
-                    value={newPassword}
-                    onChangeText={setNewPassword}
-                    placeholder="Votre nouveau mot de passe"
-                    containerStyle={
-                      fieldErrors.newPassword ? styles.inputError : null
-                    }
-                    inputStyle={styles.inputFlex}
-                    placeholderTextColor="#9B9490"
-                    visibilityToggleTestID="toggle-show-password"
+                  <Controller
+                    control={step4Form.control}
+                    name="newPassword"
+                    render={({ field, fieldState }) => (
+                      <SecureTextField
+                        ref={field.ref}
+                        testID="input-new-password"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          clearUiErrors();
+                          field.onChange(value);
+                        }}
+                        placeholder="Votre nouveau mot de passe"
+                        containerStyle={
+                          fieldState.error ? styles.inputError : null
+                        }
+                        inputStyle={styles.inputFlex}
+                        placeholderTextColor="#9B9490"
+                        visibilityToggleTestID="toggle-show-password"
+                      />
+                    )}
                   />
-                  {fieldErrors.newPassword ? (
+                  {step4Form.formState.errors.newPassword ? (
                     <Text
                       style={styles.fieldErrorText}
                       testID="error-new-password"
                     >
-                      {fieldErrors.newPassword}
+                      {step4Form.formState.errors.newPassword.message}
                     </Text>
                   ) : null}
                 </View>
@@ -598,22 +696,33 @@ export default function PasswordRecoveryScreen() {
                     </View>
                     <Text style={styles.label}>Confirmer le mot de passe</Text>
                   </View>
-                  <SecureTextField
-                    testID="input-confirm-password"
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    placeholder="Confirmez votre mot de passe"
-                    containerStyle={
-                      fieldErrors.confirmPassword ? styles.inputError : null
-                    }
-                    placeholderTextColor="#9B9490"
+                  <Controller
+                    control={step4Form.control}
+                    name="confirmPassword"
+                    render={({ field, fieldState }) => (
+                      <SecureTextField
+                        ref={field.ref}
+                        testID="input-confirm-password"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          clearUiErrors();
+                          field.onChange(value);
+                        }}
+                        placeholder="Confirmez votre mot de passe"
+                        containerStyle={
+                          fieldState.error ? styles.inputError : null
+                        }
+                        placeholderTextColor="#9B9490"
+                      />
+                    )}
                   />
-                  {fieldErrors.confirmPassword ? (
+                  {step4Form.formState.errors.confirmPassword ? (
                     <Text
                       style={styles.fieldErrorText}
                       testID="error-confirm-password"
                     >
-                      {fieldErrors.confirmPassword}
+                      {step4Form.formState.errors.confirmPassword.message}
                     </Text>
                   ) : null}
                 </View>
