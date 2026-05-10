@@ -58,14 +58,18 @@ const slotSchema = z.object({
   start: z.string().regex(TIME_REGEX, "Format HH:MM attendu."),
   end: z.string().regex(TIME_REGEX, "Format HH:MM attendu."),
   room: z.string(),
-  activeFromDate: z.string().regex(ISO_DATE_REGEX, "Format AAAA-MM-JJ attendu."),
+  activeFromDate: z
+    .string()
+    .regex(ISO_DATE_REGEX, "Format AAAA-MM-JJ attendu."),
   activeToDate: z.string().regex(ISO_DATE_REGEX, "Format AAAA-MM-JJ attendu."),
 });
 
 const oneOffSchema = z.object({
   subjectId: z.string().min(1, "Choisissez une matière."),
   teacherUserId: z.string().min(1, "Choisissez un enseignant."),
-  occurrenceDate: z.string().regex(ISO_DATE_REGEX, "Format AAAA-MM-JJ attendu."),
+  occurrenceDate: z
+    .string()
+    .regex(ISO_DATE_REGEX, "Format AAAA-MM-JJ attendu."),
   start: z.string().regex(TIME_REGEX, "Format HH:MM attendu."),
   end: z.string().regex(TIME_REGEX, "Format HH:MM attendu."),
   room: z.string(),
@@ -306,7 +310,8 @@ export function ClassTimetableManagerScreen() {
       try {
         const payload = {
           schoolYearId:
-            classContext.selectedSchoolYearId ?? classContext.class.schoolYearId,
+            classContext.selectedSchoolYearId ??
+            classContext.class.schoolYearId,
           weekday: Number(data.weekday),
           startMinute: parseMinuteOrThrow(data.start, "Début"),
           endMinute: parseMinuteOrThrow(data.end, "Fin"),
@@ -352,7 +357,8 @@ export function ClassTimetableManagerScreen() {
       try {
         const payload = {
           schoolYearId:
-            classContext.selectedSchoolYearId ?? classContext.class.schoolYearId,
+            classContext.selectedSchoolYearId ??
+            classContext.class.schoolYearId,
           occurrenceDate: data.occurrenceDate,
           startMinute: parseMinuteOrThrow(data.start, "Début"),
           endMinute: parseMinuteOrThrow(data.end, "Fin"),
@@ -397,7 +403,8 @@ export function ClassTimetableManagerScreen() {
       try {
         const payload = {
           schoolYearId:
-            classContext.selectedSchoolYearId ?? classContext.class.schoolYearId,
+            classContext.selectedSchoolYearId ??
+            classContext.class.schoolYearId,
           label: data.label.trim(),
           startDate: data.startDate,
           endDate: data.endDate,
@@ -629,7 +636,11 @@ export function ClassTimetableManagerScreen() {
           ) : tab === "slots" ? (
             <>
               <SectionCard
-                title={slotEditId ? "Modifier un créneau" : "Nouveau créneau hebdomadaire"}
+                title={
+                  slotEditId
+                    ? "Modifier un créneau"
+                    : "Nouveau créneau hebdomadaire"
+                }
                 subtitle="Le formulaire reste scrollable pour laisser de la place au clavier et sécuriser la saisie E2E."
               >
                 <Controller
@@ -856,7 +867,11 @@ export function ClassTimetableManagerScreen() {
           ) : tab === "oneoff" ? (
             <>
               <SectionCard
-                title={oneOffEditId ? "Modifier une séance" : "Nouvelle séance ponctuelle"}
+                title={
+                  oneOffEditId
+                    ? "Modifier une séance"
+                    : "Nouvelle séance ponctuelle"
+                }
                 subtitle="Utilisez cet onglet pour les permutations, remplacements et cours exceptionnels."
               >
                 <Controller
@@ -1056,7 +1071,11 @@ export function ClassTimetableManagerScreen() {
           ) : (
             <>
               <SectionCard
-                title={holidayEditId ? "Modifier une fermeture" : "Nouvelle fermeture"}
+                title={
+                  holidayEditId
+                    ? "Modifier une fermeture"
+                    : "Nouvelle fermeture"
+                }
                 subtitle="Réservé aux rôles établissement. Sert pour congés, ponts et jours fériés."
               >
                 <Controller

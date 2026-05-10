@@ -360,7 +360,10 @@ export default function LoginScreen() {
                         placeholder="nom@etablissement.cm"
                         keyboardType="email-address"
                         autoCapitalize="none"
-                        style={[styles.input, fieldState.error && styles.inputError]}
+                        style={[
+                          styles.input,
+                          fieldState.error && styles.inputError,
+                        ]}
                         placeholderTextColor="#9B9490"
                       />
                     )}

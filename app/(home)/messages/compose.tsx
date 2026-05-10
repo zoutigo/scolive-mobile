@@ -704,8 +704,7 @@ export default function ComposeScreen() {
             name="subject"
             render={({ field, fieldState }) => {
               const showErr =
-                !!fieldState.error &&
-                (fieldState.isDirty || submitCount > 0);
+                !!fieldState.error && (fieldState.isDirty || submitCount > 0);
               return (
                 <>
                   <View style={styles.fieldRow}>
@@ -722,10 +721,7 @@ export default function ComposeScreen() {
                     />
                   </View>
                   {showErr ? (
-                    <Text
-                      style={styles.inlineError}
-                      testID="subject-error"
-                    >
+                    <Text style={styles.inlineError} testID="subject-error">
                       {fieldState.error?.message}
                     </Text>
                   ) : null}
@@ -872,7 +868,9 @@ export default function ComposeScreen() {
                 styles.sendActionBarBtn,
                 (isSending || isInsertingImage) && styles.actionBarBtnDisabled,
               ]}
-              onPress={() => { void handleSend(); }}
+              onPress={() => {
+                void handleSend();
+              }}
               disabled={isSending || isInsertingImage}
               testID="send-btn"
             >

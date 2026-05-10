@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -133,7 +139,8 @@ function extractAvailableRoles(
   if (!profile) return [];
   const roles = new Set<AppRole>();
   for (const role of profile.platformRoles ?? []) roles.add(role);
-  for (const membership of profile.memberships ?? []) roles.add(membership.role);
+  for (const membership of profile.memberships ?? [])
+    roles.add(membership.role);
   if (profile.role) roles.add(profile.role);
   if (profile.activeRole) roles.add(profile.activeRole);
   return Array.from(roles);
@@ -146,10 +153,17 @@ function formatBirthDate(value: string) {
 }
 
 function fieldErr(
-  fieldState: { error?: { message?: string }; isDirty: boolean; isTouched: boolean },
+  fieldState: {
+    error?: { message?: string };
+    isDirty: boolean;
+    isTouched: boolean;
+  },
   submitCount: number,
 ): string | null {
-  if (fieldState.error && (fieldState.isDirty || fieldState.isTouched || submitCount > 0)) {
+  if (
+    fieldState.error &&
+    (fieldState.isDirty || fieldState.isTouched || submitCount > 0)
+  ) {
     return fieldState.error.message ?? null;
   }
   return null;
@@ -297,9 +311,17 @@ function PersonalFormEdit({
   }
 
   function onInvalid(errors: Partial<Record<keyof PersonalValues, unknown>>) {
-    if (errors.firstName) { firstNameRef.current?.focus(); return; }
-    if (errors.lastName) { lastNameRef.current?.focus(); return; }
-    if (errors.phone) { phoneRef.current?.focus(); }
+    if (errors.firstName) {
+      firstNameRef.current?.focus();
+      return;
+    }
+    if (errors.lastName) {
+      lastNameRef.current?.focus();
+      return;
+    }
+    if (errors.phone) {
+      phoneRef.current?.focus();
+    }
   }
 
   return (
@@ -368,7 +390,9 @@ function PersonalFormEdit({
                 ref={phoneRef}
                 label="Téléphone"
                 value={field.value}
-                onChangeText={(value) => field.onChange(normalizePhoneInput(value))}
+                onChangeText={(value) =>
+                  field.onChange(normalizePhoneInput(value))
+                }
                 keyboardType="numeric"
                 hasError={!!err}
                 testID="account-phone-input"
@@ -387,7 +411,9 @@ function PersonalFormEdit({
         />
         <ActionButton
           label="Enregistrer"
-          onPress={() => { void handleSubmit(onValid, onInvalid)(); }}
+          onPress={() => {
+            void handleSubmit(onValid, onInvalid)();
+          }}
           loading={isSubmitting}
           testID="account-save-personal"
         />
@@ -415,13 +441,17 @@ function AddEmailSection({ onSuccess }: { onSuccess: () => void }) {
       reset();
       showSuccess({
         title: "Email envoyé",
-        message: "Un lien de vérification a été envoyé. Vérifiez votre boite mail.",
+        message:
+          "Un lien de vérification a été envoyé. Vérifiez votre boite mail.",
       });
       onSuccess();
     } catch (error) {
       showError({
         title: "Ajout impossible",
-        message: getErrorMessage(error, "L'adresse email n'a pas pu être ajoutée."),
+        message: getErrorMessage(
+          error,
+          "L'adresse email n'a pas pu être ajoutée.",
+        ),
       });
     }
   }
@@ -454,7 +484,9 @@ function AddEmailSection({ onSuccess }: { onSuccess: () => void }) {
       />
       <ActionButton
         label="Ajouter l'email"
-        onPress={() => { void handleSubmit(onValid)(); }}
+        onPress={() => {
+          void handleSubmit(onValid)();
+        }}
         loading={isSubmitting}
         testID="account-submit-add-email"
       />
@@ -475,12 +507,17 @@ function ChangePasswordForm({
   const newPasswordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
 
-  const { control, handleSubmit, formState, setError } = useForm<PasswordValues>({
-    mode: "onChange",
-    reValidateMode: "onChange",
-    resolver: zodResolver(accountChangePasswordSchema),
-    defaultValues: { currentPassword: "", newPassword: "", confirmNewPassword: "" },
-  });
+  const { control, handleSubmit, formState, setError } =
+    useForm<PasswordValues>({
+      mode: "onChange",
+      reValidateMode: "onChange",
+      resolver: zodResolver(accountChangePasswordSchema),
+      defaultValues: {
+        currentPassword: "",
+        newPassword: "",
+        confirmNewPassword: "",
+      },
+    });
 
   const { isSubmitting, submitCount } = formState;
 
@@ -497,7 +534,10 @@ function ChangePasswordForm({
       onSuccess();
     } catch (error) {
       const apiError = error as ApiClientError;
-      const message = getErrorMessage(error, "Le mot de passe n'a pas pu être modifié.");
+      const message = getErrorMessage(
+        error,
+        "Le mot de passe n'a pas pu être modifié.",
+      );
       if (apiError.statusCode === 400) {
         setError("currentPassword", { message });
       }
@@ -506,9 +546,17 @@ function ChangePasswordForm({
   }
 
   function onInvalid(errors: Partial<Record<keyof PasswordValues, unknown>>) {
-    if (errors.currentPassword) { currentPasswordRef.current?.focus(); return; }
-    if (errors.newPassword) { newPasswordRef.current?.focus(); return; }
-    if (errors.confirmNewPassword) { confirmPasswordRef.current?.focus(); }
+    if (errors.currentPassword) {
+      currentPasswordRef.current?.focus();
+      return;
+    }
+    if (errors.newPassword) {
+      newPasswordRef.current?.focus();
+      return;
+    }
+    if (errors.confirmNewPassword) {
+      confirmPasswordRef.current?.focus();
+    }
   }
 
   return (
@@ -586,7 +634,9 @@ function ChangePasswordForm({
         />
         <ActionButton
           label="Modifier"
-          onPress={() => { void handleSubmit(onValid, onInvalid)(); }}
+          onPress={() => {
+            void handleSubmit(onValid, onInvalid)();
+          }}
           loading={isSubmitting}
           stretch
           testID="account-save-password"
@@ -628,14 +678,24 @@ function CreatePasswordForm({
     } catch (error) {
       showError({
         title: "Création impossible",
-        message: getErrorMessage(error, "Le mot de passe n'a pas pu être créé."),
+        message: getErrorMessage(
+          error,
+          "Le mot de passe n'a pas pu être créé.",
+        ),
       });
     }
   }
 
-  function onInvalid(errors: Partial<Record<keyof CreatePasswordValues, unknown>>) {
-    if (errors.newPassword) { newPasswordRef.current?.focus(); return; }
-    if (errors.confirmNewPassword) { confirmPasswordRef.current?.focus(); }
+  function onInvalid(
+    errors: Partial<Record<keyof CreatePasswordValues, unknown>>,
+  ) {
+    if (errors.newPassword) {
+      newPasswordRef.current?.focus();
+      return;
+    }
+    if (errors.confirmNewPassword) {
+      confirmPasswordRef.current?.focus();
+    }
   }
 
   return (
@@ -696,7 +756,9 @@ function CreatePasswordForm({
         />
         <ActionButton
           label="Créer"
-          onPress={() => { void handleSubmit(onValid, onInvalid)(); }}
+          onPress={() => {
+            void handleSubmit(onValid, onInvalid)();
+          }}
           loading={isSubmitting}
           stretch
           testID="account-save-create-password"
@@ -741,7 +803,10 @@ function ChangePinForm({
       onSuccess();
     } catch (error) {
       const apiError = error as ApiClientError;
-      const message = getErrorMessage(error, "Le code PIN n'a pas pu être modifié.");
+      const message = getErrorMessage(
+        error,
+        "Le code PIN n'a pas pu être modifié.",
+      );
       if (apiError.statusCode === 400) {
         setError("currentPin", { message });
       }
@@ -750,9 +815,17 @@ function ChangePinForm({
   }
 
   function onInvalid(errors: Partial<Record<keyof PinValues, unknown>>) {
-    if (errors.currentPin) { currentPinRef.current?.focus(); return; }
-    if (errors.newPin) { newPinRef.current?.focus(); return; }
-    if (errors.confirmNewPin) { confirmPinRef.current?.focus(); }
+    if (errors.currentPin) {
+      currentPinRef.current?.focus();
+      return;
+    }
+    if (errors.newPin) {
+      newPinRef.current?.focus();
+      return;
+    }
+    if (errors.confirmNewPin) {
+      confirmPinRef.current?.focus();
+    }
   }
 
   return (
@@ -770,7 +843,9 @@ function ChangePinForm({
                 variant="pin"
                 keyboardType="numeric"
                 value={field.value}
-                onChangeText={(value) => field.onChange(value.replace(/\D/g, "").slice(0, 6))}
+                onChangeText={(value) =>
+                  field.onChange(value.replace(/\D/g, "").slice(0, 6))
+                }
                 placeholder="PIN actuel"
                 hasError={!!err}
                 testID="account-current-pin-input"
@@ -793,7 +868,9 @@ function ChangePinForm({
                 variant="pin"
                 keyboardType="numeric"
                 value={field.value}
-                onChangeText={(value) => field.onChange(value.replace(/\D/g, "").slice(0, 6))}
+                onChangeText={(value) =>
+                  field.onChange(value.replace(/\D/g, "").slice(0, 6))
+                }
                 placeholder="Nouveau PIN"
                 hasError={!!err}
                 testID="account-new-pin-input"
@@ -816,7 +893,9 @@ function ChangePinForm({
                 variant="pin"
                 keyboardType="numeric"
                 value={field.value}
-                onChangeText={(value) => field.onChange(value.replace(/\D/g, "").slice(0, 6))}
+                onChangeText={(value) =>
+                  field.onChange(value.replace(/\D/g, "").slice(0, 6))
+                }
                 placeholder="Confirmez le nouveau PIN"
                 hasError={!!err}
                 testID="account-confirm-pin-input"
@@ -836,7 +915,9 @@ function ChangePinForm({
         />
         <ActionButton
           label="Modifier"
-          onPress={() => { void handleSubmit(onValid, onInvalid)(); }}
+          onPress={() => {
+            void handleSubmit(onValid, onInvalid)();
+          }}
           loading={isSubmitting}
           stretch
           testID="account-save-pin"
@@ -879,15 +960,26 @@ function AddPhoneForm({
     } catch (error) {
       showError({
         title: "Configuration impossible",
-        message: getErrorMessage(error, "Le téléphone n'a pas pu être configuré."),
+        message: getErrorMessage(
+          error,
+          "Le téléphone n'a pas pu être configuré.",
+        ),
       });
     }
   }
 
   function onInvalid(errors: Partial<Record<keyof AddPhoneValues, unknown>>) {
-    if (errors.phone) { phoneRef.current?.focus(); return; }
-    if (errors.pin) { pinRef.current?.focus(); return; }
-    if (errors.confirmPin) { confirmPinRef.current?.focus(); }
+    if (errors.phone) {
+      phoneRef.current?.focus();
+      return;
+    }
+    if (errors.pin) {
+      pinRef.current?.focus();
+      return;
+    }
+    if (errors.confirmPin) {
+      confirmPinRef.current?.focus();
+    }
   }
 
   return (
@@ -907,7 +999,9 @@ function AddPhoneForm({
               <TextInput
                 ref={phoneRef}
                 value={field.value}
-                onChangeText={(value) => field.onChange(normalizePhoneInput(value))}
+                onChangeText={(value) =>
+                  field.onChange(normalizePhoneInput(value))
+                }
                 placeholder="6XXXXXXXX"
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="numeric"
@@ -932,7 +1026,9 @@ function AddPhoneForm({
                 variant="pin"
                 keyboardType="numeric"
                 value={field.value}
-                onChangeText={(value) => field.onChange(value.replace(/\D/g, "").slice(0, 6))}
+                onChangeText={(value) =>
+                  field.onChange(value.replace(/\D/g, "").slice(0, 6))
+                }
                 placeholder="123456"
                 hasError={!!err}
                 testID="account-add-phone-pin-input"
@@ -955,7 +1051,9 @@ function AddPhoneForm({
                 variant="pin"
                 keyboardType="numeric"
                 value={field.value}
-                onChangeText={(value) => field.onChange(value.replace(/\D/g, "").slice(0, 6))}
+                onChangeText={(value) =>
+                  field.onChange(value.replace(/\D/g, "").slice(0, 6))
+                }
                 placeholder="123456"
                 hasError={!!err}
                 testID="account-add-phone-confirm-pin-input"
@@ -975,7 +1073,9 @@ function AddPhoneForm({
         />
         <ActionButton
           label="Configurer"
-          onPress={() => { void handleSubmit(onValid, onInvalid)(); }}
+          onPress={() => {
+            void handleSubmit(onValid, onInvalid)();
+          }}
           loading={isSubmitting}
           stretch
           testID="account-save-add-phone"
@@ -1267,7 +1367,9 @@ function RecoveryForm({
         />
         <ActionButton
           label="Modifier"
-          onPress={() => { void handleSubmit(onValid, onInvalid)(); }}
+          onPress={() => {
+            void handleSubmit(onValid, onInvalid)();
+          }}
           loading={isSubmitting}
           stretch
           testID="account-save-recovery"
@@ -1337,7 +1439,8 @@ function SecurityFormCard({
       {section === "add-phone" ? (
         <AddPhoneForm
           onSuccess={() => {
-            if (profile) onProfileUpdate({ ...profile, hasPhoneCredential: true });
+            if (profile)
+              onProfileUpdate({ ...profile, hasPhoneCredential: true });
             onClose();
           }}
           onCancel={onClose}
@@ -1550,7 +1653,9 @@ function AccountScreenContent() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => { void handleRefresh(); }}
+            onRefresh={() => {
+              void handleRefresh();
+            }}
             tintColor={colors.primary}
           />
         }
@@ -1589,7 +1694,11 @@ function AccountScreenContent() {
                 {profile?.email ? (
                   <InfoRow label="Email" value={profile.email} />
                 ) : (
-                  <AddEmailSection onSuccess={() => { void loadProfile(); }} />
+                  <AddEmailSection
+                    onSuccess={() => {
+                      void loadProfile();
+                    }}
+                  />
                 )}
                 <InfoRow
                   label="Téléphone"
@@ -1863,7 +1972,9 @@ function AccountScreenContent() {
                 />
                 <ActionButton
                   label="Appliquer"
-                  onPress={() => { void handleSaveActiveRole(); }}
+                  onPress={() => {
+                    void handleSaveActiveRole();
+                  }}
                   stretch
                   loading={savingActiveRole}
                   disabled={

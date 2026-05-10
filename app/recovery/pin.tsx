@@ -140,8 +140,7 @@ export default function PinRecoveryScreen() {
               ctx.addIssue({
                 code: "custom",
                 path: ["answers", question.key],
-                message:
-                  "Réponse obligatoire (au moins 2 caractères).",
+                message: "Réponse obligatoire (au moins 2 caractères).",
               });
             }
           });
@@ -415,7 +414,7 @@ export default function PinRecoveryScreen() {
                     <View style={styles.fieldIcon}>
                       <Text style={styles.fieldIconText}>📅</Text>
                     </View>
-                  <Text style={styles.label}>Date de naissance</Text>
+                    <Text style={styles.label}>Date de naissance</Text>
                   </View>
                   <Controller
                     control={step2Form.control}

@@ -150,8 +150,7 @@ export default function PasswordRecoveryScreen() {
               ctx.addIssue({
                 code: "custom",
                 path: ["answers", question.key],
-                message:
-                  "Réponse obligatoire (au moins 2 caractères).",
+                message: "Réponse obligatoire (au moins 2 caractères).",
               });
             }
           });
@@ -434,7 +433,8 @@ export default function PasswordRecoveryScreen() {
                     Un email a été envoyé à{" "}
                     <Text style={styles.infoValueBold}>
                       {step1Form.getValues("email")}
-                    </Text>.{"\n"}
+                    </Text>
+                    .{"\n"}
                     Ouvrez le lien dans l'email et copiez le code de
                     réinitialisation ci-dessous.
                   </Text>

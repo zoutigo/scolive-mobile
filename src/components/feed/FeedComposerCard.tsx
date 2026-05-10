@@ -165,13 +165,11 @@ export function FeedComposerCard({
     setType(initialType);
   }, [initialType]);
 
-  function showFieldErr(
-    fieldState: {
-      error?: { message?: string };
-      isDirty: boolean;
-      isTouched: boolean;
-    },
-  ): string | null {
+  function showFieldErr(fieldState: {
+    error?: { message?: string };
+    isDirty: boolean;
+    isTouched: boolean;
+  }): string | null {
     if (
       fieldState.error &&
       (fieldState.isDirty || fieldState.isTouched || submitCount > 0)
@@ -249,7 +247,9 @@ export function FeedComposerCard({
       const next = [...current];
       result.assets.forEach((asset) => {
         const key = `${asset.name}:${asset.size ?? 0}`;
-        if (next.some((entry) => `${entry.fileName}:${entry.sizeLabel}` === key))
+        if (
+          next.some((entry) => `${entry.fileName}:${entry.sizeLabel}` === key)
+        )
           return;
         next.push({
           id: `${asset.name}-${Date.now()}-${next.length}`,
@@ -566,7 +566,10 @@ export function FeedComposerCard({
           </TouchableOpacity>
         ) : null}
         <TouchableOpacity
-          style={[styles.bottomPrimary, isSubmitting && styles.bottomPrimaryDisabled]}
+          style={[
+            styles.bottomPrimary,
+            isSubmitting && styles.bottomPrimaryDisabled,
+          ]}
           disabled={isSubmitting}
           onPress={() => {
             void handleSubmit(onValid, onInvalid)();

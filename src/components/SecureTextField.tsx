@@ -47,7 +47,13 @@ export const SecureTextField = forwardRef<TextInput, SecureTextFieldProps>(
         : "Afficher le mot de passe";
 
     return (
-      <View style={[styles.container, hasError && styles.containerError, containerStyle]}>
+      <View
+        style={[
+          styles.container,
+          hasError && styles.containerError,
+          containerStyle,
+        ]}
+      >
         <TextInput
           {...props}
           ref={ref}

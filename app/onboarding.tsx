@@ -1321,7 +1321,8 @@ export default function OnboardingScreen() {
                           );
                         })}
                       </View>
-                      {recoveryForm.formState.errors.parentStudentId?.message ? (
+                      {recoveryForm.formState.errors.parentStudentId
+                        ?.message ? (
                         <Text
                           style={styles.fieldError}
                           testID="error-parentStudentId"
