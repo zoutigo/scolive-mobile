@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -12,6 +18,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import { accountApi } from "../../api/account.api";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { AppShell, useDrawer } from "../navigation/AppShell";
@@ -58,48 +67,13 @@ type SecuritySection =
   | null;
 type SettingsLanguage = "fr" | "en";
 
-type PersonalFormState = {
-  firstName: string;
-  lastName: string;
-  gender: AccountGender;
-  phone: string;
-};
-
-type PasswordFormState = {
-  currentPassword: string;
-  newPassword: string;
-  confirmNewPassword: string;
-};
-
-type CreatePasswordFormState = {
-  newPassword: string;
-  confirmNewPassword: string;
-};
-
-type AddEmailFormState = {
-  email: string;
-};
-
-type AddPhoneFormState = {
-  phone: string;
-  pin: string;
-  confirmPin: string;
-};
-
-type PinFormState = {
-  currentPin: string;
-  newPin: string;
-  confirmNewPin: string;
-};
-
-type RecoveryFormState = {
-  birthDate: string;
-  selectedQuestions: string[];
-  answers: Record<string, string>;
-  isParent: boolean;
-  parentClassId?: string;
-  parentStudentId?: string;
-};
+type PersonalValues = z.infer<typeof accountPersonalProfileSchema>;
+type PasswordValues = z.infer<typeof accountChangePasswordSchema>;
+type CreatePasswordValues = z.infer<typeof accountCreatePasswordSchema>;
+type PinValues = z.infer<typeof accountChangePinSchema>;
+type AddPhoneValues = z.infer<typeof accountAddPhoneCredentialSchema>;
+type AddEmailValues = z.infer<typeof accountAddEmailSchema>;
+type RecoveryValues = z.infer<typeof accountRecoverySchema>;
 
 const TAB_ITEMS: Array<{ key: AccountTab; label: string }> = [
   { key: "personal", label: "Informations" },
@@ -137,6 +111,11 @@ const LANGUAGE_OPTIONS: Array<{ value: SettingsLanguage; label: string }> = [
   { value: "en", label: "English" },
 ];
 
+const ROLE_LABELS: Record<string, string> = {
+  ...PLATFORM_ROLE_LABELS,
+  ...SCHOOL_ROLE_LABELS,
+};
+
 function getErrorMessage(error: unknown, fallback: string) {
   if (
     error &&
@@ -150,65 +129,44 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 function toReadableRole(role: string | null | undefined) {
-  const labels: Record<string, string> = {
-    ...PLATFORM_ROLE_LABELS,
-    ...SCHOOL_ROLE_LABELS,
-  };
-
-  if (!role) {
-    return "Utilisateur";
-  }
-
-  return labels[role] ?? role;
+  if (!role) return "Utilisateur";
+  return ROLE_LABELS[role] ?? role;
 }
 
 function extractAvailableRoles(
   profile: AccountProfileResponse | null,
 ): AppRole[] {
-  if (!profile) {
-    return [];
-  }
-
+  if (!profile) return [];
   const roles = new Set<AppRole>();
-  for (const role of profile.platformRoles ?? []) {
-    roles.add(role);
-  }
-  for (const membership of profile.memberships ?? []) {
+  for (const role of profile.platformRoles ?? []) roles.add(role);
+  for (const membership of profile.memberships ?? [])
     roles.add(membership.role);
-  }
-  if (profile.role) {
-    roles.add(profile.role);
-  }
-  if (profile.activeRole) {
-    roles.add(profile.activeRole);
-  }
+  if (profile.role) roles.add(profile.role);
+  if (profile.activeRole) roles.add(profile.activeRole);
   return Array.from(roles);
 }
 
 function formatBirthDate(value: string) {
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) {
-    return "";
-  }
+  if (!match) return "";
   return `${match[3]}/${match[2]}/${match[1]}`;
 }
 
-function buildRecoveryForm(
-  profile: AccountProfileResponse | null,
-  recovery: AccountRecoveryOptionsResponse | null,
-): RecoveryFormState {
-  const selectedQuestions = recovery?.selectedQuestions ?? [];
-  const answers = Object.fromEntries(selectedQuestions.map((key) => [key, ""]));
-
-  return {
-    birthDate: formatBirthDate(recovery?.birthDate ?? ""),
-    selectedQuestions,
-    answers,
-    isParent:
-      recovery?.schoolRoles.includes("PARENT") ?? profile?.role === "PARENT",
-    parentClassId: recovery?.parentClassId ?? undefined,
-    parentStudentId: recovery?.parentStudentId ?? undefined,
-  };
+function fieldErr(
+  fieldState: {
+    error?: { message?: string };
+    isDirty: boolean;
+    isTouched: boolean;
+  },
+  submitCount: number,
+): string | null {
+  if (
+    fieldState.error &&
+    (fieldState.isDirty || fieldState.isTouched || submitCount > 0)
+  ) {
+    return fieldState.error.message ?? null;
+  }
+  return null;
 }
 
 function ActionButton(props: {
@@ -304,12 +262,1213 @@ function TopTabs(props: {
   );
 }
 
+function PersonalFormEdit({
+  profile,
+  onSuccess,
+  onCancel,
+}: {
+  profile: AccountProfileResponse;
+  onSuccess: (updated: AccountProfileResponse) => void;
+  onCancel: () => void;
+}) {
+  const showSuccess = useSuccessToastStore((state) => state.showSuccess);
+  const showError = useSuccessToastStore((state) => state.showError);
+  const firstNameRef = useRef<TextInput>(null);
+  const lastNameRef = useRef<TextInput>(null);
+  const phoneRef = useRef<TextInput>(null);
+
+  const { control, handleSubmit, formState } = useForm<PersonalValues>({
+    mode: "onChange",
+    reValidateMode: "onChange",
+    resolver: zodResolver(accountPersonalProfileSchema),
+    defaultValues: {
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      gender: profile.gender ?? "M",
+      phone: toLocalPhoneDisplay(profile.phone),
+    },
+  });
+
+  const { isSubmitting, submitCount } = formState;
+
+  async function onValid(data: PersonalValues) {
+    try {
+      const response = await accountApi.updateProfile(data);
+      showSuccess({
+        title: "Profil mis à jour",
+        message: "Vos informations personnelles ont été enregistrées.",
+      });
+      onSuccess(response);
+    } catch (error) {
+      showError({
+        title: "Mise à jour impossible",
+        message: getErrorMessage(
+          error,
+          "Les informations personnelles n'ont pas pu être enregistrées.",
+        ),
+      });
+    }
+  }
+
+  function onInvalid(errors: Partial<Record<keyof PersonalValues, unknown>>) {
+    if (errors.firstName) {
+      firstNameRef.current?.focus();
+      return;
+    }
+    if (errors.lastName) {
+      lastNameRef.current?.focus();
+      return;
+    }
+    if (errors.phone) {
+      phoneRef.current?.focus();
+    }
+  }
+
+  return (
+    <View style={styles.formStack}>
+      <Controller
+        control={control}
+        name="firstName"
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <TextField
+                ref={firstNameRef}
+                label="Prénom"
+                value={field.value}
+                onChangeText={field.onChange}
+                hasError={!!err}
+                testID="account-first-name-input"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
+      />
+      <Controller
+        control={control}
+        name="lastName"
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <TextField
+                ref={lastNameRef}
+                label="Nom"
+                value={field.value}
+                onChangeText={field.onChange}
+                hasError={!!err}
+                testID="account-last-name-input"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
+      />
+      <Controller
+        control={control}
+        name="gender"
+        render={({ field }) => (
+          <PillSelector
+            label="Genre"
+            value={field.value}
+            options={GENDER_OPTIONS}
+            onChange={(value) => field.onChange(value as AccountGender)}
+            testIDPrefix="account-gender"
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="phone"
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <TextField
+                ref={phoneRef}
+                label="Téléphone"
+                value={field.value}
+                onChangeText={(value) =>
+                  field.onChange(normalizePhoneInput(value))
+                }
+                keyboardType="numeric"
+                hasError={!!err}
+                testID="account-phone-input"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
+      />
+      <View style={styles.actionsRow}>
+        <ActionButton
+          label="Annuler"
+          variant="secondary"
+          onPress={onCancel}
+          testID="account-cancel-personal"
+        />
+        <ActionButton
+          label="Enregistrer"
+          onPress={() => {
+            void handleSubmit(onValid, onInvalid)();
+          }}
+          loading={isSubmitting}
+          testID="account-save-personal"
+        />
+      </View>
+    </View>
+  );
+}
+
+function AddEmailSection({ onSuccess }: { onSuccess: () => void }) {
+  const showSuccess = useSuccessToastStore((state) => state.showSuccess);
+  const showError = useSuccessToastStore((state) => state.showError);
+
+  const { control, handleSubmit, formState, reset } = useForm<AddEmailValues>({
+    mode: "onChange",
+    reValidateMode: "onChange",
+    resolver: zodResolver(accountAddEmailSchema),
+    defaultValues: { email: "" },
+  });
+
+  const { isSubmitting, submitCount } = formState;
+
+  async function onValid(data: AddEmailValues) {
+    try {
+      await accountApi.addEmail({ email: data.email });
+      reset();
+      showSuccess({
+        title: "Email envoyé",
+        message:
+          "Un lien de vérification a été envoyé. Vérifiez votre boite mail.",
+      });
+      onSuccess();
+    } catch (error) {
+      showError({
+        title: "Ajout impossible",
+        message: getErrorMessage(
+          error,
+          "L'adresse email n'a pas pu être ajoutée.",
+        ),
+      });
+    }
+  }
+
+  return (
+    <View style={styles.addEmailBlock}>
+      <Text style={styles.infoLabel}>EMAIL</Text>
+      <Text style={styles.infoValueSecondary}>Non renseigné</Text>
+      <Controller
+        control={control}
+        name="email"
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <TextInput
+                value={field.value}
+                onChangeText={field.onChange}
+                placeholder="votre@email.com"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                style={[styles.textAreaInput, err ? styles.inputError : null]}
+                testID="account-add-email-input"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
+      />
+      <ActionButton
+        label="Ajouter l'email"
+        onPress={() => {
+          void handleSubmit(onValid)();
+        }}
+        loading={isSubmitting}
+        testID="account-submit-add-email"
+      />
+    </View>
+  );
+}
+
+function ChangePasswordForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess: () => void;
+  onCancel: () => void;
+}) {
+  const showSuccess = useSuccessToastStore((state) => state.showSuccess);
+  const showError = useSuccessToastStore((state) => state.showError);
+  const currentPasswordRef = useRef<TextInput>(null);
+  const newPasswordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+
+  const { control, handleSubmit, formState, setError } =
+    useForm<PasswordValues>({
+      mode: "onChange",
+      reValidateMode: "onChange",
+      resolver: zodResolver(accountChangePasswordSchema),
+      defaultValues: {
+        currentPassword: "",
+        newPassword: "",
+        confirmNewPassword: "",
+      },
+    });
+
+  const { isSubmitting, submitCount } = formState;
+
+  async function onValid(data: PasswordValues) {
+    try {
+      await accountApi.changePassword({
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+      });
+      showSuccess({
+        title: "Mot de passe modifié",
+        message: "Votre mot de passe a été mis à jour avec succès.",
+      });
+      onSuccess();
+    } catch (error) {
+      const apiError = error as ApiClientError;
+      const message = getErrorMessage(
+        error,
+        "Le mot de passe n'a pas pu être modifié.",
+      );
+      if (apiError.statusCode === 400) {
+        setError("currentPassword", { message });
+      }
+      showError({ title: "Modification impossible", message });
+    }
+  }
+
+  function onInvalid(errors: Partial<Record<keyof PasswordValues, unknown>>) {
+    if (errors.currentPassword) {
+      currentPasswordRef.current?.focus();
+      return;
+    }
+    if (errors.newPassword) {
+      newPasswordRef.current?.focus();
+      return;
+    }
+    if (errors.confirmNewPassword) {
+      confirmPasswordRef.current?.focus();
+    }
+  }
+
+  return (
+    <View style={styles.formStack}>
+      <Controller
+        control={control}
+        name="currentPassword"
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <FieldLabel text="Mot de passe actuel" />
+              <SecureTextField
+                ref={currentPasswordRef}
+                value={field.value}
+                onChangeText={field.onChange}
+                placeholder="Mot de passe actuel"
+                hasError={!!err}
+                testID="account-current-password-input"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
+      />
+      <Controller
+        control={control}
+        name="newPassword"
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <FieldLabel text="Nouveau mot de passe" />
+              <SecureTextField
+                ref={newPasswordRef}
+                value={field.value}
+                onChangeText={field.onChange}
+                placeholder="Nouveau mot de passe"
+                hasError={!!err}
+                testID="account-new-password-input"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
+      />
+      <Controller
+        control={control}
+        name="confirmNewPassword"
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <FieldLabel text="Confirmation" />
+              <SecureTextField
+                ref={confirmPasswordRef}
+                value={field.value}
+                onChangeText={field.onChange}
+                placeholder="Confirmez le nouveau mot de passe"
+                hasError={!!err}
+                testID="account-confirm-password-input"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
+      />
+      <View style={styles.actionsRowSplit}>
+        <ActionButton
+          label="Annuler"
+          variant="secondary"
+          onPress={onCancel}
+          stretch
+          testID="account-cancel-password"
+        />
+        <ActionButton
+          label="Modifier"
+          onPress={() => {
+            void handleSubmit(onValid, onInvalid)();
+          }}
+          loading={isSubmitting}
+          stretch
+          testID="account-save-password"
+        />
+      </View>
+    </View>
+  );
+}
+
+function CreatePasswordForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess: () => void;
+  onCancel: () => void;
+}) {
+  const showSuccess = useSuccessToastStore((state) => state.showSuccess);
+  const showError = useSuccessToastStore((state) => state.showError);
+  const newPasswordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+
+  const { control, handleSubmit, formState } = useForm<CreatePasswordValues>({
+    mode: "onChange",
+    reValidateMode: "onChange",
+    resolver: zodResolver(accountCreatePasswordSchema),
+    defaultValues: { newPassword: "", confirmNewPassword: "" },
+  });
+
+  const { isSubmitting, submitCount } = formState;
+
+  async function onValid(data: CreatePasswordValues) {
+    try {
+      await accountApi.createPassword({ newPassword: data.newPassword });
+      showSuccess({
+        title: "Mot de passe créé",
+        message: "Votre mot de passe a été configuré avec succès.",
+      });
+      onSuccess();
+    } catch (error) {
+      showError({
+        title: "Création impossible",
+        message: getErrorMessage(
+          error,
+          "Le mot de passe n'a pas pu être créé.",
+        ),
+      });
+    }
+  }
+
+  function onInvalid(
+    errors: Partial<Record<keyof CreatePasswordValues, unknown>>,
+  ) {
+    if (errors.newPassword) {
+      newPasswordRef.current?.focus();
+      return;
+    }
+    if (errors.confirmNewPassword) {
+      confirmPasswordRef.current?.focus();
+    }
+  }
+
+  return (
+    <View style={styles.formStack}>
+      <Text style={styles.securityIntroText}>
+        Votre compte n&apos;a pas encore de mot de passe. Définissez-en un pour
+        vous connecter avec votre email.
+      </Text>
+      <Controller
+        control={control}
+        name="newPassword"
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <FieldLabel text="Nouveau mot de passe" />
+              <SecureTextField
+                ref={newPasswordRef}
+                value={field.value}
+                onChangeText={field.onChange}
+                placeholder="Nouveau mot de passe"
+                hasError={!!err}
+                testID="account-create-password-new-input"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
+      />
+      <Controller
+        control={control}
+        name="confirmNewPassword"
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <FieldLabel text="Confirmation" />
+              <SecureTextField
+                ref={confirmPasswordRef}
+                value={field.value}
+                onChangeText={field.onChange}
+                placeholder="Confirmez le mot de passe"
+                hasError={!!err}
+                testID="account-create-password-confirm-input"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
+      />
+      <View style={styles.actionsRowSplit}>
+        <ActionButton
+          label="Annuler"
+          variant="secondary"
+          onPress={onCancel}
+          stretch
+          testID="account-cancel-create-password"
+        />
+        <ActionButton
+          label="Créer"
+          onPress={() => {
+            void handleSubmit(onValid, onInvalid)();
+          }}
+          loading={isSubmitting}
+          stretch
+          testID="account-save-create-password"
+        />
+      </View>
+    </View>
+  );
+}
+
+function ChangePinForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess: () => void;
+  onCancel: () => void;
+}) {
+  const showSuccess = useSuccessToastStore((state) => state.showSuccess);
+  const showError = useSuccessToastStore((state) => state.showError);
+  const currentPinRef = useRef<TextInput>(null);
+  const newPinRef = useRef<TextInput>(null);
+  const confirmPinRef = useRef<TextInput>(null);
+
+  const { control, handleSubmit, formState, setError } = useForm<PinValues>({
+    mode: "onChange",
+    reValidateMode: "onChange",
+    resolver: zodResolver(accountChangePinSchema),
+    defaultValues: { currentPin: "", newPin: "", confirmNewPin: "" },
+  });
+
+  const { isSubmitting, submitCount } = formState;
+
+  async function onValid(data: PinValues) {
+    try {
+      await accountApi.changePin({
+        currentPin: data.currentPin,
+        newPin: data.newPin,
+      });
+      showSuccess({
+        title: "PIN modifié",
+        message: "Votre code PIN a été mis à jour avec succès.",
+      });
+      onSuccess();
+    } catch (error) {
+      const apiError = error as ApiClientError;
+      const message = getErrorMessage(
+        error,
+        "Le code PIN n'a pas pu être modifié.",
+      );
+      if (apiError.statusCode === 400) {
+        setError("currentPin", { message });
+      }
+      showError({ title: "Modification impossible", message });
+    }
+  }
+
+  function onInvalid(errors: Partial<Record<keyof PinValues, unknown>>) {
+    if (errors.currentPin) {
+      currentPinRef.current?.focus();
+      return;
+    }
+    if (errors.newPin) {
+      newPinRef.current?.focus();
+      return;
+    }
+    if (errors.confirmNewPin) {
+      confirmPinRef.current?.focus();
+    }
+  }
+
+  return (
+    <View style={styles.formStack}>
+      <Controller
+        control={control}
+        name="currentPin"
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <FieldLabel text="PIN actuel" />
+              <SecureTextField
+                ref={currentPinRef}
+                variant="pin"
+                keyboardType="numeric"
+                value={field.value}
+                onChangeText={(value) =>
+                  field.onChange(value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="PIN actuel"
+                hasError={!!err}
+                testID="account-current-pin-input"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
+      />
+      <Controller
+        control={control}
+        name="newPin"
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <FieldLabel text="Nouveau PIN" />
+              <SecureTextField
+                ref={newPinRef}
+                variant="pin"
+                keyboardType="numeric"
+                value={field.value}
+                onChangeText={(value) =>
+                  field.onChange(value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="Nouveau PIN"
+                hasError={!!err}
+                testID="account-new-pin-input"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
+      />
+      <Controller
+        control={control}
+        name="confirmNewPin"
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <FieldLabel text="Confirmation" />
+              <SecureTextField
+                ref={confirmPinRef}
+                variant="pin"
+                keyboardType="numeric"
+                value={field.value}
+                onChangeText={(value) =>
+                  field.onChange(value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="Confirmez le nouveau PIN"
+                hasError={!!err}
+                testID="account-confirm-pin-input"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
+      />
+      <View style={styles.actionsRowSplit}>
+        <ActionButton
+          label="Annuler"
+          variant="secondary"
+          onPress={onCancel}
+          stretch
+          testID="account-cancel-pin"
+        />
+        <ActionButton
+          label="Modifier"
+          onPress={() => {
+            void handleSubmit(onValid, onInvalid)();
+          }}
+          loading={isSubmitting}
+          stretch
+          testID="account-save-pin"
+        />
+      </View>
+    </View>
+  );
+}
+
+function AddPhoneForm({
+  onSuccess,
+  onCancel,
+}: {
+  onSuccess: () => void;
+  onCancel: () => void;
+}) {
+  const showSuccess = useSuccessToastStore((state) => state.showSuccess);
+  const showError = useSuccessToastStore((state) => state.showError);
+  const phoneRef = useRef<TextInput>(null);
+  const pinRef = useRef<TextInput>(null);
+  const confirmPinRef = useRef<TextInput>(null);
+
+  const { control, handleSubmit, formState } = useForm<AddPhoneValues>({
+    mode: "onChange",
+    reValidateMode: "onChange",
+    resolver: zodResolver(accountAddPhoneCredentialSchema),
+    defaultValues: { phone: "", pin: "", confirmPin: "" },
+  });
+
+  const { isSubmitting, submitCount } = formState;
+
+  async function onValid(data: AddPhoneValues) {
+    try {
+      await accountApi.addPhoneCredential({ phone: data.phone, pin: data.pin });
+      showSuccess({
+        title: "Téléphone configuré",
+        message: "Votre numéro et PIN ont été ajoutés avec succès.",
+      });
+      onSuccess();
+    } catch (error) {
+      showError({
+        title: "Configuration impossible",
+        message: getErrorMessage(
+          error,
+          "Le téléphone n'a pas pu être configuré.",
+        ),
+      });
+    }
+  }
+
+  function onInvalid(errors: Partial<Record<keyof AddPhoneValues, unknown>>) {
+    if (errors.phone) {
+      phoneRef.current?.focus();
+      return;
+    }
+    if (errors.pin) {
+      pinRef.current?.focus();
+      return;
+    }
+    if (errors.confirmPin) {
+      confirmPinRef.current?.focus();
+    }
+  }
+
+  return (
+    <View style={styles.formStack}>
+      <Text style={styles.securityIntroText}>
+        Ajoutez un numéro de téléphone et un code PIN pour vous connecter depuis
+        l&apos;application mobile.
+      </Text>
+      <Controller
+        control={control}
+        name="phone"
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <FieldLabel text="Téléphone (9 chiffres)" />
+              <TextInput
+                ref={phoneRef}
+                value={field.value}
+                onChangeText={(value) =>
+                  field.onChange(normalizePhoneInput(value))
+                }
+                placeholder="6XXXXXXXX"
+                placeholderTextColor={colors.textSecondary}
+                keyboardType="numeric"
+                style={[styles.textAreaInput, err ? styles.inputError : null]}
+                testID="account-add-phone-input"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
+      />
+      <Controller
+        control={control}
+        name="pin"
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <FieldLabel text="Code PIN (6 chiffres)" />
+              <SecureTextField
+                ref={pinRef}
+                variant="pin"
+                keyboardType="numeric"
+                value={field.value}
+                onChangeText={(value) =>
+                  field.onChange(value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="123456"
+                hasError={!!err}
+                testID="account-add-phone-pin-input"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
+      />
+      <Controller
+        control={control}
+        name="confirmPin"
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <FieldLabel text="Confirmer le PIN" />
+              <SecureTextField
+                ref={confirmPinRef}
+                variant="pin"
+                keyboardType="numeric"
+                value={field.value}
+                onChangeText={(value) =>
+                  field.onChange(value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="123456"
+                hasError={!!err}
+                testID="account-add-phone-confirm-pin-input"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
+      />
+      <View style={styles.actionsRowSplit}>
+        <ActionButton
+          label="Annuler"
+          variant="secondary"
+          onPress={onCancel}
+          stretch
+          testID="account-cancel-add-phone"
+        />
+        <ActionButton
+          label="Configurer"
+          onPress={() => {
+            void handleSubmit(onValid, onInvalid)();
+          }}
+          loading={isSubmitting}
+          stretch
+          testID="account-save-add-phone"
+        />
+      </View>
+    </View>
+  );
+}
+
+function RecoveryForm({
+  recoveryOptions,
+  profile,
+  onSuccess,
+  onCancel,
+}: {
+  recoveryOptions: AccountRecoveryOptionsResponse;
+  profile: AccountProfileResponse | null;
+  onSuccess: () => void;
+  onCancel: () => void;
+}) {
+  const showSuccess = useSuccessToastStore((state) => state.showSuccess);
+  const showError = useSuccessToastStore((state) => state.showError);
+  const birthDateRef = useRef<TextInput>(null);
+
+  const isParent =
+    recoveryOptions.schoolRoles.includes("PARENT") ??
+    profile?.role === "PARENT";
+  const initialQuestions = recoveryOptions.selectedQuestions ?? [];
+  const initialAnswers = Object.fromEntries(
+    initialQuestions.map((key) => [key, ""]),
+  );
+
+  const { control, handleSubmit, formState, setValue, watch } =
+    useForm<RecoveryValues>({
+      mode: "onChange",
+      reValidateMode: "onChange",
+      resolver: zodResolver(accountRecoverySchema),
+      defaultValues: {
+        birthDate: formatBirthDate(recoveryOptions.birthDate ?? ""),
+        selectedQuestions: initialQuestions,
+        answers: initialAnswers,
+        isParent,
+        parentClassId: recoveryOptions.parentClassId ?? undefined,
+        parentStudentId: recoveryOptions.parentStudentId ?? undefined,
+      },
+    });
+
+  const { isSubmitting, submitCount, errors } = formState;
+  const [selectedQuestions, answers, parentClassId, parentStudentId] = watch([
+    "selectedQuestions",
+    "answers",
+    "parentClassId",
+    "parentStudentId",
+  ]);
+
+  const classOptions = (recoveryOptions.classes ?? []).map((item) => ({
+    value: item.id,
+    label: `${item.name} · ${item.schoolYearLabel}`,
+  }));
+  const studentOptions = (recoveryOptions.students ?? []).map((item) => ({
+    value: item.id,
+    label: `${item.firstName} ${item.lastName}`,
+  }));
+  const questionOptions = recoveryOptions.questions ?? [];
+
+  async function onValid(data: RecoveryValues) {
+    const birthDate = parseDateToISO(data.birthDate);
+    if (!birthDate) return;
+    try {
+      await accountApi.updateRecovery({
+        birthDate,
+        answers: data.selectedQuestions.map((questionKey) => ({
+          questionKey,
+          answer: data.answers[questionKey]?.trim() ?? "",
+        })),
+        ...(data.isParent
+          ? {
+              parentClassId: data.parentClassId,
+              parentStudentId: data.parentStudentId,
+            }
+          : {}),
+      });
+      showSuccess({
+        title: "Récupération mise à jour",
+        message: "Les paramètres de récupération ont été enregistrés.",
+      });
+      onSuccess();
+    } catch (error) {
+      showError({
+        title: "Enregistrement impossible",
+        message: getErrorMessage(
+          error,
+          "Les paramètres de récupération n'ont pas pu être enregistrés.",
+        ),
+      });
+    }
+  }
+
+  function onInvalid() {
+    birthDateRef.current?.focus();
+  }
+
+  return (
+    <View style={styles.formStack}>
+      <Controller
+        control={control}
+        name="birthDate"
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <TextField
+                ref={birthDateRef}
+                label="Date de naissance"
+                value={field.value}
+                onChangeText={(value) => field.onChange(formatDateInput(value))}
+                placeholder="JJ/MM/AAAA"
+                hasError={!!err}
+                testID="account-birth-date-input"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
+      />
+
+      {[0, 1, 2].map((index) => {
+        const selected = selectedQuestions[index] ?? "";
+        const answerErr =
+          errors.answers && selected
+            ? (errors.answers as Record<string, { message?: string }>)[selected]
+                ?.message
+            : null;
+        return (
+          <View key={index} style={styles.questionBlock}>
+            <Text style={styles.fieldLabel}>Question {index + 1}</Text>
+            <View style={styles.chipsWrap}>
+              {questionOptions.map((option) => {
+                const isSelected = selected === option.key;
+                return (
+                  <TouchableOpacity
+                    key={`${index}-${option.key}`}
+                    style={[
+                      styles.choiceChip,
+                      isSelected && styles.choiceChipSelected,
+                    ]}
+                    onPress={() => {
+                      const nextQuestions = [...selectedQuestions];
+                      nextQuestions[index] = option.key;
+                      setValue("selectedQuestions", nextQuestions, {
+                        shouldValidate: submitCount > 0,
+                      });
+                      if (!answers[option.key]) {
+                        setValue(`answers.${option.key}`, "", {
+                          shouldValidate: false,
+                        });
+                      }
+                    }}
+                    testID={`account-recovery-question-${index}-${option.key}`}
+                  >
+                    <Text
+                      style={[
+                        styles.choiceChipText,
+                        isSelected && styles.choiceChipTextSelected,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {selected ? (
+              <>
+                <Controller
+                  control={control}
+                  name={`answers.${selected}`}
+                  render={({ field }) => (
+                    <TextInput
+                      value={field.value ?? ""}
+                      onChangeText={field.onChange}
+                      placeholder="Votre réponse"
+                      placeholderTextColor={colors.textSecondary}
+                      style={[
+                        styles.textAreaInput,
+                        styles.answerInput,
+                        answerErr ? styles.inputError : null,
+                      ]}
+                      testID={`account-recovery-answer-${index}`}
+                    />
+                  )}
+                />
+                {answerErr ? (
+                  <Text style={styles.fieldError}>{answerErr}</Text>
+                ) : null}
+              </>
+            ) : null}
+          </View>
+        );
+      })}
+
+      {isParent ? (
+        <>
+          <View style={styles.fieldBlock}>
+            <Text style={styles.fieldLabel}>Classe de l&apos;enfant</Text>
+            <View style={styles.chipsWrap}>
+              {classOptions.map((option) => {
+                const selected = parentClassId === option.value;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.choiceChip,
+                      selected && styles.choiceChipSelected,
+                    ]}
+                    onPress={() =>
+                      setValue("parentClassId", option.value, {
+                        shouldValidate: submitCount > 0,
+                      })
+                    }
+                    testID={`account-parent-class-${option.value}`}
+                  >
+                    <Text
+                      style={[
+                        styles.choiceChipText,
+                        selected && styles.choiceChipTextSelected,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {errors.parentClassId ? (
+              <Text style={styles.fieldError}>
+                {errors.parentClassId.message}
+              </Text>
+            ) : null}
+          </View>
+
+          <View style={styles.fieldBlock}>
+            <Text style={styles.fieldLabel}>Nom de l&apos;enfant</Text>
+            <View style={styles.chipsWrap}>
+              {studentOptions.map((option) => {
+                const selected = parentStudentId === option.value;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.choiceChip,
+                      selected && styles.choiceChipSelected,
+                    ]}
+                    onPress={() =>
+                      setValue("parentStudentId", option.value, {
+                        shouldValidate: submitCount > 0,
+                      })
+                    }
+                    testID={`account-parent-student-${option.value}`}
+                  >
+                    <Text
+                      style={[
+                        styles.choiceChipText,
+                        selected && styles.choiceChipTextSelected,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {errors.parentStudentId ? (
+              <Text style={styles.fieldError}>
+                {errors.parentStudentId.message}
+              </Text>
+            ) : null}
+          </View>
+        </>
+      ) : null}
+
+      <View style={styles.actionsRowSplit}>
+        <ActionButton
+          label="Annuler"
+          variant="secondary"
+          onPress={onCancel}
+          stretch
+          testID="account-cancel-recovery"
+        />
+        <ActionButton
+          label="Modifier"
+          onPress={() => {
+            void handleSubmit(onValid, onInvalid)();
+          }}
+          loading={isSubmitting}
+          stretch
+          testID="account-save-recovery"
+        />
+      </View>
+    </View>
+  );
+}
+
+function SecurityFormCard({
+  section,
+  profile,
+  recoveryOptions,
+  loadingRecovery,
+  onClose,
+  onProfileUpdate,
+}: {
+  section: Exclude<SecuritySection, null>;
+  profile: AccountProfileResponse | null;
+  recoveryOptions: AccountRecoveryOptionsResponse | null;
+  loadingRecovery: boolean;
+  onClose: () => void;
+  onProfileUpdate: (updated: AccountProfileResponse) => void;
+}) {
+  const title =
+    section === "password" || section === "create-password"
+      ? "Mettre à jour votre mot de passe"
+      : section === "pin" || section === "add-phone"
+        ? "Mettre à jour votre code PIN"
+        : "Mettre à jour vos paramètres de récupération";
+
+  return (
+    <View style={styles.securityFormCard} testID="account-security-form-card">
+      <View style={styles.securityFormHero}>
+        <Text style={styles.securityFormHeroTitle}>{title}</Text>
+        <Text style={styles.securityFormHeroSubtitle}>
+          Vérifiez les informations puis validez la modification.
+        </Text>
+        <TouchableOpacity
+          style={styles.securityBackInline}
+          onPress={onClose}
+          testID="account-security-back"
+        >
+          <Ionicons name="arrow-back" size={14} color={colors.white} />
+          <Text style={styles.securityBackInlineLabel}>Retour</Text>
+        </TouchableOpacity>
+      </View>
+
+      {section === "create-password" ? (
+        <CreatePasswordForm
+          onSuccess={() => {
+            if (profile) onProfileUpdate({ ...profile, hasPassword: true });
+            onClose();
+          }}
+          onCancel={onClose}
+        />
+      ) : null}
+
+      {section === "password" ? (
+        <ChangePasswordForm onSuccess={onClose} onCancel={onClose} />
+      ) : null}
+
+      {section === "pin" ? (
+        <ChangePinForm onSuccess={onClose} onCancel={onClose} />
+      ) : null}
+
+      {section === "add-phone" ? (
+        <AddPhoneForm
+          onSuccess={() => {
+            if (profile)
+              onProfileUpdate({ ...profile, hasPhoneCredential: true });
+            onClose();
+          }}
+          onCancel={onClose}
+        />
+      ) : null}
+
+      {section === "recovery" ? (
+        loadingRecovery ? (
+          <LoadingBlock label="Chargement des options de récupération..." />
+        ) : recoveryOptions ? (
+          <RecoveryForm
+            recoveryOptions={recoveryOptions}
+            profile={profile}
+            onSuccess={onClose}
+            onCancel={onClose}
+          />
+        ) : null
+      ) : null}
+    </View>
+  );
+}
+
 function AccountScreenContent() {
   const router = useRouter();
   const { openDrawer } = useDrawer();
   const setUser = useAuthStore((state) => state.setUser);
-  const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
+  const showSuccess = useSuccessToastStore((state) => state.showSuccess);
 
   const [tab, setTab] = useState<AccountTab>("personal");
   const [loading, setLoading] = useState(true);
@@ -322,72 +1481,6 @@ function AccountScreenContent() {
   const [recoveryOptions, setRecoveryOptions] =
     useState<AccountRecoveryOptionsResponse | null>(null);
   const [loadingRecovery, setLoadingRecovery] = useState(false);
-
-  const [personalForm, setPersonalForm] = useState<PersonalFormState>({
-    firstName: "",
-    lastName: "",
-    gender: "M",
-    phone: "",
-  });
-  const [passwordForm, setPasswordForm] = useState<PasswordFormState>({
-    currentPassword: "",
-    newPassword: "",
-    confirmNewPassword: "",
-  });
-  const [pinForm, setPinForm] = useState<PinFormState>({
-    currentPin: "",
-    newPin: "",
-    confirmNewPin: "",
-  });
-  const [recoveryForm, setRecoveryForm] = useState<RecoveryFormState>({
-    birthDate: "",
-    selectedQuestions: [],
-    answers: {},
-    isParent: false,
-  });
-
-  const [personalErrors, setPersonalErrors] = useState<Record<string, string>>(
-    {},
-  );
-  const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>(
-    {},
-  );
-  const [pinErrors, setPinErrors] = useState<Record<string, string>>({});
-  const [recoveryErrors, setRecoveryErrors] = useState<Record<string, string>>(
-    {},
-  );
-
-  const [addEmailForm, setAddEmailForm] = useState<AddEmailFormState>({
-    email: "",
-  });
-  const [createPasswordForm, setCreatePasswordForm] =
-    useState<CreatePasswordFormState>({
-      newPassword: "",
-      confirmNewPassword: "",
-    });
-  const [addPhoneForm, setAddPhoneForm] = useState<AddPhoneFormState>({
-    phone: "",
-    pin: "",
-    confirmPin: "",
-  });
-
-  const [addEmailErrors, setAddEmailErrors] = useState<Record<string, string>>(
-    {},
-  );
-  const [createPasswordErrors, setCreatePasswordErrors] = useState<
-    Record<string, string>
-  >({});
-  const [addPhoneErrors, setAddPhoneErrors] = useState<Record<string, string>>(
-    {},
-  );
-
-  const [savingPersonal, setSavingPersonal] = useState(false);
-  const [savingPassword, setSavingPassword] = useState(false);
-  const [savingPin, setSavingPin] = useState(false);
-  const [savingRecovery, setSavingRecovery] = useState(false);
-  const [savingAddEmail, setSavingAddEmail] = useState(false);
-  const [savingCreatePassword, setSavingCreatePassword] = useState(false);
-  const [savingAddPhone, setSavingAddPhone] = useState(false);
   const [settingsLanguage, setSettingsLanguage] =
     useState<SettingsLanguage>("fr");
   const [selectedRole, setSelectedRole] = useState<AppRole | null>(null);
@@ -415,12 +1508,6 @@ function AccountScreenContent() {
   const syncProfileState = useCallback(
     (nextProfile: AccountProfileResponse) => {
       setProfile(nextProfile);
-      setPersonalForm({
-        firstName: nextProfile.firstName,
-        lastName: nextProfile.lastName,
-        gender: nextProfile.gender ?? "M",
-        phone: toLocalPhoneDisplay(nextProfile.phone),
-      });
       const currentUser = useAuthStore.getState().user;
       if (currentUser) {
         setUser({
@@ -459,15 +1546,11 @@ function AccountScreenContent() {
   }, [syncProfileState]);
 
   const loadRecovery = useCallback(async () => {
-    if (loadingRecovery) {
-      return;
-    }
+    if (loadingRecovery) return;
     try {
       setLoadingRecovery(true);
       const response = await accountApi.getRecoveryOptions();
       setRecoveryOptions(response);
-      setRecoveryForm(buildRecoveryForm(profile, response));
-      setRecoveryErrors({});
     } catch (error) {
       showError({
         title: "Récupération indisponible",
@@ -479,7 +1562,7 @@ function AccountScreenContent() {
     } finally {
       setLoadingRecovery(false);
     }
-  }, [loadingRecovery, profile, showError]);
+  }, [loadingRecovery, showError]);
 
   useEffect(() => {
     void loadProfile();
@@ -495,378 +1578,24 @@ function AccountScreenContent() {
     setSelectedRole(currentActiveRole);
   }, [currentActiveRole]);
 
-  const validateAddEmail = useCallback(() => {
-    const result = accountAddEmailSchema.safeParse(addEmailForm);
-    if (result.success) {
-      setAddEmailErrors({});
-      return true;
-    }
-    const nextErrors: Record<string, string> = {};
-    for (const issue of result.error.issues) {
-      nextErrors[String(issue.path[0] ?? "form")] = issue.message;
-    }
-    setAddEmailErrors(nextErrors);
-    return false;
-  }, [addEmailForm]);
-
-  const validateCreatePassword = useCallback(() => {
-    const result = accountCreatePasswordSchema.safeParse(createPasswordForm);
-    if (result.success) {
-      setCreatePasswordErrors({});
-      return true;
-    }
-    const nextErrors: Record<string, string> = {};
-    for (const issue of result.error.issues) {
-      nextErrors[String(issue.path[0] ?? "form")] = issue.message;
-    }
-    setCreatePasswordErrors(nextErrors);
-    return false;
-  }, [createPasswordForm]);
-
-  const validateAddPhone = useCallback(() => {
-    const result = accountAddPhoneCredentialSchema.safeParse(addPhoneForm);
-    if (result.success) {
-      setAddPhoneErrors({});
-      return true;
-    }
-    const nextErrors: Record<string, string> = {};
-    for (const issue of result.error.issues) {
-      nextErrors[String(issue.path[0] ?? "form")] = issue.message;
-    }
-    setAddPhoneErrors(nextErrors);
-    return false;
-  }, [addPhoneForm]);
-
-  const validatePersonal = useCallback(() => {
-    const result = accountPersonalProfileSchema.safeParse(personalForm);
-    if (result.success) {
-      setPersonalErrors({});
-      return true;
-    }
-    const nextErrors: Record<string, string> = {};
-    for (const issue of result.error.issues) {
-      nextErrors[String(issue.path[0] ?? "form")] = issue.message;
-    }
-    setPersonalErrors(nextErrors);
-    return false;
-  }, [personalForm]);
-
-  const validatePassword = useCallback(() => {
-    const result = accountChangePasswordSchema.safeParse(passwordForm);
-    if (result.success) {
-      setPasswordErrors({});
-      return true;
-    }
-    const nextErrors: Record<string, string> = {};
-    for (const issue of result.error.issues) {
-      nextErrors[String(issue.path[0] ?? "form")] = issue.message;
-    }
-    setPasswordErrors(nextErrors);
-    return false;
-  }, [passwordForm]);
-
-  const validatePin = useCallback(() => {
-    const result = accountChangePinSchema.safeParse(pinForm);
-    if (result.success) {
-      setPinErrors({});
-      return true;
-    }
-    const nextErrors: Record<string, string> = {};
-    for (const issue of result.error.issues) {
-      nextErrors[String(issue.path[0] ?? "form")] = issue.message;
-    }
-    setPinErrors(nextErrors);
-    return false;
-  }, [pinForm]);
-
-  const validateRecovery = useCallback(() => {
-    const result = accountRecoverySchema.safeParse(recoveryForm);
-    if (result.success) {
-      setRecoveryErrors({});
-      return true;
-    }
-    const nextErrors: Record<string, string> = {};
-    for (const issue of result.error.issues) {
-      const key =
-        issue.path.length > 1
-          ? `${String(issue.path[0])}.${String(issue.path[1])}`
-          : String(issue.path[0] ?? "form");
-      nextErrors[key] = issue.message;
-    }
-    setRecoveryErrors(nextErrors);
-    return false;
-  }, [recoveryForm]);
-
   async function handleRefresh() {
     setRefreshing(true);
     await Promise.all([loadProfile(), recoveryOptions ? loadRecovery() : null]);
   }
 
-  async function handleAddEmail() {
-    if (!validateAddEmail()) return;
-    try {
-      setSavingAddEmail(true);
-      await accountApi.addEmail({ email: addEmailForm.email });
-      setAddEmailForm({ email: "" });
-      setAddEmailErrors({});
-      showSuccess({
-        title: "Email envoyé",
-        message:
-          "Un lien de vérification a été envoyé. Vérifiez votre boite mail.",
-      });
-    } catch (error) {
-      showError({
-        title: "Ajout impossible",
-        message: getErrorMessage(
-          error,
-          "L'adresse email n'a pas pu être ajoutée.",
-        ),
-      });
-    } finally {
-      setSavingAddEmail(false);
-    }
-  }
-
-  async function handleCreatePassword() {
-    if (!validateCreatePassword()) return;
-    try {
-      setSavingCreatePassword(true);
-      await accountApi.createPassword({
-        newPassword: createPasswordForm.newPassword,
-      });
-      setCreatePasswordForm({ newPassword: "", confirmNewPassword: "" });
-      setCreatePasswordErrors({});
-      setOpenSecuritySection(null);
-      setProfile((current) =>
-        current ? { ...current, hasPassword: true } : current,
-      );
-      showSuccess({
-        title: "Mot de passe créé",
-        message: "Votre mot de passe a été configuré avec succès.",
-      });
-    } catch (error) {
-      showError({
-        title: "Création impossible",
-        message: getErrorMessage(
-          error,
-          "Le mot de passe n'a pas pu être créé.",
-        ),
-      });
-    } finally {
-      setSavingCreatePassword(false);
-    }
-  }
-
-  async function handleAddPhone() {
-    if (!validateAddPhone()) return;
-    try {
-      setSavingAddPhone(true);
-      await accountApi.addPhoneCredential({
-        phone: addPhoneForm.phone,
-        pin: addPhoneForm.pin,
-      });
-      setAddPhoneForm({ phone: "", pin: "", confirmPin: "" });
-      setAddPhoneErrors({});
-      setOpenSecuritySection(null);
-      setProfile((current) =>
-        current ? { ...current, hasPhoneCredential: true } : current,
-      );
-      await loadProfile();
-      showSuccess({
-        title: "Téléphone configuré",
-        message: "Votre numéro et PIN ont été ajoutés avec succès.",
-      });
-    } catch (error) {
-      showError({
-        title: "Configuration impossible",
-        message: getErrorMessage(
-          error,
-          "Le téléphone n'a pas pu être configuré.",
-        ),
-      });
-    } finally {
-      setSavingAddPhone(false);
-    }
-  }
-
-  async function handleSavePersonal() {
-    if (!validatePersonal()) {
-      return;
-    }
-    try {
-      setSavingPersonal(true);
-      const response = await accountApi.updateProfile(personalForm);
-      syncProfileState(response);
-      setEditingPersonal(false);
-      showSuccess({
-        title: "Profil mis à jour",
-        message: "Vos informations personnelles ont été enregistrées.",
-      });
-    } catch (error) {
-      showError({
-        title: "Mise à jour impossible",
-        message: getErrorMessage(
-          error,
-          "Les informations personnelles n'ont pas pu être enregistrées.",
-        ),
-      });
-    } finally {
-      setSavingPersonal(false);
-    }
-  }
-
-  async function handleSavePassword() {
-    if (!validatePassword()) {
-      return;
-    }
-    try {
-      setSavingPassword(true);
-      await accountApi.changePassword({
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword,
-      });
-      setPasswordForm({
-        currentPassword: "",
-        newPassword: "",
-        confirmNewPassword: "",
-      });
-      setPasswordErrors({});
-      setOpenSecuritySection(null);
-      showSuccess({
-        title: "Mot de passe modifié",
-        message: "Votre mot de passe a été mis à jour avec succès.",
-      });
-    } catch (error) {
-      const apiError = error as ApiClientError;
-      const message = getErrorMessage(
-        error,
-        "Le mot de passe n'a pas pu être modifié.",
-      );
-      setPasswordErrors((current) => ({
-        ...current,
-        currentPassword:
-          apiError.statusCode === 400 ? message : current.currentPassword,
-      }));
-      showError({
-        title: "Modification impossible",
-        message,
-      });
-    } finally {
-      setSavingPassword(false);
-    }
-  }
-
-  async function handleSavePin() {
-    if (!validatePin()) {
-      return;
-    }
-    try {
-      setSavingPin(true);
-      await accountApi.changePin({
-        currentPin: pinForm.currentPin,
-        newPin: pinForm.newPin,
-      });
-      setPinForm({
-        currentPin: "",
-        newPin: "",
-        confirmNewPin: "",
-      });
-      setPinErrors({});
-      setOpenSecuritySection(null);
-      showSuccess({
-        title: "PIN modifié",
-        message: "Votre code PIN a été mis à jour avec succès.",
-      });
-    } catch (error) {
-      const apiError = error as ApiClientError;
-      const message = getErrorMessage(
-        error,
-        "Le code PIN n'a pas pu être modifié.",
-      );
-      setPinErrors((current) => ({
-        ...current,
-        currentPin: apiError.statusCode === 400 ? message : current.currentPin,
-      }));
-      showError({
-        title: "Modification impossible",
-        message,
-      });
-    } finally {
-      setSavingPin(false);
-    }
-  }
-
-  async function handleSaveRecovery() {
-    if (!validateRecovery()) {
-      return;
-    }
-    const birthDate = parseDateToISO(recoveryForm.birthDate);
-    if (!birthDate) {
-      setRecoveryErrors((current) => ({
-        ...current,
-        birthDate: "Format attendu : JJ/MM/AAAA.",
-      }));
-      return;
-    }
-    try {
-      setSavingRecovery(true);
-      await accountApi.updateRecovery({
-        birthDate,
-        answers: recoveryForm.selectedQuestions.map((questionKey) => ({
-          questionKey,
-          answer: recoveryForm.answers[questionKey]?.trim() ?? "",
-        })),
-        ...(recoveryForm.isParent
-          ? {
-              parentClassId: recoveryForm.parentClassId,
-              parentStudentId: recoveryForm.parentStudentId,
-            }
-          : {}),
-      });
-      setOpenSecuritySection(null);
-      showSuccess({
-        title: "Récupération mise à jour",
-        message: "Les paramètres de récupération ont été enregistrés.",
-      });
-    } catch (error) {
-      showError({
-        title: "Enregistrement impossible",
-        message: getErrorMessage(
-          error,
-          "Les paramètres de récupération n'ont pas pu être enregistrés.",
-        ),
-      });
-    } finally {
-      setSavingRecovery(false);
-    }
-  }
-
   async function handleSaveActiveRole() {
-    if (!selectedRole) {
-      return;
-    }
-
+    if (!selectedRole) return;
     try {
       setSavingActiveRole(true);
       const response = await accountApi.setActiveRole({ role: selectedRole });
       setSelectedRole(response.activeRole);
       setProfile((current) =>
-        current
-          ? {
-              ...current,
-              activeRole: response.activeRole,
-            }
-          : current,
+        current ? { ...current, activeRole: response.activeRole } : current,
       );
-
       const currentUser = useAuthStore.getState().user;
       if (currentUser) {
-        setUser({
-          ...currentUser,
-          activeRole: response.activeRole,
-        });
+        setUser({ ...currentUser, activeRole: response.activeRole });
       }
-
       showSuccess({
         title: "Profil actif mis à jour",
         message: `${toReadableRole(response.activeRole)} est maintenant actif.`,
@@ -883,18 +1612,6 @@ function AccountScreenContent() {
       setSavingActiveRole(false);
     }
   }
-
-  const classOptions = (recoveryOptions?.classes ?? []).map((item) => ({
-    value: item.id,
-    label: `${item.name} · ${item.schoolYearLabel}`,
-  }));
-
-  const studentOptions = (recoveryOptions?.students ?? []).map((item) => ({
-    value: item.id,
-    label: `${item.firstName} ${item.lastName}`,
-  }));
-
-  const recoveryQuestionOptions = recoveryOptions?.questions ?? [];
 
   if (loading) {
     return (
@@ -951,97 +1668,15 @@ function AccountScreenContent() {
             subtitle="Coordonnées affichées dans votre compte"
             testID="account-personal-card"
           >
-            {editingPersonal ? (
-              <View style={styles.formStack}>
-                <TextField
-                  label="Prénom"
-                  value={personalForm.firstName}
-                  onChangeText={(value) =>
-                    setPersonalForm((current) => ({
-                      ...current,
-                      firstName: value,
-                    }))
-                  }
-                  testID="account-first-name-input"
-                />
-                {personalErrors.firstName ? (
-                  <Text style={styles.fieldError}>
-                    {personalErrors.firstName}
-                  </Text>
-                ) : null}
-
-                <TextField
-                  label="Nom"
-                  value={personalForm.lastName}
-                  onChangeText={(value) =>
-                    setPersonalForm((current) => ({
-                      ...current,
-                      lastName: value,
-                    }))
-                  }
-                  testID="account-last-name-input"
-                />
-                {personalErrors.lastName ? (
-                  <Text style={styles.fieldError}>
-                    {personalErrors.lastName}
-                  </Text>
-                ) : null}
-
-                <PillSelector
-                  label="Genre"
-                  value={personalForm.gender}
-                  options={GENDER_OPTIONS}
-                  onChange={(value) =>
-                    setPersonalForm((current) => ({
-                      ...current,
-                      gender: value as AccountGender,
-                    }))
-                  }
-                  testIDPrefix="account-gender"
-                />
-                {personalErrors.gender ? (
-                  <Text style={styles.fieldError}>{personalErrors.gender}</Text>
-                ) : null}
-
-                <TextField
-                  label="Téléphone"
-                  value={personalForm.phone}
-                  onChangeText={(value) =>
-                    setPersonalForm((current) => ({
-                      ...current,
-                      phone: normalizePhoneInput(value),
-                    }))
-                  }
-                  keyboardType="numeric"
-                  testID="account-phone-input"
-                />
-                {personalErrors.phone ? (
-                  <Text style={styles.fieldError}>{personalErrors.phone}</Text>
-                ) : null}
-
-                <View style={styles.actionsRow}>
-                  <ActionButton
-                    label="Annuler"
-                    variant="secondary"
-                    onPress={() => {
-                      if (profile) {
-                        syncProfileState(profile);
-                      }
-                      setPersonalErrors({});
-                      setEditingPersonal(false);
-                    }}
-                    testID="account-cancel-personal"
-                  />
-                  <ActionButton
-                    label="Enregistrer"
-                    onPress={() => {
-                      void handleSavePersonal();
-                    }}
-                    loading={savingPersonal}
-                    testID="account-save-personal"
-                  />
-                </View>
-              </View>
+            {editingPersonal && profile ? (
+              <PersonalFormEdit
+                profile={profile}
+                onSuccess={(updated) => {
+                  syncProfileState(updated);
+                  setEditingPersonal(false);
+                }}
+                onCancel={() => setEditingPersonal(false)}
+              />
             ) : (
               <View style={styles.infoList}>
                 <InfoRow label="Prénom" value={profile?.firstName ?? "-"} />
@@ -1059,38 +1694,11 @@ function AccountScreenContent() {
                 {profile?.email ? (
                   <InfoRow label="Email" value={profile.email} />
                 ) : (
-                  <View style={styles.addEmailBlock}>
-                    <Text style={styles.infoLabel}>EMAIL</Text>
-                    <Text style={styles.infoValueSecondary}>Non renseigné</Text>
-                    <TextInput
-                      value={addEmailForm.email}
-                      onChangeText={(value) =>
-                        setAddEmailForm((current) => ({
-                          ...current,
-                          email: value,
-                        }))
-                      }
-                      placeholder="votre@email.com"
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      style={styles.textAreaInput}
-                      testID="account-add-email-input"
-                    />
-                    {addEmailErrors.email ? (
-                      <Text style={styles.fieldError}>
-                        {addEmailErrors.email}
-                      </Text>
-                    ) : null}
-                    <ActionButton
-                      label={savingAddEmail ? "Envoi..." : "Ajouter l'email"}
-                      onPress={() => {
-                        void handleAddEmail();
-                      }}
-                      loading={savingAddEmail}
-                      testID="account-submit-add-email"
-                    />
-                  </View>
+                  <AddEmailSection
+                    onSuccess={() => {
+                      void loadProfile();
+                    }}
+                  />
                 )}
                 <InfoRow
                   label="Téléphone"
@@ -1216,556 +1824,16 @@ function AccountScreenContent() {
                 </TouchableOpacity>
               </SectionCard>
             ) : (
-              <View
-                style={styles.securityFormCard}
-                testID="account-security-form-card"
-              >
-                <View style={styles.securityFormHero}>
-                  <Text style={styles.securityFormHeroTitle}>
-                    {openSecuritySection === "password"
-                      ? "Mettre à jour votre mot de passe"
-                      : openSecuritySection === "pin"
-                        ? "Mettre à jour votre code PIN"
-                        : "Mettre à jour vos paramètres de récupération"}
-                  </Text>
-                  <Text style={styles.securityFormHeroSubtitle}>
-                    Vérifiez les informations puis validez la modification.
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.securityBackInline}
-                    onPress={() => setOpenSecuritySection(null)}
-                    testID="account-security-back"
-                  >
-                    <Ionicons
-                      name="arrow-back"
-                      size={14}
-                      color={colors.white}
-                    />
-                    <Text style={styles.securityBackInlineLabel}>Retour</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {openSecuritySection === "create-password" ? (
-                  <View style={styles.formStack}>
-                    <Text style={styles.securityIntroText}>
-                      Votre compte n&apos;a pas encore de mot de passe.
-                      Définissez-en un pour vous connecter avec votre email.
-                    </Text>
-                    <FieldLabel text="Nouveau mot de passe" />
-                    <SecureTextField
-                      value={createPasswordForm.newPassword}
-                      onChangeText={(value) =>
-                        setCreatePasswordForm((current) => ({
-                          ...current,
-                          newPassword: value,
-                        }))
-                      }
-                      placeholder="Nouveau mot de passe"
-                      testID="account-create-password-new-input"
-                    />
-                    {createPasswordErrors.newPassword ? (
-                      <Text style={styles.fieldError}>
-                        {createPasswordErrors.newPassword}
-                      </Text>
-                    ) : null}
-                    <FieldLabel text="Confirmation" />
-                    <SecureTextField
-                      value={createPasswordForm.confirmNewPassword}
-                      onChangeText={(value) =>
-                        setCreatePasswordForm((current) => ({
-                          ...current,
-                          confirmNewPassword: value,
-                        }))
-                      }
-                      placeholder="Confirmez le mot de passe"
-                      testID="account-create-password-confirm-input"
-                    />
-                    {createPasswordErrors.confirmNewPassword ? (
-                      <Text style={styles.fieldError}>
-                        {createPasswordErrors.confirmNewPassword}
-                      </Text>
-                    ) : null}
-                    <View style={styles.actionsRowSplit}>
-                      <ActionButton
-                        label="Annuler"
-                        variant="secondary"
-                        onPress={() => setOpenSecuritySection(null)}
-                        stretch
-                        testID="account-cancel-create-password"
-                      />
-                      <ActionButton
-                        label="Créer"
-                        onPress={() => {
-                          void handleCreatePassword();
-                        }}
-                        loading={savingCreatePassword}
-                        stretch
-                        testID="account-save-create-password"
-                      />
-                    </View>
-                  </View>
-                ) : null}
-
-                {openSecuritySection === "add-phone" ? (
-                  <View style={styles.formStack}>
-                    <Text style={styles.securityIntroText}>
-                      Ajoutez un numéro de téléphone et un code PIN pour vous
-                      connecter depuis l&apos;application mobile.
-                    </Text>
-                    <FieldLabel text="Téléphone (9 chiffres)" />
-                    <TextInput
-                      value={addPhoneForm.phone}
-                      onChangeText={(value) =>
-                        setAddPhoneForm((current) => ({
-                          ...current,
-                          phone: normalizePhoneInput(value),
-                        }))
-                      }
-                      placeholder="6XXXXXXXX"
-                      placeholderTextColor={colors.textSecondary}
-                      keyboardType="numeric"
-                      style={styles.textAreaInput}
-                      testID="account-add-phone-input"
-                    />
-                    {addPhoneErrors.phone ? (
-                      <Text style={styles.fieldError}>
-                        {addPhoneErrors.phone}
-                      </Text>
-                    ) : null}
-                    <FieldLabel text="Code PIN (6 chiffres)" />
-                    <SecureTextField
-                      variant="pin"
-                      keyboardType="numeric"
-                      value={addPhoneForm.pin}
-                      onChangeText={(value) =>
-                        setAddPhoneForm((current) => ({
-                          ...current,
-                          pin: value.replace(/\D/g, "").slice(0, 6),
-                        }))
-                      }
-                      placeholder="123456"
-                      testID="account-add-phone-pin-input"
-                    />
-                    {addPhoneErrors.pin ? (
-                      <Text style={styles.fieldError}>
-                        {addPhoneErrors.pin}
-                      </Text>
-                    ) : null}
-                    <FieldLabel text="Confirmer le PIN" />
-                    <SecureTextField
-                      variant="pin"
-                      keyboardType="numeric"
-                      value={addPhoneForm.confirmPin}
-                      onChangeText={(value) =>
-                        setAddPhoneForm((current) => ({
-                          ...current,
-                          confirmPin: value.replace(/\D/g, "").slice(0, 6),
-                        }))
-                      }
-                      placeholder="123456"
-                      testID="account-add-phone-confirm-pin-input"
-                    />
-                    {addPhoneErrors.confirmPin ? (
-                      <Text style={styles.fieldError}>
-                        {addPhoneErrors.confirmPin}
-                      </Text>
-                    ) : null}
-                    <View style={styles.actionsRowSplit}>
-                      <ActionButton
-                        label="Annuler"
-                        variant="secondary"
-                        onPress={() => setOpenSecuritySection(null)}
-                        stretch
-                        testID="account-cancel-add-phone"
-                      />
-                      <ActionButton
-                        label="Configurer"
-                        onPress={() => {
-                          void handleAddPhone();
-                        }}
-                        loading={savingAddPhone}
-                        stretch
-                        testID="account-save-add-phone"
-                      />
-                    </View>
-                  </View>
-                ) : null}
-
-                {openSecuritySection === "password" ? (
-                  <View style={styles.formStack}>
-                    <FieldLabel text="Mot de passe actuel" />
-                    <SecureTextField
-                      value={passwordForm.currentPassword}
-                      onChangeText={(value) =>
-                        setPasswordForm((current) => ({
-                          ...current,
-                          currentPassword: value,
-                        }))
-                      }
-                      placeholder="Mot de passe actuel"
-                      testID="account-current-password-input"
-                    />
-                    {passwordErrors.currentPassword ? (
-                      <Text style={styles.fieldError}>
-                        {passwordErrors.currentPassword}
-                      </Text>
-                    ) : null}
-
-                    <FieldLabel text="Nouveau mot de passe" />
-                    <SecureTextField
-                      value={passwordForm.newPassword}
-                      onChangeText={(value) =>
-                        setPasswordForm((current) => ({
-                          ...current,
-                          newPassword: value,
-                        }))
-                      }
-                      placeholder="Nouveau mot de passe"
-                      testID="account-new-password-input"
-                    />
-                    {passwordErrors.newPassword ? (
-                      <Text style={styles.fieldError}>
-                        {passwordErrors.newPassword}
-                      </Text>
-                    ) : null}
-
-                    <FieldLabel text="Confirmation" />
-                    <SecureTextField
-                      value={passwordForm.confirmNewPassword}
-                      onChangeText={(value) =>
-                        setPasswordForm((current) => ({
-                          ...current,
-                          confirmNewPassword: value,
-                        }))
-                      }
-                      placeholder="Confirmez le nouveau mot de passe"
-                      testID="account-confirm-password-input"
-                    />
-                    {passwordErrors.confirmNewPassword ? (
-                      <Text style={styles.fieldError}>
-                        {passwordErrors.confirmNewPassword}
-                      </Text>
-                    ) : null}
-
-                    <View style={styles.actionsRowSplit}>
-                      <ActionButton
-                        label="Annuler"
-                        variant="secondary"
-                        onPress={() => setOpenSecuritySection(null)}
-                        stretch
-                        testID="account-cancel-password"
-                      />
-                      <ActionButton
-                        label="Modifier"
-                        onPress={() => {
-                          void handleSavePassword();
-                        }}
-                        loading={savingPassword}
-                        stretch
-                        testID="account-save-password"
-                      />
-                    </View>
-                  </View>
-                ) : null}
-
-                {openSecuritySection === "pin" ? (
-                  <View style={styles.formStack}>
-                    <FieldLabel text="PIN actuel" />
-                    <SecureTextField
-                      variant="pin"
-                      keyboardType="numeric"
-                      value={pinForm.currentPin}
-                      onChangeText={(value) =>
-                        setPinForm((current) => ({
-                          ...current,
-                          currentPin: value.replace(/\D/g, "").slice(0, 6),
-                        }))
-                      }
-                      placeholder="PIN actuel"
-                      testID="account-current-pin-input"
-                    />
-                    {pinErrors.currentPin ? (
-                      <Text style={styles.fieldError}>
-                        {pinErrors.currentPin}
-                      </Text>
-                    ) : null}
-
-                    <FieldLabel text="Nouveau PIN" />
-                    <SecureTextField
-                      variant="pin"
-                      keyboardType="numeric"
-                      value={pinForm.newPin}
-                      onChangeText={(value) =>
-                        setPinForm((current) => ({
-                          ...current,
-                          newPin: value.replace(/\D/g, "").slice(0, 6),
-                        }))
-                      }
-                      placeholder="Nouveau PIN"
-                      testID="account-new-pin-input"
-                    />
-                    {pinErrors.newPin ? (
-                      <Text style={styles.fieldError}>{pinErrors.newPin}</Text>
-                    ) : null}
-
-                    <FieldLabel text="Confirmation" />
-                    <SecureTextField
-                      variant="pin"
-                      keyboardType="numeric"
-                      value={pinForm.confirmNewPin}
-                      onChangeText={(value) =>
-                        setPinForm((current) => ({
-                          ...current,
-                          confirmNewPin: value.replace(/\D/g, "").slice(0, 6),
-                        }))
-                      }
-                      placeholder="Confirmez le nouveau PIN"
-                      testID="account-confirm-pin-input"
-                    />
-                    {pinErrors.confirmNewPin ? (
-                      <Text style={styles.fieldError}>
-                        {pinErrors.confirmNewPin}
-                      </Text>
-                    ) : null}
-
-                    <View style={styles.actionsRowSplit}>
-                      <ActionButton
-                        label="Annuler"
-                        variant="secondary"
-                        onPress={() => setOpenSecuritySection(null)}
-                        stretch
-                        testID="account-cancel-pin"
-                      />
-                      <ActionButton
-                        label="Modifier"
-                        onPress={() => {
-                          void handleSavePin();
-                        }}
-                        loading={savingPin}
-                        stretch
-                        testID="account-save-pin"
-                      />
-                    </View>
-                  </View>
-                ) : null}
-
-                {openSecuritySection === "recovery" ? (
-                  loadingRecovery ? (
-                    <LoadingBlock label="Chargement des options de récupération..." />
-                  ) : (
-                    <View style={styles.formStack}>
-                      <TextField
-                        label="Date de naissance"
-                        value={recoveryForm.birthDate}
-                        onChangeText={(value) =>
-                          setRecoveryForm((current) => ({
-                            ...current,
-                            birthDate: formatDateInput(value),
-                          }))
-                        }
-                        placeholder="JJ/MM/AAAA"
-                        testID="account-birth-date-input"
-                      />
-                      {recoveryErrors.birthDate ? (
-                        <Text style={styles.fieldError}>
-                          {recoveryErrors.birthDate}
-                        </Text>
-                      ) : null}
-
-                      {[0, 1, 2].map((index) => {
-                        const selected =
-                          recoveryForm.selectedQuestions[index] ?? "";
-                        return (
-                          <View key={index} style={styles.questionBlock}>
-                            <Text style={styles.fieldLabel}>
-                              Question {index + 1}
-                            </Text>
-                            <View style={styles.chipsWrap}>
-                              {recoveryQuestionOptions.map((option) => {
-                                const isSelected = selected === option.key;
-                                return (
-                                  <TouchableOpacity
-                                    key={`${index}-${option.key}`}
-                                    style={[
-                                      styles.choiceChip,
-                                      isSelected && styles.choiceChipSelected,
-                                    ]}
-                                    onPress={() =>
-                                      setRecoveryForm((current) => {
-                                        const nextQuestions = [
-                                          ...current.selectedQuestions,
-                                        ];
-                                        nextQuestions[index] = option.key;
-                                        return {
-                                          ...current,
-                                          selectedQuestions: nextQuestions,
-                                          answers: {
-                                            ...current.answers,
-                                            [option.key]:
-                                              current.answers[option.key] ?? "",
-                                          },
-                                        };
-                                      })
-                                    }
-                                    testID={`account-recovery-question-${index}-${option.key}`}
-                                  >
-                                    <Text
-                                      style={[
-                                        styles.choiceChipText,
-                                        isSelected &&
-                                          styles.choiceChipTextSelected,
-                                      ]}
-                                    >
-                                      {option.label}
-                                    </Text>
-                                  </TouchableOpacity>
-                                );
-                              })}
-                            </View>
-                            {selected ? (
-                              <>
-                                <TextInput
-                                  value={recoveryForm.answers[selected] ?? ""}
-                                  onChangeText={(value) =>
-                                    setRecoveryForm((current) => ({
-                                      ...current,
-                                      answers: {
-                                        ...current.answers,
-                                        [selected]: value,
-                                      },
-                                    }))
-                                  }
-                                  placeholder="Votre réponse"
-                                  placeholderTextColor={colors.textSecondary}
-                                  style={[
-                                    styles.textAreaInput,
-                                    styles.answerInput,
-                                  ]}
-                                  testID={`account-recovery-answer-${index}`}
-                                />
-                                {recoveryErrors[`answers.${selected}`] ? (
-                                  <Text style={styles.fieldError}>
-                                    {recoveryErrors[`answers.${selected}`]}
-                                  </Text>
-                                ) : null}
-                              </>
-                            ) : null}
-                          </View>
-                        );
-                      })}
-
-                      {recoveryForm.isParent ? (
-                        <>
-                          <View style={styles.fieldBlock}>
-                            <Text style={styles.fieldLabel}>
-                              Classe de l'enfant
-                            </Text>
-                            <View style={styles.chipsWrap}>
-                              {classOptions.map((option) => {
-                                const selected =
-                                  recoveryForm.parentClassId === option.value;
-                                return (
-                                  <TouchableOpacity
-                                    key={option.value}
-                                    style={[
-                                      styles.choiceChip,
-                                      selected && styles.choiceChipSelected,
-                                    ]}
-                                    onPress={() =>
-                                      setRecoveryForm((current) => ({
-                                        ...current,
-                                        parentClassId: option.value,
-                                      }))
-                                    }
-                                    testID={`account-parent-class-${option.value}`}
-                                  >
-                                    <Text
-                                      style={[
-                                        styles.choiceChipText,
-                                        selected &&
-                                          styles.choiceChipTextSelected,
-                                      ]}
-                                    >
-                                      {option.label}
-                                    </Text>
-                                  </TouchableOpacity>
-                                );
-                              })}
-                            </View>
-                            {recoveryErrors.parentClassId ? (
-                              <Text style={styles.fieldError}>
-                                {recoveryErrors.parentClassId}
-                              </Text>
-                            ) : null}
-                          </View>
-
-                          <View style={styles.fieldBlock}>
-                            <Text style={styles.fieldLabel}>
-                              Nom de l'enfant
-                            </Text>
-                            <View style={styles.chipsWrap}>
-                              {studentOptions.map((option) => {
-                                const selected =
-                                  recoveryForm.parentStudentId === option.value;
-                                return (
-                                  <TouchableOpacity
-                                    key={option.value}
-                                    style={[
-                                      styles.choiceChip,
-                                      selected && styles.choiceChipSelected,
-                                    ]}
-                                    onPress={() =>
-                                      setRecoveryForm((current) => ({
-                                        ...current,
-                                        parentStudentId: option.value,
-                                      }))
-                                    }
-                                    testID={`account-parent-student-${option.value}`}
-                                  >
-                                    <Text
-                                      style={[
-                                        styles.choiceChipText,
-                                        selected &&
-                                          styles.choiceChipTextSelected,
-                                      ]}
-                                    >
-                                      {option.label}
-                                    </Text>
-                                  </TouchableOpacity>
-                                );
-                              })}
-                            </View>
-                            {recoveryErrors.parentStudentId ? (
-                              <Text style={styles.fieldError}>
-                                {recoveryErrors.parentStudentId}
-                              </Text>
-                            ) : null}
-                          </View>
-                        </>
-                      ) : null}
-
-                      <View style={styles.actionsRowSplit}>
-                        <ActionButton
-                          label="Annuler"
-                          variant="secondary"
-                          onPress={() => setOpenSecuritySection(null)}
-                          stretch
-                          testID="account-cancel-recovery"
-                        />
-                        <ActionButton
-                          label="Modifier"
-                          onPress={() => {
-                            void handleSaveRecovery();
-                          }}
-                          loading={savingRecovery}
-                          stretch
-                          testID="account-save-recovery"
-                        />
-                      </View>
-                    </View>
-                  )
-                ) : null}
-              </View>
+              <SecurityFormCard
+                section={openSecuritySection}
+                profile={profile}
+                recoveryOptions={recoveryOptions}
+                loadingRecovery={loadingRecovery}
+                onClose={() => setOpenSecuritySection(null)}
+                onProfileUpdate={(updated) => {
+                  setProfile(updated);
+                }}
+              />
             )}
           </View>
         ) : null}
@@ -2114,6 +2182,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.textPrimary,
   },
+  infoValueSecondary: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: "italic",
+  },
+  addEmailBlock: {
+    gap: 10,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
   securityStack: {
     gap: 16,
   },
@@ -2291,6 +2370,9 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 15,
   },
+  inputError: {
+    borderColor: "#FCA5A5",
+  },
   answerInput: {
     minHeight: 52,
   },
@@ -2337,26 +2419,21 @@ const styles = StyleSheet.create({
   helpItem: {
     flexDirection: "row",
     gap: 12,
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: colors.warmSurface,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
   },
   helpIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.warmSurface,
   },
   helpText: {
     flex: 1,
     gap: 4,
   },
   helpTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
     color: colors.textPrimary,
   },
@@ -2364,35 +2441,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 19,
     color: colors.textSecondary,
-  },
-  addEmailBlock: {
-    marginTop: 8,
-    gap: 8,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  infoValueSecondary: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontStyle: "italic",
-  },
-  statusBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  statusBadgeWarning: {
-    backgroundColor: "rgba(245,158,11,0.1)",
-    borderColor: "rgba(245,158,11,0.35)",
-  },
-  statusBadgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  statusBadgeTextWarning: {
-    color: "#b45309",
   },
 });

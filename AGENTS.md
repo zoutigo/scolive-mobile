@@ -338,6 +338,32 @@ Livraison phase 11 :
   - ouverture du drawer
   - sélection d'une classe
   - entrée dans un sous-module
+
+## Standard formulaires mobile
+
+Règle produit à appliquer partout dans `scolive-mobile` :
+
+- tout nouveau formulaire métier doit utiliser `react-hook-form` avec `zodResolver`
+- ne plus gérer l'état métier des champs avec des `useState` isolés quand il s'agit d'un vrai formulaire
+- le bouton submit reste cliquable tant que le formulaire n'est pas en cours d'envoi
+- interdiction de bloquer le submit avec `isDirty`, `dirtyFields`, `isValid` ou une logique équivalente
+- les erreurs de validation s'affichent au niveau du champ
+- les champs invalides doivent avoir une bordure d'erreur visible
+- les placeholders doivent aider la saisie et éviter les formats trop techniques quand une formulation plus claire est possible
+
+Comportement de validation attendu :
+
+- validation RHF en `mode: "onChange"` et `reValidateMode: "onChange"` par défaut
+- l'utilisateur peut tenter un submit même si le formulaire est invalide
+- au submit invalide, il faut focus le premier champ invalide en partant du plus haut
+- pour les composants non focusables nativement (`DatePickerField`, `TimePickerField`, sélecteurs custom), afficher l'erreur sur le champ et garder une hiérarchie visuelle claire même si le focus natif n'est pas possible
+- après interaction sur un champ, son erreur doit se mettre à jour en direct pendant la correction
+
+Composants partagés :
+
+- privilégier des wrappers RHF (`FormTextField`, `FormSecureTextField`, etc.) quand un pattern commence à se répéter
+- tout champ de saisie réutilisable doit exposer les props nécessaires au style d'erreur
+- les champs texte sécurisés doivent forward leur `ref` pour permettre le focus automatique RHF
   - propagation correcte du `classId`
   - chargement des bonnes données
 - [ ] Ajouter une couverture d'intégration spécifique au parcours `classe > Notes`

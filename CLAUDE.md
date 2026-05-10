@@ -209,6 +209,31 @@ onLayout={(e) => { someY.current = e.nativeEvent.layout.y; }}
 
 > **Rebuild requis** : tout changement dans `AndroidManifest.xml` nécessite `npm run android:build` (pas seulement un reload Metro).
 
+## Standard formulaires
+
+Pour tout formulaire métier mobile :
+
+- utiliser `react-hook-form` pour l'état du formulaire
+- utiliser `zod` via `zodResolver` pour la validation
+- laisser le bouton submit actif tant que l'envoi n'est pas en cours
+- ne jamais bloquer un submit avec `isDirty`, `dirtyFields`, `isValid` ou une condition équivalente
+- afficher les erreurs directement sous les champs
+- appliquer une bordure d'erreur visible sur les champs invalides
+- fournir des placeholders réellement utiles à la saisie
+
+Comportement UX attendu :
+
+- config RHF par défaut : `mode: "onChange"` et `reValidateMode: "onChange"`
+- au submit invalide, focus sur le premier champ invalide en partant du haut
+- dès qu'un champ a été touché et commence à être corrigé, son erreur doit se mettre à jour en direct
+- pour les champs custom non focusables nativement, garder l'erreur au plus près du champ et une hiérarchie visuelle claire
+
+Règles d'implémentation :
+
+- préférer des wrappers communs pour éviter de répéter la plomberie RHF
+- les composants d'input réutilisables doivent accepter l'état d'erreur
+- les composants texte sécurisés doivent forward leur `ref` pour que RHF puisse focus automatiquement les champs invalides
+
 ## Lancer sur l'émulateur
 
 Émulateur de référence pour le dev quotidien : **`Scolive_GooglePlay_API33`**.

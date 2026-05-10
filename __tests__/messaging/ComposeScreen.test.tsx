@@ -132,12 +132,6 @@ async function fillSendableForm() {
   fireEvent.press(screen.getByTestId("recipient-modal-confirm"));
   fireEvent.changeText(screen.getByTestId("subject-input"), "Objet test");
   fireEvent.press(screen.getByTestId("rich-editor-set-content"));
-  await waitFor(() => {
-    expect(
-      screen.getByTestId("send-btn").props.accessibilityState?.disabled ??
-        screen.getByTestId("send-btn").props.disabled,
-    ).toBe(false);
-  });
 }
 
 describe("Rendu du formulaire", () => {
@@ -196,21 +190,63 @@ describe("Rendu du formulaire", () => {
 });
 
 describe("Bouton Envoyer", () => {
-  it("est désactivé par défaut (formulaire vide)", () => {
+  it("est actif par défaut — pas de blocage isValid avant envoi", () => {
     renderCompose();
     const btn = screen.getByTestId("send-btn");
     expect(
       btn.props.accessibilityState?.disabled ?? btn.props.disabled,
-    ).toBeTruthy();
+    ).toBeFalsy();
   });
 
-  it("s'active quand le formulaire est complet", async () => {
+  it("affiche l'erreur destinataires si aucun sélectionné au submit", async () => {
     renderCompose();
-    await fillSendableForm();
-    const btn = screen.getByTestId("send-btn");
-    expect(btn.props.accessibilityState?.disabled ?? btn.props.disabled).toBe(
-      false,
-    );
+    fireEvent.changeText(screen.getByTestId("subject-input"), "Réunion");
+    fireEvent.press(screen.getByTestId("rich-editor-set-content"));
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("send-btn"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Choisissez au moins un destinataire."),
+      ).toBeTruthy();
+    });
+    expect(api.send).not.toHaveBeenCalled();
+  });
+
+  it("affiche l'erreur corps si le message est vide au submit", async () => {
+    renderCompose();
+    fireEvent.press(screen.getByTestId("recipients-field"));
+    fireEvent.press(screen.getByTestId("recipient-modal-confirm"));
+    fireEvent.changeText(screen.getByTestId("subject-input"), "Réunion");
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("send-btn"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Rédigez un message avant d'envoyer."),
+      ).toBeTruthy();
+    });
+    expect(api.send).not.toHaveBeenCalled();
+  });
+
+  it("affiche l'erreur objet si le sujet est vide au submit", async () => {
+    renderCompose();
+    fireEvent.press(screen.getByTestId("recipients-field"));
+    fireEvent.press(screen.getByTestId("recipient-modal-confirm"));
+    fireEvent.press(screen.getByTestId("rich-editor-set-content"));
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("send-btn"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("L'objet est obligatoire.")).toBeTruthy();
+    });
+    expect(api.send).not.toHaveBeenCalled();
   });
 });
 
