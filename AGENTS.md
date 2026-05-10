@@ -8,6 +8,10 @@ Ce fichier liste les règles non-négociables à respecter lors de toute modific
 Préparer le code, faire tourner les vérifications (format, lint, typecheck, tests), puis attendre
 l'instruction explicite de l'utilisateur avant tout `git commit` ou `git push`.
 
+**Sauf indication explicite contraire de l'utilisateur, toute modification git doit se faire sur la branche `dev`.**
+Si la branche courante n'est pas `dev`, basculer sur `dev` avant de commencer le travail ou expliquer clairement
+le blocage si ce n'est pas possible sans risque.
+
 ## TODO — Module notes / évaluations mobile
 
 - [x] Analyser le module `notes` / `evaluations` de `scolive-web` et aligner les contrats API/types mobile

@@ -43,6 +43,13 @@ Vérification : `adb reverse --list`
 
 ## Flux `code .` (développement quotidien)
 
+## Git
+
+- sauf indication explicite contraire de l'utilisateur, toujours travailler sur la branche `dev`
+- si la branche courante n'est pas `dev`, basculer dessus avant toute modification ou signaler le blocage
+
+## Flux `code .` (développement quotidien)
+
 1. `dev.sh` démarre VS Code et lance `Scolive_GooglePlay_API33` (snapshot)
 2. Tâche `mobile-emulator` : `android-emulator-nvidia.sh Scolive_GooglePlay_API33`
 3. Tâche `mobile` : `workspace-mobile-start.sh`

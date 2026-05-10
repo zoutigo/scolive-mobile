@@ -161,15 +161,16 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     const currentSchoolSlug = useAuthStore.getState().schoolSlug;
-    await unregisterPushRegistration(currentSchoolSlug).catch(() => {});
-    await authApi.logout().catch(() => {});
     set({
       user: null,
       accessToken: null,
       schoolSlug: null,
       isAuthenticated: false,
+      isLoading: false,
       authErrorMessage: null,
     });
+    await unregisterPushRegistration(currentSchoolSlug).catch(() => {});
+    await authApi.logout().catch(() => {});
   },
 
   invalidateSession: async (message?: string) => {
