@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking } from "react-native";
 import { Stack } from "expo-router";
 import { useAuthStore } from "../src/store/auth.store";
@@ -9,8 +9,8 @@ import { AppUpdateModal } from "../src/components/AppUpdateModal";
 import { AppInstallGuideModal } from "../src/components/AppInstallGuideModal";
 
 export default function RootLayout() {
-  const initialize = useAuthStore((s) => s.initialize);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const didInitializeRef = useRef(false);
 
   const {
     updateAvailable,
@@ -21,14 +21,22 @@ export default function RootLayout() {
   } = useAppVersionCheck();
 
   useEffect(() => {
+    if (didInitializeRef.current) {
+      return;
+    }
+    didInitializeRef.current = true;
     configurePushNotifications();
-    initialize();
-  }, [initialize]);
+    void useAuthStore.getState().initialize();
+  }, []);
 
-  function handleDownload() {
+  const handleDownload = useCallback(() => {
     void Linking.openURL(downloadUrl);
     setShowInstallGuide(true);
-  }
+  }, [downloadUrl]);
+
+  const handleCloseInstallGuide = useCallback(() => {
+    setShowInstallGuide(false);
+  }, []);
 
   return (
     <>
@@ -63,7 +71,7 @@ export default function RootLayout() {
       />
       <AppInstallGuideModal
         visible={showInstallGuide}
-        onClose={() => setShowInstallGuide(false)}
+        onClose={handleCloseInstallGuide}
       />
     </>
   );
