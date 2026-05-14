@@ -332,8 +332,7 @@ describe("CurriculumsAdminScreen", () => {
     expect(
       screen.getByTestId("curriculum-level-form-sheet-header"),
     ).toHaveStyle({
-      backgroundColor: "#FCF8F2",
-      borderBottomWidth: 1,
+      backgroundColor: "#08467D",
     });
     expect(
       screen.getByText(
@@ -342,14 +341,11 @@ describe("CurriculumsAdminScreen", () => {
     ).toBeTruthy();
     expect(screen.getByTestId("curriculum-level-form-sheet-close")).toHaveStyle(
       {
-        borderRadius: 12,
-        backgroundColor: "rgba(255,255,255,0.78)",
+        borderRadius: 10,
+        backgroundColor: "rgba(255,255,255,0.15)",
       },
     );
-    expect(screen.getByTestId("curriculum-level-form-action-bar")).toHaveStyle({
-      borderRadius: 16,
-      backgroundColor: "#FBF6EF",
-    });
+    expect(screen.getByTestId("curriculum-level-form-action-bar")).toBeTruthy();
 
     fireEvent.press(screen.getByTestId("curriculum-level-form-sheet-close"));
     await waitFor(() =>
@@ -370,7 +366,7 @@ describe("CurriculumsAdminScreen", () => {
     );
 
     expect(screen.getByTestId("curriculum-form-sheet-header")).toHaveStyle({
-      backgroundColor: "#FCF8F2",
+      backgroundColor: "#08467D",
     });
     expect(
       screen.getByText(
@@ -385,10 +381,7 @@ describe("CurriculumsAdminScreen", () => {
       borderRadius: 14,
       backgroundColor: "#F9F3EA",
     });
-    expect(screen.getByTestId("curriculum-form-action-bar")).toHaveStyle({
-      borderRadius: 16,
-      backgroundColor: "#FBF6EF",
-    });
+    expect(screen.getByTestId("curriculum-form-action-bar")).toBeTruthy();
 
     fireEvent.press(screen.getByTestId("curriculum-form-level"));
     await waitFor(() =>
@@ -479,7 +472,7 @@ describe("CurriculumsAdminScreen", () => {
     expect(
       screen.getByTestId("curriculum-subject-form-sheet-header"),
     ).toHaveStyle({
-      backgroundColor: "#FCF8F2",
+      backgroundColor: "#08467D",
     });
     expect(
       screen.getByText(
@@ -499,14 +492,16 @@ describe("CurriculumsAdminScreen", () => {
     expect(
       screen.getByTestId("curriculum-subject-form-sheet-close"),
     ).toHaveStyle({
-      borderRadius: 12,
-      backgroundColor: "rgba(255,255,255,0.78)",
+      borderRadius: 10,
+      backgroundColor: "rgba(255,255,255,0.15)",
     });
     expect(
       screen.getByTestId("curriculum-subject-form-action-bar"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("curriculum-subject-form-action-bar"),
     ).toHaveStyle({
-      borderRadius: 16,
-      backgroundColor: "#FBF6EF",
+      flex: 1,
     });
 
     fireEvent.press(screen.getByTestId("curriculum-subject-form-curriculum"));
@@ -701,6 +696,102 @@ describe("CurriculumsAdminScreen", () => {
       screen.queryByTestId("curriculum-subject-pill-curr-subj-1"),
     ).toBeNull();
     expect(screen.getByText("Coef. 4 · 5 h/sem · Obligatoire")).toBeTruthy();
+  });
+
+  it("bouton submit du form niveau/filière toujours actif même sur form vide", async () => {
+    render(<CurriculumsAdminScreen />);
+    await waitFor(() =>
+      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
+    await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
+    );
+    const submit = screen.getByTestId("curriculum-level-form-submit");
+    expect(submit.props.accessibilityState?.disabled).toBeFalsy();
+  });
+
+  it("submit vide sur form niveau affiche les erreurs code et libellé sans appeler l'API", async () => {
+    render(<CurriculumsAdminScreen />);
+    await waitFor(() =>
+      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
+    await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("curriculum-level-form-submit"));
+
+    expect(
+      await screen.findByTestId("curriculum-level-code-input-error"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("curriculum-level-label-input-error"),
+    ).toBeTruthy();
+    expect(mockCurriculumsApi.createAcademicLevel).not.toHaveBeenCalled();
+  });
+
+  it("les champs invalides restent en erreur, les champs corrigés perdent leur erreur", async () => {
+    render(<CurriculumsAdminScreen />);
+    await waitFor(() =>
+      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
+    await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
+    );
+
+    // Taper une valeur invalide puis corriger via onChange (mode: "onChange")
+    fireEvent.changeText(
+      screen.getByTestId("curriculum-level-code-input"),
+      "X",
+    );
+    fireEvent.changeText(screen.getByTestId("curriculum-level-code-input"), "");
+    expect(
+      await screen.findByTestId("curriculum-level-code-input-error"),
+    ).toBeTruthy();
+
+    // Le libellé n'a pas été touché → pas d'erreur avant submit
+    expect(
+      screen.queryByTestId("curriculum-level-label-input-error"),
+    ).toBeNull();
+    expect(mockCurriculumsApi.createAcademicLevel).not.toHaveBeenCalled();
+  });
+
+  it("bouton submit du form curriculum toujours actif même sur form vide", async () => {
+    render(<CurriculumsAdminScreen />);
+    await waitFor(() =>
+      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-form-sheet")).toBeTruthy(),
+    );
+    const submit = screen.getByTestId("curriculum-form-submit");
+    expect(submit.props.accessibilityState?.disabled).toBeFalsy();
+  });
+
+  it("bouton submit du form matière toujours actif même sur form vide", async () => {
+    render(<CurriculumsAdminScreen />);
+    await waitFor(() =>
+      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-selector")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-subject-form-sheet")).toBeTruthy(),
+    );
+    const submit = screen.getByTestId("curriculum-subject-form-submit");
+    expect(submit.props.accessibilityState?.disabled).toBeFalsy();
   });
 
   it("bloque l'accès pour un utilisateur non school admin sans lancer les appels API", () => {

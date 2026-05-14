@@ -234,7 +234,12 @@ const SCHOOL_NAV: NavItem[] = [
   },
   placeholder("Inscriptions", "person-add-outline", "enrollments"),
   placeholder("Élèves", "people-outline", "students"),
-  placeholder("Enseignants", "school-outline", "teachers"),
+  {
+    key: "teachers",
+    label: "Enseignants",
+    icon: "school-outline",
+    route: "/teachers",
+  },
   placeholder("Parents-Élèves", "people-circle-outline", "parents"),
   {
     key: "grades",

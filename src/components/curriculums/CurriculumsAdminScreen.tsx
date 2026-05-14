@@ -199,9 +199,9 @@ function ModalFrame(props: {
   title: string;
   eyebrow: string;
   subtitle?: string;
-  accentColor?: string;
   onClose: () => void;
   children: React.ReactNode;
+  footer: React.ReactNode;
   testID: string;
 }) {
   return (
@@ -223,44 +223,41 @@ function ModalFrame(props: {
         >
           <View style={styles.sheetCard} testID={props.testID}>
             <View style={styles.sheetHeader} testID={`${props.testID}-header`}>
-              <View
-                style={[
-                  styles.sheetHeaderGlow,
-                  {
-                    backgroundColor: `${props.accentColor ?? colors.primary}18`,
-                  },
-                ]}
-              />
-              <View
-                style={[
-                  styles.sheetHeaderGlowSecondary,
-                  {
-                    backgroundColor: `${props.accentColor ?? colors.warmAccent}10`,
-                  },
-                ]}
-              />
-              <View style={styles.sheetHeaderText}>
-                <Text style={styles.sheetEyebrow}>{props.eyebrow}</Text>
-                <Text style={styles.sheetTitle}>{props.title}</Text>
-                {props.subtitle ? (
-                  <Text style={styles.sheetSubtitle}>{props.subtitle}</Text>
-                ) : null}
+              <View style={styles.sheetHandle} />
+              <View style={styles.sheetHeaderRow}>
+                <View style={styles.sheetHeaderText}>
+                  <Text style={styles.sheetEyebrow}>{props.eyebrow}</Text>
+                  <Text style={styles.sheetTitle} numberOfLines={2}>
+                    {props.title}
+                  </Text>
+                  {props.subtitle ? (
+                    <Text style={styles.sheetSubtitle} numberOfLines={2}>
+                      {props.subtitle}
+                    </Text>
+                  ) : null}
+                </View>
+                <TouchableOpacity
+                  style={styles.sheetCloseButton}
+                  onPress={props.onClose}
+                  testID={`${props.testID}-close`}
+                >
+                  <Ionicons
+                    name="close"
+                    size={18}
+                    color="rgba(255,255,255,0.9)"
+                  />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                style={styles.sheetCloseButton}
-                onPress={props.onClose}
-                testID={`${props.testID}-close`}
-              >
-                <Ionicons name="close" size={18} color={colors.primary} />
-              </TouchableOpacity>
             </View>
             <ScrollView
+              style={styles.sheetScrollArea}
               contentContainerStyle={styles.sheetBody}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
               {props.children}
             </ScrollView>
+            <View style={styles.sheetFooter}>{props.footer}</View>
           </View>
         </KeyboardAvoidingView>
       </View>
@@ -268,7 +265,7 @@ function ModalFrame(props: {
   );
 }
 
-function TextFormField(props: {
+type TextFormFieldProps = {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
@@ -277,38 +274,43 @@ function TextFormField(props: {
   error?: string;
   testID: string;
   keyboardType?: "default" | "numeric";
-}) {
-  const [focused, setFocused] = useState(false);
+};
 
-  return (
-    <View style={styles.formField}>
-      <Text style={styles.formLabel}>{props.label}</Text>
-      <TextInput
-        value={props.value}
-        onChangeText={props.onChangeText}
-        onBlur={() => {
-          setFocused(false);
-          props.onBlur();
-        }}
-        onFocus={() => setFocused(true)}
-        placeholder={props.placeholder}
-        placeholderTextColor={colors.textSecondary}
-        keyboardType={props.keyboardType}
-        style={[
-          styles.formInput,
-          focused && styles.formInputFocused,
-          props.error ? styles.formInputError : null,
-        ]}
-        testID={props.testID}
-      />
-      {props.error ? (
-        <Text style={styles.formError} testID={`${props.testID}-error`}>
-          {props.error}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
+const TextFormField = React.forwardRef<TextInput, TextFormFieldProps>(
+  function TextFormField(props, ref) {
+    const [focused, setFocused] = useState(false);
+
+    return (
+      <View style={styles.formField}>
+        <Text style={styles.formLabel}>{props.label}</Text>
+        <TextInput
+          ref={ref}
+          value={props.value}
+          onChangeText={props.onChangeText}
+          onBlur={() => {
+            setFocused(false);
+            props.onBlur();
+          }}
+          onFocus={() => setFocused(true)}
+          placeholder={props.placeholder}
+          placeholderTextColor={colors.textSecondary}
+          keyboardType={props.keyboardType}
+          style={[
+            styles.formInput,
+            focused && styles.formInputFocused,
+            props.error ? styles.formInputError : null,
+          ]}
+          testID={props.testID}
+        />
+        {props.error ? (
+          <Text style={styles.formError} testID={`${props.testID}-error`}>
+            {props.error}
+          </Text>
+        ) : null}
+      </View>
+    );
+  },
+);
 
 function CompactSelectField(props: {
   label?: string;
@@ -496,6 +498,7 @@ function LevelTrackFormSheet(props: {
     control,
     handleSubmit,
     reset,
+    setFocus: focusField,
     formState: { errors },
   } = useForm<z.infer<typeof LEVEL_TRACK_FORM_SCHEMA>>({
     resolver: zodResolver(LEVEL_TRACK_FORM_SCHEMA),
@@ -539,14 +542,32 @@ function LevelTrackFormSheet(props: {
           ? "Définissez un repère académique clair pour organiser les classes et les programmes."
           : "Structurez les parcours proposés avec une dénomination claire et réutilisable."
       }
-      accentColor={props.kind === "level" ? "#D89B5B" : "#247C72"}
       testID={`curriculum-${props.kind}-form-sheet`}
+      footer={
+        <FormActions
+          submitLabel={actionLabel}
+          isSubmitting={props.isSubmitting}
+          onCancel={props.onClose}
+          onSubmit={() =>
+            void handleSubmit(
+              async (values) => props.onSubmit(values),
+              (errs) => {
+                const first = Object.keys(errs)[0];
+                if (first)
+                  focusField(first as Parameters<typeof focusField>[0]);
+              },
+            )()
+          }
+          testIDPrefix={`curriculum-${props.kind}-form`}
+        />
+      }
     >
       <Controller
         control={control}
         name="code"
-        render={({ field: { value, onChange, onBlur } }) => (
+        render={({ field: { value, onChange, onBlur, ref } }) => (
           <TextFormField
+            ref={ref}
             label="Code"
             value={value}
             onChangeText={onChange}
@@ -560,8 +581,9 @@ function LevelTrackFormSheet(props: {
       <Controller
         control={control}
         name="label"
-        render={({ field: { value, onChange, onBlur } }) => (
+        render={({ field: { value, onChange, onBlur, ref } }) => (
           <TextFormField
+            ref={ref}
             label="Libellé"
             value={value}
             onChangeText={onChange}
@@ -573,15 +595,6 @@ function LevelTrackFormSheet(props: {
             testID={`curriculum-${props.kind}-label-input`}
           />
         )}
-      />
-      <FormActions
-        submitLabel={actionLabel}
-        isSubmitting={props.isSubmitting}
-        onCancel={props.onClose}
-        onSubmit={() =>
-          void handleSubmit(async (values) => props.onSubmit(values))()
-        }
-        testIDPrefix={`curriculum-${props.kind}-form`}
       />
     </ModalFrame>
   );
@@ -601,6 +614,7 @@ function CurriculumFormSheet(props: {
     handleSubmit,
     watch,
     reset,
+    setFocus: focusField,
     formState: { errors },
   } = useForm<z.infer<typeof CURRICULUM_FORM_SCHEMA>>({
     resolver: zodResolver(CURRICULUM_FORM_SCHEMA),
@@ -642,8 +656,31 @@ function CurriculumFormSheet(props: {
       title="Curriculum"
       eyebrow={props.item ? "Modification" : "Création"}
       subtitle="Assemblez un niveau et une filière dans un formulaire compact pour produire un intitulé cohérent."
-      accentColor="#0C5FA8"
       testID="curriculum-form-sheet"
+      footer={
+        <FormActions
+          submitLabel={props.item ? "Enregistrer" : "Créer le curriculum"}
+          isSubmitting={props.isSubmitting}
+          onCancel={props.onClose}
+          onSubmit={() =>
+            void handleSubmit(
+              async (formValues) =>
+                props.onSubmit({
+                  academicLevelId: formValues.academicLevelId,
+                  trackId: formValues.trackId?.trim()
+                    ? formValues.trackId.trim()
+                    : undefined,
+                }),
+              (errs) => {
+                const first = Object.keys(errs)[0];
+                if (first)
+                  focusField(first as Parameters<typeof focusField>[0]);
+              },
+            )()
+          }
+          testIDPrefix="curriculum-form"
+        />
+      }
     >
       <Controller
         control={control}
@@ -693,22 +730,6 @@ function CurriculumFormSheet(props: {
           {previewName}
         </Text>
       </View>
-      <FormActions
-        submitLabel={props.item ? "Enregistrer" : "Créer le curriculum"}
-        isSubmitting={props.isSubmitting}
-        onCancel={props.onClose}
-        onSubmit={() =>
-          void handleSubmit(async (formValues) =>
-            props.onSubmit({
-              academicLevelId: formValues.academicLevelId,
-              trackId: formValues.trackId?.trim()
-                ? formValues.trackId.trim()
-                : undefined,
-            }),
-          )()
-        }
-        testIDPrefix="curriculum-form"
-      />
     </ModalFrame>
   );
 }
@@ -730,6 +751,7 @@ function CurriculumSubjectFormSheet(props: {
     control,
     handleSubmit,
     reset,
+    setFocus: focusField,
     formState: { errors },
   } = useForm<z.infer<typeof CURRICULUM_SUBJECT_FORM_SCHEMA>>({
     resolver: zodResolver(CURRICULUM_SUBJECT_FORM_SCHEMA),
@@ -773,8 +795,32 @@ function CurriculumSubjectFormSheet(props: {
       title="Matière du curriculum"
       eyebrow={props.item ? "Modification" : "Ajout"}
       subtitle="Sélectionnez rapidement le curriculum et la matière, puis ajustez les paramètres pédagogiques."
-      accentColor="#E07B2A"
       testID="curriculum-subject-form-sheet"
+      footer={
+        <FormActions
+          submitLabel={props.item ? "Enregistrer" : "Ajouter la matière"}
+          isSubmitting={props.isSubmitting}
+          onCancel={props.onClose}
+          onSubmit={() =>
+            void handleSubmit(
+              async (values) => {
+                await props.onSubmit(values.curriculumId, {
+                  subjectId: values.subjectId,
+                  isMandatory: values.isMandatory,
+                  coefficient: normalizeOptionalNumber(values.coefficient),
+                  weeklyHours: normalizeOptionalNumber(values.weeklyHours),
+                });
+              },
+              (errs) => {
+                const first = Object.keys(errs)[0];
+                if (first)
+                  focusField(first as Parameters<typeof focusField>[0]);
+              },
+            )()
+          }
+          testIDPrefix="curriculum-subject-form"
+        />
+      }
     >
       <Controller
         control={control}
@@ -822,8 +868,9 @@ function CurriculumSubjectFormSheet(props: {
       <Controller
         control={control}
         name="coefficient"
-        render={({ field: { value, onChange, onBlur } }) => (
+        render={({ field: { value, onChange, onBlur, ref } }) => (
           <TextFormField
+            ref={ref}
             label="Coefficient"
             value={value ?? ""}
             onChangeText={onChange}
@@ -838,8 +885,9 @@ function CurriculumSubjectFormSheet(props: {
       <Controller
         control={control}
         name="weeklyHours"
-        render={({ field: { value, onChange, onBlur } }) => (
+        render={({ field: { value, onChange, onBlur, ref } }) => (
           <TextFormField
+            ref={ref}
             label="Heures / semaine"
             value={value ?? ""}
             onChangeText={onChange}
@@ -874,22 +922,6 @@ function CurriculumSubjectFormSheet(props: {
             />
           </View>
         )}
-      />
-      <FormActions
-        submitLabel={props.item ? "Enregistrer" : "Ajouter la matière"}
-        isSubmitting={props.isSubmitting}
-        onCancel={props.onClose}
-        onSubmit={() =>
-          void handleSubmit(async (values) => {
-            await props.onSubmit(values.curriculumId, {
-              subjectId: values.subjectId,
-              isMandatory: values.isMandatory,
-              coefficient: normalizeOptionalNumber(values.coefficient),
-              weeklyHours: normalizeOptionalNumber(values.weeklyHours),
-            });
-          })()
-        }
-        testIDPrefix="curriculum-subject-form"
       />
     </ModalFrame>
   );
@@ -2192,77 +2224,84 @@ const styles = StyleSheet.create({
   },
   sheetKeyboard: {
     justifyContent: "flex-end",
+    maxHeight: "88%",
+    flexShrink: 1,
   },
   sheetCard: {
-    maxHeight: "88%",
+    flex: 1,
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     overflow: "hidden",
   },
   sheetHeader: {
-    position: "relative",
+    backgroundColor: colors.primary,
+    paddingTop: 10,
+    paddingHorizontal: 18,
+    paddingBottom: 16,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignSelf: "center",
+    marginBottom: 12,
+  },
+  sheetHeaderRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    justifyContent: "space-between",
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 16,
-    backgroundColor: "#FCF8F2",
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEDBC6",
-  },
-  sheetHeaderGlow: {
-    position: "absolute",
-    width: 170,
-    height: 170,
-    borderRadius: 999,
-    top: -92,
-    right: -34,
-  },
-  sheetHeaderGlowSecondary: {
-    position: "absolute",
-    width: 110,
-    height: 110,
-    borderRadius: 999,
-    top: 16,
-    right: 84,
+    gap: 10,
   },
   sheetHeaderText: {
     flex: 1,
-    gap: 5,
-    paddingRight: 12,
+    gap: 3,
   },
   sheetEyebrow: {
-    color: colors.warmAccent,
-    fontSize: 11,
-    fontWeight: "800",
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 10,
+    fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.8,
   },
   sheetTitle: {
-    color: colors.textPrimary,
-    fontSize: 20,
+    color: colors.white,
+    fontSize: 17,
     fontWeight: "800",
+    lineHeight: 22,
   },
   sheetSubtitle: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 2,
   },
   sheetCloseButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.78)",
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#E7D8C8",
+    marginTop: 14,
+  },
+  sheetScrollArea: {
+    flex: 1,
   },
   sheetBody: {
     padding: 18,
+    paddingBottom: 12,
     gap: 16,
+  },
+  sheetFooter: {
+    backgroundColor: colors.warmSurface,
+    borderTopWidth: 1,
+    borderTopColor: colors.warmBorder,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 20,
+    flexDirection: "row",
+    gap: 10,
   },
   formField: {
     gap: 8,
@@ -2338,16 +2377,9 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   formActions: {
+    flex: 1,
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     gap: 10,
-    marginTop: 8,
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: "#FBF6EF",
-    borderWidth: 1,
-    borderColor: "#EEDBC6",
   },
   secondaryAction: {
     flex: 1,

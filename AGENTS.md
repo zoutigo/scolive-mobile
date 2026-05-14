@@ -396,6 +396,65 @@ Pattern correct :
 
 Le projet utilise `"strict": true`. Pas de `any` implicite, pas de `// @ts-ignore`.
 
+## Standard formulaires — RHF + Zod
+
+Tous les formulaires de l'application doivent respecter ce comportement sans exception :
+
+### Validation à la frappe (`mode: "onChange"`)
+
+```tsx
+useForm({
+  resolver: zodResolver(schema),
+  mode: "onChange", // Zod valide chaque champ dès que l'utilisateur le modifie
+});
+```
+
+- Les erreurs apparaissent **au fur et à mesure** que l'utilisateur remplit les champs.
+- La bordure du champ en erreur passe en rouge via le style `formInputError` ou `compactSelectTriggerError`.
+- Aucune erreur avant la première interaction — l'état initial est neutre.
+
+### Bouton submit toujours actif
+
+```tsx
+// ❌ Interdit — bloque l'utilisateur avant qu'il ait vu les erreurs
+<FormActions submitDisabled={!isValid} ... />
+
+// ✅ Correct — le bouton est toujours cliquable
+<FormActions ... />
+```
+
+Le bouton ne doit être désactivé **que pendant** l'envoi effectif (`isSubmitting`).
+
+### Focus sur le premier champ en erreur au submit
+
+```tsx
+const { handleSubmit, setFocus: focusField } = useForm({ ... });
+
+// Dans le footer / FormActions :
+onSubmit={handleSubmit(successFn, (errs) => {
+  const first = Object.keys(errs)[0];
+  if (first) focusField(first as Parameters<typeof focusField>[0]);
+})}
+```
+
+- `TextFormField` doit être un `React.forwardRef<TextInput>` pour que `setFocus` puisse appeler `.focus()` sur le champ natif.
+- Les contrôleurs de champs texte doivent passer `field.ref` :
+  ```tsx
+  render={({ field: { value, onChange, onBlur, ref } }) => (
+    <TextFormField ref={ref} ... />
+  )}
+  ```
+- Pour les champs select (`CompactSelectField`), `setFocus` est un no-op acceptable — les erreurs s'affichent quand même en rouge.
+
+### Couverture de tests attendue
+
+Pour chaque formulaire, les tests doivent vérifier :
+
+1. Le bouton submit n'est pas `disabled` sur un formulaire vide.
+2. Un submit vide déclenche les messages d'erreur Zod sur les champs requis.
+3. L'API n'est pas appelée tant que le formulaire est invalide.
+4. Un champ invalide modifié (`mode: "onChange"`) perd son erreur dès qu'il devient valide.
+
 ## Règles UI transverses
 
 - Toute nouvelle UI de liste à chargement progressif doit utiliser le composant partagé `src/components/lists/InfiniteScrollList.tsx`
