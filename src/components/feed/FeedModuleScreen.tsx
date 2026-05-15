@@ -213,7 +213,6 @@ export function FeedModuleScreen({
             ? error.message
             : "Impossible de publier cette actualité pour le moment.",
       });
-      throw error;
     }
   }
 

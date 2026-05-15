@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -95,10 +96,15 @@ describe("DisciplineStudentScreen", () => {
 
     fireEvent.changeText(screen.getByTestId("input-reason"), "   ");
     fireEvent.changeText(screen.getByTestId("input-occurred-at"), "bad");
-    fireEvent.press(screen.getByTestId("btn-submit"));
 
-    expect(screen.getByText("Le motif est obligatoire.")).toBeOnTheScreen();
-    expect(screen.getByText("La date est invalide.")).toBeOnTheScreen();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("btn-submit"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Le motif est obligatoire.")).toBeOnTheScreen();
+      expect(screen.getByText("La date est invalide.")).toBeOnTheScreen();
+    });
     expect(api.create).not.toHaveBeenCalled();
   });
 

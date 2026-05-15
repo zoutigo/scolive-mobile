@@ -1,6 +1,7 @@
 import React from "react";
 import { Alert } from "react-native";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -93,8 +94,43 @@ describe("FeedComposerCard", () => {
     });
   });
 
-  it("bloque la publication si le contenu est vide", async () => {
-    const onSubmit = jest.fn().mockResolvedValue(undefined);
+  it("affiche une erreur inline si le titre est vide au submit", async () => {
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("feed-composer-submit"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Le titre est obligatoire.")).toBeTruthy();
+    });
+  });
+
+  it("affiche l'erreur de titre en temps réel si la valeur ne contient que des espaces", async () => {
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+
+    // " " differs from the default "" → isDirty=true; trim() → "" → invalid
+    fireEvent.changeText(screen.getByTestId("feed-composer-title"), " ");
+
+    await waitFor(() => {
+      expect(screen.getByText("Le titre est obligatoire.")).toBeTruthy();
+    });
+  });
+
+  it("affiche une erreur inline si le contenu est vide (pas d'Alert)", async () => {
+    const onSubmit = jest.fn();
 
     render(
       <FeedComposerCard
@@ -111,12 +147,30 @@ describe("FeedComposerCard", () => {
     fireEvent.press(screen.getByTestId("feed-composer-submit"));
 
     await waitFor(() => {
-      expect(Alert.alert).toHaveBeenCalledWith(
-        "Contenu manquant",
-        "Ajoutez du contenu avant de publier cette actualité.",
-      );
+      expect(
+        screen.getByText(
+          "Ajoutez du contenu avant de publier cette actualité.",
+        ),
+      ).toBeTruthy();
     });
     expect(onSubmit).not.toHaveBeenCalled();
+    expect(Alert.alert).not.toHaveBeenCalledWith(
+      "Contenu manquant",
+      expect.any(String),
+    );
+  });
+
+  it("le bouton Publier est actif sans saisie (pas de blocage canSubmit)", () => {
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+
+    const submitBtn = screen.getByTestId("feed-composer-submit");
+    expect(submitBtn.props.accessibilityState?.disabled).toBeFalsy();
   });
 
   it("construit un sondage valide", async () => {
@@ -158,6 +212,31 @@ describe("FeedComposerCard", () => {
           pollOptions: ["07:30", "08:00"],
         }),
       );
+    });
+  });
+
+  it("affiche une erreur si la question de sondage est vide au submit", async () => {
+    render(
+      <FeedComposerCard
+        viewerRole="TEACHER"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId("feed-composer-type-poll"));
+    fireEvent.changeText(
+      screen.getByTestId("feed-composer-title"),
+      "Transport",
+    );
+    fireEvent.press(screen.getByTestId("rich-editor-set-content"));
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("feed-composer-submit"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("La question est obligatoire.")).toBeTruthy();
     });
   });
 

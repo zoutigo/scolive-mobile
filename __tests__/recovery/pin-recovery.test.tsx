@@ -359,8 +359,9 @@ describe("PinRecoveryScreen", () => {
       // N'a remplit qu'une seule réponse
       fireEvent.changeText(getByTestId("input-answer-0"), "dupont");
       fireEvent.press(getByTestId("btn-step2"));
-      const err = await findByTestId("error-message");
-      expect(err.props.children).toContain("Répondez à toutes les questions");
+      const err = await findByTestId("error-answer-1");
+      expect(err.props.children).toContain("au moins 2 caractères");
+      expect(await findByTestId("error-answer-2")).toBeTruthy();
     });
 
     it("affiche une erreur si une réponse est trop courte (< 2 chars)", async () => {
@@ -370,8 +371,8 @@ describe("PinRecoveryScreen", () => {
       fireEvent.changeText(getByTestId("input-answer-1"), "yaoundé");
       fireEvent.changeText(getByTestId("input-answer-2"), "football");
       fireEvent.press(getByTestId("btn-step2"));
-      const err = await findByTestId("error-message");
-      expect(err.props.children).toContain("min. 2 caractères");
+      const err = await findByTestId("error-answer-0");
+      expect(err.props.children).toContain("au moins 2 caractères");
     });
 
     it("affiche l'erreur API RECOVERY_INVALID", async () => {

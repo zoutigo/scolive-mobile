@@ -1,12 +1,17 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import { DisciplineForm } from "../../src/components/discipline/DisciplineForm";
 import { makeLifeEvent } from "../../test-utils/discipline.fixtures";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
 describe("DisciplineForm", () => {
-  it("affiche les erreurs zod de validation et n'appelle pas onSubmit", () => {
+  it("affiche les erreurs zod de validation et n'appelle pas onSubmit", async () => {
     const onSubmit = jest.fn();
 
     render(<DisciplineForm onSubmit={onSubmit} />);
@@ -16,15 +21,17 @@ describe("DisciplineForm", () => {
     fireEvent.changeText(screen.getByTestId("input-duration"), "abc");
     fireEvent.press(screen.getByTestId("btn-submit"));
 
-    expect(screen.getByText("Le motif est obligatoire.")).toBeOnTheScreen();
-    expect(screen.getByText("La date est invalide.")).toBeOnTheScreen();
-    expect(
-      screen.getByText("La durée doit être un entier positif."),
-    ).toBeOnTheScreen();
+    await waitFor(() => {
+      expect(screen.getByText("Le motif est obligatoire.")).toBeOnTheScreen();
+      expect(screen.getByText("La date est invalide.")).toBeOnTheScreen();
+      expect(
+        screen.getByText("La durée doit être un entier positif."),
+      ).toBeOnTheScreen();
+    });
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it("soumet un payload nettoye et converti", () => {
+  it("soumet un payload nettoye et converti", async () => {
     const onSubmit = jest.fn();
 
     render(<DisciplineForm onSubmit={onSubmit} />);
@@ -41,17 +48,19 @@ describe("DisciplineForm", () => {
     fireEvent.changeText(screen.getByTestId("input-comment"), "  Billet recu ");
     fireEvent.press(screen.getByTestId("btn-submit"));
 
-    expect(onSubmit).toHaveBeenCalledWith({
-      type: "ABSENCE",
-      occurredAt: new Date("2026-04-09T08:30").toISOString(),
-      reason: "Retard portail",
-      durationMinutes: 15,
-      justified: false,
-      comment: "Billet recu",
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({
+        type: "ABSENCE",
+        occurredAt: new Date("2026-04-09T08:30").toISOString(),
+        reason: "Retard portail",
+        durationMinutes: 15,
+        justified: false,
+        comment: "Billet recu",
+      });
     });
   });
 
-  it("masque le switch justifie pour les sanctions et omet justified du payload", () => {
+  it("masque le switch justifie pour les sanctions et omet justified du payload", async () => {
     const onSubmit = jest.fn();
 
     render(<DisciplineForm onSubmit={onSubmit} />);
@@ -66,12 +75,14 @@ describe("DisciplineForm", () => {
     );
     fireEvent.press(screen.getByTestId("btn-submit"));
 
-    expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "SANCTION",
-        justified: undefined,
-      }),
-    );
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "SANCTION",
+          justified: undefined,
+        }),
+      );
+    });
   });
 
   it("pre-remplit les valeurs en edition", () => {

@@ -12,6 +12,9 @@ import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { RichEditor } from "react-native-pell-rich-editor";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { colors } from "../../theme";
 import { RichTextToolbar } from "../editor/RichTextToolbar";
 import type {
@@ -38,6 +41,12 @@ type Props = {
     mimeType: string;
   }) => Promise<{ url: string }>;
   onCancel?: () => void;
+};
+
+type FormValues = {
+  title: string;
+  pollQuestion: string;
+  pollOptions: Array<{ value: string }>;
 };
 
 const COLOR_PRESETS = [
@@ -87,24 +96,88 @@ export function FeedComposerCard({
   onCancel,
 }: Props) {
   const editorRef = useRef<RichEditor>(null);
+  const titleRef = useRef<TextInput>(null);
+  const pollQuestionRef = useRef<TextInput>(null);
+
   const audienceOptions = useMemo(
     () => getAudienceOptions(viewerRole),
     [viewerRole],
   );
+
   const [type, setType] = useState<FeedPostType>(initialType);
-  const [title, setTitle] = useState("");
   const [bodyHtml, setBodyHtml] = useState("");
-  const [pollQuestion, setPollQuestion] = useState("");
-  const [pollOptions, setPollOptions] = useState(["", ""]);
+  const [bodyError, setBodyError] = useState<string | null>(null);
   const [featuredDays, setFeaturedDays] = useState("0");
   const [attachments, setAttachments] = useState<DraftAttachment[]>([]);
   const [selectedAudienceScope, setSelectedAudienceScope] =
     useState<FeedAudienceScope>(audienceOptions[0]?.scope ?? "SCHOOL_ALL");
-  const [submitting, setSubmitting] = useState(false);
+
+  // typeRef lets the stable schema closure read the current type at validation time
+  const typeRef = useRef<FeedPostType>(type);
+  typeRef.current = type;
+
+  // Schema initialized once via ref; superRefine reads typeRef.current at each call
+  const schemaRef = useRef(
+    z
+      .object({
+        title: z.string().trim().min(1, "Le titre est obligatoire."),
+        pollQuestion: z.string(),
+        pollOptions: z.array(z.object({ value: z.string() })),
+      })
+      .superRefine((val, ctx) => {
+        if (typeRef.current !== "POLL") return;
+        if (!val.pollQuestion.trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["pollQuestion"],
+            message: "La question est obligatoire.",
+          });
+        }
+        if (val.pollOptions.filter((o) => o.value.trim()).length < 2) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["pollOptions"],
+            message: "Au moins 2 options non vides sont requises.",
+          });
+        }
+      }),
+  );
+
+  const { control, handleSubmit, formState, reset } = useForm<FormValues>({
+    mode: "onChange",
+    reValidateMode: "onChange",
+    resolver: zodResolver(schemaRef.current),
+    defaultValues: {
+      title: "",
+      pollQuestion: "",
+      pollOptions: [{ value: "" }, { value: "" }],
+    },
+  });
+
+  const { fields, append } = useFieldArray({
+    control,
+    name: "pollOptions",
+  });
+
+  const { isSubmitting, submitCount } = formState;
 
   useEffect(() => {
     setType(initialType);
   }, [initialType]);
+
+  function showFieldErr(fieldState: {
+    error?: { message?: string };
+    isDirty: boolean;
+    isTouched: boolean;
+  }): string | null {
+    if (
+      fieldState.error &&
+      (fieldState.isDirty || fieldState.isTouched || submitCount > 0)
+    ) {
+      return fieldState.error.message ?? null;
+    }
+    return null;
+  }
 
   function openTextColorMenu() {
     Alert.alert("Couleur du texte", "Choisissez une couleur", [
@@ -144,9 +217,7 @@ export function FeedComposerCard({
       quality: 0.85,
       exif: false,
     });
-    if (result.canceled || !result.assets[0]) {
-      return;
-    }
+    if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
     try {
       const response = await onUploadInlineImage({
@@ -171,20 +242,15 @@ export function FeedComposerCard({
       copyToCacheDirectory: true,
       type: ["application/*", "image/*", "text/*"],
     });
-
-    if (result.canceled) {
-      return;
-    }
-
+    if (result.canceled) return;
     setAttachments((current) => {
       const next = [...current];
       result.assets.forEach((asset) => {
         const key = `${asset.name}:${asset.size ?? 0}`;
         if (
           next.some((entry) => `${entry.fileName}:${entry.sizeLabel}` === key)
-        ) {
+        )
           return;
-        }
         next.push({
           id: `${asset.name}-${Date.now()}-${next.length}`,
           fileName: asset.name,
@@ -199,73 +265,51 @@ export function FeedComposerCard({
     setAttachments((current) => current.filter((entry) => entry.id !== id));
   }
 
-  function canSubmit() {
-    if (!title.trim()) {
-      return false;
+  async function onValid(data: FormValues) {
+    const resolvedHtml = await resolveEditorHtml();
+    if (!hasTextContent(resolvedHtml)) {
+      setBodyError("Ajoutez du contenu avant de publier cette actualité.");
+      return;
     }
+    setBodyError(null);
 
-    if (type === "POLL") {
-      return (
-        pollQuestion.trim().length > 0 &&
-        pollOptions.map((option) => option.trim()).filter(Boolean).length >= 2
-      );
-    }
+    await onSubmit({
+      type,
+      title: data.title.trim(),
+      bodyHtml: resolvedHtml,
+      audienceScope: selectedAudienceScope,
+      audienceLabel:
+        audienceOptions.find((o) => o.scope === selectedAudienceScope)?.label ??
+        "Toute l'école",
+      featuredDays: Number(featuredDays) > 0 ? Number(featuredDays) : undefined,
+      pollQuestion: type === "POLL" ? data.pollQuestion.trim() : undefined,
+      pollOptions:
+        type === "POLL"
+          ? data.pollOptions.map((o) => o.value.trim()).filter(Boolean)
+          : undefined,
+      attachments: attachments.map((a) => ({
+        fileName: a.fileName,
+        sizeLabel: a.sizeLabel,
+      })),
+    });
 
-    return true;
+    reset();
+    setType("POST");
+    setBodyHtml("");
+    setBodyError(null);
+    setFeaturedDays("0");
+    setAttachments([]);
+    setSelectedAudienceScope(audienceOptions[0]?.scope ?? "SCHOOL_ALL");
+    onCancel?.();
   }
 
-  async function handleSubmit() {
-    if (!canSubmit()) {
+  function onInvalid(errors: Partial<Record<keyof FormValues, unknown>>) {
+    if (errors.title) {
+      titleRef.current?.focus();
       return;
     }
-
-    const resolvedBodyHtml = await resolveEditorHtml();
-    const resolvedHasBody = hasTextContent(resolvedBodyHtml);
-
-    if (!resolvedHasBody) {
-      Alert.alert(
-        "Contenu manquant",
-        "Ajoutez du contenu avant de publier cette actualité.",
-      );
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await onSubmit({
-        type,
-        title: title.trim(),
-        bodyHtml: resolvedBodyHtml,
-        audienceScope: selectedAudienceScope,
-        audienceLabel:
-          audienceOptions.find(
-            (option) => option.scope === selectedAudienceScope,
-          )?.label ?? "Toute l'école",
-        featuredDays:
-          Number(featuredDays) > 0 ? Number(featuredDays) : undefined,
-        pollQuestion: type === "POLL" ? pollQuestion.trim() : undefined,
-        pollOptions:
-          type === "POLL"
-            ? pollOptions.map((option) => option.trim()).filter(Boolean)
-            : undefined,
-        attachments: attachments.map((attachment) => ({
-          fileName: attachment.fileName,
-          sizeLabel: attachment.sizeLabel,
-        })),
-      });
-
-      setType("POST");
-      setTitle("");
-      setBodyHtml("");
-      setPollQuestion("");
-      setPollOptions(["", ""]);
-      setFeaturedDays("0");
-      setAttachments([]);
-      onCancel?.();
-    } catch {
-      // FeedScreen handles user-facing failure feedback via centered toast.
-    } finally {
-      setSubmitting(false);
+    if (errors.pollQuestion) {
+      pollQuestionRef.current?.focus();
     }
   }
 
@@ -303,13 +347,26 @@ export function FeedComposerCard({
         ))}
       </View>
 
-      <TextInput
-        style={styles.titleInput}
-        value={title}
-        onChangeText={setTitle}
-        placeholder="Titre de la publication"
-        placeholderTextColor={colors.textSecondary}
-        testID="feed-composer-title"
+      <Controller
+        control={control}
+        name="title"
+        render={({ field, fieldState }) => {
+          const err = showFieldErr(fieldState);
+          return (
+            <>
+              <TextInput
+                ref={titleRef}
+                style={[styles.titleInput, err ? styles.inputError : null]}
+                value={field.value}
+                onChangeText={field.onChange}
+                placeholder="Titre de la publication"
+                placeholderTextColor={colors.textSecondary}
+                testID="feed-composer-title"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
       />
 
       <View style={styles.editorShell}>
@@ -322,7 +379,6 @@ export function FeedComposerCard({
           onPressHeading={applyHeading}
           onPressQuote={applyQuote}
         />
-
         <RichEditor
           ref={editorRef}
           style={styles.editor}
@@ -337,42 +393,61 @@ export function FeedComposerCard({
           }}
           onChange={(html) => {
             setBodyHtml(html);
+            if (bodyError) setBodyError(null);
           }}
           testID="feed-rich-editor"
         />
       </View>
+      {bodyError ? (
+        <Text style={styles.fieldError} testID="feed-composer-body-error">
+          {bodyError}
+        </Text>
+      ) : null}
 
       {type === "POLL" ? (
         <View style={styles.pollCard}>
-          <TextInput
-            style={styles.titleInput}
-            value={pollQuestion}
-            onChangeText={setPollQuestion}
-            placeholder="Question du sondage"
-            placeholderTextColor={colors.textSecondary}
-            testID="feed-composer-poll-question"
+          <Controller
+            control={control}
+            name="pollQuestion"
+            render={({ field, fieldState }) => {
+              const err = showFieldErr(fieldState);
+              return (
+                <>
+                  <TextInput
+                    ref={pollQuestionRef}
+                    style={[styles.titleInput, err ? styles.inputError : null]}
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    placeholder="Question du sondage"
+                    placeholderTextColor={colors.textSecondary}
+                    testID="feed-composer-poll-question"
+                  />
+                  {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+                </>
+              );
+            }}
           />
-          {pollOptions.map((option, index) => (
-            <TextInput
-              key={`poll-option-${index + 1}`}
-              style={styles.titleInput}
-              value={option}
-              onChangeText={(value) =>
-                setPollOptions((current) =>
-                  current.map((entry, currentIndex) =>
-                    currentIndex === index ? value : entry,
-                  ),
-                )
-              }
-              placeholder={`Option ${index + 1}`}
-              placeholderTextColor={colors.textSecondary}
-              testID={`feed-composer-poll-option-${index + 1}`}
+          {fields.map((fieldItem, index) => (
+            <Controller
+              key={fieldItem.id}
+              control={control}
+              name={`pollOptions.${index}.value`}
+              render={({ field }) => (
+                <TextInput
+                  style={styles.titleInput}
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  placeholder={`Option ${index + 1}`}
+                  placeholderTextColor={colors.textSecondary}
+                  testID={`feed-composer-poll-option-${index + 1}`}
+                />
+              )}
             />
           ))}
-          {pollOptions.length < 5 ? (
+          {fields.length < 5 ? (
             <TouchableOpacity
               style={styles.secondaryAction}
-              onPress={() => setPollOptions((current) => [...current, ""])}
+              onPress={() => append({ value: "" })}
               testID="feed-composer-add-poll-option"
             >
               <Ionicons name="add" size={16} color={colors.primary} />
@@ -493,17 +568,17 @@ export function FeedComposerCard({
         <TouchableOpacity
           style={[
             styles.bottomPrimary,
-            !canSubmit() && styles.bottomPrimaryDisabled,
+            isSubmitting && styles.bottomPrimaryDisabled,
           ]}
-          disabled={!canSubmit() || submitting}
+          disabled={isSubmitting}
           onPress={() => {
-            void handleSubmit();
+            void handleSubmit(onValid, onInvalid)();
           }}
           testID="feed-composer-submit"
         >
           <Ionicons name="send-outline" size={16} color={colors.white} />
           <Text style={styles.bottomPrimaryText}>
-            {submitting
+            {isSubmitting
               ? "Publication…"
               : type === "POLL"
                 ? "Publier le sondage"
@@ -573,6 +648,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingHorizontal: 14,
     color: colors.textPrimary,
+  },
+  inputError: {
+    borderColor: "#FCA5A5",
+  },
+  fieldError: {
+    fontSize: 12,
+    color: colors.notification,
+    marginTop: -8,
   },
   editorShell: {
     borderRadius: 18,

@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -101,12 +102,14 @@ beforeEach(() => {
     createOneOffSlot: jest.fn(),
     updateOneOffSlot: jest.fn(),
     deleteOneOffSlot: jest.fn(),
-    createCalendarEvent: jest.fn(),
+    createCalendarEvent: mockCreateCalendarEvent,
     updateCalendarEvent: jest.fn(),
     deleteCalendarEvent: jest.fn(),
     clearError: jest.fn(),
   } as never);
 });
+
+const mockCreateCalendarEvent = jest.fn().mockResolvedValue(undefined);
 
 describe("ClassTimetableManagerScreen", () => {
   it("charge le contexte et l'agenda de classe au montage", async () => {
@@ -178,6 +181,56 @@ describe("ClassTimetableManagerScreen", () => {
           startMinute: 555,
           endMinute: 605,
         }),
+      );
+    });
+  });
+
+  it("le bouton du formulaire créneau est actif par défaut (pas de blocage isValid)", async () => {
+    render(<ClassTimetableManagerScreen />);
+    await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
+
+    fireEvent.press(screen.getByTestId("class-timetable-tab-slots"));
+
+    const submitBtn = screen.getByTestId("slot-form-submit");
+    expect(submitBtn.props.accessibilityState?.disabled).toBeFalsy();
+  });
+
+  it("valide le libellé de fermeture et affiche une erreur si vide", async () => {
+    render(<ClassTimetableManagerScreen />);
+    await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
+
+    fireEvent.press(screen.getByTestId("class-timetable-tab-holidays"));
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("holiday-form-submit"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Le libellé de fermeture est obligatoire."),
+      ).toBeTruthy();
+    });
+    expect(mockCreateCalendarEvent).not.toHaveBeenCalled();
+  });
+
+  it("soumet une fermeture valide", async () => {
+    render(<ClassTimetableManagerScreen />);
+    await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
+
+    fireEvent.press(screen.getByTestId("class-timetable-tab-holidays"));
+    fireEvent.changeText(
+      screen.getByTestId("holiday-form-label"),
+      "Fête nationale",
+    );
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("holiday-form-submit"));
+    });
+
+    await waitFor(() => {
+      expect(mockCreateCalendarEvent).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({ label: "Fête nationale", scope: "SCHOOL" }),
       );
     });
   });

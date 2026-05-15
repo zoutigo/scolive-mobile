@@ -1,4 +1,4 @@
-import React from "react";
+import React, { forwardRef } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -100,29 +100,36 @@ export function ErrorBanner({
   );
 }
 
-export function TextField(props: {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder?: string;
-  keyboardType?: "default" | "numeric";
-  testID?: string;
-}) {
+export const TextField = forwardRef<
+  TextInput,
+  {
+    label: string;
+    value: string;
+    onChangeText: (value: string) => void;
+    placeholder?: string;
+    keyboardType?: "default" | "numeric";
+    autoCapitalize?: "none" | "sentences" | "words" | "characters";
+    hasError?: boolean;
+    testID?: string;
+  }
+>(function TextField(props, ref) {
   return (
     <View style={styles.fieldBlock}>
       <Text style={styles.fieldLabel}>{props.label}</Text>
       <TextInput
+        ref={ref}
         value={props.value}
         onChangeText={props.onChangeText}
         placeholder={props.placeholder}
         placeholderTextColor={colors.textSecondary}
         keyboardType={props.keyboardType}
-        style={styles.textInput}
+        autoCapitalize={props.autoCapitalize}
+        style={[styles.textInput, props.hasError && styles.textInputError]}
         testID={props.testID}
       />
     </View>
   );
-}
+});
 
 export function PillSelector(props: {
   label: string;
@@ -446,6 +453,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     color: colors.textPrimary,
+  },
+  textInputError: {
+    borderColor: "#FCA5A5",
   },
   pillsRow: {
     flexDirection: "row",

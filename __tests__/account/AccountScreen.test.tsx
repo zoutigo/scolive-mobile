@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet } from "react-native";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -171,6 +172,37 @@ describe("AccountScreen", () => {
     });
   });
 
+  it("le bouton Enregistrer reste cliquable pendant la saisie (pas de blocage isValid)", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-edit-personal"));
+
+    const saveBtn = screen.getByTestId("account-save-personal");
+    expect(saveBtn.props.accessibilityState?.disabled).toBeFalsy();
+  });
+
+  it("affiche une erreur de champ si le prénom est vidé", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-edit-personal"));
+    fireEvent.changeText(screen.getByTestId("account-first-name-input"), "");
+    fireEvent.press(screen.getByTestId("account-save-personal"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Le prénom est obligatoire.")).toBeTruthy();
+    });
+
+    expect(api.updateProfile).not.toHaveBeenCalled();
+  });
+
   it("ouvre la sécurité et charge la récupération", async () => {
     render(<AccountScreen />);
 
@@ -191,7 +223,7 @@ describe("AccountScreen", () => {
     expect(screen.getByTestId("account-parent-student-student-1")).toBeTruthy();
   });
 
-  it("bloque l'enregistrement d'un mot de passe invalide", async () => {
+  it("n'appelle pas l'API si le mot de passe est invalide et affiche l'erreur", async () => {
     render(<AccountScreen />);
 
     await waitFor(() => {
@@ -212,14 +244,135 @@ describe("AccountScreen", () => {
       screen.getByTestId("account-confirm-password-input"),
       "simple",
     );
-    fireEvent.press(screen.getByTestId("account-save-password"));
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("account-save-password"));
+    });
 
     expect(api.changePassword).not.toHaveBeenCalled();
-    expect(
-      screen.getByText(
-        /Le mot de passe doit contenir au moins 8 caractères avec majuscules, minuscules et chiffres\./i,
-      ),
-    ).toBeTruthy();
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          /Le mot de passe doit contenir au moins 8 caractères avec majuscules, minuscules et chiffres\./i,
+        ),
+      ).toBeTruthy();
+    });
+  });
+
+  it("le bouton Modifier du mot de passe est actif même sans saisie", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-security"));
+    fireEvent.press(screen.getByTestId("account-password-section-toggle"));
+
+    const saveBtn = screen.getByTestId("account-save-password");
+    expect(saveBtn.props.accessibilityState?.disabled).toBeFalsy();
+  });
+
+  it("affiche l'erreur de mot de passe au changement si le champ est touché", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-security"));
+    fireEvent.press(screen.getByTestId("account-password-section-toggle"));
+    fireEvent.changeText(
+      screen.getByTestId("account-new-password-input"),
+      "faible",
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          /Le mot de passe doit contenir au moins 8 caractères avec majuscules, minuscules et chiffres\./i,
+        ),
+      ).toBeTruthy();
+    });
+  });
+
+  it("soumet le changement de mot de passe valide", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-security"));
+    fireEvent.press(screen.getByTestId("account-password-section-toggle"));
+    fireEvent.changeText(
+      screen.getByTestId("account-current-password-input"),
+      "OldPass1",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("account-new-password-input"),
+      "NewPass1",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("account-confirm-password-input"),
+      "NewPass1",
+    );
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("account-save-password"));
+    });
+
+    await waitFor(() => {
+      expect(api.changePassword).toHaveBeenCalledWith({
+        currentPassword: "OldPass1",
+        newPassword: "NewPass1",
+      });
+    });
+  });
+
+  it("le bouton Modifier du PIN est actif sans saisie", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-security"));
+    fireEvent.press(screen.getByTestId("account-pin-section-toggle"));
+
+    const saveBtn = screen.getByTestId("account-save-pin");
+    expect(saveBtn.props.accessibilityState?.disabled).toBeFalsy();
+  });
+
+  it("n'appelle pas l'API PIN si les valeurs sont invalides", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-security"));
+    fireEvent.press(screen.getByTestId("account-pin-section-toggle"));
+    fireEvent.changeText(
+      screen.getByTestId("account-current-pin-input"),
+      "123",
+    );
+    fireEvent.changeText(screen.getByTestId("account-new-pin-input"), "123456");
+    fireEvent.changeText(
+      screen.getByTestId("account-confirm-pin-input"),
+      "999999",
+    );
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("account-save-pin"));
+    });
+
+    expect(api.changePin).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(
+        screen.getByText(/La confirmation du nouveau PIN ne correspond pas\./i),
+      ).toBeTruthy();
+    });
   });
 
   it("affiche l'onglet paramètres avec langue et profil actif", async () => {

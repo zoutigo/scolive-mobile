@@ -438,8 +438,10 @@ describe("PasswordRecoveryScreen", () => {
       const { getByTestId, findByTestId } = await goToStep3();
       fireEvent.changeText(getByTestId("input-birthdate"), "15011990");
       fireEvent.press(getByTestId("btn-step3"));
-      const err = await findByTestId("error-message");
-      expect(err.props.children).toContain("Répondez à toutes les questions");
+      const err = await findByTestId("error-answer-0");
+      expect(err.props.children).toContain("au moins 2 caractères");
+      expect(await findByTestId("error-answer-1")).toBeTruthy();
+      expect(await findByTestId("error-answer-2")).toBeTruthy();
     });
 
     it("affiche l'erreur API RECOVERY_INVALID", async () => {
