@@ -187,6 +187,7 @@ beforeEach(() => {
     async (_schoolSlug, curriculumId) =>
       curriculumSubjectsState[curriculumId] ?? [],
   );
+
   mockCurriculumsApi.createAcademicLevel.mockImplementation(
     async (_schoolSlug, payload) => {
       const created: CurriculumAcademicLevel = {
@@ -199,6 +200,50 @@ beforeEach(() => {
       return created;
     },
   );
+
+  mockCurriculumsApi.updateAcademicLevel.mockImplementation(
+    async (_schoolSlug, levelId, payload) => {
+      levelsState = levelsState.map((l) =>
+        l.id === levelId ? { ...l, ...payload } : l,
+      );
+      return levelsState.find((l) => l.id === levelId)!;
+    },
+  );
+
+  mockCurriculumsApi.deleteAcademicLevel.mockImplementation(
+    async (_schoolSlug, levelId) => {
+      levelsState = levelsState.filter((l) => l.id !== levelId);
+    },
+  );
+
+  mockCurriculumsApi.createTrack.mockImplementation(
+    async (_schoolSlug, payload) => {
+      const created: CurriculumTrack = {
+        id: "track-new",
+        code: payload.code,
+        label: payload.label,
+        _count: { classes: 0, curriculums: 0 },
+      };
+      tracksState = [...tracksState, created];
+      return created;
+    },
+  );
+
+  mockCurriculumsApi.updateTrack.mockImplementation(
+    async (_schoolSlug, trackId, payload) => {
+      tracksState = tracksState.map((t) =>
+        t.id === trackId ? { ...t, ...payload } : t,
+      );
+      return tracksState.find((t) => t.id === trackId)!;
+    },
+  );
+
+  mockCurriculumsApi.deleteTrack.mockImplementation(
+    async (_schoolSlug, trackId) => {
+      tracksState = tracksState.filter((t) => t.id !== trackId);
+    },
+  );
+
   mockCurriculumsApi.createCurriculum.mockImplementation(
     async (_schoolSlug, payload) => {
       const level = levelsState.find(
@@ -229,6 +274,37 @@ beforeEach(() => {
       return created;
     },
   );
+
+  mockCurriculumsApi.updateCurriculum.mockImplementation(
+    async (_schoolSlug, curriculumId, payload) => {
+      const levelId = payload.academicLevelId;
+      const level = levelId ? levelsState.find((l) => l.id === levelId) : null;
+      const track = payload.trackId
+        ? (tracksState.find((t) => t.id === payload.trackId) ?? null)
+        : null;
+      curriculumsState = curriculumsState.map((c): CurriculumRow => {
+        if (c.id !== curriculumId) return c;
+        return {
+          ...c,
+          academicLevelId: levelId ?? c.academicLevelId,
+          trackId: payload.trackId ?? null,
+          name: `${level?.code ?? c.academicLevel.code} - ${track?.code ?? "TRONC_COMMUN"}`,
+          academicLevel: level
+            ? { id: level.id, code: level.code, label: level.label }
+            : c.academicLevel,
+          track,
+        };
+      });
+      return curriculumsState.find((c) => c.id === curriculumId)!;
+    },
+  );
+
+  mockCurriculumsApi.deleteCurriculum.mockImplementation(
+    async (_schoolSlug, curriculumId) => {
+      curriculumsState = curriculumsState.filter((c) => c.id !== curriculumId);
+    },
+  );
+
   mockCurriculumsApi.deleteCurriculumSubject.mockImplementation(
     async (_schoolSlug, curriculumId, subjectId) => {
       curriculumSubjectsState[curriculumId] = (
@@ -236,6 +312,7 @@ beforeEach(() => {
       ).filter((entry) => entry.subjectId !== subjectId);
     },
   );
+
   mockCurriculumsApi.upsertCurriculumSubject.mockResolvedValue({
     id: "curr-subj-2",
     subjectId: "subject-phys",
@@ -249,7 +326,22 @@ beforeEach(() => {
   });
 });
 
-describe("CurriculumsAdminScreen", () => {
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+async function renderAndWaitLoaded() {
+  render(<CurriculumsAdminScreen />);
+  await waitFor(() =>
+    expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Navigation & accès
+// ---------------------------------------------------------------------------
+
+describe("CurriculumsAdminScreen — navigation et accès", () => {
   it("charge le module school admin et permet de naviguer entre les cinq onglets", async () => {
     render(<CurriculumsAdminScreen />);
 
@@ -272,12 +364,41 @@ describe("CurriculumsAdminScreen", () => {
     expect(screen.queryByTestId("curriculums-fab")).toBeNull();
   });
 
-  it("ouvre le formulaire de niveau depuis le FAB et crée un niveau avec toast de succès", async () => {
+  it("bloque l'accès pour un utilisateur non school admin sans lancer les appels API", () => {
+    mockAuthState = {
+      schoolSlug: "college-vogt",
+      user: {
+        ...makeSchoolAdminUser(),
+        role: "TEACHER",
+        activeRole: "TEACHER",
+      },
+    };
+
     render(<CurriculumsAdminScreen />);
 
-    await waitFor(() =>
-      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
-    );
+    expect(screen.getByText("Accès réservé")).toBeTruthy();
+    expect(mockCurriculumsApi.listAcademicLevels).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("curriculums-fab")).toBeNull();
+  });
+
+  it("affiche l'état vide 'École introuvable' quand schoolSlug est absent", () => {
+    mockAuthState = { schoolSlug: null, user: makeSchoolAdminUser() };
+
+    render(<CurriculumsAdminScreen />);
+
+    expect(screen.getByText("École introuvable")).toBeTruthy();
+    expect(mockCurriculumsApi.listAcademicLevels).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("curriculums-fab")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Niveaux — création, édition, suppression
+// ---------------------------------------------------------------------------
+
+describe("CurriculumsAdminScreen — niveaux académiques", () => {
+  it("ouvre le formulaire de niveau depuis le FAB et crée un niveau avec toast de succès", async () => {
+    await renderAndWaitLoaded();
 
     fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
     await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
@@ -301,10 +422,7 @@ describe("CurriculumsAdminScreen", () => {
     await waitFor(() =>
       expect(mockCurriculumsApi.createAcademicLevel).toHaveBeenCalledWith(
         "college-vogt",
-        {
-          code: "5EME",
-          label: "Cinquième",
-        },
+        { code: "5EME", label: "Cinquième" },
       ),
     );
     await waitFor(() => expect(screen.getByText("Cinquième")).toBeTruthy());
@@ -314,51 +432,271 @@ describe("CurriculumsAdminScreen", () => {
     });
   });
 
-  it("affiche un header et un footer modernisés sur les formulaires et permet la fermeture par le bouton dédié", async () => {
-    render(<CurriculumsAdminScreen />);
-
-    await waitFor(() =>
-      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
-    );
+  it("ouvre le formulaire d'édition de niveau pré-rempli et soumet la mise à jour", async () => {
+    await renderAndWaitLoaded();
 
     fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
-    await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
-    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-level-row-level-6e")).toBeTruthy(),
+    );
 
+    fireEvent.press(screen.getByTestId("curriculum-level-edit-level-6e"));
     await waitFor(() =>
       expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
     );
 
-    expect(
-      screen.getByTestId("curriculum-level-form-sheet-header"),
-    ).toHaveStyle({
-      backgroundColor: "#08467D",
-    });
-    expect(
-      screen.getByText(
-        "Définissez un repère académique clair pour organiser les classes et les programmes.",
-      ),
-    ).toBeTruthy();
-    expect(screen.getByTestId("curriculum-level-form-sheet-close")).toHaveStyle(
-      {
-        borderRadius: 10,
-        backgroundColor: "rgba(255,255,255,0.15)",
-      },
+    expect(screen.getByTestId("curriculum-level-code-input").props.value).toBe(
+      "6EME",
     );
-    expect(screen.getByTestId("curriculum-level-form-action-bar")).toBeTruthy();
+    expect(screen.getByTestId("curriculum-level-label-input").props.value).toBe(
+      "Sixième",
+    );
+
+    fireEvent.changeText(
+      screen.getByTestId("curriculum-level-label-input"),
+      "Sixième modifiée",
+    );
+    fireEvent.press(screen.getByTestId("curriculum-level-form-submit"));
+
+    await waitFor(() =>
+      expect(mockCurriculumsApi.updateAcademicLevel).toHaveBeenCalledWith(
+        "college-vogt",
+        "level-6e",
+        { code: "6EME", label: "Sixième modifiée" },
+      ),
+    );
+    expect(mockShowSuccess).toHaveBeenCalledWith({
+      title: "Niveau modifié",
+      message: "Le niveau académique a été mis à jour.",
+    });
+  });
+
+  it("supprime un niveau après confirmation et recharge la liste", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-level-row-level-6e")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("curriculum-level-delete-level-6e"));
+    expect(screen.getByTestId("confirm-dialog-confirm")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
+
+    await waitFor(() =>
+      expect(mockCurriculumsApi.deleteAcademicLevel).toHaveBeenCalledWith(
+        "college-vogt",
+        "level-6e",
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.queryByTestId("curriculum-level-row-level-6e")).toBeNull(),
+    );
+    expect(mockShowSuccess).toHaveBeenCalledWith({
+      title: "Niveau supprimé",
+      message: "Le niveau académique a été supprimé.",
+    });
+  });
+
+  it("annule la suppression d'un niveau quand on appuie sur Annuler", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-level-row-level-6e")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("curriculum-level-delete-level-6e"));
+    fireEvent.press(screen.getByTestId("confirm-dialog-cancel"));
+
+    expect(mockCurriculumsApi.deleteAcademicLevel).not.toHaveBeenCalled();
+    expect(screen.getByTestId("curriculum-level-row-level-6e")).toBeTruthy();
+  });
+
+  it("affiche les erreurs code et libellé sur submit vide sans appeler l'API", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
+    await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("curriculum-level-form-submit"));
+
+    expect(
+      await screen.findByTestId("curriculum-level-code-input-error"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("curriculum-level-label-input-error"),
+    ).toBeTruthy();
+    expect(mockCurriculumsApi.createAcademicLevel).not.toHaveBeenCalled();
+  });
+
+  it("bouton submit du form niveau toujours actif même sur form vide", async () => {
+    await renderAndWaitLoaded();
+    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
+    await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
+    );
+    const submit = screen.getByTestId("curriculum-level-form-submit");
+    expect(submit.props.accessibilityState?.disabled).toBeFalsy();
+  });
+
+  it("les champs invalides restent en erreur, les champs corrigés perdent leur erreur", async () => {
+    await renderAndWaitLoaded();
+    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
+    await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
+    );
+
+    fireEvent.changeText(
+      screen.getByTestId("curriculum-level-code-input"),
+      "X",
+    );
+    fireEvent.changeText(screen.getByTestId("curriculum-level-code-input"), "");
+    expect(
+      await screen.findByTestId("curriculum-level-code-input-error"),
+    ).toBeTruthy();
+
+    expect(
+      screen.queryByTestId("curriculum-level-label-input-error"),
+    ).toBeNull();
+    expect(mockCurriculumsApi.createAcademicLevel).not.toHaveBeenCalled();
+  });
+
+  it("ferme le formulaire de niveau via le bouton close sans appeler l'API", async () => {
+    await renderAndWaitLoaded();
+    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
+    await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
+    );
 
     fireEvent.press(screen.getByTestId("curriculum-level-form-sheet-close"));
     await waitFor(() =>
       expect(screen.queryByTestId("curriculum-level-form-sheet")).toBeNull(),
     );
+    expect(mockCurriculumsApi.createAcademicLevel).not.toHaveBeenCalled();
   });
+});
 
-  it("utilise des listes déroulantes dans le formulaire curriculum et crée un curriculum avec header et footer stylés", async () => {
-    render(<CurriculumsAdminScreen />);
+// ---------------------------------------------------------------------------
+// Filières — création, édition, suppression
+// ---------------------------------------------------------------------------
+
+describe("CurriculumsAdminScreen — filières", () => {
+  it("ouvre le formulaire de création de filière depuis le FAB et crée une filière", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-tracks"));
+    await waitFor(() => expect(screen.getByText("Scientifique")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-track-form-sheet")).toBeTruthy(),
+    );
+
+    fireEvent.changeText(
+      screen.getByTestId("curriculum-track-code-input"),
+      "LIT",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("curriculum-track-label-input"),
+      "Littéraire",
+    );
+    fireEvent.press(screen.getByTestId("curriculum-track-form-submit"));
 
     await waitFor(() =>
-      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
+      expect(mockCurriculumsApi.createTrack).toHaveBeenCalledWith(
+        "college-vogt",
+        { code: "LIT", label: "Littéraire" },
+      ),
     );
+    expect(mockShowSuccess).toHaveBeenCalledWith({
+      title: "Filière créée",
+      message: "La filière a été ajoutée.",
+    });
+    await waitFor(() => expect(screen.getByText("Littéraire")).toBeTruthy());
+  });
+
+  it("ouvre le formulaire d'édition de filière pré-rempli et soumet la mise à jour", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-tracks"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-track-row-track-sc")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("curriculum-track-edit-track-sc"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-track-form-sheet")).toBeTruthy(),
+    );
+
+    expect(screen.getByTestId("curriculum-track-code-input").props.value).toBe(
+      "SCI",
+    );
+    expect(screen.getByTestId("curriculum-track-label-input").props.value).toBe(
+      "Scientifique",
+    );
+
+    fireEvent.changeText(
+      screen.getByTestId("curriculum-track-label-input"),
+      "Sciences",
+    );
+    fireEvent.press(screen.getByTestId("curriculum-track-form-submit"));
+
+    await waitFor(() =>
+      expect(mockCurriculumsApi.updateTrack).toHaveBeenCalledWith(
+        "college-vogt",
+        "track-sc",
+        { code: "SCI", label: "Sciences" },
+      ),
+    );
+    expect(mockShowSuccess).toHaveBeenCalledWith({
+      title: "Filière modifiée",
+      message: "La filière a été mise à jour.",
+    });
+  });
+
+  it("supprime une filière après confirmation et recharge la liste", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-tracks"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-track-row-track-sc")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("curriculum-track-delete-track-sc"));
+    fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
+
+    await waitFor(() =>
+      expect(mockCurriculumsApi.deleteTrack).toHaveBeenCalledWith(
+        "college-vogt",
+        "track-sc",
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.queryByTestId("curriculum-track-row-track-sc")).toBeNull(),
+    );
+    expect(mockShowSuccess).toHaveBeenCalledWith({
+      title: "Filière supprimée",
+      message: "La filière a été supprimée.",
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Curriculums — création, édition, suppression, navigation vers matières
+// ---------------------------------------------------------------------------
+
+describe("CurriculumsAdminScreen — curriculums", () => {
+  it("utilise des listes déroulantes dans le formulaire curriculum et crée un curriculum avec header et footer stylés", async () => {
+    await renderAndWaitLoaded();
 
     fireEvent.press(screen.getByTestId("curriculums-fab"));
     await waitFor(() =>
@@ -410,10 +748,7 @@ describe("CurriculumsAdminScreen", () => {
     await waitFor(() =>
       expect(mockCurriculumsApi.createCurriculum).toHaveBeenCalledWith(
         "college-vogt",
-        {
-          academicLevelId: "level-6e",
-          trackId: "track-sc",
-        },
+        { academicLevelId: "level-6e", trackId: "track-sc" },
       ),
     );
     expect(mockShowSuccess).toHaveBeenCalledWith({
@@ -422,42 +757,113 @@ describe("CurriculumsAdminScreen", () => {
     });
   });
 
-  it("supprime une matière de curriculum après confirmation et recharge la liste", async () => {
-    render(<CurriculumsAdminScreen />);
+  it("ouvre le formulaire d'édition d'un curriculum via le bouton crayon", async () => {
+    await renderAndWaitLoaded();
 
+    fireEvent.press(screen.getByTestId("curriculum-edit-curr-1"));
     await waitFor(() =>
-      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
+      expect(screen.getByTestId("curriculum-form-sheet")).toBeTruthy(),
     );
 
-    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
+    expect(screen.getByTestId("curriculum-form-sheet-header")).toHaveStyle({
+      backgroundColor: "#08467D",
+    });
+    expect(screen.getByText("Modification")).toBeTruthy();
+  });
 
-    await waitFor(() => expect(screen.getByText("Mathématiques")).toBeTruthy());
+  it("soumet la mise à jour d'un curriculum et affiche le toast de succès", async () => {
+    await renderAndWaitLoaded();
 
-    fireEvent.press(
-      screen.getByTestId("curriculum-subject-delete-curr-subj-1"),
+    fireEvent.press(screen.getByTestId("curriculum-edit-curr-2"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-form-sheet")).toBeTruthy(),
     );
-    fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
+
+    fireEvent.press(screen.getByTestId("curriculum-form-track"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-form-track-sheet")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("curriculum-form-track-option-"));
+    fireEvent.press(screen.getByTestId("curriculum-form-submit"));
 
     await waitFor(() =>
-      expect(mockCurriculumsApi.deleteCurriculumSubject).toHaveBeenCalledWith(
+      expect(mockCurriculumsApi.updateCurriculum).toHaveBeenCalledWith(
         "college-vogt",
-        "curr-1",
-        "subject-math",
+        "curr-2",
+        expect.objectContaining({ academicLevelId: "level-6e" }),
       ),
     );
-    await waitFor(() => expect(screen.queryByText("Mathématiques")).toBeNull());
     expect(mockShowSuccess).toHaveBeenCalledWith({
-      title: "Matière retirée",
-      message: "La matière a été retirée du curriculum.",
+      title: "Curriculum modifié",
+      message: "Le curriculum a été mis à jour.",
     });
   });
 
-  it("utilise des listes déroulantes compactes dans le formulaire d'ajout de matière et soumet la sélection", async () => {
-    render(<CurriculumsAdminScreen />);
+  it("supprime un curriculum après confirmation et recharge la liste", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculum-delete-curr-1"));
+    fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
 
     await waitFor(() =>
-      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
+      expect(mockCurriculumsApi.deleteCurriculum).toHaveBeenCalledWith(
+        "college-vogt",
+        "curr-1",
+      ),
     );
+    await waitFor(() =>
+      expect(screen.queryByTestId("curriculum-row-curr-1")).toBeNull(),
+    );
+    expect(mockShowSuccess).toHaveBeenCalledWith({
+      title: "Curriculum supprimé",
+      message: "Le curriculum a été supprimé.",
+    });
+  });
+
+  it("navigue vers l'onglet matières en appuyant sur la flèche d'un curriculum", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculum-subjects-curr-1"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-selector")).toBeTruthy(),
+    );
+    expect(mockCurriculumsApi.listCurriculumSubjects).toHaveBeenCalledWith(
+      "college-vogt",
+      "curr-1",
+    );
+  });
+
+  it("navigue vers l'onglet matières en appuyant sur le nom du curriculum", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculum-open-curr-2"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-selector")).toBeTruthy(),
+    );
+    expect(mockCurriculumsApi.listCurriculumSubjects).toHaveBeenCalledWith(
+      "college-vogt",
+      "curr-2",
+    );
+  });
+
+  it("bouton submit du form curriculum toujours actif même sur form vide", async () => {
+    await renderAndWaitLoaded();
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-form-sheet")).toBeTruthy(),
+    );
+    const submit = screen.getByTestId("curriculum-form-submit");
+    expect(submit.props.accessibilityState?.disabled).toBeFalsy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Matières du curriculum — création, édition, suppression
+// ---------------------------------------------------------------------------
+
+describe("CurriculumsAdminScreen — matières du curriculum", () => {
+  it("utilise des listes déroulantes compactes dans le formulaire d'ajout de matière et soumet la sélection", async () => {
+    await renderAndWaitLoaded();
 
     fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
     await waitFor(() =>
@@ -562,11 +968,7 @@ describe("CurriculumsAdminScreen", () => {
   });
 
   it("verrouille la liste déroulante matière en édition d'une matière existante", async () => {
-    render(<CurriculumsAdminScreen />);
-
-    await waitFor(() =>
-      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
-    );
+    await renderAndWaitLoaded();
 
     fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
     await waitFor(() => expect(screen.getByText("Mathématiques")).toBeTruthy());
@@ -582,51 +984,54 @@ describe("CurriculumsAdminScreen", () => {
     ).toBeNull();
   });
 
-  it("remplace les avatars par des repères textuels et allège les cartes de liste", async () => {
-    render(<CurriculumsAdminScreen />);
+  it("supprime une matière de curriculum après confirmation et recharge la liste", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
+
+    await waitFor(() => expect(screen.getByText("Mathématiques")).toBeTruthy());
+
+    fireEvent.press(
+      screen.getByTestId("curriculum-subject-delete-curr-subj-1"),
+    );
+    fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-row-curr-1")).toBeTruthy(),
+      expect(mockCurriculumsApi.deleteCurriculumSubject).toHaveBeenCalledWith(
+        "college-vogt",
+        "curr-1",
+        "subject-math",
+      ),
     );
-
-    expect(screen.getByTestId("curriculum-row-curr-1")).toHaveStyle({
-      borderRadius: 14,
-      borderWidth: 0,
-    });
-    expect(screen.queryByTestId("curriculum-level-pill-curr-1")).toBeNull();
-    expect(
-      screen.getByText("TRONC_COMMUN · 1 matière · 1 classe"),
-    ).toBeTruthy();
-
-    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
-    await waitFor(() =>
-      expect(screen.getByTestId("curriculum-level-row-level-6e")).toBeTruthy(),
-    );
-    expect(screen.queryByTestId("curriculum-level-code-level-6e")).toBeNull();
-    expect(screen.getByText("6EME · 1 curriculum · 2 classes")).toBeTruthy();
-    expect(screen.getByTestId("curriculum-level-row-level-6e")).toHaveStyle({
-      borderRadius: 14,
-      borderWidth: 0,
-    });
-
-    fireEvent.press(screen.getByTestId("curriculums-tab-tracks"));
-    await waitFor(() =>
-      expect(screen.getByTestId("curriculum-track-row-track-sc")).toBeTruthy(),
-    );
-    expect(screen.queryByTestId("curriculum-track-code-track-sc")).toBeNull();
-    expect(screen.getByText("SCI · 0 curriculum · 0 classe")).toBeTruthy();
-    expect(screen.getByTestId("curriculum-track-row-track-sc")).toHaveStyle({
-      borderRadius: 14,
-      borderWidth: 0,
+    await waitFor(() => expect(screen.queryByText("Mathématiques")).toBeNull());
+    expect(mockShowSuccess).toHaveBeenCalledWith({
+      title: "Matière retirée",
+      message: "La matière a été retirée du curriculum.",
     });
   });
 
-  it("utilise un sélecteur compact pour le curriculum ciblé et recharge les matières au changement", async () => {
-    render(<CurriculumsAdminScreen />);
-
+  it("bouton submit du form matière toujours actif même sur form vide", async () => {
+    await renderAndWaitLoaded();
+    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
     await waitFor(() =>
-      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
+      expect(screen.getByTestId("curriculum-selector")).toBeTruthy(),
     );
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-subject-form-sheet")).toBeTruthy(),
+    );
+    const submit = screen.getByTestId("curriculum-subject-form-submit");
+    expect(submit.props.accessibilityState?.disabled).toBeFalsy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sélecteur de curriculum et rechargement des matières
+// ---------------------------------------------------------------------------
+
+describe("CurriculumsAdminScreen — sélecteur curriculum et matières", () => {
+  it("utilise un sélecteur compact pour le curriculum ciblé et recharge les matières au changement", async () => {
+    await renderAndWaitLoaded();
 
     fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
 
@@ -635,12 +1040,6 @@ describe("CurriculumsAdminScreen", () => {
     );
 
     expect(screen.queryByText("Curriculum ciblé")).toBeNull();
-    expect(
-      screen.queryByText(
-        "Le changement de sélection recharge immédiatement la liste des matières",
-      ),
-    ).toBeNull();
-    expect(screen.queryByText("Curriculum")).toBeNull();
     expect(screen.getByTestId("curriculum-selector")).toHaveStyle({
       borderRadius: 14,
       backgroundColor: "#F9F3EA",
@@ -670,12 +1069,64 @@ describe("CurriculumsAdminScreen", () => {
     expect(screen.getByText("0 matière(s)")).toBeTruthy();
   });
 
-  it("allège aussi la liste des matières sans capsule dédiée au coefficient", async () => {
+  it("désactive le FAB sur l'onglet matières quand il n'y a aucun curriculum", async () => {
+    curriculumsState = [];
+    mockCurriculumsApi.listCurriculums.mockResolvedValue([]);
     render(<CurriculumsAdminScreen />);
-
     await waitFor(() =>
-      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-tab-subjects")).toBeTruthy(),
     );
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
+    await waitFor(() =>
+      expect(screen.getByText("Aucun curriculum disponible")).toBeTruthy(),
+    );
+
+    const fab = screen.queryByTestId("curriculums-fab");
+    expect(fab?.props.accessibilityState?.disabled ?? true).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Apparence des cartes de liste
+// ---------------------------------------------------------------------------
+
+describe("CurriculumsAdminScreen — apparence des listes", () => {
+  it("affiche les lignes de liste avec borderRadius 14 et borderWidth 0", async () => {
+    await renderAndWaitLoaded();
+
+    expect(screen.getByTestId("curriculum-row-curr-1")).toHaveStyle({
+      borderRadius: 14,
+      borderWidth: 0,
+    });
+    expect(screen.queryByTestId("curriculum-level-pill-curr-1")).toBeNull();
+    expect(
+      screen.getByText("TRONC_COMMUN · 1 matière · 1 classe"),
+    ).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-level-row-level-6e")).toBeTruthy(),
+    );
+    expect(screen.getByText("6EME · 1 curriculum · 2 classes")).toBeTruthy();
+    expect(screen.getByTestId("curriculum-level-row-level-6e")).toHaveStyle({
+      borderRadius: 14,
+      borderWidth: 0,
+    });
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-tracks"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-track-row-track-sc")).toBeTruthy(),
+    );
+    expect(screen.getByText("SCI · 0 curriculum · 0 classe")).toBeTruthy();
+    expect(screen.getByTestId("curriculum-track-row-track-sc")).toHaveStyle({
+      borderRadius: 14,
+      borderWidth: 0,
+    });
+  });
+
+  it("affiche les matières du curriculum avec meta ligne unique sans capsule coefficient", async () => {
+    await renderAndWaitLoaded();
 
     fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
 
@@ -698,116 +1149,121 @@ describe("CurriculumsAdminScreen", () => {
     expect(screen.getByText("Coef. 4 · 5 h/sem · Obligatoire")).toBeTruthy();
   });
 
-  it("bouton submit du form niveau/filière toujours actif même sur form vide", async () => {
-    render(<CurriculumsAdminScreen />);
-    await waitFor(() =>
-      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
-    );
-    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
-    await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
-    fireEvent.press(screen.getByTestId("curriculums-fab"));
-    await waitFor(() =>
-      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
-    );
-    const submit = screen.getByTestId("curriculum-level-form-submit");
-    expect(submit.props.accessibilityState?.disabled).toBeFalsy();
-  });
+  it("affiche le header et footer stylés sur les formulaires et permet la fermeture", async () => {
+    await renderAndWaitLoaded();
 
-  it("submit vide sur form niveau affiche les erreurs code et libellé sans appeler l'API", async () => {
-    render(<CurriculumsAdminScreen />);
+    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
+    await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+
     await waitFor(() =>
-      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
+      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
     );
+
+    expect(
+      screen.getByTestId("curriculum-level-form-sheet-header"),
+    ).toHaveStyle({
+      backgroundColor: "#08467D",
+    });
+    expect(
+      screen.getByText(
+        "Définissez un repère académique clair pour organiser les classes et les programmes.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByTestId("curriculum-level-form-sheet-close")).toHaveStyle(
+      {
+        borderRadius: 10,
+        backgroundColor: "rgba(255,255,255,0.15)",
+      },
+    );
+    expect(screen.getByTestId("curriculum-level-form-action-bar")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("curriculum-level-form-sheet-close"));
+    await waitFor(() =>
+      expect(screen.queryByTestId("curriculum-level-form-sheet")).toBeNull(),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Gestion des erreurs API
+// ---------------------------------------------------------------------------
+
+describe("CurriculumsAdminScreen — erreurs API", () => {
+  it("affiche un toast d'erreur quand la création d'un niveau échoue et garde le form ouvert", async () => {
+    mockCurriculumsApi.createAcademicLevel.mockRejectedValue(
+      new Error("Erreur réseau"),
+    );
+
+    await renderAndWaitLoaded();
     fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
     await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
     fireEvent.press(screen.getByTestId("curriculums-fab"));
     await waitFor(() =>
       expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
+    );
+
+    fireEvent.changeText(
+      screen.getByTestId("curriculum-level-code-input"),
+      "5EME",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("curriculum-level-label-input"),
+      "Cinquième",
     );
     fireEvent.press(screen.getByTestId("curriculum-level-form-submit"));
 
-    expect(
-      await screen.findByTestId("curriculum-level-code-input-error"),
-    ).toBeTruthy();
-    expect(
-      screen.getByTestId("curriculum-level-label-input-error"),
-    ).toBeTruthy();
-    expect(mockCurriculumsApi.createAcademicLevel).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(mockShowError).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Action impossible" }),
+      ),
+    );
+    expect(mockShowSuccess).not.toHaveBeenCalled();
   });
 
-  it("les champs invalides restent en erreur, les champs corrigés perdent leur erreur", async () => {
-    render(<CurriculumsAdminScreen />);
-    await waitFor(() =>
-      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
-    );
-    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
-    await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
-    fireEvent.press(screen.getByTestId("curriculums-fab"));
-    await waitFor(() =>
-      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
+  it("affiche un toast d'erreur quand la suppression d'un curriculum échoue", async () => {
+    mockCurriculumsApi.deleteCurriculum.mockRejectedValue(
+      new Error("Suppression impossible"),
     );
 
-    // Taper une valeur invalide puis corriger via onChange (mode: "onChange")
+    await renderAndWaitLoaded();
+    fireEvent.press(screen.getByTestId("curriculum-delete-curr-1"));
+    fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
+
+    await waitFor(() =>
+      expect(mockShowError).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Action impossible" }),
+      ),
+    );
+    expect(screen.getByTestId("curriculum-row-curr-1")).toBeTruthy();
+  });
+
+  it("affiche un toast d'erreur quand la mise à jour d'une filière échoue", async () => {
+    mockCurriculumsApi.updateTrack.mockRejectedValue(
+      new Error("Conflit serveur"),
+    );
+
+    await renderAndWaitLoaded();
+    fireEvent.press(screen.getByTestId("curriculums-tab-tracks"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-track-row-track-sc")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("curriculum-track-edit-track-sc"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-track-form-sheet")).toBeTruthy(),
+    );
+
     fireEvent.changeText(
-      screen.getByTestId("curriculum-level-code-input"),
-      "X",
+      screen.getByTestId("curriculum-track-label-input"),
+      "Sciences modifiées",
     );
-    fireEvent.changeText(screen.getByTestId("curriculum-level-code-input"), "");
-    expect(
-      await screen.findByTestId("curriculum-level-code-input-error"),
-    ).toBeTruthy();
+    fireEvent.press(screen.getByTestId("curriculum-track-form-submit"));
 
-    // Le libellé n'a pas été touché → pas d'erreur avant submit
-    expect(
-      screen.queryByTestId("curriculum-level-label-input-error"),
-    ).toBeNull();
-    expect(mockCurriculumsApi.createAcademicLevel).not.toHaveBeenCalled();
-  });
-
-  it("bouton submit du form curriculum toujours actif même sur form vide", async () => {
-    render(<CurriculumsAdminScreen />);
     await waitFor(() =>
-      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
+      expect(mockShowError).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Action impossible" }),
+      ),
     );
-    fireEvent.press(screen.getByTestId("curriculums-fab"));
-    await waitFor(() =>
-      expect(screen.getByTestId("curriculum-form-sheet")).toBeTruthy(),
-    );
-    const submit = screen.getByTestId("curriculum-form-submit");
-    expect(submit.props.accessibilityState?.disabled).toBeFalsy();
-  });
-
-  it("bouton submit du form matière toujours actif même sur form vide", async () => {
-    render(<CurriculumsAdminScreen />);
-    await waitFor(() =>
-      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
-    );
-    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
-    await waitFor(() =>
-      expect(screen.getByTestId("curriculum-selector")).toBeTruthy(),
-    );
-    fireEvent.press(screen.getByTestId("curriculums-fab"));
-    await waitFor(() =>
-      expect(screen.getByTestId("curriculum-subject-form-sheet")).toBeTruthy(),
-    );
-    const submit = screen.getByTestId("curriculum-subject-form-submit");
-    expect(submit.props.accessibilityState?.disabled).toBeFalsy();
-  });
-
-  it("bloque l'accès pour un utilisateur non school admin sans lancer les appels API", () => {
-    mockAuthState = {
-      schoolSlug: "college-vogt",
-      user: {
-        ...makeSchoolAdminUser(),
-        role: "TEACHER",
-        activeRole: "TEACHER",
-      },
-    };
-
-    render(<CurriculumsAdminScreen />);
-
-    expect(screen.getByText("Accès réservé")).toBeTruthy();
-    expect(mockCurriculumsApi.listAcademicLevels).not.toHaveBeenCalled();
-    expect(screen.queryByTestId("curriculums-fab")).toBeNull();
   });
 });

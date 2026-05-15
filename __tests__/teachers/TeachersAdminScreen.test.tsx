@@ -750,3 +750,134 @@ describe("TeachersAdminScreen", () => {
     expect(mockTeachersApi.createAssignment).not.toHaveBeenCalled();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Ouverture des feuilles de formulaire — verrouillage du bug Android Fabric
+//
+// Ces tests vérifient que le testID de la feuille ENTIÈRE est présent dans
+// l'arbre après ouverture. En JSDOM, un composant rendu avec flex:1 dans un
+// parent sans hauteur est dans l'arbre même s'il est invisible en natif.
+// Ces tests ne détectent pas le bug de hauteur en lui-même (seul Maestro le
+// ferait), mais ils protègent contre :
+//   - la feuille qui ne s'ouvre plus (bug d'état)
+//   - un crash de rendu qui masque la feuille
+//   - l'absence du testID (refactoring cassant)
+// ---------------------------------------------------------------------------
+
+describe("TeachersAdminScreen — ouverture des feuilles de formulaire (protection régression)", () => {
+  it("FAB onglet enseignants → feuille de création enseignant visible dans l'arbre", async () => {
+    render(<TeachersAdminScreen />);
+    await screen.findByTestId("teachers-admin-fab");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
+
+    expect(
+      await screen.findByTestId("teachers-admin-create-sheet"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-create-phone")).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-create-pin")).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-create-submit")).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-create-cancel")).toBeTruthy();
+  });
+
+  it("bouton close sur feuille enseignant → feuille disparaît de l'arbre", async () => {
+    render(<TeachersAdminScreen />);
+    await screen.findByTestId("teachers-admin-fab");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-create-sheet");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-create-sheet-close"));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("teachers-admin-create-sheet")).toBeNull(),
+    );
+    expect(mockTeachersApi.createTeacher).not.toHaveBeenCalled();
+  });
+
+  it("bouton Annuler sur feuille enseignant → feuille disparaît sans appel API", async () => {
+    render(<TeachersAdminScreen />);
+    await screen.findByTestId("teachers-admin-fab");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-create-sheet");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-create-cancel"));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("teachers-admin-create-sheet")).toBeNull(),
+    );
+    expect(mockTeachersApi.createTeacher).not.toHaveBeenCalled();
+  });
+
+  it("FAB onglet affectations → feuille de création d'affectation visible dans l'arbre", async () => {
+    render(<TeachersAdminScreen />);
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    );
+
+    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
+
+    expect(
+      await screen.findByTestId("teachers-admin-assignment-sheet"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("teachers-admin-assignment-school-year"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("teachers-admin-assignment-teacher"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-assignment-class")).toBeTruthy();
+    expect(
+      screen.getByTestId("teachers-admin-assignment-subject"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-assignment-submit")).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-assignment-cancel")).toBeTruthy();
+  });
+
+  it("bouton close sur feuille affectation → feuille disparaît de l'arbre", async () => {
+    render(<TeachersAdminScreen />);
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    );
+    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-assignment-sheet");
+
+    fireEvent.press(
+      screen.getByTestId("teachers-admin-assignment-sheet-close"),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId("teachers-admin-assignment-sheet"),
+      ).toBeNull(),
+    );
+    expect(mockTeachersApi.createAssignment).not.toHaveBeenCalled();
+  });
+
+  it("bouton edit d'une affectation inline → feuille d'édition visible dans l'arbre", async () => {
+    render(<TeachersAdminScreen />);
+    fireEvent.press(
+      await screen.findByTestId(
+        "teachers-admin-teacher-open-assignments-teacher-1",
+      ),
+    );
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-assignment-edit-assign-1"),
+    );
+
+    expect(
+      await screen.findByTestId("teachers-admin-assignment-sheet"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("teachers-admin-assignment-school-year"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("teachers-admin-assignment-teacher"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-assignment-class")).toBeTruthy();
+    expect(
+      screen.getByTestId("teachers-admin-assignment-subject"),
+    ).toBeTruthy();
+  });
+});
