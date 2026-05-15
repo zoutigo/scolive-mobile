@@ -5,6 +5,10 @@ import { tokenStorage } from "../../src/api/client";
 import type { AuthUser, LoginResponse } from "../../src/types/auth.types";
 
 jest.mock("../../src/api/auth.api");
+jest.mock("../../src/notifications/push-registration", () => ({
+  syncPushRegistration: jest.fn().mockResolvedValue(undefined),
+  unregisterPushRegistration: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock("../../src/api/client", () => ({
   tokenStorage: {
     getAccessToken: jest.fn(),
@@ -289,6 +293,44 @@ describe("auth.store — logout", () => {
     expect(state.accessToken).toBeNull();
     expect(state.schoolSlug).toBeNull();
     expect(mockAuthApi.logout).toHaveBeenCalled();
+  });
+
+  it("désauthentifie immédiatement sans attendre la fin du logout API", async () => {
+    useAuthStore.setState({
+      user: fakeUser,
+      accessToken: "access-token-123",
+      schoolSlug: "ecole-test",
+      isAuthenticated: true,
+      isLoading: false,
+    });
+
+    let resolveLogout!: () => void;
+    mockAuthApi.logout.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveLogout = resolve;
+        }),
+    );
+
+    const logoutPromise = useAuthStore.getState().logout();
+
+    const stateWhileApiPending = useAuthStore.getState();
+    expect(stateWhileApiPending.isAuthenticated).toBe(false);
+    expect(stateWhileApiPending.user).toBeNull();
+    expect(stateWhileApiPending.accessToken).toBeNull();
+    expect(stateWhileApiPending.schoolSlug).toBeNull();
+    expect(stateWhileApiPending.isLoading).toBe(false);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(mockAuthApi.logout).toHaveBeenCalledTimes(1);
+    resolveLogout();
+
+    await act(async () => {
+      await logoutPromise;
+    });
   });
 
   it("invalidateSession efface la session et stocke un message utilisateur", async () => {

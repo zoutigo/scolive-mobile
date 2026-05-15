@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Platform } from "react-native";
 import * as Application from "expo-application";
 import { mobileBuildsApi } from "../api/mobile-builds.api";
@@ -67,6 +67,10 @@ export function useAppVersionCheck(): AppVersionCheckResult {
     };
   }, [currentVersionCode]);
 
+  const dismiss = useCallback(() => {
+    setDismissed(true);
+  }, []);
+
   return {
     updateAvailable: updateAvailable && !dismissed,
     latestVersionName,
@@ -74,6 +78,6 @@ export function useAppVersionCheck(): AppVersionCheckResult {
     currentVersionName,
     currentVersionCode,
     downloadUrl,
-    dismiss: () => setDismissed(true),
+    dismiss,
   };
 }

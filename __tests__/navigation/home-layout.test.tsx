@@ -70,4 +70,31 @@ describe("HomeLayout", () => {
     expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
     expect(mockReplace).not.toHaveBeenCalled();
   });
+
+  it("redirige quand la session passe de authentifiée à déconnectée", async () => {
+    mockUseAuthStore
+      .mockReturnValueOnce({
+        isAuthenticated: true,
+        isLoading: false,
+      } as ReturnType<typeof useAuthStore>)
+      .mockReturnValueOnce({
+        isAuthenticated: false,
+        isLoading: false,
+      } as ReturnType<typeof useAuthStore>);
+
+    const { rerender } = render(<HomeLayout />);
+
+    expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
+    expect(mockReplace).not.toHaveBeenCalled();
+
+    rerender(<HomeLayout />);
+
+    expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith("/");
+    });
+
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+  });
 });
