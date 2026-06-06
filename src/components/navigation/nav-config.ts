@@ -251,8 +251,7 @@ const SCHOOL_NAV: NavItem[] = [
     key: "discipline",
     label: "Discipline",
     icon: "shield-outline",
-    route: "/placeholder",
-    params: { title: "Discipline" },
+    route: "/admin-discipline",
   },
   {
     key: "messages",
