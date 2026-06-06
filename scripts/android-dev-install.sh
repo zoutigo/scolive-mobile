@@ -51,7 +51,10 @@ apply_dev_tuning() {
   "$ADB_BIN" -s "$serial" shell settings put global animator_duration_scale 0 >/dev/null 2>&1 || true
 
   # Chrome est intentionnellement conservé : requis pour les Custom Tabs (Google OAuth).
+  # Expo Go est désactivé : expo start (sans --dev-client) lui envoie un intent automatique
+  # qui lui fait prendre la main sur le native app, déclenchant le check isExpoGoRuntime().
   for pkg in \
+    host.exp.exponent \
     com.google.android.youtube \
     com.google.android.apps.messaging \
     com.google.android.apps.wellbeing \
