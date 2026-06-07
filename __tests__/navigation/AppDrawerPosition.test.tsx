@@ -30,6 +30,7 @@ jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: jest.fn() }),
   usePathname: () => "/",
+  useLocalSearchParams: () => ({}),
 }));
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -199,7 +200,7 @@ describe("Scrollabilité de la liste de navigation", () => {
     };
     render(<AppDrawer {...baseProps} navItems={getNavItems(schoolUser)} />);
     const schoolItems = getNavItems(schoolUser);
-    expect(schoolItems).toHaveLength(14);
+    expect(schoolItems).toHaveLength(15);
     schoolItems.forEach((item) => {
       expect(screen.getByTestId(`nav-item-${item.key}`)).toBeTruthy();
     });

@@ -34,6 +34,7 @@ export interface OnboardingOptionsResponse {
 
 export interface OnboardingCompletePayload {
   email?: string;
+  username?: string;
   setupToken?: string;
   temporaryPassword?: string;
   newPassword?: string;

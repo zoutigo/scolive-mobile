@@ -9,6 +9,7 @@ import OnboardingScreen, {
   onboardingRecoveryStepSchema,
   parseOnboardingApiError,
   phoneOnboardingStep1Schema,
+  usernameOnboardingStep1Schema,
 } from "../../app/onboarding";
 import { authApi } from "../../src/api/auth.api";
 
@@ -36,6 +37,7 @@ jest.mock("../../src/api/auth.api", () => ({
   authApi: {
     getOnboardingOptions: jest.fn(),
     completeOnboarding: jest.fn(),
+    firstPasswordChangeByUsername: jest.fn(),
   },
 }));
 
@@ -50,6 +52,10 @@ const mockGetOnboardingOptions =
 const mockCompleteOnboarding =
   authApi.completeOnboarding as jest.MockedFunction<
     typeof authApi.completeOnboarding
+  >;
+const mockFirstPasswordChangeByUsername =
+  authApi.firstPasswordChangeByUsername as jest.MockedFunction<
+    typeof authApi.firstPasswordChangeByUsername
   >;
 
 const parentOptions = {
@@ -82,6 +88,7 @@ beforeEach(() => {
   mockParams = { email: "parent@ecole.cm" };
   mockGetOnboardingOptions.mockResolvedValue(parentOptions);
   mockCompleteOnboarding.mockResolvedValue({ success: true, schoolSlug: null });
+  mockFirstPasswordChangeByUsername.mockResolvedValue({ success: true });
 });
 
 describe("emailOnboardingStep1Schema", () => {
@@ -415,5 +422,190 @@ describe("OnboardingScreen", () => {
     await waitFor(() => expect(mockCompleteOnboarding).not.toHaveBeenCalled());
     expect(getByTestId("error-parentClassId")).toBeTruthy();
     expect(getByTestId("error-parentStudentId")).toBeTruthy();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// usernameOnboardingStep1Schema
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("usernameOnboardingStep1Schema", () => {
+  it("accepte des valeurs valides", () => {
+    expect(
+      usernameOnboardingStep1Schema.safeParse({
+        username: "amina42",
+        temporaryPassword: "TempPass11",
+        newPassword: "NewPassWord9",
+        confirmPassword: "NewPassWord9",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejette un username vide", () => {
+    const result = usernameOnboardingStep1Schema.safeParse({
+      username: "",
+      temporaryPassword: "TempPass11",
+      newPassword: "NewPassWord9",
+      confirmPassword: "NewPassWord9",
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe("Identifiant requis.");
+  });
+
+  it("rejette si temporaryPassword est vide", () => {
+    const result = usernameOnboardingStep1Schema.safeParse({
+      username: "amina42",
+      temporaryPassword: "",
+      newPassword: "NewPassWord9",
+      confirmPassword: "NewPassWord9",
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toBe(
+      "Le mot de passe provisoire est obligatoire.",
+    );
+  });
+
+  it("rejette si les mots de passe ne correspondent pas", () => {
+    const result = usernameOnboardingStep1Schema.safeParse({
+      username: "amina42",
+      temporaryPassword: "TempPass11",
+      newPassword: "NewPassWord9",
+      confirmPassword: "OtherPass9",
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.message).toContain("confirmation");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OnboardingScreen — branche username
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("OnboardingScreen — branche username", () => {
+  const usernameOptions = {
+    schoolSlug: "ecole-demo",
+    schoolRoles: ["STUDENT"],
+    questions: [
+      { key: "MOTHER_MAIDEN_NAME", label: "Nom de jeune fille de votre mère" },
+      { key: "BIRTH_CITY", label: "Ville de naissance" },
+      { key: "FAVORITE_SPORT", label: "Sport préféré" },
+    ],
+    classes: [],
+    students: [],
+  };
+
+  beforeEach(() => {
+    mockParams = { username: "amina42", schoolSlug: "ecole-demo" };
+    mockGetOnboardingOptions.mockResolvedValue(usernameOptions);
+  });
+
+  it("affiche le champ 'Identifiant' en lecture seule (readonly)", async () => {
+    const { getByTestId, findByTestId } = render(<OnboardingScreen />);
+    await findByTestId("step-1");
+    const input = getByTestId("input-username");
+    expect(input).toBeTruthy();
+    // Le champ est editable=false (readonly)
+    expect(input.props.editable).toBe(false);
+  });
+
+  it("pré-remplit le champ identifiant avec le username passé en param", async () => {
+    const { getByTestId, findByTestId } = render(<OnboardingScreen />);
+    await findByTestId("step-1");
+    const input = getByTestId("input-username");
+    expect(input.props.value).toBe("amina42");
+  });
+
+  it("affiche les champs temporaryPassword et newPassword à l'étape 1", async () => {
+    const { getByTestId, findByTestId } = render(<OnboardingScreen />);
+    await findByTestId("step-1");
+    expect(getByTestId("input-temporary-password")).toBeTruthy();
+    expect(getByTestId("input-new-password")).toBeTruthy();
+  });
+
+  it("affiche une erreur si temporaryPassword est vide au submit Step 1", async () => {
+    const { getByTestId, findByTestId } = render(<OnboardingScreen />);
+    await findByTestId("step-1");
+    fireEvent.press(getByTestId("btn-step1"));
+    const error = await findByTestId("error-temporary-password");
+    expect(error.props.children).toBe(
+      "Le mot de passe provisoire est obligatoire.",
+    );
+  });
+
+  it("appelle firstPasswordChangeByUsername au submit de l'étape finale", async () => {
+    const { getByTestId, findByTestId } = render(<OnboardingScreen />);
+
+    await findByTestId("step-1");
+    fireEvent.changeText(getByTestId("input-temporary-password"), "TempPass11");
+    fireEvent.changeText(getByTestId("input-new-password"), "NewPassWord9");
+    fireEvent.changeText(getByTestId("input-confirm-password"), "NewPassWord9");
+    fireEvent.press(getByTestId("btn-step1"));
+
+    await findByTestId("step-2");
+    fireEvent.changeText(getByTestId("input-first-name"), "Amina");
+    fireEvent.changeText(getByTestId("input-last-name"), "Fouda");
+    fireEvent.press(getByTestId("gender-F"));
+    fireEvent.changeText(getByTestId("input-birthdate"), "15012005");
+    fireEvent.press(getByTestId("btn-step2"));
+
+    await findByTestId("step-3");
+    fireEvent.press(getByTestId("question-MOTHER_MAIDEN_NAME"));
+    fireEvent.press(getByTestId("question-BIRTH_CITY"));
+    fireEvent.press(getByTestId("question-FAVORITE_SPORT"));
+    fireEvent.press(getByTestId("btn-step3"));
+
+    await findByTestId("step-4");
+    fireEvent.changeText(getByTestId("input-answer-0"), "Abena");
+    fireEvent.changeText(getByTestId("input-answer-1"), "Douala");
+    fireEvent.changeText(getByTestId("input-answer-2"), "Basket");
+    fireEvent.press(getByTestId("btn-submit-onboarding"));
+
+    await waitFor(() =>
+      expect(mockFirstPasswordChangeByUsername).toHaveBeenCalledWith(
+        "amina42",
+        "TempPass11",
+        "NewPassWord9",
+      ),
+    );
+  });
+
+  it("affiche une erreur si l'API retourne une erreur sur le mot de passe provisoire", async () => {
+    mockFirstPasswordChangeByUsername.mockRejectedValueOnce(
+      Object.assign(new Error("INVALID_CREDENTIALS"), {
+        code: "INVALID_CREDENTIALS",
+        statusCode: 401,
+      }),
+    );
+
+    const { getByTestId, findByTestId, findByText } = render(
+      <OnboardingScreen />,
+    );
+
+    await findByTestId("step-1");
+    fireEvent.changeText(getByTestId("input-temporary-password"), "WrongTmp1");
+    fireEvent.changeText(getByTestId("input-new-password"), "NewPassWord9");
+    fireEvent.changeText(getByTestId("input-confirm-password"), "NewPassWord9");
+    fireEvent.press(getByTestId("btn-step1"));
+
+    await findByTestId("step-2");
+    fireEvent.changeText(getByTestId("input-first-name"), "Amina");
+    fireEvent.changeText(getByTestId("input-last-name"), "Fouda");
+    fireEvent.press(getByTestId("gender-F"));
+    fireEvent.changeText(getByTestId("input-birthdate"), "15012005");
+    fireEvent.press(getByTestId("btn-step2"));
+
+    await findByTestId("step-3");
+    fireEvent.press(getByTestId("question-MOTHER_MAIDEN_NAME"));
+    fireEvent.press(getByTestId("question-BIRTH_CITY"));
+    fireEvent.press(getByTestId("question-FAVORITE_SPORT"));
+    fireEvent.press(getByTestId("btn-step3"));
+
+    await findByTestId("step-4");
+    fireEvent.changeText(getByTestId("input-answer-0"), "Abena");
+    fireEvent.changeText(getByTestId("input-answer-1"), "Douala");
+    fireEvent.changeText(getByTestId("input-answer-2"), "Basket");
+    fireEvent.press(getByTestId("btn-submit-onboarding"));
+
+    await findByText("Informations d'activation invalides.");
   });
 });

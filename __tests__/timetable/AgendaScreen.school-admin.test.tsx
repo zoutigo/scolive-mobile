@@ -50,6 +50,7 @@ const mockUseWindowDimensions = useWindowDimensions as jest.MockedFunction<
 const mockBack = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: mockBack, push: jest.fn() }),
+  useLocalSearchParams: () => ({}),
 }));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),

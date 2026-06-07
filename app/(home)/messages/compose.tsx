@@ -245,12 +245,21 @@ export default function ComposeScreen() {
   const showFeedbackToast = useSuccessToastStore((state) => state.show);
   const editorRef = useRef<RichEditor>(null);
 
-  const { replyToSubject, replyToSenderId, replyToSenderLabel } =
-    useLocalSearchParams<{
-      replyToSubject?: string;
-      replyToSenderId?: string;
-      replyToSenderLabel?: string;
-    }>();
+  const {
+    replyToSubject,
+    replyToSenderId,
+    replyToSenderLabel,
+    prefilledRecipientId,
+    prefilledRecipientLabel,
+    prefilledRecipientEmail,
+  } = useLocalSearchParams<{
+    replyToSubject?: string;
+    replyToSenderId?: string;
+    replyToSenderLabel?: string;
+    prefilledRecipientId?: string;
+    prefilledRecipientLabel?: string;
+    prefilledRecipientEmail?: string;
+  }>();
 
   const isReply = !!replyToSubject;
 
@@ -277,11 +286,21 @@ export default function ComposeScreen() {
   const [bodyError, setBodyError] = useState<string | null>(null);
   const [selectedRecipients, setSelectedRecipients] = useState<
     RecipientOption[]
-  >(
-    replyToSenderId && replyToSenderLabel
-      ? [{ value: replyToSenderId, label: replyToSenderLabel }]
-      : [],
-  );
+  >(() => {
+    if (replyToSenderId && replyToSenderLabel) {
+      return [{ value: replyToSenderId, label: replyToSenderLabel }];
+    }
+    if (prefilledRecipientId && prefilledRecipientLabel) {
+      return [
+        {
+          value: prefilledRecipientId,
+          label: prefilledRecipientLabel,
+          email: prefilledRecipientEmail ?? undefined,
+        },
+      ];
+    }
+    return [];
+  });
   const [recipients, setRecipients] = useState<RecipientOption[]>([]);
   const [recipientsLoading, setRecipientsLoading] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
