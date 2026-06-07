@@ -100,9 +100,7 @@ function makeApiError(code: string, status = 401) {
 async function switchToMethod(targetMethod: string) {
   fireEvent.press(screen.getByTestId("link-switch-method"));
   await waitFor(() =>
-    expect(
-      screen.getByTestId(`modal-tab-${targetMethod}`),
-    ).toBeOnTheScreen(),
+    expect(screen.getByTestId(`modal-tab-${targetMethod}`)).toBeOnTheScreen(),
   );
   fireEvent.press(screen.getByTestId(`modal-tab-${targetMethod}`));
 }
