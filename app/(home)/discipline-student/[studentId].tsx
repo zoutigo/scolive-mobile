@@ -97,10 +97,14 @@ export default function DisciplineStudentScreen() {
 
   const [tab, setTab] = useState<TabKey>("synthese");
   const [modalVisible, setModalVisible] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<StudentLifeEvent | null>(null);
+  const [editingEvent, setEditingEvent] = useState<StudentLifeEvent | null>(
+    null,
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<StudentLifeEvent | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<StudentLifeEvent | null>(
+    null,
+  );
   const [isDeleting, setIsDeleting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -179,7 +183,11 @@ export default function DisciplineStudentScreen() {
           message: "Les changements ont bien été enregistrés.",
         });
       } else {
-        const created = await disciplineApi.create(schoolSlug, studentId, payload);
+        const created = await disciplineApi.create(
+          schoolSlug,
+          studentId,
+          payload,
+        );
         addEvent(studentId, created);
         showSuccess({
           title: "Événement enregistré",

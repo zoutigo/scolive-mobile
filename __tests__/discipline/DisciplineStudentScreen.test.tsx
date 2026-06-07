@@ -103,7 +103,9 @@ describe("DisciplineStudentScreen", () => {
     render(<DisciplineStudentScreen />);
 
     // Ouvrir la modale via le FAB Synthèse
-    await waitFor(() => expect(screen.getByTestId("fab-synthese")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByTestId("fab-synthese")).toBeTruthy(),
+    );
     fireEvent.press(screen.getByTestId("fab-synthese"));
     await waitFor(() =>
       expect(screen.getByTestId("student-discipline-modal")).toBeTruthy(),
@@ -128,7 +130,9 @@ describe("DisciplineStudentScreen", () => {
     render(<DisciplineStudentScreen />);
 
     // Ouvrir la modale
-    await waitFor(() => expect(screen.getByTestId("fab-synthese")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByTestId("fab-synthese")).toBeTruthy(),
+    );
     fireEvent.press(screen.getByTestId("fab-synthese"));
     await waitFor(() =>
       expect(screen.getByTestId("student-discipline-modal")).toBeTruthy(),
@@ -167,7 +171,9 @@ describe("DisciplineStudentScreen", () => {
     render(<DisciplineStudentScreen />);
 
     // Ouvrir la modale
-    await waitFor(() => expect(screen.getByTestId("fab-synthese")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByTestId("fab-synthese")).toBeTruthy(),
+    );
     fireEvent.press(screen.getByTestId("fab-synthese"));
     await waitFor(() =>
       expect(screen.getByTestId("student-discipline-modal")).toBeTruthy(),

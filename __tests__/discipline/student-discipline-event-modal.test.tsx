@@ -31,7 +31,9 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-function renderModal(props: Partial<React.ComponentProps<typeof StudentDisciplineEventModal>> = {}) {
+function renderModal(
+  props: Partial<React.ComponentProps<typeof StudentDisciplineEventModal>> = {},
+) {
   return render(
     <StudentDisciplineEventModal
       visible
@@ -104,8 +106,14 @@ describe("StudentDisciplineEventModal — mode création", () => {
   it("appelle onSubmit avec le bon payload quand les champs sont valides", async () => {
     renderModal();
 
-    fireEvent.changeText(screen.getByTestId("modal-occurred-at"), "2026-04-09T08:30");
-    fireEvent.changeText(screen.getByTestId("modal-reason"), "Absence injustifiée");
+    fireEvent.changeText(
+      screen.getByTestId("modal-occurred-at"),
+      "2026-04-09T08:30",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("modal-reason"),
+      "Absence injustifiée",
+    );
     fireEvent.press(screen.getByTestId("modal-submit"));
 
     await waitFor(() => {
@@ -122,7 +130,10 @@ describe("StudentDisciplineEventModal — mode création", () => {
   it("affiche l'erreur de motif si le champ est vide au submit", async () => {
     renderModal();
 
-    fireEvent.changeText(screen.getByTestId("modal-occurred-at"), "2026-04-09T08:30");
+    fireEvent.changeText(
+      screen.getByTestId("modal-occurred-at"),
+      "2026-04-09T08:30",
+    );
     fireEvent.press(screen.getByTestId("modal-submit"));
 
     await waitFor(() => {
@@ -206,7 +217,10 @@ describe("StudentDisciplineEventModal — mode édition", () => {
   it("appelle onSubmit avec les valeurs modifiées", async () => {
     renderModal({ editing: existingEvent });
 
-    fireEvent.changeText(screen.getByTestId("modal-reason"), "Bus très en retard");
+    fireEvent.changeText(
+      screen.getByTestId("modal-reason"),
+      "Bus très en retard",
+    );
     fireEvent.press(screen.getByTestId("modal-submit"));
 
     await waitFor(() => {

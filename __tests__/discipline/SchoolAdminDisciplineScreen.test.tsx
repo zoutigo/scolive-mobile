@@ -65,12 +65,28 @@ const mockDisciplineApi = disciplineApi as jest.Mocked<typeof disciplineApi>;
 const YEAR_2026 = { id: "sy-2026", label: "2025-2026", isActive: true };
 const YEAR_2025 = { id: "sy-2025", label: "2024-2025", isActive: false };
 
-const CLASS_6A = { id: "class-6a", name: "6e A", schoolYear: { id: "sy-2026", label: "2025-2026" } };
-const CLASS_5B = { id: "class-5b", name: "5e B", schoolYear: { id: "sy-2026", label: "2025-2026" } };
-const CLASS_OLD = { id: "class-old", name: "6e C", schoolYear: { id: "sy-2025", label: "2024-2025" } };
+const CLASS_6A = {
+  id: "class-6a",
+  name: "6e A",
+  schoolYear: { id: "sy-2026", label: "2025-2026" },
+};
+const CLASS_5B = {
+  id: "class-5b",
+  name: "5e B",
+  schoolYear: { id: "sy-2026", label: "2025-2026" },
+};
+const CLASS_OLD = {
+  id: "class-old",
+  name: "6e C",
+  schoolYear: { id: "sy-2025", label: "2024-2025" },
+};
 
 const STUDENT_MBELE = { id: "student-1", firstName: "Lisa", lastName: "MBELE" };
-const STUDENT_NTAMACK = { id: "student-2", firstName: "Remi", lastName: "NTAMACK" };
+const STUDENT_NTAMACK = {
+  id: "student-2",
+  firstName: "Remi",
+  lastName: "NTAMACK",
+};
 
 const EVENT_1 = makeLifeEvent({
   id: "event-1",
@@ -91,7 +107,11 @@ const EVENT_2 = makeLifeEvent({
 
 function setupDefaultMocks() {
   mockTeachersApi.listSchoolYears.mockResolvedValue([YEAR_2026, YEAR_2025]);
-  mockTeachersApi.listClassrooms.mockResolvedValue([CLASS_6A, CLASS_5B, CLASS_OLD]);
+  mockTeachersApi.listClassrooms.mockResolvedValue([
+    CLASS_6A,
+    CLASS_5B,
+    CLASS_OLD,
+  ]);
   mockNotesApi.getTeacherContext.mockResolvedValue({
     class: { id: "class-6a", name: "6e A", schoolYearId: "sy-2026" },
     subjects: [],
@@ -103,14 +123,15 @@ function setupDefaultMocks() {
     if (studentId === "student-2") return [EVENT_2];
     return [];
   });
-  mockDisciplineApi.create.mockImplementation(async (_slug, studentId, payload) =>
-    makeLifeEvent({
-      id: "created-1",
-      studentId,
-      classId: "class-6a",
-      reason: payload.reason,
-      type: payload.type,
-    }),
+  mockDisciplineApi.create.mockImplementation(
+    async (_slug, studentId, payload) =>
+      makeLifeEvent({
+        id: "created-1",
+        studentId,
+        classId: "class-6a",
+        reason: payload.reason,
+        type: payload.type,
+      }),
   );
   mockDisciplineApi.update.mockResolvedValue(
     makeLifeEvent({ id: "event-1", reason: "Modifiée" }),
@@ -148,8 +169,12 @@ describe("SchoolAdminDisciplineScreen — rendu initial", () => {
     render(<SchoolAdminDisciplineScreen />);
 
     await waitFor(() => {
-      expect(mockTeachersApi.listSchoolYears).toHaveBeenCalledWith("college-vogt");
-      expect(mockTeachersApi.listClassrooms).toHaveBeenCalledWith("college-vogt");
+      expect(mockTeachersApi.listSchoolYears).toHaveBeenCalledWith(
+        "college-vogt",
+      );
+      expect(mockTeachersApi.listClassrooms).toHaveBeenCalledWith(
+        "college-vogt",
+      );
     });
   });
 
@@ -157,8 +182,12 @@ describe("SchoolAdminDisciplineScreen — rendu initial", () => {
     render(<SchoolAdminDisciplineScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-main-tab-students")).toBeOnTheScreen();
-      expect(screen.getByTestId("admin-discipline-main-tab-class")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-main-tab-students"),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-main-tab-class"),
+      ).toBeOnTheScreen();
     });
   });
 
@@ -169,7 +198,9 @@ describe("SchoolAdminDisciplineScreen — rendu initial", () => {
     render(<SchoolAdminDisciplineScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-meta-error")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-meta-error"),
+      ).toBeOnTheScreen();
     });
   });
 });
@@ -189,38 +220,60 @@ describe("SchoolAdminDisciplineScreen — onglet Élèves", () => {
     render(<SchoolAdminDisciplineScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-students-filters")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-students-filters"),
+      ).toBeOnTheScreen();
     });
 
-    expect(screen.getByTestId("admin-discipline-student-search")).toBeOnTheScreen();
+    expect(
+      screen.getByTestId("admin-discipline-student-search"),
+    ).toBeOnTheScreen();
   });
 
   it("filtre les classes affichées selon l'année sélectionnée", async () => {
     render(<SchoolAdminDisciplineScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-students-year-trigger")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-students-year-trigger"),
+      ).toBeOnTheScreen();
     });
 
     // Ouvrir le sélecteur d'année et choisir 2024-2025
-    fireEvent.press(screen.getByTestId("admin-discipline-students-year-trigger"));
-    fireEvent.press(screen.getByTestId("admin-discipline-students-year-option-sy-2025"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-year-trigger"),
+    );
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-year-option-sy-2025"),
+    );
 
     // Ouvrir le sélecteur de classe → seule la classe ancienne doit apparaître
-    fireEvent.press(screen.getByTestId("admin-discipline-students-class-trigger"));
-    expect(screen.getByTestId("admin-discipline-students-class-option-class-old")).toBeOnTheScreen();
-    expect(screen.queryByTestId("admin-discipline-students-class-option-class-6a")).toBeNull();
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-class-trigger"),
+    );
+    expect(
+      screen.getByTestId("admin-discipline-students-class-option-class-old"),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByTestId("admin-discipline-students-class-option-class-6a"),
+    ).toBeNull();
   });
 
   it("charge les élèves quand une classe est sélectionnée", async () => {
     render(<SchoolAdminDisciplineScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-students-class-trigger")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-students-class-trigger"),
+      ).toBeOnTheScreen();
     });
 
-    fireEvent.press(screen.getByTestId("admin-discipline-students-class-trigger"));
-    fireEvent.press(screen.getByTestId("admin-discipline-students-class-option-class-6a"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-class-trigger"),
+    );
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-class-option-class-6a"),
+    );
 
     await waitFor(() => {
       expect(mockNotesApi.getTeacherContext).toHaveBeenCalledWith(
@@ -230,7 +283,9 @@ describe("SchoolAdminDisciplineScreen — onglet Élèves", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-student-list")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-student-list"),
+      ).toBeOnTheScreen();
       expect(screen.getByTestId("student-row-student-1")).toBeOnTheScreen();
       expect(screen.getByTestId("student-row-student-2")).toBeOnTheScreen();
     });
@@ -243,11 +298,17 @@ describe("SchoolAdminDisciplineScreen — onglet Élèves", () => {
     render(<SchoolAdminDisciplineScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-students-class-trigger")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-students-class-trigger"),
+      ).toBeOnTheScreen();
     });
 
-    fireEvent.press(screen.getByTestId("admin-discipline-students-class-trigger"));
-    fireEvent.press(screen.getByTestId("admin-discipline-students-class-option-class-6a"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-class-trigger"),
+    );
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-class-option-class-6a"),
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("student-row-student-1")).toBeOnTheScreen();
@@ -261,17 +322,26 @@ describe("SchoolAdminDisciplineScreen — onglet Élèves", () => {
     render(<SchoolAdminDisciplineScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-students-class-trigger")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-students-class-trigger"),
+      ).toBeOnTheScreen();
     });
 
-    fireEvent.press(screen.getByTestId("admin-discipline-students-class-trigger"));
-    fireEvent.press(screen.getByTestId("admin-discipline-students-class-option-class-6a"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-class-trigger"),
+    );
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-class-option-class-6a"),
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("student-row-student-1")).toBeOnTheScreen();
     });
 
-    fireEvent.changeText(screen.getByTestId("admin-discipline-student-search"), "mbele");
+    fireEvent.changeText(
+      screen.getByTestId("admin-discipline-student-search"),
+      "mbele",
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("student-row-student-1")).toBeOnTheScreen();
@@ -283,11 +353,17 @@ describe("SchoolAdminDisciplineScreen — onglet Élèves", () => {
     render(<SchoolAdminDisciplineScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-students-class-trigger")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-students-class-trigger"),
+      ).toBeOnTheScreen();
     });
 
-    fireEvent.press(screen.getByTestId("admin-discipline-students-class-trigger"));
-    fireEvent.press(screen.getByTestId("admin-discipline-students-class-option-class-6a"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-class-trigger"),
+    );
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-class-option-class-6a"),
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("student-row-student-1")).toBeOnTheScreen();
@@ -340,7 +416,9 @@ describe("SchoolAdminDisciplineScreen — onglet Élèves", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Aucun élève ne correspond à cette recherche.")).toBeOnTheScreen();
+      expect(
+        screen.getByText("Aucun élève ne correspond à cette recherche."),
+      ).toBeOnTheScreen();
     });
   });
 
@@ -376,11 +454,17 @@ describe("SchoolAdminDisciplineScreen — onglet Élèves", () => {
     render(<SchoolAdminDisciplineScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-students-class-trigger")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-students-class-trigger"),
+      ).toBeOnTheScreen();
     });
 
-    fireEvent.press(screen.getByTestId("admin-discipline-students-class-trigger"));
-    fireEvent.press(screen.getByTestId("admin-discipline-students-class-option-class-6a"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-class-trigger"),
+    );
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-class-option-class-6a"),
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("student-row-student-1")).toBeOnTheScreen();
@@ -404,14 +488,22 @@ describe("SchoolAdminDisciplineScreen — onglet Élèves", () => {
     render(<SchoolAdminDisciplineScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-students-class-trigger")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-students-class-trigger"),
+      ).toBeOnTheScreen();
     });
 
-    fireEvent.press(screen.getByTestId("admin-discipline-students-class-trigger"));
-    fireEvent.press(screen.getByTestId("admin-discipline-students-class-option-class-6a"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-class-trigger"),
+    );
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-class-option-class-6a"),
+    );
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-context-error")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-context-error"),
+      ).toBeOnTheScreen();
     });
   });
 });
@@ -422,7 +514,9 @@ describe("SchoolAdminDisciplineScreen — onglet Par classe", () => {
   async function switchToClassTab() {
     render(<SchoolAdminDisciplineScreen />);
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-main-tab-class")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-main-tab-class"),
+      ).toBeOnTheScreen();
     });
     fireEvent.press(screen.getByTestId("admin-discipline-main-tab-class"));
   }
@@ -439,19 +533,27 @@ describe("SchoolAdminDisciplineScreen — onglet Par classe", () => {
     await switchToClassTab();
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-class-class-trigger")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-class-class-trigger"),
+      ).toBeOnTheScreen();
     });
 
     fireEvent.press(screen.getByTestId("admin-discipline-class-class-trigger"));
-    fireEvent.press(screen.getByTestId("admin-discipline-class-class-option-class-6a"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-class-class-option-class-6a"),
+    );
 
     await waitFor(() => {
       expect(mockDisciplineApi.list).toHaveBeenCalled();
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-class-tab-events")).toBeOnTheScreen();
-      expect(screen.getByTestId("admin-discipline-class-tab-carnets")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-class-tab-events"),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-class-tab-carnets"),
+      ).toBeOnTheScreen();
     });
   });
 
@@ -459,14 +561,20 @@ describe("SchoolAdminDisciplineScreen — onglet Par classe", () => {
     await switchToClassTab();
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-class-class-trigger")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-class-class-trigger"),
+      ).toBeOnTheScreen();
     });
 
     fireEvent.press(screen.getByTestId("admin-discipline-class-class-trigger"));
-    fireEvent.press(screen.getByTestId("admin-discipline-class-class-option-class-6a"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-class-class-option-class-6a"),
+    );
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-class-events-list")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-class-events-list"),
+      ).toBeOnTheScreen();
     });
 
     await waitFor(() => {
@@ -479,11 +587,15 @@ describe("SchoolAdminDisciplineScreen — onglet Par classe", () => {
     await switchToClassTab();
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-class-class-trigger")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-class-class-trigger"),
+      ).toBeOnTheScreen();
     });
 
     fireEvent.press(screen.getByTestId("admin-discipline-class-class-trigger"));
-    fireEvent.press(screen.getByTestId("admin-discipline-class-class-option-class-6a"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-class-class-option-class-6a"),
+    );
 
     await waitFor(() => {
       expect(screen.getByText("Absence injustifiée")).toBeOnTheScreen();
@@ -493,7 +605,9 @@ describe("SchoolAdminDisciplineScreen — onglet Par classe", () => {
       screen.getByTestId("admin-discipline-class-event-student-trigger"),
     );
     fireEvent.press(
-      screen.getByTestId("admin-discipline-class-event-student-option-student-1"),
+      screen.getByTestId(
+        "admin-discipline-class-event-student-option-student-1",
+      ),
     );
 
     expect(screen.getByText("Absence injustifiée")).toBeOnTheScreen();
@@ -504,11 +618,15 @@ describe("SchoolAdminDisciplineScreen — onglet Par classe", () => {
     await switchToClassTab();
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-class-class-trigger")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-class-class-trigger"),
+      ).toBeOnTheScreen();
     });
 
     fireEvent.press(screen.getByTestId("admin-discipline-class-class-trigger"));
-    fireEvent.press(screen.getByTestId("admin-discipline-class-class-option-class-6a"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-class-class-option-class-6a"),
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("admin-discipline-fab")).toBeOnTheScreen();
@@ -517,7 +635,9 @@ describe("SchoolAdminDisciplineScreen — onglet Par classe", () => {
     fireEvent.press(screen.getByTestId("admin-discipline-fab"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("teacher-class-discipline-form-sheet")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("teacher-class-discipline-form-sheet"),
+      ).toBeOnTheScreen();
     });
   });
 
@@ -525,14 +645,20 @@ describe("SchoolAdminDisciplineScreen — onglet Par classe", () => {
     await switchToClassTab();
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-class-class-trigger")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-class-class-trigger"),
+      ).toBeOnTheScreen();
     });
 
     fireEvent.press(screen.getByTestId("admin-discipline-class-class-trigger"));
-    fireEvent.press(screen.getByTestId("admin-discipline-class-class-option-class-6a"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-class-class-option-class-6a"),
+    );
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-class-tab-carnets")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-class-tab-carnets"),
+      ).toBeOnTheScreen();
     });
 
     fireEvent.press(screen.getByTestId("admin-discipline-class-tab-carnets"));
@@ -552,14 +678,20 @@ describe("SchoolAdminDisciplineScreen — onglet Par classe", () => {
     await switchToClassTab();
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-class-class-trigger")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-class-class-trigger"),
+      ).toBeOnTheScreen();
     });
 
     fireEvent.press(screen.getByTestId("admin-discipline-class-class-trigger"));
-    fireEvent.press(screen.getByTestId("admin-discipline-class-class-option-class-6a"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-class-class-option-class-6a"),
+    );
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-class-tab-carnets")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-class-tab-carnets"),
+      ).toBeOnTheScreen();
     });
 
     fireEvent.press(screen.getByTestId("admin-discipline-class-tab-carnets"));
@@ -574,7 +706,9 @@ describe("SchoolAdminDisciplineScreen — onglet Par classe", () => {
       screen.getByTestId("admin-discipline-class-carnet-student-trigger"),
     );
     fireEvent.press(
-      screen.getByTestId("admin-discipline-class-carnet-student-option-student-1"),
+      screen.getByTestId(
+        "admin-discipline-class-carnet-student-option-student-1",
+      ),
     );
 
     await waitFor(() => {
@@ -592,17 +726,23 @@ describe("SchoolAdminDisciplineScreen — intégration CRUD", () => {
     render(<SchoolAdminDisciplineScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-main-tab-class")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-main-tab-class"),
+      ).toBeOnTheScreen();
     });
 
     fireEvent.press(screen.getByTestId("admin-discipline-main-tab-class"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-class-class-trigger")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-class-class-trigger"),
+      ).toBeOnTheScreen();
     });
 
     fireEvent.press(screen.getByTestId("admin-discipline-class-class-trigger"));
-    fireEvent.press(screen.getByTestId("admin-discipline-class-class-option-class-6a"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-class-class-option-class-6a"),
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("admin-discipline-fab")).toBeOnTheScreen();
@@ -615,12 +755,16 @@ describe("SchoolAdminDisciplineScreen — intégration CRUD", () => {
     fireEvent.press(screen.getByTestId("admin-discipline-fab"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("teacher-class-discipline-form-sheet")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("teacher-class-discipline-form-sheet"),
+      ).toBeOnTheScreen();
     });
 
     // Sélectionner l'élève
     fireEvent.press(screen.getByTestId("discipline-form-student-trigger"));
-    fireEvent.press(screen.getByTestId("discipline-form-student-option-student-1"));
+    fireEvent.press(
+      screen.getByTestId("discipline-form-student-option-student-1"),
+    );
 
     // Remplir le formulaire
     fireEvent.changeText(
@@ -667,7 +811,9 @@ describe("SchoolAdminDisciplineScreen — intégration CRUD", () => {
     fireEvent.press(screen.getByTestId(`edit-event-${EVENT_1.id}`));
 
     await waitFor(() => {
-      expect(screen.getByTestId("teacher-class-discipline-form-sheet")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("teacher-class-discipline-form-sheet"),
+      ).toBeOnTheScreen();
     });
 
     fireEvent.changeText(
@@ -735,11 +881,15 @@ describe("SchoolAdminDisciplineScreen — intégration CRUD", () => {
     fireEvent.press(screen.getByTestId("admin-discipline-fab"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("teacher-class-discipline-form-sheet")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("teacher-class-discipline-form-sheet"),
+      ).toBeOnTheScreen();
     });
 
     fireEvent.press(screen.getByTestId("discipline-form-student-trigger"));
-    fireEvent.press(screen.getByTestId("discipline-form-student-option-student-1"));
+    fireEvent.press(
+      screen.getByTestId("discipline-form-student-option-student-1"),
+    );
     fireEvent.changeText(
       screen.getByTestId("discipline-form-reason"),
       "Test erreur",
@@ -790,29 +940,43 @@ describe("SchoolAdminDisciplineScreen — flux annuaire vers fiche élève", () 
     render(<SchoolAdminDisciplineScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-discipline-students-year-trigger")).toBeOnTheScreen();
+      expect(
+        screen.getByTestId("admin-discipline-students-year-trigger"),
+      ).toBeOnTheScreen();
     });
 
     // Changer l'année (choisir 2024-2025)
-    fireEvent.press(screen.getByTestId("admin-discipline-students-year-trigger"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-year-trigger"),
+    );
     fireEvent.press(
       screen.getByTestId("admin-discipline-students-year-option-sy-2025"),
     );
 
     // Vérifier que seule la classe de l'année 2024-2025 est disponible
-    fireEvent.press(screen.getByTestId("admin-discipline-students-class-trigger"));
-    expect(screen.getByTestId("admin-discipline-students-class-option-class-old")).toBeOnTheScreen();
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-class-trigger"),
+    );
+    expect(
+      screen.getByTestId("admin-discipline-students-class-option-class-old"),
+    ).toBeOnTheScreen();
     expect(
       screen.queryByTestId("admin-discipline-students-class-option-class-6a"),
     ).toBeNull();
 
     // Revenir à 2025-2026 et sélectionner 6e A
-    fireEvent.press(screen.getByTestId("admin-discipline-students-class-close"));
-    fireEvent.press(screen.getByTestId("admin-discipline-students-year-trigger"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-class-close"),
+    );
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-year-trigger"),
+    );
     fireEvent.press(
       screen.getByTestId("admin-discipline-students-year-option-sy-2026"),
     );
-    fireEvent.press(screen.getByTestId("admin-discipline-students-class-trigger"));
+    fireEvent.press(
+      screen.getByTestId("admin-discipline-students-class-trigger"),
+    );
     fireEvent.press(
       screen.getByTestId("admin-discipline-students-class-option-class-6a"),
     );

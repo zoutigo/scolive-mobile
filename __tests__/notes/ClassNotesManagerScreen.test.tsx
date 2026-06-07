@@ -14,9 +14,13 @@ jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-document-picker", () => ({ getDocumentAsync: jest.fn() }));
 
 const mockBack = jest.fn();
+let mockSearchParams: Record<string, string> = {
+  classId: "class-1",
+  schoolYearId: "y1",
+};
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: mockBack }),
-  useLocalSearchParams: () => ({ classId: "class-1", schoolYearId: "y1" }),
+  useLocalSearchParams: () => mockSearchParams,
 }));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -152,6 +156,7 @@ function setupStore(
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockSearchParams = { classId: "class-1", schoolYearId: "y1" };
   setupStore();
 });
 
@@ -568,5 +573,69 @@ describe("Vue formulaire", () => {
     await waitFor(() =>
       expect(screen.getByTestId("class-evaluations-list")).toBeTruthy(),
     );
+  });
+});
+
+// ─── preStudentId — Arrivée depuis "Par élève" ────────────────────────────────
+
+describe("preStudentId — Arrivée depuis le module Par élève", () => {
+  beforeEach(() => {
+    mockSearchParams = {
+      classId: "class-1",
+      schoolYearId: "y1",
+      preStudentId: "stu-1",
+    };
+  });
+
+  it("ouvre l'onglet Notes (et non Évaluations) quand preStudentId est présent", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    // L'onglet Notes doit être actif : TeacherClassNotesTab doit être rendu
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-notes-tab")).toBeTruthy(),
+    );
+
+    // L'onglet Évaluations ne doit pas être actif (liste évals absente)
+    expect(screen.queryByTestId("class-evaluations-list")).toBeNull();
+  });
+
+  it("pré-filtre la saisie des notes sur l'élève fourni via preStudentId", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    // Basculer manuellement sur l'onglet Évaluations → vue scores
+    fireEvent.press(screen.getByTestId("notes-tab-evaluations"));
+    await flushAsync();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-evaluations-list")).toBeTruthy(),
+    );
+
+    // Ouvrir la vue saisie sur la première évaluation
+    fireEvent.press(screen.getByTestId(`eval-action-scores-${EVAL_1.id}`));
+    await flushAsync();
+
+    // Le filtre élève doit afficher le nom de l'élève pré-sélectionné
+    // (apparaît au moins dans la barre de filtre, potentiellement dans la carte aussi)
+    await waitFor(() =>
+      expect(screen.getAllByText("Ntamack Lisa").length).toBeGreaterThanOrEqual(
+        1,
+      ),
+    );
+    // "Tous les élèves" ne doit pas être affiché dans le filtre
+    expect(screen.queryByText("Tous les élèves")).toBeNull();
+  });
+
+  it("sans preStudentId, l'onglet Évaluations est actif par défaut", async () => {
+    mockSearchParams = { classId: "class-1", schoolYearId: "y1" };
+
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-evaluations-list")).toBeTruthy(),
+    );
+    expect(screen.queryByTestId("teacher-notes-tab")).toBeNull();
   });
 });

@@ -120,7 +120,9 @@ export function SchoolAdminDisciplineScreen() {
 
   // ── Students tab ──────────────────────────────────────────────────────────
   const [studentSearch, setStudentSearch] = useState("");
-  const [allStudentsForYear, setAllStudentsForYear] = useState<StudentForDisplay[]>([]);
+  const [allStudentsForYear, setAllStudentsForYear] = useState<
+    StudentForDisplay[]
+  >([]);
   const [isLoadingAllStudents, setIsLoadingAllStudents] = useState(false);
 
   // ── Class tab ─────────────────────────────────────────────────────────────
@@ -189,18 +191,20 @@ export function SchoolAdminDisciplineScreen() {
           )
           .catch(() => [] as StudentForDisplay[]),
       ),
-    ).then((lists) => {
-      if (cancelled) return;
-      const seen = new Set<string>();
-      const all = lists.flat().filter((s) => {
-        if (seen.has(s.id)) return false;
-        seen.add(s.id);
-        return true;
+    )
+      .then((lists) => {
+        if (cancelled) return;
+        const seen = new Set<string>();
+        const all = lists.flat().filter((s) => {
+          if (seen.has(s.id)) return false;
+          seen.add(s.id);
+          return true;
+        });
+        setAllStudentsForYear(all);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingAllStudents(false);
       });
-      setAllStudentsForYear(all);
-    }).finally(() => {
-      if (!cancelled) setIsLoadingAllStudents(false);
-    });
     return () => {
       cancelled = true;
     };
@@ -265,9 +269,7 @@ export function SchoolAdminDisciplineScreen() {
         );
         replaceManyStudentEvents(results);
       } catch {
-        setContextError(
-          "Impossible de charger les événements de discipline.",
-        );
+        setContextError("Impossible de charger les événements de discipline.");
       } finally {
         setIsLoadingEvents(false);
       }
@@ -320,20 +322,18 @@ export function SchoolAdminDisciplineScreen() {
       return students.filter((s) => fullName(s).toLowerCase().includes(q));
     }
     if (!q) return [];
-    return allStudentsForYear.filter((s) => fullName(s).toLowerCase().includes(q));
+    return allStudentsForYear.filter((s) =>
+      fullName(s).toLowerCase().includes(q),
+    );
   }, [studentSearch, students, selectedClassId, allStudentsForYear]);
 
   const classEvents = useMemo(() => {
     const ids =
-      eventStudentId !== ""
-        ? [eventStudentId]
-        : students.map((s) => s.id);
+      eventStudentId !== "" ? [eventStudentId] : students.map((s) => s.id);
     return sortEventsDesc(
       ids
         .flatMap((id) => eventsMap[id] ?? [])
-        .filter(
-          (e) => (e.classId ?? selectedClassId) === selectedClassId,
-        ),
+        .filter((e) => (e.classId ?? selectedClassId) === selectedClassId),
     );
   }, [eventStudentId, eventsMap, selectedClassId, students]);
 
@@ -403,9 +403,7 @@ export function SchoolAdminDisciplineScreen() {
       setEditingEvent(null);
     } catch (error) {
       const message =
-        error instanceof Error
-          ? error.message
-          : "Impossible d'enregistrer.";
+        error instanceof Error ? error.message : "Impossible d'enregistrer.";
       setFormError(message);
       showError({ title: "Enregistrement impossible", message });
     } finally {
@@ -432,9 +430,7 @@ export function SchoolAdminDisciplineScreen() {
       showError({
         title: "Suppression impossible",
         message:
-          error instanceof Error
-            ? error.message
-            : "Impossible de supprimer.",
+          error instanceof Error ? error.message : "Impossible de supprimer.",
       });
     } finally {
       setIsDeleting(false);
@@ -488,7 +484,9 @@ export function SchoolAdminDisciplineScreen() {
   const renderFilters = (context: "students" | "class") => (
     <View style={styles.filtersWrapper}>
       <SectionCard
-        title={context === "students" ? "Rechercher un élève" : "Vue par classe"}
+        title={
+          context === "students" ? "Rechercher un élève" : "Vue par classe"
+        }
         subtitle={
           context === "students"
             ? "Filtrez par classe ou saisissez un nom pour chercher dans toutes les classes."
@@ -582,8 +580,15 @@ export function SchoolAdminDisciplineScreen() {
         testIDPrefix="admin-discipline-main-tab"
       />
 
-      {metaError ? <ErrorBanner message={metaError} testID="admin-discipline-meta-error" /> : null}
-      {contextError ? <ErrorBanner message={contextError} testID="admin-discipline-context-error" /> : null}
+      {metaError ? (
+        <ErrorBanner message={metaError} testID="admin-discipline-meta-error" />
+      ) : null}
+      {contextError ? (
+        <ErrorBanner
+          message={contextError}
+          testID="admin-discipline-context-error"
+        />
+      ) : null}
 
       {isLoadingMeta ? (
         <View style={styles.centered}>

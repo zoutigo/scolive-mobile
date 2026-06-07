@@ -428,3 +428,44 @@ describe("Filtres combinés", () => {
     );
   });
 });
+
+// ─── initialStudentId — Pré-sélection depuis Par élève ───────────────────────
+
+describe("initialStudentId — Pré-sélection depuis Par élève", () => {
+  it("sélectionne l'élève fourni via initialStudentId au lieu du premier trié", async () => {
+    // Par défaut sans initialStudentId : Abega (stu-2) serait sélectionné (1er trié)
+    // Avec initialStudentId="stu-1" : Ntamack Lisa doit être affiché dans le picker
+    render(
+      <TeacherClassNotesTab {...DEFAULT_PROPS} initialStudentId="stu-1" />,
+    );
+    await flushAsync();
+
+    // Le picker doit afficher Ntamack (stu-1) et non Abega (stu-2)
+    expect(screen.getByText("Ntamack Lisa")).toBeTruthy();
+    // Abega ne doit pas être affiché dans le picker
+    expect(screen.queryByText("Abega Paul")).toBeNull();
+  });
+
+  it("charge les notes de l'élève pré-sélectionné (initialStudentId)", async () => {
+    const mockLoad = jest.fn().mockResolvedValue([]);
+    setupStore({ loadStudentNotes: mockLoad });
+
+    render(
+      <TeacherClassNotesTab {...DEFAULT_PROPS} initialStudentId="stu-1" />,
+    );
+    await flushAsync();
+
+    await waitFor(() =>
+      expect(mockLoad).toHaveBeenCalledWith("college-vogt", "stu-1"),
+    );
+  });
+
+  it("sans initialStudentId, sélectionne le premier élève trié par défaut", async () => {
+    render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
+    await flushAsync();
+
+    // Abega (stu-2) est le premier trié alphabétiquement
+    expect(screen.getByText("Abega Paul")).toBeTruthy();
+    expect(screen.queryByText("Ntamack Lisa")).toBeNull();
+  });
+});

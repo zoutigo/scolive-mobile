@@ -56,7 +56,9 @@ export function StudentSelectField({
 
   return (
     <View style={styles.block}>
-      <Text style={styles.label} numberOfLines={1}>{label}</Text>
+      <Text style={styles.label} numberOfLines={1}>
+        {label}
+      </Text>
       <TouchableOpacity
         style={styles.trigger}
         activeOpacity={0.8}

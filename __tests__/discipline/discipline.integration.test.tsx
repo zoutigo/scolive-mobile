@@ -202,9 +202,9 @@ describe("DisciplineStudentScreen", () => {
       expect(screen.getByTestId("success-toast-title")).toHaveTextContent(
         "Événement enregistré",
       );
-      expect(
-        useDisciplineStore.getState().getEvents("student-1")[0]?.id,
-      ).toBe("created-1");
+      expect(useDisciplineStore.getState().getEvents("student-1")[0]?.id).toBe(
+        "created-1",
+      );
     });
 
     it("ferme la modale au clic sur Annuler", async () => {

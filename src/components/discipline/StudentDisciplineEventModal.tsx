@@ -81,18 +81,13 @@ export function StudentDisciplineEventModal({
 }: Props) {
   const [typePickerOpen, setTypePickerOpen] = useState(false);
 
-  const {
-    control,
-    handleSubmit,
-    watch,
-    reset,
-    setValue,
-  } = useForm<DisciplineFormInput>({
-    resolver: zodResolver(disciplineFormSchema),
-    mode: "onChange",
-    reValidateMode: "onChange",
-    defaultValues: editing ? eventToFormValues(editing) : defaultFormValues(),
-  });
+  const { control, handleSubmit, watch, reset, setValue } =
+    useForm<DisciplineFormInput>({
+      resolver: zodResolver(disciplineFormSchema),
+      mode: "onChange",
+      reValidateMode: "onChange",
+      defaultValues: editing ? eventToFormValues(editing) : defaultFormValues(),
+    });
 
   const selectedType = watch("type");
 
@@ -160,7 +155,12 @@ export function StudentDisciplineEventModal({
                     size={14}
                     color={typeCfg.accent}
                   />
-                  <Text style={[styles.inlineTriggerLabel, { color: typeCfg.accent }]}>
+                  <Text
+                    style={[
+                      styles.inlineTriggerLabel,
+                      { color: typeCfg.accent },
+                    ]}
+                  >
                     {typeCfg.label}
                   </Text>
                   <Ionicons
@@ -182,7 +182,10 @@ export function StudentDisciplineEventModal({
                   >
                     <TextInput
                       ref={field.ref}
-                      style={[styles.input, fieldState.error && styles.inputError]}
+                      style={[
+                        styles.input,
+                        fieldState.error && styles.inputError,
+                      ]}
                       value={field.value}
                       onBlur={field.onBlur}
                       onChangeText={field.onChange}
@@ -200,13 +203,14 @@ export function StudentDisciplineEventModal({
                 control={control}
                 name="reason"
                 render={({ field, fieldState }) => (
-                  <FormField
-                    label="Motif *"
-                    error={fieldState.error?.message}
-                  >
+                  <FormField label="Motif *" error={fieldState.error?.message}>
                     <TextInput
                       ref={field.ref}
-                      style={[styles.input, styles.textarea, fieldState.error && styles.inputError]}
+                      style={[
+                        styles.input,
+                        styles.textarea,
+                        fieldState.error && styles.inputError,
+                      ]}
                       value={field.value}
                       onBlur={field.onBlur}
                       onChangeText={field.onChange}
@@ -232,7 +236,10 @@ export function StudentDisciplineEventModal({
                   >
                     <TextInput
                       ref={field.ref}
-                      style={[styles.input, fieldState.error && styles.inputError]}
+                      style={[
+                        styles.input,
+                        fieldState.error && styles.inputError,
+                      ]}
                       value={field.value}
                       onBlur={field.onBlur}
                       onChangeText={field.onChange}
@@ -255,7 +262,8 @@ export function StudentDisciplineEventModal({
                       <View style={styles.switchInfo}>
                         <Text style={styles.fieldLabel}>Justifié</Text>
                         <Text style={styles.switchSub}>
-                          Absence ou retard justifié par les parents / administration
+                          Absence ou retard justifié par les parents /
+                          administration
                         </Text>
                       </View>
                       <Switch
@@ -328,7 +336,9 @@ export function StudentDisciplineEventModal({
                 testID="modal-submit"
               >
                 <Text style={styles.submitBtnText}>
-                  {editing ? "Enregistrer les modifications" : "Créer l'événement"}
+                  {editing
+                    ? "Enregistrer les modifications"
+                    : "Créer l'événement"}
                 </Text>
               </TouchableOpacity>
             </View>
