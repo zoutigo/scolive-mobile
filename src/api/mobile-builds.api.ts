@@ -3,6 +3,7 @@ import { BASE_URL, apiFetch } from "./client";
 export type AndroidBuildMeta = {
   versionName: string;
   versionCode: number;
+  minimumVersionCode?: number;
   uploadedAt: string;
   fileSize: number;
   mimeType: string;

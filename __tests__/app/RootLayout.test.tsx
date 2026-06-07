@@ -108,6 +108,7 @@ describe("RootLayout", () => {
     } as never);
     mockUseAppVersionCheck.mockReturnValue({
       updateAvailable: false,
+      mandatory: false,
       latestVersionName: null,
       latestVersionCode: null,
       currentVersionName: "1.0.0",
@@ -145,6 +146,7 @@ describe("RootLayout", () => {
 
     mockUseAppVersionCheck.mockReturnValue({
       updateAvailable: true,
+      mandatory: false,
       latestVersionName: "1.1.0",
       latestVersionCode: 11,
       currentVersionName: "1.0.0",
@@ -167,6 +169,7 @@ describe("RootLayout", () => {
 
     mockUseAppVersionCheck.mockReturnValue({
       updateAvailable: true,
+      mandatory: false,
       latestVersionName: "1.1.0",
       latestVersionCode: 11,
       currentVersionName: "1.0.0",

@@ -14,9 +14,9 @@ const baseProps = {
 
 beforeEach(() => jest.clearAllMocks());
 
-// ── Rendu ─────────────────────────────────────────────────────────────────────
+// ── Rendu — mode facultatif (défaut) ──────────────────────────────────────────
 
-describe("Rendu", () => {
+describe("Rendu — mode facultatif", () => {
   it("affiche la carte principale", () => {
     render(<AppUpdateModal {...baseProps} />);
     expect(screen.getByTestId("app-update-card")).toBeTruthy();
@@ -32,14 +32,14 @@ describe("Rendu", () => {
     expect(screen.getByTestId("app-update-icon")).toBeTruthy();
   });
 
-  it("affiche le badge", () => {
+  it("affiche le badge 'Mise à jour disponible'", () => {
     render(<AppUpdateModal {...baseProps} />);
     expect(screen.getByTestId("app-update-badge")).toHaveTextContent(
       "Mise à jour disponible",
     );
   });
 
-  it("affiche le titre", () => {
+  it("affiche le titre 'Nouvelle version'", () => {
     render(<AppUpdateModal {...baseProps} />);
     expect(screen.getByTestId("app-update-title")).toHaveTextContent(
       "Nouvelle version",
@@ -93,9 +93,48 @@ describe("Rendu", () => {
   });
 });
 
+// ── Rendu — mode obligatoire ──────────────────────────────────────────────────
+
+describe("Rendu — mode obligatoire (mandatory=true)", () => {
+  const mandatoryProps = { ...baseProps, mandatory: true };
+
+  it("affiche le badge 'Mise à jour obligatoire'", () => {
+    render(<AppUpdateModal {...mandatoryProps} />);
+    expect(screen.getByTestId("app-update-badge")).toHaveTextContent(
+      "Mise à jour obligatoire",
+    );
+  });
+
+  it("affiche le titre 'Mise à jour requise'", () => {
+    render(<AppUpdateModal {...mandatoryProps} />);
+    expect(screen.getByTestId("app-update-title")).toHaveTextContent(
+      "Mise à jour requise",
+    );
+  });
+
+  it("n'affiche pas le bouton 'Plus tard'", () => {
+    render(<AppUpdateModal {...mandatoryProps} />);
+    expect(screen.queryByTestId("app-update-dismiss")).toBeNull();
+  });
+
+  it("affiche le bouton 'Aller sur le site'", () => {
+    render(<AppUpdateModal {...mandatoryProps} />);
+    expect(screen.getByTestId("app-update-download")).toHaveTextContent(
+      "Aller sur le site",
+    );
+  });
+
+  it("le message mentionne la désinstallation et scolive.lisaweb.fr", () => {
+    render(<AppUpdateModal {...mandatoryProps} />);
+    const message = screen.getByTestId("app-update-message");
+    expect(message).toHaveTextContent(/sinstaller/);
+    expect(message).toHaveTextContent(/scolive\.lisaweb\.fr/);
+  });
+});
+
 // ── Accessibilité ─────────────────────────────────────────────────────────────
 
-describe("Accessibilité", () => {
+describe("Accessibilité — mode facultatif", () => {
   it("le bouton 'Plus tard' a accessibilityRole='button'", () => {
     render(<AppUpdateModal {...baseProps} />);
     expect(
@@ -125,9 +164,18 @@ describe("Accessibilité", () => {
   });
 });
 
-// ── Interactions ──────────────────────────────────────────────────────────────
+describe("Accessibilité — mode obligatoire", () => {
+  it("le bouton 'Aller sur le site' a le bon accessibilityLabel", () => {
+    render(<AppUpdateModal {...baseProps} mandatory />);
+    expect(
+      screen.getByTestId("app-update-download").props.accessibilityLabel,
+    ).toBe("Aller sur le site");
+  });
+});
 
-describe("Interactions", () => {
+// ── Interactions — mode facultatif ────────────────────────────────────────────
+
+describe("Interactions — mode facultatif", () => {
   it("appelle onDismiss au clic sur 'Plus tard'", () => {
     const onDismiss = jest.fn();
     render(<AppUpdateModal {...baseProps} onDismiss={onDismiss} />);
@@ -168,5 +216,25 @@ describe("Interactions", () => {
     render(<AppUpdateModal {...baseProps} onDownload={onDownload} />);
     fireEvent.press(screen.getByTestId("app-update-overlay"));
     expect(onDownload).not.toHaveBeenCalled();
+  });
+});
+
+// ── Interactions — mode obligatoire ───────────────────────────────────────────
+
+describe("Interactions — mode obligatoire", () => {
+  const mandatoryProps = { ...baseProps, mandatory: true };
+
+  it("appelle onDownload au clic sur 'Aller sur le site'", () => {
+    const onDownload = jest.fn();
+    render(<AppUpdateModal {...mandatoryProps} onDownload={onDownload} />);
+    fireEvent.press(screen.getByTestId("app-update-download"));
+    expect(onDownload).toHaveBeenCalledTimes(1);
+  });
+
+  it("ne ferme pas la modale en cliquant sur l'overlay", () => {
+    const onDismiss = jest.fn();
+    render(<AppUpdateModal {...mandatoryProps} onDismiss={onDismiss} />);
+    fireEvent.press(screen.getByTestId("app-update-overlay"));
+    expect(onDismiss).not.toHaveBeenCalled();
   });
 });
