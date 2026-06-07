@@ -14,6 +14,7 @@ export default function RootLayout() {
 
   const {
     updateAvailable,
+    mandatory,
     currentVersionName,
     latestVersionName,
     downloadUrl,
@@ -30,9 +31,13 @@ export default function RootLayout() {
   }, []);
 
   const handleDownload = useCallback(() => {
-    void Linking.openURL(downloadUrl);
-    setShowInstallGuide(true);
-  }, [downloadUrl]);
+    if (mandatory) {
+      void Linking.openURL("https://scolive.lisaweb.fr");
+    } else {
+      void Linking.openURL(downloadUrl);
+      setShowInstallGuide(true);
+    }
+  }, [mandatory, downloadUrl]);
 
   const handleCloseInstallGuide = useCallback(() => {
     setShowInstallGuide(false);
@@ -64,6 +69,7 @@ export default function RootLayout() {
       <SuccessToastHost />
       <AppUpdateModal
         visible={updateAvailable}
+        mandatory={mandatory}
         currentVersionName={currentVersionName}
         latestVersionName={latestVersionName}
         onDismiss={dismiss}

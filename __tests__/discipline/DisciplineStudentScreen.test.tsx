@@ -17,12 +17,16 @@ jest.mock("../../src/api/discipline.api");
 jest.mock("../../src/store/auth.store", () => ({ useAuthStore: jest.fn() }));
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
-  useLocalSearchParams: () => ({
+  useLocalSearchParams: jest.fn(() => ({
     studentId: "student-1",
     studentName: "Remi Ntamack",
-  }),
+  })),
   usePathname: () => "/(home)/discipline-student/[studentId]",
 }));
+
+const { useLocalSearchParams } = jest.requireMock("expo-router") as {
+  useLocalSearchParams: jest.Mock;
+};
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
@@ -34,6 +38,10 @@ const { useAuthStore } = jest.requireMock("../../src/store/auth.store") as {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  useLocalSearchParams.mockReturnValue({
+    studentId: "student-1",
+    studentName: "Remi Ntamack",
+  });
   useDisciplineStore.getState().reset();
   useSuccessToastStore.getState().hide();
   useAuthStore.mockReturnValue({
@@ -94,11 +102,20 @@ describe("DisciplineStudentScreen", () => {
     useDisciplineStore.setState({ eventsMap: { "student-1": [] } });
     render(<DisciplineStudentScreen />);
 
-    fireEvent.changeText(screen.getByTestId("input-reason"), "   ");
-    fireEvent.changeText(screen.getByTestId("input-occurred-at"), "bad");
+    // Ouvrir la modale via le FAB Synthèse
+    await waitFor(() =>
+      expect(screen.getByTestId("fab-synthese")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("fab-synthese"));
+    await waitFor(() =>
+      expect(screen.getByTestId("student-discipline-modal")).toBeTruthy(),
+    );
+
+    fireEvent.changeText(screen.getByTestId("modal-reason"), "   ");
+    fireEvent.changeText(screen.getByTestId("modal-occurred-at"), "bad");
 
     await act(async () => {
-      fireEvent.press(screen.getByTestId("btn-submit"));
+      fireEvent.press(screen.getByTestId("modal-submit"));
     });
 
     await waitFor(() => {
@@ -108,19 +125,28 @@ describe("DisciplineStudentScreen", () => {
     expect(api.create).not.toHaveBeenCalled();
   });
 
-  it("cree un evenement et bascule sur l'historique", async () => {
+  it("cree un evenement via la modale et alimente le store", async () => {
     useDisciplineStore.setState({ eventsMap: { "student-1": [] } });
     render(<DisciplineStudentScreen />);
 
+    // Ouvrir la modale
+    await waitFor(() =>
+      expect(screen.getByTestId("fab-synthese")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("fab-synthese"));
+    await waitFor(() =>
+      expect(screen.getByTestId("student-discipline-modal")).toBeTruthy(),
+    );
+
     fireEvent.changeText(
-      screen.getByTestId("input-reason"),
+      screen.getByTestId("modal-reason"),
       "Retard au portail",
     );
     fireEvent.changeText(
-      screen.getByTestId("input-occurred-at"),
+      screen.getByTestId("modal-occurred-at"),
       "2026-04-09T08:30",
     );
-    fireEvent.press(screen.getByTestId("btn-submit"));
+    fireEvent.press(screen.getByTestId("modal-submit"));
 
     await waitFor(() => {
       expect(api.create).toHaveBeenCalledWith(
@@ -132,28 +158,36 @@ describe("DisciplineStudentScreen", () => {
       );
     });
 
-    expect(screen.getByTestId("list-historique")).toBeOnTheScreen();
     expect(useDisciplineStore.getState().getEvents("student-1")[0]?.id).toBe(
       "created-1",
     );
     expect(useSuccessToastStore.getState().title).toBe("Événement enregistré");
   });
 
-  it("affiche l'erreur de creation renvoyee par l'API", async () => {
+  it("affiche l'erreur de creation renvoyee par l'API dans la modale", async () => {
     api.create.mockRejectedValueOnce(new Error("Motif invalide"));
     useDisciplineStore.setState({ eventsMap: { "student-1": [] } });
 
     render(<DisciplineStudentScreen />);
 
-    fireEvent.changeText(screen.getByTestId("input-reason"), "Retard");
+    // Ouvrir la modale
+    await waitFor(() =>
+      expect(screen.getByTestId("fab-synthese")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("fab-synthese"));
+    await waitFor(() =>
+      expect(screen.getByTestId("student-discipline-modal")).toBeTruthy(),
+    );
+
+    fireEvent.changeText(screen.getByTestId("modal-reason"), "Retard");
     fireEvent.changeText(
-      screen.getByTestId("input-occurred-at"),
+      screen.getByTestId("modal-occurred-at"),
       "2026-04-09T08:30",
     );
-    fireEvent.press(screen.getByTestId("btn-submit"));
+    fireEvent.press(screen.getByTestId("modal-submit"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("form-error")).toBeOnTheScreen();
+      expect(screen.getByTestId("modal-error")).toBeOnTheScreen();
     });
     expect(screen.getByText("Motif invalide")).toBeOnTheScreen();
   });
@@ -177,7 +211,7 @@ describe("DisciplineStudentScreen", () => {
     expect(screen.queryByTestId("delete-event-other-1")).toBeNull();
   });
 
-  it("permet d'editer un evenement puis d'annuler l'edition", async () => {
+  it("permet d'editer un evenement via la modale", async () => {
     useDisciplineStore.setState({
       eventsMap: {
         "student-1": [
@@ -188,12 +222,22 @@ describe("DisciplineStudentScreen", () => {
 
     render(<DisciplineStudentScreen />);
     fireEvent.press(screen.getByTestId("tab-historique"));
+
+    // Attendre que la liste soit rendue
+    await waitFor(() =>
+      expect(screen.getByTestId("edit-event-event-1")).toBeTruthy(),
+    );
     fireEvent.press(screen.getByTestId("edit-event-event-1"));
+
+    // La modale s'ouvre en mode édition
+    await waitFor(() =>
+      expect(screen.getByTestId("student-discipline-modal")).toBeTruthy(),
+    );
     fireEvent.changeText(
-      screen.getByTestId("input-reason"),
+      screen.getByTestId("modal-reason"),
       "Retard mis a jour",
     );
-    fireEvent.press(screen.getByTestId("btn-submit"));
+    fireEvent.press(screen.getByTestId("modal-submit"));
 
     await waitFor(() => {
       expect(api.update).toHaveBeenCalledWith(
@@ -234,5 +278,53 @@ describe("DisciplineStudentScreen", () => {
       0,
     );
     expect(useSuccessToastStore.getState().title).toBe("Événement supprimé");
+  });
+});
+
+describe("DisciplineStudentScreen — subtitle avec className", () => {
+  it("affiche uniquement le nom si className est absent", () => {
+    useLocalSearchParams.mockReturnValue({
+      studentId: "student-1",
+      studentName: "Remi Ntamack",
+    });
+    api.list.mockResolvedValue([]);
+
+    render(<DisciplineStudentScreen />);
+
+    expect(screen.getByTestId("discipline-header-subtitle")).toHaveTextContent(
+      "Remi Ntamack",
+    );
+    expect(
+      screen.getByTestId("discipline-header-subtitle").props.children,
+    ).not.toContain("·");
+  });
+
+  it("affiche nom · classe si className est fourni", () => {
+    useLocalSearchParams.mockReturnValue({
+      studentId: "student-1",
+      studentName: "Remi Ntamack",
+      className: "6e A",
+    });
+    api.list.mockResolvedValue([]);
+
+    render(<DisciplineStudentScreen />);
+
+    expect(screen.getByTestId("discipline-header-subtitle")).toHaveTextContent(
+      "Remi Ntamack · 6e A",
+    );
+  });
+
+  it("utilise Élève comme displayName si studentName est absent", () => {
+    useLocalSearchParams.mockReturnValue({
+      studentId: "student-1",
+      className: "5e B",
+    });
+    api.list.mockResolvedValue([]);
+
+    render(<DisciplineStudentScreen />);
+
+    expect(screen.getByTestId("discipline-header-subtitle")).toHaveTextContent(
+      "Élève · 5e B",
+    );
   });
 });

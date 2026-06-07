@@ -56,7 +56,9 @@ export function StudentSelectField({
 
   return (
     <View style={styles.block}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label} numberOfLines={1}>
+        {label}
+      </Text>
       <TouchableOpacity
         style={styles.trigger}
         activeOpacity={0.8}
@@ -176,7 +178,9 @@ function SelectOptionRow(props: {
 
 const styles = StyleSheet.create({
   block: {
-    gap: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   label: {
     fontSize: 12,
@@ -184,14 +188,16 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.6,
+    flexShrink: 0,
   },
   trigger: {
-    minHeight: 46,
-    borderRadius: 14,
+    flex: 1,
+    minHeight: 42,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     backgroundColor: colors.surface,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -236,12 +242,12 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   searchRow: {
-    borderRadius: 14,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     backgroundColor: colors.background,
     paddingHorizontal: 12,
-    minHeight: 44,
+    minHeight: 40,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,

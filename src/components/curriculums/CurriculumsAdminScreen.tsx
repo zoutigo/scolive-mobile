@@ -11,6 +11,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -204,6 +205,8 @@ function ModalFrame(props: {
   footer: React.ReactNode;
   testID: string;
 }) {
+  const { height: windowHeight } = useWindowDimensions();
+
   return (
     <Modal
       visible={props.visible}
@@ -212,11 +215,17 @@ function ModalFrame(props: {
       onRequestClose={props.onClose}
     >
       <View style={styles.sheetOverlay}>
+        {/* Backdrop plein écran — absolu pour ne pas interférer avec le flex de la carte */}
         <TouchableOpacity
           style={styles.sheetBackdrop}
           activeOpacity={1}
           onPress={props.onClose}
         />
+        {/*
+          Sur Android Fabric, flex:1 dans un parent sans hauteur explicite = 0.
+          On laisse le KAV (et la carte) s'auto-dimensionner au contenu,
+          et on borne le ScrollView via maxHeight calculé dynamiquement.
+        */}
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.sheetKeyboard}
@@ -250,7 +259,10 @@ function ModalFrame(props: {
               </View>
             </View>
             <ScrollView
-              style={styles.sheetScrollArea}
+              style={[
+                styles.sheetScrollArea,
+                { maxHeight: windowHeight * 0.55 },
+              ]}
               contentContainerStyle={styles.sheetBody}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
@@ -2220,15 +2232,18 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   sheetBackdrop: {
-    flex: 1,
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
   },
   sheetKeyboard: {
-    justifyContent: "flex-end",
-    maxHeight: "88%",
-    flexShrink: 1,
+    // Auto-dimensionné au contenu : pas de flex ni maxHeight ici.
+    // Le ScrollView à l'intérieur est borné par maxHeight dynamique.
   },
   sheetCard: {
-    flex: 1,
+    // Pas de flex:1 — hauteur déterminée par le contenu (header + scroll + footer).
     backgroundColor: colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -2286,7 +2301,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   sheetScrollArea: {
-    flex: 1,
+    // maxHeight posé inline dans ModalFrame via useWindowDimensions.
   },
   sheetBody: {
     padding: 18,

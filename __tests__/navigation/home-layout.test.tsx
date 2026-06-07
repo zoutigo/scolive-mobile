@@ -1,100 +1,239 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react-native";
+import { render, screen } from "@testing-library/react-native";
 import HomeLayout from "../../app/(home)/_layout";
 import { useAuthStore } from "../../src/store/auth.store";
 
-const mockReplace = jest.fn();
-
 jest.mock("../../src/store/auth.store", () => ({ useAuthStore: jest.fn() }));
+
+/**
+ * Redirect est mocké en un View observable :
+ *   testID="home-layout-redirect"  — présence du composant
+ *   accessibilityLabel={href}      — valeur de la destination
+ *
+ * Note : useRouter n'est plus utilisé dans HomeLayout (plus de router.replace
+ * impératif via useEffect). Ce mock n'expose intentionnellement PAS useRouter
+ * pour garantir que le composant ne repose pas sur lui.
+ */
 jest.mock("expo-router", () => ({
   Stack: Object.assign(
     ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-    {
-      Screen: () => null,
-    },
+    { Screen: () => null },
   ),
-  useRouter: () => ({ replace: mockReplace }),
+  Redirect: ({ href }: { href: string }) => {
+    const { View } = require("react-native");
+    return <View testID="home-layout-redirect" accessibilityLabel={href} />;
+  },
 }));
 
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<
   typeof useAuthStore
 >;
 
-describe("HomeLayout", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-  it("redirige vers l'accueil si l'utilisateur n'est pas authentifié", async () => {
-    mockUseAuthStore.mockReturnValue({
-      isAuthenticated: false,
-      isLoading: false,
-    } as ReturnType<typeof useAuthStore>);
+function renderAsLoading() {
+  mockUseAuthStore.mockReturnValue({
+    isAuthenticated: false,
+    isLoading: true,
+  } as ReturnType<typeof useAuthStore>);
+  return render(<HomeLayout />);
+}
 
-    render(<HomeLayout />);
+function renderAsUnauthenticated() {
+  mockUseAuthStore.mockReturnValue({
+    isAuthenticated: false,
+    isLoading: false,
+  } as ReturnType<typeof useAuthStore>);
+  return render(<HomeLayout />);
+}
 
-    expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
+function renderAsAuthenticated() {
+  mockUseAuthStore.mockReturnValue({
+    isAuthenticated: true,
+    isLoading: false,
+  } as ReturnType<typeof useAuthStore>);
+  return render(<HomeLayout />);
+}
 
-    await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith("/");
+// ─── Tests unitaires ──────────────────────────────────────────────────────────
+
+describe("HomeLayout — tests unitaires", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  // ── État chargement ────────────────────────────────────────────────────────
+
+  describe("isLoading = true", () => {
+    it("affiche le spinner de chargement", () => {
+      renderAsLoading();
+      expect(screen.getByTestId("home-layout-loading")).toBeOnTheScreen();
     });
 
-    expect(mockReplace).toHaveBeenCalledTimes(1);
+    it("ne rend pas <Redirect> pendant le chargement", () => {
+      renderAsLoading();
+      expect(screen.queryByTestId("home-layout-redirect")).toBeNull();
+    });
   });
 
-  it("ne relance pas la redirection sur un rerender identique", async () => {
-    mockUseAuthStore.mockReturnValue({
-      isAuthenticated: false,
-      isLoading: false,
-    } as ReturnType<typeof useAuthStore>);
+  // ── État non-authentifié ───────────────────────────────────────────────────
 
-    const { rerender } = render(<HomeLayout />);
-
-    await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledTimes(1);
+  describe("isAuthenticated = false, isLoading = false", () => {
+    it("rend <Redirect href='/' />", () => {
+      renderAsUnauthenticated();
+      expect(screen.getByTestId("home-layout-redirect")).toBeOnTheScreen();
     });
 
-    rerender(<HomeLayout />);
+    it("la destination du Redirect est '/'", () => {
+      renderAsUnauthenticated();
+      expect(screen.getByTestId("home-layout-redirect")).toHaveProp(
+        "accessibilityLabel",
+        "/",
+      );
+    });
 
-    expect(mockReplace).toHaveBeenCalledTimes(1);
+    it("ne montre pas le spinner de chargement", () => {
+      renderAsUnauthenticated();
+      expect(screen.queryByTestId("home-layout-loading")).toBeNull();
+    });
+
+    it("n'utilise pas l'ancien spinner de redirection (testID home-layout-redirecting)", () => {
+      renderAsUnauthenticated();
+      expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
+    });
   });
 
-  it("affiche la stack protégée si l'utilisateur est authentifié", () => {
-    mockUseAuthStore.mockReturnValue({
-      isAuthenticated: true,
-      isLoading: false,
-    } as ReturnType<typeof useAuthStore>);
+  // ── État authentifié ───────────────────────────────────────────────────────
 
-    render(<HomeLayout />);
+  describe("isAuthenticated = true, isLoading = false", () => {
+    it("n'affiche pas <Redirect>", () => {
+      renderAsAuthenticated();
+      expect(screen.queryByTestId("home-layout-redirect")).toBeNull();
+    });
 
-    expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
-    expect(mockReplace).not.toHaveBeenCalled();
+    it("n'affiche pas le spinner de chargement", () => {
+      renderAsAuthenticated();
+      expect(screen.queryByTestId("home-layout-loading")).toBeNull();
+    });
   });
+});
 
-  it("redirige quand la session passe de authentifiée à déconnectée", async () => {
+// ─── Tests fonctionnels ───────────────────────────────────────────────────────
+
+describe("HomeLayout — tests fonctionnels", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("passe de Stack à <Redirect> lors de la déconnexion", () => {
     mockUseAuthStore
       .mockReturnValueOnce({
         isAuthenticated: true,
         isLoading: false,
       } as ReturnType<typeof useAuthStore>)
-      .mockReturnValueOnce({
+      .mockReturnValue({
         isAuthenticated: false,
         isLoading: false,
       } as ReturnType<typeof useAuthStore>);
 
     const { rerender } = render(<HomeLayout />);
 
-    expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
-    expect(mockReplace).not.toHaveBeenCalled();
+    // Avant logout : Stack visible, pas de redirect
+    expect(screen.queryByTestId("home-layout-redirect")).toBeNull();
 
     rerender(<HomeLayout />);
 
-    expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
+    // Après logout : Redirect vers "/" rendu
+    expect(screen.getByTestId("home-layout-redirect")).toBeOnTheScreen();
+    expect(screen.getByTestId("home-layout-redirect")).toHaveProp(
+      "accessibilityLabel",
+      "/",
+    );
+  });
 
-    await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith("/");
-    });
+  it("passe de spinner à <Redirect> quand le chargement se termine sans auth", () => {
+    mockUseAuthStore
+      .mockReturnValueOnce({
+        isAuthenticated: false,
+        isLoading: true,
+      } as ReturnType<typeof useAuthStore>)
+      .mockReturnValue({
+        isAuthenticated: false,
+        isLoading: false,
+      } as ReturnType<typeof useAuthStore>);
 
-    expect(mockReplace).toHaveBeenCalledTimes(1);
+    const { rerender } = render(<HomeLayout />);
+    expect(screen.getByTestId("home-layout-loading")).toBeOnTheScreen();
+    expect(screen.queryByTestId("home-layout-redirect")).toBeNull();
+
+    rerender(<HomeLayout />);
+
+    expect(screen.queryByTestId("home-layout-loading")).toBeNull();
+    expect(screen.getByTestId("home-layout-redirect")).toBeOnTheScreen();
+  });
+
+  it("passe de spinner à Stack quand le chargement se termine avec auth", () => {
+    mockUseAuthStore
+      .mockReturnValueOnce({
+        isAuthenticated: false,
+        isLoading: true,
+      } as ReturnType<typeof useAuthStore>)
+      .mockReturnValue({
+        isAuthenticated: true,
+        isLoading: false,
+      } as ReturnType<typeof useAuthStore>);
+
+    const { rerender } = render(<HomeLayout />);
+    expect(screen.getByTestId("home-layout-loading")).toBeOnTheScreen();
+
+    rerender(<HomeLayout />);
+
+    expect(screen.queryByTestId("home-layout-loading")).toBeNull();
+    expect(screen.queryByTestId("home-layout-redirect")).toBeNull();
+  });
+});
+
+// ─── Tests de régression — bug "Maximum update depth exceeded" ────────────────
+
+describe("HomeLayout — régression MaxUpdateDepth", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it("plusieurs rerenders successifs en état non-authentifié ne lèvent pas d'erreur", () => {
+    mockUseAuthStore.mockReturnValue({
+      isAuthenticated: false,
+      isLoading: false,
+    } as ReturnType<typeof useAuthStore>);
+
+    expect(() => {
+      const { rerender } = render(<HomeLayout />);
+      rerender(<HomeLayout />);
+      rerender(<HomeLayout />);
+      rerender(<HomeLayout />);
+      rerender(<HomeLayout />);
+    }).not.toThrow();
+
+    expect(screen.getByTestId("home-layout-redirect")).toBeOnTheScreen();
+  });
+
+  it("<Redirect> est rendu une seule fois même sur plusieurs rerenders", () => {
+    mockUseAuthStore.mockReturnValue({
+      isAuthenticated: false,
+      isLoading: false,
+    } as ReturnType<typeof useAuthStore>);
+
+    const { rerender } = render(<HomeLayout />);
+    rerender(<HomeLayout />);
+    rerender(<HomeLayout />);
+
+    // Un seul Redirect doit être dans le tree (pas de duplicats)
+    expect(screen.getAllByTestId("home-layout-redirect")).toHaveLength(1);
+  });
+
+  it("n'expose pas useRouter dans le composant (le hook ne doit pas être appelé)", () => {
+    // Si HomeLayout appelait useRouter, le mock ci-dessus n'incluant pas useRouter
+    // ferait crasher le test avec "useRouter is not a function".
+    // Ce test garantit implicitement que le composant n'appelle plus useRouter.
+    mockUseAuthStore.mockReturnValue({
+      isAuthenticated: false,
+      isLoading: false,
+    } as ReturnType<typeof useAuthStore>);
+
+    expect(() => render(<HomeLayout />)).not.toThrow();
   });
 });

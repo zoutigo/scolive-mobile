@@ -1,11 +1,11 @@
 /**
- * Écran Discipline — Vue teacher / admin (CRUD).
+ * Écran Discipline — Vue school admin / enseignant pour un élève donné.
  *
  * 2 onglets :
- *  - Saisie    : formulaire de création d'un événement
- *  - Historique : liste avec édition inline et suppression
+ *  - Synthèse   : KPI animés + derniers événements — FAB (+) pour créer via modale
+ *  - Historique : liste éditable — FAB (+) pour créer, bouton modifier pour éditer via modale
  *
- * Règles d'autorisation reproduites du web :
+ * Règles d'autorisation :
  *  - TEACHER peut modifier / supprimer uniquement ses propres événements
  *  - SCHOOL_ADMIN, SCHOOL_MANAGER, SUPERVISOR peuvent tout modifier
  */
@@ -26,9 +26,10 @@ import { useAuthStore } from "../../../src/store/auth.store";
 import { useDisciplineStore } from "../../../src/store/discipline.store";
 import { disciplineApi } from "../../../src/api/discipline.api";
 import { useSuccessToastStore } from "../../../src/store/success-toast.store";
-import { DisciplineForm } from "../../../src/components/discipline/DisciplineForm";
 import { DisciplineList } from "../../../src/components/discipline/DisciplineList";
 import { DisciplineDeleteDialog } from "../../../src/components/discipline/DisciplineDeleteDialog";
+import { DisciplineSummaryOverview } from "../../../src/components/discipline/DisciplineSummaryOverview";
+import { StudentDisciplineEventModal } from "../../../src/components/discipline/StudentDisciplineEventModal";
 import {
   AppShell,
   useDrawer,
@@ -41,10 +42,10 @@ import type {
 
 // ── Onglets ───────────────────────────────────────────────────────────────────
 
-type TabKey = "saisie" | "historique";
+type TabKey = "synthese" | "historique";
 
 const TABS: Array<{ key: TabKey; label: string; icon: string }> = [
-  { key: "saisie", label: "Saisie", icon: "add-circle-outline" },
+  { key: "synthese", label: "Synthèse", icon: "stats-chart-outline" },
   { key: "historique", label: "Historique", icon: "list-outline" },
 ];
 
@@ -72,9 +73,10 @@ function canEditEvent(
 // ── Écran ─────────────────────────────────────────────────────────────────────
 
 export default function DisciplineStudentScreen() {
-  const { studentId, studentName } = useLocalSearchParams<{
+  const { studentId, studentName, className } = useLocalSearchParams<{
     studentId: string;
     studentName?: string;
+    className?: string;
   }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -88,16 +90,18 @@ export default function DisciplineStudentScreen() {
     addEvent,
     updateEvent,
     removeEvent,
+    getSummary,
   } = useDisciplineStore();
   const { showSuccess } = useSuccessToastStore();
   const { openDrawer } = useDrawer();
 
-  const [tab, setTab] = useState<TabKey>("saisie");
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [tab, setTab] = useState<TabKey>("synthese");
+  const [modalVisible, setModalVisible] = useState(false);
   const [editingEvent, setEditingEvent] = useState<StudentLifeEvent | null>(
     null,
   );
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<StudentLifeEvent | null>(
     null,
   );
@@ -108,6 +112,7 @@ export default function DisciplineStudentScreen() {
     ? (eventsMap[studentId] ?? [])
     : [];
   const isCached = studentId ? eventsMap[studentId] !== undefined : false;
+  const summary = getSummary(studentId);
 
   const userId = user?.id;
   const userRole = user?.activeRole ?? user?.role ?? null;
@@ -138,51 +143,61 @@ export default function DisciplineStudentScreen() {
     if (!isCached) void load();
   }, [load, isCached]);
 
-  // ── Création ────────────────────────────────────────────────────────────────
+  // ── Ouverture modale ─────────────────────────────────────────────────────────
 
-  async function handleCreate(values: CreateLifeEventPayload) {
+  function openCreateModal() {
+    setEditingEvent(null);
+    setSaveError(null);
+    setModalVisible(true);
+  }
+
+  function openEditModal(event: StudentLifeEvent) {
+    setEditingEvent(event);
+    setSaveError(null);
+    setModalVisible(true);
+  }
+
+  function closeModal() {
+    setModalVisible(false);
+    setEditingEvent(null);
+    setSaveError(null);
+  }
+
+  // ── Création / Édition ───────────────────────────────────────────────────────
+
+  async function handleSubmit(payload: CreateLifeEventPayload) {
     if (!schoolSlug || !studentId) return;
     setIsSaving(true);
     setSaveError(null);
     try {
-      const event = await disciplineApi.create(schoolSlug, studentId, values);
-      addEvent(studentId, event);
-      showSuccess({
-        title: "Événement enregistré",
-        message: "L'événement a bien été ajouté à l'historique discipline.",
-      });
-      setTab("historique");
+      if (editingEvent) {
+        const updated = await disciplineApi.update(
+          schoolSlug,
+          studentId,
+          editingEvent.id,
+          payload,
+        );
+        updateEvent(studentId, updated);
+        showSuccess({
+          title: "Événement modifié",
+          message: "Les changements ont bien été enregistrés.",
+        });
+      } else {
+        const created = await disciplineApi.create(
+          schoolSlug,
+          studentId,
+          payload,
+        );
+        addEvent(studentId, created);
+        showSuccess({
+          title: "Événement enregistré",
+          message: "L'événement a bien été ajouté à l'historique discipline.",
+        });
+      }
+      closeModal();
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Erreur lors de l'enregistrement.";
-      setSaveError(msg);
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  // ── Édition ─────────────────────────────────────────────────────────────────
-
-  async function handleUpdate(values: CreateLifeEventPayload) {
-    if (!schoolSlug || !studentId || !editingEvent) return;
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      const updated = await disciplineApi.update(
-        schoolSlug,
-        studentId,
-        editingEvent.id,
-        values,
-      );
-      updateEvent(studentId, updated);
-      showSuccess({
-        title: "Événement modifié",
-        message: "Les changements ont bien été enregistrés.",
-      });
-      setEditingEvent(null);
-    } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : "Erreur lors de la modification.";
       setSaveError(msg);
     } finally {
       setIsSaving(false);
@@ -215,6 +230,9 @@ export default function DisciplineStudentScreen() {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   const displayName = studentName ?? "Élève";
+  const headerSubtitle = className
+    ? `${displayName} · ${className}`
+    : displayName;
 
   const content = (
     <KeyboardAvoidingView
@@ -225,7 +243,7 @@ export default function DisciplineStudentScreen() {
       {/* Header */}
       <ModuleHeader
         title="Discipline"
-        subtitle={displayName}
+        subtitle={headerSubtitle}
         onBack={() => router.back()}
         rightIcon="menu-outline"
         onRightPress={openDrawer}
@@ -243,16 +261,12 @@ export default function DisciplineStudentScreen() {
           <TouchableOpacity
             key={t.key}
             style={[styles.tab, tab === t.key && styles.tabActive]}
-            onPress={() => {
-              setEditingEvent(null);
-              setSaveError(null);
-              setTab(t.key);
-            }}
+            onPress={() => setTab(t.key)}
             testID={`tab-${t.key}`}
             accessibilityState={{ selected: tab === t.key }}
           >
             <Ionicons
-              name={t.icon as "add-circle-outline"}
+              name={t.icon as "stats-chart-outline"}
               size={15}
               color={tab === t.key ? colors.primary : colors.textSecondary}
             />
@@ -261,17 +275,17 @@ export default function DisciplineStudentScreen() {
             >
               {t.label}
             </Text>
-            {t.key === "historique" && events.length > 0 && (
+            {t.key === "historique" && events.length > 0 ? (
               <View style={styles.countPill}>
                 <Text style={styles.countPillText}>{events.length}</Text>
               </View>
-            )}
+            ) : null}
           </TouchableOpacity>
         ))}
       </View>
 
       {/* Erreur de chargement */}
-      {loadError && (
+      {loadError ? (
         <View style={styles.errorBanner} testID="load-error">
           <Ionicons
             name="alert-circle-outline"
@@ -283,54 +297,67 @@ export default function DisciplineStudentScreen() {
             <Text style={styles.retryText}>Réessayer</Text>
           </TouchableOpacity>
         </View>
-      )}
+      ) : null}
 
       {/* Contenu */}
       <View style={styles.body}>
-        {tab === "saisie" && (
-          <DisciplineForm
-            isSaving={isSaving}
-            error={saveError}
-            onSubmit={handleCreate}
-            submitLabel="Enregistrer l'événement"
-          />
-        )}
-
-        {tab === "historique" && editingEvent && (
-          <DisciplineForm
-            editing={editingEvent}
-            isSaving={isSaving}
-            error={saveError}
-            onSubmit={handleUpdate}
-            onCancel={() => {
-              setEditingEvent(null);
-              setSaveError(null);
-            }}
-            submitLabel="Enregistrer les modifications"
-          />
-        )}
-
-        {tab === "historique" && !editingEvent && (
-          <DisciplineList
-            events={events}
-            isLoading={isLoading && !isCached}
-            isRefreshing={isRefreshing}
-            onRefresh={refresh}
-            showActions
-            canEdit={(event) => canEditEvent(event, userId, userRole)}
-            canDelete={(event) => canEditEvent(event, userId, userRole)}
-            onEdit={(event) => {
-              setSaveError(null);
-              setEditingEvent(event);
-            }}
-            onDelete={(event) => setDeleteTarget(event)}
-            emptyIcon="clipboard-outline"
-            emptyTitle="Aucun événement"
-            emptySub="Utilisez l'onglet Saisie pour enregistrer un premier événement."
-            testID="list-historique"
-          />
+        {tab === "synthese" ? (
+          <View style={styles.body}>
+            <DisciplineSummaryOverview
+              summary={summary}
+              events={events}
+              isLoading={isLoading && !isCached}
+              isRefreshing={isRefreshing}
+              onRefresh={refresh}
+              testID="synthese-tab"
+            />
+            <TouchableOpacity
+              style={[styles.fab, { bottom: insets.bottom + 18 }]}
+              onPress={openCreateModal}
+              testID="fab-synthese"
+              accessibilityLabel="Ajouter un événement de discipline"
+            >
+              <Ionicons name="add" size={28} color={colors.white} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.body}>
+            <DisciplineList
+              events={events}
+              isLoading={isLoading && !isCached}
+              isRefreshing={isRefreshing}
+              onRefresh={refresh}
+              showActions
+              canEdit={(event) => canEditEvent(event, userId, userRole)}
+              canDelete={(event) => canEditEvent(event, userId, userRole)}
+              onEdit={openEditModal}
+              onDelete={(event) => setDeleteTarget(event)}
+              emptyIcon="clipboard-outline"
+              emptyTitle="Aucun événement"
+              emptySub="Appuyez sur + pour enregistrer un premier événement."
+              testID="list-historique"
+            />
+            <TouchableOpacity
+              style={[styles.fab, { bottom: insets.bottom + 18 }]}
+              onPress={openCreateModal}
+              testID="fab-historique"
+              accessibilityLabel="Ajouter un événement de discipline"
+            >
+              <Ionicons name="add" size={28} color={colors.white} />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
+
+      {/* Modale création / modification */}
+      <StudentDisciplineEventModal
+        visible={modalVisible}
+        editing={editingEvent}
+        isSaving={isSaving}
+        error={saveError}
+        onClose={closeModal}
+        onSubmit={(payload) => void handleSubmit(payload)}
+      />
 
       {/* Dialog de suppression */}
       <DisciplineDeleteDialog
@@ -396,4 +423,20 @@ const styles = StyleSheet.create({
   retryText: { fontSize: 13, fontWeight: "700", color: colors.primary },
 
   body: { flex: 1 },
+
+  fab: {
+    position: "absolute",
+    right: 18,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
 });

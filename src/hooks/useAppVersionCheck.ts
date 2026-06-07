@@ -5,6 +5,7 @@ import { mobileBuildsApi } from "../api/mobile-builds.api";
 
 export interface AppVersionCheckResult {
   updateAvailable: boolean;
+  mandatory: boolean;
   latestVersionName: string | null;
   latestVersionCode: number | null;
   currentVersionName: string | null;
@@ -15,6 +16,7 @@ export interface AppVersionCheckResult {
 
 export function useAppVersionCheck(): AppVersionCheckResult {
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [mandatory, setMandatory] = useState(false);
   const [latestVersionName, setLatestVersionName] = useState<string | null>(
     null,
   );
@@ -48,11 +50,16 @@ export function useAppVersionCheck(): AppVersionCheckResult {
         }
 
         if (!cancelled) {
+          const isMandatory =
+            meta.minimumVersionCode !== undefined &&
+            meta.minimumVersionCode > currentVersionCode;
+
           setLatestVersionName(meta.versionName);
           setLatestVersionCode(latestCode);
           setDownloadUrl(
             meta.downloadUrl ?? mobileBuildsApi.getLatestAndroidDownloadUrl(),
           );
+          setMandatory(isMandatory);
           setUpdateAvailable(true);
         }
       } catch {
@@ -72,7 +79,8 @@ export function useAppVersionCheck(): AppVersionCheckResult {
   }, []);
 
   return {
-    updateAvailable: updateAvailable && !dismissed,
+    updateAvailable: updateAvailable && (!dismissed || mandatory),
+    mandatory,
     latestVersionName,
     latestVersionCode,
     currentVersionName,

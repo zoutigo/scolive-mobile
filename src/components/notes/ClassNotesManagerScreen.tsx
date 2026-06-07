@@ -94,8 +94,13 @@ export function ClassNotesManagerScreen() {
   const params = useLocalSearchParams<{
     classId?: string;
     schoolYearId?: string;
+    preStudentId?: string;
   }>();
   const classId = typeof params.classId === "string" ? params.classId : "";
+  const preStudentId =
+    typeof params.preStudentId === "string" && params.preStudentId
+      ? params.preStudentId
+      : null;
   const { schoolSlug, user } = useAuthStore();
   const {
     teacherContext,
@@ -124,14 +129,16 @@ export function ClassNotesManagerScreen() {
   const viewType = user ? getViewType(user) : "unknown";
   const canManage = viewType === "teacher" || viewType === "school";
 
-  const [tab, setTab] = useState<NotesTabKey>("evaluations");
+  const [tab, setTab] = useState<NotesTabKey>(
+    preStudentId ? "notes" : "evaluations",
+  );
   const [evaluationView, setEvaluationView] = useState<
     "list" | "form" | "detail" | "scores"
   >("list");
   const [evalSearchQuery, setEvalSearchQuery] = useState("");
   const [scoresFilterStudentId, setScoresFilterStudentId] = useState<
     string | null
-  >(null);
+  >(preStudentId);
   const [studentFilterOpen, setStudentFilterOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [evaluationMode, setEvaluationMode] = useState<"create" | "edit">(
@@ -1008,6 +1015,7 @@ export function ClassNotesManagerScreen() {
           teacherContext={teacherContext}
           schoolSlug={schoolSlug ?? ""}
           bottomInset={insets.bottom}
+          initialStudentId={preStudentId ?? undefined}
         />
       ) : null}
 

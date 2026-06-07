@@ -102,5 +102,6 @@ jobs:
             -F "file=@android/app/build/outputs/apk/release/app-release.apk;type=application/vnd.android.package-archive" \
             -F "versionName=$VERSION_NAME" \
             -F "versionCode=$VERSION_CODE" \
+            -F "minimumVersionCode=$VERSION_CODE" \
             -F "buildId=$BUILD_ID" \
             -F "gitSha=$GIT_SHA"

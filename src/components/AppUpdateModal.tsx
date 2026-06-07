@@ -13,6 +13,7 @@ import { colors } from "../theme";
 
 interface AppUpdateModalProps {
   visible: boolean;
+  mandatory?: boolean;
   currentVersionName: string | null;
   latestVersionName: string | null;
   onDismiss: () => void;
@@ -21,6 +22,7 @@ interface AppUpdateModalProps {
 
 export function AppUpdateModal({
   visible,
+  mandatory = false,
   currentVersionName,
   latestVersionName,
   onDismiss,
@@ -60,18 +62,27 @@ export function AppUpdateModal({
     }
   }, [visible, scaleAnim, opacityAnim]);
 
+  const accentColor = mandatory ? colors.warmAccent : colors.primary;
+
   return (
     <Modal
       visible={visible}
       transparent
       animationType="none"
       statusBarTranslucent
-      onRequestClose={onDismiss}
+      onRequestClose={mandatory ? undefined : onDismiss}
       testID="app-update-modal"
     >
-      <TouchableWithoutFeedback onPress={onDismiss} testID="app-update-overlay">
-        <View style={styles.overlay} />
-      </TouchableWithoutFeedback>
+      {mandatory ? (
+        <View style={styles.overlay} testID="app-update-overlay" />
+      ) : (
+        <TouchableWithoutFeedback
+          onPress={onDismiss}
+          testID="app-update-overlay"
+        >
+          <View style={styles.overlay} />
+        </TouchableWithoutFeedback>
+      )}
 
       <View style={styles.centeredWrapper} pointerEvents="box-none">
         <Animated.View
@@ -83,7 +94,7 @@ export function AppUpdateModal({
         >
           {/* Barre d'accent supérieure */}
           <View
-            style={[styles.accentBar, { backgroundColor: colors.primary }]}
+            style={[styles.accentBar, { backgroundColor: accentColor }]}
             testID="app-update-accent"
           />
 
@@ -97,21 +108,31 @@ export function AppUpdateModal({
             <View style={styles.iconHalo} />
             <View style={styles.iconWrap} testID="app-update-icon">
               <Ionicons
-                name="cloud-download-outline"
+                name={mandatory ? "warning-outline" : "cloud-download-outline"}
                 size={36}
-                color={colors.primary}
+                color={accentColor}
               />
             </View>
           </View>
 
           {/* Badge */}
-          <View style={styles.badge} testID="app-update-badge">
-            <Text style={styles.badgeLabel}>Mise à jour disponible</Text>
+          <View
+            style={[styles.badge, mandatory && styles.badgeMandatory]}
+            testID="app-update-badge"
+          >
+            <Text
+              style={[
+                styles.badgeLabel,
+                mandatory && styles.badgeLabelMandatory,
+              ]}
+            >
+              {mandatory ? "Mise à jour obligatoire" : "Mise à jour disponible"}
+            </Text>
           </View>
 
           {/* Titre */}
           <Text style={styles.title} testID="app-update-title">
-            Nouvelle version
+            {mandatory ? "Mise à jour requise" : "Nouvelle version"}
           </Text>
 
           {/* Versions */}
@@ -141,42 +162,66 @@ export function AppUpdateModal({
           </View>
 
           {/* Panneau message */}
-          <View style={styles.messagePanel}>
-            <Text style={styles.message} testID="app-update-message">
-              Une nouvelle version de Scolive est disponible. Mettez à jour pour
-              bénéficier des dernières fonctionnalités et améliorations de
-              sécurité.
-            </Text>
+          <View
+            style={[
+              styles.messagePanel,
+              mandatory && styles.messagePanelMandatory,
+            ]}
+          >
+            {mandatory ? (
+              <Text style={styles.message} testID="app-update-message">
+                {"Cette version n'est plus compatible. Pour continuer, vous devez :\n\n" +
+                  "1. Désinstaller l'application Scolive\n" +
+                  "2. Aller sur scolive.lisaweb.fr\n" +
+                  "3. Télécharger et installer la nouvelle version"}
+              </Text>
+            ) : (
+              <Text style={styles.message} testID="app-update-message">
+                Une nouvelle version de Scolive est disponible. Mettez à jour
+                pour bénéficier des dernières fonctionnalités et améliorations
+                de sécurité.
+              </Text>
+            )}
           </View>
 
           {/* Boutons */}
           <View style={styles.actions}>
-            <TouchableOpacity
-              style={styles.dismissBtn}
-              onPress={onDismiss}
-              activeOpacity={0.75}
-              testID="app-update-dismiss"
-              accessibilityRole="button"
-              accessibilityLabel="Plus tard"
-            >
-              <Text style={styles.dismissLabel}>Plus tard</Text>
-            </TouchableOpacity>
+            {!mandatory && (
+              <TouchableOpacity
+                style={styles.dismissBtn}
+                onPress={onDismiss}
+                activeOpacity={0.75}
+                testID="app-update-dismiss"
+                accessibilityRole="button"
+                accessibilityLabel="Plus tard"
+              >
+                <Text style={styles.dismissLabel}>Plus tard</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
-              style={styles.downloadBtn}
+              style={[
+                styles.downloadBtn,
+                mandatory && styles.downloadBtnFull,
+                mandatory && { backgroundColor: colors.warmAccent },
+              ]}
               onPress={onDownload}
               activeOpacity={0.8}
               testID="app-update-download"
               accessibilityRole="button"
-              accessibilityLabel="Télécharger"
+              accessibilityLabel={
+                mandatory ? "Aller sur le site" : "Télécharger"
+              }
             >
               <Ionicons
-                name="download-outline"
+                name={mandatory ? "globe-outline" : "download-outline"}
                 size={17}
                 color={colors.white}
                 style={styles.downloadBtnIcon}
               />
-              <Text style={styles.downloadLabel}>Télécharger</Text>
+              <Text style={styles.downloadLabel}>
+                {mandatory ? "Aller sur le site" : "Télécharger"}
+              </Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -283,11 +328,17 @@ const styles = StyleSheet.create({
     backgroundColor: `${colors.primary}14`,
     marginTop: 2,
   },
+  badgeMandatory: {
+    backgroundColor: `${colors.warmAccent}20`,
+  },
   badgeLabel: {
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0.3,
     color: colors.primary,
+  },
+  badgeLabelMandatory: {
+    color: colors.warmAccent,
   },
   title: {
     fontSize: 24,
@@ -335,6 +386,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     backgroundColor: "#F5F9FF",
   },
+  messagePanelMandatory: {
+    borderColor: `${colors.warmAccent}30`,
+    backgroundColor: "#FFF8F0",
+  },
   message: {
     fontSize: 14,
     color: colors.textSecondary,
@@ -378,6 +433,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 4,
+  },
+  downloadBtnFull: {
+    flex: 1,
   },
   downloadBtnIcon: {},
   downloadLabel: {

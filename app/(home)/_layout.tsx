@@ -1,40 +1,21 @@
-import { useEffect, useRef } from "react";
-import { Stack, useRouter } from "expo-router";
+import { Redirect, Stack } from "expo-router";
 import { useAuthStore } from "../../src/store/auth.store";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { colors } from "../../src/theme";
 
 export default function HomeLayout() {
   const { isAuthenticated, isLoading } = useAuthStore();
-  const router = useRouter();
-  const hasRedirectedRef = useRef(false);
-
-  useEffect(() => {
-    if (isLoading || isAuthenticated) {
-      hasRedirectedRef.current = false;
-      return;
-    }
-
-    if (!hasRedirectedRef.current) {
-      hasRedirectedRef.current = true;
-      router.replace("/");
-    }
-  }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {
     return (
-      <View style={styles.loader}>
+      <View style={styles.loader} testID="home-layout-loading">
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (!isAuthenticated) {
-    return (
-      <View style={styles.loader} testID="home-layout-redirecting">
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+    return <Redirect href="/" />;
   }
 
   return (

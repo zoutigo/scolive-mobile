@@ -19,6 +19,7 @@ type Props = {
   teacherContext: NotesTeacherContext;
   schoolSlug: string;
   bottomInset: number;
+  initialStudentId?: string;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -27,6 +28,7 @@ export function TeacherClassNotesTab({
   teacherContext,
   schoolSlug,
   bottomInset,
+  initialStudentId,
 }: Props) {
   const sortedStudents = useMemo(
     () =>
@@ -39,7 +41,7 @@ export function TeacherClassNotesTab({
   );
 
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
-    null,
+    initialStudentId ?? null,
   );
   const [pickerVisible, setPickerVisible] = useState(false);
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
