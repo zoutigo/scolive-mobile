@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import {
+  ActionSheetIOS,
   ActivityIndicator,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -12,6 +14,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as Application from "expo-application";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router, useLocalSearchParams } from "expo-router";
@@ -27,7 +30,18 @@ import { parseApiError } from "../src/auth/google-sso-callback";
 import { SecureTextField } from "../src/components/SecureTextField";
 import { useAuthStore } from "../src/store/auth.store";
 
-type AuthTab = "phone" | "email" | "google";
+const PREFERRED_METHOD_KEY = "preferred_auth_method";
+
+type AuthMethod = "phone" | "email" | "username" | "google";
+
+const METHOD_LABELS: Record<AuthMethod, string> = {
+  phone: "Connexion par téléphone",
+  email: "Connexion par email",
+  username: "Connexion par identifiant",
+  google: "Connexion Google",
+};
+
+// ── Schemas ────────────────────────────────────────────────────────────────────
 
 const phoneLoginSchema = z.object({
   phone: z
@@ -47,8 +61,16 @@ const emailLoginSchema = z.object({
   password: z.string().min(1, "Mot de passe requis."),
 });
 
+const usernameLoginSchema = z.object({
+  username: z.string().trim().min(1, "Identifiant requis."),
+  password: z.string().min(1, "Mot de passe requis."),
+});
+
 type PhoneLoginValues = z.infer<typeof phoneLoginSchema>;
 type EmailLoginValues = z.infer<typeof emailLoginSchema>;
+type UsernameLoginValues = z.infer<typeof usernameLoginSchema>;
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
 function routeToOnboarding(err: ApiClientError, fallbackEmail?: string) {
   const email = err.email ?? fallbackEmail ?? undefined;
@@ -78,43 +100,132 @@ function AppleIcon() {
   );
 }
 
+// ── Method switcher modal (Android) ───────────────────────────────────────────
+
+function MethodSwitcherModal({
+  visible,
+  currentMethod,
+  onSelect,
+  onClose,
+}: {
+  visible: boolean;
+  currentMethod: AuthMethod;
+  onSelect: (method: AuthMethod) => void;
+  onClose: () => void;
+}) {
+  const methods: AuthMethod[] = ["phone", "email", "username", "google"];
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.switcherOverlay}>
+        <Pressable style={styles.switcherBackdrop} onPress={onClose} />
+        <View style={styles.switcherSheet}>
+          <View style={styles.switcherHandle} />
+          <Text style={styles.switcherTitle}>
+            Choisir une méthode de connexion
+          </Text>
+          {methods
+            .filter((m) => m !== currentMethod)
+            .map((m) => (
+              <Pressable
+                key={m}
+                style={styles.switcherOption}
+                onPress={() => onSelect(m)}
+                testID={`modal-tab-${m}`}
+              >
+                <Text style={styles.switcherOptionText}>
+                  {METHOD_LABELS[m]}
+                </Text>
+              </Pressable>
+            ))}
+          <Pressable style={styles.switcherCancel} onPress={onClose}>
+            <Text style={styles.switcherCancelText}>Annuler</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ── Screen ─────────────────────────────────────────────────────────────────────
+
 export default function LoginScreen() {
   const params = useLocalSearchParams<{ tab?: string; error?: string }>();
   const insets = useSafeAreaInsets();
   const { handleLoginResponse } = useAuthStore();
 
-  const [tab, setTab] = useState<AuthTab>("phone");
+  const [method, setMethod] = useState<AuthMethod>("phone");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [switcherVisible, setSwitcherVisible] = useState(false);
 
-  const phoneForm = useForm<PhoneLoginValues>({
-    resolver: zodResolver(phoneLoginSchema),
-    mode: "onChange",
-    reValidateMode: "onChange",
-    defaultValues: {
-      phone: "",
-      pin: "",
-    },
-  });
-
-  const emailForm = useForm<EmailLoginValues>({
-    resolver: zodResolver(emailLoginSchema),
-    mode: "onChange",
-    reValidateMode: "onChange",
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
+  // Load preferred method
+  useEffect(() => {
+    AsyncStorage.getItem(PREFERRED_METHOD_KEY)
+      .then((stored) => {
+        if (
+          stored &&
+          ["phone", "email", "username", "google"].includes(stored)
+        ) {
+          setMethod(stored as AuthMethod);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (params.tab === "google") {
-      setTab("google");
+      setMethod("google");
     }
     if (typeof params.error === "string" && params.error.trim()) {
       setError(params.error.trim());
     }
   }, [params.error, params.tab]);
+
+  async function saveMethod(m: AuthMethod) {
+    await AsyncStorage.setItem(PREFERRED_METHOD_KEY, m).catch(() => {});
+  }
+
+  function switchMethod(m: AuthMethod) {
+    setMethod(m);
+    setError(null);
+    setSwitcherVisible(false);
+  }
+
+  function openSwitcher() {
+    if (Platform.OS === "ios") {
+      const methods: AuthMethod[] = ["phone", "email", "username", "google"];
+      const others = methods.filter((m) => m !== method);
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: [...others.map((m) => METHOD_LABELS[m]), "Annuler"],
+          cancelButtonIndex: others.length,
+          title: "Se connecter autrement",
+        },
+        (idx) => {
+          if (idx < others.length) {
+            const selected = others[idx];
+            if (selected) switchMethod(selected);
+          }
+        },
+      );
+    } else {
+      setSwitcherVisible(true);
+    }
+  }
+
+  // ── Phone form ──────────────────────────────────────────────────────────────
+
+  const phoneForm = useForm<PhoneLoginValues>({
+    resolver: zodResolver(phoneLoginSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: { phone: "", pin: "" },
+  });
 
   const handlePhoneLogin = phoneForm.handleSubmit(async (values) => {
     const digits = values.phone.replace(/\D/g, "");
@@ -123,6 +234,7 @@ export default function LoginScreen() {
     try {
       const response = await authApi.loginPhone(`+237${digits}`, values.pin);
       await handleLoginResponse(response);
+      await saveMethod("phone");
       router.replace("/");
     } catch (err) {
       const apiErr = err as ApiClientError;
@@ -136,6 +248,15 @@ export default function LoginScreen() {
     }
   });
 
+  // ── Email form ──────────────────────────────────────────────────────────────
+
+  const emailForm = useForm<EmailLoginValues>({
+    resolver: zodResolver(emailLoginSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: { email: "", password: "" },
+  });
+
   const handleEmailLogin = emailForm.handleSubmit(async (values) => {
     setIsSubmitting(true);
     setError(null);
@@ -145,6 +266,7 @@ export default function LoginScreen() {
         values.password,
       );
       await handleLoginResponse(response);
+      await saveMethod("email");
       router.replace("/");
     } catch (err) {
       const apiErr = err as ApiClientError;
@@ -161,12 +283,56 @@ export default function LoginScreen() {
     }
   });
 
+  // ── Username form ────────────────────────────────────────────────────────────
+
+  const usernameForm = useForm<UsernameLoginValues>({
+    resolver: zodResolver(usernameLoginSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: { username: "", password: "" },
+  });
+
+  const handleUsernameLogin = usernameForm.handleSubmit(async (values) => {
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const response = await authApi.loginUsername(
+        values.username.trim(),
+        values.password,
+      );
+      await handleLoginResponse(response);
+      await saveMethod("username");
+      router.replace("/");
+    } catch (err) {
+      const apiErr = err as ApiClientError;
+      if (apiErr?.code === "PASSWORD_CHANGE_REQUIRED") {
+        router.push({
+          pathname: "/onboarding",
+          params: {
+            username: values.username.trim(),
+            ...(apiErr.schoolSlug ? { schoolSlug: apiErr.schoolSlug } : {}),
+          },
+        });
+        return;
+      }
+      if (apiErr?.code === "PROFILE_SETUP_REQUIRED") {
+        routeToOnboarding(apiErr);
+        return;
+      }
+      setError(parseApiError(apiErr));
+    } finally {
+      setIsSubmitting(false);
+    }
+  });
+
+  // ── Google ────────────────────────────────────────────────────────────────
+
   async function handleGoogleLogin() {
     setIsSubmitting(true);
     setError(null);
-
     try {
       await signInWithGoogleAsync();
+      await saveMethod("google");
     } catch (err) {
       if (err instanceof GoogleAuthError) {
         setError(err.message);
@@ -184,18 +350,14 @@ export default function LoginScreen() {
 
       {/* ── En-tête sombre ─────────────────────────────────── */}
       <View style={styles.header}>
-        {/* Blobs décoratifs */}
         <View style={styles.blobTopRight} />
         <View style={styles.blobBottomLeft} />
 
-        {/* Marque */}
         <View style={styles.brandRow}>
           <Text style={styles.brandNameWhite}>SCO</Text>
           <Text style={styles.brandNameGold}>LIVE</Text>
         </View>
         <View style={styles.brandAccent} />
-
-        {/* Tagline */}
         <Text style={styles.tagline}>Votre école en temps réel.</Text>
       </View>
 
@@ -212,33 +374,25 @@ export default function LoginScreen() {
             showsVerticalScrollIndicator={false}
             scrollIndicatorInsets={{ bottom: 40 }}
           >
-            {/* Onglets */}
-            <View style={styles.tabBar}>
-              {(["phone", "email", "google"] as AuthTab[]).map((t) => (
+            {/* Onglets de méthode (testID hooks pour les tests) */}
+            {(["phone", "email", "username", "google"] as AuthMethod[]).map(
+              (m) => (
                 <Pressable
-                  key={t}
-                  testID={`tab-${t}`}
-                  onPress={() => {
-                    setTab(t);
-                    setError(null);
-                  }}
-                  style={[styles.tab, tab === t && styles.tabActive]}
-                >
-                  <Text
-                    style={[styles.tabText, tab === t && styles.tabTextActive]}
-                  >
-                    {t === "phone"
-                      ? "Téléphone"
-                      : t === "email"
-                        ? "Email"
-                        : "Google"}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+                  key={m}
+                  testID={`tab-${m}`}
+                  onPress={() => switchMethod(m)}
+                  style={{ height: 0, overflow: "hidden" }}
+                />
+              ),
+            )}
+
+            {/* Titre de la méthode active */}
+            <Text style={styles.methodLabel} testID="active-method-label">
+              {METHOD_LABELS[method]}
+            </Text>
 
             {/* Téléphone */}
-            {tab === "phone" ? (
+            {method === "phone" ? (
               <View style={styles.form} testID="panel-phone">
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Numéro de téléphone</Text>
@@ -340,7 +494,7 @@ export default function LoginScreen() {
             ) : null}
 
             {/* Email */}
-            {tab === "email" ? (
+            {method === "email" ? (
               <View style={styles.form} testID="panel-email">
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Adresse email</Text>
@@ -435,8 +589,107 @@ export default function LoginScreen() {
               </View>
             ) : null}
 
+            {/* Identifiant */}
+            {method === "username" ? (
+              <View style={styles.form} testID="panel-username">
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Identifiant</Text>
+                  <Controller
+                    control={usernameForm.control}
+                    name="username"
+                    render={({ field, fieldState }) => (
+                      <TextInput
+                        ref={field.ref}
+                        testID="input-username"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          setError(null);
+                          field.onChange(value);
+                        }}
+                        placeholder="ex: jean.dupont"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        style={[
+                          styles.input,
+                          fieldState.error && styles.inputError,
+                        ]}
+                        placeholderTextColor="#9B9490"
+                      />
+                    )}
+                  />
+                  {usernameForm.formState.errors.username ? (
+                    <Text style={styles.fieldError} testID="error-username">
+                      {usernameForm.formState.errors.username.message}
+                    </Text>
+                  ) : null}
+                </View>
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Mot de passe</Text>
+                  <Controller
+                    control={usernameForm.control}
+                    name="password"
+                    render={({ field, fieldState }) => (
+                      <SecureTextField
+                        ref={field.ref}
+                        testID="input-password-username"
+                        value={field.value}
+                        onBlur={field.onBlur}
+                        onChangeText={(value) => {
+                          setError(null);
+                          field.onChange(value);
+                        }}
+                        placeholder="Votre mot de passe"
+                        placeholderTextColor="#9B9490"
+                        containerStyle={
+                          fieldState.error ? styles.secureFieldError : undefined
+                        }
+                      />
+                    )}
+                  />
+                  {usernameForm.formState.errors.password ? (
+                    <Text
+                      style={styles.fieldError}
+                      testID="error-password-username"
+                    >
+                      {usernameForm.formState.errors.password.message}
+                    </Text>
+                  ) : null}
+                </View>
+                {error ? (
+                  <View style={styles.errorBox} testID="error-message">
+                    <Text style={styles.errorText}>{error}</Text>
+                  </View>
+                ) : null}
+                <Pressable
+                  style={[
+                    styles.primaryButton,
+                    isSubmitting && styles.primaryButtonBusy,
+                  ]}
+                  onPress={handleUsernameLogin}
+                  disabled={isSubmitting}
+                  testID="submit-login"
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.primaryButtonText}>Se connecter</Text>
+                  )}
+                </Pressable>
+                <Pressable
+                  testID="link-forgot-username"
+                  onPress={() => router.push("/recovery/username")}
+                  style={styles.forgotLink}
+                >
+                  <Text style={styles.forgotLinkText}>
+                    Identifiant oublié ?
+                  </Text>
+                </Pressable>
+              </View>
+            ) : null}
+
             {/* Google / Apple SSO */}
-            {tab === "google" ? (
+            {method === "google" ? (
               <View style={styles.form} testID="panel-google">
                 <Text style={styles.ssoInfo}>
                   Accès instantané avec votre compte existant.
@@ -476,6 +729,17 @@ export default function LoginScreen() {
                 </Pressable>
               </View>
             ) : null}
+
+            {/* Lien "Se connecter autrement" */}
+            <Pressable
+              testID="link-switch-method"
+              onPress={openSwitcher}
+              style={styles.switchMethodLink}
+            >
+              <Text style={styles.switchMethodText}>
+                Se connecter autrement →
+              </Text>
+            </Pressable>
           </ScrollView>
         </KeyboardAvoidingView>
 
@@ -489,6 +753,16 @@ export default function LoginScreen() {
           </Text>
         </View>
       </View>
+
+      {/* Android method switcher modal */}
+      {Platform.OS === "android" ? (
+        <MethodSwitcherModal
+          visible={switcherVisible}
+          currentMethod={method}
+          onSelect={switchMethod}
+          onClose={() => setSwitcherVisible(false)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -583,38 +857,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 28,
     paddingBottom: 56,
-    gap: 24,
+    gap: 20,
   },
 
-  // ── Onglets ────────────────────────────────────────────────
-  tabBar: {
-    flexDirection: "row",
-    backgroundColor: "#EFE8DE",
-    borderRadius: 14,
-    padding: 4,
-    gap: 2,
-  },
-  tab: {
-    flex: 1,
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  tabActive: {
-    backgroundColor: BLUE,
-    shadowColor: BLUE,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  tabText: {
-    color: "#7A6F65",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  tabTextActive: {
-    color: "#FFFFFF",
+  // ── Méthode active ─────────────────────────────────────────
+  methodLabel: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: BLUE,
+    letterSpacing: -0.3,
   },
 
   // ── Formulaire ─────────────────────────────────────────────
@@ -805,6 +1056,73 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     textDecorationLine: "underline",
+  },
+
+  // ── Switcher de méthode ────────────────────────────────────
+  switchMethodLink: {
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  switchMethodText: {
+    color: BLUE,
+    fontSize: 14,
+    fontWeight: "700",
+    textDecorationLine: "underline",
+  },
+
+  // ── Modal switcher Android ─────────────────────────────────
+  switcherOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  switcherBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  switcherSheet: {
+    backgroundColor: "#FFFCF8",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    paddingTop: 12,
+    gap: 2,
+  },
+  switcherHandle: {
+    width: 36,
+    height: 4,
+    backgroundColor: "#D0C8C0",
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 12,
+  },
+  switcherTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#1F2933",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  switcherOption: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EFE8DE",
+  },
+  switcherOptionText: {
+    fontSize: 15,
+    color: BLUE,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  switcherCancel: {
+    paddingVertical: 14,
+    marginTop: 4,
+  },
+  switcherCancelText: {
+    fontSize: 15,
+    color: "#7A6F65",
+    fontWeight: "700",
+    textAlign: "center",
   },
 
   // ── Copyright (ancré en bas) ───────────────────────────────

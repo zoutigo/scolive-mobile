@@ -6,6 +6,9 @@ import type {
   OnboardingOptionsResponse,
 } from "../types/onboarding.types";
 
+// AuthResponse est un alias de LoginResponse
+export type AuthResponse = LoginResponse;
+
 export const authApi = {
   loginEmail(email: string, password: string): Promise<LoginResponse> {
     return apiFetch("/auth/login", {
@@ -100,11 +103,15 @@ export const authApi = {
 
   getOnboardingOptions(input: {
     email?: string;
+    username?: string;
     setupToken?: string;
   }): Promise<OnboardingOptionsResponse> {
     const query = new URLSearchParams();
     if (input.email?.trim()) {
       query.set("email", input.email.trim());
+    }
+    if (input.username?.trim()) {
+      query.set("username", input.username.trim());
     }
     if (input.setupToken?.trim()) {
       query.set("setupToken", input.setupToken.trim());
@@ -118,6 +125,24 @@ export const authApi = {
     return apiFetch("/auth/onboarding/complete", {
       method: "POST",
       body: JSON.stringify(payload),
+    });
+  },
+
+  loginUsername(username: string, password: string): Promise<LoginResponse> {
+    return apiFetch("/auth/login/username", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    });
+  },
+
+  firstPasswordChangeByUsername(
+    username: string,
+    temporaryPassword: string,
+    newPassword: string,
+  ): Promise<{ success: boolean }> {
+    return apiFetch("/auth/first-password-change/username", {
+      method: "POST",
+      body: JSON.stringify({ username, temporaryPassword, newPassword }),
     });
   },
 };

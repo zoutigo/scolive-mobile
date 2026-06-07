@@ -35,10 +35,37 @@ type Step1FormValues = {
   newPassword: string;
   confirmPassword: string;
   setupToken: string;
+  username: string;
 };
 type Step2FormValues = z.infer<typeof onboardingProfileStepSchema>;
 type Step3FormValues = z.infer<typeof onboardingPinStepSchema>;
 type RecoveryFormValues = z.infer<typeof onboardingRecoveryStepSchema>;
+
+export const usernameOnboardingStep1Schema = z
+  .object({
+    username: z.string().trim().min(1, "Identifiant requis."),
+    temporaryPassword: z
+      .string()
+      .trim()
+      .min(1, "Le mot de passe provisoire est obligatoire."),
+    newPassword: z
+      .string()
+      .min(8, "Le mot de passe doit faire au moins 8 caractères.")
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/,
+        "Le mot de passe doit contenir majuscules, minuscules et chiffres.",
+      ),
+    confirmPassword: z.string().min(1, "Confirmez le mot de passe."),
+  })
+  .superRefine((value, ctx) => {
+    if (value.newPassword !== value.confirmPassword) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["confirmPassword"],
+        message: "La confirmation ne correspond pas au nouveau mot de passe.",
+      });
+    }
+  });
 
 export const emailOnboardingStep1Schema = z
   .object({
@@ -186,18 +213,18 @@ export function buildOnboardingRecoveryRows(
 
 export function parseOnboardingApiError(err: unknown): string {
   const apiErr = err as ApiClientError;
-  if (
-    typeof apiErr?.message === "string" &&
-    apiErr.message !== "Request failed"
-  ) {
-    return apiErr.message;
-  }
   switch (apiErr?.code) {
     case "INVALID_CREDENTIALS":
       return "Informations d'activation invalides.";
     case "PROFILE_SETUP_REQUIRED":
       return "Le profil doit encore être complété.";
     default:
+      if (
+        typeof apiErr?.message === "string" &&
+        apiErr.message !== "Request failed"
+      ) {
+        return apiErr.message;
+      }
       if (apiErr?.statusCode === 401) {
         return "Informations d'activation invalides.";
       }
@@ -258,12 +285,16 @@ export default function OnboardingScreen() {
     email?: string | string[];
     schoolSlug?: string | string[];
     setupToken?: string | string[];
+    username?: string | string[];
   }>();
 
   const initialEmail = getTextParam(params.email).trim();
   const initialSetupToken = getTextParam(params.setupToken).trim();
   const schoolSlug = getTextParam(params.schoolSlug).trim();
-  const isTokenFlow = initialSetupToken.length > 0;
+  const initialUsername = getTextParam(params.username).trim();
+  const isUsernameFlow = initialUsername.length > 0;
+  const isTokenFlow = !isUsernameFlow && initialSetupToken.length > 0;
+  // username flow: steps 1, 2, 3, 4 (same as email, but step 1 uses username)
   const totalSteps = isTokenFlow ? 5 : 4;
   const successStep = (totalSteps + 1) as Step;
 
@@ -282,7 +313,11 @@ export default function OnboardingScreen() {
 
   const step1Form = useForm<Step1FormValues>({
     resolver: zodResolver(
-      isTokenFlow ? phoneOnboardingStep1Schema : emailOnboardingStep1Schema,
+      isUsernameFlow
+        ? usernameOnboardingStep1Schema
+        : isTokenFlow
+          ? phoneOnboardingStep1Schema
+          : emailOnboardingStep1Schema,
     ) as never,
     mode: "onChange",
     reValidateMode: "onChange",
@@ -292,6 +327,7 @@ export default function OnboardingScreen() {
       newPassword: "",
       confirmPassword: "",
       setupToken: initialSetupToken,
+      username: initialUsername,
     },
   });
 
@@ -331,6 +367,7 @@ export default function OnboardingScreen() {
   });
 
   const watchedEmail = step1Form.watch("email");
+  const watchedUsername = step1Form.watch("username");
   const watchedSetupToken = step1Form.watch("setupToken");
   const watchedGender = (step2Form.watch("gender") ?? "") as Gender | "";
   const selectedQuestions = recoveryForm.watch("selectedQuestions") ?? [];
@@ -344,6 +381,7 @@ export default function OnboardingScreen() {
       newPassword: "",
       confirmPassword: "",
       setupToken: initialSetupToken,
+      username: initialUsername,
     });
     step2Form.reset({
       firstName: "",
@@ -365,10 +403,11 @@ export default function OnboardingScreen() {
     setStep(1);
     setError(null);
     setOptions(null);
-  }, [initialEmail, initialSetupToken]);
+  }, [initialEmail, initialSetupToken, initialUsername]);
 
   useEffect(() => {
-    if (!watchedEmail && !watchedSetupToken) {
+    const normalizedUsername = watchedUsername?.trim() ?? "";
+    if (!watchedEmail && !watchedSetupToken && !normalizedUsername) {
       setError("Lien d'activation invalide.");
       return;
     }
@@ -380,6 +419,7 @@ export default function OnboardingScreen() {
       try {
         const response = await authApi.getOnboardingOptions({
           ...(watchedEmail ? { email: watchedEmail } : {}),
+          ...(normalizedUsername ? { username: normalizedUsername } : {}),
           ...(watchedSetupToken ? { setupToken: watchedSetupToken } : {}),
         });
         if (!active) {
@@ -402,7 +442,7 @@ export default function OnboardingScreen() {
     return () => {
       active = false;
     };
-  }, [watchedEmail, watchedSetupToken]);
+  }, [watchedEmail, watchedSetupToken, watchedUsername]);
 
   useEffect(() => {
     recoveryForm.setValue("isParent", isParent, { shouldValidate: false });
@@ -506,29 +546,53 @@ export default function OnboardingScreen() {
       const step1Values = step1Form.getValues();
       const step2Values = step2Form.getValues();
       const step3Values = step3Form.getValues();
-      await authApi.completeOnboarding({
-        ...(isTokenFlow
-          ? {
-              setupToken: step1Values.setupToken,
-              email: step1Values.email.trim() || undefined,
-              newPin: step3Values.newPin,
-            }
-          : {
-              email: step1Values.email.trim(),
-              temporaryPassword: step1Values.temporaryPassword,
-              newPassword: step1Values.newPassword,
-            }),
-        firstName: step2Values.firstName.trim(),
-        lastName: step2Values.lastName.trim(),
-        gender: step2Values.gender as Gender,
-        birthDate: isoBirthDate,
-        answers: buildOnboardingRecoveryRows(
-          values.selectedQuestions,
-          values.answers,
-        ),
-        parentClassId: values.parentClassId || undefined,
-        parentStudentId: values.parentStudentId || undefined,
-      });
+
+      if (isUsernameFlow) {
+        // Username flow: first change password, then complete onboarding profile+recovery
+        await authApi.firstPasswordChangeByUsername(
+          step1Values.username.trim(),
+          step1Values.temporaryPassword,
+          step1Values.newPassword,
+        );
+        await authApi.completeOnboarding({
+          username: step1Values.username.trim(),
+          email: step1Values.email.trim() || undefined,
+          temporaryPassword: step1Values.temporaryPassword,
+          newPassword: step1Values.newPassword,
+          firstName: step2Values.firstName.trim(),
+          lastName: step2Values.lastName.trim(),
+          gender: step2Values.gender as Gender,
+          birthDate: isoBirthDate,
+          answers: buildOnboardingRecoveryRows(
+            values.selectedQuestions,
+            values.answers,
+          ),
+        });
+      } else {
+        await authApi.completeOnboarding({
+          ...(isTokenFlow
+            ? {
+                setupToken: step1Values.setupToken,
+                email: step1Values.email.trim() || undefined,
+                newPin: step3Values.newPin,
+              }
+            : {
+                email: step1Values.email.trim(),
+                temporaryPassword: step1Values.temporaryPassword,
+                newPassword: step1Values.newPassword,
+              }),
+          firstName: step2Values.firstName.trim(),
+          lastName: step2Values.lastName.trim(),
+          gender: step2Values.gender as Gender,
+          birthDate: isoBirthDate,
+          answers: buildOnboardingRecoveryRows(
+            values.selectedQuestions,
+            values.answers,
+          ),
+          parentClassId: values.parentClassId || undefined,
+          parentStudentId: values.parentStudentId || undefined,
+        });
+      }
       setStep(successStep);
     } catch (err) {
       setError(parseOnboardingApiError(err));
@@ -582,9 +646,11 @@ export default function OnboardingScreen() {
               />
             </View>
             <Text style={styles.headerSubtitle}>
-              {isTokenFlow
-                ? "Complétez votre profil, changez votre PIN et configurez la récupération."
-                : "Changez votre mot de passe provisoire puis terminez la configuration du compte."}
+              {isUsernameFlow
+                ? "Changez votre mot de passe provisoire puis terminez la configuration du compte."
+                : isTokenFlow
+                  ? "Complétez votre profil, changez votre PIN et configurez la récupération."
+                  : "Changez votre mot de passe provisoire puis terminez la configuration du compte."}
             </Text>
           </>
         ) : (
@@ -621,7 +687,138 @@ export default function OnboardingScreen() {
 
             {step === 1 ? (
               <View style={styles.form} testID="step-1">
-                {isTokenFlow ? (
+                {isUsernameFlow ? (
+                  <>
+                    <View style={styles.fieldGroup}>
+                      <Text style={styles.label}>Identifiant</Text>
+                      <Controller
+                        control={step1Form.control}
+                        name="username"
+                        render={({ field, fieldState }) => (
+                          <TextInput
+                            ref={field.ref}
+                            testID="input-username"
+                            value={field.value}
+                            onBlur={field.onBlur}
+                            onChangeText={(value) => {
+                              clearErrors();
+                              field.onChange(value);
+                            }}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            editable={false}
+                            style={[
+                              styles.input,
+                              styles.inputReadonly,
+                              fieldState.error && styles.inputError,
+                            ]}
+                            placeholderTextColor="#9B9490"
+                          />
+                        )}
+                      />
+                      {step1Form.formState.errors.username?.message ? (
+                        <Text style={styles.fieldError} testID="error-username">
+                          {step1Form.formState.errors.username.message}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={styles.fieldGroup}>
+                      <Text style={styles.label}>Mot de passe provisoire</Text>
+                      <Controller
+                        control={step1Form.control}
+                        name="temporaryPassword"
+                        render={({ field, fieldState }) => (
+                          <SecureTextField
+                            ref={field.ref}
+                            testID="input-temporary-password"
+                            value={field.value}
+                            onBlur={field.onBlur}
+                            onChangeText={(value) => {
+                              clearErrors();
+                              field.onChange(value);
+                            }}
+                            placeholderTextColor="#9B9490"
+                            containerStyle={
+                              fieldState.error ? styles.inputError : undefined
+                            }
+                          />
+                        )}
+                      />
+                      {step1Form.formState.errors.temporaryPassword?.message ? (
+                        <Text
+                          style={styles.fieldError}
+                          testID="error-temporary-password"
+                        >
+                          {step1Form.formState.errors.temporaryPassword.message}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={styles.fieldGroup}>
+                      <Text style={styles.label}>Nouveau mot de passe</Text>
+                      <Controller
+                        control={step1Form.control}
+                        name="newPassword"
+                        render={({ field, fieldState }) => (
+                          <SecureTextField
+                            ref={field.ref}
+                            testID="input-new-password"
+                            value={field.value}
+                            onBlur={field.onBlur}
+                            onChangeText={(value) => {
+                              clearErrors();
+                              field.onChange(value);
+                            }}
+                            placeholderTextColor="#9B9490"
+                            containerStyle={
+                              fieldState.error ? styles.inputError : undefined
+                            }
+                          />
+                        )}
+                      />
+                      {step1Form.formState.errors.newPassword?.message ? (
+                        <Text
+                          style={styles.fieldError}
+                          testID="error-new-password"
+                        >
+                          {step1Form.formState.errors.newPassword.message}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <View style={styles.fieldGroup}>
+                      <Text style={styles.label}>
+                        Confirmer le mot de passe
+                      </Text>
+                      <Controller
+                        control={step1Form.control}
+                        name="confirmPassword"
+                        render={({ field, fieldState }) => (
+                          <SecureTextField
+                            ref={field.ref}
+                            testID="input-confirm-password"
+                            value={field.value}
+                            onBlur={field.onBlur}
+                            onChangeText={(value) => {
+                              clearErrors();
+                              field.onChange(value);
+                            }}
+                            placeholderTextColor="#9B9490"
+                            containerStyle={
+                              fieldState.error ? styles.inputError : undefined
+                            }
+                          />
+                        )}
+                      />
+                      {step1Form.formState.errors.confirmPassword?.message ? (
+                        <Text
+                          style={styles.fieldError}
+                          testID="error-confirm-password"
+                        >
+                          {step1Form.formState.errors.confirmPassword.message}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </>
+                ) : isTokenFlow ? (
                   <>
                     <View style={styles.fieldGroup}>
                       <Text style={styles.label}>
@@ -1552,6 +1749,10 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: "#FCA5A5",
+  },
+  inputReadonly: {
+    backgroundColor: "#F5F0EB",
+    color: "#7A6F65",
   },
   inputCompact: {
     paddingHorizontal: 14,

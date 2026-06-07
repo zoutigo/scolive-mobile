@@ -9,6 +9,9 @@ import LoginScreen from "../../app/login";
 import { authApi } from "../../src/api/auth.api";
 import { signInWithGoogleAsync } from "../../src/auth/google-auth";
 import { useAuthStore } from "../../src/store/auth.store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const mockAsyncStorage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-status-bar", () => ({ StatusBar: () => null }));
@@ -49,6 +52,10 @@ jest.mock("../../src/auth/google-auth", () => {
   };
 });
 jest.mock("../../src/store/auth.store", () => ({ useAuthStore: jest.fn() }));
+jest.mock("@react-native-async-storage/async-storage");
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
 
 const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
 const mockGoogleAuth = signInWithGoogleAsync as jest.MockedFunction<
@@ -82,14 +89,29 @@ function makeApiError(code: string, status = 401) {
     email?: string | null;
     schoolSlug?: string | null;
     setupToken?: string | null;
+    username?: string | null;
   };
   err.code = code;
   err.statusCode = status;
   return err;
 }
 
+/** Ouvre le switcher de méthode et sélectionne la méthode voulue */
+async function switchToMethod(targetMethod: string) {
+  fireEvent.press(screen.getByTestId("link-switch-method"));
+  await waitFor(() =>
+    expect(
+      screen.getByTestId(`modal-tab-${targetMethod}`),
+    ).toBeOnTheScreen(),
+  );
+  fireEvent.press(screen.getByTestId(`modal-tab-${targetMethod}`));
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
+  // By default AsyncStorage.getItem returns null (no stored preference)
+  mockAsyncStorage.getItem.mockResolvedValue(null);
+  mockAsyncStorage.setItem.mockResolvedValue(undefined);
   const { useLocalSearchParams } = require("expo-router") as {
     useLocalSearchParams: jest.Mock;
   };
@@ -123,70 +145,78 @@ describe("En-tête", () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// Onglets
+// Méthode par défaut
 // ─────────────────────────────────────────────────────────────
-describe("Onglets", () => {
-  it("affiche les trois onglets", () => {
+describe("Méthode par défaut", () => {
+  it("affiche le formulaire Téléphone par défaut (sans AsyncStorage)", async () => {
     render(<LoginScreen />);
-    expect(screen.getByTestId("tab-phone")).toBeOnTheScreen();
-    expect(screen.getByTestId("tab-email")).toBeOnTheScreen();
-    expect(screen.getByTestId("tab-google")).toBeOnTheScreen();
-  });
-
-  it("active l'onglet Téléphone par défaut", () => {
-    render(<LoginScreen />);
-    expect(screen.getByTestId("panel-phone")).toBeOnTheScreen();
+    // Attendre que l'effet AsyncStorage se soit exécuté
+    await waitFor(() =>
+      expect(screen.getByTestId("panel-phone")).toBeOnTheScreen(),
+    );
     expect(screen.queryByTestId("panel-email")).toBeNull();
+    expect(screen.queryByTestId("panel-username")).toBeNull();
     expect(screen.queryByTestId("panel-google")).toBeNull();
   });
 
-  it("bascule vers le formulaire email", () => {
+  it("affiche le formulaire username si AsyncStorage preferred_auth_method = 'username'", async () => {
+    mockAsyncStorage.getItem.mockResolvedValueOnce("username");
     render(<LoginScreen />);
-    fireEvent.press(screen.getByTestId("tab-email"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("panel-username")).toBeOnTheScreen(),
+    );
+    expect(screen.queryByTestId("panel-phone")).toBeNull();
+  });
+
+  it("affiche le formulaire email si AsyncStorage preferred_auth_method = 'email'", async () => {
+    mockAsyncStorage.getItem.mockResolvedValueOnce("email");
+    render(<LoginScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("panel-email")).toBeOnTheScreen(),
+    );
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Lien "Se connecter autrement"
+// ─────────────────────────────────────────────────────────────
+describe("Lien Se connecter autrement", () => {
+  it("affiche le lien 'Se connecter autrement'", () => {
+    render(<LoginScreen />);
+    expect(screen.getByTestId("link-switch-method")).toBeOnTheScreen();
+  });
+
+  it("ouvre la liste des méthodes quand on clique 'Se connecter autrement'", async () => {
+    render(<LoginScreen />);
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    fireEvent.press(screen.getByTestId("link-switch-method"));
+    await waitFor(() =>
+      // email, username ou google doivent être proposés (pas phone car c'est la méthode active)
+      expect(screen.getByTestId("modal-tab-email")).toBeOnTheScreen(),
+    );
+  });
+
+  it("sélectionner 'Email' depuis le switcher affiche le formulaire email", async () => {
+    render(<LoginScreen />);
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("email");
     expect(screen.getByTestId("panel-email")).toBeOnTheScreen();
     expect(screen.queryByTestId("panel-phone")).toBeNull();
   });
 
-  it("bascule vers le panneau Google", () => {
+  it("sélectionner 'username' depuis le switcher affiche le formulaire username", async () => {
     render(<LoginScreen />);
-    fireEvent.press(screen.getByTestId("tab-google"));
-    expect(screen.getByTestId("panel-google")).toBeOnTheScreen();
-  });
-
-  it("ouvre l'onglet Google et affiche l'erreur passée en query param", () => {
-    const { useLocalSearchParams } = require("expo-router") as {
-      useLocalSearchParams: jest.Mock;
-    };
-    useLocalSearchParams.mockReturnValue({
-      tab: "google",
-      error: "Connexion Google interrompue.",
-    });
-
-    render(<LoginScreen />);
-
-    expect(screen.getByTestId("panel-google")).toBeOnTheScreen();
-    expect(screen.getByText("Connexion Google interrompue.")).toBeOnTheScreen();
-  });
-
-  it("efface l'erreur lors du changement d'onglet", async () => {
-    mockAuthApi.loginPhone.mockRejectedValueOnce(
-      makeApiError("INVALID_CREDENTIALS"),
-    );
-    render(<LoginScreen />);
-
-    fireEvent.changeText(screen.getByTestId("input-phone"), "612345678");
-    fireEvent.changeText(screen.getByTestId("input-pin"), "123456");
-    fireEvent.press(screen.getByTestId("submit-login"));
-
-    await waitFor(() =>
-      expect(screen.getByTestId("error-message")).toBeOnTheScreen(),
-    );
-
-    fireEvent.press(screen.getByTestId("tab-email"));
-    expect(screen.queryByTestId("error-message")).toBeNull();
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("username");
+    expect(screen.getByTestId("panel-username")).toBeOnTheScreen();
   });
 });
 
+// ─────────────────────────────────────────────────────────────
+// Champs sécurisés
+// ─────────────────────────────────────────────────────────────
 describe("Champs sécurisés", () => {
   it("permet d'afficher le PIN saisi", () => {
     render(<LoginScreen />);
@@ -196,10 +226,11 @@ describe("Champs sécurisés", () => {
     expect(screen.getByTestId("input-pin").props.secureTextEntry).toBe(false);
   });
 
-  it("permet d'afficher le mot de passe saisi", () => {
+  it("permet d'afficher le mot de passe saisi (formulaire email)", async () => {
     render(<LoginScreen />);
 
-    fireEvent.press(screen.getByTestId("tab-email"));
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("email");
     expect(screen.getByTestId("input-password").props.secureTextEntry).toBe(
       true,
     );
@@ -284,6 +315,21 @@ describe("Formulaire Téléphone — soumission", () => {
       expect(mockHandleLoginResponse).toHaveBeenCalledWith(fakeLoginResponse);
       expect(mockRouter.replace).toHaveBeenCalledWith("/");
     });
+  });
+
+  it("enregistre 'phone' dans AsyncStorage après connexion réussie", async () => {
+    mockAuthApi.loginPhone.mockResolvedValueOnce(fakeLoginResponse);
+    render(<LoginScreen />);
+
+    fireEvent.changeText(screen.getByTestId("input-phone"), "612345678");
+    fireEvent.changeText(screen.getByTestId("input-pin"), "123456");
+    fireEvent.press(screen.getByTestId("submit-login"));
+
+    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/"));
+    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
+      "preferred_auth_method",
+      "phone",
+    );
   });
 
   it("redirige vers l'onboarding si le profil téléphone doit être complété", async () => {
@@ -384,16 +430,18 @@ describe("Formulaire Téléphone — soumission", () => {
 // Formulaire Email — rendu
 // ─────────────────────────────────────────────────────────────
 describe("Formulaire Email — rendu", () => {
-  it("affiche les champs email et mot de passe", () => {
+  it("affiche les champs email et mot de passe", async () => {
     render(<LoginScreen />);
-    fireEvent.press(screen.getByTestId("tab-email"));
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("email");
     expect(screen.getByTestId("input-email")).toBeOnTheScreen();
     expect(screen.getByTestId("input-password")).toBeOnTheScreen();
   });
 
-  it("accepte la saisie de l'email et du mot de passe", () => {
+  it("accepte la saisie de l'email et du mot de passe", async () => {
     render(<LoginScreen />);
-    fireEvent.press(screen.getByTestId("tab-email"));
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("email");
     fireEvent.changeText(
       screen.getByTestId("input-email"),
       "directeur@lycee-cm.cm",
@@ -410,7 +458,8 @@ describe("Formulaire Email — rendu", () => {
 describe("Formulaire Email — validation", () => {
   it("affiche une erreur si l'email est invalide", async () => {
     render(<LoginScreen />);
-    fireEvent.press(screen.getByTestId("tab-email"));
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("email");
     fireEvent.changeText(screen.getByTestId("input-email"), "pasunemail");
     fireEvent.changeText(screen.getByTestId("input-password"), "motdepasse");
     fireEvent.press(screen.getByTestId("submit-login"));
@@ -423,7 +472,8 @@ describe("Formulaire Email — validation", () => {
 
   it("affiche une erreur si le mot de passe est vide", async () => {
     render(<LoginScreen />);
-    fireEvent.press(screen.getByTestId("tab-email"));
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("email");
     fireEvent.changeText(screen.getByTestId("input-email"), "prof@ecole.cm");
     fireEvent.press(screen.getByTestId("submit-login"));
 
@@ -442,7 +492,8 @@ describe("Formulaire Email — soumission", () => {
     mockAuthApi.loginEmail.mockResolvedValueOnce(fakeLoginResponse);
     render(<LoginScreen />);
 
-    fireEvent.press(screen.getByTestId("tab-email"));
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("email");
     fireEvent.changeText(
       screen.getByTestId("input-email"),
       "directeur@lycee-cm.cm",
@@ -460,6 +511,23 @@ describe("Formulaire Email — soumission", () => {
     });
   });
 
+  it("enregistre 'email' dans AsyncStorage après connexion réussie", async () => {
+    mockAuthApi.loginEmail.mockResolvedValueOnce(fakeLoginResponse);
+    render(<LoginScreen />);
+
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("email");
+    fireEvent.changeText(screen.getByTestId("input-email"), "prof@ecole.cm");
+    fireEvent.changeText(screen.getByTestId("input-password"), "motdepasse");
+    fireEvent.press(screen.getByTestId("submit-login"));
+
+    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/"));
+    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
+      "preferred_auth_method",
+      "email",
+    );
+  });
+
   it("redirige vers l'onboarding si le mot de passe doit être changé", async () => {
     const err = makeApiError("PASSWORD_CHANGE_REQUIRED", 403);
     err.email = "directeur@lycee-cm.cm";
@@ -467,7 +535,8 @@ describe("Formulaire Email — soumission", () => {
     mockAuthApi.loginEmail.mockRejectedValueOnce(err);
     render(<LoginScreen />);
 
-    fireEvent.press(screen.getByTestId("tab-email"));
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("email");
     fireEvent.changeText(
       screen.getByTestId("input-email"),
       "directeur@lycee-cm.cm",
@@ -493,7 +562,8 @@ describe("Formulaire Email — soumission", () => {
     mockAuthApi.loginEmail.mockRejectedValueOnce(err);
     render(<LoginScreen />);
 
-    fireEvent.press(screen.getByTestId("tab-email"));
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("email");
     fireEvent.changeText(screen.getByTestId("input-email"), "prof@ecole.cm");
     fireEvent.changeText(screen.getByTestId("input-password"), "motdepasse");
     fireEvent.press(screen.getByTestId("submit-login"));
@@ -515,7 +585,8 @@ describe("Formulaire Email — soumission", () => {
     );
     render(<LoginScreen />);
 
-    fireEvent.press(screen.getByTestId("tab-email"));
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("email");
     fireEvent.changeText(screen.getByTestId("input-email"), "prof@ecole.cm");
     fireEvent.changeText(screen.getByTestId("input-password"), "mauvais");
     fireEvent.press(screen.getByTestId("submit-login"));
@@ -533,7 +604,8 @@ describe("Formulaire Email — soumission", () => {
     );
     render(<LoginScreen />);
 
-    fireEvent.press(screen.getByTestId("tab-email"));
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("email");
     fireEvent.changeText(
       screen.getByTestId("input-email"),
       "suspendu@ecole.cm",
@@ -552,28 +624,123 @@ describe("Formulaire Email — soumission", () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// Persistance des saisies entre onglets
+// Formulaire Identifiant (username)
 // ─────────────────────────────────────────────────────────────
-describe("Persistance des saisies entre onglets", () => {
-  it("conserve les valeurs téléphone/PIN après changement d'onglet", () => {
+describe("Formulaire Identifiant — rendu", () => {
+  it("affiche les champs identifiant et mot de passe", async () => {
     render(<LoginScreen />);
-    fireEvent.changeText(screen.getByTestId("input-phone"), "612345678");
-    fireEvent.changeText(screen.getByTestId("input-pin"), "123456");
-    fireEvent.press(screen.getByTestId("tab-email"));
-    fireEvent.press(screen.getByTestId("tab-phone"));
-    expect(screen.getByDisplayValue("612345678")).toBeOnTheScreen();
-    expect(screen.getByDisplayValue("123456")).toBeOnTheScreen();
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("username");
+    expect(screen.getByTestId("input-username")).toBeOnTheScreen();
+    expect(screen.getByTestId("input-password-username")).toBeOnTheScreen();
+  });
+});
+
+describe("Formulaire Identifiant — soumission", () => {
+  it("appelle loginUsername avec les credentials saisis", async () => {
+    mockAuthApi.loginUsername.mockResolvedValueOnce(fakeLoginResponse);
+    render(<LoginScreen />);
+
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("username");
+    fireEvent.changeText(screen.getByTestId("input-username"), "amina42");
+    fireEvent.changeText(
+      screen.getByTestId("input-password-username"),
+      "MonMotDePasse1",
+    );
+    fireEvent.press(screen.getByTestId("submit-login"));
+
+    await waitFor(() =>
+      expect(mockAuthApi.loginUsername).toHaveBeenCalledWith(
+        "amina42",
+        "MonMotDePasse1",
+      ),
+    );
   });
 
-  it("conserve les valeurs email/password après changement d'onglet", () => {
+  it("redirige vers la racine après connexion username réussie", async () => {
+    mockAuthApi.loginUsername.mockResolvedValueOnce(fakeLoginResponse);
     render(<LoginScreen />);
-    fireEvent.press(screen.getByTestId("tab-email"));
-    fireEvent.changeText(screen.getByTestId("input-email"), "marie@ecole.fr");
-    fireEvent.changeText(screen.getByTestId("input-password"), "secret");
-    fireEvent.press(screen.getByTestId("tab-phone"));
-    fireEvent.press(screen.getByTestId("tab-email"));
-    expect(screen.getByDisplayValue("marie@ecole.fr")).toBeOnTheScreen();
-    expect(screen.getByDisplayValue("secret")).toBeOnTheScreen();
+
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("username");
+    fireEvent.changeText(screen.getByTestId("input-username"), "amina42");
+    fireEvent.changeText(
+      screen.getByTestId("input-password-username"),
+      "MonMotDePasse1",
+    );
+    fireEvent.press(screen.getByTestId("submit-login"));
+
+    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/"));
+  });
+
+  it("enregistre 'username' dans AsyncStorage après connexion réussie", async () => {
+    mockAuthApi.loginUsername.mockResolvedValueOnce(fakeLoginResponse);
+    render(<LoginScreen />);
+
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("username");
+    fireEvent.changeText(screen.getByTestId("input-username"), "amina42");
+    fireEvent.changeText(
+      screen.getByTestId("input-password-username"),
+      "MonMotDePasse1",
+    );
+    fireEvent.press(screen.getByTestId("submit-login"));
+
+    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/"));
+    expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
+      "preferred_auth_method",
+      "username",
+    );
+  });
+
+  it("navigue vers /onboarding avec username + schoolSlug si PASSWORD_CHANGE_REQUIRED", async () => {
+    const err = makeApiError("PASSWORD_CHANGE_REQUIRED", 403);
+    err.schoolSlug = "lycee-bilingue";
+    mockAuthApi.loginUsername.mockRejectedValueOnce(err);
+    render(<LoginScreen />);
+
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("username");
+    fireEvent.changeText(screen.getByTestId("input-username"), "amina42");
+    fireEvent.changeText(
+      screen.getByTestId("input-password-username"),
+      "TmpPwd1",
+    );
+    fireEvent.press(screen.getByTestId("submit-login"));
+
+    await waitFor(() =>
+      expect(mockRouter.push).toHaveBeenCalledWith({
+        pathname: "/onboarding",
+        params: {
+          username: "amina42",
+          schoolSlug: "lycee-bilingue",
+        },
+      }),
+    );
+    expect(screen.queryByTestId("error-message")).toBeNull();
+  });
+
+  it("affiche une erreur INVALID_CREDENTIALS pour le formulaire username", async () => {
+    mockAuthApi.loginUsername.mockRejectedValueOnce(
+      makeApiError("INVALID_CREDENTIALS"),
+    );
+    render(<LoginScreen />);
+
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("username");
+    fireEvent.changeText(screen.getByTestId("input-username"), "amina42");
+    fireEvent.changeText(
+      screen.getByTestId("input-password-username"),
+      "mauvais",
+    );
+    fireEvent.press(screen.getByTestId("submit-login"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Identifiants incorrects. Vérifiez vos informations."),
+      ).toBeOnTheScreen(),
+    );
   });
 });
 
@@ -581,24 +748,27 @@ describe("Persistance des saisies entre onglets", () => {
 // Panneau SSO
 // ─────────────────────────────────────────────────────────────
 describe("Panneau SSO", () => {
-  it("affiche les boutons Google et Apple", () => {
+  it("affiche les boutons Google et Apple", async () => {
     render(<LoginScreen />);
-    fireEvent.press(screen.getByTestId("tab-google"));
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("google");
     expect(screen.getByTestId("sso-google")).toBeOnTheScreen();
     expect(screen.getByTestId("sso-apple")).toBeOnTheScreen();
   });
 
-  it("affiche le texte informatif SSO", () => {
+  it("affiche le texte informatif SSO", async () => {
     render(<LoginScreen />);
-    fireEvent.press(screen.getByTestId("tab-google"));
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("google");
     expect(
       screen.getByText("Accès instantané avec votre compte existant."),
     ).toBeOnTheScreen();
   });
 
-  it("indique que Apple n'est pas encore disponible", () => {
+  it("indique que Apple n'est pas encore disponible", async () => {
     render(<LoginScreen />);
-    fireEvent.press(screen.getByTestId("tab-google"));
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("google");
     expect(screen.getByText("BIENTÔT")).toBeOnTheScreen();
   });
 
@@ -606,7 +776,8 @@ describe("Panneau SSO", () => {
     mockGoogleAuth.mockResolvedValueOnce(undefined);
 
     render(<LoginScreen />);
-    fireEvent.press(screen.getByTestId("tab-google"));
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("google");
     fireEvent.press(screen.getByTestId("sso-google"));
 
     await waitFor(() => {
@@ -624,7 +795,8 @@ describe("Panneau SSO", () => {
     );
 
     render(<LoginScreen />);
-    fireEvent.press(screen.getByTestId("tab-google"));
+    await waitFor(() => screen.getByTestId("panel-phone"));
+    await switchToMethod("google");
     fireEvent.press(screen.getByTestId("sso-google"));
 
     await waitFor(() =>
@@ -634,6 +806,35 @@ describe("Panneau SSO", () => {
         ),
       ).toBeOnTheScreen(),
     );
+  });
+
+  it("ouvre Google si AsyncStorage preferred_auth_method = 'google'", async () => {
+    mockAsyncStorage.getItem.mockResolvedValueOnce("google");
+    render(<LoginScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("panel-google")).toBeOnTheScreen(),
+    );
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Params d'URL
+// ─────────────────────────────────────────────────────────────
+describe("Params d'URL", () => {
+  it("ouvre le panneau Google si tab=google est passé en param", () => {
+    const { useLocalSearchParams } = require("expo-router") as {
+      useLocalSearchParams: jest.Mock;
+    };
+    useLocalSearchParams.mockReturnValue({
+      tab: "google",
+      error: "Connexion Google interrompue.",
+    });
+
+    render(<LoginScreen />);
+
+    expect(screen.getByTestId("panel-google")).toBeOnTheScreen();
+    expect(screen.getByText("Connexion Google interrompue.")).toBeOnTheScreen();
   });
 });
 

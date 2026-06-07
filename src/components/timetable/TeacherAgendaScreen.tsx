@@ -18,7 +18,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
 import { ModuleHeader } from "../navigation/ModuleHeader";
@@ -88,7 +88,24 @@ function isSchoolAdmin(user: AuthUser | null): boolean {
 // ─── Main exported screen ────────────────────────────────────────────────────
 
 export function TeacherAgendaScreen() {
-  return <TeacherAgendaScreenInner />;
+  const params = useLocalSearchParams<{
+    teacherId?: string;
+    teacherName?: string;
+  }>();
+  const teacherId =
+    typeof params.teacherId === "string" && params.teacherId
+      ? params.teacherId
+      : undefined;
+  const teacherName =
+    typeof params.teacherName === "string" && params.teacherName
+      ? params.teacherName
+      : undefined;
+  return (
+    <TeacherAgendaScreenInner
+      viewAsTeacherId={teacherId}
+      viewAsTeacherName={teacherName}
+    />
+  );
 }
 
 type TeacherAgendaScreenProps = {
@@ -98,6 +115,9 @@ type TeacherAgendaScreenProps = {
   hideClassPicker?: boolean;
   headerTitle?: string;
   lockedClassTabLabel?: string;
+  /** Admin viewing a specific teacher's agenda */
+  viewAsTeacherId?: string;
+  viewAsTeacherName?: string;
 };
 
 export function TeacherAgendaScreenInner({
@@ -107,6 +127,8 @@ export function TeacherAgendaScreenInner({
   hideClassPicker = false,
   headerTitle = "Agenda",
   lockedClassTabLabel,
+  viewAsTeacherId,
+  viewAsTeacherName,
 }: TeacherAgendaScreenProps = {}) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -114,18 +136,23 @@ export function TeacherAgendaScreenInner({
   const { user } = useAuthStore();
   const admin = isSchoolAdmin(user);
   const isLockedClassView = !admin && Boolean(lockedClassId);
-  const subtitle = user
-    ? admin
-      ? buildAdminSubtitle(user)
-      : isLockedClassView
-        ? [user.schoolName, lockedClassName].filter(Boolean).join(" · ") || null
-        : buildTeacherSubtitle(user)
-    : null;
+  const subtitle = viewAsTeacherName
+    ? viewAsTeacherName
+    : user
+      ? admin
+        ? buildAdminSubtitle(user)
+        : isLockedClassView
+          ? [user.schoolName, lockedClassName].filter(Boolean).join(" · ") ||
+            null
+          : buildTeacherSubtitle(user)
+      : null;
   const classTabLabel =
     lockedClassTabLabel ??
     (lockedClassName ? `Agenda ${lockedClassName}` : "Agenda de classe");
   const [activeTab, setActiveTab] = useState<AgendaTab>(
-    isLockedClassView ? "classes" : (initialTab ?? (admin ? "users" : "mine")),
+    isLockedClassView
+      ? "classes"
+      : (initialTab ?? (viewAsTeacherId ? "mine" : admin ? "users" : "mine")),
   );
 
   return (
@@ -266,7 +293,10 @@ export function TeacherAgendaScreenInner({
       </View>
 
       {activeTab === "mine" ? (
-        <TeacherMyAgendaPane insetBottom={insets.bottom} />
+        <TeacherMyAgendaPane
+          insetBottom={insets.bottom}
+          viewAsTeacherId={viewAsTeacherId}
+        />
       ) : activeTab === "users" ? (
         <AdminUserAgendaPane insetBottom={insets.bottom} />
       ) : (
@@ -293,8 +323,15 @@ type TeacherScheduleData = {
   contextByOccId: Map<string, OccurrenceContext>;
 };
 
-function TeacherMyAgendaPane({ insetBottom }: { insetBottom: number }) {
+function TeacherMyAgendaPane({
+  insetBottom,
+  viewAsTeacherId,
+}: {
+  insetBottom: number;
+  viewAsTeacherId?: string;
+}) {
   const { schoolSlug, user } = useAuthStore();
+  const effectiveTeacherId = viewAsTeacherId ?? user?.id;
   const { loadClassOptions } = useTimetableStore();
 
   const today = useMemo(() => stripTime(new Date()), []);
@@ -316,7 +353,7 @@ function TeacherMyAgendaPane({ insetBottom }: { insetBottom: number }) {
   );
 
   const load = useCallback(async () => {
-    if (!schoolSlug || !user) return;
+    if (!schoolSlug || !effectiveTeacherId) return;
     setIsLoading(true);
     setErrorMessage(null);
     try {
@@ -350,7 +387,7 @@ function TeacherMyAgendaPane({ insetBottom }: { insetBottom: number }) {
           schoolYearId: cls.schoolYearId,
         };
         for (const o of t.occurrences) {
-          if (o.teacherUser.id === user.id) {
+          if (o.teacherUser.id === effectiveTeacherId) {
             allOccurrences.push(o);
             contextByOccId.set(o.id, ctx);
           }
@@ -358,7 +395,7 @@ function TeacherMyAgendaPane({ insetBottom }: { insetBottom: number }) {
       }
       const allSlots = timetables
         .flatMap((t) => t.slots)
-        .filter((s) => s.teacherUser.id === user.id);
+        .filter((s) => s.teacherUser.id === effectiveTeacherId);
       const styleMap = new Map<string, TimetableSubjectStyle>();
       for (const t of timetables) {
         for (const style of t.subjectStyles) {
@@ -376,7 +413,13 @@ function TeacherMyAgendaPane({ insetBottom }: { insetBottom: number }) {
     } finally {
       setIsLoading(false);
     }
-  }, [loadClassOptions, range.fromDate, range.toDate, schoolSlug, user]);
+  }, [
+    effectiveTeacherId,
+    loadClassOptions,
+    range.fromDate,
+    range.toDate,
+    schoolSlug,
+  ]);
 
   useEffect(() => {
     void load().catch(() => {});
