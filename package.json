@@ -22,8 +22,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "check:repo": "npm run format:check && npm run lint && npm run typecheck && npm run test",
-    "check:precommit": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run android:build:precommit",
+    "check:expo-versions": "node scripts/check-expo-versions.js",
+    "check:repo": "npm run check:expo-versions && npm run format:check && npm run lint && npm run typecheck && npm run test",
+    "check:precommit": "npm run check:expo-versions && npm run format:check && npm run lint && npm run typecheck && npm run test && npm run android:build:precommit",
     "prepare": "sh scripts/setup-git-hooks.sh",
     "android:build:release": "bash scripts/android-release-build.sh",
     "android:build:release:google": "bash scripts/android-e2e-google-build.sh",
@@ -68,17 +69,18 @@
     "preset": "jest-expo",
     "moduleNameMapper": {
       "^expo/src/winter/ImportMetaRegistry$": "<rootDir>/__mocks__/expoImportMetaRegistry.js",
-      "^(.*)/app/\\(home\\)/(.*)$": "<rootDir>/app/(home)/$2"
+      "^(.*)/app/\\(home\\)/(.*)$": "<rootDir>/app/(home)/$2",
+      "^@react-native-async-storage/async-storage$": "@react-native-async-storage/async-storage/jest/async-storage-mock"
     }
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
     "@hookform/resolvers": "^5.2.2",
-    "@react-native-async-storage/async-storage": "^3.1.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~55.0.8",
     "expo-apple-authentication": "^55.0.9",
     "expo-auth-session": "^55.0.9",
-    "expo-clipboard": "^56.0.4",
+    "expo-clipboard": "~55.0.9",
     "expo-device": "~55.0.15",
     "expo-document-picker": "~55.0.11",
     "expo-image-picker": "~55.0.16",

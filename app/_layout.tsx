@@ -65,6 +65,10 @@ export default function RootLayout() {
           name="recovery/password"
           options={{ animation: "slide_from_right" }}
         />
+        <Stack.Screen
+          name="recovery/username"
+          options={{ animation: "slide_from_right" }}
+        />
       </Stack>
       <SuccessToastHost />
       <AppUpdateModal
