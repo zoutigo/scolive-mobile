@@ -76,7 +76,11 @@ function canManageEvent(params: {
   return params.isReferent || params.event.authorUserId === params.userId;
 }
 
-export function TeacherClassDisciplineScreen() {
+export function TeacherClassDisciplineScreen({
+  showHeader = true,
+}: {
+  showHeader?: boolean;
+} = {}) {
   const params = useLocalSearchParams<{ classId?: string }>();
   const classId = typeof params.classId === "string" ? params.classId : "";
   const router = useRouter();
@@ -325,19 +329,21 @@ export function TeacherClassDisciplineScreen() {
 
   return (
     <View style={styles.root} testID="teacher-class-discipline-screen">
-      <View style={styles.headerWrap}>
-        <ModuleHeader
-          title="Discipline"
-          subtitle={subtitle}
-          onBack={() => router.back()}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
-          testID="teacher-class-discipline-header"
-          backTestID="teacher-class-discipline-back"
-          rightTestID="teacher-class-discipline-menu"
-          topInset={insets.top}
-        />
-      </View>
+      {showHeader ? (
+        <View style={styles.headerWrap}>
+          <ModuleHeader
+            title="Discipline"
+            subtitle={subtitle}
+            onBack={() => router.back()}
+            rightIcon="menu-outline"
+            onRightPress={openDrawer}
+            testID="teacher-class-discipline-header"
+            backTestID="teacher-class-discipline-back"
+            rightTestID="teacher-class-discipline-menu"
+            topInset={insets.top}
+          />
+        </View>
+      ) : null}
 
       <UnderlineTabs
         items={TABS.map((item) => ({

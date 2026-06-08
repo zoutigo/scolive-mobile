@@ -899,7 +899,11 @@ function HomeworkFormModal(props: {
   );
 }
 
-export function ClassHomeworkScreen() {
+export function ClassHomeworkScreen({
+  showHeader = true,
+}: {
+  showHeader?: boolean;
+} = {}) {
   const params = useLocalSearchParams<{ classId?: string; childId?: string }>();
   const classId = typeof params.classId === "string" ? params.classId : "";
   const routeChildId = typeof params.childId === "string" ? params.childId : "";
@@ -1454,19 +1458,21 @@ export function ClassHomeworkScreen() {
   const headerComponent = useMemo(
     () => (
       <>
-        <ModuleHeader
-          title="Homework"
-          subtitle={subtitle}
-          onBack={() => router.back()}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
-          testID="class-homework-header"
-          backTestID="class-homework-back"
-          titleTestID="class-homework-header-title"
-          subtitleTestID="class-homework-header-subtitle"
-          rightTestID="class-homework-menu"
-          topInset={insets.top}
-        />
+        {showHeader ? (
+          <ModuleHeader
+            title="Homework"
+            subtitle={subtitle}
+            onBack={() => router.back()}
+            rightIcon="menu-outline"
+            onRightPress={openDrawer}
+            testID="class-homework-header"
+            backTestID="class-homework-back"
+            titleTestID="class-homework-header-title"
+            subtitleTestID="class-homework-header-subtitle"
+            rightTestID="class-homework-menu"
+            topInset={insets.top}
+          />
+        ) : null}
 
         {isLoadingContext && !subtitle ? (
           <LoadingBlock label="Chargement du module homework..." />
@@ -1533,7 +1539,15 @@ export function ClassHomeworkScreen() {
         )}
       </>
     ),
-    [isLoadingContext, tab, agendaMode, periodLabel, subtitle, insets.top],
+    [
+      showHeader,
+      isLoadingContext,
+      tab,
+      agendaMode,
+      periodLabel,
+      subtitle,
+      insets.top,
+    ],
   );
 
   return (

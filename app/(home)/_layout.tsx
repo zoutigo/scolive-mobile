@@ -91,6 +91,14 @@ export default function HomeLayout() {
         options={{ animation: "slide_from_right" }}
       />
       <Stack.Screen
+        name="admin-classes/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="admin-classes/[classId]"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
         name="tickets/index"
         options={{ animation: "slide_from_right" }}
       />

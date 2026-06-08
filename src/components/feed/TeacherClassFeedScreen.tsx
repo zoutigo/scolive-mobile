@@ -34,7 +34,11 @@ function resolveViewerRole(
     : null;
 }
 
-export function TeacherClassFeedScreen() {
+export function TeacherClassFeedScreen({
+  showHeader = true,
+}: {
+  showHeader?: boolean;
+} = {}) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { openDrawer } = useDrawer();
@@ -105,23 +109,25 @@ export function TeacherClassFeedScreen() {
     <FeedModuleScreen
       schoolSlug={schoolSlug}
       viewerRole={viewerRole}
-      renderHeader={() => (
-        <View style={styles.headerWrap}>
-          <ModuleHeader
-            title="Vie de classe"
-            subtitle={subtitle}
-            onBack={() => router.back()}
-            rightIcon="menu-outline"
-            onRightPress={openDrawer}
-            testID="teacher-class-feed-header"
-            backTestID="teacher-class-feed-back"
-            titleTestID="teacher-class-feed-title"
-            subtitleTestID="teacher-class-feed-subtitle"
-            rightTestID="teacher-class-feed-menu-btn"
-            topInset={insets.top}
-          />
-        </View>
-      )}
+      renderHeader={() =>
+        showHeader ? (
+          <View style={styles.headerWrap}>
+            <ModuleHeader
+              title="Vie de classe"
+              subtitle={subtitle}
+              onBack={() => router.back()}
+              rightIcon="menu-outline"
+              onRightPress={openDrawer}
+              testID="teacher-class-feed-header"
+              backTestID="teacher-class-feed-back"
+              titleTestID="teacher-class-feed-title"
+              subtitleTestID="teacher-class-feed-subtitle"
+              rightTestID="teacher-class-feed-menu-btn"
+              topInset={insets.top}
+            />
+          </View>
+        ) : null
+      }
       loadPage={loadPage}
       testIDPrefix="teacher-class-feed"
       listTestID="teacher-class-feed-list"
