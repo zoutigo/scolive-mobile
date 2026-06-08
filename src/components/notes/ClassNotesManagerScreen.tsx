@@ -87,7 +87,11 @@ function createEmptyEvaluationForm(): UpsertEvaluationPayload {
   };
 }
 
-export function ClassNotesManagerScreen() {
+export function ClassNotesManagerScreen({
+  showHeader = true,
+}: {
+  showHeader?: boolean;
+} = {}) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { openDrawer } = useDrawer();
@@ -394,21 +398,23 @@ export function ClassNotesManagerScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.root}
     >
-      <ModuleHeader
-        title="Notes"
-        subtitle={
-          teacherContext?.class.name ??
-          (classId ? `Classe ${classId}` : undefined)
-        }
-        onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
-        testID="class-notes-header"
-        backTestID="class-notes-back"
-        titleTestID="class-notes-title"
-        subtitleTestID="class-notes-subtitle"
-        rightTestID="class-notes-menu-btn"
-      />
+      {showHeader ? (
+        <ModuleHeader
+          title="Notes"
+          subtitle={
+            teacherContext?.class.name ??
+            (classId ? `Classe ${classId}` : undefined)
+          }
+          onBack={() => router.back()}
+          rightIcon="menu-outline"
+          onRightPress={openDrawer}
+          testID="class-notes-header"
+          backTestID="class-notes-back"
+          titleTestID="class-notes-title"
+          subtitleTestID="class-notes-subtitle"
+          rightTestID="class-notes-menu-btn"
+        />
+      ) : null}
       <NotesTabs activeTab={tab} onSelect={setTab} />
 
       {/* ── Évaluations — vue liste ────────────────────────────── */}

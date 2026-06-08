@@ -118,6 +118,7 @@ type TeacherAgendaScreenProps = {
   /** Admin viewing a specific teacher's agenda */
   viewAsTeacherId?: string;
   viewAsTeacherName?: string;
+  showHeader?: boolean;
 };
 
 export function TeacherAgendaScreenInner({
@@ -129,6 +130,7 @@ export function TeacherAgendaScreenInner({
   lockedClassTabLabel,
   viewAsTeacherId,
   viewAsTeacherName,
+  showHeader = true,
 }: TeacherAgendaScreenProps = {}) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -160,17 +162,19 @@ export function TeacherAgendaScreenInner({
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.root}
     >
-      <ModuleHeader
-        title={headerTitle}
-        subtitle={subtitle}
-        onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
-        testID={`${P}-header`}
-        backTestID={`${P}-back`}
-        rightTestID={`${P}-menu`}
-        topInset={insets.top}
-      />
+      {showHeader ? (
+        <ModuleHeader
+          title={headerTitle}
+          subtitle={subtitle}
+          onBack={() => router.back()}
+          rightIcon="menu-outline"
+          onRightPress={openDrawer}
+          testID={`${P}-header`}
+          backTestID={`${P}-back`}
+          rightTestID={`${P}-menu`}
+          topInset={insets.top}
+        />
+      ) : null}
 
       {/* Tab switcher */}
       <View style={styles.tabRow} testID={`${P}-tabs`}>

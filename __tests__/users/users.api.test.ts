@@ -144,4 +144,52 @@ describe("usersApi", () => {
       );
     });
   });
+
+  describe("updateRoles", () => {
+    it("appelle PATCH sur le bon endpoint avec les rôles", async () => {
+      mockApiFetch.mockResolvedValueOnce({ roles: ["TEACHER"] });
+
+      await usersApi.updateRoles(SLUG, "user-1", ["TEACHER"]);
+
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        `/schools/${SLUG}/users/user-1/roles`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ roles: ["TEACHER"] }),
+        },
+        true,
+      );
+    });
+
+    it("passe plusieurs rôles simultanément", async () => {
+      mockApiFetch.mockResolvedValueOnce({
+        roles: ["TEACHER", "SCHOOL_MANAGER"],
+      });
+
+      await usersApi.updateRoles(SLUG, "user-1", ["TEACHER", "SCHOOL_MANAGER"]);
+
+      const [, options] = mockApiFetch.mock.calls[0];
+      expect(JSON.parse((options as { body: string }).body)).toEqual({
+        roles: ["TEACHER", "SCHOOL_MANAGER"],
+      });
+    });
+
+    it("retourne la liste des rôles confirmés par le serveur", async () => {
+      mockApiFetch.mockResolvedValueOnce({ roles: ["SCHOOL_ADMIN"] });
+
+      const result = await usersApi.updateRoles(SLUG, "user-1", [
+        "SCHOOL_ADMIN",
+      ]);
+
+      expect(result.roles).toEqual(["SCHOOL_ADMIN"]);
+    });
+
+    it("propage les erreurs réseau", async () => {
+      mockApiFetch.mockRejectedValueOnce(new Error("Network error"));
+
+      await expect(
+        usersApi.updateRoles(SLUG, "user-1", ["TEACHER"]),
+      ).rejects.toThrow("Network error");
+    });
+  });
 });
