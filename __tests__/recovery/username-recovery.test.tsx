@@ -7,6 +7,8 @@ import {
 } from "@testing-library/react-native";
 import UsernameRecoveryScreen from "../../app/recovery/username";
 import { apiFetch } from "../../src/api/client";
+import { DEFAULT_LOCALE } from "../../src/i18n/translations";
+import { useLocaleStore } from "../../src/store/locale.store";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -63,6 +65,34 @@ async function fillAndSubmitStep2(birthDate = "15/01/1990") {
 describe("UsernameRecoveryScreen — Step 1", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useLocaleStore.setState({ locale: DEFAULT_LOCALE });
+  });
+
+  afterEach(() => {
+    useLocaleStore.setState({ locale: DEFAULT_LOCALE });
+  });
+
+  describe("Traduction (anglais)", () => {
+    it("affiche l'étape 1 en anglais lorsque la locale est 'en'", async () => {
+      useLocaleStore.setState({ locale: "en" });
+      render(<UsernameRecoveryScreen />);
+
+      expect(screen.getByText("Account recovery")).toBeTruthy();
+      expect(screen.getByText("Your username")).toBeTruthy();
+      expect(screen.getByText("Continue")).toBeTruthy();
+    });
+
+    it("affiche une erreur de validation traduite en anglais", async () => {
+      useLocaleStore.setState({ locale: "en" });
+      render(<UsernameRecoveryScreen />);
+
+      fireEvent.press(screen.getByTestId("btn-step1"));
+
+      await waitFor(() =>
+        expect(screen.getByTestId("error-username")).toBeTruthy(),
+      );
+      expect(screen.getByText("Username is required.")).toBeTruthy();
+    });
   });
 
   it("affiche le champ identifiant et le bouton Continuer", () => {

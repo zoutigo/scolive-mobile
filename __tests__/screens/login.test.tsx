@@ -1,4 +1,5 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import {
   fireEvent,
   render,
@@ -9,6 +10,8 @@ import LoginScreen from "../../app/login";
 import { authApi } from "../../src/api/auth.api";
 import { signInWithGoogleAsync } from "../../src/auth/google-auth";
 import { useAuthStore } from "../../src/store/auth.store";
+import { DEFAULT_LOCALE } from "../../src/i18n/translations";
+import { useLocaleStore } from "../../src/store/locale.store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const mockAsyncStorage = AsyncStorage as jest.Mocked<typeof AsyncStorage>;
@@ -110,6 +113,7 @@ beforeEach(() => {
   // By default AsyncStorage.getItem returns null (no stored preference)
   mockAsyncStorage.getItem.mockResolvedValue(null);
   mockAsyncStorage.setItem.mockResolvedValue(undefined);
+  useLocaleStore.setState({ locale: DEFAULT_LOCALE });
   const { useLocalSearchParams } = require("expo-router") as {
     useLocalSearchParams: jest.Mock;
   };
@@ -139,6 +143,87 @@ describe("En-tête", () => {
   it("affiche le tagline", () => {
     render(<LoginScreen />);
     expect(screen.getByText("Votre école en temps réel.")).toBeOnTheScreen();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// Sélecteur de langue (paramètre machine)
+// ─────────────────────────────────────────────────────────────
+describe("Sélecteur de langue de l'appareil", () => {
+  it("affiche FR et EN avec le français sélectionné par défaut", () => {
+    render(<LoginScreen />);
+
+    expect(screen.getByTestId("login-language-switcher")).toBeOnTheScreen();
+    expect(screen.getByTestId("login-language-fr")).toBeOnTheScreen();
+    expect(screen.getByTestId("login-language-en")).toBeOnTheScreen();
+    expect(useLocaleStore.getState().locale).toBe("fr");
+  });
+
+  it("bascule la langue de l'appareil en anglais au clic sur EN", () => {
+    render(<LoginScreen />);
+
+    fireEvent.press(screen.getByTestId("login-language-en"));
+
+    expect(useLocaleStore.getState().locale).toBe("en");
+  });
+
+  it("traduit immédiatement tout l'écran en anglais au clic sur EN, sans rechargement", () => {
+    render(<LoginScreen />);
+
+    expect(screen.getByText("Votre école en temps réel.")).toBeOnTheScreen();
+    expect(screen.getByText("Connexion par téléphone")).toBeOnTheScreen();
+    expect(screen.getByText("Numéro de téléphone")).toBeOnTheScreen();
+    expect(screen.getByText("Code PIN")).toBeOnTheScreen();
+    expect(screen.getByText("Se connecter")).toBeOnTheScreen();
+    expect(screen.getByText("PIN oublié ?")).toBeOnTheScreen();
+    expect(screen.getByText("Se connecter autrement →")).toBeOnTheScreen();
+    expect(
+      screen.getByText("© 2026 Scolive. Tous droits réservés."),
+    ).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByTestId("login-language-en"));
+
+    expect(screen.getByText("Your school, in real time.")).toBeOnTheScreen();
+    expect(screen.getByText("Sign in with phone")).toBeOnTheScreen();
+    expect(screen.getByText("Phone number")).toBeOnTheScreen();
+    expect(screen.getByText("PIN code")).toBeOnTheScreen();
+    expect(screen.getByText("Sign in")).toBeOnTheScreen();
+    expect(screen.getByText("Forgot your PIN?")).toBeOnTheScreen();
+    expect(screen.getByText("Sign in another way →")).toBeOnTheScreen();
+    expect(
+      screen.getByText("© 2026 Scolive. All rights reserved."),
+    ).toBeOnTheScreen();
+
+    expect(
+      screen.queryByText("Votre école en temps réel."),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByText("Connexion par téléphone")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Se connecter")).not.toBeOnTheScreen();
+  });
+
+  it("traduit de nouveau l'écran en français au clic sur FR", () => {
+    useLocaleStore.setState({ locale: "en" });
+    render(<LoginScreen />);
+
+    expect(screen.getByText("Your school, in real time.")).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByTestId("login-language-fr"));
+
+    expect(screen.getByText("Votre école en temps réel.")).toBeOnTheScreen();
+    expect(screen.getByText("Connexion par téléphone")).toBeOnTheScreen();
+    expect(screen.getByText("Se connecter")).toBeOnTheScreen();
+  });
+
+  it("garde le nom de marque SCOLIVE inchangé dans les deux langues", () => {
+    render(<LoginScreen />);
+
+    expect(screen.getByText("SCO")).toBeOnTheScreen();
+    expect(screen.getByText("LIVE")).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByTestId("login-language-en"));
+
+    expect(screen.getByText("SCO")).toBeOnTheScreen();
+    expect(screen.getByText("LIVE")).toBeOnTheScreen();
   });
 });
 
@@ -852,5 +937,18 @@ describe("Pied de page", () => {
     expect(screen.getByTestId("login-app-version")).toHaveTextContent(
       "build 100",
     );
+  });
+
+  it("n'est jamais positionné en absolute (ne doit pas chevaucher le contenu défilant)", () => {
+    render(<LoginScreen />);
+    const footer = screen.getByTestId("login-footer");
+    const flatStyle = StyleSheet.flatten(footer.props.style);
+    expect(flatStyle.position).not.toBe("absolute");
+  });
+
+  it("le lien 'Se connecter autrement' et le footer sont tous les deux affichés", () => {
+    render(<LoginScreen />);
+    expect(screen.getByTestId("link-switch-method")).toBeOnTheScreen();
+    expect(screen.getByTestId("login-footer")).toBeOnTheScreen();
   });
 });

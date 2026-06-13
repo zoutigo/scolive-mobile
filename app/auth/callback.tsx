@@ -8,6 +8,7 @@ import {
   parseGoogleSsoCallbackParams,
 } from "../../src/auth/google-sso-callback";
 import { useAuthStore } from "../../src/store/auth.store";
+import { useTranslation } from "../../src/i18n/useTranslation";
 
 function routeToOnboarding(err: ApiClientError, fallbackEmail?: string) {
   const email = err.email ?? fallbackEmail ?? undefined;
@@ -24,7 +25,8 @@ function routeToOnboarding(err: ApiClientError, fallbackEmail?: string) {
 export default function GoogleAuthCallbackScreen() {
   const params = useLocalSearchParams();
   const handleLoginResponse = useAuthStore((s) => s.handleLoginResponse);
-  const [message, setMessage] = useState("Connexion Google en cours...");
+  const { t } = useTranslation();
+  const [message, setMessage] = useState(t("apiErrors.googleConnecting"));
   const handledRef = useRef(false);
 
   useEffect(() => {
@@ -33,7 +35,7 @@ export default function GoogleAuthCallbackScreen() {
     }
     handledRef.current = true;
 
-    const parsed = parseGoogleSsoCallbackParams(params);
+    const parsed = parseGoogleSsoCallbackParams(params, t);
 
     if (parsed.error) {
       setMessage(parsed.error);
@@ -49,7 +51,7 @@ export default function GoogleAuthCallbackScreen() {
         pathname: "/login",
         params: {
           tab: "google",
-          error: "Connexion Google interrompue.",
+          error: t("apiErrors.googleInterrupted"),
         },
       });
       return;
@@ -83,14 +85,14 @@ export default function GoogleAuthCallbackScreen() {
           pathname: "/login",
           params: {
             tab: "google",
-            error: parseApiError(apiErr),
+            error: parseApiError(apiErr, t),
           },
         });
       }
     }
 
     void complete();
-  }, [handleLoginResponse, params]);
+  }, [handleLoginResponse, params, t]);
 
   return (
     <View style={styles.container} testID="google-auth-callback">

@@ -20,6 +20,7 @@ export interface AuthUser {
   phone?: string | null;
   avatarUrl?: string | null;
   gender?: "M" | "F" | "OTHER" | null;
+  preferredLocale?: "FR" | "EN";
   platformRoles: PlatformRole[];
   memberships: Array<{ schoolId: string; role: SchoolRole }>;
   profileCompleted: boolean;

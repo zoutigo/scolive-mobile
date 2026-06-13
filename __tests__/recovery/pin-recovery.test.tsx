@@ -8,6 +8,8 @@ import PinRecoveryScreen, {
   parseRecoveryApiError,
 } from "../../app/recovery/pin";
 import { recoveryApi } from "../../src/api/recovery.api";
+import { DEFAULT_LOCALE } from "../../src/i18n/translations";
+import { useLocaleStore } from "../../src/store/locale.store";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -253,6 +255,31 @@ describe("parseRecoveryApiError", () => {
 describe("PinRecoveryScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useLocaleStore.setState({ locale: DEFAULT_LOCALE });
+  });
+
+  afterEach(() => {
+    useLocaleStore.setState({ locale: DEFAULT_LOCALE });
+  });
+
+  describe("Traduction (anglais)", () => {
+    it("affiche l'étape 1 en anglais lorsque la locale est 'en'", async () => {
+      useLocaleStore.setState({ locale: "en" });
+      const { getByText, findByTestId } = render(<PinRecoveryScreen />);
+      await findByTestId("step-1");
+      expect(getByText("PIN recovery")).toBeTruthy();
+      expect(getByText("Identify your account")).toBeTruthy();
+      expect(getByText("Phone number")).toBeTruthy();
+      expect(getByText("Continue →")).toBeTruthy();
+    });
+
+    it("affiche une erreur de validation traduite en anglais", async () => {
+      useLocaleStore.setState({ locale: "en" });
+      const { getByTestId, findByTestId } = render(<PinRecoveryScreen />);
+      fireEvent.press(getByTestId("btn-step1"));
+      const err = await findByTestId("error-phone");
+      expect(err.props.children).toBe("Phone number is required.");
+    });
   });
 
   // ── Step 1 ──────────────────────────────────────────────────────────────

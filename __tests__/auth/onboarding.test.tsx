@@ -12,6 +12,8 @@ import OnboardingScreen, {
   usernameOnboardingStep1Schema,
 } from "../../app/onboarding";
 import { authApi } from "../../src/api/auth.api";
+import { DEFAULT_LOCALE } from "../../src/i18n/translations";
+import { useLocaleStore } from "../../src/store/locale.store";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-status-bar", () => ({ StatusBar: () => null }));
@@ -230,6 +232,43 @@ describe("helpers", () => {
         message: "Cette adresse email est deja utilisee.",
       }),
     ).toBe("Cette adresse email est deja utilisee.");
+  });
+});
+
+describe("Traduction (anglais)", () => {
+  beforeEach(() => {
+    useLocaleStore.setState({ locale: "en" });
+  });
+
+  afterEach(() => {
+    useLocaleStore.setState({ locale: DEFAULT_LOCALE });
+  });
+
+  it("affiche l'étape 1 en anglais pour le parcours email", async () => {
+    const { getByText, findByTestId } = render(<OnboardingScreen />);
+    await findByTestId("step-1");
+
+    expect(getByText("First login")).toBeTruthy();
+    expect(
+      getByText(
+        "Change your temporary password then finish setting up your account.",
+      ),
+    ).toBeTruthy();
+    expect(getByText("Email address")).toBeTruthy();
+    expect(getByText("Temporary password")).toBeTruthy();
+    expect(getByText("New password")).toBeTruthy();
+    expect(getByText("Confirm password")).toBeTruthy();
+    expect(getByText("Continue")).toBeTruthy();
+  });
+
+  it("affiche une erreur de validation traduite en anglais", async () => {
+    const { getByTestId, findByTestId } = render(<OnboardingScreen />);
+    await findByTestId("step-1");
+
+    fireEvent.press(getByTestId("btn-step1"));
+
+    const error = await findByTestId("error-temporary-password");
+    expect(error.props.children).toBe("The temporary password is required.");
   });
 });
 

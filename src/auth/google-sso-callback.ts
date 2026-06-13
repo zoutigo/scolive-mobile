@@ -1,4 +1,6 @@
 import type { ApiClientError } from "../api/client";
+import { DEFAULT_LOCALE } from "../i18n/translations";
+import { translate, type TranslateFn } from "../i18n/useTranslation";
 
 function normalizeParam(value?: string | string[] | null) {
   const first = Array.isArray(value) ? value[0] : value;
@@ -14,40 +16,46 @@ export type GoogleSsoCallbackPayload = {
   avatarUrl?: string;
 };
 
-export function parseApiError(err: unknown): string {
+export function parseApiError(
+  err: unknown,
+  t: TranslateFn = (key) => translate(DEFAULT_LOCALE, key),
+): string {
   const apiErr = err as ApiClientError;
   const code = apiErr?.code;
   const statusCode = apiErr?.statusCode;
   switch (code) {
     case "INVALID_CREDENTIALS":
-      return "Identifiants incorrects. Vérifiez vos informations.";
+      return t("apiErrors.invalidCredentials");
     case "AUTH_RATE_LIMITED":
-      return "Trop de tentatives. Réessayez dans quelques minutes.";
+      return t("apiErrors.rateLimited");
     case "ACCOUNT_VALIDATION_REQUIRED":
-      return "Votre compte est en attente d'activation.";
+      return t("apiErrors.accountValidationRequired");
     case "ACCOUNT_SUSPENDED":
-      return "Votre compte a été suspendu. Contactez votre administration.";
+      return t("apiErrors.accountSuspended");
     case "PASSWORD_CHANGE_REQUIRED":
-      return "Vous devez modifier votre mot de passe.";
+      return t("apiErrors.passwordChangeRequired");
     case "PROFILE_SETUP_REQUIRED":
-      return "Votre profil est incomplet.";
+      return t("apiErrors.profileSetupRequired");
     case "SSO_PROFILE_COMPLETION_REQUIRED":
-      return "Votre compte Google est reconnu, mais certaines informations de profil manquent encore. Finalisez votre profil sur le web ou contactez l'administration.";
+      return t("apiErrors.ssoProfileCompletionRequired");
     case "PLATFORM_CREDENTIAL_SETUP_REQUIRED":
-      return "Votre compte doit encore finaliser ses identifiants de plateforme.";
+      return t("apiErrors.platformCredentialSetupRequired");
     case "ACCOUNT_NOT_PROVISIONED":
-      return "Ce compte Google n'est pas encore autorisé par votre établissement.";
+      return t("apiErrors.accountNotProvisioned");
     case "INVALID_SCHOOL_ACCOUNT":
-      return "Ce compte Google n'est pas rattaché à cette école.";
+      return t("apiErrors.invalidSchoolAccount");
     default:
       if (statusCode === 401) {
-        return "Identifiants incorrects. Vérifiez vos informations.";
+        return t("apiErrors.invalidCredentials");
       }
-      return "Impossible de se connecter. Vérifiez votre connexion.";
+      return t("apiErrors.generic");
   }
 }
 
-export function parseGoogleSsoCallbackParams(params: Record<string, unknown>): {
+export function parseGoogleSsoCallbackParams(
+  params: Record<string, unknown>,
+  t: TranslateFn = (key) => translate(DEFAULT_LOCALE, key),
+): {
   payload?: GoogleSsoCallbackPayload;
   error?: string;
 } {
@@ -55,7 +63,7 @@ export function parseGoogleSsoCallbackParams(params: Record<string, unknown>): {
   const message = normalizeParam(params.message as string | string[] | null);
 
   if (error) {
-    return { error: message || "Connexion Google interrompue." };
+    return { error: message || t("apiErrors.googleInterrupted") };
   }
 
   const providerAccountId = normalizeParam(
@@ -65,7 +73,7 @@ export function parseGoogleSsoCallbackParams(params: Record<string, unknown>): {
 
   if (!providerAccountId || !email) {
     return {
-      error: "Le compte Google ne fournit pas les informations requises.",
+      error: t("apiErrors.googleMissingInfo"),
     };
   }
 

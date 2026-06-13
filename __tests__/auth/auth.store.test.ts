@@ -2,6 +2,8 @@ import { act } from "@testing-library/react-native";
 import { useAuthStore } from "../../src/store/auth.store";
 import { authApi } from "../../src/api/auth.api";
 import { tokenStorage } from "../../src/api/client";
+import { DEFAULT_LOCALE } from "../../src/i18n/translations";
+import { useLocaleStore } from "../../src/store/locale.store";
 import type { AuthUser, LoginResponse } from "../../src/types/auth.types";
 
 jest.mock("../../src/api/auth.api");
@@ -60,6 +62,7 @@ beforeEach(() => {
     isAuthenticated: false,
     authErrorMessage: null,
   });
+  useLocaleStore.setState({ locale: DEFAULT_LOCALE });
 });
 
 describe("auth.store — initialize", () => {
@@ -270,6 +273,49 @@ describe("auth.store — handleLoginResponse() avec schoolSlug null", () => {
     expect(mockAuthApi.me).toHaveBeenCalledWith("ecole-test");
     expect(mockAuthApi.meGlobal).not.toHaveBeenCalled();
     expect(useAuthStore.getState().user).toEqual(fakeUser);
+  });
+});
+
+// ── Synchronisation de la langue du compte ────────────────────────────────
+//
+// La langue du compte ("compte gagne") doit écraser la langue de l'appareil
+// dès que le profil utilisateur est chargé après connexion.
+
+describe("auth.store — synchronisation de la langue du compte", () => {
+  it("applique la langue du compte (EN) au store de langue après handleLoginResponse", async () => {
+    mockStorage.setTokens.mockResolvedValue(undefined);
+    mockAuthApi.me.mockResolvedValue({ ...fakeUser, preferredLocale: "EN" });
+
+    await act(async () => {
+      await useAuthStore.getState().handleLoginResponse(fakeLoginResponse);
+    });
+
+    expect(useLocaleStore.getState().locale).toBe("en");
+  });
+
+  it("applique la langue du compte (FR) au store de langue après initialize", async () => {
+    useLocaleStore.setState({ locale: "en" });
+    mockStorage.getAccessToken.mockResolvedValue("stored-access-token");
+    mockStorage.getRefreshToken.mockResolvedValue("stored-refresh-token");
+    mockStorage.getSchoolSlug.mockResolvedValue("ecole-test");
+    mockAuthApi.me.mockResolvedValue({ ...fakeUser, preferredLocale: "FR" });
+
+    await act(async () => {
+      await useAuthStore.getState().initialize();
+    });
+
+    expect(useLocaleStore.getState().locale).toBe("fr");
+  });
+
+  it("ne modifie pas la langue de l'appareil si le compte n'a pas de préférence", async () => {
+    mockStorage.setTokens.mockResolvedValue(undefined);
+    mockAuthApi.me.mockResolvedValue(fakeUser);
+
+    await act(async () => {
+      await useAuthStore.getState().handleLoginResponse(fakeLoginResponse);
+    });
+
+    expect(useLocaleStore.getState().locale).toBe(DEFAULT_LOCALE);
   });
 });
 

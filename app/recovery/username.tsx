@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -19,36 +19,56 @@ import { z } from "zod";
 import { apiFetch } from "../../src/api/client";
 import { SecureTextField } from "../../src/components/SecureTextField";
 import type { RecoveryQuestion } from "../../src/types/recovery.types";
+import { DEFAULT_LOCALE } from "../../src/i18n/translations";
+import {
+  translate,
+  useTranslation,
+  type TranslateFn,
+} from "../../src/i18n/useTranslation";
 import { formatDateInput, parseDateToISO } from "./pin";
+
+const defaultT: TranslateFn = (key) => translate(DEFAULT_LOCALE, key);
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
-const step1Schema = z.object({
-  username: z.string().trim().min(1, "L'identifiant est requis."),
-});
+function buildStep1Schema(t: TranslateFn) {
+  return z.object({
+    username: z
+      .string()
+      .trim()
+      .min(1, t("recovery.username.errors.usernameRequired")),
+  });
+}
 
 const PASSWORD_COMPLEXITY_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
-const step3Schema = z
-  .object({
-    newPassword: z
-      .string()
-      .min(8, "Le mot de passe doit faire au moins 8 caractères.")
-      .regex(
-        PASSWORD_COMPLEXITY_REGEX,
-        "Le mot de passe doit contenir majuscules, minuscules et chiffres.",
-      ),
-    confirmPassword: z.string().min(1, "Confirmez le mot de passe."),
-  })
-  .superRefine((v, ctx) => {
-    if (v.confirmPassword && v.newPassword !== v.confirmPassword) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["confirmPassword"],
-        message: "La confirmation ne correspond pas au nouveau mot de passe.",
-      });
-    }
-  });
+function buildStep3Schema(t: TranslateFn) {
+  return z
+    .object({
+      newPassword: z
+        .string()
+        .min(8, t("recovery.password.errors.passwordTooShort"))
+        .regex(
+          PASSWORD_COMPLEXITY_REGEX,
+          t("recovery.password.errors.passwordComplexity"),
+        ),
+      confirmPassword: z
+        .string()
+        .min(1, t("recovery.password.errors.confirmRequired")),
+    })
+    .superRefine((v, ctx) => {
+      if (v.confirmPassword && v.newPassword !== v.confirmPassword) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["confirmPassword"],
+          message: t("recovery.password.errors.confirmMismatch"),
+        });
+      }
+    });
+}
+
+type Step1Schema = ReturnType<typeof buildStep1Schema>;
+type Step3Schema = ReturnType<typeof buildStep3Schema>;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -100,27 +120,26 @@ async function recoverUsernameReset(data: {
   });
 }
 
-function parseRecoveryError(err: unknown): string {
+function parseRecoveryError(err: unknown, t: TranslateFn = defaultT): string {
   const e = err as { code?: string; statusCode?: number; message?: string };
   if (typeof e?.message === "string" && e.message !== "Request failed") {
     return e.message;
   }
   switch (e?.code) {
     case "RECOVERY_INVALID":
-      return "Informations de récupération invalides.";
+      return t("recovery.common.errors.recoveryInvalid");
     case "NOT_FOUND":
     case "USER_NOT_FOUND":
-      return "Aucun compte trouvé pour cet identifiant.";
+      return t("recovery.username.errors.notFound");
     case "TOKEN_EXPIRED":
-      return "Le jeton a expiré. Recommencez depuis le début.";
+      return t("recovery.username.errors.tokenExpired");
     case "NO_RECOVERY_QUESTIONS":
-      return "Aucune question de récupération configurée.";
+      return t("recovery.username.errors.noRecoveryQuestions");
     default:
-      if (e?.statusCode === 404)
-        return "Aucun compte trouvé pour cet identifiant.";
+      if (e?.statusCode === 404) return t("recovery.username.errors.notFound");
       if (e?.statusCode === 400)
-        return "Informations de récupération invalides.";
-      return "Impossible de se connecter. Vérifiez votre connexion.";
+        return t("recovery.common.errors.recoveryInvalid");
+      return t("apiErrors.generic");
   }
 }
 
@@ -128,6 +147,7 @@ function parseRecoveryError(err: unknown): string {
 
 export default function UsernameRecoveryScreen() {
   const insets = useSafeAreaInsets();
+  const { locale, t } = useTranslation();
   const [step, setStep] = useState<Step>(1);
   const [questions, setQuestions] = useState<RecoveryQuestion[]>([]);
   const [usernameValue, setUsernameValue] = useState("");
@@ -137,14 +157,17 @@ export default function UsernameRecoveryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const step1Form = useForm<z.infer<typeof step1Schema>>({
+  const step1Schema = useMemo(() => buildStep1Schema(t), [locale]);
+  const step3Schema = useMemo(() => buildStep3Schema(t), [locale]);
+
+  const step1Form = useForm<z.infer<Step1Schema>>({
     resolver: zodResolver(step1Schema),
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: { username: "" },
   });
 
-  const step3Form = useForm<z.infer<typeof step3Schema>>({
+  const step3Form = useForm<z.infer<Step3Schema>>({
     resolver: zodResolver(step3Schema),
     mode: "onChange",
     reValidateMode: "onChange",
@@ -176,7 +199,7 @@ export default function UsernameRecoveryScreen() {
       setQuestions(res.questions);
       setStep(2);
     } catch (err) {
-      setError(parseRecoveryError(err));
+      setError(parseRecoveryError(err, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -190,12 +213,12 @@ export default function UsernameRecoveryScreen() {
       !step2Values.birthDate ||
       !/^\d{2}\/\d{2}\/\d{4}$/.test(step2Values.birthDate)
     ) {
-      setError("Format de date attendu : JJ/MM/AAAA.");
+      setError(t("recovery.username.errors.birthDateFormat"));
       return;
     }
     const isoDate = parseDateToISO(step2Values.birthDate);
     if (!isoDate) {
-      setError("Date de naissance invalide.");
+      setError(t("recovery.common.errors.birthDateInvalid"));
       return;
     }
     for (const q of questions) {
@@ -203,7 +226,7 @@ export default function UsernameRecoveryScreen() {
         !step2Values.answers[q.key] ||
         step2Values.answers[q.key].trim().length < 2
       ) {
-        setError("Chaque réponse doit contenir au moins 2 caractères.");
+        setError(t("recovery.username.errors.answerTooShort"));
         return;
       }
     }
@@ -221,7 +244,7 @@ export default function UsernameRecoveryScreen() {
       setRecoveryToken(res.recoveryToken);
       setStep(3);
     } catch (err) {
-      setError(parseRecoveryError(err));
+      setError(parseRecoveryError(err, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -239,7 +262,7 @@ export default function UsernameRecoveryScreen() {
       });
       setStep(4);
     } catch (err) {
-      setError(parseRecoveryError(err));
+      setError(parseRecoveryError(err, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -280,31 +303,36 @@ export default function UsernameRecoveryScreen() {
             style={styles.backButton}
           >
             <Text style={styles.backButtonText}>
-              {step === 4 ? "Se connecter" : "‹ Retour"}
+              {step === 4
+                ? t("recovery.common.loginButton")
+                : t("recovery.common.back")}
             </Text>
           </Pressable>
         </View>
 
         <View style={styles.brandAccent} />
         <Text style={styles.headerTitle}>
-          {step === 4 ? "Mot de passe réinitialisé" : "Récupération du compte"}
+          {step === 4
+            ? t("recovery.username.headerTitleSuccess")
+            : t("recovery.username.headerTitle")}
         </Text>
         {step !== 4 ? (
           <>
             <Text style={styles.stepIndicator}>
-              Étape {step} sur {totalSteps}
+              {t("recovery.password.step")
+                .replace("{step}", String(step))
+                .replace("{total}", String(totalSteps))}
             </Text>
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: progressWidth }]} />
             </View>
             <Text style={styles.headerSubtitle}>
-              Réinitialisez votre mot de passe via votre identifiant.
+              {t("recovery.username.headerSubtitle")}
             </Text>
           </>
         ) : (
           <Text style={styles.headerSubtitle}>
-            Votre mot de passe a été réinitialisé. Vous pouvez maintenant vous
-            connecter.
+            {t("recovery.username.success.headerSubtitle")}
           </Text>
         )}
       </View>
@@ -331,7 +359,9 @@ export default function UsernameRecoveryScreen() {
             {step === 1 ? (
               <View style={styles.form} testID="step-1">
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Votre identifiant</Text>
+                  <Text style={styles.label}>
+                    {t("recovery.username.fields.username")}
+                  </Text>
                   <Controller
                     control={step1Form.control}
                     name="username"
@@ -347,7 +377,9 @@ export default function UsernameRecoveryScreen() {
                         }}
                         autoCapitalize="none"
                         autoCorrect={false}
-                        placeholder="ex: jean.dupont"
+                        placeholder={t(
+                          "recovery.username.placeholders.username",
+                        )}
                         style={[
                           styles.input,
                           fieldState.error && styles.inputError,
@@ -374,7 +406,9 @@ export default function UsernameRecoveryScreen() {
                   {isSubmitting ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text style={styles.primaryButtonText}>Continuer</Text>
+                    <Text style={styles.primaryButtonText}>
+                      {t("recovery.username.continueButton")}
+                    </Text>
                   )}
                 </Pressable>
               </View>
@@ -386,9 +420,7 @@ export default function UsernameRecoveryScreen() {
                 <View style={styles.form} testID="step-2-no-questions">
                   <View style={styles.warningBox}>
                     <Text style={styles.warningText}>
-                      Aucune question de récupération n'a été configurée pour ce
-                      compte. Contacte ton administration scolaire pour
-                      réinitialiser ton accès.
+                      {t("recovery.username.noQuestions.warning")}
                     </Text>
                   </View>
                   <Pressable
@@ -397,7 +429,7 @@ export default function UsernameRecoveryScreen() {
                     style={styles.primaryButton}
                   >
                     <Text style={styles.primaryButtonText}>
-                      Retour à la connexion
+                      {t("recovery.username.backToLogin")}
                     </Text>
                   </Pressable>
                 </View>
@@ -405,7 +437,9 @@ export default function UsernameRecoveryScreen() {
                 <View style={styles.form} testID="step-2">
                   {/* Date de naissance */}
                   <View style={styles.fieldGroup}>
-                    <Text style={styles.label}>Date de naissance</Text>
+                    <Text style={styles.label}>
+                      {t("recovery.common.birthDateLabel")}
+                    </Text>
                     <TextInput
                       testID="input-birthdate"
                       value={step2Values.birthDate}
@@ -417,7 +451,7 @@ export default function UsernameRecoveryScreen() {
                         }));
                       }}
                       keyboardType="number-pad"
-                      placeholder="JJ/MM/AAAA"
+                      placeholder={t("recovery.common.birthDatePlaceholder")}
                       style={styles.input}
                       placeholderTextColor="#9B9490"
                     />
@@ -437,7 +471,7 @@ export default function UsernameRecoveryScreen() {
                             answers: { ...prev.answers, [q.key]: value },
                           }));
                         }}
-                        placeholder="Votre réponse"
+                        placeholder={t("recovery.common.answerPlaceholder")}
                         autoCapitalize="none"
                         style={styles.input}
                         placeholderTextColor="#9B9490"
@@ -457,7 +491,9 @@ export default function UsernameRecoveryScreen() {
                     {isSubmitting ? (
                       <ActivityIndicator color="#FFFFFF" size="small" />
                     ) : (
-                      <Text style={styles.primaryButtonText}>Continuer</Text>
+                      <Text style={styles.primaryButtonText}>
+                        {t("recovery.username.continueButton")}
+                      </Text>
                     )}
                   </Pressable>
                 </View>
@@ -468,7 +504,9 @@ export default function UsernameRecoveryScreen() {
             {step === 3 ? (
               <View style={styles.form} testID="step-3">
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Nouveau mot de passe</Text>
+                  <Text style={styles.label}>
+                    {t("recovery.password.fields.newPassword")}
+                  </Text>
                   <Controller
                     control={step3Form.control}
                     name="newPassword"
@@ -482,7 +520,9 @@ export default function UsernameRecoveryScreen() {
                           clearErrors();
                           field.onChange(value);
                         }}
-                        placeholder="8+ caractères, maj, min, chiffre"
+                        placeholder={t(
+                          "recovery.username.placeholders.newPassword",
+                        )}
                         placeholderTextColor="#9B9490"
                         containerStyle={
                           step3Form.formState.errors.newPassword
@@ -499,7 +539,9 @@ export default function UsernameRecoveryScreen() {
                   ) : null}
                 </View>
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Confirmer le mot de passe</Text>
+                  <Text style={styles.label}>
+                    {t("recovery.password.fields.confirmPassword")}
+                  </Text>
                   <Controller
                     control={step3Form.control}
                     name="confirmPassword"
@@ -541,7 +583,9 @@ export default function UsernameRecoveryScreen() {
                   {isSubmitting ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text style={styles.primaryButtonText}>Réinitialiser</Text>
+                    <Text style={styles.primaryButtonText}>
+                      {t("recovery.username.step3.submit")}
+                    </Text>
                   )}
                 </Pressable>
               </View>
@@ -551,11 +595,10 @@ export default function UsernameRecoveryScreen() {
             {step === 4 ? (
               <View style={styles.successCard} testID="step-4">
                 <Text style={styles.successTitle}>
-                  Mot de passe réinitialisé
+                  {t("recovery.username.headerTitleSuccess")}
                 </Text>
                 <Text style={styles.successText}>
-                  Votre mot de passe a été mis à jour. Vous pouvez maintenant
-                  vous connecter avec votre identifiant.
+                  {t("recovery.username.success.text")}
                 </Text>
                 <Pressable
                   testID="btn-go-login"
@@ -563,7 +606,7 @@ export default function UsernameRecoveryScreen() {
                   style={styles.primaryButton}
                 >
                   <Text style={styles.primaryButtonText}>
-                    Retour à la connexion
+                    {t("recovery.username.backToLogin")}
                   </Text>
                 </Pressable>
               </View>

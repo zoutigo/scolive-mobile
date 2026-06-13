@@ -7,6 +7,8 @@ import PasswordRecoveryScreen, {
   parsePasswordRecoveryApiError,
 } from "../../app/recovery/password";
 import { recoveryApi } from "../../src/api/recovery.api";
+import { DEFAULT_LOCALE } from "../../src/i18n/translations";
+import { useLocaleStore } from "../../src/store/locale.store";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -242,6 +244,31 @@ describe("parsePasswordRecoveryApiError", () => {
 describe("PasswordRecoveryScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useLocaleStore.setState({ locale: DEFAULT_LOCALE });
+  });
+
+  afterEach(() => {
+    useLocaleStore.setState({ locale: DEFAULT_LOCALE });
+  });
+
+  describe("Traduction (anglais)", () => {
+    it("affiche l'étape 1 en anglais lorsque la locale est 'en'", async () => {
+      useLocaleStore.setState({ locale: "en" });
+      const { getByText, findByTestId } = render(<PasswordRecoveryScreen />);
+      await findByTestId("step-1");
+      expect(getByText("Forgot password")).toBeTruthy();
+      expect(getByText("Reset your password")).toBeTruthy();
+      expect(getByText("Email address")).toBeTruthy();
+      expect(getByText("Send link →")).toBeTruthy();
+    });
+
+    it("affiche une erreur de validation traduite en anglais", async () => {
+      useLocaleStore.setState({ locale: "en" });
+      const { getByTestId, findByTestId } = render(<PasswordRecoveryScreen />);
+      fireEvent.press(getByTestId("btn-step1"));
+      const err = await findByTestId("error-email");
+      expect(err.props.children).toBe("Email address is required.");
+    });
   });
 
   // ── Step 1 ──────────────────────────────────────────────────────────────

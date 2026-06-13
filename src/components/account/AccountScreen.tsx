@@ -49,6 +49,7 @@ import {
 } from "./account.schemas";
 import type {
   AccountGender,
+  AccountLocale,
   AccountProfileResponse,
   AccountRecoveryOptionsResponse,
 } from "../../types/account.types";
@@ -56,7 +57,7 @@ import type { AppRole, PlatformRole, SchoolRole } from "../../types/auth.types";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { useAuthStore } from "../../store/auth.store";
 import { useTranslation } from "../../i18n/useTranslation";
-import { SUPPORTED_LOCALES } from "../../i18n/translations";
+import { SUPPORTED_LOCALES, type Locale } from "../../i18n/translations";
 import type { ApiClientError } from "../../api/client";
 
 type AccountTab = "personal" | "security" | "help" | "settings";
@@ -1480,6 +1481,7 @@ function AccountScreenContent() {
   const { locale, setLocale, t } = useTranslation();
   const [selectedRole, setSelectedRole] = useState<AppRole | null>(null);
   const [savingActiveRole, setSavingActiveRole] = useState(false);
+  const [savingAccountLanguage, setSavingAccountLanguage] = useState(false);
 
   const securityHint = useMemo(() => {
     if (profile?.role === "PARENT") {
@@ -1511,6 +1513,8 @@ function AccountScreenContent() {
           lastName: nextProfile.lastName,
           phone: nextProfile.phone,
           gender: nextProfile.gender ?? null,
+          preferredLocale:
+            nextProfile.preferredLocale ?? currentUser.preferredLocale,
           email: nextProfile.email ?? currentUser.email ?? null,
           role: nextProfile.role ?? currentUser.role,
           activeRole: nextProfile.activeRole ?? currentUser.activeRole,
@@ -1605,6 +1609,33 @@ function AccountScreenContent() {
       });
     } finally {
       setSavingActiveRole(false);
+    }
+  }
+
+  async function handleSetAccountLanguage(option: Locale) {
+    const preferredLocale: AccountLocale = option === "en" ? "EN" : "FR";
+    if (profile?.preferredLocale === preferredLocale || savingAccountLanguage) {
+      return;
+    }
+    try {
+      setSavingAccountLanguage(true);
+      const response = await accountApi.updateLanguage({ preferredLocale });
+      syncProfileState(response);
+      setLocale(option);
+      showSuccess({
+        title: "Langue mise à jour",
+        message: "La langue de votre compte a été enregistrée.",
+      });
+    } catch (error) {
+      showError({
+        title: "Mise à jour impossible",
+        message: getErrorMessage(
+          error,
+          "La langue du compte n'a pas pu être mise à jour.",
+        ),
+      });
+    } finally {
+      setSavingAccountLanguage(false);
     }
   }
 
@@ -1882,6 +1913,55 @@ function AccountScreenContent() {
                       ]}
                       onPress={() => setLocale(option)}
                       testID={`account-language-${option}`}
+                    >
+                      <Text
+                        style={[
+                          styles.settingsRoleLabel,
+                          selected && styles.settingsRoleLabelActive,
+                        ]}
+                      >
+                        {t(`settings.language.${option}`)}
+                      </Text>
+                      <Ionicons
+                        name={
+                          selected
+                            ? "radio-button-on-outline"
+                            : "radio-button-off-outline"
+                        }
+                        size={16}
+                        color={selected ? colors.primary : colors.textSecondary}
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </SectionCard>
+
+            <SectionCard
+              title={t("settings.accountLanguage.title")}
+              subtitle={t("settings.accountLanguage.subtitle")}
+              testID="account-settings-account-language-card"
+            >
+              <Text style={styles.settingsHint}>
+                {t("settings.accountLanguage.hint")}
+              </Text>
+              <View style={styles.settingsChoiceWrap}>
+                {SUPPORTED_LOCALES.map((option) => {
+                  const accountLocale: Locale =
+                    profile?.preferredLocale === "EN" ? "en" : "fr";
+                  const selected = accountLocale === option;
+                  return (
+                    <TouchableOpacity
+                      key={option}
+                      style={[
+                        styles.settingsRoleOption,
+                        selected && styles.settingsRoleOptionActive,
+                      ]}
+                      onPress={() => {
+                        void handleSetAccountLanguage(option);
+                      }}
+                      disabled={savingAccountLanguage}
+                      testID={`account-profile-language-${option}`}
                     >
                       <Text
                         style={[
