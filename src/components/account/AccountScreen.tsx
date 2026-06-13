@@ -55,6 +55,8 @@ import type {
 import type { AppRole, PlatformRole, SchoolRole } from "../../types/auth.types";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { useAuthStore } from "../../store/auth.store";
+import { useTranslation } from "../../i18n/useTranslation";
+import { SUPPORTED_LOCALES } from "../../i18n/translations";
 import type { ApiClientError } from "../../api/client";
 
 type AccountTab = "personal" | "security" | "help" | "settings";
@@ -65,7 +67,6 @@ type SecuritySection =
   | "add-phone"
   | "recovery"
   | null;
-type SettingsLanguage = "fr" | "en";
 
 type PersonalValues = z.infer<typeof accountPersonalProfileSchema>;
 type PasswordValues = z.infer<typeof accountChangePasswordSchema>;
@@ -105,11 +106,6 @@ const SCHOOL_ROLE_LABELS: Record<SchoolRole, string> = {
   PARENT: "Parent",
   STUDENT: "Élève",
 };
-
-const LANGUAGE_OPTIONS: Array<{ value: SettingsLanguage; label: string }> = [
-  { value: "fr", label: "Français" },
-  { value: "en", label: "English" },
-];
 
 const ROLE_LABELS: Record<string, string> = {
   ...PLATFORM_ROLE_LABELS,
@@ -1481,8 +1477,7 @@ function AccountScreenContent() {
   const [recoveryOptions, setRecoveryOptions] =
     useState<AccountRecoveryOptionsResponse | null>(null);
   const [loadingRecovery, setLoadingRecovery] = useState(false);
-  const [settingsLanguage, setSettingsLanguage] =
-    useState<SettingsLanguage>("fr");
+  const { locale, setLocale, t } = useTranslation();
   const [selectedRole, setSelectedRole] = useState<AppRole | null>(null);
   const [savingActiveRole, setSavingActiveRole] = useState(false);
 
@@ -1868,25 +1863,25 @@ function AccountScreenContent() {
         {tab === "settings" ? (
           <View style={styles.settingsStack}>
             <SectionCard
-              title="Langue"
-              subtitle="Préparez l'interface multilingue"
+              title={t("settings.language.title")}
+              subtitle={t("settings.language.subtitle")}
               testID="account-settings-language-card"
             >
               <Text style={styles.settingsHint}>
-                Sélection visuelle uniquement pour le moment.
+                {t("settings.language.hint")}
               </Text>
               <View style={styles.settingsChoiceWrap}>
-                {LANGUAGE_OPTIONS.map((option) => {
-                  const selected = settingsLanguage === option.value;
+                {SUPPORTED_LOCALES.map((option) => {
+                  const selected = locale === option;
                   return (
                     <TouchableOpacity
-                      key={option.value}
+                      key={option}
                       style={[
                         styles.settingsRoleOption,
                         selected && styles.settingsRoleOptionActive,
                       ]}
-                      onPress={() => setSettingsLanguage(option.value)}
-                      testID={`account-language-${option.value}`}
+                      onPress={() => setLocale(option)}
+                      testID={`account-language-${option}`}
                     >
                       <Text
                         style={[
@@ -1894,7 +1889,7 @@ function AccountScreenContent() {
                           selected && styles.settingsRoleLabelActive,
                         ]}
                       >
-                        {option.label}
+                        {t(`settings.language.${option}`)}
                       </Text>
                       <Ionicons
                         name={

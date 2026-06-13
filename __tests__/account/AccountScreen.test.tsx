@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
   fireEvent,
@@ -11,6 +12,11 @@ import { AccountScreen } from "../../src/components/account/AccountScreen";
 import { accountApi } from "../../src/api/account.api";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useSuccessToastStore } from "../../src/store/success-toast.store";
+import { DEFAULT_LOCALE } from "../../src/i18n/translations";
+import {
+  LOCALE_STORAGE_KEY,
+  useLocaleStore,
+} from "../../src/store/locale.store";
 import { colors } from "../../src/theme";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
@@ -65,11 +71,13 @@ const recoveryResponse = {
 };
 
 describe("AccountScreen", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
     useSuccessToastStore.getState().hide();
+    await AsyncStorage.clear();
+    useLocaleStore.setState({ locale: DEFAULT_LOCALE });
     useAuthStore.setState({
       user: {
         id: "user-1",
@@ -409,5 +417,51 @@ describe("AccountScreen", () => {
     await waitFor(() => {
       expect(useAuthStore.getState().user?.activeRole).toBe("TEACHER");
     });
+  });
+
+  it("bascule l'interface en anglais et persiste le choix", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+
+    expect(screen.getByText("Langue")).toBeTruthy();
+    expect(screen.getByText("Français")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("account-language-en"));
+
+    expect(useLocaleStore.getState().locale).toBe("en");
+    expect(screen.getByText("Language")).toBeTruthy();
+    expect(screen.getByText("Choose the application language")).toBeTruthy();
+
+    await waitFor(async () => {
+      const stored = await AsyncStorage.getItem(LOCALE_STORAGE_KEY);
+      expect(stored).not.toBeNull();
+      expect(JSON.parse(stored as string)).toMatchObject({
+        state: { locale: "en" },
+      });
+    });
+  });
+
+  it("restaure la langue anglaise persistée au prochain démarrage", async () => {
+    await AsyncStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify({ state: { locale: "en" }, version: 0 }),
+    );
+    await useLocaleStore.persist.rehydrate();
+
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+
+    expect(screen.getByText("Language")).toBeTruthy();
+    expect(screen.getByTestId("account-language-en")).toBeTruthy();
   });
 });
