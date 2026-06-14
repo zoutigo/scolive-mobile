@@ -556,6 +556,59 @@ describe("UsernameRecoveryScreen — Step 3", () => {
     );
   });
 
+  it("affiche l'erreur TOKEN_INVALID si le lien est invalide", async () => {
+    await goToStep3();
+
+    mockApiFetch.mockRejectedValueOnce({
+      code: "TOKEN_INVALID",
+      message: "Lien de reinitialisation invalide ou expire",
+    });
+
+    fireEvent.changeText(
+      screen.getByTestId("input-new-password"),
+      "ValidPass1",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("input-confirm-password"),
+      "ValidPass1",
+    );
+    fireEvent.press(screen.getByTestId("btn-step3"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Lien de réinitialisation invalide."),
+      ).toBeTruthy(),
+    );
+  });
+
+  it("affiche l'erreur SAME_PASSWORD si le mot de passe est identique à l'actuel", async () => {
+    await goToStep3();
+
+    mockApiFetch.mockRejectedValueOnce({
+      code: "SAME_PASSWORD",
+      message:
+        "Le nouveau mot de passe doit etre different du mot de passe actuel",
+    });
+
+    fireEvent.changeText(
+      screen.getByTestId("input-new-password"),
+      "ValidPass1",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("input-confirm-password"),
+      "ValidPass1",
+    );
+    fireEvent.press(screen.getByTestId("btn-step3"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "Le nouveau mot de passe doit être différent de l'actuel.",
+        ),
+      ).toBeTruthy(),
+    );
+  });
+
   it("affiche une erreur générique si reset échoue avec code inconnu", async () => {
     await goToStep3();
 

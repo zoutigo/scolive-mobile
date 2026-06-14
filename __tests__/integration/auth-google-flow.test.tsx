@@ -14,6 +14,17 @@ jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
   useLocalSearchParams: jest.fn(() => ({})),
 }));
+jest.mock("react-native/Libraries/Utilities/Platform", () => ({
+  __esModule: true,
+  default: {
+    OS: "android",
+    select: (options: Record<string, unknown>) =>
+      options.android ?? options.default,
+  },
+  OS: "android",
+  select: (options: Record<string, unknown>) =>
+    options.android ?? options.default,
+}));
 jest.mock("../../src/auth/google-auth", () => ({
   GoogleAuthError: class GoogleAuthError extends Error {
     code: string;
@@ -47,7 +58,11 @@ describe("Flux d'intégration Google login", () => {
     mockGoogleAuth.mockResolvedValue(undefined);
     render(<LoginScreen />);
 
-    fireEvent.press(screen.getByTestId("tab-google"));
+    fireEvent.press(screen.getByTestId("link-switch-method"));
+    await waitFor(() =>
+      expect(screen.getByTestId("modal-tab-google")).toBeOnTheScreen(),
+    );
+    fireEvent.press(screen.getByTestId("modal-tab-google"));
     fireEvent.press(screen.getByTestId("sso-google"));
 
     await waitFor(() => {

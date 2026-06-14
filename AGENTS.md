@@ -12,6 +12,20 @@ l'instruction explicite de l'utilisateur avant tout `git commit` ou `git push`.
 Si la branche courante n'est pas `dev`, basculer sur `dev` avant de commencer le travail ou expliquer clairement
 le blocage si ce n'est pas possible sans risque.
 
+## Internationalisation (i18n) — règle obligatoire
+
+Le projet utilise un système de traduction maison dans `src/i18n/` :
+
+- `translations.ts` : dictionnaires par locale, clés namespacées (ex. `settings.language.title`)
+- `useTranslation.ts` : hook `useTranslation()` → `{ locale, setLocale, t }`
+- Locales supportées (`SUPPORTED_LOCALES`) : `fr` (défaut, `DEFAULT_LOCALE`) et `en`
+
+**Pour tout nouveau développement ou correction :**
+
+- Jamais de texte en dur dans le code (titres, labels, messages, placeholders, erreurs, toasts, etc.)
+- Ajouter la clé correspondante dans `translations` pour CHAQUE locale supportée (`fr` ET `en`)
+- Afficher le texte via `t("namespace.cle")` (hook `useTranslation()`)
+
 ## TODO — Module notes / évaluations mobile
 
 - [x] Analyser le module `notes` / `evaluations` de `scolive-web` et aligner les contrats API/types mobile

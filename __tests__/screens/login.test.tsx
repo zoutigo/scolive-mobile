@@ -924,6 +924,43 @@ describe("Params d'URL", () => {
 // ─────────────────────────────────────────────────────────────
 // Pied de page
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Disposition du titre de méthode (titre collé en haut de la carte)
+// ─────────────────────────────────────────────────────────────
+describe("Disposition du titre de méthode", () => {
+  it.each([
+    ["phone", "panel-phone"],
+    ["email", "panel-email"],
+    ["username", "panel-username"],
+    ["google", "panel-google"],
+  ])(
+    "le titre est le premier élément du contenu défilant et précède directement le panneau %s",
+    async (method, panelTestId) => {
+      render(<LoginScreen />);
+      await waitFor(() => screen.getByTestId("panel-phone"));
+      if (method !== "phone") {
+        await switchToMethod(method);
+      }
+
+      const label = screen.getByTestId("active-method-label");
+      const siblings = label.parent?.parent?.children ?? [];
+
+      expect(siblings[0]?.props?.testID).toBe("active-method-label");
+      expect(siblings[1]?.props?.testID).toBe(panelTestId);
+    },
+  );
+
+  it("ne contient plus les anciens onglets cachés (tab-phone, tab-email, tab-username, tab-google)", async () => {
+    render(<LoginScreen />);
+    await waitFor(() => screen.getByTestId("panel-phone"));
+
+    expect(screen.queryByTestId("tab-phone")).toBeNull();
+    expect(screen.queryByTestId("tab-email")).toBeNull();
+    expect(screen.queryByTestId("tab-username")).toBeNull();
+    expect(screen.queryByTestId("tab-google")).toBeNull();
+  });
+});
+
 describe("Pied de page", () => {
   it("affiche le copyright en bas de page", () => {
     render(<LoginScreen />);

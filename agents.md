@@ -4,6 +4,22 @@ Guide opérationnel pour agents IA travaillant sur le projet React Native.
 
 ---
 
+## Internationalisation (i18n) — règle obligatoire
+
+Le projet utilise un système de traduction maison dans `src/i18n/` :
+
+- `translations.ts` : dictionnaires par locale, clés namespacées (ex. `settings.language.title`)
+- `useTranslation.ts` : hook `useTranslation()` → `{ locale, setLocale, t }`
+- Locales supportées (`SUPPORTED_LOCALES`) : `fr` (défaut, `DEFAULT_LOCALE`) et `en`
+
+**Pour tout nouveau développement ou correction :**
+
+- Jamais de texte en dur dans le code (titres, labels, messages, placeholders, erreurs, toasts, etc.)
+- Ajouter la clé correspondante dans `translations` pour CHAQUE locale supportée (`fr` ET `en`)
+- Afficher le texte via `t("namespace.cle")` (hook `useTranslation()`)
+
+---
+
 ## Environnement de dev Android
 
 ### AVD de référence

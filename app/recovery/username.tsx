@@ -122,9 +122,6 @@ async function recoverUsernameReset(data: {
 
 function parseRecoveryError(err: unknown, t: TranslateFn = defaultT): string {
   const e = err as { code?: string; statusCode?: number; message?: string };
-  if (typeof e?.message === "string" && e.message !== "Request failed") {
-    return e.message;
-  }
   switch (e?.code) {
     case "RECOVERY_INVALID":
       return t("recovery.common.errors.recoveryInvalid");
@@ -132,13 +129,22 @@ function parseRecoveryError(err: unknown, t: TranslateFn = defaultT): string {
     case "USER_NOT_FOUND":
       return t("recovery.username.errors.notFound");
     case "TOKEN_EXPIRED":
+    case "RESET_TOKEN_EXPIRED":
       return t("recovery.username.errors.tokenExpired");
+    case "TOKEN_INVALID":
+    case "RESET_TOKEN_INVALID":
+      return t("recovery.password.errors.tokenInvalidLink");
+    case "SAME_PASSWORD":
+      return t("recovery.password.errors.samePassword");
     case "NO_RECOVERY_QUESTIONS":
       return t("recovery.username.errors.noRecoveryQuestions");
     default:
       if (e?.statusCode === 404) return t("recovery.username.errors.notFound");
       if (e?.statusCode === 400)
         return t("recovery.common.errors.recoveryInvalid");
+      if (typeof e?.message === "string" && e.message !== "Request failed") {
+        return e.message;
+      }
       return t("apiErrors.generic");
   }
 }

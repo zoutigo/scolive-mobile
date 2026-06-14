@@ -421,18 +421,6 @@ export default function LoginScreen() {
             showsVerticalScrollIndicator={false}
             scrollIndicatorInsets={{ bottom: 40 }}
           >
-            {/* Onglets de méthode (testID hooks pour les tests) */}
-            {(["phone", "email", "username", "google"] as AuthMethod[]).map(
-              (m) => (
-                <Pressable
-                  key={m}
-                  testID={`tab-${m}`}
-                  onPress={() => switchMethod(m)}
-                  style={{ height: 0, overflow: "hidden" }}
-                />
-              ),
-            )}
-
             {/* Titre de la méthode active */}
             <Text style={styles.methodLabel} testID="active-method-label">
               {methodLabels[method]}
