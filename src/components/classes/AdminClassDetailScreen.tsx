@@ -15,10 +15,7 @@ import { ClassHomeworkScreen } from "../homework/ClassHomeworkScreen";
 import { ClassNotesManagerScreen } from "../notes/ClassNotesManagerScreen";
 import { TeacherClassFeedScreen } from "../feed/TeacherClassFeedScreen";
 import { ClassSelectModal } from "./ClassSelectModal";
-import {
-  useTranslation,
-  type TranslateFn,
-} from "../../i18n/useTranslation";
+import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 
 type TabKey = "discipline" | "agenda" | "devoirs" | "notes" | "fil";
 

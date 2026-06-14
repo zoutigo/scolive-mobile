@@ -541,8 +541,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.comment.placeholder": "Ajouter un commentaire",
 
     "homework.control.title": "Suivi homework",
-    "homework.control.doneStudentsTitle":
-      "Élèves ayant déjà fait le devoir",
+    "homework.control.doneStudentsTitle": "Élèves ayant déjà fait le devoir",
     "homework.control.summarySuffix": "faits",
     "homework.control.noStudentDone":
       "Aucun élève n'a encore marqué ce homework comme fait.",
@@ -574,10 +573,8 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "homework.errors.title": "Erreur",
     "homework.errors.insertImage": "Impossible d'insérer l'image.",
-    "homework.errors.addAttachment":
-      "Impossible d'ajouter cette pièce jointe.",
-    "homework.errors.openAttachment":
-      "Impossible d'ouvrir cette pièce jointe.",
+    "homework.errors.addAttachment": "Impossible d'ajouter cette pièce jointe.",
+    "homework.errors.openAttachment": "Impossible d'ouvrir cette pièce jointe.",
     "homework.errors.loadContext":
       "Impossible de charger le contexte homework.",
 
@@ -593,8 +590,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.agenda.noDaySelected": "Aucun jour sélectionné",
 
     "homework.empty.title": "Aucun homework",
-    "homework.empty.list":
-      "Aucun homework n'est prévu à partir d'aujourd'hui.",
+    "homework.empty.list": "Aucun homework n'est prévu à partir d'aujourd'hui.",
     "homework.empty.endOfList": "Tous les homeworks à venir sont affichés",
     "homework.empty.week":
       "Aucun homework n'est prévu sur ce jour de la semaine.",
@@ -606,22 +602,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.section.empty": "Aucun devoir en cours",
 
     "homework.toast.updatedTitle": "Homework mis à jour",
-    "homework.toast.updatedMessage":
-      "Les consignes ont bien été enregistrées.",
+    "homework.toast.updatedMessage": "Les consignes ont bien été enregistrées.",
     "homework.toast.createdTitle": "Homework créé",
     "homework.toast.createdMessage":
       "Le nouveau homework a été ajouté à l'agenda.",
     "homework.toast.saveErrorTitle": "Enregistrement impossible",
-    "homework.toast.saveErrorMessage":
-      "Impossible d'enregistrer ce homework.",
+    "homework.toast.saveErrorMessage": "Impossible d'enregistrer ce homework.",
     "homework.toast.deletedTitle": "Homework supprimé",
     "homework.toast.deletedMessage": "Le homework a bien été retiré.",
     "homework.toast.deleteErrorTitle": "Suppression impossible",
-    "homework.toast.deleteErrorMessage":
-      "Impossible de supprimer ce homework.",
+    "homework.toast.deleteErrorMessage": "Impossible de supprimer ce homework.",
     "homework.toast.reopenedTitle": "Homework rouvert",
-    "homework.toast.reopenedMessage":
-      "Le homework est repassé en non fait.",
+    "homework.toast.reopenedMessage": "Le homework est repassé en non fait.",
     "homework.toast.completedTitle": "Homework terminé",
     "homework.toast.completedMessage": "Le homework est marqué comme fait.",
     "homework.toast.statusErrorTitle": "Mise à jour impossible",
@@ -646,8 +638,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.detail.noAttachments": "Aucune pièce jointe.",
     "homework.detail.studentsTitle": "Suivi des élèves",
     "homework.detail.summarySuffix": "homework faits",
-    "homework.detail.noStudentData":
-      "Aucune donnée élève pour ce homework.",
+    "homework.detail.noStudentData": "Aucune donnée élève pour ce homework.",
     "homework.detail.commentsTitle": "Commentaires",
     "homework.detail.notFoundTitle": "Homework introuvable",
     "homework.detail.notFoundMessage":
@@ -1157,8 +1148,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.comment.placeholder": "Add a comment",
 
     "homework.control.title": "Homework tracking",
-    "homework.control.doneStudentsTitle":
-      "Students who already completed it",
+    "homework.control.doneStudentsTitle": "Students who already completed it",
     "homework.control.summarySuffix": "done",
     "homework.control.noStudentDone":
       "No student has marked this homework as done yet.",
@@ -1208,8 +1198,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.empty.title": "No homework",
     "homework.empty.list": "No homework is scheduled from today.",
     "homework.empty.endOfList": "All upcoming homework is displayed",
-    "homework.empty.week":
-      "No homework is scheduled for this day of the week.",
+    "homework.empty.week": "No homework is scheduled for this day of the week.",
     "homework.empty.month": "No homework is scheduled for this day.",
 
     "homework.label": "Homework",

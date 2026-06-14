@@ -235,7 +235,9 @@ describe("Homework — traduction selon la locale du compte (mobile)", () => {
           translate("en", "homework.tabs.agenda"),
         ),
       ).toBeTruthy();
-      expect(screen.queryByText(translate("fr", "homework.tabs.list"))).toBeNull();
+      expect(
+        screen.queryByText(translate("fr", "homework.tabs.list")),
+      ).toBeNull();
     });
 
     it("traduit le message d'erreur de contexte en anglais", async () => {

@@ -131,7 +131,10 @@ function buildHomeworkFormSchema(t: TranslateFn) {
       .string()
       .trim()
       .min(1, t("homework.form.validation.subjectRequired")),
-    title: z.string().trim().min(1, t("homework.form.validation.titleRequired")),
+    title: z
+      .string()
+      .trim()
+      .min(1, t("homework.form.validation.titleRequired")),
     expectedDate: z
       .string()
       .trim()
@@ -452,7 +455,8 @@ function HomeworkCard(props: {
 
         {props.item.attachments.length > 0 ? (
           <Text style={[styles.cardAttachmentCount, { color: tone.text }]}>
-            {props.item.attachments.length} {t("homework.card.attachmentsSuffix")}
+            {props.item.attachments.length}{" "}
+            {t("homework.card.attachmentsSuffix")}
           </Text>
         ) : null}
 
