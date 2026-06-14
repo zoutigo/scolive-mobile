@@ -26,6 +26,7 @@ import type { StudentNotesResponse } from "../../types/notes.types";
 import type { MyTimetableResponse } from "../../types/timetable.types";
 import type { HomeworkRow } from "../../types/homework.types";
 import type { FeedPost } from "../../types/feed.types";
+import { useTranslation } from "../../i18n/useTranslation";
 import { ErrorBanner } from "../timetable/TimetableCommon";
 import {
   formatEvaluationDate,
@@ -121,6 +122,7 @@ function extractLatestEvaluations(
 }
 
 export function ChildHomeScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ childId?: string }>();
@@ -318,9 +320,13 @@ export function ChildHomeScreen() {
               <KpiCard
                 testID="child-home-kpi-homework"
                 icon="book-outline"
-                label="Devoirs"
+                label={t("homework.label")}
                 value={classId ? `${undoneHomework}` : "–"}
-                sub={classId ? "non faits" : "Classe inconnue"}
+                sub={
+                  classId
+                    ? t("homework.kpi.notDone")
+                    : t("homework.kpi.unknownClass")
+                }
                 accent={colors.warmAccent}
                 tone="#F8E9D8"
                 onPress={classId ? goToHomework : undefined}

@@ -21,6 +21,7 @@ import {
 } from "../navigation/nav-config";
 import { useDrawer } from "../navigation/AppShell";
 import { minuteToTimeLabel, parseDateInput } from "../../utils/timetable";
+import { useTranslation } from "../../i18n/useTranslation";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const CARD_GAP = 8;
@@ -172,6 +173,7 @@ interface TeacherHomeProps {
 }
 
 export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const { setFolder } = useMessagingStore();
   const { openDrawerForClass } = useDrawer();
@@ -481,7 +483,7 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
 
       {/* Devoirs */}
       <SectionCard
-        title="Devoirs"
+        title={t("homework.label")}
         icon="document-text"
         color={ACCENT.homework}
         count={data?.openHomework.length}
@@ -494,7 +496,7 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
         ) : data.openHomework.length === 0 ? (
           <EmptyRow
             icon="checkmark-circle-outline"
-            text="Aucun devoir en cours"
+            text={t("homework.section.empty")}
           />
         ) : (
           data.openHomework.map((item) => {

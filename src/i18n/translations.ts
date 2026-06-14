@@ -499,6 +499,162 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Aucune sanction ni punition",
     "discipline.parent.empty.sanctionsPunitions.message":
       "Aucune sanction ou punition n'a été enregistrée sur l'année en cours.",
+
+    "homework.tabs.list": "Liste",
+    "homework.tabs.agenda": "Agenda des homeworks",
+    "homework.tabs.week": "Semaine",
+    "homework.tabs.month": "Mois",
+
+    "homework.form.validation.subjectRequired": "La matière est obligatoire.",
+    "homework.form.validation.titleRequired": "Le titre est obligatoire.",
+    "homework.form.validation.dateRequired":
+      "La date attendue est obligatoire.",
+    "homework.form.validation.timeRequired":
+      "L'heure attendue est obligatoire.",
+    "homework.form.validation.commentRequired":
+      "Le commentaire ne peut pas être vide.",
+
+    "homework.colors.black": "Noir",
+    "homework.colors.blue": "Bleu",
+    "homework.colors.green": "Vert",
+    "homework.colors.red": "Rouge",
+
+    "homework.card.details": "Détails",
+    "homework.card.markDone": "Marquer fait",
+    "homework.card.edit": "Modifier",
+    "homework.card.delete": "Supprimer",
+    "homework.card.expectedDatePrefix": "Date attendue : ",
+    "homework.card.doneOnPrefix": "Fait le ",
+    "homework.card.attachmentsSuffix": "PJ",
+
+    "homework.status.done": "Fait",
+    "homework.status.pending": "En attente",
+    "homework.status.notDone": "Non fait",
+
+    "homework.common.loading": "Chargement...",
+    "homework.common.cancel": "Annuler",
+    "homework.common.save": "Enregistrer",
+    "homework.common.saving": "Enregistrement...",
+    "homework.common.doneSuffix": "faits",
+
+    "homework.comment.empty": "Aucun commentaire pour le moment.",
+    "homework.comment.placeholder": "Ajouter un commentaire",
+
+    "homework.control.title": "Suivi homework",
+    "homework.control.doneStudentsTitle":
+      "Élèves ayant déjà fait le devoir",
+    "homework.control.summarySuffix": "faits",
+    "homework.control.noStudentDone":
+      "Aucun élève n'a encore marqué ce homework comme fait.",
+    "homework.control.unavailableTitle": "Suivi indisponible",
+    "homework.control.unavailableMessage":
+      "Impossible de charger la liste des élèves pour ce homework.",
+
+    "homework.form.colorMenu.title": "Couleur du texte",
+    "homework.form.colorMenu.message": "Choisissez une couleur",
+    "homework.form.permission.title": "Permission requise",
+    "homework.form.permission.message": "Autorisez l'accès aux photos.",
+    "homework.form.editTitle": "Modifier homework",
+    "homework.form.createTitle": "Nouveau homework",
+    "homework.form.subjectLabel": "Matière",
+    "homework.form.titleLabel": "Titre",
+    "homework.form.titlePlaceholder": "Ex. Exercice sur les fractions",
+    "homework.form.expectedDateLabel": "Date attendue",
+    "homework.form.datePlaceholder": "Choisir une date",
+    "homework.form.expectedTimeLabel": "Heure attendue",
+    "homework.form.timePlaceholder": "Heure",
+    "homework.form.contentLabel": "Contenu",
+    "homework.form.insertingImage": "Insertion de l'image...",
+    "homework.form.contentPlaceholder":
+      "Consignes, ressources, liens utiles...",
+    "homework.form.attachmentsTitle": "Pièces jointes",
+    "homework.form.attachmentsSubtitle":
+      "Images, PDF, Word, Excel et autres documents scolaires",
+    "homework.form.noAttachments": "Aucune pièce jointe pour le moment.",
+
+    "homework.errors.title": "Erreur",
+    "homework.errors.insertImage": "Impossible d'insérer l'image.",
+    "homework.errors.addAttachment":
+      "Impossible d'ajouter cette pièce jointe.",
+    "homework.errors.openAttachment":
+      "Impossible d'ouvrir cette pièce jointe.",
+    "homework.errors.loadContext":
+      "Impossible de charger le contexte homework.",
+
+    "homework.header.title": "Homework",
+    "homework.loading.module": "Chargement du module homework...",
+    "homework.loading.control": "Chargement du suivi...",
+    "homework.loading.detail": "Chargement du détail...",
+
+    "homework.agenda.thisWeek": "Cette semaine",
+    "homework.agenda.thisMonth": "Ce mois",
+    "homework.agenda.dayTitle": "Homework du jour sélectionné",
+    "homework.agenda.monthDayTitle": "Agenda du jour sélectionné",
+    "homework.agenda.noDaySelected": "Aucun jour sélectionné",
+
+    "homework.empty.title": "Aucun homework",
+    "homework.empty.list":
+      "Aucun homework n'est prévu à partir d'aujourd'hui.",
+    "homework.empty.endOfList": "Tous les homeworks à venir sont affichés",
+    "homework.empty.week":
+      "Aucun homework n'est prévu sur ce jour de la semaine.",
+    "homework.empty.month": "Aucun homework n'est prévu pour cette journée.",
+
+    "homework.label": "Devoirs",
+    "homework.kpi.notDone": "non faits",
+    "homework.kpi.unknownClass": "Classe inconnue",
+    "homework.section.empty": "Aucun devoir en cours",
+
+    "homework.toast.updatedTitle": "Homework mis à jour",
+    "homework.toast.updatedMessage":
+      "Les consignes ont bien été enregistrées.",
+    "homework.toast.createdTitle": "Homework créé",
+    "homework.toast.createdMessage":
+      "Le nouveau homework a été ajouté à l'agenda.",
+    "homework.toast.saveErrorTitle": "Enregistrement impossible",
+    "homework.toast.saveErrorMessage":
+      "Impossible d'enregistrer ce homework.",
+    "homework.toast.deletedTitle": "Homework supprimé",
+    "homework.toast.deletedMessage": "Le homework a bien été retiré.",
+    "homework.toast.deleteErrorTitle": "Suppression impossible",
+    "homework.toast.deleteErrorMessage":
+      "Impossible de supprimer ce homework.",
+    "homework.toast.reopenedTitle": "Homework rouvert",
+    "homework.toast.reopenedMessage":
+      "Le homework est repassé en non fait.",
+    "homework.toast.completedTitle": "Homework terminé",
+    "homework.toast.completedMessage": "Le homework est marqué comme fait.",
+    "homework.toast.statusErrorTitle": "Mise à jour impossible",
+    "homework.toast.statusErrorMessage":
+      "Impossible de mettre à jour l'état du homework.",
+    "homework.toast.commentAddedTitle": "Commentaire ajouté",
+    "homework.toast.commentAddedMessage":
+      "Le commentaire a bien été enregistré.",
+    "homework.toast.commentErrorTitle": "Commentaire impossible",
+    "homework.toast.commentErrorMessage":
+      "Impossible d'ajouter le commentaire.",
+
+    "homework.detail.title": "Détail homework",
+    "homework.detail.duePrefix": "À rendre le ",
+    "homework.detail.authorPrefix": "Par ",
+    "homework.detail.markUndone": "Marquer comme non fait",
+    "homework.detail.markDone": "Marquer comme fait",
+    "homework.detail.instructionsTitle": "Consignes",
+    "homework.detail.noInstructions": "Aucune consigne détaillée.",
+    "homework.detail.openInlineImage": "Ouvrir l'image insérée",
+    "homework.detail.attachmentsTitle": "Pièces jointes",
+    "homework.detail.noAttachments": "Aucune pièce jointe.",
+    "homework.detail.studentsTitle": "Suivi des élèves",
+    "homework.detail.summarySuffix": "homework faits",
+    "homework.detail.noStudentData":
+      "Aucune donnée élève pour ce homework.",
+    "homework.detail.commentsTitle": "Commentaires",
+    "homework.detail.notFoundTitle": "Homework introuvable",
+    "homework.detail.notFoundMessage":
+      "Impossible d'afficher le détail demandé.",
+
+    "homework.dialog.deleteTitle": "Supprimer ce homework ?",
+    "homework.dialog.deleteMessage": "Cette action est irréversible.",
   },
   en: {
     "settings.language.title": "Language of this device",
@@ -962,5 +1118,148 @@ export const translations: Record<Locale, Record<string, string>> = {
       "No sanctions or punishments",
     "discipline.parent.empty.sanctionsPunitions.message":
       "No sanction or punishment has been recorded for the current year.",
+
+    "homework.tabs.list": "List",
+    "homework.tabs.agenda": "Homework agenda",
+    "homework.tabs.week": "Week",
+    "homework.tabs.month": "Month",
+
+    "homework.form.validation.subjectRequired": "Subject is required.",
+    "homework.form.validation.titleRequired": "Title is required.",
+    "homework.form.validation.dateRequired": "Due date is required.",
+    "homework.form.validation.timeRequired": "Due time is required.",
+    "homework.form.validation.commentRequired": "Comment cannot be empty.",
+
+    "homework.colors.black": "Black",
+    "homework.colors.blue": "Blue",
+    "homework.colors.green": "Green",
+    "homework.colors.red": "Red",
+
+    "homework.card.details": "Details",
+    "homework.card.markDone": "Mark done",
+    "homework.card.edit": "Edit",
+    "homework.card.delete": "Delete",
+    "homework.card.expectedDatePrefix": "Due date: ",
+    "homework.card.doneOnPrefix": "Done on ",
+    "homework.card.attachmentsSuffix": "files",
+
+    "homework.status.done": "Done",
+    "homework.status.pending": "Pending",
+    "homework.status.notDone": "Not done",
+
+    "homework.common.loading": "Loading...",
+    "homework.common.cancel": "Cancel",
+    "homework.common.save": "Save",
+    "homework.common.saving": "Saving...",
+    "homework.common.doneSuffix": "done",
+
+    "homework.comment.empty": "No comments yet.",
+    "homework.comment.placeholder": "Add a comment",
+
+    "homework.control.title": "Homework tracking",
+    "homework.control.doneStudentsTitle":
+      "Students who already completed it",
+    "homework.control.summarySuffix": "done",
+    "homework.control.noStudentDone":
+      "No student has marked this homework as done yet.",
+    "homework.control.unavailableTitle": "Tracking unavailable",
+    "homework.control.unavailableMessage":
+      "Unable to load the student list for this homework.",
+
+    "homework.form.colorMenu.title": "Text color",
+    "homework.form.colorMenu.message": "Choose a color",
+    "homework.form.permission.title": "Permission required",
+    "homework.form.permission.message": "Allow access to your photos.",
+    "homework.form.editTitle": "Edit homework",
+    "homework.form.createTitle": "New homework",
+    "homework.form.subjectLabel": "Subject",
+    "homework.form.titleLabel": "Title",
+    "homework.form.titlePlaceholder": "E.g. Fractions exercise",
+    "homework.form.expectedDateLabel": "Due date",
+    "homework.form.datePlaceholder": "Choose a date",
+    "homework.form.expectedTimeLabel": "Due time",
+    "homework.form.timePlaceholder": "Time",
+    "homework.form.contentLabel": "Content",
+    "homework.form.insertingImage": "Inserting image...",
+    "homework.form.contentPlaceholder":
+      "Instructions, resources, useful links...",
+    "homework.form.attachmentsTitle": "Attachments",
+    "homework.form.attachmentsSubtitle":
+      "Images, PDF, Word, Excel and other school documents",
+    "homework.form.noAttachments": "No attachments yet.",
+
+    "homework.errors.title": "Error",
+    "homework.errors.insertImage": "Unable to insert the image.",
+    "homework.errors.addAttachment": "Unable to add this attachment.",
+    "homework.errors.openAttachment": "Unable to open this attachment.",
+    "homework.errors.loadContext": "Unable to load the homework context.",
+
+    "homework.header.title": "Homework",
+    "homework.loading.module": "Loading the homework module...",
+    "homework.loading.control": "Loading tracking...",
+    "homework.loading.detail": "Loading details...",
+
+    "homework.agenda.thisWeek": "This week",
+    "homework.agenda.thisMonth": "This month",
+    "homework.agenda.dayTitle": "Homework for the selected day",
+    "homework.agenda.monthDayTitle": "Agenda for the selected day",
+    "homework.agenda.noDaySelected": "No day selected",
+
+    "homework.empty.title": "No homework",
+    "homework.empty.list": "No homework is scheduled from today.",
+    "homework.empty.endOfList": "All upcoming homework is displayed",
+    "homework.empty.week":
+      "No homework is scheduled for this day of the week.",
+    "homework.empty.month": "No homework is scheduled for this day.",
+
+    "homework.label": "Homework",
+    "homework.kpi.notDone": "not done",
+    "homework.kpi.unknownClass": "Unknown class",
+    "homework.section.empty": "No homework in progress",
+
+    "homework.toast.updatedTitle": "Homework updated",
+    "homework.toast.updatedMessage": "The instructions have been saved.",
+    "homework.toast.createdTitle": "Homework created",
+    "homework.toast.createdMessage":
+      "The new homework has been added to the agenda.",
+    "homework.toast.saveErrorTitle": "Unable to save",
+    "homework.toast.saveErrorMessage": "Unable to save this homework.",
+    "homework.toast.deletedTitle": "Homework deleted",
+    "homework.toast.deletedMessage": "The homework has been removed.",
+    "homework.toast.deleteErrorTitle": "Unable to delete",
+    "homework.toast.deleteErrorMessage": "Unable to delete this homework.",
+    "homework.toast.reopenedTitle": "Homework reopened",
+    "homework.toast.reopenedMessage":
+      "The homework is marked as not done again.",
+    "homework.toast.completedTitle": "Homework completed",
+    "homework.toast.completedMessage": "The homework is marked as done.",
+    "homework.toast.statusErrorTitle": "Unable to update",
+    "homework.toast.statusErrorMessage":
+      "Unable to update the homework status.",
+    "homework.toast.commentAddedTitle": "Comment added",
+    "homework.toast.commentAddedMessage": "The comment has been saved.",
+    "homework.toast.commentErrorTitle": "Unable to add comment",
+    "homework.toast.commentErrorMessage": "Unable to add the comment.",
+
+    "homework.detail.title": "Homework details",
+    "homework.detail.duePrefix": "Due on ",
+    "homework.detail.authorPrefix": "By ",
+    "homework.detail.markUndone": "Mark as not done",
+    "homework.detail.markDone": "Mark as done",
+    "homework.detail.instructionsTitle": "Instructions",
+    "homework.detail.noInstructions": "No detailed instructions.",
+    "homework.detail.openInlineImage": "Open inserted image",
+    "homework.detail.attachmentsTitle": "Attachments",
+    "homework.detail.noAttachments": "No attachments.",
+    "homework.detail.studentsTitle": "Student tracking",
+    "homework.detail.summarySuffix": "homework done",
+    "homework.detail.noStudentData": "No student data for this homework.",
+    "homework.detail.commentsTitle": "Comments",
+    "homework.detail.notFoundTitle": "Homework not found",
+    "homework.detail.notFoundMessage":
+      "Unable to display the requested details.",
+
+    "homework.dialog.deleteTitle": "Delete this homework?",
+    "homework.dialog.deleteMessage": "This action cannot be undone.",
   },
 };
