@@ -1,8 +1,10 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "../../i18n/useTranslation";
 import {
   DISCIPLINE_TYPE_CONFIG,
+  getDisciplineTypeLabel,
   type StudentLifeEventType,
 } from "../../types/discipline.types";
 
@@ -12,7 +14,9 @@ interface Props {
 }
 
 export function LifeEventTypeBadge({ type, size = "md" }: Props) {
+  const { t } = useTranslation();
   const cfg = DISCIPLINE_TYPE_CONFIG[type];
+  const label = getDisciplineTypeLabel(t, type);
   const isSmall = size === "sm";
 
   return (
@@ -23,7 +27,7 @@ export function LifeEventTypeBadge({ type, size = "md" }: Props) {
         isSmall && styles.badgeSm,
       ]}
       testID={`badge-${type}`}
-      accessibilityLabel={cfg.label}
+      accessibilityLabel={label}
     >
       <Ionicons
         name={cfg.icon as "time-outline"}
@@ -33,7 +37,7 @@ export function LifeEventTypeBadge({ type, size = "md" }: Props) {
       <Text
         style={[styles.label, { color: cfg.text }, isSmall && styles.labelSm]}
       >
-        {cfg.label}
+        {label}
       </Text>
     </View>
   );

@@ -277,6 +277,228 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Le profil doit encore être complété.",
     "onboarding.errors.activationFailed":
       "Impossible de finaliser l'activation avec ces informations.",
+
+    "discipline.types.absence": "Absence",
+    "discipline.types.absencePlural": "ABSENCES",
+    "discipline.types.retard": "Retard",
+    "discipline.types.retardPlural": "RETARDS",
+    "discipline.types.sanction": "Sanction",
+    "discipline.types.sanctionPlural": "SANCTIONS",
+    "discipline.types.punition": "Punition",
+    "discipline.types.punitionPlural": "PUNITIONS",
+
+    "discipline.validation.dateRequired": "La date est obligatoire.",
+    "discipline.validation.dateInvalid": "La date est invalide.",
+    "discipline.validation.reasonRequired": "Le motif est obligatoire.",
+    "discipline.validation.durationPositive":
+      "La durée doit être un entier positif.",
+    "discipline.validation.studentRequired": "Choisissez un élève.",
+
+    "discipline.form.title": "Discipline",
+    "discipline.form.eyebrowCreate": "Nouvel événement",
+    "discipline.form.eyebrowEdit": "Modification",
+    "discipline.form.fields.type": "Type d'événement",
+    "discipline.form.fields.typeRequired": "Type d'événement *",
+    "discipline.form.fields.student": "Élève",
+    "discipline.form.fields.studentPlaceholder": "Choisir un élève",
+    "discipline.form.fields.dateTime": "Date et heure",
+    "discipline.form.fields.dateTimeRequired": "Date et heure *",
+    "discipline.form.fields.dateTimePlaceholder": "2026-04-09T08:30",
+    "discipline.form.fields.dateTimePlaceholderIso": "AAAA-MM-JJTHH:mm",
+    "discipline.form.fields.reason": "Motif",
+    "discipline.form.fields.reasonRequired": "Motif *",
+    "discipline.form.fields.reasonPlaceholder":
+      "Ex : travail non rendu, absence non justifiée…",
+    "discipline.form.fields.reasonPlaceholderShort":
+      "Ex : bus arrivé en retard",
+    "discipline.form.fields.duration": "Durée (minutes)",
+    "discipline.form.fields.durationOptional": "Durée (minutes, optionnel)",
+    "discipline.form.fields.durationPlaceholder": "Ex : 15",
+    "discipline.form.fields.durationPlaceholderAlt": "Ex : 40",
+    "discipline.form.fields.description": "Description",
+    "discipline.form.fields.justified": "Justifié",
+    "discipline.form.fields.justifiedHint":
+      "Absence ou retard justifié par les parents / administration",
+    "discipline.form.fields.justifiedHintAlt":
+      "Absence ou retard validé par les parents ou l'administration",
+    "discipline.form.fields.comment": "Commentaire",
+    "discipline.form.fields.commentOptional": "Commentaire (optionnel)",
+    "discipline.form.fields.commentPlaceholder":
+      "Observations supplémentaires…",
+    "discipline.form.fields.commentPlaceholderAlt":
+      "Observations complémentaires",
+    "discipline.form.buttons.cancel": "Annuler",
+    "discipline.form.buttons.create": "Créer l'événement",
+    "discipline.form.buttons.edit": "Enregistrer les modifications",
+
+    "discipline.studentSelect.placeholder": "Choisir un élève",
+    "discipline.studentSelect.allStudents": "Tous les élèves",
+    "discipline.studentSelect.search": "Rechercher un élève",
+
+    "discipline.card.showDetails": "Voir les détails",
+    "discipline.card.hideDetails": "Masquer les détails",
+    "discipline.card.duration": "Durée",
+    "discipline.card.justifiedYes": "Oui",
+    "discipline.card.justifiedNo": "Non",
+    "discipline.card.class": "Classe",
+    "discipline.card.schoolYear": "Année scolaire",
+    "discipline.card.editAria": "Modifier cet événement",
+    "discipline.card.deleteAria": "Supprimer cet événement",
+
+    "discipline.kpi.absences": "ABSENCES",
+    "discipline.kpi.retards": "RETARDS",
+    "discipline.kpi.sanctions": "SANCTIONS",
+    "discipline.kpi.punitions": "PUNITIONS",
+
+    "discipline.summary.allGoodTitle": "Tout va bien !",
+    "discipline.summary.allGoodSubtitle":
+      "Aucun événement de vie scolaire enregistré sur l'année en cours.",
+    "discipline.summary.currentYear": "Cette année scolaire",
+    "discipline.summary.showAll": "Tout voir",
+    "discipline.summary.noEventsOfType": "Aucun événement de ce type.",
+    "discipline.summary.recentEvents": "Derniers événements",
+    "discipline.summary.recentEventsFiltered": "Derniers événements : {type}",
+    "discipline.summary.unjustifiedPrefixOne": "{count} absence",
+    "discipline.summary.unjustifiedPrefixMany": "{count} absences",
+    "discipline.summary.unjustifiedSuffixOne": "non justifiée cette année.",
+    "discipline.summary.unjustifiedSuffixMany": "non justifiées cette année.",
+
+    "discipline.list.emptyTitle": "Aucun événement",
+    "discipline.list.emptySubtitle":
+      "Aucun événement enregistré pour cette période.",
+    "discipline.list.endOfList": "Tous les événements ont été chargés",
+
+    "discipline.delete.title": "Supprimer cet événement ?",
+    "discipline.delete.irreversible": "Cette action est irréversible.",
+    "discipline.delete.willBeDeleted": "sera supprimé définitivement.",
+    "discipline.delete.cancel": "Annuler",
+    "discipline.delete.confirm": "Supprimer",
+    "discipline.delete.confirmAria": "Confirmer la suppression",
+
+    "discipline.tabs.synthesis": "Synthèse",
+    "discipline.tabs.absencesRetards": "Absences & Retards",
+    "discipline.tabs.sanctionsPunitions": "Sanctions & Punitions",
+    "discipline.tabs.events": "Événements",
+    "discipline.tabs.booklets": "Carnets",
+    "discipline.tabs.history": "Historique",
+    "discipline.tabs.students": "Élèves",
+    "discipline.tabs.byClass": "Par classe",
+
+    "discipline.errors.loadData":
+      "Impossible de charger les données. Réessayez.",
+    "discipline.errors.refreshData": "Impossible de rafraîchir les données.",
+    "discipline.errors.loadHistory": "Impossible de charger l'historique.",
+    "discipline.errors.loadContext":
+      "Impossible de charger le contexte de discipline.",
+    "discipline.errors.loadEvents":
+      "Impossible de charger les événements de discipline.",
+    "discipline.errors.loadYearsClasses":
+      "Impossible de charger les années et classes.",
+    "discipline.errors.loadClassStudents":
+      "Impossible de charger les élèves de cette classe.",
+    "discipline.errors.saveGeneric": "Erreur lors de l'enregistrement.",
+    "discipline.errors.deleteGeneric": "Erreur lors de la suppression.",
+    "discipline.errors.saveTitle": "Enregistrement impossible",
+    "discipline.errors.deleteTitle": "Suppression impossible",
+    "discipline.retry": "Réessayer",
+
+    "discipline.toasts.eventUpdatedTitle": "Événement modifié",
+    "discipline.toasts.eventUpdatedMessage":
+      "Les changements ont bien été enregistrés.",
+    "discipline.toasts.eventUpdatedMessageClassUpdated":
+      "La fiche discipline a bien été mise à jour.",
+    "discipline.toasts.eventUpdatedMessageClassUpdatedAlt":
+      "La fiche discipline a été mise à jour.",
+    "discipline.toasts.eventCreatedTitle": "Événement créé",
+    "discipline.toasts.eventRegisteredTitle": "Événement enregistré",
+    "discipline.toasts.eventCreatedMessageHistory":
+      "L'événement a bien été ajouté à l'historique discipline.",
+    "discipline.toasts.eventCreatedMessageClass":
+      "L'événement a été ajouté à l'historique de classe.",
+    "discipline.toasts.eventCreatedMessageGlobal":
+      "L'événement a été ajouté à l'historique.",
+    "discipline.toasts.eventDeletedTitle": "Événement supprimé",
+    "discipline.toasts.eventDeletedMessageHistory":
+      "L'événement a été retiré de l'historique discipline.",
+    "discipline.toasts.eventDeletedMessageModule":
+      "L'événement a été retiré du module discipline.",
+
+    "discipline.header.discipline": "Discipline",
+    "discipline.header.vieScolaire": "Vie scolaire",
+    "discipline.header.student": "Élève",
+
+    "discipline.fab.addEvent": "Ajouter un événement de discipline",
+
+    "discipline.empty.discipline.title": "Discipline indisponible",
+    "discipline.empty.discipline.message":
+      "Le contexte de classe n'a pas pu être résolu.",
+    "discipline.empty.noClassEvents.title": "Aucun événement de discipline",
+    "discipline.empty.noClassEvents.message":
+      "Aucun événement n'a encore été saisi pour cette classe.",
+    "discipline.empty.chooseStudent.title": "Choisissez un élève",
+    "discipline.empty.chooseStudentClass.message":
+      "La synthèse vie scolaire apparaît ici après sélection d'un élève de la classe.",
+    "discipline.empty.chooseStudentGlobal.message":
+      "La synthèse vie scolaire apparaît ici après sélection d'un élève.",
+    "discipline.empty.searchStudent.title": "Recherchez un élève",
+    "discipline.empty.searchStudent.message":
+      "Saisissez un nom pour chercher dans toutes les classes, ou sélectionnez d'abord une classe.",
+    "discipline.empty.noStudent.title": "Aucun élève",
+    "discipline.empty.noStudent.messageSearch":
+      "Aucun élève ne correspond à cette recherche.",
+    "discipline.empty.noStudent.messageClass":
+      "Cette classe ne contient aucun élève.",
+    "discipline.empty.chooseClass.title": "Sélectionnez une classe",
+    "discipline.empty.chooseClass.message":
+      "Choisissez une classe pour afficher les événements de discipline.",
+    "discipline.empty.noEventsHistory.title": "Aucun événement",
+    "discipline.empty.noEventsHistory.message":
+      "Appuyez sur + pour enregistrer un premier événement.",
+    "discipline.empty.noAbsence.title": "Aucune absence ni retard",
+    "discipline.empty.noAbsence.message":
+      "Aucune absence ou retard n'a été enregistré sur l'année en cours.",
+    "discipline.empty.noSanction.title": "Aucune sanction ni punition",
+    "discipline.empty.noSanction.message":
+      "Aucune sanction ou punition n'a été enregistrée sur l'année en cours.",
+
+    "discipline.loading.students": "Chargement des élèves...",
+    "discipline.loading.class": "Chargement de la classe...",
+    "discipline.loading.generic": "Chargement...",
+
+    "discipline.sections.classEvents.title": "Événements de classe",
+    "discipline.sections.classEvents.subtitle":
+      "Parcourez et filtrez l'historique du plus récent au plus ancien.",
+    "discipline.sections.booklets.title": "Carnets",
+    "discipline.sections.booklets.subtitle":
+      "Sélectionnez un élève pour afficher sa synthèse vie scolaire.",
+    "discipline.sections.searchStudents.title": "Rechercher un élève",
+    "discipline.sections.searchStudents.subtitle":
+      "Filtrez par classe ou saisissez un nom pour chercher dans toutes les classes.",
+    "discipline.sections.byClass.title": "Vue par classe",
+    "discipline.sections.byClass.subtitle":
+      "Sélectionnez une année et une classe.",
+
+    "discipline.filters.student": "Élève",
+    "discipline.filters.allStudents": "Tous les élèves",
+    "discipline.filters.year": "Année",
+    "discipline.filters.class": "Classe",
+    "discipline.filters.allClasses": "Toutes les classes",
+    "discipline.filters.selectYear": "Choisir une année",
+    "discipline.filters.selectClass": "Sélectionner une classe",
+    "discipline.filters.searchByName": "Rechercher par nom",
+    "discipline.filters.searchByStudent": "Recherche par élève",
+
+    "discipline.adminTabs.students": "Élèves",
+    "discipline.adminTabs.byClass": "Par classe",
+
+    "discipline.parent.title": "Vie scolaire",
+    "discipline.parent.empty.absencesRetards.title": "Aucune absence ni retard",
+    "discipline.parent.empty.absencesRetards.message":
+      "Aucune absence ou retard n'a été enregistré sur l'année en cours.",
+    "discipline.parent.empty.sanctionsPunitions.title":
+      "Aucune sanction ni punition",
+    "discipline.parent.empty.sanctionsPunitions.message":
+      "Aucune sanction ou punition n'a été enregistrée sur l'année en cours.",
   },
   en: {
     "settings.language.title": "Language of this device",
@@ -529,5 +751,216 @@ export const translations: Record<Locale, Record<string, string>> = {
       "The profile still needs to be completed.",
     "onboarding.errors.activationFailed":
       "Unable to complete activation with this information.",
+
+    "discipline.types.absence": "Absence",
+    "discipline.types.absencePlural": "ABSENCES",
+    "discipline.types.retard": "Late arrival",
+    "discipline.types.retardPlural": "LATE ARRIVALS",
+    "discipline.types.sanction": "Sanction",
+    "discipline.types.sanctionPlural": "SANCTIONS",
+    "discipline.types.punition": "Punishment",
+    "discipline.types.punitionPlural": "PUNISHMENTS",
+
+    "discipline.validation.dateRequired": "Date is required.",
+    "discipline.validation.dateInvalid": "Date is invalid.",
+    "discipline.validation.reasonRequired": "Reason is required.",
+    "discipline.validation.durationPositive":
+      "Duration must be a positive integer.",
+    "discipline.validation.studentRequired": "Choose a student.",
+
+    "discipline.form.title": "Discipline",
+    "discipline.form.eyebrowCreate": "New event",
+    "discipline.form.eyebrowEdit": "Edit",
+    "discipline.form.fields.type": "Event type",
+    "discipline.form.fields.typeRequired": "Event type *",
+    "discipline.form.fields.student": "Student",
+    "discipline.form.fields.studentPlaceholder": "Choose a student",
+    "discipline.form.fields.dateTime": "Date and time",
+    "discipline.form.fields.dateTimeRequired": "Date and time *",
+    "discipline.form.fields.dateTimePlaceholder": "2026-04-09T08:30",
+    "discipline.form.fields.dateTimePlaceholderIso": "YYYY-MM-DDTHH:mm",
+    "discipline.form.fields.reason": "Reason",
+    "discipline.form.fields.reasonRequired": "Reason *",
+    "discipline.form.fields.reasonPlaceholder":
+      "E.g.: unsubmitted work, unjustified absence…",
+    "discipline.form.fields.reasonPlaceholderShort": "E.g.: bus arrived late",
+    "discipline.form.fields.duration": "Duration (minutes)",
+    "discipline.form.fields.durationOptional": "Duration (minutes, optional)",
+    "discipline.form.fields.durationPlaceholder": "E.g.: 15",
+    "discipline.form.fields.durationPlaceholderAlt": "E.g.: 40",
+    "discipline.form.fields.description": "Description",
+    "discipline.form.fields.justified": "Justified",
+    "discipline.form.fields.justifiedHint":
+      "Absence or lateness justified by parents / administration",
+    "discipline.form.fields.justifiedHintAlt":
+      "Absence or lateness approved by parents or administration",
+    "discipline.form.fields.comment": "Comment",
+    "discipline.form.fields.commentOptional": "Comment (optional)",
+    "discipline.form.fields.commentPlaceholder": "Additional observations…",
+    "discipline.form.fields.commentPlaceholderAlt": "Additional observations",
+    "discipline.form.buttons.cancel": "Cancel",
+    "discipline.form.buttons.create": "Create event",
+    "discipline.form.buttons.edit": "Save changes",
+
+    "discipline.studentSelect.placeholder": "Choose a student",
+    "discipline.studentSelect.allStudents": "All students",
+    "discipline.studentSelect.search": "Search for a student",
+
+    "discipline.card.showDetails": "View details",
+    "discipline.card.hideDetails": "Hide details",
+    "discipline.card.duration": "Duration",
+    "discipline.card.justifiedYes": "Yes",
+    "discipline.card.justifiedNo": "No",
+    "discipline.card.class": "Class",
+    "discipline.card.schoolYear": "School year",
+    "discipline.card.editAria": "Edit this event",
+    "discipline.card.deleteAria": "Delete this event",
+
+    "discipline.kpi.absences": "ABSENCES",
+    "discipline.kpi.retards": "LATE ARRIVALS",
+    "discipline.kpi.sanctions": "SANCTIONS",
+    "discipline.kpi.punitions": "PUNISHMENTS",
+
+    "discipline.summary.allGoodTitle": "All good!",
+    "discipline.summary.allGoodSubtitle":
+      "No school life event recorded for the current year.",
+    "discipline.summary.currentYear": "This school year",
+    "discipline.summary.showAll": "Show all",
+    "discipline.summary.noEventsOfType": "No events of this type.",
+    "discipline.summary.recentEvents": "Recent events",
+    "discipline.summary.recentEventsFiltered": "Recent events: {type}",
+    "discipline.summary.unjustifiedPrefixOne": "{count} unjustified absence",
+    "discipline.summary.unjustifiedPrefixMany": "{count} unjustified absences",
+    "discipline.summary.unjustifiedSuffixOne": "this year.",
+    "discipline.summary.unjustifiedSuffixMany": "this year.",
+
+    "discipline.list.emptyTitle": "No events",
+    "discipline.list.emptySubtitle": "No events recorded for this period.",
+    "discipline.list.endOfList": "All events have been loaded",
+
+    "discipline.delete.title": "Delete this event?",
+    "discipline.delete.irreversible": "This action cannot be undone.",
+    "discipline.delete.willBeDeleted": "will be permanently deleted.",
+    "discipline.delete.cancel": "Cancel",
+    "discipline.delete.confirm": "Delete",
+    "discipline.delete.confirmAria": "Confirm deletion",
+
+    "discipline.tabs.synthesis": "Summary",
+    "discipline.tabs.absencesRetards": "Absences & Lateness",
+    "discipline.tabs.sanctionsPunitions": "Sanctions & Punishments",
+    "discipline.tabs.events": "Events",
+    "discipline.tabs.booklets": "Records",
+    "discipline.tabs.history": "History",
+    "discipline.tabs.students": "Students",
+    "discipline.tabs.byClass": "By class",
+
+    "discipline.errors.loadData": "Unable to load data. Please try again.",
+    "discipline.errors.refreshData": "Unable to refresh data.",
+    "discipline.errors.loadHistory": "Unable to load history.",
+    "discipline.errors.loadContext": "Unable to load discipline context.",
+    "discipline.errors.loadEvents": "Unable to load discipline events.",
+    "discipline.errors.loadYearsClasses": "Unable to load years and classes.",
+    "discipline.errors.loadClassStudents":
+      "Unable to load students for this class.",
+    "discipline.errors.saveGeneric": "Error while saving.",
+    "discipline.errors.deleteGeneric": "Error while deleting.",
+    "discipline.errors.saveTitle": "Unable to save",
+    "discipline.errors.deleteTitle": "Unable to delete",
+    "discipline.retry": "Retry",
+
+    "discipline.toasts.eventUpdatedTitle": "Event updated",
+    "discipline.toasts.eventUpdatedMessage": "Changes have been saved.",
+    "discipline.toasts.eventUpdatedMessageClassUpdated":
+      "The discipline record has been updated.",
+    "discipline.toasts.eventUpdatedMessageClassUpdatedAlt":
+      "The discipline record has been updated.",
+    "discipline.toasts.eventCreatedTitle": "Event created",
+    "discipline.toasts.eventRegisteredTitle": "Event saved",
+    "discipline.toasts.eventCreatedMessageHistory":
+      "The event has been added to the discipline history.",
+    "discipline.toasts.eventCreatedMessageClass":
+      "The event has been added to the class history.",
+    "discipline.toasts.eventCreatedMessageGlobal":
+      "The event has been added to the history.",
+    "discipline.toasts.eventDeletedTitle": "Event deleted",
+    "discipline.toasts.eventDeletedMessageHistory":
+      "The event has been removed from the discipline history.",
+    "discipline.toasts.eventDeletedMessageModule":
+      "The event has been removed from the discipline module.",
+
+    "discipline.header.discipline": "Discipline",
+    "discipline.header.vieScolaire": "School life",
+    "discipline.header.student": "Student",
+
+    "discipline.fab.addEvent": "Add a discipline event",
+
+    "discipline.empty.discipline.title": "Discipline unavailable",
+    "discipline.empty.discipline.message":
+      "The class context could not be resolved.",
+    "discipline.empty.noClassEvents.title": "No discipline events",
+    "discipline.empty.noClassEvents.message":
+      "No events have been recorded for this class yet.",
+    "discipline.empty.chooseStudent.title": "Choose a student",
+    "discipline.empty.chooseStudentClass.message":
+      "The school life summary appears here once a student in the class is selected.",
+    "discipline.empty.chooseStudentGlobal.message":
+      "The school life summary appears here once a student is selected.",
+    "discipline.empty.searchStudent.title": "Search for a student",
+    "discipline.empty.searchStudent.message":
+      "Type a name to search across all classes, or select a class first.",
+    "discipline.empty.noStudent.title": "No student",
+    "discipline.empty.noStudent.messageSearch":
+      "No student matches this search.",
+    "discipline.empty.noStudent.messageClass": "This class has no students.",
+    "discipline.empty.chooseClass.title": "Select a class",
+    "discipline.empty.chooseClass.message":
+      "Choose a class to display discipline events.",
+    "discipline.empty.noEventsHistory.title": "No events",
+    "discipline.empty.noEventsHistory.message":
+      "Tap + to record a first event.",
+    "discipline.empty.noAbsence.title": "No absences or lateness",
+    "discipline.empty.noAbsence.message":
+      "No absence or lateness has been recorded for the current year.",
+    "discipline.empty.noSanction.title": "No sanctions or punishments",
+    "discipline.empty.noSanction.message":
+      "No sanction or punishment has been recorded for the current year.",
+
+    "discipline.loading.students": "Loading students...",
+    "discipline.loading.class": "Loading class...",
+    "discipline.loading.generic": "Loading...",
+
+    "discipline.sections.classEvents.title": "Class events",
+    "discipline.sections.classEvents.subtitle":
+      "Browse and filter the history from most recent to oldest.",
+    "discipline.sections.booklets.title": "Records",
+    "discipline.sections.booklets.subtitle":
+      "Select a student to view their school life summary.",
+    "discipline.sections.searchStudents.title": "Search for a student",
+    "discipline.sections.searchStudents.subtitle":
+      "Filter by class or type a name to search across all classes.",
+    "discipline.sections.byClass.title": "By-class view",
+    "discipline.sections.byClass.subtitle": "Select a year and a class.",
+
+    "discipline.filters.student": "Student",
+    "discipline.filters.allStudents": "All students",
+    "discipline.filters.year": "Year",
+    "discipline.filters.class": "Class",
+    "discipline.filters.allClasses": "All classes",
+    "discipline.filters.selectYear": "Choose a year",
+    "discipline.filters.selectClass": "Select a class",
+    "discipline.filters.searchByName": "Search by name",
+    "discipline.filters.searchByStudent": "Search by student",
+
+    "discipline.adminTabs.students": "Students",
+    "discipline.adminTabs.byClass": "By class",
+
+    "discipline.parent.title": "School life",
+    "discipline.parent.empty.absencesRetards.title": "No absences or lateness",
+    "discipline.parent.empty.absencesRetards.message":
+      "No absence or lateness has been recorded for the current year.",
+    "discipline.parent.empty.sanctionsPunitions.title":
+      "No sanctions or punishments",
+    "discipline.parent.empty.sanctionsPunitions.message":
+      "No sanction or punishment has been recorded for the current year.",
   },
 };

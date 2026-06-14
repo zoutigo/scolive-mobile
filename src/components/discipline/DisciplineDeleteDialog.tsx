@@ -9,8 +9,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import {
-  DISCIPLINE_TYPE_CONFIG,
+  getDisciplineTypeLabel,
   type StudentLifeEvent,
 } from "../../types/discipline.types";
 
@@ -27,10 +28,12 @@ export function DisciplineDeleteDialog({
   onConfirm,
   onCancel,
 }: Props) {
+  const { t } = useTranslation();
+
   if (!event) return null;
 
-  const cfg = DISCIPLINE_TYPE_CONFIG[event.type];
-  const label = `${cfg.label} — ${event.reason.length > 50 ? event.reason.slice(0, 47) + "…" : event.reason}`;
+  const typeLabel = getDisciplineTypeLabel(t, event.type);
+  const label = `${typeLabel} — ${event.reason.length > 50 ? event.reason.slice(0, 47) + "…" : event.reason}`;
 
   return (
     <Modal
@@ -52,13 +55,15 @@ export function DisciplineDeleteDialog({
           </View>
 
           {/* Titre */}
-          <Text style={styles.title}>Supprimer cet événement ?</Text>
+          <Text style={styles.title}>{t("discipline.delete.title")}</Text>
 
           {/* Description */}
           <Text style={styles.body}>
-            Cette action est irréversible.{"\n"}
+            {t("discipline.delete.irreversible")}
+            {"\n"}
             <Text style={styles.eventLabel}>{label}</Text>
-            {"\n"}sera supprimé définitivement.
+            {"\n"}
+            {t("discipline.delete.willBeDeleted")}
           </Text>
 
           {/* Boutons */}
@@ -69,7 +74,9 @@ export function DisciplineDeleteDialog({
               disabled={isDeleting}
               testID="delete-dialog-cancel"
             >
-              <Text style={styles.cancelText}>Annuler</Text>
+              <Text style={styles.cancelText}>
+                {t("discipline.delete.cancel")}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -77,7 +84,7 @@ export function DisciplineDeleteDialog({
               onPress={onConfirm}
               disabled={isDeleting}
               testID="delete-dialog-confirm"
-              accessibilityLabel="Confirmer la suppression"
+              accessibilityLabel={t("discipline.delete.confirmAria")}
             >
               {isDeleting ? (
                 <ActivityIndicator size="small" color={colors.white} />
@@ -88,7 +95,9 @@ export function DisciplineDeleteDialog({
                     size={16}
                     color={colors.white}
                   />
-                  <Text style={styles.confirmText}>Supprimer</Text>
+                  <Text style={styles.confirmText}>
+                    {t("discipline.delete.confirm")}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>

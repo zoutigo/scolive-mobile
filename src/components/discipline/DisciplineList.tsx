@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import type { StudentLifeEvent } from "../../types/discipline.types";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { LifeEventCard } from "./LifeEventCard";
@@ -39,8 +40,8 @@ export function DisciplineList({
   isLoading = false,
   isRefreshing = false,
   emptyIcon = "shield-checkmark-outline",
-  emptyTitle = "Aucun événement",
-  emptySub = "Aucun événement enregistré pour cette période.",
+  emptyTitle,
+  emptySub,
   showActions = false,
   getHeadline,
   canEdit,
@@ -51,6 +52,9 @@ export function DisciplineList({
   testID,
   pageSize = 8,
 }: Props) {
+  const { t } = useTranslation();
+  const resolvedEmptyTitle = emptyTitle ?? t("discipline.list.emptyTitle");
+  const resolvedEmptySub = emptySub ?? t("discipline.list.emptySubtitle");
   const eventIdsKey = React.useMemo(
     () => events.map((event) => event.id).join("|"),
     [events],
@@ -82,8 +86,8 @@ export function DisciplineList({
             color={colors.warmBorder}
           />
         </View>
-        <Text style={styles.emptyTitle}>{emptyTitle}</Text>
-        <Text style={styles.emptySub}>{emptySub}</Text>
+        <Text style={styles.emptyTitle}>{resolvedEmptyTitle}</Text>
+        <Text style={styles.emptySub}>{resolvedEmptySub}</Text>
       </View>
     );
   }
@@ -120,7 +124,7 @@ export function DisciplineList({
       contentContainerStyle={styles.content}
       testID={testID ?? "discipline-list"}
       ItemSeparatorComponent={DisciplineSeparator}
-      endOfListLabel="Tous les événements ont été chargés"
+      endOfListLabel={t("discipline.list.endOfList")}
       refreshControl={
         onRefresh ? (
           <RefreshControl

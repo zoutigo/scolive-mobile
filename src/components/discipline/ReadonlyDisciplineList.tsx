@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import type { StudentLifeEvent } from "../../types/discipline.types";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { LifeEventCard } from "./LifeEventCard";
@@ -29,12 +30,15 @@ export function ReadonlyDisciplineList({
   isLoading = false,
   isRefreshing = false,
   emptyIcon = "shield-checkmark-outline",
-  emptyTitle = "Aucun événement",
-  emptySub = "Aucun événement enregistré pour cette période.",
+  emptyTitle,
+  emptySub,
   onRefresh,
   testID,
   pageSize = DEFAULT_PAGE_SIZE,
 }: Props) {
+  const { t } = useTranslation();
+  const resolvedEmptyTitle = emptyTitle ?? t("discipline.list.emptyTitle");
+  const resolvedEmptySub = emptySub ?? t("discipline.list.emptySubtitle");
   const eventIdsKey = React.useMemo(
     () => events.map((event) => event.id).join("|"),
     [events],
@@ -83,14 +87,14 @@ export function ReadonlyDisciplineList({
               color={colors.warmBorder}
             />
           </View>
-          <Text style={styles.emptyTitle}>{emptyTitle}</Text>
-          <Text style={styles.emptySub}>{emptySub}</Text>
+          <Text style={styles.emptyTitle}>{resolvedEmptyTitle}</Text>
+          <Text style={styles.emptySub}>{resolvedEmptySub}</Text>
         </View>
       }
       contentContainerStyle={styles.content}
       ItemSeparatorComponent={DisciplineSeparator}
       testID={testID ?? "discipline-list"}
-      endOfListLabel="Tous les événements ont été chargés"
+      endOfListLabel={t("discipline.list.endOfList")}
     />
   );
 }

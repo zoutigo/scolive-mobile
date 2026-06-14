@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../../src/theme";
+import { useTranslation } from "../../../src/i18n/useTranslation";
 import { useAuthStore } from "../../../src/store/auth.store";
 import { useFamilyStore } from "../../../src/store/family.store";
 import { useDisciplineStore } from "../../../src/store/discipline.store";
@@ -30,10 +31,22 @@ import type {
 
 type TabKey = "synthese" | "absences" | "sanctions";
 
-const TABS: Array<{ key: TabKey; label: string; icon: string }> = [
-  { key: "synthese", label: "Synthèse", icon: "stats-chart-outline" },
-  { key: "absences", label: "Absences & Retards", icon: "time-outline" },
-  { key: "sanctions", label: "Sanctions & Punitions", icon: "shield-outline" },
+const TAB_KEYS: Array<{ key: TabKey; labelKey: string; icon: string }> = [
+  {
+    key: "synthese",
+    labelKey: "discipline.tabs.synthesis",
+    icon: "stats-chart-outline",
+  },
+  {
+    key: "absences",
+    labelKey: "discipline.tabs.absencesRetards",
+    icon: "time-outline",
+  },
+  {
+    key: "sanctions",
+    labelKey: "discipline.tabs.sanctionsPunitions",
+    icon: "shield-outline",
+  },
 ];
 
 // ── Écran ─────────────────────────────────────────────────────────────────────
@@ -47,6 +60,7 @@ export default function VieScolaireScreenRoute() {
 }
 
 function VieScolaireScreenContent() {
+  const { t } = useTranslation();
   const { childId } = useLocalSearchParams<{ childId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -83,7 +97,7 @@ function VieScolaireScreenContent() {
     try {
       await loadEvents(schoolSlug, childId, { scope: "current", limit: 200 });
     } catch {
-      setLoadError("Impossible de charger les données. Réessayez.");
+      setLoadError(t("discipline.errors.loadData"));
     }
   }, [schoolSlug, childId, loadEvents]);
 
@@ -96,7 +110,7 @@ function VieScolaireScreenContent() {
         limit: 200,
       });
     } catch {
-      setLoadError("Impossible de rafraîchir les données.");
+      setLoadError(t("discipline.errors.refreshData"));
     }
   }, [schoolSlug, childId, refreshEvents]);
 
@@ -111,7 +125,9 @@ function VieScolaireScreenContent() {
     setActiveChild(childId);
   }, [childId, setActiveChild]);
 
-  const childName = child ? `${child.lastName} ${child.firstName}` : "Élève";
+  const childName = child
+    ? `${child.lastName} ${child.firstName}`
+    : t("discipline.header.student");
   const classLabel =
     events.find((event) => event.class?.name)?.class?.name?.trim() ?? "";
   const subtitle = classLabel ? `${childName} • ${classLabel}` : childName;
@@ -126,7 +142,7 @@ function VieScolaireScreenContent() {
       {/* Header */}
       <View style={styles.headerWrap}>
         <ModuleHeader
-          title="Vie scolaire"
+          title={t("discipline.header.vieScolaire")}
           subtitle={subtitle}
           onBack={() => router.push(buildChildHomeTarget(childId) as never)}
           rightIcon="menu-outline"
@@ -142,24 +158,27 @@ function VieScolaireScreenContent() {
 
       {/* Onglets */}
       <View style={styles.tabs}>
-        {TABS.map((t) => (
+        {TAB_KEYS.map((item) => (
           <TouchableOpacity
-            key={t.key}
-            style={[styles.tab, tab === t.key && styles.tabActive]}
-            onPress={() => setTab(t.key)}
-            testID={`tab-${t.key}`}
-            accessibilityState={{ selected: tab === t.key }}
+            key={item.key}
+            style={[styles.tab, tab === item.key && styles.tabActive]}
+            onPress={() => setTab(item.key)}
+            testID={`tab-${item.key}`}
+            accessibilityState={{ selected: tab === item.key }}
           >
             <Ionicons
-              name={t.icon as "stats-chart-outline"}
+              name={item.icon as "stats-chart-outline"}
               size={14}
-              color={tab === t.key ? colors.primary : colors.textSecondary}
+              color={tab === item.key ? colors.primary : colors.textSecondary}
             />
             <Text
-              style={[styles.tabLabel, tab === t.key && styles.tabLabelActive]}
+              style={[
+                styles.tabLabel,
+                tab === item.key && styles.tabLabelActive,
+              ]}
               numberOfLines={1}
             >
-              {t.label}
+              {t(item.labelKey)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -175,7 +194,7 @@ function VieScolaireScreenContent() {
           />
           <Text style={styles.errorText}>{loadError}</Text>
           <TouchableOpacity onPress={load} testID="btn-retry">
-            <Text style={styles.retryText}>Réessayer</Text>
+            <Text style={styles.retryText}>{t("discipline.retry")}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -199,8 +218,8 @@ function VieScolaireScreenContent() {
             isRefreshing={isRefreshing}
             onRefresh={refresh}
             emptyIcon="time-outline"
-            emptyTitle="Aucune absence ni retard"
-            emptySub="Aucune absence ou retard n'a été enregistré sur l'année en cours."
+            emptyTitle={t("discipline.empty.noAbsence.title")}
+            emptySub={t("discipline.empty.noAbsence.message")}
             testID="list-absences"
           />
         )}
@@ -212,8 +231,8 @@ function VieScolaireScreenContent() {
             isRefreshing={isRefreshing}
             onRefresh={refresh}
             emptyIcon="shield-checkmark-outline"
-            emptyTitle="Aucune sanction ni punition"
-            emptySub="Aucune sanction ou punition n'a été enregistrée sur l'année en cours."
+            emptyTitle={t("discipline.empty.noSanction.title")}
+            emptySub={t("discipline.empty.noSanction.message")}
             testID="list-sanctions"
           />
         )}
