@@ -1,5 +1,10 @@
 # scolive-mobile — Contexte projet
 
+## Agents — règle absolue
+
+Ne jamais utiliser le tool `Agent` (sous-agents/Task) pour réaliser le travail demandé.
+Faire tout le travail soi-même, étape par étape si nécessaire.
+
 ## Git — règle absolue
 
 **Ne jamais créer de commit ni pousser sur le remote sans instruction explicite de l'utilisateur.**
