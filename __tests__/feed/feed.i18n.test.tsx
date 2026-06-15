@@ -220,15 +220,15 @@ describe("Fil d'actualité — traduction selon la locale du compte (mobile)", (
     expect(
       screen.getByText(translate("en", "feed.composer.heading")),
     ).toBeTruthy();
-    expect(
-      screen.getByTestId("feed-composer-title").props.placeholder,
-    ).toBe(translate("en", "feed.composer.titlePlaceholder"));
-    expect(
-      screen.getByTestId("feed-composer-type-post"),
-    ).toHaveTextContent(translate("en", "feed.composer.modePost"));
-    expect(
-      screen.getByTestId("feed-composer-type-poll"),
-    ).toHaveTextContent(translate("en", "feed.composer.modePoll"));
+    expect(screen.getByTestId("feed-composer-title").props.placeholder).toBe(
+      translate("en", "feed.composer.titlePlaceholder"),
+    );
+    expect(screen.getByTestId("feed-composer-type-post")).toHaveTextContent(
+      translate("en", "feed.composer.modePost"),
+    );
+    expect(screen.getByTestId("feed-composer-type-poll")).toHaveTextContent(
+      translate("en", "feed.composer.modePoll"),
+    );
     expect(
       screen.getByText(translate("en", "feed.composer.publish")),
     ).toBeTruthy();

@@ -171,9 +171,7 @@ export function FeedPostCard({
           </Text>
         </View>
       </View>
-      <Text style={styles.bodyText}>
-        {excerpt || t("feed.post.noText")}
-      </Text>
+      <Text style={styles.bodyText}>{excerpt || t("feed.post.noText")}</Text>
 
       {post.attachments.length > 0 ? (
         <View style={styles.attachmentPanel}>
@@ -282,9 +280,7 @@ export function FeedPostCard({
           onPress={() => setReactionOpen((value) => !value)}
           testID={`feed-post-react-${post.id}`}
           accessibilityLabel={
-            reactionOpen
-              ? t("feed.post.hideReaction")
-              : t("feed.post.react")
+            reactionOpen ? t("feed.post.hideReaction") : t("feed.post.react")
           }
         >
           <Ionicons name="send-outline" size={18} color={colors.accentTeal} />

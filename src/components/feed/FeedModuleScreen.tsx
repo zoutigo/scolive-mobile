@@ -31,9 +31,7 @@ import type {
   FeedViewerRole,
 } from "../../types/feed.types";
 
-function getFilters(
-  t: TranslateFn,
-): Array<{
+function getFilters(t: TranslateFn): Array<{
   key: FeedFilter;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;

@@ -91,7 +91,9 @@ function getAudienceOptions(role: FeedViewerRole, t: TranslateFn) {
       { scope: "STAFF_ONLY" as const, label: t("feed.audience.staffOnly") },
     ];
   }
-  return [{ scope: "SCHOOL_ALL" as const, label: t("feed.audience.wholeSchool") }];
+  return [
+    { scope: "SCHOOL_ALL" as const, label: t("feed.audience.wholeSchool") },
+  ];
 }
 
 function buildFormatBlockCommand(tag: "h2" | "blockquote"): string {

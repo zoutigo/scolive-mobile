@@ -96,10 +96,9 @@ export function TeacherClassFeedScreen({
         ...payload,
         audienceScope: "CLASS",
         audienceClassId: classId,
-        audienceLabel: tRef.current("feed.audience.classLabel").replace(
-          "{name}",
-          className ?? classId,
-        ),
+        audienceLabel: tRef
+          .current("feed.audience.classLabel")
+          .replace("{name}", className ?? classId),
       });
     },
     [classId, className, schoolSlug],
