@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -35,6 +41,10 @@ import {
   useDrawer,
 } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
+import {
+  useTranslation,
+  type TranslateFn,
+} from "../../../src/i18n/useTranslation";
 import type {
   RecipientOption,
   MessagingRecipients,
@@ -53,10 +63,26 @@ export type AttachedFile = {
 };
 
 export const TEXT_COLOR_PRESETS = [
-  { label: "Bleu profond", value: "#0C5FA8" },
-  { label: "Vert soutien", value: "#217346" },
-  { label: "Rouge alerte", value: "#B42318" },
-  { label: "Noir", value: "#1B1F23" },
+  {
+    label: "Bleu profond",
+    labelKey: "messaging.compose.colorMenu.deepBlue",
+    value: "#0C5FA8",
+  },
+  {
+    label: "Vert soutien",
+    labelKey: "messaging.compose.colorMenu.supportGreen",
+    value: "#217346",
+  },
+  {
+    label: "Rouge alerte",
+    labelKey: "messaging.compose.colorMenu.alertRed",
+    value: "#B42318",
+  },
+  {
+    label: "Noir",
+    labelKey: "messaging.compose.colorMenu.black",
+    value: "#1B1F23",
+  },
 ] as const;
 
 const ATTACHMENT_MIME_BY_EXTENSION: Record<string, string> = {
@@ -134,15 +160,21 @@ export function buildFormatBlockCommand(tag: "h2" | "blockquote"): string {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function flattenRecipients(data: MessagingRecipients): RecipientOption[] {
-  const teachers: RecipientOption[] = data.teachers.map((t) => ({
-    value: t.value,
-    label: t.label,
-    email: t.email,
+function flattenRecipients(
+  data: MessagingRecipients,
+  t: TranslateFn,
+): RecipientOption[] {
+  const teachers: RecipientOption[] = data.teachers.map((entry) => ({
+    value: entry.value,
+    label: entry.label,
+    email: entry.email,
     subtitle:
-      [...(t.subjects ?? []).slice(0, 2), ...(t.classes ?? []).slice(0, 2)]
+      [
+        ...(entry.subjects ?? []).slice(0, 2),
+        ...(entry.classes ?? []).slice(0, 2),
+      ]
         .filter(Boolean)
-        .join(" · ") || "Enseignant(e)",
+        .join(" · ") || t("messaging.recipientPicker.defaultTeacherSubtitle"),
   }));
   const staff: RecipientOption[] = data.staffPeople.map((s) => ({
     value: s.value,
@@ -215,10 +247,12 @@ function getMultipartError(error: unknown): MessagingMultipartError | null {
 
 const EMPTY_DRAFT_HTML = "<p>&nbsp;</p>";
 
-const composeSchema = z.object({
-  subject: z.string().trim().min(1, "L'objet est obligatoire."),
-});
-type ComposeValues = z.infer<typeof composeSchema>;
+function buildComposeSchema(t: TranslateFn) {
+  return z.object({
+    subject: z.string().trim().min(1, t("messaging.compose.subjectError")),
+  });
+}
+type ComposeValues = z.infer<ReturnType<typeof buildComposeSchema>>;
 
 function hasDraftContent(params: {
   subject: string;
@@ -237,6 +271,7 @@ function hasDraftContent(params: {
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function ComposeScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { openDrawer } = useDrawer();
@@ -268,6 +303,8 @@ export default function ComposeScreen() {
       ? replyToSubject
       : `Re: ${replyToSubject}`
     : "";
+
+  const composeSchema = useMemo(() => buildComposeSchema(t), [t]);
 
   const { control, handleSubmit, formState, getValues, watch } =
     useForm<ComposeValues>({
@@ -315,7 +352,7 @@ export default function ComposeScreen() {
     setRecipientsLoading(true);
     try {
       const data = await messagingApi.getRecipients(schoolSlug);
-      setRecipients(flattenRecipients(data));
+      setRecipients(flattenRecipients(data, t));
     } catch {
       // preselected reply recipient still works
     } finally {
@@ -338,17 +375,27 @@ export default function ComposeScreen() {
   // ── Inline image insertion ──────────────────────────────────────────────────
 
   function handleInsertImage() {
-    Alert.alert("Insérer une image", "Choisissez la source", [
-      { text: "Galerie", onPress: pickFromGallery },
-      { text: "Appareil photo", onPress: takePhoto },
-      { text: "Annuler", style: "cancel" },
-    ]);
+    Alert.alert(
+      t("messaging.compose.insertImage.title"),
+      t("messaging.compose.insertImage.message"),
+      [
+        {
+          text: t("messaging.compose.insertImage.gallery"),
+          onPress: pickFromGallery,
+        },
+        { text: t("messaging.compose.insertImage.camera"), onPress: takePhoto },
+        { text: t("messaging.compose.cancel"), style: "cancel" },
+      ],
+    );
   }
 
   async function pickFromGallery() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission refusée", "Autorisez l'accès à la galerie.");
+      Alert.alert(
+        t("messaging.compose.errors.permissionDeniedTitle"),
+        t("messaging.compose.errors.galleryPermission"),
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -365,7 +412,10 @@ export default function ComposeScreen() {
   async function pickAttachmentFromGallery() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission refusée", "Autorisez l'accès à la galerie.");
+      Alert.alert(
+        t("messaging.compose.errors.permissionDeniedTitle"),
+        t("messaging.compose.errors.galleryPermission"),
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -382,7 +432,10 @@ export default function ComposeScreen() {
   async function takePhoto() {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission refusée", "Autorisez l'accès à la caméra.");
+      Alert.alert(
+        t("messaging.compose.errors.permissionDeniedTitle"),
+        t("messaging.compose.errors.cameraPermission"),
+      );
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -398,7 +451,10 @@ export default function ComposeScreen() {
   async function takeAttachmentPhoto() {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permission refusée", "Autorisez l'accès à la caméra.");
+      Alert.alert(
+        t("messaging.compose.errors.permissionDeniedTitle"),
+        t("messaging.compose.errors.cameraPermission"),
+      );
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -412,22 +468,39 @@ export default function ComposeScreen() {
   }
 
   function openAttachmentMenu() {
-    Alert.alert("Joindre un fichier", "Choisissez le type de contenu", [
-      { text: "Prendre une photo", onPress: takeAttachmentPhoto },
-      { text: "Ouvrir la galerie", onPress: pickAttachmentFromGallery },
-      { text: "Insérer un fichier", onPress: handlePickDocument },
-      { text: "Annuler", style: "cancel" },
-    ]);
+    Alert.alert(
+      t("messaging.compose.attachMenu.title"),
+      t("messaging.compose.attachMenu.message"),
+      [
+        {
+          text: t("messaging.compose.attachMenu.takePhoto"),
+          onPress: takeAttachmentPhoto,
+        },
+        {
+          text: t("messaging.compose.attachMenu.openGallery"),
+          onPress: pickAttachmentFromGallery,
+        },
+        {
+          text: t("messaging.compose.attachMenu.insertFile"),
+          onPress: handlePickDocument,
+        },
+        { text: t("messaging.compose.cancel"), style: "cancel" },
+      ],
+    );
   }
 
   function openTextColorMenu() {
-    Alert.alert("Couleur du texte", "Choisissez une couleur", [
-      ...TEXT_COLOR_PRESETS.map((color) => ({
-        text: color.label,
-        onPress: () => editorRef.current?.setForeColor(color.value),
-      })),
-      { text: "Annuler", style: "cancel" as const },
-    ]);
+    Alert.alert(
+      t("messaging.compose.colorMenu.title"),
+      t("messaging.compose.colorMenu.message"),
+      [
+        ...TEXT_COLOR_PRESETS.map((color) => ({
+          text: t(color.labelKey),
+          onPress: () => editorRef.current?.setForeColor(color.value),
+        })),
+        { text: t("messaging.compose.cancel"), style: "cancel" as const },
+      ],
+    );
   }
 
   function applyHeading() {
@@ -453,7 +526,10 @@ export default function ComposeScreen() {
         "max-width:100%;border-radius:8px;margin:8px 0;",
       );
     } catch {
-      Alert.alert("Erreur", "Impossible d'insérer l'image. Réessayez.");
+      Alert.alert(
+        t("messaging.compose.errors.genericTitle"),
+        t("messaging.compose.errors.insertImageFailed"),
+      );
     } finally {
       setIsInsertingImage(false);
     }
@@ -508,7 +584,10 @@ export default function ComposeScreen() {
 
       setAttachedFiles((prev) => dedupeAttachedFiles([...prev, ...newFiles]));
     } catch {
-      Alert.alert("Erreur", "Impossible d'ouvrir le sélecteur de fichiers.");
+      Alert.alert(
+        t("messaging.compose.errors.genericTitle"),
+        t("messaging.compose.errors.documentPickerFailed"),
+      );
     }
   }
 
@@ -530,13 +609,13 @@ export default function ComposeScreen() {
 
   const handleSend = handleSubmit(async (data: ComposeValues) => {
     if (selectedRecipients.length === 0) {
-      setRecipientsError("Choisissez au moins un destinataire.");
+      setRecipientsError(t("messaging.compose.recipientsError"));
       return;
     }
     setRecipientsError(null);
 
     if (!hasBody) {
-      setBodyError("Rédigez un message avant d'envoyer.");
+      setBodyError(t("messaging.compose.bodyError"));
       return;
     }
     setBodyError(null);
@@ -550,7 +629,8 @@ export default function ComposeScreen() {
     try {
       const currentSubject = getValues("subject");
       await messagingApi.send(schoolSlug, {
-        subject: currentSubject.trim() || "Brouillon sans objet",
+        subject:
+          currentSubject.trim() || t("messaging.compose.defaultDraftSubject"),
         body: hasBody ? bodyHtml : EMPTY_DRAFT_HTML,
         recipientUserIds: selectedRecipients.map((r) => r.value),
         isDraft: true,
@@ -564,8 +644,8 @@ export default function ComposeScreen() {
       if (folder === "drafts") await loadMessages(schoolSlug);
       showFeedbackToast({
         variant: "success",
-        title: "Brouillon enregistré",
-        message: "Votre brouillon a bien été sauvegardé.",
+        title: t("messaging.compose.toasts.draftSavedTitle"),
+        message: t("messaging.compose.toasts.draftSavedMessage"),
       });
       router.back();
     } catch (error) {
@@ -575,10 +655,10 @@ export default function ComposeScreen() {
         multipartError.message &&
         multipartError.message !== "SEND_MESSAGE_FAILED"
           ? multipartError.message
-          : "Impossible d'enregistrer le brouillon.";
+          : t("messaging.compose.toasts.draftSaveErrorMessage");
       showFeedbackToast({
         variant: "error",
-        title: "Enregistrement impossible",
+        title: t("messaging.compose.toasts.draftSaveErrorTitle"),
         message,
       });
     } finally {
@@ -604,8 +684,8 @@ export default function ComposeScreen() {
       if (folder === "sent") await loadMessages(schoolSlug);
       showFeedbackToast({
         variant: "success",
-        title: "Message envoyé",
-        message: "Votre message a bien été envoyé.",
+        title: t("messaging.compose.toasts.sentTitle"),
+        message: t("messaging.compose.toasts.sentMessage"),
       });
       router.back();
     } catch (error) {
@@ -626,11 +706,11 @@ export default function ComposeScreen() {
         multipartError.message &&
         multipartError.message !== "SEND_MESSAGE_FAILED"
           ? multipartError.message
-          : "Impossible d'envoyer le message. Réessayez.";
+          : t("messaging.compose.toasts.sendErrorMessage");
 
       showFeedbackToast({
         variant: "error",
-        title: "Envoi impossible",
+        title: t("messaging.compose.toasts.sendErrorTitle"),
         message,
       });
     } finally {
@@ -648,7 +728,11 @@ export default function ComposeScreen() {
       <View style={styles.root}>
         {/* Header */}
         <ModuleHeader
-          title={isReply ? "Répondre" : "Nouveau message"}
+          title={
+            isReply
+              ? t("messaging.compose.titleReply")
+              : t("messaging.compose.titleNew")
+          }
           onBack={() => router.back()}
           rightIcon="menu-outline"
           onRightPress={openDrawer}
@@ -663,7 +747,9 @@ export default function ComposeScreen() {
         {isInsertingImage && (
           <View style={styles.banner}>
             <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.bannerText}>Insertion de l'image…</Text>
+            <Text style={styles.bannerText}>
+              {t("messaging.compose.insertingImage")}
+            </Text>
           </View>
         )}
 
@@ -675,7 +761,9 @@ export default function ComposeScreen() {
         >
           {/* Recipients */}
           <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>À</Text>
+            <Text style={styles.fieldLabel}>
+              {t("messaging.compose.recipientsLabel")}
+            </Text>
             <TouchableOpacity
               style={styles.recipientField}
               onPress={() => {
@@ -688,8 +776,8 @@ export default function ComposeScreen() {
               {selectedRecipients.length === 0 ? (
                 <Text style={styles.placeholder}>
                   {recipientsLoading
-                    ? "Chargement des contacts…"
-                    : "Choisir des destinataires"}
+                    ? t("messaging.compose.recipientsLoading")
+                    : t("messaging.compose.recipientsPlaceholder")}
                 </Text>
               ) : (
                 <View style={styles.chips}>
@@ -727,10 +815,12 @@ export default function ComposeScreen() {
               return (
                 <>
                   <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Objet</Text>
+                    <Text style={styles.fieldLabel}>
+                      {t("messaging.compose.subjectLabel")}
+                    </Text>
                     <TextInput
                       style={styles.subjectInput}
-                      placeholder="Objet du message"
+                      placeholder={t("messaging.compose.subjectPlaceholder")}
                       placeholderTextColor={colors.textSecondary}
                       value={field.value}
                       onChangeText={field.onChange}
@@ -776,7 +866,7 @@ export default function ComposeScreen() {
                 min-height: 200px;
               `,
             }}
-            placeholder="Rédigez votre message…"
+            placeholder={t("messaging.compose.bodyPlaceholder")}
             onChange={handleEditorChange}
             useContainer
             initialFocus={false}
@@ -797,7 +887,10 @@ export default function ComposeScreen() {
               testID="attachments-section"
             >
               <Text style={styles.attachmentsSectionLabel}>
-                Pièces jointes ({attachedFiles.length})
+                {t("messaging.compose.attachmentsTitle").replace(
+                  "{count}",
+                  String(attachedFiles.length),
+                )}
               </Text>
               {attachedFiles.map((file) => (
                 <View
@@ -863,7 +956,7 @@ export default function ComposeScreen() {
                   styles.attachActionBarBtnLabel,
                 ]}
               >
-                Joindre
+                {t("messaging.compose.attachBtn")}
               </Text>
             </TouchableOpacity>
 
@@ -878,7 +971,9 @@ export default function ComposeScreen() {
               testID="save-draft-btn"
             >
               <Ionicons name="save-outline" size={20} color={colors.primary} />
-              <Text style={styles.actionBarBtnLabel}>Brouillon</Text>
+              <Text style={styles.actionBarBtnLabel}>
+                {t("messaging.compose.draftBtn")}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -904,7 +999,7 @@ export default function ComposeScreen() {
                       styles.sendActionBarBtnLabel,
                     ]}
                   >
-                    Envoyer
+                    {t("messaging.compose.sendBtn")}
                   </Text>
                 </>
               )}

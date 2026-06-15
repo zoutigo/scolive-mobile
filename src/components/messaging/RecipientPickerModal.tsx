@@ -13,6 +13,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import type { RecipientOption } from "../../types/messaging.types";
 
 interface Props {
@@ -30,6 +31,7 @@ export function RecipientPickerModal({
   onClose,
   onConfirm,
 }: Props) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState("");
   const [localSelected, setLocalSelected] =
@@ -83,9 +85,13 @@ export function RecipientPickerModal({
               onPress={onClose}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.cancelBtn}>Annuler</Text>
+              <Text style={styles.cancelBtn}>
+                {t("messaging.recipientPicker.cancel")}
+              </Text>
             </TouchableOpacity>
-            <Text style={styles.title}>Destinataires</Text>
+            <Text style={styles.title}>
+              {t("messaging.recipientPicker.title")}
+            </Text>
             <TouchableOpacity
               onPress={handleConfirm}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -97,7 +103,10 @@ export function RecipientPickerModal({
                   localSelected.length === 0 && styles.doneBtnDisabled,
                 ]}
               >
-                OK ({localSelected.length})
+                {t("messaging.recipientPicker.confirm").replace(
+                  "{count}",
+                  String(localSelected.length),
+                )}
               </Text>
             </TouchableOpacity>
           </View>
@@ -111,7 +120,7 @@ export function RecipientPickerModal({
             />
             <TextInput
               style={styles.searchInput}
-              placeholder="Rechercher un destinataire…"
+              placeholder={t("messaging.recipientPicker.searchPlaceholder")}
               placeholderTextColor={colors.textSecondary}
               value={search}
               onChangeText={setSearch}
@@ -213,7 +222,9 @@ export function RecipientPickerModal({
                   size={36}
                   color={colors.warmBorder}
                 />
-                <Text style={styles.emptyText}>Aucun destinataire trouvé</Text>
+                <Text style={styles.emptyText}>
+                  {t("messaging.recipientPicker.emptyResult")}
+                </Text>
               </View>
             }
           />

@@ -25,6 +25,7 @@ import { HeaderMenuButton } from "../../../src/components/navigation/HeaderMenuB
 import { buildChildHomeTarget } from "../../../src/components/navigation/nav-config";
 import { AppShell } from "../../../src/components/navigation/AppShell";
 import { useDrawer } from "../../../src/components/navigation/drawer-context";
+import { useTranslation } from "../../../src/i18n/useTranslation";
 import type {
   FolderKey,
   MessageListItem,
@@ -39,6 +40,7 @@ export default function MessagesScreenRoute() {
 }
 
 function MessagesScreenContent() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { openDrawer } = useDrawer();
@@ -132,7 +134,7 @@ function MessagesScreenContent() {
           >
             <TextInput
               style={styles.searchInput}
-              placeholder="Rechercher…"
+              placeholder={t("messaging.list.searchPlaceholder")}
               placeholderTextColor="rgba(255,255,255,0.55)"
               value={search}
               onChangeText={(v) => setSearch(v)}
@@ -157,7 +159,7 @@ function MessagesScreenContent() {
       ) : (
         <View style={styles.headerWrap}>
           <ModuleHeader
-            title="Messagerie"
+            title={t("messaging.title")}
             subtitle={subtitle}
             onBack={() => {
               if (activeChildId) {
@@ -186,7 +188,9 @@ function MessagesScreenContent() {
             testID="messages-search-btn"
           >
             <Ionicons name="search-outline" size={16} color={colors.primary} />
-            <Text style={styles.searchEntryLabel}>Rechercher un message</Text>
+            <Text style={styles.searchEntryLabel}>
+              {t("messaging.list.searchEntry")}
+            </Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -222,19 +226,19 @@ function MessagesScreenContent() {
                 />
                 <Text style={styles.emptyTitle}>
                   {search
-                    ? "Aucun résultat"
+                    ? t("messaging.list.emptyNoResult")
                     : folder === "inbox"
-                      ? "Aucun message reçu"
+                      ? t("messaging.list.emptyInbox")
                       : folder === "sent"
-                        ? "Aucun message envoyé"
+                        ? t("messaging.list.emptySent")
                         : folder === "drafts"
-                          ? "Aucun brouillon"
-                          : "Archives vides"}
+                          ? t("messaging.list.emptyDrafts")
+                          : t("messaging.list.emptyArchive")}
                 </Text>
                 <Text style={styles.emptySub}>
                   {search
-                    ? "Essayez avec d'autres mots-clés"
-                    : "Les messages apparaîtront ici"}
+                    ? t("messaging.list.emptySearchHint")
+                    : t("messaging.list.emptyDefaultHint")}
                 </Text>
               </View>
             ) : null
@@ -242,7 +246,7 @@ function MessagesScreenContent() {
           hasMore={hasMore}
           isLoadingMore={isLoading && messages.length > 0}
           onLoadMore={handleLoadMore}
-          endOfListLabel="Tous les messages ont été chargés"
+          endOfListLabel={t("messaging.list.endOfList")}
           contentContainerStyle={
             messages.length === 0 ? styles.emptyContainer : undefined
           }

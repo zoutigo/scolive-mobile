@@ -303,20 +303,23 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
 
       {/* Messages non lus */}
       <SectionCard
-        title="Messages non lus"
+        title={t("messaging.nav.unreadMessagesTitle")}
         icon="chatbubble"
         color={ACCENT.messages}
         count={data?.unreadCount}
         onHeaderPress={goToMessages}
-        linkLabel="Messagerie"
+        linkLabel={t("messaging.title")}
         testID="section-messages"
       >
         {!data ? (
-          <EmptyRow icon="hourglass-outline" text="Chargement…" />
+          <EmptyRow
+            icon="hourglass-outline"
+            text={t("messaging.nav.loading")}
+          />
         ) : data.unreadCount === 0 ? (
           <EmptyRow
             icon="checkmark-circle-outline"
-            text="Aucun message non lu"
+            text={t("messaging.nav.noUnreadMessages")}
           />
         ) : (
           data.unreadMessages.map((msg) => (

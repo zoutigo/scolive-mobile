@@ -954,6 +954,146 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.slotEditPanel.toasts.slotCancelledMessage":
       "Ce cours est annulé pour cette date uniquement.",
     "timetable.slotEditPanel.toasts.deleteErrorTitle": "Suppression impossible",
+
+    "messaging.title": "Messagerie",
+    "messaging.folders.inbox": "Réception",
+    "messaging.folders.sent": "Envoyés",
+    "messaging.folders.drafts": "Brouillons",
+    "messaging.folders.archive": "Archives",
+
+    "messaging.list.searchPlaceholder": "Rechercher…",
+    "messaging.list.searchEntry": "Rechercher un message",
+    "messaging.list.emptyNoResult": "Aucun résultat",
+    "messaging.list.emptyInbox": "Aucun message reçu",
+    "messaging.list.emptySent": "Aucun message envoyé",
+    "messaging.list.emptyDrafts": "Aucun brouillon",
+    "messaging.list.emptyArchive": "Archives vides",
+    "messaging.list.emptySearchHint": "Essayez avec d'autres mots-clés",
+    "messaging.list.emptyDefaultHint": "Les messages apparaîtront ici",
+    "messaging.list.endOfList": "Tous les messages ont été chargés",
+    "messaging.list.draftTag": "Brouillon · ",
+    "messaging.list.noSubject": "(sans objet)",
+    "messaging.list.unknownSender": "Expéditeur inconnu",
+    "messaging.list.recipientSingular": "1 destinataire",
+    "messaging.list.recipientPlural": "{count} destinataires",
+
+    "messaging.compose.titleNew": "Nouveau message",
+    "messaging.compose.titleReply": "Répondre",
+    "messaging.compose.recipientsLabel": "À",
+    "messaging.compose.subjectLabel": "Objet",
+    "messaging.compose.subjectPlaceholder": "Objet du message",
+    "messaging.compose.recipientsLoading": "Chargement des contacts…",
+    "messaging.compose.recipientsPlaceholder": "Choisir des destinataires",
+    "messaging.compose.recipientsError": "Choisissez au moins un destinataire.",
+    "messaging.compose.bodyPlaceholder": "Rédigez votre message…",
+    "messaging.compose.bodyError": "Rédigez un message avant d'envoyer.",
+    "messaging.compose.subjectError": "L'objet est obligatoire.",
+    "messaging.compose.insertingImage": "Insertion de l'image…",
+    "messaging.compose.attachmentsTitle": "Pièces jointes ({count})",
+    "messaging.compose.attachBtn": "Joindre",
+    "messaging.compose.draftBtn": "Brouillon",
+    "messaging.compose.sendBtn": "Envoyer",
+    "messaging.compose.defaultDraftSubject": "Brouillon sans objet",
+
+    "messaging.compose.insertImage.title": "Insérer une image",
+    "messaging.compose.insertImage.message": "Choisissez la source",
+    "messaging.compose.insertImage.gallery": "Galerie",
+    "messaging.compose.insertImage.camera": "Appareil photo",
+    "messaging.compose.cancel": "Annuler",
+
+    "messaging.compose.attachMenu.title": "Joindre un fichier",
+    "messaging.compose.attachMenu.message": "Choisissez le type de contenu",
+    "messaging.compose.attachMenu.takePhoto": "Prendre une photo",
+    "messaging.compose.attachMenu.openGallery": "Ouvrir la galerie",
+    "messaging.compose.attachMenu.insertFile": "Insérer un fichier",
+
+    "messaging.compose.colorMenu.title": "Couleur du texte",
+    "messaging.compose.colorMenu.message": "Choisissez une couleur",
+    "messaging.compose.colorMenu.deepBlue": "Bleu profond",
+    "messaging.compose.colorMenu.supportGreen": "Vert soutien",
+    "messaging.compose.colorMenu.alertRed": "Rouge alerte",
+    "messaging.compose.colorMenu.black": "Noir",
+
+    "messaging.compose.errors.permissionDeniedTitle": "Permission refusée",
+    "messaging.compose.errors.galleryPermission":
+      "Autorisez l'accès à la galerie.",
+    "messaging.compose.errors.cameraPermission":
+      "Autorisez l'accès à la caméra.",
+    "messaging.compose.errors.genericTitle": "Erreur",
+    "messaging.compose.errors.insertImageFailed":
+      "Impossible d'insérer l'image. Réessayez.",
+    "messaging.compose.errors.documentPickerFailed":
+      "Impossible d'ouvrir le sélecteur de fichiers.",
+
+    "messaging.compose.toasts.draftSavedTitle": "Brouillon enregistré",
+    "messaging.compose.toasts.draftSavedMessage":
+      "Votre brouillon a bien été sauvegardé.",
+    "messaging.compose.toasts.draftSaveErrorTitle": "Enregistrement impossible",
+    "messaging.compose.toasts.draftSaveErrorMessage":
+      "Impossible d'enregistrer le brouillon.",
+    "messaging.compose.toasts.sentTitle": "Message envoyé",
+    "messaging.compose.toasts.sentMessage": "Votre message a bien été envoyé.",
+    "messaging.compose.toasts.sendErrorTitle": "Envoi impossible",
+    "messaging.compose.toasts.sendErrorMessage":
+      "Impossible d'envoyer le message. Réessayez.",
+
+    "messaging.detail.draftBadge": "Brouillon",
+    "messaging.detail.fromYou": "Vous",
+    "messaging.detail.fromLabel": "De : ",
+    "messaging.detail.recipientsToggleSingular": "1 destinataire",
+    "messaging.detail.recipientsTogglePlural": "{count} destinataires",
+    "messaging.detail.sentPill": "Envoyé",
+    "messaging.detail.createdPill": "Créé",
+    "messaging.detail.recipientsSectionTitle": "Destinataires",
+    "messaging.detail.attachmentsTitle": "Pièces jointes",
+    "messaging.detail.errors.loadFailedTitle": "Erreur",
+    "messaging.detail.errors.loadFailedMessage":
+      "Impossible de charger ce message.",
+    "messaging.detail.errors.markUnreadFailedTitle": "Erreur",
+    "messaging.detail.errors.markUnreadFailedMessage":
+      "Impossible de marquer ce message comme non lu.",
+    "messaging.detail.errors.openAttachmentFailedTitle": "Erreur",
+    "messaging.detail.errors.openAttachmentFailedMessage":
+      "Impossible d'ouvrir cette pièce jointe sur cet appareil.",
+
+    "messaging.actions.reply": "Répondre",
+    "messaging.actions.markUnread": "Non lu",
+    "messaging.actions.archive": "Archiver",
+    "messaging.actions.unarchive": "Restaurer",
+    "messaging.actions.delete": "Supprimer",
+    "messaging.actions.deleteDialog.title": "Supprimer ce message ?",
+    "messaging.actions.deleteDialog.message":
+      "Le message sera définitivement supprimé de votre messagerie.",
+    "messaging.actions.deleteDialog.confirm": "Supprimer",
+    "messaging.actions.deleteDialog.cancel": "Annuler",
+
+    "messaging.toasts.archivedTitle": "Message archivé",
+    "messaging.toasts.archivedMessage":
+      "Le message a été déplacé dans les archives.",
+    "messaging.toasts.unarchivedTitle": "Message restauré",
+    "messaging.toasts.unarchivedMessage":
+      "Le message a été retiré des archives.",
+    "messaging.toasts.archiveErrorTitle": "Archivage impossible",
+    "messaging.toasts.archiveErrorMessage": "Impossible d'archiver ce message.",
+    "messaging.toasts.deletedTitle": "Message supprimé",
+    "messaging.toasts.deletedMessage": "Le message a bien été supprimé.",
+    "messaging.toasts.deleteErrorTitle": "Suppression impossible",
+    "messaging.toasts.deleteErrorMessage":
+      "Impossible de supprimer ce message.",
+
+    "messaging.recipientPicker.title": "Destinataires",
+    "messaging.recipientPicker.cancel": "Annuler",
+    "messaging.recipientPicker.confirm": "OK ({count})",
+    "messaging.recipientPicker.searchPlaceholder":
+      "Rechercher un destinataire…",
+    "messaging.recipientPicker.emptyResult": "Aucun destinataire trouvé",
+    "messaging.recipientPicker.defaultTeacherSubtitle": "Enseignant(e)",
+
+    "messaging.nav.unreadMessagesTitle": "Messages non lus",
+    "messaging.nav.unreadMessagesLabel": "Messages",
+    "messaging.nav.unreadMessagesSub": "non lus",
+    "messaging.nav.noUnreadMessages": "Aucun message non lu",
+    "messaging.nav.loading": "Chargement…",
   },
   en: {
     "settings.language.title": "Language of this device",
@@ -1853,5 +1993,143 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.slotEditPanel.toasts.slotCancelledMessage":
       "This class is cancelled for this date only.",
     "timetable.slotEditPanel.toasts.deleteErrorTitle": "Deletion failed",
+
+    "messaging.title": "Messages",
+    "messaging.folders.inbox": "Inbox",
+    "messaging.folders.sent": "Sent",
+    "messaging.folders.drafts": "Drafts",
+    "messaging.folders.archive": "Archive",
+
+    "messaging.list.searchPlaceholder": "Search…",
+    "messaging.list.searchEntry": "Search a message",
+    "messaging.list.emptyNoResult": "No results",
+    "messaging.list.emptyInbox": "No received messages",
+    "messaging.list.emptySent": "No sent messages",
+    "messaging.list.emptyDrafts": "No drafts",
+    "messaging.list.emptyArchive": "Archive is empty",
+    "messaging.list.emptySearchHint": "Try different keywords",
+    "messaging.list.emptyDefaultHint": "Messages will appear here",
+    "messaging.list.endOfList": "All messages have been loaded",
+    "messaging.list.draftTag": "Draft · ",
+    "messaging.list.noSubject": "(no subject)",
+    "messaging.list.unknownSender": "Unknown sender",
+    "messaging.list.recipientSingular": "1 recipient",
+    "messaging.list.recipientPlural": "{count} recipients",
+
+    "messaging.compose.titleNew": "New message",
+    "messaging.compose.titleReply": "Reply",
+    "messaging.compose.recipientsLabel": "To",
+    "messaging.compose.subjectLabel": "Subject",
+    "messaging.compose.subjectPlaceholder": "Message subject",
+    "messaging.compose.recipientsLoading": "Loading contacts…",
+    "messaging.compose.recipientsPlaceholder": "Choose recipients",
+    "messaging.compose.recipientsError": "Choose at least one recipient.",
+    "messaging.compose.bodyPlaceholder": "Write your message…",
+    "messaging.compose.bodyError": "Write a message before sending.",
+    "messaging.compose.subjectError": "Subject is required.",
+    "messaging.compose.insertingImage": "Inserting image…",
+    "messaging.compose.attachmentsTitle": "Attachments ({count})",
+    "messaging.compose.attachBtn": "Attach",
+    "messaging.compose.draftBtn": "Draft",
+    "messaging.compose.sendBtn": "Send",
+    "messaging.compose.defaultDraftSubject": "Draft without subject",
+
+    "messaging.compose.insertImage.title": "Insert an image",
+    "messaging.compose.insertImage.message": "Choose a source",
+    "messaging.compose.insertImage.gallery": "Gallery",
+    "messaging.compose.insertImage.camera": "Camera",
+    "messaging.compose.cancel": "Cancel",
+
+    "messaging.compose.attachMenu.title": "Attach a file",
+    "messaging.compose.attachMenu.message": "Choose the content type",
+    "messaging.compose.attachMenu.takePhoto": "Take a photo",
+    "messaging.compose.attachMenu.openGallery": "Open gallery",
+    "messaging.compose.attachMenu.insertFile": "Insert a file",
+
+    "messaging.compose.colorMenu.title": "Text color",
+    "messaging.compose.colorMenu.message": "Choose a color",
+    "messaging.compose.colorMenu.deepBlue": "Deep blue",
+    "messaging.compose.colorMenu.supportGreen": "Support green",
+    "messaging.compose.colorMenu.alertRed": "Alert red",
+    "messaging.compose.colorMenu.black": "Black",
+
+    "messaging.compose.errors.permissionDeniedTitle": "Permission denied",
+    "messaging.compose.errors.galleryPermission":
+      "Allow access to the gallery.",
+    "messaging.compose.errors.cameraPermission": "Allow access to the camera.",
+    "messaging.compose.errors.genericTitle": "Error",
+    "messaging.compose.errors.insertImageFailed":
+      "Unable to insert the image. Please try again.",
+    "messaging.compose.errors.documentPickerFailed":
+      "Unable to open the file picker.",
+
+    "messaging.compose.toasts.draftSavedTitle": "Draft saved",
+    "messaging.compose.toasts.draftSavedMessage":
+      "Your draft has been saved successfully.",
+    "messaging.compose.toasts.draftSaveErrorTitle": "Unable to save",
+    "messaging.compose.toasts.draftSaveErrorMessage":
+      "Unable to save the draft.",
+    "messaging.compose.toasts.sentTitle": "Message sent",
+    "messaging.compose.toasts.sentMessage":
+      "Your message has been sent successfully.",
+    "messaging.compose.toasts.sendErrorTitle": "Unable to send",
+    "messaging.compose.toasts.sendErrorMessage":
+      "Unable to send the message. Please try again.",
+
+    "messaging.detail.draftBadge": "Draft",
+    "messaging.detail.fromYou": "You",
+    "messaging.detail.fromLabel": "From: ",
+    "messaging.detail.recipientsToggleSingular": "1 recipient",
+    "messaging.detail.recipientsTogglePlural": "{count} recipients",
+    "messaging.detail.sentPill": "Sent",
+    "messaging.detail.createdPill": "Created",
+    "messaging.detail.recipientsSectionTitle": "Recipients",
+    "messaging.detail.attachmentsTitle": "Attachments",
+    "messaging.detail.errors.loadFailedTitle": "Error",
+    "messaging.detail.errors.loadFailedMessage": "Unable to load this message.",
+    "messaging.detail.errors.markUnreadFailedTitle": "Error",
+    "messaging.detail.errors.markUnreadFailedMessage":
+      "Unable to mark this message as unread.",
+    "messaging.detail.errors.openAttachmentFailedTitle": "Error",
+    "messaging.detail.errors.openAttachmentFailedMessage":
+      "Unable to open this attachment on this device.",
+
+    "messaging.actions.reply": "Reply",
+    "messaging.actions.markUnread": "Unread",
+    "messaging.actions.archive": "Archive",
+    "messaging.actions.unarchive": "Restore",
+    "messaging.actions.delete": "Delete",
+    "messaging.actions.deleteDialog.title": "Delete this message?",
+    "messaging.actions.deleteDialog.message":
+      "The message will be permanently deleted from your mailbox.",
+    "messaging.actions.deleteDialog.confirm": "Delete",
+    "messaging.actions.deleteDialog.cancel": "Cancel",
+
+    "messaging.toasts.archivedTitle": "Message archived",
+    "messaging.toasts.archivedMessage":
+      "The message has been moved to the archive.",
+    "messaging.toasts.unarchivedTitle": "Message restored",
+    "messaging.toasts.unarchivedMessage":
+      "The message has been removed from the archive.",
+    "messaging.toasts.archiveErrorTitle": "Unable to archive",
+    "messaging.toasts.archiveErrorMessage": "Unable to archive this message.",
+    "messaging.toasts.deletedTitle": "Message deleted",
+    "messaging.toasts.deletedMessage":
+      "The message has been deleted successfully.",
+    "messaging.toasts.deleteErrorTitle": "Unable to delete",
+    "messaging.toasts.deleteErrorMessage": "Unable to delete this message.",
+
+    "messaging.recipientPicker.title": "Recipients",
+    "messaging.recipientPicker.cancel": "Cancel",
+    "messaging.recipientPicker.confirm": "OK ({count})",
+    "messaging.recipientPicker.searchPlaceholder": "Search a recipient…",
+    "messaging.recipientPicker.emptyResult": "No recipients found",
+    "messaging.recipientPicker.defaultTeacherSubtitle": "Teacher",
+
+    "messaging.nav.unreadMessagesTitle": "Unread messages",
+    "messaging.nav.unreadMessagesLabel": "Messages",
+    "messaging.nav.unreadMessagesSub": "unread",
+    "messaging.nav.noUnreadMessages": "No unread messages",
+    "messaging.nav.loading": "Loading…",
   },
 };

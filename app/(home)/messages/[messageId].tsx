@@ -24,6 +24,7 @@ import {
   useDrawer,
 } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
+import { useTranslation } from "../../../src/i18n/useTranslation";
 import type {
   MessageAttachment,
   MessageDetail,
@@ -115,6 +116,7 @@ function formatAttachmentSize(sizeBytes: number) {
 }
 
 export default function MessageDetailScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { messageId } = useLocalSearchParams<{ messageId: string }>();
@@ -143,7 +145,10 @@ export default function MessageDetailScreen() {
         }
       })
       .catch(() => {
-        Alert.alert("Erreur", "Impossible de charger ce message.");
+        Alert.alert(
+          t("messaging.detail.errors.loadFailedTitle"),
+          t("messaging.detail.errors.loadFailedMessage"),
+        );
         router.back();
       })
       .finally(() => setIsLoading(false));
@@ -159,18 +164,20 @@ export default function MessageDetailScreen() {
       await messagingApi.archive(schoolSlug, message.id, !isArchived);
       showFeedbackToast({
         variant: "success",
-        title: !isArchived ? "Message archivé" : "Message restauré",
+        title: !isArchived
+          ? t("messaging.toasts.archivedTitle")
+          : t("messaging.toasts.unarchivedTitle"),
         message: !isArchived
-          ? "Le message a été déplacé dans les archives."
-          : "Le message a été retiré des archives.",
+          ? t("messaging.toasts.archivedMessage")
+          : t("messaging.toasts.unarchivedMessage"),
       });
       removeLocal(message.id);
       router.back();
     } catch {
       showFeedbackToast({
         variant: "error",
-        title: "Archivage impossible",
-        message: "Impossible d'archiver ce message.",
+        title: t("messaging.toasts.archiveErrorTitle"),
+        message: t("messaging.toasts.archiveErrorMessage"),
       });
     } finally {
       setIsBusy(false);
@@ -195,7 +202,10 @@ export default function MessageDetailScreen() {
       );
       router.back();
     } catch {
-      Alert.alert("Erreur", "Impossible de marquer ce message comme non lu.");
+      Alert.alert(
+        t("messaging.detail.errors.markUnreadFailedTitle"),
+        t("messaging.detail.errors.markUnreadFailedMessage"),
+      );
     } finally {
       setIsBusy(false);
     }
@@ -208,16 +218,16 @@ export default function MessageDetailScreen() {
       await messagingApi.remove(schoolSlug, message.id);
       showFeedbackToast({
         variant: "success",
-        title: "Message supprimé",
-        message: "Le message a bien été supprimé.",
+        title: t("messaging.toasts.deletedTitle"),
+        message: t("messaging.toasts.deletedMessage"),
       });
       removeLocal(message.id);
       router.back();
     } catch {
       showFeedbackToast({
         variant: "error",
-        title: "Suppression impossible",
-        message: "Impossible de supprimer ce message.",
+        title: t("messaging.toasts.deleteErrorTitle"),
+        message: t("messaging.toasts.deleteErrorMessage"),
       });
     } finally {
       setIsBusy(false);
@@ -248,8 +258,8 @@ export default function MessageDetailScreen() {
       await Linking.openURL(attachment.url);
     } catch {
       Alert.alert(
-        "Erreur",
-        "Impossible d'ouvrir cette pièce jointe sur cet appareil.",
+        t("messaging.detail.errors.openAttachmentFailedTitle"),
+        t("messaging.detail.errors.openAttachmentFailedMessage"),
       );
     }
   }
@@ -264,7 +274,7 @@ export default function MessageDetailScreen() {
     const loadingContent = (
       <View style={styles.root}>
         <ModuleHeader
-          title="Messagerie"
+          title={t("messaging.title")}
           onBack={() => router.back()}
           rightIcon="menu-outline"
           onRightPress={openDrawer}
@@ -310,11 +320,13 @@ export default function MessageDetailScreen() {
         <View style={styles.summaryCard}>
           <View style={styles.summaryTopRow}>
             <Text style={styles.subject}>
-              {message.subject || "(sans objet)"}
+              {message.subject || t("messaging.list.noSubject")}
             </Text>
             {message.status === "DRAFT" && (
               <View style={styles.statusPill}>
-                <Text style={styles.statusPillText}>Brouillon</Text>
+                <Text style={styles.statusPillText}>
+                  {t("messaging.detail.draftBadge")}
+                </Text>
               </View>
             )}
           </View>
@@ -338,11 +350,14 @@ export default function MessageDetailScreen() {
             <View style={styles.metaContent}>
               {message.isSender ? (
                 <Text style={styles.metaFrom}>
-                  De : <Text style={styles.metaName}>Vous</Text>
+                  {t("messaging.detail.fromLabel")}
+                  <Text style={styles.metaName}>
+                    {t("messaging.detail.fromYou")}
+                  </Text>
                 </Text>
               ) : message.sender ? (
                 <Text style={styles.metaFrom}>
-                  De :{" "}
+                  {t("messaging.detail.fromLabel")}
                   <Text style={styles.metaName}>
                     {message.sender.lastName} {message.sender.firstName}
                   </Text>
@@ -365,8 +380,11 @@ export default function MessageDetailScreen() {
               />
               <Text style={styles.recipientsCount}>
                 {message.recipients.length === 1
-                  ? "1 destinataire"
-                  : `${message.recipients.length} destinataires`}
+                  ? t("messaging.detail.recipientsToggleSingular")
+                  : t("messaging.detail.recipientsTogglePlural").replace(
+                      "{count}",
+                      String(message.recipients.length),
+                    )}
               </Text>
               <Ionicons
                 name={showRecipients ? "chevron-up" : "chevron-down"}
@@ -382,7 +400,9 @@ export default function MessageDetailScreen() {
                 color={colors.textSecondary}
               />
               <Text style={styles.datePillText}>
-                {message.sentAt ? "Envoyé" : "Créé"}
+                {message.sentAt
+                  ? t("messaging.detail.sentPill")
+                  : t("messaging.detail.createdPill")}
               </Text>
             </View>
           </View>
@@ -390,7 +410,9 @@ export default function MessageDetailScreen() {
 
         {showRecipients && (
           <View style={styles.meta}>
-            <Text style={styles.recipientsSectionTitle}>Destinataires</Text>
+            <Text style={styles.recipientsSectionTitle}>
+              {t("messaging.detail.recipientsSectionTitle")}
+            </Text>
             <View style={styles.recipientsList}>
               {message.recipients.map((r) => (
                 <View key={r.id} style={styles.recipientRow}>
@@ -447,7 +469,9 @@ export default function MessageDetailScreen() {
 
         {message.attachments.length > 0 && (
           <View style={styles.attachmentsCard}>
-            <Text style={styles.attachmentsTitle}>Pièces jointes</Text>
+            <Text style={styles.attachmentsTitle}>
+              {t("messaging.detail.attachmentsTitle")}
+            </Text>
             {message.attachments.map((attachment) => (
               <TouchableOpacity
                 key={attachment.id}
@@ -501,7 +525,9 @@ export default function MessageDetailScreen() {
                 size={18}
                 color={colors.primary}
               />
-              <Text style={styles.bottomActionLabel}>Répondre</Text>
+              <Text style={styles.bottomActionLabel}>
+                {t("messaging.actions.reply")}
+              </Text>
             </TouchableOpacity>
           )}
 
@@ -523,7 +549,7 @@ export default function MessageDetailScreen() {
                   styles.bottomActionLabelWarning,
                 ]}
               >
-                Non lu
+                {t("messaging.actions.markUnread")}
               </Text>
             </TouchableOpacity>
           )}
@@ -542,7 +568,9 @@ export default function MessageDetailScreen() {
             <Text
               style={[styles.bottomActionLabel, styles.bottomActionLabelTeal]}
             >
-              {isArchived ? "Restaurer" : "Archiver"}
+              {isArchived
+                ? t("messaging.actions.unarchive")
+                : t("messaging.actions.archive")}
             </Text>
           </TouchableOpacity>
 
@@ -560,7 +588,7 @@ export default function MessageDetailScreen() {
             <Text
               style={[styles.bottomActionLabel, styles.bottomActionLabelDanger]}
             >
-              Supprimer
+              {t("messaging.actions.delete")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -571,10 +599,10 @@ export default function MessageDetailScreen() {
         visible={confirmDelete}
         variant="danger"
         icon="trash-outline"
-        title="Supprimer ce message ?"
-        message="Le message sera définitivement supprimé de votre messagerie."
-        confirmLabel="Supprimer"
-        cancelLabel="Annuler"
+        title={t("messaging.actions.deleteDialog.title")}
+        message={t("messaging.actions.deleteDialog.message")}
+        confirmLabel={t("messaging.actions.deleteDialog.confirm")}
+        cancelLabel={t("messaging.actions.deleteDialog.cancel")}
         onConfirm={handleDelete}
         onCancel={() => setConfirmDelete(false)}
       />
