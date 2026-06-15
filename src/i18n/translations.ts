@@ -1094,6 +1094,146 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.nav.unreadMessagesSub": "non lus",
     "messaging.nav.noUnreadMessages": "Aucun message non lu",
     "messaging.nav.loading": "Chargement…",
+
+    "feed.filters.all": "Tout",
+    "feed.filters.featured": "À la une",
+    "feed.filters.polls": "Sondages",
+    "feed.filters.mine": "Mes posts",
+
+    "feed.search.placeholder": "Rechercher une publication",
+
+    "feed.unavailable.title": "Fil indisponible",
+    "feed.unavailable.message":
+      "Ce rôle ne dispose pas encore du module d'actualité.",
+
+    "feed.errors.loadFailed": "Impossible de charger le fil.",
+    "feed.errors.childContextMissing": "Contexte enfant introuvable.",
+    "feed.errors.classContextMissing": "Contexte classe introuvable.",
+    "feed.errors.schoolMissing": "Établissement introuvable",
+
+    "feed.toast.pollPublishedTitle": "Sondage publié",
+    "feed.toast.postPublishedTitle": "Actualité publiée",
+    "feed.toast.pollPublishedMessage":
+      "Le sondage est maintenant visible dans le fil.",
+    "feed.toast.postPublishedMessage":
+      "Votre publication a été ajoutée au fil d'actualité.",
+    "feed.toast.publishErrorTitle": "Publication impossible",
+    "feed.toast.publishErrorMessage":
+      "Impossible de publier cette actualité pour le moment.",
+    "feed.toast.likeErrorTitle": "Réaction indisponible",
+    "feed.toast.likeErrorMessage": "Impossible d'enregistrer votre réaction.",
+    "feed.toast.commentErrorTitle": "Commentaire non envoyé",
+    "feed.toast.commentErrorMessage": "Impossible d'ajouter ce commentaire.",
+    "feed.toast.voteErrorTitle": "Vote indisponible",
+    "feed.toast.voteErrorMessage": "Impossible d'enregistrer votre vote.",
+    "feed.toast.deleteSuccessTitle": "Publication supprimée",
+    "feed.toast.deleteErrorTitle": "Suppression impossible",
+    "feed.toast.deleteErrorMessage":
+      "Impossible de supprimer cette publication.",
+    "feed.toast.imageErrorTitle": "Image non ajoutée",
+    "feed.toast.imageErrorMessage": "Impossible d'ajouter l'image.",
+
+    "feed.empty.noResultsTitle": "Aucun résultat",
+    "feed.empty.noResultsMessage": "Essayez d'autres mots-clés.",
+
+    "feed.composer.infoLabel": "Info",
+    "feed.composer.pollLabel": "Sondage",
+    "feed.composer.eyebrow": "Publication",
+    "feed.composer.heading": "Partager une actualité",
+    "feed.composer.modePost": "Post",
+    "feed.composer.modePoll": "Sondage",
+    "feed.composer.titlePlaceholder": "Titre de la publication",
+    "feed.composer.editorPlaceholder": "Rédigez le contenu de l'actualité…",
+    "feed.composer.pollQuestionPlaceholder": "Question du sondage",
+    "feed.composer.pollOptionPlaceholder": "Option {number}",
+    "feed.composer.addOption": "Ajouter une option",
+    "feed.composer.featuredStandard": "Standard",
+    "feed.composer.featured3Days": "3 j",
+    "feed.composer.featured7Days": "7 j",
+    "feed.composer.publishing": "Publication…",
+    "feed.composer.publishPoll": "Publier le sondage",
+    "feed.composer.publish": "Publier",
+    "feed.composer.colorMenuTitle": "Couleur du texte",
+    "feed.composer.colorMenuMessage": "Choisissez une couleur",
+    "feed.composer.colorDeepBlue": "Bleu profond",
+    "feed.composer.colorSchoolGreen": "Vert école",
+    "feed.composer.colorAlertRed": "Rouge alerte",
+    "feed.composer.colorBlack": "Noir",
+    "feed.composer.cancel": "Annuler",
+
+    "feed.fileSize.bytes": "o",
+    "feed.fileSize.kb": "Ko",
+    "feed.fileSize.mb": "Mo",
+
+    "feed.validation.titleRequired": "Le titre est obligatoire.",
+    "feed.validation.pollQuestionRequired": "La question est obligatoire.",
+    "feed.validation.pollOptionsMin":
+      "Au moins 2 options non vides sont requises.",
+    "feed.validation.bodyRequired":
+      "Ajoutez du contenu avant de publier cette actualité.",
+
+    "feed.permission.galleryDeniedTitle": "Permission refusée",
+    "feed.permission.galleryDeniedMessage": "Autorisez l'accès à la galerie.",
+
+    "feed.deleteDialog.title": "Supprimer cette publication ?",
+    "feed.deleteDialog.subtitle": "Action visible immédiatement",
+    "feed.deleteDialog.message":
+      "La publication sera retirée du {context} pour les lecteurs autorisés.",
+    "feed.deleteDialog.confirm": "Supprimer",
+    "feed.deleteDialog.cancel": "Annuler",
+
+    "feed.audience.parentsOnly": "Parents uniquement",
+    "feed.audience.myClass": "Ma classe",
+    "feed.audience.wholeSchool": "Toute l'école",
+    "feed.audience.parentsAndStudents": "Parents & élèves",
+    "feed.audience.staffOnly": "Équipe interne",
+    "feed.audience.classLabel": "Classe {name}",
+
+    "feed.attachments.title": "Pièces jointes",
+    "feed.attachments.add": "Joindre",
+    "feed.attachments.empty": "Aucune pièce jointe pour cette publication.",
+    "feed.attachments.summaryMultiple": "{count} pièces jointes",
+
+    "feed.post.noText": "Publication sans texte.",
+    "feed.post.voteUnit": "vote",
+    "feed.post.voteUnitPlural": "votes",
+    "feed.post.selectedSuffix": ", sélectionné",
+    "feed.post.likesAria": "Réactions {count}",
+    "feed.post.likedSuffix": ", aimée",
+    "feed.post.commentsAria": "Commentaires {count}",
+    "feed.post.hideReaction": "Masquer réaction",
+    "feed.post.react": "Réagir",
+    "feed.post.commentPlaceholder": "Ajouter un commentaire...",
+    "feed.post.addEmojiAria": "Ajouter {emoji}",
+    "feed.post.submitComment": "Commenter",
+
+    "feed.classLife.title": "Vie de classe",
+    "feed.classLife.endOfList": "Fin des publications de classe",
+    "feed.classLife.emptyTitle": "Aucune actualité de classe",
+    "feed.classLife.emptyMessageChild":
+      "Les informations collectives partagées à la classe apparaîtront ici.",
+    "feed.classLife.emptyMessageTeacher":
+      "Les informations partagées avec cette classe apparaîtront ici.",
+    "feed.classLife.deleteSuccess":
+      "Cette publication n'apparaît plus dans la vie de classe.",
+    "feed.classLife.context": "fil de classe",
+    "feed.classLife.studentFallback": "Élève",
+    "feed.classLife.classWithId": "Classe {classId}",
+    "feed.classLife.classActive": "Classe active",
+
+    "feed.page.title": "Fil d'actualité",
+    "feed.page.endOfList": "Vous avez atteint la fin du fil",
+    "feed.page.emptyTitle": "Aucune actualité pour le moment",
+    "feed.page.emptyMessage":
+      "Les informations importantes de l'établissement apparaîtront ici.",
+    "feed.page.deleteSuccess": "Cette actualité n'apparaît plus dans le fil.",
+    "feed.page.context": "fil d'actualité",
+    "feed.page.heroTitle": "Partager une annonce utile",
+    "feed.page.heroSubtitle":
+      "Informations d'école, rappels, sondages et vie quotidienne.",
+    "feed.comments.summaryNone": "Soyez le premier à réagir",
+    "feed.comments.summaryOne": "1 commentaire",
+    "feed.comments.summaryMany": "{count} commentaires",
   },
   en: {
     "settings.language.title": "Language of this device",
@@ -2131,5 +2271,143 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.nav.unreadMessagesSub": "unread",
     "messaging.nav.noUnreadMessages": "No unread messages",
     "messaging.nav.loading": "Loading…",
+
+    "feed.filters.all": "All",
+    "feed.filters.featured": "Featured",
+    "feed.filters.polls": "Polls",
+    "feed.filters.mine": "My posts",
+
+    "feed.search.placeholder": "Search a post",
+
+    "feed.unavailable.title": "Feed unavailable",
+    "feed.unavailable.message":
+      "This role does not have access to the news feed module yet.",
+
+    "feed.errors.loadFailed": "Unable to load the feed.",
+    "feed.errors.childContextMissing": "Child context not found.",
+    "feed.errors.classContextMissing": "Class context not found.",
+    "feed.errors.schoolMissing": "School not found",
+
+    "feed.toast.pollPublishedTitle": "Poll published",
+    "feed.toast.postPublishedTitle": "Post published",
+    "feed.toast.pollPublishedMessage": "The poll is now visible in the feed.",
+    "feed.toast.postPublishedMessage":
+      "Your post has been added to the news feed.",
+    "feed.toast.publishErrorTitle": "Unable to publish",
+    "feed.toast.publishErrorMessage":
+      "Unable to publish this post at the moment.",
+    "feed.toast.likeErrorTitle": "Reaction unavailable",
+    "feed.toast.likeErrorMessage": "Unable to save your reaction.",
+    "feed.toast.commentErrorTitle": "Comment not sent",
+    "feed.toast.commentErrorMessage": "Unable to add this comment.",
+    "feed.toast.voteErrorTitle": "Vote unavailable",
+    "feed.toast.voteErrorMessage": "Unable to save your vote.",
+    "feed.toast.deleteSuccessTitle": "Post deleted",
+    "feed.toast.deleteErrorTitle": "Unable to delete",
+    "feed.toast.deleteErrorMessage": "Unable to delete this post.",
+    "feed.toast.imageErrorTitle": "Image not added",
+    "feed.toast.imageErrorMessage": "Unable to add the image.",
+
+    "feed.empty.noResultsTitle": "No results",
+    "feed.empty.noResultsMessage": "Try different keywords.",
+
+    "feed.composer.infoLabel": "Info",
+    "feed.composer.pollLabel": "Poll",
+    "feed.composer.eyebrow": "Post",
+    "feed.composer.heading": "Share a post",
+    "feed.composer.modePost": "Post",
+    "feed.composer.modePoll": "Poll",
+    "feed.composer.titlePlaceholder": "Post title",
+    "feed.composer.editorPlaceholder": "Write the post content…",
+    "feed.composer.pollQuestionPlaceholder": "Poll question",
+    "feed.composer.pollOptionPlaceholder": "Option {number}",
+    "feed.composer.addOption": "Add an option",
+    "feed.composer.featuredStandard": "Standard",
+    "feed.composer.featured3Days": "3 d",
+    "feed.composer.featured7Days": "7 d",
+    "feed.composer.publishing": "Publishing…",
+    "feed.composer.publishPoll": "Publish the poll",
+    "feed.composer.publish": "Publish",
+    "feed.composer.colorMenuTitle": "Text color",
+    "feed.composer.colorMenuMessage": "Choose a color",
+    "feed.composer.colorDeepBlue": "Deep blue",
+    "feed.composer.colorSchoolGreen": "School green",
+    "feed.composer.colorAlertRed": "Alert red",
+    "feed.composer.colorBlack": "Black",
+    "feed.composer.cancel": "Cancel",
+
+    "feed.fileSize.bytes": "B",
+    "feed.fileSize.kb": "KB",
+    "feed.fileSize.mb": "MB",
+
+    "feed.validation.titleRequired": "Title is required.",
+    "feed.validation.pollQuestionRequired": "The question is required.",
+    "feed.validation.pollOptionsMin":
+      "At least 2 non-empty options are required.",
+    "feed.validation.bodyRequired":
+      "Add some content before publishing this post.",
+
+    "feed.permission.galleryDeniedTitle": "Permission denied",
+    "feed.permission.galleryDeniedMessage": "Allow access to the gallery.",
+
+    "feed.deleteDialog.title": "Delete this post?",
+    "feed.deleteDialog.subtitle": "This action is immediate",
+    "feed.deleteDialog.message":
+      "The post will be removed from the {context} for authorized readers.",
+    "feed.deleteDialog.confirm": "Delete",
+    "feed.deleteDialog.cancel": "Cancel",
+
+    "feed.audience.parentsOnly": "Parents only",
+    "feed.audience.myClass": "My class",
+    "feed.audience.wholeSchool": "Whole school",
+    "feed.audience.parentsAndStudents": "Parents & students",
+    "feed.audience.staffOnly": "Staff only",
+    "feed.audience.classLabel": "Class {name}",
+
+    "feed.attachments.title": "Attachments",
+    "feed.attachments.add": "Attach",
+    "feed.attachments.empty": "No attachments for this post.",
+    "feed.attachments.summaryMultiple": "{count} attachments",
+
+    "feed.post.noText": "Post with no text.",
+    "feed.post.voteUnit": "vote",
+    "feed.post.voteUnitPlural": "votes",
+    "feed.post.selectedSuffix": ", selected",
+    "feed.post.likesAria": "Reactions {count}",
+    "feed.post.likedSuffix": ", liked",
+    "feed.post.commentsAria": "Comments {count}",
+    "feed.post.hideReaction": "Hide reaction",
+    "feed.post.react": "React",
+    "feed.post.commentPlaceholder": "Add a comment...",
+    "feed.post.addEmojiAria": "Add {emoji}",
+    "feed.post.submitComment": "Comment",
+
+    "feed.classLife.title": "Class life",
+    "feed.classLife.endOfList": "End of class posts",
+    "feed.classLife.emptyTitle": "No class news",
+    "feed.classLife.emptyMessageChild":
+      "Group information shared with the class will appear here.",
+    "feed.classLife.emptyMessageTeacher":
+      "Information shared with this class will appear here.",
+    "feed.classLife.deleteSuccess":
+      "This post no longer appears in the class life feed.",
+    "feed.classLife.context": "class feed",
+    "feed.classLife.studentFallback": "Student",
+    "feed.classLife.classWithId": "Class {classId}",
+    "feed.classLife.classActive": "Active class",
+
+    "feed.page.title": "News feed",
+    "feed.page.endOfList": "You have reached the end of the feed",
+    "feed.page.emptyTitle": "No news yet",
+    "feed.page.emptyMessage":
+      "Important information from the school will appear here.",
+    "feed.page.deleteSuccess": "This post no longer appears in the feed.",
+    "feed.page.context": "news feed",
+    "feed.page.heroTitle": "Share a useful announcement",
+    "feed.page.heroSubtitle":
+      "School information, reminders, polls and everyday life.",
+    "feed.comments.summaryNone": "Be the first to react",
+    "feed.comments.summaryOne": "1 comment",
+    "feed.comments.summaryMany": "{count} comments",
   },
 };

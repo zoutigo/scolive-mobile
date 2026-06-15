@@ -23,6 +23,8 @@ import type {
   FeedPostType,
   FeedViewerRole,
 } from "../../types/feed.types";
+import { useTranslation } from "../../i18n/useTranslation";
+import type { TranslateFn } from "../../i18n/useTranslation";
 import { isStaffRole } from "./feed.helpers";
 
 type DraftAttachment = {
@@ -49,35 +51,47 @@ type FormValues = {
   pollOptions: Array<{ value: string }>;
 };
 
-const COLOR_PRESETS = [
-  { label: "Bleu profond", value: "#0C5FA8" },
-  { label: "Vert école", value: "#217346" },
-  { label: "Rouge alerte", value: "#B42318" },
-  { label: "Noir", value: "#1B1F23" },
-] as const;
-
-function formatFileSize(bytes: number) {
-  if (!bytes || bytes < 1024) return `${bytes || 0} o`;
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} Ko`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+function getColorPresets(t: TranslateFn) {
+  return [
+    { label: t("feed.composer.colorDeepBlue"), value: "#0C5FA8" },
+    { label: t("feed.composer.colorSchoolGreen"), value: "#217346" },
+    { label: t("feed.composer.colorAlertRed"), value: "#B42318" },
+    { label: t("feed.composer.colorBlack"), value: "#1B1F23" },
+  ] as const;
 }
 
-function getAudienceOptions(role: FeedViewerRole) {
+function formatFileSize(bytes: number, t: TranslateFn) {
+  if (!bytes || bytes < 1024)
+    return `${bytes || 0} ${t("feed.fileSize.bytes")}`;
+  if (bytes < 1024 * 1024)
+    return `${Math.max(1, Math.round(bytes / 1024))} ${t("feed.fileSize.kb")}`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} ${t("feed.fileSize.mb")}`;
+}
+
+function getAudienceOptions(role: FeedViewerRole, t: TranslateFn) {
   if (role === "PARENT") {
-    return [{ scope: "PARENTS_ONLY" as const, label: "Parents uniquement" }];
+    return [
+      { scope: "PARENTS_ONLY" as const, label: t("feed.audience.parentsOnly") },
+    ];
   }
   if (role === "STUDENT") {
-    return [{ scope: "CLASS" as const, label: "Ma classe" }];
+    return [{ scope: "CLASS" as const, label: t("feed.audience.myClass") }];
   }
   if (isStaffRole(role)) {
     return [
-      { scope: "SCHOOL_ALL" as const, label: "Toute l'école" },
-      { scope: "PARENTS_STUDENTS" as const, label: "Parents & élèves" },
-      { scope: "PARENTS_ONLY" as const, label: "Parents uniquement" },
-      { scope: "STAFF_ONLY" as const, label: "Équipe interne" },
+      { scope: "SCHOOL_ALL" as const, label: t("feed.audience.wholeSchool") },
+      {
+        scope: "PARENTS_STUDENTS" as const,
+        label: t("feed.audience.parentsAndStudents"),
+      },
+      {
+        scope: "PARENTS_ONLY" as const,
+        label: t("feed.audience.parentsOnly"),
+      },
+      { scope: "STAFF_ONLY" as const, label: t("feed.audience.staffOnly") },
     ];
   }
-  return [{ scope: "SCHOOL_ALL" as const, label: "Toute l'école" }];
+  return [{ scope: "SCHOOL_ALL" as const, label: t("feed.audience.wholeSchool") }];
 }
 
 function buildFormatBlockCommand(tag: "h2" | "blockquote"): string {
@@ -95,13 +109,14 @@ export function FeedComposerCard({
   onUploadInlineImage,
   onCancel,
 }: Props) {
+  const { t, locale } = useTranslation();
   const editorRef = useRef<RichEditor>(null);
   const titleRef = useRef<TextInput>(null);
   const pollQuestionRef = useRef<TextInput>(null);
 
   const audienceOptions = useMemo(
-    () => getAudienceOptions(viewerRole),
-    [viewerRole],
+    () => getAudienceOptions(viewerRole, t),
+    [viewerRole, locale],
   );
 
   const [type, setType] = useState<FeedPostType>(initialType);
@@ -116,28 +131,39 @@ export function FeedComposerCard({
   const typeRef = useRef<FeedPostType>(type);
   typeRef.current = type;
 
-  // Schema initialized once via ref; superRefine reads typeRef.current at each call
+  // tRef lets the stable schema closure read the current translation at validation time
+  const tRef = useRef<TranslateFn>(t);
+  tRef.current = t;
+
+  // Schema initialized once via ref; superRefine reads typeRef.current/tRef.current at each call
   const schemaRef = useRef(
     z
       .object({
-        title: z.string().trim().min(1, "Le titre est obligatoire."),
+        title: z.string(),
         pollQuestion: z.string(),
         pollOptions: z.array(z.object({ value: z.string() })),
       })
       .superRefine((val, ctx) => {
+        if (!val.title.trim()) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["title"],
+            message: tRef.current("feed.validation.titleRequired"),
+          });
+        }
         if (typeRef.current !== "POLL") return;
         if (!val.pollQuestion.trim()) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ["pollQuestion"],
-            message: "La question est obligatoire.",
+            message: tRef.current("feed.validation.pollQuestionRequired"),
           });
         }
         if (val.pollOptions.filter((o) => o.value.trim()).length < 2) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ["pollOptions"],
-            message: "Au moins 2 options non vides sont requises.",
+            message: tRef.current("feed.validation.pollOptionsMin"),
           });
         }
       }),
@@ -180,13 +206,17 @@ export function FeedComposerCard({
   }
 
   function openTextColorMenu() {
-    Alert.alert("Couleur du texte", "Choisissez une couleur", [
-      ...COLOR_PRESETS.map((preset) => ({
-        text: preset.label,
-        onPress: () => editorRef.current?.setForeColor(preset.value),
-      })),
-      { text: "Annuler", style: "cancel" as const },
-    ]);
+    Alert.alert(
+      t("feed.composer.colorMenuTitle"),
+      t("feed.composer.colorMenuMessage"),
+      [
+        ...getColorPresets(t).map((preset) => ({
+          text: preset.label,
+          onPress: () => editorRef.current?.setForeColor(preset.value),
+        })),
+        { text: t("feed.composer.cancel"), style: "cancel" as const },
+      ],
+    );
   }
 
   function applyHeading() {
@@ -208,7 +238,10 @@ export function FeedComposerCard({
   async function insertInlineImageFromGallery() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permission.status !== "granted") {
-      Alert.alert("Permission refusée", "Autorisez l'accès à la galerie.");
+      Alert.alert(
+        t("feed.permission.galleryDeniedTitle"),
+        t("feed.permission.galleryDeniedMessage"),
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -228,10 +261,10 @@ export function FeedComposerCard({
       editorRef.current?.insertImage(response.url);
     } catch (error) {
       Alert.alert(
-        "Image non ajoutée",
+        t("feed.toast.imageErrorTitle"),
         error instanceof Error
           ? error.message
-          : "Impossible d'ajouter l'image.",
+          : t("feed.toast.imageErrorMessage"),
       );
     }
   }
@@ -254,7 +287,7 @@ export function FeedComposerCard({
         next.push({
           id: `${asset.name}-${Date.now()}-${next.length}`,
           fileName: asset.name,
-          sizeLabel: formatFileSize(asset.size ?? 0),
+          sizeLabel: formatFileSize(asset.size ?? 0, t),
         });
       });
       return next;
@@ -268,7 +301,7 @@ export function FeedComposerCard({
   async function onValid(data: FormValues) {
     const resolvedHtml = await resolveEditorHtml();
     if (!hasTextContent(resolvedHtml)) {
-      setBodyError("Ajoutez du contenu avant de publier cette actualité.");
+      setBodyError(t("feed.validation.bodyRequired"));
       return;
     }
     setBodyError(null);
@@ -280,7 +313,7 @@ export function FeedComposerCard({
       audienceScope: selectedAudienceScope,
       audienceLabel:
         audienceOptions.find((o) => o.scope === selectedAudienceScope)?.label ??
-        "Toute l'école",
+        t("feed.audience.wholeSchool"),
       featuredDays: Number(featuredDays) > 0 ? Number(featuredDays) : undefined,
       pollQuestion: type === "POLL" ? data.pollQuestion.trim() : undefined,
       pollOptions:
@@ -317,8 +350,8 @@ export function FeedComposerCard({
     <View style={styles.card} testID="feed-composer-card">
       <View style={styles.topRow}>
         <View>
-          <Text style={styles.eyebrow}>Publication</Text>
-          <Text style={styles.heading}>Partager une actualité</Text>
+          <Text style={styles.eyebrow}>{t("feed.composer.eyebrow")}</Text>
+          <Text style={styles.heading}>{t("feed.composer.heading")}</Text>
         </View>
         {onCancel ? (
           <TouchableOpacity onPress={onCancel} testID="feed-composer-close">
@@ -341,7 +374,9 @@ export function FeedComposerCard({
                 type === value && styles.modeChipTextActive,
               ]}
             >
-              {value === "POST" ? "Post" : "Sondage"}
+              {value === "POST"
+                ? t("feed.composer.modePost")
+                : t("feed.composer.modePoll")}
             </Text>
           </TouchableOpacity>
         ))}
@@ -359,7 +394,7 @@ export function FeedComposerCard({
                 style={[styles.titleInput, err ? styles.inputError : null]}
                 value={field.value}
                 onChangeText={field.onChange}
-                placeholder="Titre de la publication"
+                placeholder={t("feed.composer.titlePlaceholder")}
                 placeholderTextColor={colors.textSecondary}
                 testID="feed-composer-title"
               />
@@ -383,7 +418,7 @@ export function FeedComposerCard({
           ref={editorRef}
           style={styles.editor}
           initialHeight={Platform.OS === "ios" ? 180 : 200}
-          placeholder="Rédigez le contenu de l'actualité…"
+          placeholder={t("feed.composer.editorPlaceholder")}
           editorStyle={{
             backgroundColor: colors.surface,
             color: colors.textPrimary,
@@ -418,7 +453,7 @@ export function FeedComposerCard({
                     style={[styles.titleInput, err ? styles.inputError : null]}
                     value={field.value}
                     onChangeText={field.onChange}
-                    placeholder="Question du sondage"
+                    placeholder={t("feed.composer.pollQuestionPlaceholder")}
                     placeholderTextColor={colors.textSecondary}
                     testID="feed-composer-poll-question"
                   />
@@ -437,7 +472,10 @@ export function FeedComposerCard({
                   style={styles.titleInput}
                   value={field.value}
                   onChangeText={field.onChange}
-                  placeholder={`Option ${index + 1}`}
+                  placeholder={t("feed.composer.pollOptionPlaceholder").replace(
+                    "{number}",
+                    String(index + 1),
+                  )}
                   placeholderTextColor={colors.textSecondary}
                   testID={`feed-composer-poll-option-${index + 1}`}
                 />
@@ -451,7 +489,9 @@ export function FeedComposerCard({
               testID="feed-composer-add-poll-option"
             >
               <Ionicons name="add" size={16} color={colors.primary} />
-              <Text style={styles.secondaryActionText}>Ajouter une option</Text>
+              <Text style={styles.secondaryActionText}>
+                {t("feed.composer.addOption")}
+              </Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -485,9 +525,9 @@ export function FeedComposerCard({
       {isStaffRole(viewerRole) ? (
         <View style={styles.featuredRow}>
           {[
-            { label: "Standard", value: "0" },
-            { label: "3 j", value: "3" },
-            { label: "7 j", value: "7" },
+            { label: t("feed.composer.featuredStandard"), value: "0" },
+            { label: t("feed.composer.featured3Days"), value: "3" },
+            { label: t("feed.composer.featured7Days"), value: "7" },
           ].map((option) => (
             <TouchableOpacity
               key={option.value}
@@ -514,7 +554,9 @@ export function FeedComposerCard({
 
       <View style={styles.attachmentsBox}>
         <View style={styles.attachmentsHeader}>
-          <Text style={styles.attachmentsHeading}>Pièces jointes</Text>
+          <Text style={styles.attachmentsHeading}>
+            {t("feed.attachments.title")}
+          </Text>
           <TouchableOpacity
             style={styles.secondaryAction}
             onPress={() => {
@@ -523,13 +565,15 @@ export function FeedComposerCard({
             testID="feed-add-attachment"
           >
             <Ionicons name="attach-outline" size={16} color={colors.primary} />
-            <Text style={styles.secondaryActionText}>Joindre</Text>
+            <Text style={styles.secondaryActionText}>
+              {t("feed.attachments.add")}
+            </Text>
           </TouchableOpacity>
         </View>
 
         {attachments.length === 0 ? (
           <Text style={styles.attachmentsEmpty}>
-            Aucune pièce jointe pour cette publication.
+            {t("feed.attachments.empty")}
           </Text>
         ) : (
           attachments.map((attachment) => (
@@ -562,7 +606,9 @@ export function FeedComposerCard({
             onPress={onCancel}
             testID="feed-composer-cancel"
           >
-            <Text style={styles.bottomSecondaryText}>Annuler</Text>
+            <Text style={styles.bottomSecondaryText}>
+              {t("feed.composer.cancel")}
+            </Text>
           </TouchableOpacity>
         ) : null}
         <TouchableOpacity
@@ -579,10 +625,10 @@ export function FeedComposerCard({
           <Ionicons name="send-outline" size={16} color={colors.white} />
           <Text style={styles.bottomPrimaryText}>
             {isSubmitting
-              ? "Publication…"
+              ? t("feed.composer.publishing")
               : type === "POLL"
-                ? "Publier le sondage"
-                : "Publier"}
+                ? t("feed.composer.publishPoll")
+                : t("feed.composer.publish")}
           </Text>
         </TouchableOpacity>
       </View>

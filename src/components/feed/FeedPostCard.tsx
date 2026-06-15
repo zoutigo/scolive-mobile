@@ -9,6 +9,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
 import type { FeedComment, FeedPost } from "../../types/feed.types";
+import { useTranslation } from "../../i18n/useTranslation";
 import {
   formatCompactAuthorName,
   formatFeedDate,
@@ -45,7 +46,11 @@ function PollBar({
   disabled: boolean;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const ratio = totalVotes > 0 ? votes / totalVotes : 0;
+  const voteUnit =
+    votes > 1 ? t("feed.post.voteUnitPlural") : t("feed.post.voteUnit");
+  const selectedSuffix = selected ? t("feed.post.selectedSuffix") : "";
 
   return (
     <TouchableOpacity
@@ -57,7 +62,7 @@ function PollBar({
       accessibilityRole="button"
       accessibilityState={{ disabled, selected }}
       testID={`feed-post-poll-option-${postId}-${optionId}`}
-      accessibilityLabel={`${label}, ${votes} vote${votes > 1 ? "s" : ""}${selected ? ", sélectionné" : ""}`}
+      accessibilityLabel={`${label}, ${votes} ${voteUnit}${selectedSuffix}`}
     >
       <View
         style={[
@@ -79,13 +84,14 @@ function PollBar({
 }
 
 function CommentRow({ comment }: { comment: FeedComment }) {
+  const { locale } = useTranslation();
   return (
     <View style={styles.commentRow}>
       <View style={styles.commentBody}>
         <View style={styles.commentHeader}>
           <Text style={styles.commentAuthor}>{comment.authorName}</Text>
           <Text style={styles.commentDate}>
-            {formatFeedDate(comment.createdAt)}
+            {formatFeedDate(comment.createdAt, locale)}
           </Text>
         </View>
         <Text style={styles.commentText}>{comment.text}</Text>
@@ -101,6 +107,7 @@ export function FeedPostCard({
   onVote,
   onDelete,
 }: Props) {
+  const { t, locale } = useTranslation();
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [reactionOpen, setReactionOpen] = useState(false);
   const [draftComment, setDraftComment] = useState("");
@@ -160,12 +167,12 @@ export function FeedPostCard({
           >
             {formatCompactAuthorName(post.author)}
             {post.author.roleLabel ? ` · ${post.author.roleLabel}` : ""}
-            {` · ${formatFeedDate(post.createdAt)}`}
+            {` · ${formatFeedDate(post.createdAt, locale)}`}
           </Text>
         </View>
       </View>
       <Text style={styles.bodyText}>
-        {excerpt || "Publication sans texte."}
+        {excerpt || t("feed.post.noText")}
       </Text>
 
       {post.attachments.length > 0 ? (
@@ -173,7 +180,7 @@ export function FeedPostCard({
           <View style={styles.attachmentHeader}>
             <Ionicons name="attach-outline" size={16} color={colors.primary} />
             <Text style={styles.attachmentTitle}>
-              {getAttachmentSummary(post.attachments)}
+              {getAttachmentSummary(post.attachments, t)}
             </Text>
           </View>
           {post.attachments.slice(0, 3).map((attachment) => (
@@ -215,7 +222,7 @@ export function FeedPostCard({
           ]}
           onPress={() => onToggleLike(post.id)}
           testID={`feed-post-like-${post.id}`}
-          accessibilityLabel={`Réactions ${post.likesCount}${post.likedByViewer ? ", aimée" : ""}`}
+          accessibilityLabel={`${t("feed.post.likesAria").replace("{count}", String(post.likesCount))}${post.likedByViewer ? t("feed.post.likedSuffix") : ""}`}
         >
           <View
             style={styles.actionState}
@@ -245,7 +252,10 @@ export function FeedPostCard({
           ]}
           onPress={() => setCommentsOpen((value) => !value)}
           testID={`feed-post-comments-toggle-${post.id}`}
-          accessibilityLabel={`Commentaires ${post.comments.length}`}
+          accessibilityLabel={t("feed.post.commentsAria").replace(
+            "{count}",
+            String(post.comments.length),
+          )}
         >
           <Ionicons
             name="chatbubble-ellipses-outline"
@@ -271,7 +281,11 @@ export function FeedPostCard({
           ]}
           onPress={() => setReactionOpen((value) => !value)}
           testID={`feed-post-react-${post.id}`}
-          accessibilityLabel={reactionOpen ? "Masquer reaction" : "Reagir"}
+          accessibilityLabel={
+            reactionOpen
+              ? t("feed.post.hideReaction")
+              : t("feed.post.react")
+          }
         >
           <Ionicons name="send-outline" size={18} color={colors.accentTeal} />
           <Text
@@ -280,7 +294,7 @@ export function FeedPostCard({
               reactionOpen && styles.actionLabelReactActive,
             ]}
           >
-            {reactionOpen ? "Masquer reaction" : "Reagir"}
+            {reactionOpen ? t("feed.post.hideReaction") : t("feed.post.react")}
           </Text>
         </TouchableOpacity>
       </View>
@@ -289,7 +303,7 @@ export function FeedPostCard({
         <View style={styles.reactionComposer}>
           <TextInput
             style={styles.reactionInput}
-            placeholder="Ajouter un commentaire..."
+            placeholder={t("feed.post.commentPlaceholder")}
             placeholderTextColor={colors.textSecondary}
             value={draftComment}
             onChangeText={setDraftComment}
@@ -304,7 +318,10 @@ export function FeedPostCard({
                   key={`${post.id}-${emoji}`}
                   style={styles.reactionEmojiButton}
                   onPress={() => appendEmoji(emoji)}
-                  accessibilityLabel={`Ajouter ${emoji}`}
+                  accessibilityLabel={t("feed.post.addEmojiAria").replace(
+                    "{emoji}",
+                    emoji,
+                  )}
                   testID={`feed-reaction-emoji-${post.id}-${emoji}`}
                 >
                   <Text style={styles.reactionEmojiText}>{emoji}</Text>
@@ -321,7 +338,9 @@ export function FeedPostCard({
               testID={`feed-comment-submit-${post.id}`}
             >
               <Ionicons name="send" size={14} color={colors.white} />
-              <Text style={styles.commentSendLabel}>Commenter</Text>
+              <Text style={styles.commentSendLabel}>
+                {t("feed.post.submitComment")}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

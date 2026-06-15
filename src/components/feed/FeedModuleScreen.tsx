@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -20,6 +20,8 @@ import { ConfirmDialog } from "../ConfirmDialog";
 import { FeedComposerCard } from "./FeedComposerCard";
 import { FeedPostCard } from "./FeedPostCard";
 import { orderFeedPosts } from "./feed.helpers";
+import { useTranslation } from "../../i18n/useTranslation";
+import type { TranslateFn } from "../../i18n/useTranslation";
 import type {
   CreateFeedPayload,
   FeedFilter,
@@ -29,16 +31,28 @@ import type {
   FeedViewerRole,
 } from "../../types/feed.types";
 
-const FILTERS: Array<{
+function getFilters(
+  t: TranslateFn,
+): Array<{
   key: FeedFilter;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
-}> = [
-  { key: "all", label: "Tout", icon: "albums-outline" },
-  { key: "featured", label: "À la une", icon: "sparkles-outline" },
-  { key: "polls", label: "Sondages", icon: "stats-chart-outline" },
-  { key: "mine", label: "Mes posts", icon: "person-outline" },
-];
+}> {
+  return [
+    { key: "all", label: t("feed.filters.all"), icon: "albums-outline" },
+    {
+      key: "featured",
+      label: t("feed.filters.featured"),
+      icon: "sparkles-outline",
+    },
+    {
+      key: "polls",
+      label: t("feed.filters.polls"),
+      icon: "stats-chart-outline",
+    },
+    { key: "mine", label: t("feed.filters.mine"), icon: "person-outline" },
+  ];
+}
 
 type FeedPagePayload = {
   items: FeedPost[];
@@ -93,7 +107,7 @@ export function FeedModuleScreen({
   emptyMessage,
   deleteSuccessMessage,
   deleteContextLabel,
-  searchPlaceholder = "Rechercher une publication",
+  searchPlaceholder,
   canCompose = false,
   heroTitle,
   heroSubtitle,
@@ -101,10 +115,20 @@ export function FeedModuleScreen({
   heroComposerActionsEnabled = false,
   onCreatePost,
   onUploadInlineImage,
-  unavailableTitle = "Fil indisponible",
-  unavailableMessage = "Ce rôle ne dispose pas encore du module d'actualité.",
+  unavailableTitle,
+  unavailableMessage,
   onPostsChange,
 }: Props) {
+  const { t } = useTranslation();
+  const FILTERS = getFilters(t);
+  const effectiveSearchPlaceholder =
+    searchPlaceholder ?? t("feed.search.placeholder");
+  const effectiveUnavailableTitle =
+    unavailableTitle ?? t("feed.unavailable.title");
+  const effectiveUnavailableMessage =
+    unavailableMessage ?? t("feed.unavailable.message");
+  const tRef = useRef(t);
+  tRef.current = t;
   const insets = useSafeAreaInsets();
   const showToast = useSuccessToastStore((state) => state.show);
   const [posts, setPosts] = useState<FeedPost[]>([]);
@@ -167,7 +191,7 @@ export function FeedModuleScreen({
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : "Impossible de charger le fil.",
+            : tRef.current("feed.errors.loadFailed"),
         );
       } finally {
         setIsLoading(false);
@@ -198,20 +222,23 @@ export function FeedModuleScreen({
       );
       showToast({
         variant: "success",
-        title: payload.type === "POLL" ? "Sondage publié" : "Actualité publiée",
+        title:
+          payload.type === "POLL"
+            ? t("feed.toast.pollPublishedTitle")
+            : t("feed.toast.postPublishedTitle"),
         message:
           payload.type === "POLL"
-            ? "Le sondage est maintenant visible dans le fil."
-            : "Votre publication a été ajoutée au fil d'actualité.",
+            ? t("feed.toast.pollPublishedMessage")
+            : t("feed.toast.postPublishedMessage"),
       });
     } catch (error) {
       showToast({
         variant: "error",
-        title: "Publication impossible",
+        title: t("feed.toast.publishErrorTitle"),
         message:
           error instanceof Error
             ? error.message
-            : "Impossible de publier cette actualité pour le moment.",
+            : t("feed.toast.publishErrorMessage"),
       });
     }
   }
@@ -234,11 +261,11 @@ export function FeedModuleScreen({
     } catch (error) {
       showToast({
         variant: "error",
-        title: "Réaction indisponible",
+        title: t("feed.toast.likeErrorTitle"),
         message:
           error instanceof Error
             ? error.message
-            : "Impossible d'enregistrer votre réaction.",
+            : t("feed.toast.likeErrorMessage"),
       });
     }
   }
@@ -257,11 +284,11 @@ export function FeedModuleScreen({
     } catch (error) {
       showToast({
         variant: "error",
-        title: "Commentaire non envoyé",
+        title: t("feed.toast.commentErrorTitle"),
         message:
           error instanceof Error
             ? error.message
-            : "Impossible d'ajouter ce commentaire.",
+            : t("feed.toast.commentErrorMessage"),
       });
     }
   }
@@ -288,11 +315,11 @@ export function FeedModuleScreen({
     } catch (error) {
       showToast({
         variant: "error",
-        title: "Vote indisponible",
+        title: t("feed.toast.voteErrorTitle"),
         message:
           error instanceof Error
             ? error.message
-            : "Impossible d'enregistrer votre vote.",
+            : t("feed.toast.voteErrorMessage"),
       });
     }
   }
@@ -315,17 +342,17 @@ export function FeedModuleScreen({
       );
       showToast({
         variant: "success",
-        title: "Publication supprimée",
+        title: t("feed.toast.deleteSuccessTitle"),
         message: deleteSuccessMessage,
       });
     } catch (error) {
       showToast({
         variant: "error",
-        title: "Suppression impossible",
+        title: t("feed.toast.deleteErrorTitle"),
         message:
           error instanceof Error
             ? error.message
-            : "Impossible de supprimer cette publication.",
+            : t("feed.toast.deleteErrorMessage"),
       });
     } finally {
       setDeleteCandidate(null);
@@ -340,8 +367,8 @@ export function FeedModuleScreen({
           searchVisible,
         })}
         <View style={styles.center}>
-          <Text style={styles.emptyTitle}>{unavailableTitle}</Text>
-          <Text style={styles.emptySub}>{unavailableMessage}</Text>
+          <Text style={styles.emptyTitle}>{effectiveUnavailableTitle}</Text>
+          <Text style={styles.emptySub}>{effectiveUnavailableMessage}</Text>
         </View>
       </View>
     );
@@ -381,7 +408,7 @@ export function FeedModuleScreen({
             style={styles.searchInput}
             value={search}
             onChangeText={setSearch}
-            placeholder={searchPlaceholder}
+            placeholder={effectiveSearchPlaceholder}
             placeholderTextColor={colors.textSecondary}
             testID={`${testIDPrefix}-search-input`}
           />
@@ -471,7 +498,9 @@ export function FeedModuleScreen({
                           size={16}
                           color={colors.warmAccent}
                         />
-                        <Text style={styles.heroPrimaryActionText}>Info</Text>
+                        <Text style={styles.heroPrimaryActionText}>
+                          {t("feed.composer.infoLabel")}
+                        </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.heroPrimaryAction}
@@ -487,7 +516,7 @@ export function FeedModuleScreen({
                           color={colors.warmAccent}
                         />
                         <Text style={styles.heroPrimaryActionText}>
-                          Sondage
+                          {t("feed.composer.pollLabel")}
                         </Text>
                       </TouchableOpacity>
                     </>
@@ -550,7 +579,7 @@ export function FeedModuleScreen({
                     style={styles.heroSearchInput}
                     value={search}
                     onChangeText={setSearch}
-                    placeholder={searchPlaceholder}
+                    placeholder={effectiveSearchPlaceholder}
                     placeholderTextColor={colors.textSecondary}
                     testID={`${testIDPrefix}-search-input`}
                   />
@@ -582,7 +611,9 @@ export function FeedModuleScreen({
                     testID={`${testIDPrefix}-open-composer-post`}
                   >
                     <Ionicons name="add" size={16} color={colors.warmAccent} />
-                    <Text style={styles.heroPrimaryActionText}>Info</Text>
+                    <Text style={styles.heroPrimaryActionText}>
+                      {t("feed.composer.infoLabel")}
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.heroPrimaryAction}
@@ -593,7 +624,9 @@ export function FeedModuleScreen({
                     testID={`${testIDPrefix}-open-composer-poll`}
                   >
                     <Ionicons name="add" size={16} color={colors.warmAccent} />
-                    <Text style={styles.heroPrimaryActionText}>Sondage</Text>
+                    <Text style={styles.heroPrimaryActionText}>
+                      {t("feed.composer.pollLabel")}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               ) : null}
@@ -624,10 +657,10 @@ export function FeedModuleScreen({
                   color={colors.warmBorder}
                 />
                 <Text style={styles.emptyTitle}>
-                  {search ? "Aucun résultat" : emptyTitle}
+                  {search ? t("feed.empty.noResultsTitle") : emptyTitle}
                 </Text>
                 <Text style={styles.emptySub}>
-                  {search ? "Essayez d'autres mots-clés." : emptyMessage}
+                  {search ? t("feed.empty.noResultsMessage") : emptyMessage}
                 </Text>
               </View>
             }
@@ -712,11 +745,14 @@ export function FeedModuleScreen({
 
       <ConfirmDialog
         visible={Boolean(deleteCandidate)}
-        title="Supprimer cette publication ?"
-        subtitle="Action visible immédiatement"
-        message={`La publication sera retirée du ${deleteContextLabel} pour les lecteurs autorisés.`}
-        confirmLabel="Supprimer"
-        cancelLabel="Annuler"
+        title={t("feed.deleteDialog.title")}
+        subtitle={t("feed.deleteDialog.subtitle")}
+        message={t("feed.deleteDialog.message").replace(
+          "{context}",
+          deleteContextLabel,
+        )}
+        confirmLabel={t("feed.deleteDialog.confirm")}
+        cancelLabel={t("feed.deleteDialog.cancel")}
         variant="danger"
         onCancel={() => setDeleteCandidate(null)}
         onConfirm={() => {
