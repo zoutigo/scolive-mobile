@@ -45,51 +45,89 @@ import {
   SectionCard,
   TextField,
 } from "./TimetableCommon";
+import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 
 type TabKey = "agenda" | "slots" | "oneoff" | "holidays";
 
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_REGEX = /^\d{2}:\d{2}$/;
 
-const slotSchema = z.object({
-  subjectId: z.string().min(1, "Choisissez une matière."),
-  teacherUserId: z.string().min(1, "Choisissez un enseignant."),
-  weekday: z.string(),
-  start: z.string().regex(TIME_REGEX, "Format HH:MM attendu."),
-  end: z.string().regex(TIME_REGEX, "Format HH:MM attendu."),
-  room: z.string(),
-  activeFromDate: z
-    .string()
-    .regex(ISO_DATE_REGEX, "Format AAAA-MM-JJ attendu."),
-  activeToDate: z.string().regex(ISO_DATE_REGEX, "Format AAAA-MM-JJ attendu."),
-});
+function createSlotSchema(t: TranslateFn) {
+  return z.object({
+    subjectId: z
+      .string()
+      .min(1, t("timetable.classManager.validation.chooseSubject")),
+    teacherUserId: z
+      .string()
+      .min(1, t("timetable.classManager.validation.chooseTeacher")),
+    weekday: z.string(),
+    start: z
+      .string()
+      .regex(TIME_REGEX, t("timetable.classManager.validation.timeFormat")),
+    end: z
+      .string()
+      .regex(TIME_REGEX, t("timetable.classManager.validation.timeFormat")),
+    room: z.string(),
+    activeFromDate: z
+      .string()
+      .regex(ISO_DATE_REGEX, t("timetable.classManager.validation.dateFormat")),
+    activeToDate: z
+      .string()
+      .regex(ISO_DATE_REGEX, t("timetable.classManager.validation.dateFormat")),
+  });
+}
 
-const oneOffSchema = z.object({
-  subjectId: z.string().min(1, "Choisissez une matière."),
-  teacherUserId: z.string().min(1, "Choisissez un enseignant."),
-  occurrenceDate: z
-    .string()
-    .regex(ISO_DATE_REGEX, "Format AAAA-MM-JJ attendu."),
-  start: z.string().regex(TIME_REGEX, "Format HH:MM attendu."),
-  end: z.string().regex(TIME_REGEX, "Format HH:MM attendu."),
-  room: z.string(),
-  status: z.enum(["PLANNED", "CANCELLED"]),
-});
+function createOneOffSchema(t: TranslateFn) {
+  return z.object({
+    subjectId: z
+      .string()
+      .min(1, t("timetable.classManager.validation.chooseSubject")),
+    teacherUserId: z
+      .string()
+      .min(1, t("timetable.classManager.validation.chooseTeacher")),
+    occurrenceDate: z
+      .string()
+      .regex(ISO_DATE_REGEX, t("timetable.classManager.validation.dateFormat")),
+    start: z
+      .string()
+      .regex(TIME_REGEX, t("timetable.classManager.validation.timeFormat")),
+    end: z
+      .string()
+      .regex(TIME_REGEX, t("timetable.classManager.validation.timeFormat")),
+    room: z.string(),
+    status: z.enum(["PLANNED", "CANCELLED"]),
+  });
+}
 
-const holidaySchema = z.object({
-  label: z.string().trim().min(1, "Le libellé de fermeture est obligatoire."),
-  startDate: z.string().regex(ISO_DATE_REGEX, "Format AAAA-MM-JJ attendu."),
-  endDate: z.string().regex(ISO_DATE_REGEX, "Format AAAA-MM-JJ attendu."),
-});
+function createHolidaySchema(t: TranslateFn) {
+  return z.object({
+    label: z
+      .string()
+      .trim()
+      .min(1, t("timetable.classManager.validation.holidayLabelRequired")),
+    startDate: z
+      .string()
+      .regex(ISO_DATE_REGEX, t("timetable.classManager.validation.dateFormat")),
+    endDate: z
+      .string()
+      .regex(ISO_DATE_REGEX, t("timetable.classManager.validation.dateFormat")),
+  });
+}
 
-type SlotValues = z.infer<typeof slotSchema>;
-type OneOffValues = z.infer<typeof oneOffSchema>;
-type HolidayValues = z.infer<typeof holidaySchema>;
+type SlotValues = z.infer<ReturnType<typeof createSlotSchema>>;
+type OneOffValues = z.infer<ReturnType<typeof createOneOffSchema>>;
+type HolidayValues = z.infer<ReturnType<typeof createHolidaySchema>>;
 
-function parseMinuteOrThrow(value: string, fieldLabel: string): number {
+function parseMinuteOrThrow(
+  value: string,
+  fieldLabel: string,
+  t: TranslateFn,
+): number {
   const parsed = timeLabelToMinute(value);
   if (parsed === null) {
-    throw new Error(`${fieldLabel} doit être au format HH:MM.`);
+    throw new Error(
+      `${fieldLabel} ${t("timetable.classManager.validation.timeFormatError")}`,
+    );
   }
   return parsed;
 }
@@ -136,6 +174,7 @@ export function ClassTimetableManagerScreen() {
     clearError,
   } = useTimetableStore();
   const showToast = useSuccessToastStore((state) => state.show);
+  const { t } = useTranslation();
   const viewType = user ? getViewType(user) : "unknown";
   const canManageCalendarEvents = viewType === "school";
 
@@ -146,6 +185,10 @@ export function ClassTimetableManagerScreen() {
   const [slotEditId, setSlotEditId] = useState("");
   const [oneOffEditId, setOneOffEditId] = useState("");
   const [holidayEditId, setHolidayEditId] = useState("");
+
+  const slotSchema = useMemo(() => createSlotSchema(t), [t]);
+  const oneOffSchema = useMemo(() => createOneOffSchema(t), [t]);
+  const holidaySchema = useMemo(() => createHolidaySchema(t), [t]);
 
   const slotRhf = useForm<SlotValues>({
     mode: "onChange",
@@ -313,8 +356,16 @@ export function ClassTimetableManagerScreen() {
             classContext.selectedSchoolYearId ??
             classContext.class.schoolYearId,
           weekday: Number(data.weekday),
-          startMinute: parseMinuteOrThrow(data.start, "Début"),
-          endMinute: parseMinuteOrThrow(data.end, "Fin"),
+          startMinute: parseMinuteOrThrow(
+            data.start,
+            t("timetable.classManager.validation.startLabel"),
+            t,
+          ),
+          endMinute: parseMinuteOrThrow(
+            data.end,
+            t("timetable.classManager.validation.endLabel"),
+            t,
+          ),
           subjectId: data.subjectId,
           teacherUserId: data.teacherUserId,
           room: data.room.trim() || null,
@@ -325,15 +376,15 @@ export function ClassTimetableManagerScreen() {
           await updateRecurringSlot(schoolSlug, slotEditId, payload);
           showToast({
             variant: "success",
-            title: "Créneau mis à jour",
-            message: "Le planning hebdomadaire a été actualisé.",
+            title: t("timetable.classManager.toast.slotUpdatedTitle"),
+            message: t("timetable.classManager.toast.slotUpdatedMessage"),
           });
         } else {
           await createRecurringSlot(schoolSlug, classId, payload);
           showToast({
             variant: "success",
-            title: "Créneau ajouté",
-            message: "Le nouveau cours apparaît maintenant dans l'agenda.",
+            title: t("timetable.classManager.toast.slotCreatedTitle"),
+            message: t("timetable.classManager.toast.slotCreatedMessage"),
           });
         }
         resetSlotForm();
@@ -341,11 +392,11 @@ export function ClassTimetableManagerScreen() {
       } catch (error) {
         showToast({
           variant: "error",
-          title: "Créneau refusé",
+          title: t("timetable.classManager.toast.slotRejectedTitle"),
           message:
             error instanceof Error
               ? error.message
-              : "Impossible d'enregistrer ce créneau.",
+              : t("timetable.classManager.toast.slotRejectedMessage"),
         });
       }
     },
@@ -360,8 +411,16 @@ export function ClassTimetableManagerScreen() {
             classContext.selectedSchoolYearId ??
             classContext.class.schoolYearId,
           occurrenceDate: data.occurrenceDate,
-          startMinute: parseMinuteOrThrow(data.start, "Début"),
-          endMinute: parseMinuteOrThrow(data.end, "Fin"),
+          startMinute: parseMinuteOrThrow(
+            data.start,
+            t("timetable.classManager.validation.startLabel"),
+            t,
+          ),
+          endMinute: parseMinuteOrThrow(
+            data.end,
+            t("timetable.classManager.validation.endLabel"),
+            t,
+          ),
           subjectId: data.subjectId,
           teacherUserId: data.teacherUserId,
           room: data.room.trim() || null,
@@ -371,15 +430,15 @@ export function ClassTimetableManagerScreen() {
           await updateOneOffSlot(schoolSlug, oneOffEditId, payload);
           showToast({
             variant: "success",
-            title: "Séance modifiée",
-            message: "L'exception de planning a été mise à jour.",
+            title: t("timetable.classManager.toast.oneOffUpdatedTitle"),
+            message: t("timetable.classManager.toast.oneOffUpdatedMessage"),
           });
         } else {
           await createOneOffSlot(schoolSlug, classId, payload);
           showToast({
             variant: "success",
-            title: "Séance exceptionnelle ajoutée",
-            message: "Le créneau ponctuel apparaît maintenant dans l'agenda.",
+            title: t("timetable.classManager.toast.oneOffCreatedTitle"),
+            message: t("timetable.classManager.toast.oneOffCreatedMessage"),
           });
         }
         resetOneOffForm();
@@ -387,11 +446,11 @@ export function ClassTimetableManagerScreen() {
       } catch (error) {
         showToast({
           variant: "error",
-          title: "Séance non enregistrée",
+          title: t("timetable.classManager.toast.oneOffRejectedTitle"),
           message:
             error instanceof Error
               ? error.message
-              : "Impossible d'enregistrer cette séance.",
+              : t("timetable.classManager.toast.oneOffRejectedMessage"),
         });
       }
     },
@@ -414,15 +473,15 @@ export function ClassTimetableManagerScreen() {
           await updateCalendarEvent(schoolSlug, holidayEditId, payload);
           showToast({
             variant: "success",
-            title: "Fermeture mise à jour",
-            message: "Le calendrier école a été actualisé.",
+            title: t("timetable.classManager.toast.holidayUpdatedTitle"),
+            message: t("timetable.classManager.toast.holidayUpdatedMessage"),
           });
         } else {
           await createCalendarEvent(schoolSlug, payload);
           showToast({
             variant: "success",
-            title: "Fermeture ajoutée",
-            message: "Le calendrier de l'école a été mis à jour.",
+            title: t("timetable.classManager.toast.holidayCreatedTitle"),
+            message: t("timetable.classManager.toast.holidayCreatedMessage"),
           });
         }
         resetHolidayForm();
@@ -430,11 +489,11 @@ export function ClassTimetableManagerScreen() {
       } catch (error) {
         showToast({
           variant: "error",
-          title: "Fermeture refusée",
+          title: t("timetable.classManager.toast.holidayRejectedTitle"),
           message:
             error instanceof Error
               ? error.message
-              : "Impossible d'enregistrer cette fermeture.",
+              : t("timetable.classManager.toast.holidayRejectedMessage"),
         });
       }
     },
@@ -446,18 +505,18 @@ export function ClassTimetableManagerScreen() {
       await deleteRecurringSlot(schoolSlug, slot.id);
       showToast({
         variant: "success",
-        title: "Créneau supprimé",
-        message: "Le cours hebdomadaire ne fait plus partie du planning.",
+        title: t("timetable.classManager.toast.slotDeletedTitle"),
+        message: t("timetable.classManager.toast.slotDeletedMessage"),
       });
       await load();
     } catch (error) {
       showToast({
         variant: "error",
-        title: "Suppression impossible",
+        title: t("timetable.classManager.toast.deleteImpossibleTitle"),
         message:
           error instanceof Error
             ? error.message
-            : "Impossible de supprimer ce créneau.",
+            : t("timetable.classManager.toast.slotDeleteErrorMessage"),
       });
     }
   }
@@ -468,18 +527,18 @@ export function ClassTimetableManagerScreen() {
       await deleteOneOffSlot(schoolSlug, slot.id);
       showToast({
         variant: "success",
-        title: "Séance supprimée",
-        message: "Le créneau ponctuel ne figure plus dans l'agenda.",
+        title: t("timetable.classManager.toast.oneOffDeletedTitle"),
+        message: t("timetable.classManager.toast.oneOffDeletedMessage"),
       });
       await load();
     } catch (error) {
       showToast({
         variant: "error",
-        title: "Suppression impossible",
+        title: t("timetable.classManager.toast.deleteImpossibleTitle"),
         message:
           error instanceof Error
             ? error.message
-            : "Impossible de supprimer cette séance.",
+            : t("timetable.classManager.toast.oneOffDeleteErrorMessage"),
       });
     }
   }
@@ -490,18 +549,18 @@ export function ClassTimetableManagerScreen() {
       await deleteCalendarEvent(schoolSlug, event.id);
       showToast({
         variant: "success",
-        title: "Fermeture supprimée",
-        message: "Le calendrier école a été mis à jour.",
+        title: t("timetable.classManager.toast.holidayDeletedTitle"),
+        message: t("timetable.classManager.toast.holidayDeletedMessage"),
       });
       await load();
     } catch (error) {
       showToast({
         variant: "error",
-        title: "Suppression impossible",
+        title: t("timetable.classManager.toast.deleteImpossibleTitle"),
         message:
           error instanceof Error
             ? error.message
-            : "Impossible de supprimer cette fermeture.",
+            : t("timetable.classManager.toast.holidayDeleteErrorMessage"),
       });
     }
   }
@@ -548,8 +607,10 @@ export function ClassTimetableManagerScreen() {
   return (
     <View style={styles.root}>
       <ModuleHeader
-        title={classContext?.class.name ?? "Emploi du temps"}
-        subtitle="Emploi du temps de la classe"
+        title={
+          classContext?.class.name ?? t("timetable.classManager.defaultTitle")
+        }
+        subtitle={t("timetable.classManager.headerSubtitle")}
         onBack={() => router.back()}
         topInset={insets.top}
         testID="class-timetable-header"
@@ -583,25 +644,39 @@ export function ClassTimetableManagerScreen() {
           {classContext ? (
             <MiniIdentityCard
               title={classContext.class.name}
-              subtitle={`${classContext.selectedSchoolYearId ?? classContext.class.schoolYearId} • ${formatHumanDate(range.fromDate)} au ${formatHumanDate(range.toDate)}`}
+              subtitle={`${classContext.selectedSchoolYearId ?? classContext.class.schoolYearId} • ${formatHumanDate(range.fromDate)} ${t("timetable.classManager.dateRangeTo")} ${formatHumanDate(range.toDate)}`}
               accent={colors.primary}
             />
           ) : null}
 
           <SectionCard
-            title="Navigation"
-            subtitle="Passez du planning visualisé aux formulaires de gestion."
+            title={t("timetable.classManager.nav.title")}
+            subtitle={t("timetable.classManager.nav.subtitle")}
           >
             <PillSelector
-              label="Onglet"
+              label={t("timetable.classManager.nav.tabLabel")}
               value={tab}
               onChange={(value) => setTab(value as TabKey)}
               options={[
-                { value: "agenda", label: "Agenda" },
-                { value: "slots", label: "Créneaux" },
-                { value: "oneoff", label: "Exceptions" },
+                {
+                  value: "agenda",
+                  label: t("timetable.classManager.nav.tabAgenda"),
+                },
+                {
+                  value: "slots",
+                  label: t("timetable.classManager.nav.tabSlots"),
+                },
+                {
+                  value: "oneoff",
+                  label: t("timetable.classManager.nav.tabOneOff"),
+                },
                 ...(canManageCalendarEvents
-                  ? [{ value: "holidays", label: "Fermetures" }]
+                  ? [
+                      {
+                        value: "holidays",
+                        label: t("timetable.classManager.nav.tabHolidays"),
+                      },
+                    ]
                   : []),
               ]}
               testIDPrefix="class-timetable-tab"
@@ -609,27 +684,27 @@ export function ClassTimetableManagerScreen() {
           </SectionCard>
 
           {isLoadingClassContext || isLoadingClassTimetable ? (
-            <SectionCard title="Chargement">
-              <LoadingBlock label="Chargement de la classe..." />
+            <SectionCard title={t("timetable.classManager.loadingTitle")}>
+              <LoadingBlock label={t("timetable.classManager.loadingClass")} />
             </SectionCard>
           ) : !classContext || !classTimetable ? (
-            <SectionCard title="Accès">
+            <SectionCard title={t("timetable.classManager.accessTitle")}>
               <EmptyState
                 icon="lock-closed-outline"
-                title="Classe indisponible"
-                message="Le backend n'autorise peut-être pas la gestion de cette classe pour votre rôle."
+                title={t("timetable.classManager.accessDeniedTitle")}
+                message={t("timetable.classManager.accessDeniedMessage")}
               />
             </SectionCard>
           ) : tab === "agenda" ? (
             <SectionCard
-              title="Agenda consolidé"
-              subtitle="Vue unifiée des créneaux récurrents, ajustements et annulations."
+              title={t("timetable.classManager.agenda.title")}
+              subtitle={t("timetable.classManager.agenda.subtitle")}
             >
               <OccurrencesAgenda
                 occurrences={classTimetable.occurrences}
                 subjectStyles={classTimetable.subjectStyles}
-                emptyTitle="Aucun créneau chargé"
-                emptyMessage="Commencez par ajouter un créneau ou élargir la période côté écran."
+                emptyTitle={t("timetable.classManager.agenda.emptyTitle")}
+                emptyMessage={t("timetable.classManager.agenda.emptyMessage")}
                 testID="class-timetable-occurrences"
               />
             </SectionCard>
@@ -638,17 +713,17 @@ export function ClassTimetableManagerScreen() {
               <SectionCard
                 title={
                   slotEditId
-                    ? "Modifier un créneau"
-                    : "Nouveau créneau hebdomadaire"
+                    ? t("timetable.classManager.slots.editTitle")
+                    : t("timetable.classManager.slots.newTitle")
                 }
-                subtitle="Le formulaire reste scrollable pour laisser de la place au clavier et sécuriser la saisie E2E."
+                subtitle={t("timetable.classManager.slots.subtitle")}
               >
                 <Controller
                   control={slotRhf.control}
                   name="subjectId"
                   render={({ field }) => (
                     <PillSelector
-                      label="Matière"
+                      label={t("timetable.classManager.fields.subject")}
                       value={field.value}
                       onChange={(subjectId) => {
                         const assignment =
@@ -670,7 +745,7 @@ export function ClassTimetableManagerScreen() {
                   name="teacherUserId"
                   render={({ field }) => (
                     <PillSelector
-                      label="Enseignant"
+                      label={t("timetable.classManager.fields.teacher")}
                       value={field.value}
                       onChange={field.onChange}
                       options={subjectScopedTeachers}
@@ -682,24 +757,47 @@ export function ClassTimetableManagerScreen() {
                   name="weekday"
                   render={({ field }) => (
                     <PillSelector
-                      label="Jour"
+                      label={t("timetable.classManager.fields.day")}
                       value={field.value}
                       onChange={field.onChange}
                       options={[
-                        { value: "1", label: "Lun" },
-                        { value: "2", label: "Mar" },
-                        { value: "3", label: "Mer" },
-                        { value: "4", label: "Jeu" },
-                        { value: "5", label: "Ven" },
-                        { value: "6", label: "Sam" },
-                        { value: "7", label: "Dim" },
+                        {
+                          value: "1",
+                          label: t("timetable.classManager.weekdays.mon"),
+                        },
+                        {
+                          value: "2",
+                          label: t("timetable.classManager.weekdays.tue"),
+                        },
+                        {
+                          value: "3",
+                          label: t("timetable.classManager.weekdays.wed"),
+                        },
+                        {
+                          value: "4",
+                          label: t("timetable.classManager.weekdays.thu"),
+                        },
+                        {
+                          value: "5",
+                          label: t("timetable.classManager.weekdays.fri"),
+                        },
+                        {
+                          value: "6",
+                          label: t("timetable.classManager.weekdays.sat"),
+                        },
+                        {
+                          value: "7",
+                          label: t("timetable.classManager.weekdays.sun"),
+                        },
                       ]}
                     />
                   )}
                 />
                 <View style={styles.row}>
                   <View style={styles.rowField}>
-                    <Text style={styles.rowFieldLabel}>Début</Text>
+                    <Text style={styles.rowFieldLabel}>
+                      {t("timetable.classManager.fields.start")}
+                    </Text>
                     <Controller
                       control={slotRhf.control}
                       name="start"
@@ -707,7 +805,9 @@ export function ClassTimetableManagerScreen() {
                         <TimePickerField
                           value={field.value}
                           onChange={field.onChange}
-                          title="Heure de début"
+                          title={t(
+                            "timetable.classManager.timePicker.startTitle",
+                          )}
                           placeholder="07:30"
                           testID="slot-form-start"
                         />
@@ -715,7 +815,9 @@ export function ClassTimetableManagerScreen() {
                     />
                   </View>
                   <View style={styles.rowField}>
-                    <Text style={styles.rowFieldLabel}>Fin</Text>
+                    <Text style={styles.rowFieldLabel}>
+                      {t("timetable.classManager.fields.end")}
+                    </Text>
                     <Controller
                       control={slotRhf.control}
                       name="end"
@@ -723,7 +825,9 @@ export function ClassTimetableManagerScreen() {
                         <TimePickerField
                           value={field.value}
                           onChange={field.onChange}
-                          title="Heure de fin"
+                          title={t(
+                            "timetable.classManager.timePicker.endTitle",
+                          )}
                           placeholder="08:20"
                           testID="slot-form-end"
                         />
@@ -736,10 +840,12 @@ export function ClassTimetableManagerScreen() {
                   name="room"
                   render={({ field }) => (
                     <TextField
-                      label="Salle"
+                      label={t("timetable.classManager.fields.room")}
                       value={field.value}
                       onChangeText={field.onChange}
-                      placeholder="Salle A2"
+                      placeholder={t(
+                        "timetable.classManager.placeholders.roomA2",
+                      )}
                       testID="slot-form-room"
                     />
                   )}
@@ -751,10 +857,12 @@ export function ClassTimetableManagerScreen() {
                     render={({ field, fieldState }) => (
                       <View style={{ flex: 1 }}>
                         <TextField
-                          label="Actif du"
+                          label={t("timetable.classManager.fields.activeFrom")}
                           value={field.value}
                           onChangeText={field.onChange}
-                          placeholder="AAAA-MM-JJ"
+                          placeholder={t(
+                            "timetable.classManager.placeholders.isoDate",
+                          )}
                           hasError={!!fieldState.error}
                         />
                         {fieldState.error ? (
@@ -771,10 +879,12 @@ export function ClassTimetableManagerScreen() {
                     render={({ field, fieldState }) => (
                       <View style={{ flex: 1 }}>
                         <TextField
-                          label="Actif au"
+                          label={t("timetable.classManager.fields.activeTo")}
                           value={field.value}
                           onChangeText={field.onChange}
-                          placeholder="AAAA-MM-JJ"
+                          placeholder={t(
+                            "timetable.classManager.placeholders.isoDate",
+                          )}
                           hasError={!!fieldState.error}
                         />
                         {fieldState.error ? (
@@ -794,7 +904,9 @@ export function ClassTimetableManagerScreen() {
                     testID="slot-form-submit"
                   >
                     <Text style={styles.primaryButtonText}>
-                      {slotEditId ? "Mettre à jour" : "Ajouter le créneau"}
+                      {slotEditId
+                        ? t("timetable.classManager.buttons.updateSlot")
+                        : t("timetable.classManager.buttons.addSlot")}
                     </Text>
                   </TouchableOpacity>
                   {slotEditId ? (
@@ -802,21 +914,25 @@ export function ClassTimetableManagerScreen() {
                       style={styles.secondaryButton}
                       onPress={resetSlotForm}
                     >
-                      <Text style={styles.secondaryButtonText}>Annuler</Text>
+                      <Text style={styles.secondaryButtonText}>
+                        {t("timetable.common.cancel")}
+                      </Text>
                     </TouchableOpacity>
                   ) : null}
                 </View>
               </SectionCard>
 
               <SectionCard
-                title="Créneaux existants"
-                subtitle="Chaque ligne peut être modifiée ou supprimée."
+                title={t("timetable.classManager.existingSlots.title")}
+                subtitle={t("timetable.classManager.existingSlots.subtitle")}
               >
                 {classTimetable.slots.length === 0 ? (
                   <EmptyState
                     icon="time-outline"
-                    title="Pas encore de créneau récurrent"
-                    message="Ajoutez le premier cours hebdomadaire pour cette classe."
+                    title={t("timetable.classManager.existingSlots.emptyTitle")}
+                    message={t(
+                      "timetable.classManager.existingSlots.emptyMessage",
+                    )}
                   />
                 ) : (
                   <View style={styles.list}>
@@ -829,11 +945,14 @@ export function ClassTimetableManagerScreen() {
                             {minuteToTimeLabel(slot.endMinute)}
                           </Text>
                           <Text style={styles.entryMeta}>
-                            {fullTeacherName(slot.teacherUser)} • jour{" "}
+                            {fullTeacherName(slot.teacherUser)} •{" "}
+                            {t(
+                              "timetable.classManager.existingSlots.dayPrefix",
+                            )}{" "}
                             {slot.weekday} •{" "}
                             {slot.room?.trim()
                               ? slot.room
-                              : "Salle à confirmer"}
+                              : t("timetable.common.roomToConfirm")}
                           </Text>
                         </View>
                         <TouchableOpacity
@@ -869,17 +988,17 @@ export function ClassTimetableManagerScreen() {
               <SectionCard
                 title={
                   oneOffEditId
-                    ? "Modifier une séance"
-                    : "Nouvelle séance ponctuelle"
+                    ? t("timetable.classManager.oneoff.editTitle")
+                    : t("timetable.classManager.oneoff.newTitle")
                 }
-                subtitle="Utilisez cet onglet pour les permutations, remplacements et cours exceptionnels."
+                subtitle={t("timetable.classManager.oneoff.subtitle")}
               >
                 <Controller
                   control={oneOffRhf.control}
                   name="subjectId"
                   render={({ field }) => (
                     <PillSelector
-                      label="Matière"
+                      label={t("timetable.classManager.fields.subject")}
                       value={field.value}
                       onChange={(subjectId) => {
                         const assignment =
@@ -901,7 +1020,7 @@ export function ClassTimetableManagerScreen() {
                   name="teacherUserId"
                   render={({ field }) => (
                     <PillSelector
-                      label="Enseignant"
+                      label={t("timetable.classManager.fields.teacher")}
                       value={field.value}
                       onChange={field.onChange}
                       options={teacherOptions}
@@ -914,10 +1033,12 @@ export function ClassTimetableManagerScreen() {
                   render={({ field, fieldState }) => (
                     <>
                       <TextField
-                        label="Date"
+                        label={t("timetable.classManager.fields.date")}
                         value={field.value}
                         onChangeText={field.onChange}
-                        placeholder="AAAA-MM-JJ"
+                        placeholder={t(
+                          "timetable.classManager.placeholders.isoDate",
+                        )}
                         hasError={!!fieldState.error}
                         testID="oneoff-form-date"
                       />
@@ -931,7 +1052,9 @@ export function ClassTimetableManagerScreen() {
                 />
                 <View style={styles.row}>
                   <View style={styles.rowField}>
-                    <Text style={styles.rowFieldLabel}>Début</Text>
+                    <Text style={styles.rowFieldLabel}>
+                      {t("timetable.classManager.fields.start")}
+                    </Text>
                     <Controller
                       control={oneOffRhf.control}
                       name="start"
@@ -939,7 +1062,9 @@ export function ClassTimetableManagerScreen() {
                         <TimePickerField
                           value={field.value}
                           onChange={field.onChange}
-                          title="Heure de début"
+                          title={t(
+                            "timetable.classManager.timePicker.startTitle",
+                          )}
                           placeholder="10:00"
                           testID="oneoff-form-start"
                         />
@@ -947,7 +1072,9 @@ export function ClassTimetableManagerScreen() {
                     />
                   </View>
                   <View style={styles.rowField}>
-                    <Text style={styles.rowFieldLabel}>Fin</Text>
+                    <Text style={styles.rowFieldLabel}>
+                      {t("timetable.classManager.fields.end")}
+                    </Text>
                     <Controller
                       control={oneOffRhf.control}
                       name="end"
@@ -955,7 +1082,9 @@ export function ClassTimetableManagerScreen() {
                         <TimePickerField
                           value={field.value}
                           onChange={field.onChange}
-                          title="Heure de fin"
+                          title={t(
+                            "timetable.classManager.timePicker.endTitle",
+                          )}
                           placeholder="10:50"
                           testID="oneoff-form-end"
                         />
@@ -968,10 +1097,12 @@ export function ClassTimetableManagerScreen() {
                   name="room"
                   render={({ field }) => (
                     <TextField
-                      label="Salle"
+                      label={t("timetable.classManager.fields.room")}
                       value={field.value}
                       onChangeText={field.onChange}
-                      placeholder="Salle polyvalente"
+                      placeholder={t(
+                        "timetable.classManager.placeholders.roomMultipurpose",
+                      )}
                     />
                   )}
                 />
@@ -980,12 +1111,18 @@ export function ClassTimetableManagerScreen() {
                   name="status"
                   render={({ field }) => (
                     <PillSelector
-                      label="Statut"
+                      label={t("timetable.classManager.fields.status")}
                       value={field.value}
                       onChange={field.onChange}
                       options={[
-                        { value: "PLANNED", label: "Prévu" },
-                        { value: "CANCELLED", label: "Annulé" },
+                        {
+                          value: "PLANNED",
+                          label: t("timetable.common.statusPlanned"),
+                        },
+                        {
+                          value: "CANCELLED",
+                          label: t("timetable.common.statusCancelled"),
+                        },
                       ]}
                     />
                   )}
@@ -998,7 +1135,9 @@ export function ClassTimetableManagerScreen() {
                     testID="oneoff-form-submit"
                   >
                     <Text style={styles.primaryButtonText}>
-                      {oneOffEditId ? "Mettre à jour" : "Ajouter la séance"}
+                      {oneOffEditId
+                        ? t("timetable.classManager.buttons.updateOneOff")
+                        : t("timetable.classManager.buttons.addOneOff")}
                     </Text>
                   </TouchableOpacity>
                   {oneOffEditId ? (
@@ -1006,21 +1145,27 @@ export function ClassTimetableManagerScreen() {
                       style={styles.secondaryButton}
                       onPress={resetOneOffForm}
                     >
-                      <Text style={styles.secondaryButtonText}>Annuler</Text>
+                      <Text style={styles.secondaryButtonText}>
+                        {t("timetable.common.cancel")}
+                      </Text>
                     </TouchableOpacity>
                   ) : null}
                 </View>
               </SectionCard>
 
               <SectionCard
-                title="Séances ponctuelles"
-                subtitle="Historique des exceptions déjà créées pour cette classe."
+                title={t("timetable.classManager.existingOneOff.title")}
+                subtitle={t("timetable.classManager.existingOneOff.subtitle")}
               >
                 {classTimetable.oneOffSlots.length === 0 ? (
                   <EmptyState
                     icon="flash-outline"
-                    title="Aucune exception"
-                    message="Les cours ponctuels, reports et annulations apparaîtront ici."
+                    title={t(
+                      "timetable.classManager.existingOneOff.emptyTitle",
+                    )}
+                    message={t(
+                      "timetable.classManager.existingOneOff.emptyMessage",
+                    )}
                   />
                 ) : (
                   <View style={styles.list}>
@@ -1037,7 +1182,7 @@ export function ClassTimetableManagerScreen() {
                             •{" "}
                             {slot.room?.trim()
                               ? slot.room
-                              : "Salle à confirmer"}
+                              : t("timetable.common.roomToConfirm")}
                           </Text>
                         </View>
                         <TouchableOpacity
@@ -1073,10 +1218,10 @@ export function ClassTimetableManagerScreen() {
               <SectionCard
                 title={
                   holidayEditId
-                    ? "Modifier une fermeture"
-                    : "Nouvelle fermeture"
+                    ? t("timetable.classManager.holidays.editTitle")
+                    : t("timetable.classManager.holidays.newTitle")
                 }
-                subtitle="Réservé aux rôles établissement. Sert pour congés, ponts et jours fériés."
+                subtitle={t("timetable.classManager.holidays.subtitle")}
               >
                 <Controller
                   control={holidayRhf.control}
@@ -1084,10 +1229,12 @@ export function ClassTimetableManagerScreen() {
                   render={({ field, fieldState }) => (
                     <>
                       <TextField
-                        label="Libellé"
+                        label={t("timetable.classManager.fields.label")}
                         value={field.value}
                         onChangeText={field.onChange}
-                        placeholder="Fête de la jeunesse"
+                        placeholder={t(
+                          "timetable.classManager.placeholders.holidayLabel",
+                        )}
                         hasError={!!fieldState.error}
                         testID="holiday-form-label"
                       />
@@ -1106,10 +1253,14 @@ export function ClassTimetableManagerScreen() {
                     render={({ field, fieldState }) => (
                       <View style={{ flex: 1 }}>
                         <TextField
-                          label="Début"
+                          label={t(
+                            "timetable.classManager.validation.startLabel",
+                          )}
                           value={field.value}
                           onChangeText={field.onChange}
-                          placeholder="AAAA-MM-JJ"
+                          placeholder={t(
+                            "timetable.classManager.placeholders.isoDate",
+                          )}
                           hasError={!!fieldState.error}
                         />
                         {fieldState.error ? (
@@ -1126,10 +1277,14 @@ export function ClassTimetableManagerScreen() {
                     render={({ field, fieldState }) => (
                       <View style={{ flex: 1 }}>
                         <TextField
-                          label="Fin"
+                          label={t(
+                            "timetable.classManager.validation.endLabel",
+                          )}
                           value={field.value}
                           onChangeText={field.onChange}
-                          placeholder="AAAA-MM-JJ"
+                          placeholder={t(
+                            "timetable.classManager.placeholders.isoDate",
+                          )}
                           hasError={!!fieldState.error}
                         />
                         {fieldState.error ? (
@@ -1149,7 +1304,9 @@ export function ClassTimetableManagerScreen() {
                     testID="holiday-form-submit"
                   >
                     <Text style={styles.primaryButtonText}>
-                      {holidayEditId ? "Mettre à jour" : "Ajouter la fermeture"}
+                      {holidayEditId
+                        ? t("timetable.classManager.buttons.updateHoliday")
+                        : t("timetable.classManager.buttons.addHoliday")}
                     </Text>
                   </TouchableOpacity>
                   {holidayEditId ? (
@@ -1157,15 +1314,17 @@ export function ClassTimetableManagerScreen() {
                       style={styles.secondaryButton}
                       onPress={resetHolidayForm}
                     >
-                      <Text style={styles.secondaryButtonText}>Annuler</Text>
+                      <Text style={styles.secondaryButtonText}>
+                        {t("timetable.common.cancel")}
+                      </Text>
                     </TouchableOpacity>
                   ) : null}
                 </View>
               </SectionCard>
 
               <SectionCard
-                title="Calendrier établissement"
-                subtitle="Événements école répercutés dans la lecture des emplois du temps."
+                title={t("timetable.classManager.holidays.calendarTitle")}
+                subtitle={t("timetable.classManager.holidays.calendarSubtitle")}
               >
                 <CalendarEventList
                   events={classTimetable.calendarEvents.filter(

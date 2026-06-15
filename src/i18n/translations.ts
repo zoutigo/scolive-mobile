@@ -646,6 +646,314 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "homework.dialog.deleteTitle": "Supprimer ce homework ?",
     "homework.dialog.deleteMessage": "Cette action est irréversible.",
+
+    "timetable.common.thisWeek": "Cette semaine",
+    "timetable.common.thisMonth": "Ce mois",
+    "timetable.common.cancel": "Annuler",
+    "timetable.common.update": "Mettre à jour",
+    "timetable.common.roomToConfirm": "Salle à confirmer",
+    "timetable.common.noCourseTitle": "Aucun cours",
+    "timetable.common.loadingAgenda": "Chargement de l'agenda...",
+    "timetable.common.weekSelectedSlotLabel": "CRÉNEAU SÉLECTIONNÉ",
+    "timetable.common.weekSelectedSlotPlaceholder":
+      "Sélectionnez un créneau dans le tableau pour afficher son détail.",
+    "timetable.common.statusPlanned": "Prévu",
+    "timetable.common.statusCancelled": "Annulé",
+    "timetable.common.sourceException": "Exception",
+    "timetable.common.sourceAdjusted": "Ajusté",
+    "timetable.common.courseCancelled": "Cours annulé",
+    "timetable.common.noClosureTitle": "Aucune fermeture enregistrée",
+    "timetable.common.noClosureMessage":
+      "Les jours fériés et vacances créés pour l'école apparaîtront ici.",
+    "timetable.common.unknownSchoolYear": "Année non définie",
+    "timetable.common.viewDay": "Jour",
+    "timetable.common.viewWeek": "Semaine",
+    "timetable.common.viewMonth": "Mois",
+    "timetable.common.today": "Aujourd'hui",
+    "timetable.common.edit": "MODIFIER",
+
+    "timetable.weekdays.monFull": "Lundi",
+    "timetable.weekdays.tueFull": "Mardi",
+    "timetable.weekdays.wedFull": "Mercredi",
+    "timetable.weekdays.thuFull": "Jeudi",
+    "timetable.weekdays.friFull": "Vendredi",
+    "timetable.weekdays.satFull": "Samedi",
+    "timetable.weekdays.sunFull": "Dimanche",
+    "timetable.weekdays.monCompact": "L",
+    "timetable.weekdays.tueCompact": "M",
+    "timetable.weekdays.wedCompact": "M",
+    "timetable.weekdays.thuCompact": "J",
+    "timetable.weekdays.friCompact": "V",
+    "timetable.weekdays.satCompact": "S",
+    "timetable.weekdays.sunCompact": "D",
+
+    "timetable.childAgenda.emptyDayMessage":
+      "Aucun créneau n'est prévu pour cette journée.",
+    "timetable.childAgenda.unavailableTitle":
+      "Impossible d'afficher ce planning",
+    "timetable.childAgenda.unavailableMessage":
+      "Vérifiez que l'enfant est bien lié à ce compte parent.",
+    "timetable.childAgenda.roomPrefix": "SALLE",
+    "timetable.childAgenda.monthAgendaLabel": "AGENDA DU JOUR SELECTIONNE",
+    "timetable.childAgenda.detail.subject": "Matière :",
+    "timetable.childAgenda.detail.class": "Classe :",
+    "timetable.childAgenda.detail.day": "Jour :",
+    "timetable.childAgenda.detail.time": "Horaire :",
+    "timetable.childAgenda.detail.teacher": "Enseignant :",
+    "timetable.childAgenda.detail.room": "Salle :",
+
+    "timetable.classesScreen.headerTitle": "Mes classes",
+    "timetable.classesScreen.schoolYear.title": "Année scolaire",
+    "timetable.classesScreen.schoolYear.subtitle":
+      "Filtrez vos classes pour garder un périmètre clair avant de gérer le planning.",
+    "timetable.classesScreen.schoolYear.label": "Année",
+    "timetable.classesScreen.schoolYear.activeSuffix": "active",
+    "timetable.classesScreen.classes.title": "Classes accessibles",
+    "timetable.classesScreen.classes.subtitle":
+      "Le module ouvre la page agenda mobile de la classe. Les restrictions backend du rôle enseignant restent respectées.",
+    "timetable.classesScreen.loading": "Chargement des classes...",
+    "timetable.classesScreen.empty.title": "Aucune classe trouvée",
+    "timetable.classesScreen.empty.message":
+      "Aucune affectation exploitable n'a été trouvée sur cette année.",
+    "timetable.classesScreen.studentSingular": "élève",
+    "timetable.classesScreen.studentPlural": "élèves",
+
+    "timetable.teacherAgenda.headerTitle": "Agenda",
+    "timetable.teacherAgenda.tabs.users": "Utilisateurs",
+    "timetable.teacherAgenda.tabs.classes": "Classes",
+    "timetable.teacherAgenda.tabs.mine": "Mon agenda",
+    "timetable.teacherAgenda.tabs.myClasses": "Mes classes",
+    "timetable.teacherAgenda.classTabLabelDefault": "Agenda de classe",
+    "timetable.teacherAgenda.classTabLabelPrefix": "Agenda",
+    "timetable.teacherAgenda.errors.loadMyAgenda":
+      "Impossible de charger votre agenda pour le moment.",
+    "timetable.teacherAgenda.errors.loadTeachers":
+      "Impossible de charger la liste des enseignants.",
+    "timetable.teacherAgenda.errors.loadTeacherAgenda":
+      "Impossible de charger l'agenda de cet enseignant.",
+    "timetable.teacherAgenda.searchTeacherPlaceholder":
+      "Chercher un enseignant...",
+    "timetable.teacherAgenda.loadingTeachers": "Chargement des enseignants...",
+    "timetable.teacherAgenda.noResultTitle": "Aucun résultat",
+    "timetable.teacherAgenda.noResultMessage":
+      "Aucun enseignant ne correspond à votre recherche.",
+    "timetable.teacherAgenda.emptyMessageMine":
+      "Aucun créneau n'est planifié pour vous sur cette période.",
+    "timetable.teacherAgenda.emptyMessageTeacher":
+      "Aucun créneau planifié pour cet enseignant sur cette période.",
+    "timetable.teacherAgenda.emptyMessageClass":
+      "Aucun créneau planifié pour cette classe sur cette période.",
+    "timetable.teacherAgenda.selectTeacherTitle": "Sélectionnez un enseignant",
+    "timetable.teacherAgenda.selectTeacherMessage":
+      "Choisissez un enseignant ci-dessus pour consulter son agenda.",
+    "timetable.teacherAgenda.loadingClasses": "Chargement des classes...",
+    "timetable.teacherAgenda.noClassTitle": "Aucune classe accessible",
+    "timetable.teacherAgenda.noClassMessage":
+      "Aucune affectation trouvée pour ce profil.",
+    "timetable.teacherAgenda.selectClassPlaceholder": "Sélectionner une classe",
+    "timetable.teacherAgenda.chooseClassTitle": "Choisir une classe",
+
+    "timetable.classManager.defaultTitle": "Emploi du temps",
+    "timetable.classManager.headerSubtitle": "Emploi du temps de la classe",
+    "timetable.classManager.dateRangeTo": "au",
+    "timetable.classManager.validation.chooseSubject":
+      "Choisissez une matière.",
+    "timetable.classManager.validation.chooseTeacher":
+      "Choisissez un enseignant.",
+    "timetable.classManager.validation.timeFormat": "Format HH:MM attendu.",
+    "timetable.classManager.validation.dateFormat":
+      "Format AAAA-MM-JJ attendu.",
+    "timetable.classManager.validation.holidayLabelRequired":
+      "Le libellé de fermeture est obligatoire.",
+    "timetable.classManager.validation.startLabel": "Début",
+    "timetable.classManager.validation.endLabel": "Fin",
+    "timetable.classManager.validation.timeFormatError":
+      "doit être au format HH:MM.",
+    "timetable.classManager.toast.slotUpdatedTitle": "Créneau mis à jour",
+    "timetable.classManager.toast.slotUpdatedMessage":
+      "Le planning hebdomadaire a été actualisé.",
+    "timetable.classManager.toast.slotCreatedTitle": "Créneau ajouté",
+    "timetable.classManager.toast.slotCreatedMessage":
+      "Le nouveau cours apparaît maintenant dans l'agenda.",
+    "timetable.classManager.toast.slotRejectedTitle": "Créneau refusé",
+    "timetable.classManager.toast.slotRejectedMessage":
+      "Impossible d'enregistrer ce créneau.",
+    "timetable.classManager.toast.oneOffUpdatedTitle": "Séance modifiée",
+    "timetable.classManager.toast.oneOffUpdatedMessage":
+      "L'exception de planning a été mise à jour.",
+    "timetable.classManager.toast.oneOffCreatedTitle":
+      "Séance exceptionnelle ajoutée",
+    "timetable.classManager.toast.oneOffCreatedMessage":
+      "Le créneau ponctuel apparaît maintenant dans l'agenda.",
+    "timetable.classManager.toast.oneOffRejectedTitle":
+      "Séance non enregistrée",
+    "timetable.classManager.toast.oneOffRejectedMessage":
+      "Impossible d'enregistrer cette séance.",
+    "timetable.classManager.toast.holidayUpdatedTitle": "Fermeture mise à jour",
+    "timetable.classManager.toast.holidayUpdatedMessage":
+      "Le calendrier école a été actualisé.",
+    "timetable.classManager.toast.holidayCreatedTitle": "Fermeture ajoutée",
+    "timetable.classManager.toast.holidayCreatedMessage":
+      "Le calendrier de l'école a été mis à jour.",
+    "timetable.classManager.toast.holidayRejectedTitle": "Fermeture refusée",
+    "timetable.classManager.toast.holidayRejectedMessage":
+      "Impossible d'enregistrer cette fermeture.",
+    "timetable.classManager.toast.slotDeletedTitle": "Créneau supprimé",
+    "timetable.classManager.toast.slotDeletedMessage":
+      "Le cours hebdomadaire ne fait plus partie du planning.",
+    "timetable.classManager.toast.deleteImpossibleTitle":
+      "Suppression impossible",
+    "timetable.classManager.toast.slotDeleteErrorMessage":
+      "Impossible de supprimer ce créneau.",
+    "timetable.classManager.toast.oneOffDeletedTitle": "Séance supprimée",
+    "timetable.classManager.toast.oneOffDeletedMessage":
+      "Le créneau ponctuel ne figure plus dans l'agenda.",
+    "timetable.classManager.toast.oneOffDeleteErrorMessage":
+      "Impossible de supprimer cette séance.",
+    "timetable.classManager.toast.holidayDeletedTitle": "Fermeture supprimée",
+    "timetable.classManager.toast.holidayDeletedMessage":
+      "Le calendrier école a été mis à jour.",
+    "timetable.classManager.toast.holidayDeleteErrorMessage":
+      "Impossible de supprimer cette fermeture.",
+    "timetable.classManager.nav.title": "Navigation",
+    "timetable.classManager.nav.subtitle":
+      "Passez du planning visualisé aux formulaires de gestion.",
+    "timetable.classManager.nav.tabLabel": "Onglet",
+    "timetable.classManager.nav.tabAgenda": "Agenda",
+    "timetable.classManager.nav.tabSlots": "Créneaux",
+    "timetable.classManager.nav.tabOneOff": "Exceptions",
+    "timetable.classManager.nav.tabHolidays": "Fermetures",
+    "timetable.classManager.loadingTitle": "Chargement",
+    "timetable.classManager.loadingClass": "Chargement de la classe...",
+    "timetable.classManager.accessTitle": "Accès",
+    "timetable.classManager.accessDeniedTitle": "Classe indisponible",
+    "timetable.classManager.accessDeniedMessage":
+      "Le backend n'autorise peut-être pas la gestion de cette classe pour votre rôle.",
+    "timetable.classManager.agenda.title": "Agenda consolidé",
+    "timetable.classManager.agenda.subtitle":
+      "Vue unifiée des créneaux récurrents, ajustements et annulations.",
+    "timetable.classManager.agenda.emptyTitle": "Aucun créneau chargé",
+    "timetable.classManager.agenda.emptyMessage":
+      "Commencez par ajouter un créneau ou élargir la période côté écran.",
+    "timetable.classManager.slots.editTitle": "Modifier un créneau",
+    "timetable.classManager.slots.newTitle": "Nouveau créneau hebdomadaire",
+    "timetable.classManager.slots.subtitle":
+      "Le formulaire reste scrollable pour laisser de la place au clavier et sécuriser la saisie E2E.",
+    "timetable.classManager.fields.subject": "Matière",
+    "timetable.classManager.fields.teacher": "Enseignant",
+    "timetable.classManager.fields.day": "Jour",
+    "timetable.classManager.fields.start": "Début",
+    "timetable.classManager.fields.end": "Fin",
+    "timetable.classManager.fields.room": "Salle",
+    "timetable.classManager.fields.activeFrom": "Actif du",
+    "timetable.classManager.fields.activeTo": "Actif au",
+    "timetable.classManager.fields.date": "Date",
+    "timetable.classManager.fields.status": "Statut",
+    "timetable.classManager.fields.label": "Libellé",
+    "timetable.classManager.placeholders.roomA2": "Salle A2",
+    "timetable.classManager.placeholders.roomMultipurpose": "Salle polyvalente",
+    "timetable.classManager.placeholders.isoDate": "AAAA-MM-JJ",
+    "timetable.classManager.placeholders.holidayLabel": "Fête de la jeunesse",
+    "timetable.classManager.timePicker.startTitle": "Heure de début",
+    "timetable.classManager.timePicker.endTitle": "Heure de fin",
+    "timetable.classManager.weekdays.mon": "Lun",
+    "timetable.classManager.weekdays.tue": "Mar",
+    "timetable.classManager.weekdays.wed": "Mer",
+    "timetable.classManager.weekdays.thu": "Jeu",
+    "timetable.classManager.weekdays.fri": "Ven",
+    "timetable.classManager.weekdays.sat": "Sam",
+    "timetable.classManager.weekdays.sun": "Dim",
+    "timetable.classManager.buttons.updateSlot": "Mettre à jour",
+    "timetable.classManager.buttons.addSlot": "Ajouter le créneau",
+    "timetable.classManager.buttons.updateOneOff": "Mettre à jour",
+    "timetable.classManager.buttons.addOneOff": "Ajouter la séance",
+    "timetable.classManager.buttons.updateHoliday": "Mettre à jour",
+    "timetable.classManager.buttons.addHoliday": "Ajouter la fermeture",
+    "timetable.classManager.existingSlots.title": "Créneaux existants",
+    "timetable.classManager.existingSlots.subtitle":
+      "Chaque ligne peut être modifiée ou supprimée.",
+    "timetable.classManager.existingSlots.emptyTitle":
+      "Pas encore de créneau récurrent",
+    "timetable.classManager.existingSlots.emptyMessage":
+      "Ajoutez le premier cours hebdomadaire pour cette classe.",
+    "timetable.classManager.existingSlots.dayPrefix": "jour",
+    "timetable.classManager.oneoff.editTitle": "Modifier une séance",
+    "timetable.classManager.oneoff.newTitle": "Nouvelle séance ponctuelle",
+    "timetable.classManager.oneoff.subtitle":
+      "Utilisez cet onglet pour les permutations, remplacements et cours exceptionnels.",
+    "timetable.classManager.existingOneOff.title": "Séances ponctuelles",
+    "timetable.classManager.existingOneOff.subtitle":
+      "Historique des exceptions déjà créées pour cette classe.",
+    "timetable.classManager.existingOneOff.emptyTitle": "Aucune exception",
+    "timetable.classManager.existingOneOff.emptyMessage":
+      "Les cours ponctuels, reports et annulations apparaîtront ici.",
+    "timetable.classManager.holidays.editTitle": "Modifier une fermeture",
+    "timetable.classManager.holidays.newTitle": "Nouvelle fermeture",
+    "timetable.classManager.holidays.subtitle":
+      "Réservé aux rôles établissement. Sert pour congés, ponts et jours fériés.",
+    "timetable.classManager.holidays.calendarTitle": "Calendrier établissement",
+    "timetable.classManager.holidays.calendarSubtitle":
+      "Événements école répercutés dans la lecture des emplois du temps.",
+
+    "timetable.oneOffPanel.title": "Nouveau créneau",
+    "timetable.oneOffPanel.fields.class": "Classe",
+    "timetable.oneOffPanel.addButton": "Ajouter ce créneau",
+    "timetable.oneOffPanel.contextError":
+      "Impossible de charger le contexte de la classe.",
+    "timetable.oneOffPanel.validation.chooseClass": "Choisissez une classe.",
+    "timetable.oneOffPanel.validation.startRequired":
+      "Renseignez l'heure de début.",
+    "timetable.oneOffPanel.validation.endRequired":
+      "Renseignez l'heure de fin.",
+    "timetable.oneOffPanel.validation.roomRequired": "Renseignez une salle.",
+    "timetable.oneOffPanel.validation.endAfterStart":
+      "La fin doit être après le début.",
+    "timetable.oneOffPanel.toasts.createdTitle": "Séance ajoutée",
+    "timetable.oneOffPanel.toasts.createdMessage":
+      "Le créneau apparaît maintenant dans l'agenda.",
+    "timetable.oneOffPanel.toasts.createErrorTitle": "Création impossible",
+
+    "timetable.slotEditPanel.title": "MODIFIER CE CRÉNEAU",
+    "timetable.slotEditPanel.scope.occurrence": "Ce créneau",
+    "timetable.slotEditPanel.scope.series": "Toute la série",
+    "timetable.slotEditPanel.validation.startRequired":
+      "Renseignez l'heure de début.",
+    "timetable.slotEditPanel.validation.endRequired":
+      "Renseignez l'heure de fin.",
+    "timetable.slotEditPanel.validation.roomRequired": "Renseignez une salle.",
+    "timetable.slotEditPanel.validation.endAfterStart":
+      "La fin doit être après le début.",
+    "timetable.slotEditPanel.buttons.back": "Retour",
+    "timetable.slotEditPanel.buttons.delete": "Supprimer",
+    "timetable.slotEditPanel.buttons.save": "Modifier",
+    "timetable.slotEditPanel.confirm.deleteSeriesTitle":
+      "Supprimer toute la série ?",
+    "timetable.slotEditPanel.confirm.deleteOccurrenceTitle":
+      "Supprimer ce créneau ?",
+    "timetable.slotEditPanel.confirm.deleteSeriesMessage":
+      "Tous les cours de cette série hebdomadaire seront supprimés.",
+    "timetable.slotEditPanel.confirm.deleteOccurrenceMessage":
+      "Ce cours sera annulé pour cette date uniquement.",
+    "timetable.slotEditPanel.toasts.seriesUpdatedTitle": "Série modifiée",
+    "timetable.slotEditPanel.toasts.seriesUpdatedMessage":
+      "Tous les cours de cette série ont été mis à jour.",
+    "timetable.slotEditPanel.toasts.slotUpdatedTitle": "Créneau modifié",
+    "timetable.slotEditPanel.toasts.slotUpdatedMessage":
+      "Ce cours a été mis à jour.",
+    "timetable.slotEditPanel.toasts.exceptionUpdatedMessage":
+      "Ce cours a été modifié pour cette date uniquement.",
+    "timetable.slotEditPanel.toasts.updateErrorTitle":
+      "Modification impossible",
+    "timetable.slotEditPanel.toasts.seriesDeletedTitle": "Série supprimée",
+    "timetable.slotEditPanel.toasts.seriesDeletedMessage":
+      "Tous les cours de cette série ont été supprimés.",
+    "timetable.slotEditPanel.toasts.slotDeletedTitle": "Créneau supprimé",
+    "timetable.slotEditPanel.toasts.slotDeletedMessage":
+      "Ce cours a été supprimé.",
+    "timetable.slotEditPanel.toasts.slotCancelledTitle": "Créneau annulé",
+    "timetable.slotEditPanel.toasts.slotCancelledMessage":
+      "Ce cours est annulé pour cette date uniquement.",
+    "timetable.slotEditPanel.toasts.deleteErrorTitle": "Suppression impossible",
   },
   en: {
     "settings.language.title": "Language of this device",
@@ -1250,5 +1558,300 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "homework.dialog.deleteTitle": "Delete this homework?",
     "homework.dialog.deleteMessage": "This action cannot be undone.",
+
+    "timetable.common.thisWeek": "This week",
+    "timetable.common.thisMonth": "This month",
+    "timetable.common.cancel": "Cancel",
+    "timetable.common.update": "Update",
+    "timetable.common.roomToConfirm": "Room to be confirmed",
+    "timetable.common.noCourseTitle": "No class",
+    "timetable.common.loadingAgenda": "Loading the schedule...",
+    "timetable.common.weekSelectedSlotLabel": "SELECTED SLOT",
+    "timetable.common.weekSelectedSlotPlaceholder":
+      "Select a slot in the table to display its details.",
+    "timetable.common.statusPlanned": "Planned",
+    "timetable.common.statusCancelled": "Cancelled",
+    "timetable.common.sourceException": "Exception",
+    "timetable.common.sourceAdjusted": "Adjusted",
+    "timetable.common.courseCancelled": "Class cancelled",
+    "timetable.common.noClosureTitle": "No closure recorded",
+    "timetable.common.noClosureMessage":
+      "Public holidays and school breaks created for the school will appear here.",
+    "timetable.common.unknownSchoolYear": "Unknown school year",
+    "timetable.common.viewDay": "Day",
+    "timetable.common.viewWeek": "Week",
+    "timetable.common.viewMonth": "Month",
+    "timetable.common.today": "Today",
+    "timetable.common.edit": "EDIT",
+
+    "timetable.weekdays.monFull": "Monday",
+    "timetable.weekdays.tueFull": "Tuesday",
+    "timetable.weekdays.wedFull": "Wednesday",
+    "timetable.weekdays.thuFull": "Thursday",
+    "timetable.weekdays.friFull": "Friday",
+    "timetable.weekdays.satFull": "Saturday",
+    "timetable.weekdays.sunFull": "Sunday",
+    "timetable.weekdays.monCompact": "M",
+    "timetable.weekdays.tueCompact": "T",
+    "timetable.weekdays.wedCompact": "W",
+    "timetable.weekdays.thuCompact": "T",
+    "timetable.weekdays.friCompact": "F",
+    "timetable.weekdays.satCompact": "S",
+    "timetable.weekdays.sunCompact": "S",
+
+    "timetable.childAgenda.emptyDayMessage":
+      "No class is scheduled for this day.",
+    "timetable.childAgenda.unavailableTitle": "Unable to display this schedule",
+    "timetable.childAgenda.unavailableMessage":
+      "Check that the child is linked to this parent account.",
+    "timetable.childAgenda.roomPrefix": "ROOM",
+    "timetable.childAgenda.monthAgendaLabel": "SELECTED DAY AGENDA",
+    "timetable.childAgenda.detail.subject": "Subject:",
+    "timetable.childAgenda.detail.class": "Class:",
+    "timetable.childAgenda.detail.day": "Day:",
+    "timetable.childAgenda.detail.time": "Time:",
+    "timetable.childAgenda.detail.teacher": "Teacher:",
+    "timetable.childAgenda.detail.room": "Room:",
+
+    "timetable.classesScreen.headerTitle": "My classes",
+    "timetable.classesScreen.schoolYear.title": "School year",
+    "timetable.classesScreen.schoolYear.subtitle":
+      "Filter your classes to keep a clear scope before managing the schedule.",
+    "timetable.classesScreen.schoolYear.label": "Year",
+    "timetable.classesScreen.schoolYear.activeSuffix": "active",
+    "timetable.classesScreen.classes.title": "Accessible classes",
+    "timetable.classesScreen.classes.subtitle":
+      "The module opens the mobile schedule page for the class. Backend restrictions for the teacher role are still enforced.",
+    "timetable.classesScreen.loading": "Loading classes...",
+    "timetable.classesScreen.empty.title": "No class found",
+    "timetable.classesScreen.empty.message":
+      "No usable assignment was found for this year.",
+    "timetable.classesScreen.studentSingular": "student",
+    "timetable.classesScreen.studentPlural": "students",
+
+    "timetable.teacherAgenda.headerTitle": "Schedule",
+    "timetable.teacherAgenda.tabs.users": "Users",
+    "timetable.teacherAgenda.tabs.classes": "Classes",
+    "timetable.teacherAgenda.tabs.mine": "My schedule",
+    "timetable.teacherAgenda.tabs.myClasses": "My classes",
+    "timetable.teacherAgenda.classTabLabelDefault": "Class schedule",
+    "timetable.teacherAgenda.classTabLabelPrefix": "Schedule",
+    "timetable.teacherAgenda.errors.loadMyAgenda":
+      "Unable to load your schedule at the moment.",
+    "timetable.teacherAgenda.errors.loadTeachers":
+      "Unable to load the list of teachers.",
+    "timetable.teacherAgenda.errors.loadTeacherAgenda":
+      "Unable to load this teacher's schedule.",
+    "timetable.teacherAgenda.searchTeacherPlaceholder": "Search a teacher...",
+    "timetable.teacherAgenda.loadingTeachers": "Loading teachers...",
+    "timetable.teacherAgenda.noResultTitle": "No results",
+    "timetable.teacherAgenda.noResultMessage":
+      "No teacher matches your search.",
+    "timetable.teacherAgenda.emptyMessageMine":
+      "No slot is scheduled for you during this period.",
+    "timetable.teacherAgenda.emptyMessageTeacher":
+      "No slot scheduled for this teacher during this period.",
+    "timetable.teacherAgenda.emptyMessageClass":
+      "No slot scheduled for this class during this period.",
+    "timetable.teacherAgenda.selectTeacherTitle": "Select a teacher",
+    "timetable.teacherAgenda.selectTeacherMessage":
+      "Choose a teacher above to view their schedule.",
+    "timetable.teacherAgenda.loadingClasses": "Loading classes...",
+    "timetable.teacherAgenda.noClassTitle": "No class accessible",
+    "timetable.teacherAgenda.noClassMessage":
+      "No assignment found for this profile.",
+    "timetable.teacherAgenda.selectClassPlaceholder": "Select a class",
+    "timetable.teacherAgenda.chooseClassTitle": "Choose a class",
+
+    "timetable.classManager.defaultTitle": "Timetable",
+    "timetable.classManager.headerSubtitle": "Class timetable",
+    "timetable.classManager.dateRangeTo": "to",
+    "timetable.classManager.validation.chooseSubject": "Choose a subject.",
+    "timetable.classManager.validation.chooseTeacher": "Choose a teacher.",
+    "timetable.classManager.validation.timeFormat": "HH:MM format expected.",
+    "timetable.classManager.validation.dateFormat":
+      "YYYY-MM-DD format expected.",
+    "timetable.classManager.validation.holidayLabelRequired":
+      "The closure label is required.",
+    "timetable.classManager.validation.startLabel": "Start",
+    "timetable.classManager.validation.endLabel": "End",
+    "timetable.classManager.validation.timeFormatError":
+      "must be in HH:MM format.",
+    "timetable.classManager.toast.slotUpdatedTitle": "Slot updated",
+    "timetable.classManager.toast.slotUpdatedMessage":
+      "The weekly schedule has been updated.",
+    "timetable.classManager.toast.slotCreatedTitle": "Slot added",
+    "timetable.classManager.toast.slotCreatedMessage":
+      "The new class now appears in the schedule.",
+    "timetable.classManager.toast.slotRejectedTitle": "Slot rejected",
+    "timetable.classManager.toast.slotRejectedMessage":
+      "Unable to save this slot.",
+    "timetable.classManager.toast.oneOffUpdatedTitle": "Session updated",
+    "timetable.classManager.toast.oneOffUpdatedMessage":
+      "The schedule exception has been updated.",
+    "timetable.classManager.toast.oneOffCreatedTitle":
+      "Exceptional session added",
+    "timetable.classManager.toast.oneOffCreatedMessage":
+      "The one-off slot now appears in the schedule.",
+    "timetable.classManager.toast.oneOffRejectedTitle": "Session not saved",
+    "timetable.classManager.toast.oneOffRejectedMessage":
+      "Unable to save this session.",
+    "timetable.classManager.toast.holidayUpdatedTitle": "Closure updated",
+    "timetable.classManager.toast.holidayUpdatedMessage":
+      "The school calendar has been updated.",
+    "timetable.classManager.toast.holidayCreatedTitle": "Closure added",
+    "timetable.classManager.toast.holidayCreatedMessage":
+      "The school calendar has been updated.",
+    "timetable.classManager.toast.holidayRejectedTitle": "Closure rejected",
+    "timetable.classManager.toast.holidayRejectedMessage":
+      "Unable to save this closure.",
+    "timetable.classManager.toast.slotDeletedTitle": "Slot deleted",
+    "timetable.classManager.toast.slotDeletedMessage":
+      "The weekly class is no longer part of the schedule.",
+    "timetable.classManager.toast.deleteImpossibleTitle": "Deletion failed",
+    "timetable.classManager.toast.slotDeleteErrorMessage":
+      "Unable to delete this slot.",
+    "timetable.classManager.toast.oneOffDeletedTitle": "Session deleted",
+    "timetable.classManager.toast.oneOffDeletedMessage":
+      "The one-off slot is no longer in the schedule.",
+    "timetable.classManager.toast.oneOffDeleteErrorMessage":
+      "Unable to delete this session.",
+    "timetable.classManager.toast.holidayDeletedTitle": "Closure deleted",
+    "timetable.classManager.toast.holidayDeletedMessage":
+      "The school calendar has been updated.",
+    "timetable.classManager.toast.holidayDeleteErrorMessage":
+      "Unable to delete this closure.",
+    "timetable.classManager.nav.title": "Navigation",
+    "timetable.classManager.nav.subtitle":
+      "Switch from the schedule view to the management forms.",
+    "timetable.classManager.nav.tabLabel": "Tab",
+    "timetable.classManager.nav.tabAgenda": "Schedule",
+    "timetable.classManager.nav.tabSlots": "Slots",
+    "timetable.classManager.nav.tabOneOff": "Exceptions",
+    "timetable.classManager.nav.tabHolidays": "Closures",
+    "timetable.classManager.loadingTitle": "Loading",
+    "timetable.classManager.loadingClass": "Loading the class...",
+    "timetable.classManager.accessTitle": "Access",
+    "timetable.classManager.accessDeniedTitle": "Class unavailable",
+    "timetable.classManager.accessDeniedMessage":
+      "The backend may not allow managing this class for your role.",
+    "timetable.classManager.agenda.title": "Consolidated schedule",
+    "timetable.classManager.agenda.subtitle":
+      "Unified view of recurring slots, adjustments and cancellations.",
+    "timetable.classManager.agenda.emptyTitle": "No slot loaded",
+    "timetable.classManager.agenda.emptyMessage":
+      "Start by adding a slot or widening the period on screen.",
+    "timetable.classManager.slots.editTitle": "Edit a slot",
+    "timetable.classManager.slots.newTitle": "New weekly slot",
+    "timetable.classManager.slots.subtitle":
+      "The form stays scrollable to leave room for the keyboard and ensure reliable E2E input.",
+    "timetable.classManager.fields.subject": "Subject",
+    "timetable.classManager.fields.teacher": "Teacher",
+    "timetable.classManager.fields.day": "Day",
+    "timetable.classManager.fields.start": "Start",
+    "timetable.classManager.fields.end": "End",
+    "timetable.classManager.fields.room": "Room",
+    "timetable.classManager.fields.activeFrom": "Active from",
+    "timetable.classManager.fields.activeTo": "Active until",
+    "timetable.classManager.fields.date": "Date",
+    "timetable.classManager.fields.status": "Status",
+    "timetable.classManager.fields.label": "Label",
+    "timetable.classManager.placeholders.roomA2": "Room A2",
+    "timetable.classManager.placeholders.roomMultipurpose": "Multipurpose room",
+    "timetable.classManager.placeholders.isoDate": "YYYY-MM-DD",
+    "timetable.classManager.placeholders.holidayLabel": "Youth festival",
+    "timetable.classManager.timePicker.startTitle": "Start time",
+    "timetable.classManager.timePicker.endTitle": "End time",
+    "timetable.classManager.weekdays.mon": "Mon",
+    "timetable.classManager.weekdays.tue": "Tue",
+    "timetable.classManager.weekdays.wed": "Wed",
+    "timetable.classManager.weekdays.thu": "Thu",
+    "timetable.classManager.weekdays.fri": "Fri",
+    "timetable.classManager.weekdays.sat": "Sat",
+    "timetable.classManager.weekdays.sun": "Sun",
+    "timetable.classManager.buttons.updateSlot": "Update",
+    "timetable.classManager.buttons.addSlot": "Add the slot",
+    "timetable.classManager.buttons.updateOneOff": "Update",
+    "timetable.classManager.buttons.addOneOff": "Add the session",
+    "timetable.classManager.buttons.updateHoliday": "Update",
+    "timetable.classManager.buttons.addHoliday": "Add the closure",
+    "timetable.classManager.existingSlots.title": "Existing slots",
+    "timetable.classManager.existingSlots.subtitle":
+      "Each row can be edited or deleted.",
+    "timetable.classManager.existingSlots.emptyTitle": "No recurring slot yet",
+    "timetable.classManager.existingSlots.emptyMessage":
+      "Add the first weekly class for this class.",
+    "timetable.classManager.existingSlots.dayPrefix": "day",
+    "timetable.classManager.oneoff.editTitle": "Edit a session",
+    "timetable.classManager.oneoff.newTitle": "New one-off session",
+    "timetable.classManager.oneoff.subtitle":
+      "Use this tab for swaps, substitutions and exceptional classes.",
+    "timetable.classManager.existingOneOff.title": "One-off sessions",
+    "timetable.classManager.existingOneOff.subtitle":
+      "History of exceptions already created for this class.",
+    "timetable.classManager.existingOneOff.emptyTitle": "No exception",
+    "timetable.classManager.existingOneOff.emptyMessage":
+      "One-off classes, reschedules and cancellations will appear here.",
+    "timetable.classManager.holidays.editTitle": "Edit a closure",
+    "timetable.classManager.holidays.newTitle": "New closure",
+    "timetable.classManager.holidays.subtitle":
+      "Reserved for school staff roles. Used for holidays, bridge days and public holidays.",
+    "timetable.classManager.holidays.calendarTitle": "School calendar",
+    "timetable.classManager.holidays.calendarSubtitle":
+      "School events reflected in the timetable views.",
+
+    "timetable.oneOffPanel.title": "New slot",
+    "timetable.oneOffPanel.fields.class": "Class",
+    "timetable.oneOffPanel.addButton": "Add this slot",
+    "timetable.oneOffPanel.contextError": "Unable to load the class context.",
+    "timetable.oneOffPanel.validation.chooseClass": "Choose a class.",
+    "timetable.oneOffPanel.validation.startRequired": "Enter the start time.",
+    "timetable.oneOffPanel.validation.endRequired": "Enter the end time.",
+    "timetable.oneOffPanel.validation.roomRequired": "Enter a room.",
+    "timetable.oneOffPanel.validation.endAfterStart":
+      "The end time must be after the start time.",
+    "timetable.oneOffPanel.toasts.createdTitle": "Class added",
+    "timetable.oneOffPanel.toasts.createdMessage":
+      "The slot now appears in the schedule.",
+    "timetable.oneOffPanel.toasts.createErrorTitle": "Creation failed",
+
+    "timetable.slotEditPanel.title": "EDIT THIS SLOT",
+    "timetable.slotEditPanel.scope.occurrence": "This slot",
+    "timetable.slotEditPanel.scope.series": "Whole series",
+    "timetable.slotEditPanel.validation.startRequired": "Enter the start time.",
+    "timetable.slotEditPanel.validation.endRequired": "Enter the end time.",
+    "timetable.slotEditPanel.validation.roomRequired": "Enter a room.",
+    "timetable.slotEditPanel.validation.endAfterStart":
+      "The end time must be after the start time.",
+    "timetable.slotEditPanel.buttons.back": "Back",
+    "timetable.slotEditPanel.buttons.delete": "Delete",
+    "timetable.slotEditPanel.buttons.save": "Update",
+    "timetable.slotEditPanel.confirm.deleteSeriesTitle":
+      "Delete the whole series?",
+    "timetable.slotEditPanel.confirm.deleteOccurrenceTitle":
+      "Delete this slot?",
+    "timetable.slotEditPanel.confirm.deleteSeriesMessage":
+      "All classes in this weekly series will be deleted.",
+    "timetable.slotEditPanel.confirm.deleteOccurrenceMessage":
+      "This class will be cancelled for this date only.",
+    "timetable.slotEditPanel.toasts.seriesUpdatedTitle": "Series updated",
+    "timetable.slotEditPanel.toasts.seriesUpdatedMessage":
+      "All classes in this series have been updated.",
+    "timetable.slotEditPanel.toasts.slotUpdatedTitle": "Slot updated",
+    "timetable.slotEditPanel.toasts.slotUpdatedMessage":
+      "This class has been updated.",
+    "timetable.slotEditPanel.toasts.exceptionUpdatedMessage":
+      "This class has been updated for this date only.",
+    "timetable.slotEditPanel.toasts.updateErrorTitle": "Update failed",
+    "timetable.slotEditPanel.toasts.seriesDeletedTitle": "Series deleted",
+    "timetable.slotEditPanel.toasts.seriesDeletedMessage":
+      "All classes in this series have been deleted.",
+    "timetable.slotEditPanel.toasts.slotDeletedTitle": "Slot deleted",
+    "timetable.slotEditPanel.toasts.slotDeletedMessage":
+      "This class has been deleted.",
+    "timetable.slotEditPanel.toasts.slotCancelledTitle": "Slot cancelled",
+    "timetable.slotEditPanel.toasts.slotCancelledMessage":
+      "This class is cancelled for this date only.",
+    "timetable.slotEditPanel.toasts.deleteErrorTitle": "Deletion failed",
   },
 };

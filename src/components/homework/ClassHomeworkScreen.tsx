@@ -1110,7 +1110,10 @@ export function ClassHomeworkScreen({
     [sortedItems],
   );
 
-  const weekDays = useMemo(() => buildWeekDays(cursorDate), [cursorDate]);
+  const weekDays = useMemo(
+    () => buildWeekDays(cursorDate, t),
+    [cursorDate, locale],
+  );
   const visibleWeekDays = useMemo(
     () =>
       weekDays.filter((entry) => {

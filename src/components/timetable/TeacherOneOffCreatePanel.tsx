@@ -27,40 +27,64 @@ import {
   toIsoDateString,
 } from "../../utils/timetable";
 import { extractApiError } from "../../utils/api-error";
+import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
-export const teacherOneOffCreateSchema = z
-  .object({
-    classId: z.string().min(1, "Choisissez une classe"),
-    occurrenceDate: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, "Format YYYY-MM-DD"),
-    start: z
-      .string()
-      .trim()
-      .min(1, "Renseignez l'heure de début")
-      .regex(/^\d{1,2}:\d{2}$/, "Format HH:MM"),
-    end: z
-      .string()
-      .trim()
-      .min(1, "Renseignez l'heure de fin")
-      .regex(/^\d{1,2}:\d{2}$/, "Format HH:MM"),
-    subjectId: z.string().min(1, "Choisissez une matière"),
-    teacherUserId: z.string().min(1, "Choisissez un enseignant"),
-    room: z.string().trim().min(1, "Renseignez une salle"),
-  })
-  .refine(
-    (d) => {
-      const s = timeLabelToMinute(d.start);
-      const e = timeLabelToMinute(d.end);
-      if (s === null || e === null) return true;
-      return e > s;
-    },
-    { path: ["end"], message: "La fin doit être après le début" },
-  );
+function createTeacherOneOffCreateSchema(t: TranslateFn) {
+  return z
+    .object({
+      classId: z
+        .string()
+        .min(1, t("timetable.oneOffPanel.validation.chooseClass")),
+      occurrenceDate: z
+        .string()
+        .regex(
+          /^\d{4}-\d{2}-\d{2}$/,
+          t("timetable.classManager.validation.dateFormat"),
+        ),
+      start: z
+        .string()
+        .trim()
+        .min(1, t("timetable.oneOffPanel.validation.startRequired"))
+        .regex(
+          /^\d{1,2}:\d{2}$/,
+          t("timetable.classManager.validation.timeFormat"),
+        ),
+      end: z
+        .string()
+        .trim()
+        .min(1, t("timetable.oneOffPanel.validation.endRequired"))
+        .regex(
+          /^\d{1,2}:\d{2}$/,
+          t("timetable.classManager.validation.timeFormat"),
+        ),
+      subjectId: z
+        .string()
+        .min(1, t("timetable.classManager.validation.chooseSubject")),
+      teacherUserId: z
+        .string()
+        .min(1, t("timetable.classManager.validation.chooseTeacher")),
+      room: z
+        .string()
+        .trim()
+        .min(1, t("timetable.oneOffPanel.validation.roomRequired")),
+    })
+    .refine(
+      (d) => {
+        const s = timeLabelToMinute(d.start);
+        const e = timeLabelToMinute(d.end);
+        if (s === null || e === null) return true;
+        return e > s;
+      },
+      {
+        path: ["end"],
+        message: t("timetable.oneOffPanel.validation.endAfterStart"),
+      },
+    );
+}
 
-type FormValues = z.infer<typeof teacherOneOffCreateSchema>;
+type FormValues = z.infer<ReturnType<typeof createTeacherOneOffCreateSchema>>;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -89,6 +113,7 @@ export function TeacherOneOffCreatePanel({
   onClose,
   onSuccess,
 }: TeacherOneOffCreatePanelProps) {
+  const { t } = useTranslation();
   const { user } = useAuthStore();
   const { showSuccess, showError } = useSuccessToastStore();
   const [isSaving, setIsSaving] = useState(false);
@@ -96,6 +121,11 @@ export function TeacherOneOffCreatePanel({
     useState<ClassTimetableContextResponse | null>(null);
   const [isLoadingCtx, setIsLoadingCtx] = useState(false);
   const prevClassId = useRef<string>("");
+
+  const teacherOneOffCreateSchema = useMemo(
+    () => createTeacherOneOffCreateSchema(t),
+    [t],
+  );
 
   const {
     control,
@@ -228,13 +258,13 @@ export function TeacherOneOffCreatePanel({
         status: "PLANNED",
       });
       showSuccess({
-        title: "Séance ajoutée",
-        message: "Le créneau apparaît maintenant dans l'agenda.",
+        title: t("timetable.oneOffPanel.toasts.createdTitle"),
+        message: t("timetable.oneOffPanel.toasts.createdMessage"),
       });
       onSuccess();
     } catch (err) {
       showError({
-        title: "Création impossible",
+        title: t("timetable.oneOffPanel.toasts.createErrorTitle"),
         message: extractApiError(err),
       });
     } finally {
@@ -256,7 +286,9 @@ export function TeacherOneOffCreatePanel({
           />
         </View>
         <View style={styles.panelHeaderText}>
-          <Text style={styles.panelTitle}>Nouveau créneau</Text>
+          <Text style={styles.panelTitle}>
+            {t("timetable.oneOffPanel.title")}
+          </Text>
           {selectedClassName ? (
             <Text style={styles.panelSubtitle} numberOfLines={1}>
               {selectedClassName}
@@ -275,7 +307,9 @@ export function TeacherOneOffCreatePanel({
       {/* Class picker (only when no prefilledClassId) */}
       {!prefilledClassId ? (
         <View>
-          <Text style={styles.fieldLabel}>Classe</Text>
+          <Text style={styles.fieldLabel}>
+            {t("timetable.oneOffPanel.fields.class")}
+          </Text>
           <Controller
             control={control}
             name="classId"
@@ -325,7 +359,9 @@ export function TeacherOneOffCreatePanel({
         <View style={styles.fields}>
           {/* Subject */}
           <View>
-            <Text style={styles.fieldLabel}>Matière</Text>
+            <Text style={styles.fieldLabel}>
+              {t("timetable.classManager.fields.subject")}
+            </Text>
             <Controller
               control={control}
               name="subjectId"
@@ -365,7 +401,9 @@ export function TeacherOneOffCreatePanel({
 
           {/* Teacher */}
           <View>
-            <Text style={styles.fieldLabel}>Enseignant</Text>
+            <Text style={styles.fieldLabel}>
+              {t("timetable.classManager.fields.teacher")}
+            </Text>
             <Controller
               control={control}
               name="teacherUserId"
@@ -407,7 +445,9 @@ export function TeacherOneOffCreatePanel({
 
           {/* Date */}
           <View>
-            <Text style={styles.fieldLabel}>Date</Text>
+            <Text style={styles.fieldLabel}>
+              {t("timetable.classManager.fields.date")}
+            </Text>
             <Controller
               control={control}
               name="occurrenceDate"
@@ -437,7 +477,9 @@ export function TeacherOneOffCreatePanel({
           {/* Start / End / Room */}
           <View style={styles.timeRow}>
             <View style={styles.timeField}>
-              <Text style={styles.fieldLabel}>Début</Text>
+              <Text style={styles.fieldLabel}>
+                {t("timetable.classManager.fields.start")}
+              </Text>
               <Controller
                 control={control}
                 name="start"
@@ -446,7 +488,7 @@ export function TeacherOneOffCreatePanel({
                     value={value}
                     onChange={onChange}
                     onBlur={onBlur}
-                    title="Heure de début"
+                    title={t("timetable.classManager.timePicker.startTitle")}
                     placeholder="08:00"
                     hasError={!!errors.start}
                     testID="teacher-oneoff-start-input"
@@ -464,7 +506,9 @@ export function TeacherOneOffCreatePanel({
             </View>
 
             <View style={styles.timeField}>
-              <Text style={styles.fieldLabel}>Fin</Text>
+              <Text style={styles.fieldLabel}>
+                {t("timetable.classManager.fields.end")}
+              </Text>
               <Controller
                 control={control}
                 name="end"
@@ -473,7 +517,7 @@ export function TeacherOneOffCreatePanel({
                     value={value}
                     onChange={onChange}
                     onBlur={onBlur}
-                    title="Heure de fin"
+                    title={t("timetable.classManager.timePicker.endTitle")}
                     placeholder="09:00"
                     hasError={!!errors.end}
                     testID="teacher-oneoff-end-input"
@@ -491,7 +535,9 @@ export function TeacherOneOffCreatePanel({
             </View>
 
             <View style={[styles.timeField, styles.roomField]}>
-              <Text style={styles.fieldLabel}>Salle</Text>
+              <Text style={styles.fieldLabel}>
+                {t("timetable.classManager.fields.room")}
+              </Text>
               <Controller
                 control={control}
                 name="room"
@@ -529,13 +575,15 @@ export function TeacherOneOffCreatePanel({
             {isSaving ? (
               <ActivityIndicator size="small" color={colors.white} />
             ) : (
-              <Text style={styles.saveBtnText}>Ajouter ce créneau</Text>
+              <Text style={styles.saveBtnText}>
+                {t("timetable.oneOffPanel.addButton")}
+              </Text>
             )}
           </TouchableOpacity>
         </View>
       ) : classId ? (
         <Text style={styles.ctxError}>
-          Impossible de charger le contexte de la classe.
+          {t("timetable.oneOffPanel.contextError")}
         </Text>
       ) : null}
     </View>

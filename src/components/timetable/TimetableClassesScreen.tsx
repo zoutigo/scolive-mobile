@@ -25,8 +25,10 @@ import {
   PillSelector,
   SectionCard,
 } from "./TimetableCommon";
+import { useTranslation } from "../../i18n/useTranslation";
 
 export function TimetableClassesScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { openDrawer } = useDrawer();
@@ -75,7 +77,7 @@ export function TimetableClassesScreen() {
       style={styles.root}
     >
       <ModuleHeader
-        title="Mes classes"
+        title={t("timetable.classesScreen.headerTitle")}
         subtitle={subtitle}
         onBack={() => router.back()}
         rightIcon="menu-outline"
@@ -105,11 +107,11 @@ export function TimetableClassesScreen() {
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
         <SectionCard
-          title="Année scolaire"
-          subtitle="Filtrez vos classes pour garder un périmètre clair avant de gérer le planning."
+          title={t("timetable.classesScreen.schoolYear.title")}
+          subtitle={t("timetable.classesScreen.schoolYear.subtitle")}
         >
           <PillSelector
-            label="Année"
+            label={t("timetable.classesScreen.schoolYear.label")}
             value={effectiveYearId}
             onChange={(value) => {
               setSelectedSchoolYearId(value);
@@ -117,23 +119,25 @@ export function TimetableClassesScreen() {
             }}
             options={schoolYears.map((year) => ({
               value: year.id,
-              label: year.isActive ? `${year.label} • active` : year.label,
+              label: year.isActive
+                ? `${year.label} • ${t("timetable.classesScreen.schoolYear.activeSuffix")}`
+                : year.label,
             }))}
             testIDPrefix="timetable-school-year"
           />
         </SectionCard>
 
         <SectionCard
-          title="Classes accessibles"
-          subtitle="Le module ouvre la page agenda mobile de la classe. Les restrictions backend du rôle enseignant restent respectées."
+          title={t("timetable.classesScreen.classes.title")}
+          subtitle={t("timetable.classesScreen.classes.subtitle")}
         >
           {isLoadingClassOptions && !classOptions ? (
-            <LoadingBlock label="Chargement des classes..." />
+            <LoadingBlock label={t("timetable.classesScreen.loading")} />
           ) : filteredClasses.length === 0 ? (
             <EmptyState
               icon="book-outline"
-              title="Aucune classe trouvée"
-              message="Aucune affectation exploitable n'a été trouvée sur cette année."
+              title={t("timetable.classesScreen.empty.title")}
+              message={t("timetable.classesScreen.empty.message")}
             />
           ) : (
             <View style={styles.classList}>
@@ -163,8 +167,10 @@ export function TimetableClassesScreen() {
                     <View style={styles.classText}>
                       <Text style={styles.className}>{item.className}</Text>
                       <Text style={styles.classMeta}>
-                        {item.schoolYearLabel} • {item.studentCount} élève
-                        {item.studentCount > 1 ? "s" : ""}
+                        {item.schoolYearLabel} • {item.studentCount}{" "}
+                        {item.studentCount > 1
+                          ? t("timetable.classesScreen.studentPlural")
+                          : t("timetable.classesScreen.studentSingular")}
                       </Text>
                     </View>
                   </View>
