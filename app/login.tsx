@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActionSheetIOS,
   ActivityIndicator,
@@ -29,46 +29,54 @@ import {
 import { parseApiError } from "../src/auth/google-sso-callback";
 import { SecureTextField } from "../src/components/SecureTextField";
 import { useAuthStore } from "../src/store/auth.store";
+import { SUPPORTED_LOCALES } from "../src/i18n/translations";
+import { useTranslation, type TranslateFn } from "../src/i18n/useTranslation";
 
 const PREFERRED_METHOD_KEY = "preferred_auth_method";
 
 type AuthMethod = "phone" | "email" | "username" | "google";
 
-const METHOD_LABELS: Record<AuthMethod, string> = {
-  phone: "Connexion par téléphone",
-  email: "Connexion par email",
-  username: "Connexion par identifiant",
-  google: "Connexion Google",
-};
+function getMethodLabels(t: TranslateFn): Record<AuthMethod, string> {
+  return {
+    phone: t("login.method.phone"),
+    email: t("login.method.email"),
+    username: t("login.method.username"),
+    google: t("login.method.google"),
+  };
+}
 
 // ── Schemas ────────────────────────────────────────────────────────────────────
 
-const phoneLoginSchema = z.object({
-  phone: z
-    .string()
-    .trim()
-    .refine((value) => value.replace(/\D/g, "").length >= 8, {
-      message: "Numéro de téléphone invalide.",
-    }),
-  pin: z
-    .string()
-    .trim()
-    .regex(/^\d{6}$/, "Le code PIN doit contenir exactement 6 chiffres."),
-});
+function createLoginSchemas(t: TranslateFn) {
+  const phoneLoginSchema = z.object({
+    phone: z
+      .string()
+      .trim()
+      .refine((value) => value.replace(/\D/g, "").length >= 8, {
+        message: t("login.errors.invalidPhone"),
+      }),
+    pin: z
+      .string()
+      .trim()
+      .regex(/^\d{6}$/, t("login.errors.invalidPin")),
+  });
 
-const emailLoginSchema = z.object({
-  email: z.string().trim().email("Adresse email invalide."),
-  password: z.string().min(1, "Mot de passe requis."),
-});
+  const emailLoginSchema = z.object({
+    email: z.string().trim().email(t("login.errors.invalidEmail")),
+    password: z.string().min(1, t("login.errors.passwordRequired")),
+  });
 
-const usernameLoginSchema = z.object({
-  username: z.string().trim().min(1, "Identifiant requis."),
-  password: z.string().min(1, "Mot de passe requis."),
-});
+  const usernameLoginSchema = z.object({
+    username: z.string().trim().min(1, t("login.errors.usernameRequired")),
+    password: z.string().min(1, t("login.errors.passwordRequired")),
+  });
 
-type PhoneLoginValues = z.infer<typeof phoneLoginSchema>;
-type EmailLoginValues = z.infer<typeof emailLoginSchema>;
-type UsernameLoginValues = z.infer<typeof usernameLoginSchema>;
+  return { phoneLoginSchema, emailLoginSchema, usernameLoginSchema };
+}
+
+type PhoneLoginValues = { phone: string; pin: string };
+type EmailLoginValues = { email: string; password: string };
+type UsernameLoginValues = { username: string; password: string };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -107,13 +115,16 @@ function MethodSwitcherModal({
   currentMethod,
   onSelect,
   onClose,
+  t,
 }: {
   visible: boolean;
   currentMethod: AuthMethod;
   onSelect: (method: AuthMethod) => void;
   onClose: () => void;
+  t: TranslateFn;
 }) {
   const methods: AuthMethod[] = ["phone", "email", "username", "google"];
+  const methodLabels = getMethodLabels(t);
   return (
     <Modal
       visible={visible}
@@ -125,9 +136,7 @@ function MethodSwitcherModal({
         <Pressable style={styles.switcherBackdrop} onPress={onClose} />
         <View style={styles.switcherSheet}>
           <View style={styles.switcherHandle} />
-          <Text style={styles.switcherTitle}>
-            Choisir une méthode de connexion
-          </Text>
+          <Text style={styles.switcherTitle}>{t("login.modal.title")}</Text>
           {methods
             .filter((m) => m !== currentMethod)
             .map((m) => (
@@ -137,13 +146,13 @@ function MethodSwitcherModal({
                 onPress={() => onSelect(m)}
                 testID={`modal-tab-${m}`}
               >
-                <Text style={styles.switcherOptionText}>
-                  {METHOD_LABELS[m]}
-                </Text>
+                <Text style={styles.switcherOptionText}>{methodLabels[m]}</Text>
               </Pressable>
             ))}
           <Pressable style={styles.switcherCancel} onPress={onClose}>
-            <Text style={styles.switcherCancelText}>Annuler</Text>
+            <Text style={styles.switcherCancelText}>
+              {t("login.modal.cancel")}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -157,6 +166,12 @@ export default function LoginScreen() {
   const params = useLocalSearchParams<{ tab?: string; error?: string }>();
   const insets = useSafeAreaInsets();
   const { handleLoginResponse } = useAuthStore();
+  const { locale, setLocale, t } = useTranslation();
+  const { phoneLoginSchema, emailLoginSchema, usernameLoginSchema } = useMemo(
+    () => createLoginSchemas(t),
+    [locale],
+  );
+  const methodLabels = getMethodLabels(t);
 
   const [method, setMethod] = useState<AuthMethod>("phone");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -202,9 +217,12 @@ export default function LoginScreen() {
       const others = methods.filter((m) => m !== method);
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: [...others.map((m) => METHOD_LABELS[m]), "Annuler"],
+          options: [
+            ...others.map((m) => methodLabels[m]),
+            t("login.modal.cancel"),
+          ],
           cancelButtonIndex: others.length,
-          title: "Se connecter autrement",
+          title: t("login.actionSheet.title"),
         },
         (idx) => {
           if (idx < others.length) {
@@ -242,7 +260,7 @@ export default function LoginScreen() {
         routeToOnboarding(apiErr);
         return;
       }
-      setError(parseApiError(apiErr));
+      setError(parseApiError(apiErr, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -277,7 +295,7 @@ export default function LoginScreen() {
         routeToOnboarding(apiErr, values.email.trim());
         return;
       }
-      setError(parseApiError(apiErr));
+      setError(parseApiError(apiErr, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -319,7 +337,7 @@ export default function LoginScreen() {
         routeToOnboarding(apiErr);
         return;
       }
-      setError(parseApiError(apiErr));
+      setError(parseApiError(apiErr, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -338,7 +356,7 @@ export default function LoginScreen() {
         setError(err.message);
         return;
       }
-      setError(parseApiError(err));
+      setError(parseApiError(err, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -353,12 +371,41 @@ export default function LoginScreen() {
         <View style={styles.blobTopRight} />
         <View style={styles.blobBottomLeft} />
 
+        <View
+          style={[styles.languageSwitcher, { top: insets.top + 12 }]}
+          testID="login-language-switcher"
+        >
+          {SUPPORTED_LOCALES.map((option) => {
+            const selected = locale === option;
+            return (
+              <Pressable
+                key={option}
+                onPress={() => setLocale(option)}
+                style={[
+                  styles.languageOption,
+                  selected && styles.languageOptionActive,
+                ]}
+                testID={`login-language-${option}`}
+              >
+                <Text
+                  style={[
+                    styles.languageOptionText,
+                    selected && styles.languageOptionTextActive,
+                  ]}
+                >
+                  {option.toUpperCase()}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
         <View style={styles.brandRow}>
           <Text style={styles.brandNameWhite}>SCO</Text>
           <Text style={styles.brandNameGold}>LIVE</Text>
         </View>
         <View style={styles.brandAccent} />
-        <Text style={styles.tagline}>Votre école en temps réel.</Text>
+        <Text style={styles.tagline}>{t("login.tagline")}</Text>
       </View>
 
       {/* ── Card (formulaire) ──────────────────────────────── */}
@@ -374,28 +421,16 @@ export default function LoginScreen() {
             showsVerticalScrollIndicator={false}
             scrollIndicatorInsets={{ bottom: 40 }}
           >
-            {/* Onglets de méthode (testID hooks pour les tests) */}
-            {(["phone", "email", "username", "google"] as AuthMethod[]).map(
-              (m) => (
-                <Pressable
-                  key={m}
-                  testID={`tab-${m}`}
-                  onPress={() => switchMethod(m)}
-                  style={{ height: 0, overflow: "hidden" }}
-                />
-              ),
-            )}
-
             {/* Titre de la méthode active */}
             <Text style={styles.methodLabel} testID="active-method-label">
-              {METHOD_LABELS[method]}
+              {methodLabels[method]}
             </Text>
 
             {/* Téléphone */}
             {method === "phone" ? (
               <View style={styles.form} testID="panel-phone">
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Numéro de téléphone</Text>
+                  <Text style={styles.label}>{t("login.fields.phone")}</Text>
                   <View style={styles.phoneRow}>
                     <View style={styles.dialCode}>
                       <Text style={styles.dialCodeText}>+237</Text>
@@ -413,7 +448,7 @@ export default function LoginScreen() {
                             setError(null);
                             field.onChange(value);
                           }}
-                          placeholder="6XX XXX XXX"
+                          placeholder={t("login.placeholders.phone")}
                           keyboardType="phone-pad"
                           style={[
                             styles.input,
@@ -432,7 +467,7 @@ export default function LoginScreen() {
                   ) : null}
                 </View>
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Code PIN</Text>
+                  <Text style={styles.label}>{t("login.fields.pin")}</Text>
                   <Controller
                     control={phoneForm.control}
                     name="pin"
@@ -446,7 +481,7 @@ export default function LoginScreen() {
                           setError(null);
                           field.onChange(value);
                         }}
-                        placeholder="6 chiffres"
+                        placeholder={t("login.placeholders.pin")}
                         keyboardType="number-pad"
                         placeholderTextColor="#9B9490"
                         maxLength={6}
@@ -480,7 +515,9 @@ export default function LoginScreen() {
                   {isSubmitting ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text style={styles.primaryButtonText}>Se connecter</Text>
+                    <Text style={styles.primaryButtonText}>
+                      {t("login.submit")}
+                    </Text>
                   )}
                 </Pressable>
                 <Pressable
@@ -488,7 +525,9 @@ export default function LoginScreen() {
                   onPress={() => router.push("/recovery/pin")}
                   style={styles.forgotLink}
                 >
-                  <Text style={styles.forgotLinkText}>PIN oublié ?</Text>
+                  <Text style={styles.forgotLinkText}>
+                    {t("login.links.forgotPin")}
+                  </Text>
                 </Pressable>
               </View>
             ) : null}
@@ -497,7 +536,7 @@ export default function LoginScreen() {
             {method === "email" ? (
               <View style={styles.form} testID="panel-email">
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Adresse email</Text>
+                  <Text style={styles.label}>{t("login.fields.email")}</Text>
                   <Controller
                     control={emailForm.control}
                     name="email"
@@ -511,7 +550,7 @@ export default function LoginScreen() {
                           setError(null);
                           field.onChange(value);
                         }}
-                        placeholder="nom@etablissement.cm"
+                        placeholder={t("login.placeholders.email")}
                         keyboardType="email-address"
                         autoCapitalize="none"
                         style={[
@@ -529,7 +568,7 @@ export default function LoginScreen() {
                   ) : null}
                 </View>
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Mot de passe</Text>
+                  <Text style={styles.label}>{t("login.fields.password")}</Text>
                   <Controller
                     control={emailForm.control}
                     name="password"
@@ -543,7 +582,7 @@ export default function LoginScreen() {
                           setError(null);
                           field.onChange(value);
                         }}
-                        placeholder="Votre mot de passe"
+                        placeholder={t("login.placeholders.password")}
                         placeholderTextColor="#9B9490"
                         containerStyle={
                           fieldState.error ? styles.secureFieldError : undefined
@@ -574,7 +613,9 @@ export default function LoginScreen() {
                   {isSubmitting ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text style={styles.primaryButtonText}>Se connecter</Text>
+                    <Text style={styles.primaryButtonText}>
+                      {t("login.submit")}
+                    </Text>
                   )}
                 </Pressable>
                 <Pressable
@@ -583,7 +624,7 @@ export default function LoginScreen() {
                   style={styles.forgotLink}
                 >
                   <Text style={styles.forgotLinkText}>
-                    Mot de passe oublié ?
+                    {t("login.links.forgotPassword")}
                   </Text>
                 </Pressable>
               </View>
@@ -593,7 +634,7 @@ export default function LoginScreen() {
             {method === "username" ? (
               <View style={styles.form} testID="panel-username">
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Identifiant</Text>
+                  <Text style={styles.label}>{t("login.fields.username")}</Text>
                   <Controller
                     control={usernameForm.control}
                     name="username"
@@ -607,7 +648,7 @@ export default function LoginScreen() {
                           setError(null);
                           field.onChange(value);
                         }}
-                        placeholder="ex: jean.dupont"
+                        placeholder={t("login.placeholders.username")}
                         autoCapitalize="none"
                         autoCorrect={false}
                         style={[
@@ -625,7 +666,7 @@ export default function LoginScreen() {
                   ) : null}
                 </View>
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Mot de passe</Text>
+                  <Text style={styles.label}>{t("login.fields.password")}</Text>
                   <Controller
                     control={usernameForm.control}
                     name="password"
@@ -639,7 +680,7 @@ export default function LoginScreen() {
                           setError(null);
                           field.onChange(value);
                         }}
-                        placeholder="Votre mot de passe"
+                        placeholder={t("login.placeholders.password")}
                         placeholderTextColor="#9B9490"
                         containerStyle={
                           fieldState.error ? styles.secureFieldError : undefined
@@ -673,7 +714,9 @@ export default function LoginScreen() {
                   {isSubmitting ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text style={styles.primaryButtonText}>Se connecter</Text>
+                    <Text style={styles.primaryButtonText}>
+                      {t("login.submit")}
+                    </Text>
                   )}
                 </Pressable>
                 <Pressable
@@ -682,7 +725,7 @@ export default function LoginScreen() {
                   style={styles.forgotLink}
                 >
                   <Text style={styles.forgotLinkText}>
-                    Identifiant oublié ?
+                    {t("login.links.forgotUsername")}
                   </Text>
                 </Pressable>
               </View>
@@ -691,9 +734,7 @@ export default function LoginScreen() {
             {/* Google / Apple SSO */}
             {method === "google" ? (
               <View style={styles.form} testID="panel-google">
-                <Text style={styles.ssoInfo}>
-                  Accès instantané avec votre compte existant.
-                </Text>
+                <Text style={styles.ssoInfo}>{t("login.sso.info")}</Text>
                 <Pressable
                   style={[
                     styles.ssoButton,
@@ -707,8 +748,8 @@ export default function LoginScreen() {
                     <GoogleIcon />
                     <Text style={styles.ssoButtonText}>
                       {isSubmitting
-                        ? "Connexion Google..."
-                        : "Continuer avec Google"}
+                        ? t("login.sso.googleLoading")
+                        : t("login.sso.googleContinue")}
                     </Text>
                   </View>
                   <Text style={styles.ssoChevron}>›</Text>
@@ -722,10 +763,12 @@ export default function LoginScreen() {
                   <View style={styles.ssoButtonInner}>
                     <AppleIcon />
                     <Text style={styles.ssoButtonTextMuted}>
-                      Continuer avec Apple
+                      {t("login.sso.appleContinue")}
                     </Text>
                   </View>
-                  <Text style={styles.comingSoon}>BIENTÔT</Text>
+                  <Text style={styles.comingSoon}>
+                    {t("login.sso.comingSoon")}
+                  </Text>
                 </Pressable>
               </View>
             ) : null}
@@ -737,20 +780,21 @@ export default function LoginScreen() {
               style={styles.switchMethodLink}
             >
               <Text style={styles.switchMethodText}>
-                Se connecter autrement →
+                {t("login.links.switchMethod")}
               </Text>
             </Pressable>
           </ScrollView>
         </KeyboardAvoidingView>
 
-        {/* Version + Copyright — ancrés en bas */}
-        <View style={[styles.copyrightBar, { bottom: insets.bottom }]}>
+        {/* Version + Copyright — toujours ancrés en bas de la carte */}
+        <View
+          style={[styles.copyrightBar, { paddingBottom: 10 + insets.bottom }]}
+          testID="login-footer"
+        >
           <Text style={styles.appVersion} testID="login-app-version">
             build {Application.nativeBuildVersion ?? "—"}
           </Text>
-          <Text style={styles.copyright}>
-            © 2026 Scolive. Tous droits réservés.
-          </Text>
+          <Text style={styles.copyright}>{t("login.footer.copyright")}</Text>
         </View>
       </View>
 
@@ -761,6 +805,7 @@ export default function LoginScreen() {
           currentMethod={method}
           onSelect={switchMethod}
           onClose={() => setSwitcherVisible(false)}
+          t={t}
         />
       ) : null}
     </View>
@@ -785,6 +830,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingBottom: 48,
     overflow: "hidden",
+  },
+  languageSwitcher: {
+    position: "absolute",
+    right: 16,
+    flexDirection: "row",
+    gap: 6,
+    zIndex: 1,
+  },
+  languageOption: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.35)",
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  languageOptionActive: {
+    borderColor: GOLD,
+    backgroundColor: "rgba(247,194,96,0.18)",
+  },
+  languageOptionText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
+  languageOptionTextActive: {
+    color: GOLD,
   },
   blobTopRight: {
     position: "absolute",
@@ -856,7 +929,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 28,
-    paddingBottom: 56,
+    paddingBottom: 16,
     gap: 20,
   },
 
@@ -1127,14 +1200,8 @@ const styles = StyleSheet.create({
 
   // ── Copyright (ancré en bas) ───────────────────────────────
   copyrightBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingVertical: 10,
+    paddingTop: 10,
     backgroundColor: "#FFFCF8",
-    zIndex: 10,
-    elevation: 10,
     alignItems: "center",
     gap: 2,
   },

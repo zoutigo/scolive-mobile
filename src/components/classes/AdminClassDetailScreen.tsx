@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -15,23 +15,28 @@ import { ClassHomeworkScreen } from "../homework/ClassHomeworkScreen";
 import { ClassNotesManagerScreen } from "../notes/ClassNotesManagerScreen";
 import { TeacherClassFeedScreen } from "../feed/TeacherClassFeedScreen";
 import { ClassSelectModal } from "./ClassSelectModal";
+import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 
 type TabKey = "discipline" | "agenda" | "devoirs" | "notes" | "fil";
 
-const TABS = [
-  { key: "discipline" as const, label: "Discipline" },
-  { key: "agenda" as const, label: "Agenda" },
-  { key: "devoirs" as const, label: "Devoirs" },
-  { key: "notes" as const, label: "Notes" },
-  { key: "fil" as const, label: "Fil" },
-];
+function buildTabs(t: TranslateFn) {
+  return [
+    { key: "discipline" as const, label: "Discipline" },
+    { key: "agenda" as const, label: "Agenda" },
+    { key: "devoirs" as const, label: t("homework.label") },
+    { key: "notes" as const, label: "Notes" },
+    { key: "fil" as const, label: "Fil" },
+  ];
+}
 
 export function AdminClassDetailScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { openDrawer } = useDrawer();
   const { schoolSlug } = useAuthStore();
   const { classOptions, loadClassOptions } = useTeacherClassNavStore();
+  const TABS = useMemo(() => buildTabs(t), [t]);
 
   const params = useLocalSearchParams<{ classId?: string }>();
   const classId = typeof params.classId === "string" ? params.classId : "";

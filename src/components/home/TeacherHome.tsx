@@ -21,6 +21,7 @@ import {
 } from "../navigation/nav-config";
 import { useDrawer } from "../navigation/AppShell";
 import { minuteToTimeLabel, parseDateInput } from "../../utils/timetable";
+import { useTranslation } from "../../i18n/useTranslation";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const CARD_GAP = 8;
@@ -172,6 +173,7 @@ interface TeacherHomeProps {
 }
 
 export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const { setFolder } = useMessagingStore();
   const { openDrawerForClass } = useDrawer();
@@ -301,20 +303,23 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
 
       {/* Messages non lus */}
       <SectionCard
-        title="Messages non lus"
+        title={t("messaging.nav.unreadMessagesTitle")}
         icon="chatbubble"
         color={ACCENT.messages}
         count={data?.unreadCount}
         onHeaderPress={goToMessages}
-        linkLabel="Messagerie"
+        linkLabel={t("messaging.title")}
         testID="section-messages"
       >
         {!data ? (
-          <EmptyRow icon="hourglass-outline" text="Chargement…" />
+          <EmptyRow
+            icon="hourglass-outline"
+            text={t("messaging.nav.loading")}
+          />
         ) : data.unreadCount === 0 ? (
           <EmptyRow
             icon="checkmark-circle-outline"
-            text="Aucun message non lu"
+            text={t("messaging.nav.noUnreadMessages")}
           />
         ) : (
           data.unreadMessages.map((msg) => (
@@ -481,7 +486,7 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
 
       {/* Devoirs */}
       <SectionCard
-        title="Devoirs"
+        title={t("homework.label")}
         icon="document-text"
         color={ACCENT.homework}
         count={data?.openHomework.length}
@@ -494,7 +499,7 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
         ) : data.openHomework.length === 0 ? (
           <EmptyRow
             icon="checkmark-circle-outline"
-            text="Aucun devoir en cours"
+            text={t("homework.section.empty")}
           />
         ) : (
           data.openHomework.map((item) => {

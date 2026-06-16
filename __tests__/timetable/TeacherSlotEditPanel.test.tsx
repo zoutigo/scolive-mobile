@@ -16,13 +16,52 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
-import {
-  TeacherSlotEditPanel,
-  teacherSlotEditSchema,
-} from "../../src/components/timetable/TeacherSlotEditPanel";
+import { TeacherSlotEditPanel } from "../../src/components/timetable/TeacherSlotEditPanel";
 import { timetableApi } from "../../src/api/timetable.api";
 import { useSuccessToastStore } from "../../src/store/success-toast.store";
 import type { TimetableOccurrence } from "../../src/types/timetable.types";
+import { translate } from "../../src/i18n/useTranslation";
+import { DEFAULT_LOCALE } from "../../src/i18n/translations";
+import { timeLabelToMinute } from "../../src/utils/timetable";
+import { z } from "zod";
+
+const t = (key: string) => translate(DEFAULT_LOCALE, key);
+
+const teacherSlotEditSchema = z
+  .object({
+    start: z
+      .string()
+      .trim()
+      .min(1, t("timetable.slotEditPanel.validation.startRequired"))
+      .regex(/^\d{1,2}:\d{2}$/, {
+        message: t("timetable.classManager.validation.timeFormat"),
+      }),
+    end: z
+      .string()
+      .trim()
+      .min(1, t("timetable.slotEditPanel.validation.endRequired"))
+      .regex(/^\d{1,2}:\d{2}$/, {
+        message: t("timetable.classManager.validation.timeFormat"),
+      }),
+    room: z
+      .string()
+      .trim()
+      .min(1, t("timetable.slotEditPanel.validation.roomRequired")),
+    scope: z.enum(["occurrence", "series"]),
+    teacherUserId: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      const s = timeLabelToMinute(data.start);
+      const e = timeLabelToMinute(data.end);
+      if (s === null || e === null) return true;
+      return e > s;
+    },
+    {
+      message: t("timetable.slotEditPanel.validation.endAfterStart"),
+      path: ["end"],
+    },
+  );
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/timetable.api", () => ({

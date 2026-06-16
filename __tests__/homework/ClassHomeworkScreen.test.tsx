@@ -14,6 +14,7 @@ import { notesApi } from "../../src/api/notes.api";
 import { timetableApi } from "../../src/api/timetable.api";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useFamilyStore } from "../../src/store/family.store";
+import { translate } from "../../src/i18n/useTranslation";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/homework.api");
@@ -801,7 +802,7 @@ describe("ClassHomeworkScreen — erreurs dans l'onglet (dismissibles)", () => {
     );
 
     expect(
-      screen.getByText("Impossible de charger le contexte homework."),
+      screen.getByText(translate("fr", "homework.errors.loadContext")),
     ).toBeTruthy();
     expect(screen.getByTestId("class-homework-tab-list")).toBeTruthy();
   });

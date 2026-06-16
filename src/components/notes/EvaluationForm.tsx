@@ -18,6 +18,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { RichEditor } from "react-native-pell-rich-editor";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
+import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 import { RichTextToolbar } from "../editor/RichTextToolbar";
 import { DatePickerField } from "../DatePickerField";
 import { TimePickerField } from "../TimePickerField";
@@ -66,40 +67,57 @@ function termFromDate(dateIso: string): StudentNotesTerm {
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
-const evalSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(3, "Titre requis (min. 3 caractères)")
-    .max(100, "Titre trop long"),
-  subjectId: z.string().min(1, "Matière requise"),
-  subjectBranchId: z.string().optional(),
-  evaluationTypeId: z.string().min(1, "Type d'évaluation requis"),
-  scheduledDate: z
-    .string()
-    .min(1, "Date requise")
-    .refine((v) => /^\d{4}-\d{2}-\d{2}$/.test(v), "Date invalide"),
-  scheduledTime: z.string().regex(/^\d{2}:\d{2}$/, "Heure invalide"),
-  coefficient: z
-    .string()
-    .min(1, "Coefficient requis")
-    .refine((v) => !isNaN(Number(v)) && Number(v) >= 0.25, "Min 0.25"),
-  maxScore: z
-    .string()
-    .min(1, "Barème requis")
-    .refine((v) => !isNaN(Number(v)) && Number(v) >= 1, "Min 1"),
-});
+function buildEvalSchema(t: TranslateFn) {
+  return z.object({
+    title: z
+      .string()
+      .trim()
+      .min(3, t("notes.form.validation.titleRequired"))
+      .max(100, t("notes.form.validation.titleTooLong")),
+    subjectId: z.string().min(1, t("notes.form.validation.subjectRequired")),
+    subjectBranchId: z.string().optional(),
+    evaluationTypeId: z
+      .string()
+      .min(1, t("notes.form.validation.typeRequired")),
+    scheduledDate: z
+      .string()
+      .min(1, t("notes.form.validation.dateRequired"))
+      .refine(
+        (v) => /^\d{4}-\d{2}-\d{2}$/.test(v),
+        t("notes.form.validation.dateInvalid"),
+      ),
+    scheduledTime: z
+      .string()
+      .regex(/^\d{2}:\d{2}$/, t("notes.form.validation.timeInvalid")),
+    coefficient: z
+      .string()
+      .min(1, t("notes.form.validation.coefficientRequired"))
+      .refine(
+        (v) => !isNaN(Number(v)) && Number(v) >= 0.25,
+        t("notes.form.validation.coefficientMin"),
+      ),
+    maxScore: z
+      .string()
+      .min(1, t("notes.form.validation.maxScoreRequired"))
+      .refine(
+        (v) => !isNaN(Number(v)) && Number(v) >= 1,
+        t("notes.form.validation.maxScoreMin"),
+      ),
+  });
+}
 
-type FormValues = z.infer<typeof evalSchema>;
+type FormValues = z.infer<ReturnType<typeof buildEvalSchema>>;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const COLOR_PRESETS = [
-  { label: "Bleu", value: "#0C5FA8" },
-  { label: "Vert", value: "#217346" },
-  { label: "Rouge", value: "#B42318" },
-  { label: "Noir", value: "#1F2933" },
-];
+function buildColorPresets(t: TranslateFn) {
+  return [
+    { label: t("notes.form.colors.blue"), value: "#0C5FA8" },
+    { label: t("notes.form.colors.green"), value: "#217346" },
+    { label: t("notes.form.colors.red"), value: "#B42318" },
+    { label: t("notes.form.colors.black"), value: "#1F2933" },
+  ];
+}
 
 // ─── SelectField ──────────────────────────────────────────────────────────────
 
@@ -110,7 +128,7 @@ function SelectField({
   value,
   onChange,
   onBlur,
-  placeholder = "Sélectionner…",
+  placeholder,
   hasError = false,
   testID,
   disabled = false,
@@ -119,7 +137,7 @@ function SelectField({
   value: string;
   onChange: (v: string) => void;
   onBlur?: () => void;
-  placeholder?: string;
+  placeholder: string;
   hasError?: boolean;
   testID?: string;
   disabled?: boolean;
@@ -229,6 +247,7 @@ export function EvaluationForm({
   onSubmit,
   onUploadAttachment,
 }: EvaluationFormProps) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const richEditorRef = useRef<RichEditor>(null);
   const [descriptionHtml, setDescriptionHtml] = useState(
@@ -242,7 +261,7 @@ export function EvaluationForm({
   const [maxScoreFocused, setMaxScoreFocused] = useState(false);
 
   const defaultType =
-    teacherContext.evaluationTypes.find((t) => t.isDefault)?.id ??
+    teacherContext.evaluationTypes.find((et) => et.isDefault)?.id ??
     teacherContext.evaluationTypes[0]?.id ??
     "";
 
@@ -253,7 +272,7 @@ export function EvaluationForm({
     setValue,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(evalSchema),
+    resolver: zodResolver(buildEvalSchema(t)),
     defaultValues: {
       title: initialValues?.title ?? "",
       subjectId:
@@ -287,20 +306,24 @@ export function EvaluationForm({
     label: s.name,
   }));
   const typeOptions: SelectOption[] = teacherContext.evaluationTypes.map(
-    (t) => ({ value: t.id, label: t.label }),
+    (et) => ({ value: et.id, label: et.label }),
   );
   const branchOptions: SelectOption[] =
     selectedSubject?.branches.map((b) => ({ value: b.id, label: b.name })) ??
     [];
 
   function openColorMenu() {
-    Alert.alert("Couleur du texte", "Choisissez une couleur", [
-      ...COLOR_PRESETS.map((p) => ({
-        text: p.label,
-        onPress: () => richEditorRef.current?.setForeColor(p.value),
-      })),
-      { text: "Annuler", style: "cancel" as const },
-    ]);
+    Alert.alert(
+      t("notes.form.colorMenu.title"),
+      t("notes.form.colorMenu.message"),
+      [
+        ...buildColorPresets(t).map((p) => ({
+          text: p.label,
+          onPress: () => richEditorRef.current?.setForeColor(p.value),
+        })),
+        { text: t("notes.form.colorMenu.cancel"), style: "cancel" as const },
+      ],
+    );
   }
 
   function applyHeading() {
@@ -385,11 +408,11 @@ export function EvaluationForm({
         testID="eval-form-back"
       >
         <Ionicons name="arrow-back-outline" size={18} color={colors.primary} />
-        <Text style={styles.backText}>Liste des évaluations</Text>
+        <Text style={styles.backText}>{t("notes.form.backToList")}</Text>
       </TouchableOpacity>
 
       {/* ════ IDENTIFICATION ════════════════════════════════════ */}
-      <SectionHeader label="Identification" />
+      <SectionHeader label={t("notes.form.sections.identification")} />
 
       {/* Titre */}
       <Controller
@@ -398,7 +421,8 @@ export function EvaluationForm({
         render={({ field: { onChange, onBlur, value } }) => (
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>
-              Titre <Text style={styles.required}>*</Text>
+              {t("notes.form.fields.title")}{" "}
+              <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
               style={[
@@ -414,7 +438,7 @@ export function EvaluationForm({
                 onBlur();
               }}
               onFocus={() => setTitleFocused(true)}
-              placeholder="Composition de mathématiques"
+              placeholder={t("notes.form.fields.titlePlaceholder")}
               placeholderTextColor={colors.textSecondary}
               testID="eval-form-title"
             />
@@ -428,7 +452,7 @@ export function EvaluationForm({
       />
 
       {/* ════ CLASSIFICATION ════════════════════════════════════ */}
-      <SectionHeader label="Classification" />
+      <SectionHeader label={t("notes.form.sections.classification")} />
 
       {/* Matière */}
       <Controller
@@ -437,14 +461,15 @@ export function EvaluationForm({
         render={({ field: { onChange, onBlur, value } }) => (
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>
-              Matière <Text style={styles.required}>*</Text>
+              {t("notes.form.fields.subject")}{" "}
+              <Text style={styles.required}>*</Text>
             </Text>
             <SelectField
               options={subjectOptions}
               value={value}
               onChange={onChange}
               onBlur={onBlur}
-              placeholder="Sélectionner une matière"
+              placeholder={t("notes.form.fields.subjectPlaceholder")}
               hasError={!!errors.subjectId}
               testID="eval-form-subject"
             />
@@ -464,13 +489,15 @@ export function EvaluationForm({
           name="subjectBranchId"
           render={({ field: { onChange, onBlur, value } }) => (
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Sous-branche</Text>
+              <Text style={styles.fieldLabel}>
+                {t("notes.form.fields.branch")}
+              </Text>
               <SelectField
                 options={branchOptions}
                 value={value ?? ""}
                 onChange={onChange}
                 onBlur={onBlur}
-                placeholder="Sélectionner une sous-branche"
+                placeholder={t("notes.form.fields.branchPlaceholder")}
                 testID="eval-form-branch"
               />
             </View>
@@ -485,14 +512,15 @@ export function EvaluationForm({
         render={({ field: { onChange, onBlur, value } }) => (
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>
-              Type <Text style={styles.required}>*</Text>
+              {t("notes.form.fields.type")}{" "}
+              <Text style={styles.required}>*</Text>
             </Text>
             <SelectField
               options={typeOptions}
               value={value}
               onChange={onChange}
               onBlur={onBlur}
-              placeholder="Sélectionner un type"
+              placeholder={t("notes.form.fields.typePlaceholder")}
               hasError={!!errors.evaluationTypeId}
               testID="eval-form-type"
             />
@@ -506,7 +534,7 @@ export function EvaluationForm({
       />
 
       {/* ════ PLANIFICATION ════════════════════════════════════ */}
-      <SectionHeader label="Planification" />
+      <SectionHeader label={t("notes.form.sections.planning")} />
 
       {/* Date + Heure */}
       <View style={styles.dualRow}>
@@ -516,14 +544,15 @@ export function EvaluationForm({
           render={({ field: { onChange, onBlur, value } }) => (
             <View style={[styles.fieldGroup, { flex: 2 }]}>
               <Text style={styles.fieldLabel}>
-                Date prévue <Text style={styles.required}>*</Text>
+                {t("notes.form.fields.scheduledDate")}{" "}
+                <Text style={styles.required}>*</Text>
               </Text>
               <DatePickerField
                 value={value}
                 onChange={onChange}
                 onBlur={onBlur}
-                placeholder="Choisir une date"
-                title="Date de l'évaluation"
+                placeholder={t("notes.form.fields.datePlaceholder")}
+                title={t("notes.form.fields.dateTitle")}
                 hasError={!!errors.scheduledDate}
                 testID="eval-form-date"
               />
@@ -541,13 +570,15 @@ export function EvaluationForm({
           name="scheduledTime"
           render={({ field: { onChange, onBlur, value } }) => (
             <View style={[styles.fieldGroup, { flex: 1 }]}>
-              <Text style={styles.fieldLabel}>Heure</Text>
+              <Text style={styles.fieldLabel}>
+                {t("notes.form.fields.time")}
+              </Text>
               <TimePickerField
                 value={value}
                 onChange={onChange}
                 onBlur={onBlur}
-                placeholder="Heure"
-                title="Heure de l'évaluation"
+                placeholder={t("notes.form.fields.time")}
+                title={t("notes.form.fields.timeTitle")}
                 hasError={!!errors.scheduledTime}
                 testID="eval-form-time"
               />
@@ -569,7 +600,7 @@ export function EvaluationForm({
           color={colors.primary}
         />
         <Text style={styles.termBadgeText} testID="eval-form-term-auto">
-          {termLabel(autoTerm)} — calculé automatiquement d'après la date
+          {termLabel(autoTerm, t)} — {t("notes.form.termAutoSuffix")}
         </Text>
       </View>
 
@@ -580,7 +611,9 @@ export function EvaluationForm({
           name="coefficient"
           render={({ field: { onChange, onBlur, value } }) => (
             <View style={[styles.fieldGroup, { flex: 1 }]}>
-              <Text style={styles.fieldLabel}>Coefficient</Text>
+              <Text style={styles.fieldLabel}>
+                {t("notes.form.fields.coefficient")}
+              </Text>
               <TextInput
                 style={[
                   styles.input,
@@ -616,7 +649,9 @@ export function EvaluationForm({
           name="maxScore"
           render={({ field: { onChange, onBlur, value } }) => (
             <View style={[styles.fieldGroup, { flex: 1 }]}>
-              <Text style={styles.fieldLabel}>Barème</Text>
+              <Text style={styles.fieldLabel}>
+                {t("notes.form.fields.maxScore")}
+              </Text>
               <TextInput
                 style={[
                   styles.input,
@@ -649,7 +684,7 @@ export function EvaluationForm({
       </View>
 
       {/* ════ DESCRIPTION ════════════════════════════════════════ */}
-      <SectionHeader label="Description" />
+      <SectionHeader label={t("notes.form.sections.description")} />
 
       <View style={styles.fieldGroup}>
         <RichTextToolbar
@@ -663,7 +698,7 @@ export function EvaluationForm({
             ref={richEditorRef}
             initialContentHTML={initialValues?.description ?? ""}
             onChange={setDescriptionHtml}
-            placeholder="Consignes, compétences visées, modalités…"
+            placeholder={t("notes.form.descriptionPlaceholder")}
             style={styles.editor}
             testID="eval-form-description-editor"
           />
@@ -671,7 +706,7 @@ export function EvaluationForm({
       </View>
 
       {/* ════ PIÈCES JOINTES ════════════════════════════════════ */}
-      <SectionHeader label="Pièces jointes" />
+      <SectionHeader label={t("notes.form.sections.attachments")} />
 
       <View style={styles.fieldGroup}>
         <TouchableOpacity
@@ -681,7 +716,9 @@ export function EvaluationForm({
           testID="eval-form-add-attachment"
         >
           <Ionicons name="attach-outline" size={16} color={colors.primary} />
-          <Text style={styles.addAttachmentText}>Ajouter un fichier</Text>
+          <Text style={styles.addAttachmentText}>
+            {t("notes.form.addAttachment")}
+          </Text>
         </TouchableOpacity>
 
         {attachments.map((a, i) => (
@@ -720,7 +757,7 @@ export function EvaluationForm({
 
         {attachments.length === 0 ? (
           <Text style={styles.attachmentHint}>
-            Aucune pièce jointe. Ajoutez un sujet, une consigne ou un barème.
+            {t("notes.form.noAttachment")}
           </Text>
         ) : null}
       </View>
@@ -735,7 +772,9 @@ export function EvaluationForm({
         >
           <Ionicons name="save-outline" size={16} color={colors.primary} />
           <Text style={styles.draftBtnText}>
-            {mode === "create" ? "Sauvegarder brouillon" : "Enregistrer"}
+            {mode === "create"
+              ? t("notes.form.saveDraft")
+              : t("notes.form.save")}
           </Text>
         </TouchableOpacity>
 
@@ -746,7 +785,7 @@ export function EvaluationForm({
           testID="eval-form-publish"
         >
           <Ionicons name="paper-plane-outline" size={16} color={colors.white} />
-          <Text style={styles.publishBtnText}>Publier</Text>
+          <Text style={styles.publishBtnText}>{t("notes.form.publish")}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

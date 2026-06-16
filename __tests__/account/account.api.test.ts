@@ -81,6 +81,30 @@ describe("accountApi", () => {
     );
   });
 
+  it("met à jour la langue du compte via PUT /me/language", async () => {
+    mockApiFetch.mockResolvedValueOnce({
+      firstName: "Remi",
+      lastName: "Ntamack",
+      gender: "M",
+      preferredLocale: "EN",
+      email: "remi@example.com",
+      phone: "237650123456",
+      role: "PARENT",
+      schoolSlug: "college-vogt",
+    });
+
+    await accountApi.updateLanguage({ preferredLocale: "EN" });
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/me/language",
+      {
+        method: "PUT",
+        body: JSON.stringify({ preferredLocale: "EN" }),
+      },
+      true,
+    );
+  });
+
   it("met à jour le rôle actif via PUT /me/active-role", async () => {
     mockApiFetch.mockResolvedValueOnce({ activeRole: "TEACHER" });
 

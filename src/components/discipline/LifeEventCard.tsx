@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import {
   DISCIPLINE_TYPE_CONFIG,
   type StudentLifeEvent,
@@ -28,16 +29,18 @@ export function LifeEventCard({
   onEdit,
   onDelete,
 }: Props) {
+  const { t, locale } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const cfg = DISCIPLINE_TYPE_CONFIG[event.type];
 
+  const dateLocale = locale === "en" ? "en-US" : "fr-FR";
   const date = new Date(event.occurredAt);
-  const dateStr = date.toLocaleDateString("fr-FR", {
+  const dateStr = date.toLocaleDateString(dateLocale, {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
-  const timeStr = date.toLocaleTimeString("fr-FR", {
+  const timeStr = date.toLocaleTimeString(dateLocale, {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -82,11 +85,15 @@ export function LifeEventCard({
           activeOpacity={0.7}
           testID={`expand-event-${event.id}`}
           accessibilityLabel={
-            expanded ? "Réduire les détails" : "Voir les détails"
+            expanded
+              ? t("discipline.card.hideDetails")
+              : t("discipline.card.showDetails")
           }
         >
           <Text style={styles.expandLabel}>
-            {expanded ? "Masquer les détails" : "Voir les détails"}
+            {expanded
+              ? t("discipline.card.hideDetails")
+              : t("discipline.card.showDetails")}
           </Text>
           <Ionicons
             name={expanded ? "chevron-up" : "chevron-down"}
@@ -101,7 +108,7 @@ export function LifeEventCard({
           {event.durationMinutes != null && (
             <DetailRow
               icon="timer-outline"
-              label="Durée"
+              label={t("discipline.card.duration")}
               value={`${event.durationMinutes} min`}
             />
           )}
@@ -112,8 +119,12 @@ export function LifeEventCard({
                   ? "checkmark-circle-outline"
                   : "close-circle-outline"
               }
-              label="Justifié"
-              value={event.justified ? "Oui" : "Non"}
+              label={t("discipline.form.fields.justified")}
+              value={
+                event.justified
+                  ? t("discipline.card.justifiedYes")
+                  : t("discipline.card.justifiedNo")
+              }
               valueColor={
                 event.justified ? colors.accentTeal : colors.notification
               }
@@ -122,14 +133,14 @@ export function LifeEventCard({
           {event.class?.name && (
             <DetailRow
               icon="book-outline"
-              label="Classe"
+              label={t("discipline.card.class")}
               value={event.class.name}
             />
           )}
           {event.schoolYear?.label && (
             <DetailRow
               icon="calendar-outline"
-              label="Année scolaire"
+              label={t("discipline.card.schoolYear")}
               value={event.schoolYear.label}
             />
           )}
@@ -164,7 +175,7 @@ export function LifeEventCard({
                 style={styles.actionBtn}
                 onPress={() => onEdit?.(event)}
                 testID={`edit-event-${event.id}`}
-                accessibilityLabel="Modifier cet événement"
+                accessibilityLabel={t("discipline.card.editAria")}
               >
                 <Ionicons
                   name="pencil-outline"
@@ -178,7 +189,7 @@ export function LifeEventCard({
                 style={[styles.actionBtn, styles.deleteBtn]}
                 onPress={() => onDelete?.(event)}
                 testID={`delete-event-${event.id}`}
-                accessibilityLabel="Supprimer cet événement"
+                accessibilityLabel={t("discipline.card.deleteAria")}
               >
                 <Ionicons
                   name="trash-outline"

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 
 export type StudentSelectOption = {
   value: string;
@@ -32,17 +33,24 @@ export function StudentSelectField({
   value,
   options,
   onChange,
-  placeholder = "Choisir un élève",
-  emptyOptionLabel = "Tous les élèves",
+  placeholder,
+  emptyOptionLabel,
   allowEmpty = true,
   testIDPrefix,
 }: Props) {
+  const { t } = useTranslation();
+  const resolvedPlaceholder =
+    placeholder ?? t("discipline.studentSelect.placeholder");
+  const resolvedEmptyOptionLabel =
+    emptyOptionLabel ?? t("discipline.studentSelect.allStudents");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
   const selectedLabel =
     options.find((option) => option.value === value)?.label ??
-    (value === "" && allowEmpty ? emptyOptionLabel : placeholder);
+    (value === "" && allowEmpty
+      ? resolvedEmptyOptionLabel
+      : resolvedPlaceholder);
 
   const filteredOptions = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -106,7 +114,7 @@ export function StudentSelectField({
               <TextInput
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Rechercher un élève"
+                placeholder={t("discipline.studentSelect.search")}
                 placeholderTextColor={colors.textSecondary}
                 style={styles.searchInput}
                 testID={`${testIDPrefix}-search`}
@@ -120,7 +128,7 @@ export function StudentSelectField({
               {allowEmpty ? (
                 <SelectOptionRow
                   active={value === ""}
-                  label={emptyOptionLabel}
+                  label={resolvedEmptyOptionLabel}
                   onPress={() => {
                     onChange("");
                     setOpen(false);

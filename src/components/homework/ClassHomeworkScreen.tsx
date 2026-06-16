@@ -29,6 +29,11 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { colors } from "../../theme";
+import {
+  translate,
+  useTranslation,
+  type TranslateFn,
+} from "../../i18n/useTranslation";
 import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { useHomeworkStore } from "../../store/homework.store";
@@ -102,39 +107,68 @@ type AgendaModeKey = "week" | "month";
 
 const HOMEWORK_LIST_PAGE_SIZE = 10;
 
-const HOMEWORK_TABS = [
-  { key: "list" as const, label: "Liste", testID: "class-homework-tab-list" },
-  {
-    key: "agenda" as const,
-    label: "Agenda des homeworks",
-    testID: "class-homework-tab-agenda",
-  },
-];
+function buildHomeworkTabs(t: TranslateFn) {
+  return [
+    {
+      key: "list" as const,
+      label: t("homework.tabs.list"),
+      testID: "class-homework-tab-list",
+    },
+    {
+      key: "agenda" as const,
+      label: t("homework.tabs.agenda"),
+      testID: "class-homework-tab-agenda",
+    },
+  ];
+}
 
 const HOMEWORK_INLINE_IMAGE_STYLE =
   "max-width:100%;border-radius:8px;margin:8px 0;";
 
-const homeworkFormSchema = z.object({
-  subjectId: z.string().trim().min(1, "La matière est obligatoire."),
-  title: z.string().trim().min(1, "Le titre est obligatoire."),
-  expectedDate: z.string().trim().min(1, "La date attendue est obligatoire."),
-  expectedTime: z.string().trim().min(1, "L'heure attendue est obligatoire."),
-});
+function buildHomeworkFormSchema(t: TranslateFn) {
+  return z.object({
+    subjectId: z
+      .string()
+      .trim()
+      .min(1, t("homework.form.validation.subjectRequired")),
+    title: z
+      .string()
+      .trim()
+      .min(1, t("homework.form.validation.titleRequired")),
+    expectedDate: z
+      .string()
+      .trim()
+      .min(1, t("homework.form.validation.dateRequired")),
+    expectedTime: z
+      .string()
+      .trim()
+      .min(1, t("homework.form.validation.timeRequired")),
+  });
+}
 
-type HomeworkFormValues = z.infer<typeof homeworkFormSchema>;
+type HomeworkFormValues = z.infer<ReturnType<typeof buildHomeworkFormSchema>>;
 
-const homeworkCommentSchema = z.object({
-  body: z.string().trim().min(1, "Le commentaire ne peut pas être vide."),
-});
+function buildHomeworkCommentSchema(t: TranslateFn) {
+  return z.object({
+    body: z
+      .string()
+      .trim()
+      .min(1, t("homework.form.validation.commentRequired")),
+  });
+}
 
-type HomeworkCommentFormValues = z.infer<typeof homeworkCommentSchema>;
+type HomeworkCommentFormValues = z.infer<
+  ReturnType<typeof buildHomeworkCommentSchema>
+>;
 
-const TEXT_COLOR_PRESETS = [
-  { label: "Noir", value: "#111827" },
-  { label: "Bleu", value: colors.primary },
-  { label: "Vert", value: "#0F766E" },
-  { label: "Rouge", value: "#B91C1C" },
-] as const;
+function buildTextColorPresets(t: TranslateFn) {
+  return [
+    { label: t("homework.colors.black"), value: "#111827" },
+    { label: t("homework.colors.blue"), value: colors.primary },
+    { label: t("homework.colors.green"), value: "#0F766E" },
+    { label: t("homework.colors.red"), value: "#B91C1C" },
+  ] as const;
+}
 
 function fullStudentName(student: {
   firstName: string;
@@ -248,6 +282,7 @@ function HomeworkCard(props: {
   inlineLoading?: boolean;
   testIDPrefix?: string;
 }) {
+  const { t } = useTranslation();
   const prefix = props.testIDPrefix ?? "class-homework";
   const tone = subjectVisualTone(props.item.subject.colorHex ?? undefined);
   const done = isHomeworkDone(props.item);
@@ -300,7 +335,9 @@ function HomeworkCard(props: {
                     size={14}
                     color={colors.white}
                   />
-                  <Text style={styles.donePillText}>Fait</Text>
+                  <Text style={styles.donePillText}>
+                    {t("homework.status.done")}
+                  </Text>
                 </View>
               ) : null}
             </View>
@@ -309,7 +346,8 @@ function HomeworkCard(props: {
             </Text>
           </View>
           <Text style={styles.cardMetaLabel}>
-            Date attendue : {formatHomeworkShortDate(props.item.expectedAt)}
+            {t("homework.card.expectedDatePrefix")}
+            {formatHomeworkShortDate(props.item.expectedAt)}
           </Text>
         </View>
 
@@ -325,7 +363,9 @@ function HomeworkCard(props: {
             onPress={props.onPressDetails}
             testID={`${prefix}-details-${props.item.id}`}
           >
-            <Text style={styles.cardActionText}>Détails</Text>
+            <Text style={styles.cardActionText}>
+              {t("homework.card.details")}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -371,7 +411,7 @@ function HomeworkCard(props: {
                   done && styles.cardActionDoneText,
                 ]}
               >
-                {done ? "Fait" : "Marquer fait"}
+                {done ? t("homework.status.done") : t("homework.card.markDone")}
               </Text>
             </TouchableOpacity>
           ) : null}
@@ -392,7 +432,9 @@ function HomeworkCard(props: {
               onPress={props.onEdit}
               testID={`${prefix}-edit-${props.item.id}`}
             >
-              <Text style={styles.cardActionText}>Modifier</Text>
+              <Text style={styles.cardActionText}>
+                {t("homework.card.edit")}
+              </Text>
             </TouchableOpacity>
           ) : null}
 
@@ -405,7 +447,7 @@ function HomeworkCard(props: {
               <Text
                 style={[styles.cardActionText, styles.cardActionDangerText]}
               >
-                Supprimer
+                {t("homework.card.delete")}
               </Text>
             </TouchableOpacity>
           ) : null}
@@ -413,14 +455,15 @@ function HomeworkCard(props: {
 
         {props.item.attachments.length > 0 ? (
           <Text style={[styles.cardAttachmentCount, { color: tone.text }]}>
-            {props.item.attachments.length} PJ
+            {props.item.attachments.length}{" "}
+            {t("homework.card.attachmentsSuffix")}
           </Text>
         ) : null}
 
         {props.inlineLoading &&
         (props.commentsExpanded || props.controlExpanded) ? (
           <View style={styles.inlinePanelLoading}>
-            <LoadingBlock label="Chargement..." />
+            <LoadingBlock label={t("homework.common.loading")} />
           </View>
         ) : null}
 
@@ -443,14 +486,14 @@ function HomeworkCard(props: {
               ))
             ) : (
               <Text style={styles.helperText}>
-                Aucun commentaire pour le moment.
+                {t("homework.comment.empty")}
               </Text>
             )}
             <View style={styles.commentComposer}>
               <TextInput
                 value={commentDraft}
                 onChangeText={setCommentDraft}
-                placeholder="Ajouter un commentaire"
+                placeholder={t("homework.comment.placeholder")}
                 placeholderTextColor={colors.textSecondary}
                 style={styles.commentInput}
                 multiline
@@ -484,7 +527,8 @@ function HomeworkCard(props: {
                       {status.lastName} {status.firstName}
                     </Text>
                     <Text style={styles.studentStatusMeta}>
-                      Fait le {formatHomeworkDateTime(status.doneAt!)}
+                      {t("homework.card.doneOnPrefix")}
+                      {formatHomeworkDateTime(status.doneAt!)}
                     </Text>
                   </View>
                   <View
@@ -493,13 +537,15 @@ function HomeworkCard(props: {
                       styles.studentStatusPillDone,
                     ]}
                   >
-                    <Text style={styles.studentStatusPillText}>Fait</Text>
+                    <Text style={styles.studentStatusPillText}>
+                      {t("homework.status.done")}
+                    </Text>
                   </View>
                 </View>
               ))
             ) : (
               <Text style={styles.helperText}>
-                Aucun eleve n'a encore marque ce homework comme fait.
+                {t("homework.control.noStudentDone")}
               </Text>
             )}
           </View>
@@ -528,11 +574,13 @@ function HomeworkFormModal(props: {
   initialValue?: HomeworkRow | null;
   isSubmitting: boolean;
 }) {
+  const { t } = useTranslation();
   const editorRef = useRef<RichEditor>(null);
   const [attachments, setAttachments] = useState<HomeworkAttachment[]>([]);
   const [descriptionHtml, setDescriptionHtml] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isInsertingImage, setIsInsertingImage] = useState(false);
+  const textColorPresets = useMemo(() => buildTextColorPresets(t), [t]);
   const {
     control,
     handleSubmit,
@@ -541,7 +589,7 @@ function HomeworkFormModal(props: {
     watch,
     formState: { errors },
   } = useForm<HomeworkFormValues>({
-    resolver: zodResolver(homeworkFormSchema),
+    resolver: zodResolver(buildHomeworkFormSchema(t)),
     defaultValues: {
       subjectId: props.subjectOptions[0]?.value ?? "",
       title: "",
@@ -570,13 +618,17 @@ function HomeworkFormModal(props: {
   }, [props.initialValue, props.subjectOptions, props.visible, reset]);
 
   function openTextColorMenu() {
-    Alert.alert("Couleur du texte", "Choisissez une couleur", [
-      ...TEXT_COLOR_PRESETS.map((color) => ({
-        text: color.label,
-        onPress: () => editorRef.current?.setForeColor(color.value),
-      })),
-      { text: "Annuler", style: "cancel" as const },
-    ]);
+    Alert.alert(
+      t("homework.form.colorMenu.title"),
+      t("homework.form.colorMenu.message"),
+      [
+        ...textColorPresets.map((color) => ({
+          text: color.label,
+          onPress: () => editorRef.current?.setForeColor(color.value),
+        })),
+        { text: t("homework.common.cancel"), style: "cancel" as const },
+      ],
+    );
   }
 
   function applyHeading() {
@@ -594,7 +646,10 @@ function HomeworkFormModal(props: {
   async function handleAddInlineImage() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permission.status !== "granted") {
-      Alert.alert("Permission requise", "Autorisez l'accès aux photos.");
+      Alert.alert(
+        t("homework.form.permission.title"),
+        t("homework.form.permission.message"),
+      );
       return;
     }
 
@@ -615,7 +670,7 @@ function HomeworkFormModal(props: {
       });
       editorRef.current?.insertImage(uploaded.url, HOMEWORK_INLINE_IMAGE_STYLE);
     } catch {
-      Alert.alert("Erreur", "Impossible d'insérer l'image.");
+      Alert.alert(t("homework.errors.title"), t("homework.errors.insertImage"));
     } finally {
       setIsInsertingImage(false);
     }
@@ -640,7 +695,7 @@ function HomeworkFormModal(props: {
       );
       setAttachments((current) => [...current, ...uploaded]);
     } catch {
-      setErrorMessage("Impossible d'ajouter cette pièce jointe.");
+      setErrorMessage(t("homework.errors.addAttachment"));
     }
   }
 
@@ -687,7 +742,9 @@ function HomeworkFormModal(props: {
         >
           <ModuleHeader
             title={
-              props.initialValue ? "Modifier homework" : "Nouveau homework"
+              props.initialValue
+                ? t("homework.form.editTitle")
+                : t("homework.form.createTitle")
             }
             subtitle={props.headerSubtitle}
             onBack={props.onClose}
@@ -702,7 +759,9 @@ function HomeworkFormModal(props: {
           {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Matière</Text>
+            <Text style={styles.fieldLabel}>
+              {t("homework.form.subjectLabel")}
+            </Text>
             <View style={styles.subjectPillsRow}>
               {props.subjectOptions.map((option) => {
                 const active = option.value === watchedSubjectId;
@@ -738,7 +797,9 @@ function HomeworkFormModal(props: {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Titre</Text>
+            <Text style={styles.fieldLabel}>
+              {t("homework.form.titleLabel")}
+            </Text>
             <Controller
               control={control}
               name="title"
@@ -746,7 +807,7 @@ function HomeworkFormModal(props: {
                 <TextInput
                   value={value}
                   onChangeText={onChange}
-                  placeholder="Ex. Exercice sur les fractions"
+                  placeholder={t("homework.form.titlePlaceholder")}
                   style={styles.textInput}
                   placeholderTextColor={colors.textSecondary}
                   testID="homework-form-title"
@@ -759,7 +820,9 @@ function HomeworkFormModal(props: {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Date attendue</Text>
+            <Text style={styles.fieldLabel}>
+              {t("homework.form.expectedDateLabel")}
+            </Text>
             <View style={styles.expectedAtRow}>
               <Controller
                 control={control}
@@ -769,8 +832,8 @@ function HomeworkFormModal(props: {
                     value={value}
                     onChange={onChange}
                     onBlur={onBlur}
-                    placeholder="Choisir une date"
-                    title="Date attendue"
+                    placeholder={t("homework.form.datePlaceholder")}
+                    title={t("homework.form.expectedDateLabel")}
                     hasError={Boolean(errors.expectedDate)}
                     testID="homework-form-expected-date"
                   />
@@ -784,8 +847,8 @@ function HomeworkFormModal(props: {
                     value={value}
                     onChange={onChange}
                     onBlur={onBlur}
-                    placeholder="Heure"
-                    title="Heure attendue"
+                    placeholder={t("homework.form.timePlaceholder")}
+                    title={t("homework.form.expectedTimeLabel")}
                     hasError={Boolean(errors.expectedTime)}
                     testID="homework-form-expected-time"
                   />
@@ -805,7 +868,9 @@ function HomeworkFormModal(props: {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Contenu</Text>
+            <Text style={styles.fieldLabel}>
+              {t("homework.form.contentLabel")}
+            </Text>
             <RichTextToolbar
               editorRef={editorRef}
               onPressAddImage={() => void handleAddInlineImage()}
@@ -820,8 +885,8 @@ function HomeworkFormModal(props: {
                 initialContentHTML={descriptionHtml}
                 placeholder={
                   isInsertingImage
-                    ? "Insertion de l'image..."
-                    : "Consignes, ressources, liens utiles..."
+                    ? t("homework.form.insertingImage")
+                    : t("homework.form.contentPlaceholder")
                 }
                 style={styles.richEditor}
                 testID="homework-form-editor"
@@ -830,8 +895,8 @@ function HomeworkFormModal(props: {
           </View>
 
           <SectionCard
-            title="Pièces jointes"
-            subtitle="Images, PDF, Word, Excel et autres documents scolaires"
+            title={t("homework.form.attachmentsTitle")}
+            subtitle={t("homework.form.attachmentsSubtitle")}
             action={
               <TouchableOpacity
                 onPress={() => void handleAddAttachment()}
@@ -847,7 +912,7 @@ function HomeworkFormModal(props: {
           >
             {attachments.length === 0 ? (
               <Text style={styles.helperText}>
-                Aucune pièce jointe pour le moment.
+                {t("homework.form.noAttachments")}
               </Text>
             ) : (
               attachments.map((attachment, index) => (
@@ -890,7 +955,9 @@ function HomeworkFormModal(props: {
             testID="homework-form-submit"
           >
             <Text style={styles.primaryButtonText}>
-              {props.isSubmitting ? "Enregistrement..." : "Enregistrer"}
+              {props.isSubmitting
+                ? t("homework.common.saving")
+                : t("homework.common.save")}
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -904,6 +971,7 @@ export function ClassHomeworkScreen({
 }: {
   showHeader?: boolean;
 } = {}) {
+  const { t, locale } = useTranslation();
   const params = useLocalSearchParams<{ classId?: string; childId?: string }>();
   const classId = typeof params.classId === "string" ? params.classId : "";
   const routeChildId = typeof params.childId === "string" ? params.childId : "";
@@ -973,7 +1041,7 @@ export function ClassHomeworkScreen({
     reset: resetCommentForm,
     formState: { errors: commentErrors },
   } = useForm<HomeworkCommentFormValues>({
-    resolver: zodResolver(homeworkCommentSchema),
+    resolver: zodResolver(buildHomeworkCommentSchema(t)),
     defaultValues: {
       body: "",
     },
@@ -1042,7 +1110,10 @@ export function ClassHomeworkScreen({
     [sortedItems],
   );
 
-  const weekDays = useMemo(() => buildWeekDays(cursorDate), [cursorDate]);
+  const weekDays = useMemo(
+    () => buildWeekDays(cursorDate, t),
+    [cursorDate, locale],
+  );
   const visibleWeekDays = useMemo(
     () =>
       weekDays.filter((entry) => {
@@ -1120,14 +1191,14 @@ export function ClassHomeworkScreen({
   const periodLabel = useMemo(() => {
     if (agendaMode === "week") {
       return sameDate(startOfWeek(cursorDate), startOfWeek(today))
-        ? "Cette semaine"
+        ? t("homework.agenda.thisWeek")
         : formatWeekRangeLabel(cursorDate);
     }
     return cursorDate.getMonth() === today.getMonth() &&
       cursorDate.getFullYear() === today.getFullYear()
-      ? "Ce mois"
+      ? t("homework.agenda.thisMonth")
       : formatMonthLabel(cursorDate);
-  }, [cursorDate, today, tab, agendaMode]);
+  }, [cursorDate, today, tab, agendaMode, t]);
 
   const refreshContext = useCallback(async () => {
     if (!schoolSlug || !classId) return;
@@ -1152,11 +1223,11 @@ export function ClassHomeworkScreen({
         setClassContext(null);
       }
     } catch {
-      setContextError("Impossible de charger le contexte homework.");
+      setContextError(translate(locale, "homework.errors.loadContext"));
     } finally {
       setIsLoadingContext(false);
     }
-  }, [canManageAll, classId, schoolSlug, studentIdForContext]);
+  }, [canManageAll, classId, schoolSlug, studentIdForContext, locale]);
 
   const refreshHomework = useCallback(async () => {
     if (!schoolSlug || !classId) return;
@@ -1313,14 +1384,14 @@ export function ClassHomeworkScreen({
       if (editingHomework) {
         await updateHomework(schoolSlug, classId, editingHomework.id, payload);
         showSuccess({
-          title: "Homework mis à jour",
-          message: "Les consignes ont bien été enregistrées.",
+          title: t("homework.toast.updatedTitle"),
+          message: t("homework.toast.updatedMessage"),
         });
       } else {
         await createHomework(schoolSlug, classId, payload);
         showSuccess({
-          title: "Homework créé",
-          message: "Le nouveau homework a été ajouté à l'agenda.",
+          title: t("homework.toast.createdTitle"),
+          message: t("homework.toast.createdMessage"),
         });
       }
       setFormVisible(false);
@@ -1328,11 +1399,11 @@ export function ClassHomeworkScreen({
       await refreshHomework();
     } catch (error) {
       showError({
-        title: "Enregistrement impossible",
+        title: t("homework.toast.saveErrorTitle"),
         message:
           error instanceof Error
             ? error.message
-            : "Impossible d'enregistrer ce homework.",
+            : t("homework.toast.saveErrorMessage"),
       });
     }
   }
@@ -1342,8 +1413,8 @@ export function ClassHomeworkScreen({
     try {
       await deleteHomework(schoolSlug, classId, deleteTarget.id);
       showSuccess({
-        title: "Homework supprimé",
-        message: "Le homework a bien été retiré.",
+        title: t("homework.toast.deletedTitle"),
+        message: t("homework.toast.deletedMessage"),
       });
       if (selectedHomeworkId === deleteTarget.id) {
         setDetailVisible(false);
@@ -1352,11 +1423,11 @@ export function ClassHomeworkScreen({
       setDeleteTarget(null);
     } catch (error) {
       showError({
-        title: "Suppression impossible",
+        title: t("homework.toast.deleteErrorTitle"),
         message:
           error instanceof Error
             ? error.message
-            : "Impossible de supprimer ce homework.",
+            : t("homework.toast.deleteErrorMessage"),
       });
     }
   }
@@ -1369,18 +1440,20 @@ export function ClassHomeworkScreen({
         studentId: studentIdForContext,
       });
       showSuccess({
-        title: isHomeworkDone(detail) ? "Homework rouvert" : "Homework terminé",
+        title: isHomeworkDone(detail)
+          ? t("homework.toast.reopenedTitle")
+          : t("homework.toast.completedTitle"),
         message: isHomeworkDone(detail)
-          ? "Le homework est repassé en non fait."
-          : "Le homework est marqué comme fait.",
+          ? t("homework.toast.reopenedMessage")
+          : t("homework.toast.completedMessage"),
       });
     } catch (error) {
       showError({
-        title: "Mise à jour impossible",
+        title: t("homework.toast.statusErrorTitle"),
         message:
           error instanceof Error
             ? error.message
-            : "Impossible de mettre à jour l'état du homework.",
+            : t("homework.toast.statusErrorMessage"),
       });
     }
   }
@@ -1394,19 +1467,21 @@ export function ClassHomeworkScreen({
         studentId: studentIdForContext,
       });
       showSuccess({
-        title: nowDone ? "Homework rouvert" : "Homework terminé",
+        title: nowDone
+          ? t("homework.toast.reopenedTitle")
+          : t("homework.toast.completedTitle"),
         message: nowDone
-          ? "Le homework est repassé en non fait."
-          : "Le homework est marqué comme fait.",
+          ? t("homework.toast.reopenedMessage")
+          : t("homework.toast.completedMessage"),
       });
       await refreshHomework();
     } catch (error) {
       showError({
-        title: "Mise à jour impossible",
+        title: t("homework.toast.statusErrorTitle"),
         message:
           error instanceof Error
             ? error.message
-            : "Impossible de mettre à jour l'état du homework.",
+            : t("homework.toast.statusErrorMessage"),
       });
     }
   }
@@ -1421,16 +1496,16 @@ export function ClassHomeworkScreen({
       await addComment(schoolSlug, classId, selectedHomeworkId, payload);
       resetCommentForm({ body: "" });
       showSuccess({
-        title: "Commentaire ajouté",
-        message: "Le commentaire a bien été enregistré.",
+        title: t("homework.toast.commentAddedTitle"),
+        message: t("homework.toast.commentAddedMessage"),
       });
     } catch (error) {
       showError({
-        title: "Commentaire impossible",
+        title: t("homework.toast.commentErrorTitle"),
         message:
           error instanceof Error
             ? error.message
-            : "Impossible d'ajouter le commentaire.",
+            : t("homework.toast.commentErrorMessage"),
       });
     }
   });
@@ -1444,7 +1519,10 @@ export function ClassHomeworkScreen({
       }
       await Linking.openURL(attachment.fileUrl);
     } catch {
-      Alert.alert("Erreur", "Impossible d'ouvrir cette pièce jointe.");
+      Alert.alert(
+        t("homework.errors.title"),
+        t("homework.errors.openAttachment"),
+      );
     }
   }
 
@@ -1460,7 +1538,7 @@ export function ClassHomeworkScreen({
       <>
         {showHeader ? (
           <ModuleHeader
-            title="Homework"
+            title={t("homework.header.title")}
             subtitle={subtitle}
             onBack={() => router.back()}
             rightIcon="menu-outline"
@@ -1475,11 +1553,11 @@ export function ClassHomeworkScreen({
         ) : null}
 
         {isLoadingContext && !subtitle ? (
-          <LoadingBlock label="Chargement du module homework..." />
+          <LoadingBlock label={t("homework.loading.module")} />
         ) : (
           <View testID="class-homework-tabs-section">
             <UnderlineTabs
-              items={HOMEWORK_TABS.map((entry) => ({
+              items={buildHomeworkTabs(t).map((entry) => ({
                 key: entry.key,
                 label: entry.label,
               }))}
@@ -1492,8 +1570,8 @@ export function ClassHomeworkScreen({
               <View testID="class-homework-agenda-mode-tabs">
                 <UnderlineTabs
                   items={[
-                    { key: "week" as const, label: "Semaine" },
-                    { key: "month" as const, label: "Mois" },
+                    { key: "week" as const, label: t("homework.tabs.week") },
+                    { key: "month" as const, label: t("homework.tabs.month") },
                   ]}
                   activeKey={agendaMode}
                   onSelect={setAgendaMode}
@@ -1547,6 +1625,7 @@ export function ClassHomeworkScreen({
       periodLabel,
       subtitle,
       insets.top,
+      t,
     ],
   );
 
@@ -1578,8 +1657,8 @@ export function ClassHomeworkScreen({
                         studentId: studentIdForContext,
                       });
                       showSuccess({
-                        title: "Commentaire ajouté",
-                        message: "Le commentaire a bien été enregistré.",
+                        title: t("homework.toast.commentAddedTitle"),
+                        message: t("homework.toast.commentAddedMessage"),
                       });
                     }
                   : undefined
@@ -1597,8 +1676,8 @@ export function ClassHomeworkScreen({
           emptyComponent={
             <EmptyState
               icon="checkmark-done-outline"
-              title="Aucun homework"
-              message="Aucun homework n'est prevu a partir d'aujourd'hui."
+              title={t("homework.empty.title")}
+              message={t("homework.empty.list")}
             />
           }
           testID="class-homework-list"
@@ -1610,7 +1689,7 @@ export function ClassHomeworkScreen({
                 : Math.min(current + HOMEWORK_LIST_PAGE_SIZE, listItems.length),
             );
           }}
-          endOfListLabel="Tous les homeworks a venir sont affiches"
+          endOfListLabel={t("homework.empty.endOfList")}
           onRefresh={() => {
             clearError();
             void Promise.all([refreshContext(), refreshHomework()]).catch(
@@ -1676,14 +1755,14 @@ export function ClassHomeworkScreen({
                 countsByDate={countsByDate}
               />
               <SectionCard
-                title="Homework du jour sélectionné"
+                title={t("homework.agenda.dayTitle")}
                 subtitle={formatHomeworkDayLabel(selectedWeekDate)}
               >
                 {weekItems.length === 0 ? (
                   <EmptyState
                     icon="calendar-clear-outline"
-                    title="Aucun homework"
-                    message="Aucun homework n'est prévu sur ce jour de la semaine."
+                    title={t("homework.empty.title")}
+                    message={t("homework.empty.week")}
                   />
                 ) : (
                   <View style={styles.cardsColumn}>
@@ -1709,9 +1788,10 @@ export function ClassHomeworkScreen({
                                   studentId: studentIdForContext,
                                 });
                                 showSuccess({
-                                  title: "Commentaire ajouté",
-                                  message:
-                                    "Le commentaire a bien été enregistré.",
+                                  title: t("homework.toast.commentAddedTitle"),
+                                  message: t(
+                                    "homework.toast.commentAddedMessage",
+                                  ),
                                 });
                               }
                             : undefined
@@ -1745,18 +1825,18 @@ export function ClassHomeworkScreen({
                 testIDPrefix="class-homework"
               />
               <SectionCard
-                title="Agenda du jour sélectionné"
+                title={t("homework.agenda.monthDayTitle")}
                 subtitle={
                   selectedMonthDate
                     ? formatHomeworkDayLabel(selectedMonthDate)
-                    : "Aucun jour sélectionné"
+                    : t("homework.agenda.noDaySelected")
                 }
               >
                 {monthItems.length === 0 ? (
                   <EmptyState
                     icon="calendar-clear-outline"
-                    title="Aucun homework"
-                    message="Aucun homework n'est prévu pour cette journée."
+                    title={t("homework.empty.title")}
+                    message={t("homework.empty.month")}
                   />
                 ) : (
                   <View style={styles.cardsColumn}>
@@ -1782,9 +1862,10 @@ export function ClassHomeworkScreen({
                                   studentId: studentIdForContext,
                                 });
                                 showSuccess({
-                                  title: "Commentaire ajouté",
-                                  message:
-                                    "Le commentaire a bien été enregistré.",
+                                  title: t("homework.toast.commentAddedTitle"),
+                                  message: t(
+                                    "homework.toast.commentAddedMessage",
+                                  ),
                                 });
                               }
                             : undefined
@@ -1850,7 +1931,7 @@ export function ClassHomeworkScreen({
             showsVerticalScrollIndicator={false}
           >
             <ModuleHeader
-              title="Suivi homework"
+              title={t("homework.control.title")}
               subtitle={controlTargetDetail?.title ?? subtitle}
               onBack={() => setControlTargetId(null)}
               testID="homework-control-header"
@@ -1861,13 +1942,13 @@ export function ClassHomeworkScreen({
             />
 
             {isLoadingDetail && !controlTargetDetail ? (
-              <LoadingBlock label="Chargement du suivi..." />
+              <LoadingBlock label={t("homework.loading.control")} />
             ) : controlTargetDetail ? (
               <SectionCard
-                title="Eleves ayant deja fait le devoir"
+                title={t("homework.control.doneStudentsTitle")}
                 subtitle={
                   controlTargetDetail.summary
-                    ? `${controlTargetDetail.summary.doneStudents}/${controlTargetDetail.summary.totalStudents} faits`
+                    ? `${controlTargetDetail.summary.doneStudents}/${controlTargetDetail.summary.totalStudents} ${t("homework.control.summarySuffix")}`
                     : undefined
                 }
               >
@@ -1886,7 +1967,8 @@ export function ClassHomeworkScreen({
                             {status.lastName} {status.firstName}
                           </Text>
                           <Text style={styles.studentStatusMeta}>
-                            Fait le {formatHomeworkDateTime(status.doneAt!)}
+                            {t("homework.card.doneOnPrefix")}
+                            {formatHomeworkDateTime(status.doneAt!)}
                           </Text>
                         </View>
                         <View
@@ -1895,21 +1977,23 @@ export function ClassHomeworkScreen({
                             styles.studentStatusPillDone,
                           ]}
                         >
-                          <Text style={styles.studentStatusPillText}>Fait</Text>
+                          <Text style={styles.studentStatusPillText}>
+                            {t("homework.status.done")}
+                          </Text>
                         </View>
                       </View>
                     ))
                 ) : (
                   <Text style={styles.helperText}>
-                    Aucun eleve n'a encore marque ce homework comme fait.
+                    {t("homework.control.noStudentDone")}
                   </Text>
                 )}
               </SectionCard>
             ) : (
               <EmptyState
                 icon="people-outline"
-                title="Suivi indisponible"
-                message="Impossible de charger la liste des eleves pour ce homework."
+                title={t("homework.control.unavailableTitle")}
+                message={t("homework.control.unavailableMessage")}
               />
             )}
           </ScrollView>
@@ -1932,7 +2016,7 @@ export function ClassHomeworkScreen({
             showsVerticalScrollIndicator={false}
           >
             <ModuleHeader
-              title="Détail homework"
+              title={t("homework.detail.title")}
               subtitle={
                 selectedDetail?.subject.name ??
                 selectedRow?.subject.name ??
@@ -1948,7 +2032,7 @@ export function ClassHomeworkScreen({
             />
 
             {isLoadingDetail && !selectedDetail ? (
-              <LoadingBlock label="Chargement du détail..." />
+              <LoadingBlock label={t("homework.loading.detail")} />
             ) : selectedDetail ? (
               <>
                 <View style={styles.detailHero}>
@@ -1957,11 +2041,12 @@ export function ClassHomeworkScreen({
                   </Text>
                   <Text style={styles.detailTitle}>{selectedDetail.title}</Text>
                   <Text style={styles.detailMeta}>
-                    À rendre le{" "}
+                    {t("homework.detail.duePrefix")}
                     {formatHomeworkDateTime(selectedDetail.expectedAt)}
                   </Text>
                   <Text style={styles.detailMeta}>
-                    Par {selectedDetail.authorDisplayName}
+                    {t("homework.detail.authorPrefix")}
+                    {selectedDetail.authorDisplayName}
                   </Text>
                 </View>
 
@@ -1978,16 +2063,16 @@ export function ClassHomeworkScreen({
                   >
                     <Text style={styles.primaryButtonText}>
                       {isHomeworkDone(selectedDetail)
-                        ? "Marquer comme non fait"
-                        : "Marquer comme fait"}
+                        ? t("homework.detail.markUndone")
+                        : t("homework.detail.markDone")}
                     </Text>
                   </TouchableOpacity>
                 ) : null}
 
-                <SectionCard title="Consignes">
+                <SectionCard title={t("homework.detail.instructionsTitle")}>
                   <Text style={styles.detailBodyText}>
                     {htmlToText(selectedDetail.contentHtml ?? "") ||
-                      "Aucune consigne détaillée."}
+                      t("homework.detail.noInstructions")}
                   </Text>
                   {extractImageUrls(selectedDetail.contentHtml ?? "").map(
                     (url) => (
@@ -2002,16 +2087,18 @@ export function ClassHomeworkScreen({
                           color={colors.primary}
                         />
                         <Text style={styles.inlineImageLinkText}>
-                          Ouvrir l'image insérée
+                          {t("homework.detail.openInlineImage")}
                         </Text>
                       </TouchableOpacity>
                     ),
                   )}
                 </SectionCard>
 
-                <SectionCard title="Pièces jointes">
+                <SectionCard title={t("homework.detail.attachmentsTitle")}>
                   {selectedDetail.attachments.length === 0 ? (
-                    <Text style={styles.helperText}>Aucune pièce jointe.</Text>
+                    <Text style={styles.helperText}>
+                      {t("homework.detail.noAttachments")}
+                    </Text>
                   ) : (
                     selectedDetail.attachments.map((attachment, index) => (
                       <TouchableOpacity
@@ -2043,16 +2130,16 @@ export function ClassHomeworkScreen({
 
                 {canManageAll ? (
                   <SectionCard
-                    title="Suivi des élèves"
+                    title={t("homework.detail.studentsTitle")}
                     subtitle={
                       selectedDetail.summary
-                        ? `${selectedDetail.summary.doneStudents}/${selectedDetail.summary.totalStudents} homework faits`
+                        ? `${selectedDetail.summary.doneStudents}/${selectedDetail.summary.totalStudents} ${t("homework.detail.summarySuffix")}`
                         : undefined
                     }
                   >
                     {selectedDetail.completionStatuses.length === 0 ? (
                       <Text style={styles.helperText}>
-                        Aucune donnée élève pour ce homework.
+                        {t("homework.detail.noStudentData")}
                       </Text>
                     ) : (
                       selectedDetail.completionStatuses.map((status) => {
@@ -2068,8 +2155,8 @@ export function ClassHomeworkScreen({
                               </Text>
                               <Text style={styles.studentStatusMeta}>
                                 {done
-                                  ? `Fait le ${formatHomeworkDateTime(status.doneAt!)}`
-                                  : "Non fait"}
+                                  ? `${t("homework.card.doneOnPrefix")}${formatHomeworkDateTime(status.doneAt!)}`
+                                  : t("homework.status.notDone")}
                               </Text>
                             </View>
                             <View
@@ -2081,7 +2168,9 @@ export function ClassHomeworkScreen({
                               ]}
                             >
                               <Text style={styles.studentStatusPillText}>
-                                {done ? "Fait" : "En attente"}
+                                {done
+                                  ? t("homework.status.done")
+                                  : t("homework.status.pending")}
                               </Text>
                             </View>
                           </View>
@@ -2091,10 +2180,10 @@ export function ClassHomeworkScreen({
                   </SectionCard>
                 ) : null}
 
-                <SectionCard title="Commentaires">
+                <SectionCard title={t("homework.detail.commentsTitle")}>
                   {selectedDetail.comments.length === 0 ? (
                     <Text style={styles.helperText}>
-                      Aucun commentaire pour le moment.
+                      {t("homework.comment.empty")}
                     </Text>
                   ) : (
                     selectedDetail.comments.map((comment) => (
@@ -2118,7 +2207,7 @@ export function ClassHomeworkScreen({
                         <TextInput
                           value={value}
                           onChangeText={onChange}
-                          placeholder="Ajouter un commentaire"
+                          placeholder={t("homework.comment.placeholder")}
                           placeholderTextColor={colors.textSecondary}
                           style={styles.commentInput}
                           multiline
@@ -2148,7 +2237,9 @@ export function ClassHomeworkScreen({
                       onPress={() => selectedRow && openEditForm(selectedRow)}
                       testID="class-homework-detail-edit"
                     >
-                      <Text style={styles.secondaryButtonText}>Modifier</Text>
+                      <Text style={styles.secondaryButtonText}>
+                        {t("homework.card.edit")}
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.dangerButton}
@@ -2157,7 +2248,9 @@ export function ClassHomeworkScreen({
                       }
                       testID="class-homework-detail-delete"
                     >
-                      <Text style={styles.dangerButtonText}>Supprimer</Text>
+                      <Text style={styles.dangerButtonText}>
+                        {t("homework.card.delete")}
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 ) : null}
@@ -2165,8 +2258,8 @@ export function ClassHomeworkScreen({
             ) : (
               <EmptyState
                 icon="document-text-outline"
-                title="Homework introuvable"
-                message="Impossible d'afficher le détail demandé."
+                title={t("homework.detail.notFoundTitle")}
+                message={t("homework.detail.notFoundMessage")}
               />
             )}
           </ScrollView>
@@ -2175,10 +2268,10 @@ export function ClassHomeworkScreen({
 
       <ConfirmDialog
         visible={!!deleteTarget}
-        title="Supprimer ce homework ?"
-        message="Cette action est irréversible."
-        confirmLabel="Supprimer"
-        cancelLabel="Annuler"
+        title={t("homework.dialog.deleteTitle")}
+        message={t("homework.dialog.deleteMessage")}
+        confirmLabel={t("homework.card.delete")}
+        cancelLabel={t("homework.common.cancel")}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => void handleDeleteHomework()}
       />

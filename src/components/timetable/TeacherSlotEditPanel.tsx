@@ -27,36 +27,49 @@ import {
   timeLabelToMinute,
 } from "../../utils/timetable";
 import { extractApiError } from "../../utils/api-error";
+import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
-export const teacherSlotEditSchema = z
-  .object({
-    start: z
-      .string()
-      .trim()
-      .min(1, "Renseignez l'heure de début")
-      .regex(/^\d{1,2}:\d{2}$/, { message: "Format HH:MM" }),
-    end: z
-      .string()
-      .trim()
-      .min(1, "Renseignez l'heure de fin")
-      .regex(/^\d{1,2}:\d{2}$/, { message: "Format HH:MM" }),
-    room: z.string().trim().min(1, "Renseignez une salle"),
-    scope: z.enum(["occurrence", "series"]),
-    teacherUserId: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      const s = timeLabelToMinute(data.start);
-      const e = timeLabelToMinute(data.end);
-      if (s === null || e === null) return true;
-      return e > s;
-    },
-    { message: "La fin doit être après le début", path: ["end"] },
-  );
+function createTeacherSlotEditSchema(t: TranslateFn) {
+  return z
+    .object({
+      start: z
+        .string()
+        .trim()
+        .min(1, t("timetable.slotEditPanel.validation.startRequired"))
+        .regex(/^\d{1,2}:\d{2}$/, {
+          message: t("timetable.classManager.validation.timeFormat"),
+        }),
+      end: z
+        .string()
+        .trim()
+        .min(1, t("timetable.slotEditPanel.validation.endRequired"))
+        .regex(/^\d{1,2}:\d{2}$/, {
+          message: t("timetable.classManager.validation.timeFormat"),
+        }),
+      room: z
+        .string()
+        .trim()
+        .min(1, t("timetable.slotEditPanel.validation.roomRequired")),
+      scope: z.enum(["occurrence", "series"]),
+      teacherUserId: z.string().optional(),
+    })
+    .refine(
+      (data) => {
+        const s = timeLabelToMinute(data.start);
+        const e = timeLabelToMinute(data.end);
+        if (s === null || e === null) return true;
+        return e > s;
+      },
+      {
+        message: t("timetable.slotEditPanel.validation.endAfterStart"),
+        path: ["end"],
+      },
+    );
+}
 
-type FormValues = z.infer<typeof teacherSlotEditSchema>;
+type FormValues = z.infer<ReturnType<typeof createTeacherSlotEditSchema>>;
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -86,6 +99,7 @@ export function TeacherSlotEditPanel({
   onClose,
   onSuccess,
 }: TeacherSlotEditPanelProps) {
+  const { t } = useTranslation();
   const { showSuccess, showError } = useSuccessToastStore();
   const [isSaving, setIsSaving] = useState(false);
   const [classCtx, setClassCtx] =
@@ -102,6 +116,11 @@ export function TeacherSlotEditPanel({
       .then(setClassCtx)
       .catch(() => {});
   }, [adminMode, classId, schoolSlug]);
+
+  const teacherSlotEditSchema = useMemo(
+    () => createTeacherSlotEditSchema(t),
+    [t],
+  );
 
   const {
     control,
@@ -170,8 +189,8 @@ export function TeacherSlotEditPanel({
           ...(adminMode ? { teacherUserId } : {}),
         });
         showSuccess({
-          title: "Série modifiée",
-          message: "Tous les cours de cette série ont été mis à jour.",
+          title: t("timetable.slotEditPanel.toasts.seriesUpdatedTitle"),
+          message: t("timetable.slotEditPanel.toasts.seriesUpdatedMessage"),
         });
       } else if (occurrence.source === "ONE_OFF" && occurrence.oneOffSlotId) {
         await timetableApi.updateOneOffSlot(
@@ -185,8 +204,8 @@ export function TeacherSlotEditPanel({
           },
         );
         showSuccess({
-          title: "Créneau modifié",
-          message: "Ce cours a été mis à jour.",
+          title: t("timetable.slotEditPanel.toasts.slotUpdatedTitle"),
+          message: t("timetable.slotEditPanel.toasts.slotUpdatedMessage"),
         });
       } else {
         await timetableApi.createOneOffSlot(schoolSlug, classId, {
@@ -201,14 +220,14 @@ export function TeacherSlotEditPanel({
           sourceSlotId: occurrence.slotId ?? null,
         });
         showSuccess({
-          title: "Créneau modifié",
-          message: "Ce cours a été modifié pour cette date uniquement.",
+          title: t("timetable.slotEditPanel.toasts.slotUpdatedTitle"),
+          message: t("timetable.slotEditPanel.toasts.exceptionUpdatedMessage"),
         });
       }
       onSuccess();
     } catch (err) {
       showError({
-        title: "Modification impossible",
+        title: t("timetable.slotEditPanel.toasts.updateErrorTitle"),
         message: extractApiError(err),
       });
     } finally {
@@ -220,15 +239,15 @@ export function TeacherSlotEditPanel({
 
   function confirmDelete(deleteSeries: boolean) {
     const title = deleteSeries
-      ? "Supprimer toute la série ?"
-      : "Supprimer ce créneau ?";
+      ? t("timetable.slotEditPanel.confirm.deleteSeriesTitle")
+      : t("timetable.slotEditPanel.confirm.deleteOccurrenceTitle");
     const message = deleteSeries
-      ? "Tous les cours de cette série hebdomadaire seront supprimés."
-      : "Ce cours sera annulé pour cette date uniquement.";
+      ? t("timetable.slotEditPanel.confirm.deleteSeriesMessage")
+      : t("timetable.slotEditPanel.confirm.deleteOccurrenceMessage");
     Alert.alert(title, message, [
-      { text: "Annuler", style: "cancel" },
+      { text: t("timetable.common.cancel"), style: "cancel" },
       {
-        text: "Supprimer",
+        text: t("timetable.slotEditPanel.buttons.delete"),
         style: "destructive",
         onPress: () => void handleDelete(deleteSeries),
       },
@@ -241,8 +260,8 @@ export function TeacherSlotEditPanel({
       if (deleteSeries && isRecurring && occurrence.slotId) {
         await timetableApi.deleteRecurringSlot(schoolSlug, occurrence.slotId);
         showSuccess({
-          title: "Série supprimée",
-          message: "Tous les cours de cette série ont été supprimés.",
+          title: t("timetable.slotEditPanel.toasts.seriesDeletedTitle"),
+          message: t("timetable.slotEditPanel.toasts.seriesDeletedMessage"),
         });
       } else if (occurrence.source === "ONE_OFF" && occurrence.oneOffSlotId) {
         await timetableApi.deleteOneOffSlot(
@@ -250,8 +269,8 @@ export function TeacherSlotEditPanel({
           occurrence.oneOffSlotId,
         );
         showSuccess({
-          title: "Créneau supprimé",
-          message: "Ce cours a été supprimé.",
+          title: t("timetable.slotEditPanel.toasts.slotDeletedTitle"),
+          message: t("timetable.slotEditPanel.toasts.slotDeletedMessage"),
         });
       } else {
         // Annuler cette occurrence d'une série récurrente
@@ -267,14 +286,14 @@ export function TeacherSlotEditPanel({
           sourceSlotId: occurrence.slotId ?? null,
         });
         showSuccess({
-          title: "Créneau annulé",
-          message: "Ce cours est annulé pour cette date uniquement.",
+          title: t("timetable.slotEditPanel.toasts.slotCancelledTitle"),
+          message: t("timetable.slotEditPanel.toasts.slotCancelledMessage"),
         });
       }
       onSuccess();
     } catch (err) {
       showError({
-        title: "Suppression impossible",
+        title: t("timetable.slotEditPanel.toasts.deleteErrorTitle"),
         message: extractApiError(err),
       });
     } finally {
@@ -292,7 +311,9 @@ export function TeacherSlotEditPanel({
             <Ionicons name="create-outline" size={18} color={colors.white} />
           </View>
           <View style={styles.panelHeaderText}>
-            <Text style={styles.panelTitle}>MODIFIER CE CRÉNEAU</Text>
+            <Text style={styles.panelTitle}>
+              {t("timetable.slotEditPanel.title")}
+            </Text>
             <Text style={styles.panelSubtitle} numberOfLines={1}>
               {headerMeta}
             </Text>
@@ -325,7 +346,7 @@ export function TeacherSlotEditPanel({
                         value === "occurrence" && styles.scopeBtnTextActive,
                       ]}
                     >
-                      Ce créneau
+                      {t("timetable.slotEditPanel.scope.occurrence")}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
@@ -342,7 +363,7 @@ export function TeacherSlotEditPanel({
                         value === "series" && styles.scopeBtnTextActive,
                       ]}
                     >
-                      Toute la série
+                      {t("timetable.slotEditPanel.scope.series")}
                     </Text>
                   </TouchableOpacity>
                 </>
@@ -354,7 +375,9 @@ export function TeacherSlotEditPanel({
         {/* Teacher picker — admin mode only */}
         {adminMode && teacherOptions.length > 0 ? (
           <View testID="teacher-slot-admin-teacher-section">
-            <Text style={styles.fieldLabel}>Enseignant</Text>
+            <Text style={styles.fieldLabel}>
+              {t("timetable.classManager.fields.teacher")}
+            </Text>
             <Controller
               control={control}
               name="teacherUserId"
@@ -393,7 +416,9 @@ export function TeacherSlotEditPanel({
         <View style={styles.fields}>
           <View style={styles.timeRow}>
             <View style={styles.timeField}>
-              <Text style={styles.fieldLabel}>Début</Text>
+              <Text style={styles.fieldLabel}>
+                {t("timetable.classManager.fields.start")}
+              </Text>
               <Controller
                 control={control}
                 name="start"
@@ -402,7 +427,7 @@ export function TeacherSlotEditPanel({
                     value={value}
                     onChange={onChange}
                     onBlur={onBlur}
-                    title="Heure de début"
+                    title={t("timetable.classManager.timePicker.startTitle")}
                     placeholder="07:30"
                     hasError={!!errors.start}
                     testID="teacher-slot-start-input"
@@ -420,7 +445,9 @@ export function TeacherSlotEditPanel({
             </View>
 
             <View style={styles.timeField}>
-              <Text style={styles.fieldLabel}>Fin</Text>
+              <Text style={styles.fieldLabel}>
+                {t("timetable.classManager.fields.end")}
+              </Text>
               <Controller
                 control={control}
                 name="end"
@@ -429,7 +456,7 @@ export function TeacherSlotEditPanel({
                     value={value}
                     onChange={onChange}
                     onBlur={onBlur}
-                    title="Heure de fin"
+                    title={t("timetable.classManager.timePicker.endTitle")}
                     placeholder="08:20"
                     hasError={!!errors.end}
                     testID="teacher-slot-end-input"
@@ -444,7 +471,9 @@ export function TeacherSlotEditPanel({
             </View>
 
             <View style={[styles.timeField, styles.roomField]}>
-              <Text style={styles.fieldLabel}>Salle</Text>
+              <Text style={styles.fieldLabel}>
+                {t("timetable.classManager.fields.room")}
+              </Text>
               <Controller
                 control={control}
                 name="room"
@@ -483,7 +512,9 @@ export function TeacherSlotEditPanel({
                 size={15}
                 color={colors.primary}
               />
-              <Text style={styles.actionBtnNeutralText}>Retour</Text>
+              <Text style={styles.actionBtnNeutralText}>
+                {t("timetable.slotEditPanel.buttons.back")}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -497,7 +528,9 @@ export function TeacherSlotEditPanel({
               }
             >
               <Ionicons name="trash-outline" size={15} color={colors.white} />
-              <Text style={styles.actionBtnDangerText}>Supprimer</Text>
+              <Text style={styles.actionBtnDangerText}>
+                {t("timetable.slotEditPanel.buttons.delete")}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -519,7 +552,9 @@ export function TeacherSlotEditPanel({
                     size={16}
                     color={colors.white}
                   />
-                  <Text style={styles.actionBtnPrimaryText}>Modifier</Text>
+                  <Text style={styles.actionBtnPrimaryText}>
+                    {t("timetable.slotEditPanel.buttons.save")}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>

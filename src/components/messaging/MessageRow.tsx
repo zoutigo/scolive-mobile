@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
+import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 import type { MessageListItem } from "../../types/messaging.types";
 
 interface Props {
@@ -35,16 +36,21 @@ function senderInitials(firstName?: string, lastName?: string): string {
   return `${(firstName ?? "")[0] ?? ""}${(lastName ?? "")[0] ?? ""}`.toUpperCase();
 }
 
-function senderLabel(item: MessageListItem): string {
+function senderLabel(item: MessageListItem, t: TranslateFn): string {
   if (item.folder === "sent" || item.folder === "drafts") {
-    if (item.recipientsCount === 1) return "1 destinataire";
-    return `${item.recipientsCount} destinataires`;
+    if (item.recipientsCount === 1)
+      return t("messaging.list.recipientSingular");
+    return t("messaging.list.recipientPlural").replace(
+      "{count}",
+      String(item.recipientsCount),
+    );
   }
-  if (!item.sender) return "Expéditeur inconnu";
+  if (!item.sender) return t("messaging.list.unknownSender");
   return `${item.sender.lastName} ${item.sender.firstName}`;
 }
 
 export function MessageRow({ item, onPress }: Props) {
+  const { t } = useTranslation();
   const isUnread = item.unread && item.folder === "inbox";
   const displayDate = formatDate(item.sentAt ?? item.createdAt);
   const initials = senderInitials(
@@ -81,7 +87,7 @@ export function MessageRow({ item, onPress }: Props) {
             style={[styles.sender, isUnread && styles.senderUnread]}
             numberOfLines={1}
           >
-            {senderLabel(item)}
+            {senderLabel(item, t)}
           </Text>
           <Text style={[styles.date, isUnread && styles.dateUnread]}>
             {displayDate}
@@ -92,9 +98,9 @@ export function MessageRow({ item, onPress }: Props) {
           numberOfLines={1}
         >
           {item.status === "DRAFT" && (
-            <Text style={styles.draftTag}>Brouillon · </Text>
+            <Text style={styles.draftTag}>{t("messaging.list.draftTag")}</Text>
           )}
-          {item.subject || "(sans objet)"}
+          {item.subject || t("messaging.list.noSubject")}
         </Text>
         {item.preview ? (
           <Text style={styles.preview} numberOfLines={1}>

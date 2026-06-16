@@ -26,6 +26,7 @@ import type { StudentNotesResponse } from "../../types/notes.types";
 import type { MyTimetableResponse } from "../../types/timetable.types";
 import type { HomeworkRow } from "../../types/homework.types";
 import type { FeedPost } from "../../types/feed.types";
+import { useTranslation } from "../../i18n/useTranslation";
 import { ErrorBanner } from "../timetable/TimetableCommon";
 import {
   formatEvaluationDate,
@@ -121,6 +122,7 @@ function extractLatestEvaluations(
 }
 
 export function ChildHomeScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ childId?: string }>();
@@ -318,9 +320,13 @@ export function ChildHomeScreen() {
               <KpiCard
                 testID="child-home-kpi-homework"
                 icon="book-outline"
-                label="Devoirs"
+                label={t("homework.label")}
                 value={classId ? `${undoneHomework}` : "–"}
-                sub={classId ? "non faits" : "Classe inconnue"}
+                sub={
+                  classId
+                    ? t("homework.kpi.notDone")
+                    : t("homework.kpi.unknownClass")
+                }
                 accent={colors.warmAccent}
                 tone="#F8E9D8"
                 onPress={classId ? goToHomework : undefined}
@@ -328,9 +334,9 @@ export function ChildHomeScreen() {
               <KpiCard
                 testID="child-home-kpi-messages"
                 icon="mail-outline"
-                label="Messages"
+                label={t("messaging.nav.unreadMessagesLabel")}
                 value={`${state.unreadCount}`}
-                sub="non lus"
+                sub={t("messaging.nav.unreadMessagesSub")}
                 accent={colors.accentTeal}
                 tone="#DCF3EE"
                 onPress={goToMessages}
@@ -397,17 +403,17 @@ export function ChildHomeScreen() {
 
             <SectionBlock
               testID="child-home-unread-block"
-              title="Messages non lus"
+              title={t("messaging.nav.unreadMessagesTitle")}
               icon="chatbubble-ellipses-outline"
               iconColor={colors.accentTeal}
               iconTone="#DCF3EE"
               onPress={goToMessages}
-              linkLabel="Messagerie"
+              linkLabel={t("messaging.title")}
             >
               {state.unreadMessages.length === 0 ? (
                 <EmptyRow
                   testID="child-home-unread-empty"
-                  label="Aucun message non lu"
+                  label={t("messaging.nav.noUnreadMessages")}
                 />
               ) : (
                 state.unreadMessages.map((msg, idx) => (
@@ -418,7 +424,7 @@ export function ChildHomeScreen() {
                     secondary={
                       msg.sender
                         ? `${msg.sender.firstName} ${msg.sender.lastName}`
-                        : "Expéditeur inconnu"
+                        : t("messaging.list.unknownSender")
                     }
                     date={msg.createdAt}
                     isLast={idx === state.unreadMessages.length - 1}

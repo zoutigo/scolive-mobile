@@ -17,10 +17,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import {
   buildLifeEventPayload,
-  disciplineFormSchema,
+  createDisciplineFormSchema,
   DISCIPLINE_TYPE_CONFIG,
+  getDisciplineTypeLabel,
   typeHasJustified,
   type DisciplineFormInput,
   type CreateLifeEventPayload,
@@ -91,6 +93,8 @@ export function DisciplineForm({
   onCancel,
   submitLabel,
 }: Props) {
+  const { t } = useTranslation();
+  const schema = createDisciplineFormSchema(t);
   const {
     control,
     handleSubmit,
@@ -99,7 +103,7 @@ export function DisciplineForm({
     watch,
     formState: { errors },
   } = useForm<DisciplineFormInput>({
-    resolver: zodResolver(disciplineFormSchema),
+    resolver: zodResolver(schema),
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: editing ? eventToFormValues(editing) : defaultValues(),
@@ -116,10 +120,12 @@ export function DisciplineForm({
   const isEditing = Boolean(editing);
   const label =
     submitLabel ??
-    (isEditing ? "Enregistrer les modifications" : "Enregistrer l'événement");
+    (isEditing
+      ? t("discipline.form.buttons.edit")
+      : t("discipline.form.buttons.create"));
 
   const onSave = handleSubmit((values) => {
-    onSubmit(buildLifeEventPayload(values));
+    onSubmit(buildLifeEventPayload(values, schema));
   });
 
   return (
@@ -132,14 +138,17 @@ export function DisciplineForm({
       >
         {/* Type d'événement */}
         <View style={styles.field}>
-          <Text style={styles.label}>Type d'événement *</Text>
+          <Text style={styles.label}>
+            {t("discipline.form.fields.typeRequired")}
+          </Text>
           <View style={styles.typeRow}>
-            {TYPES.map((t) => {
-              const cfg = DISCIPLINE_TYPE_CONFIG[t];
-              const active = selectedType === t;
+            {TYPES.map((type) => {
+              const cfg = DISCIPLINE_TYPE_CONFIG[type];
+              const typeLabel = getDisciplineTypeLabel(t, type);
+              const active = selectedType === type;
               return (
                 <TouchableOpacity
-                  key={t}
+                  key={type}
                   style={[
                     styles.typeChip,
                     active && {
@@ -148,12 +157,12 @@ export function DisciplineForm({
                     },
                   ]}
                   onPress={() => {
-                    setValue("type", t, {
+                    setValue("type", type, {
                       shouldDirty: true,
                       shouldValidate: true,
                     });
                     // Effacer "justified" si le type ne le supporte pas
-                    if (!typeHasJustified(t)) {
+                    if (!typeHasJustified(type)) {
                       setValue("justified", false, {
                         shouldDirty: true,
                         shouldValidate: true,
@@ -161,8 +170,8 @@ export function DisciplineForm({
                     }
                   }}
                   activeOpacity={0.75}
-                  testID={`type-chip-${t}`}
-                  accessibilityLabel={cfg.label}
+                  testID={`type-chip-${type}`}
+                  accessibilityLabel={typeLabel}
                   accessibilityState={{ selected: active }}
                 >
                   <Ionicons
@@ -176,7 +185,7 @@ export function DisciplineForm({
                       active && { color: cfg.accent, fontWeight: "700" },
                     ]}
                   >
-                    {cfg.label}
+                    {typeLabel}
                   </Text>
                 </TouchableOpacity>
               );
@@ -186,7 +195,9 @@ export function DisciplineForm({
 
         {/* Date et heure */}
         <View style={styles.field}>
-          <Text style={styles.label}>Date et heure *</Text>
+          <Text style={styles.label}>
+            {t("discipline.form.fields.dateTimeRequired")}
+          </Text>
           <Controller
             control={control}
             name="occurredAt"
@@ -197,7 +208,7 @@ export function DisciplineForm({
                 value={field.value}
                 onBlur={field.onBlur}
                 onChangeText={field.onChange}
-                placeholder="2026-04-09T08:30"
+                placeholder={t("discipline.form.fields.dateTimePlaceholder")}
                 placeholderTextColor={colors.textSecondary}
                 autoCapitalize="none"
                 selectTextOnFocus={isEditing}
@@ -212,7 +223,9 @@ export function DisciplineForm({
 
         {/* Motif */}
         <View style={styles.field}>
-          <Text style={styles.label}>Motif *</Text>
+          <Text style={styles.label}>
+            {t("discipline.form.fields.reasonRequired")}
+          </Text>
           <Controller
             control={control}
             name="reason"
@@ -223,7 +236,7 @@ export function DisciplineForm({
                 value={field.value}
                 onBlur={field.onBlur}
                 onChangeText={field.onChange}
-                placeholder="Ex : travail non rendu, absence non justifiée…"
+                placeholder={t("discipline.form.fields.reasonPlaceholder")}
                 placeholderTextColor={colors.textSecondary}
                 multiline
                 numberOfLines={3}
@@ -240,7 +253,9 @@ export function DisciplineForm({
 
         {/* Durée */}
         <View style={styles.field}>
-          <Text style={styles.label}>Durée (minutes, optionnel)</Text>
+          <Text style={styles.label}>
+            {t("discipline.form.fields.durationOptional")}
+          </Text>
           <Controller
             control={control}
             name="durationMinutes"
@@ -251,7 +266,7 @@ export function DisciplineForm({
                 value={field.value}
                 onBlur={field.onBlur}
                 onChangeText={field.onChange}
-                placeholder="Ex : 15"
+                placeholder={t("discipline.form.fields.durationPlaceholder")}
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="numeric"
                 selectTextOnFocus={isEditing}
@@ -270,9 +285,11 @@ export function DisciplineForm({
         {showJustified && (
           <View style={styles.switchRow}>
             <View style={styles.switchInfo}>
-              <Text style={styles.label}>Justifié</Text>
+              <Text style={styles.label}>
+                {t("discipline.form.fields.justified")}
+              </Text>
               <Text style={styles.switchSub}>
-                Absence ou retard justifié par les parents / administration
+                {t("discipline.form.fields.justifiedHint")}
               </Text>
             </View>
             <Controller
@@ -298,7 +315,9 @@ export function DisciplineForm({
 
         {/* Commentaire */}
         <View style={styles.field}>
-          <Text style={styles.label}>Commentaire (optionnel)</Text>
+          <Text style={styles.label}>
+            {t("discipline.form.fields.commentOptional")}
+          </Text>
           <Controller
             control={control}
             name="comment"
@@ -309,7 +328,7 @@ export function DisciplineForm({
                 value={field.value}
                 onBlur={field.onBlur}
                 onChangeText={field.onChange}
-                placeholder="Observations supplémentaires…"
+                placeholder={t("discipline.form.fields.commentPlaceholder")}
                 placeholderTextColor={colors.textSecondary}
                 multiline
                 numberOfLines={3}
@@ -343,7 +362,9 @@ export function DisciplineForm({
               disabled={isSaving}
               testID="btn-cancel"
             >
-              <Text style={styles.cancelBtnText}>Annuler</Text>
+              <Text style={styles.cancelBtnText}>
+                {t("discipline.form.buttons.cancel")}
+              </Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity

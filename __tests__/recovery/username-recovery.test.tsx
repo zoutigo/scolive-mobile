@@ -7,6 +7,8 @@ import {
 } from "@testing-library/react-native";
 import UsernameRecoveryScreen from "../../app/recovery/username";
 import { apiFetch } from "../../src/api/client";
+import { DEFAULT_LOCALE } from "../../src/i18n/translations";
+import { useLocaleStore } from "../../src/store/locale.store";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -63,6 +65,34 @@ async function fillAndSubmitStep2(birthDate = "15/01/1990") {
 describe("UsernameRecoveryScreen — Step 1", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useLocaleStore.setState({ locale: DEFAULT_LOCALE });
+  });
+
+  afterEach(() => {
+    useLocaleStore.setState({ locale: DEFAULT_LOCALE });
+  });
+
+  describe("Traduction (anglais)", () => {
+    it("affiche l'étape 1 en anglais lorsque la locale est 'en'", async () => {
+      useLocaleStore.setState({ locale: "en" });
+      render(<UsernameRecoveryScreen />);
+
+      expect(screen.getByText("Account recovery")).toBeTruthy();
+      expect(screen.getByText("Your username")).toBeTruthy();
+      expect(screen.getByText("Continue")).toBeTruthy();
+    });
+
+    it("affiche une erreur de validation traduite en anglais", async () => {
+      useLocaleStore.setState({ locale: "en" });
+      render(<UsernameRecoveryScreen />);
+
+      fireEvent.press(screen.getByTestId("btn-step1"));
+
+      await waitFor(() =>
+        expect(screen.getByTestId("error-username")).toBeTruthy(),
+      );
+      expect(screen.getByText("Username is required.")).toBeTruthy();
+    });
   });
 
   it("affiche le champ identifiant et le bouton Continuer", () => {
@@ -522,6 +552,59 @@ describe("UsernameRecoveryScreen — Step 3", () => {
     await waitFor(() =>
       expect(
         screen.getByText("Le jeton a expiré. Recommencez depuis le début."),
+      ).toBeTruthy(),
+    );
+  });
+
+  it("affiche l'erreur TOKEN_INVALID si le lien est invalide", async () => {
+    await goToStep3();
+
+    mockApiFetch.mockRejectedValueOnce({
+      code: "TOKEN_INVALID",
+      message: "Lien de reinitialisation invalide ou expire",
+    });
+
+    fireEvent.changeText(
+      screen.getByTestId("input-new-password"),
+      "ValidPass1",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("input-confirm-password"),
+      "ValidPass1",
+    );
+    fireEvent.press(screen.getByTestId("btn-step3"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Lien de réinitialisation invalide."),
+      ).toBeTruthy(),
+    );
+  });
+
+  it("affiche l'erreur SAME_PASSWORD si le mot de passe est identique à l'actuel", async () => {
+    await goToStep3();
+
+    mockApiFetch.mockRejectedValueOnce({
+      code: "SAME_PASSWORD",
+      message:
+        "Le nouveau mot de passe doit etre different du mot de passe actuel",
+    });
+
+    fireEvent.changeText(
+      screen.getByTestId("input-new-password"),
+      "ValidPass1",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("input-confirm-password"),
+      "ValidPass1",
+    );
+    fireEvent.press(screen.getByTestId("btn-step3"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "Le nouveau mot de passe doit être différent de l'actuel.",
+        ),
       ).toBeTruthy(),
     );
   });

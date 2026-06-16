@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import { EmptyState } from "../timetable/TimetableCommon";
 import { StudentNotesPanel } from "./ChildNotesScreen";
 import type { NotesTeacherContext } from "../../types/notes.types";
@@ -30,6 +31,7 @@ export function TeacherClassNotesTab({
   bottomInset,
   initialStudentId,
 }: Props) {
+  const { t } = useTranslation();
   const sortedStudents = useMemo(
     () =>
       [...teacherContext.students].sort(
@@ -60,8 +62,11 @@ export function TeacherClassNotesTab({
   );
 
   const subjectOptions = useMemo(
-    () => [{ id: "", name: "Toutes les matières" }, ...teacherContext.subjects],
-    [teacherContext.subjects],
+    () => [
+      { id: "", name: t("notes.teacher.filters.allSubjects") },
+      ...teacherContext.subjects,
+    ],
+    [teacherContext.subjects, t],
   );
 
   const selectedSubject = useMemo(
@@ -76,8 +81,8 @@ export function TeacherClassNotesTab({
       <View style={styles.emptyContainer} testID="teacher-notes-tab">
         <EmptyState
           icon="people-outline"
-          title="Aucun élève"
-          message="Aucun élève n'est inscrit dans cette classe."
+          title={t("notes.teacher.empty.title")}
+          message={t("notes.teacher.empty.message")}
         />
       </View>
     );
@@ -93,7 +98,9 @@ export function TeacherClassNotesTab({
           onPress={() => setPickerVisible(true)}
           testID="teacher-notes-student-picker"
         >
-          <Text style={styles.filterLabel}>ÉLÈVE</Text>
+          <Text style={styles.filterLabel}>
+            {t("notes.teacher.filters.studentLabel")}
+          </Text>
           {selectedStudent ? (
             <Text style={styles.filterValue} numberOfLines={1}>
               {selectedStudent.lastName} {selectedStudent.firstName}
@@ -114,7 +121,9 @@ export function TeacherClassNotesTab({
           onPress={() => setSubjectPickerVisible(true)}
           testID="teacher-notes-subject-picker"
         >
-          <Text style={styles.filterLabel}>MATIÈRE</Text>
+          <Text style={styles.filterLabel}>
+            {t("notes.teacher.filters.subjectLabel")}
+          </Text>
           <Text style={styles.filterValue} numberOfLines={1}>
             {selectedSubject.name}
           </Text>
@@ -153,7 +162,9 @@ export function TeacherClassNotesTab({
         <View style={styles.bottomSheet}>
           {/* Header */}
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Sélectionner un élève</Text>
+            <Text style={styles.sheetTitle}>
+              {t("notes.teacher.picker.selectStudent")}
+            </Text>
             <TouchableOpacity
               onPress={() => setPickerVisible(false)}
               style={styles.closeButton}
@@ -222,7 +233,9 @@ export function TeacherClassNotesTab({
         />
         <View style={styles.bottomSheet}>
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Filtrer par matière</Text>
+            <Text style={styles.sheetTitle}>
+              {t("notes.teacher.picker.filterBySubject")}
+            </Text>
             <TouchableOpacity
               onPress={() => setSubjectPickerVisible(false)}
               style={styles.closeButton}

@@ -14,13 +14,16 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import {
   buildLifeEventPayload,
+  createDisciplineFormSchema,
   DISCIPLINE_TYPE_CONFIG,
-  disciplineFormSchema,
+  getDisciplineTypeLabel,
   type StudentLifeEvent,
   type StudentLifeEventType,
   type CreateLifeEventPayload,
+  type DisciplineFormSchema,
   typeHasJustified,
 } from "../../types/discipline.types";
 import {
@@ -32,11 +35,18 @@ import {
   type StudentSelectOption,
 } from "./StudentSelectField";
 
-const teacherClassDisciplineFormSchema = disciplineFormSchema.extend({
-  studentId: z.string().min(1, "Choisissez un élève."),
-});
+function createTeacherClassDisciplineFormSchema(
+  baseSchema: DisciplineFormSchema,
+  studentRequiredMessage: string,
+) {
+  return baseSchema.extend({
+    studentId: z.string().min(1, studentRequiredMessage),
+  });
+}
 
-type FormValues = z.infer<typeof teacherClassDisciplineFormSchema>;
+type FormValues = z.infer<
+  ReturnType<typeof createTeacherClassDisciplineFormSchema>
+>;
 
 const TYPES: StudentLifeEventType[] = [
   "ABSENCE",
@@ -103,6 +113,13 @@ export function TeacherClassDisciplineFormSheet({
   onClose,
   onSubmit,
 }: Props) {
+  const { t } = useTranslation();
+  const baseSchema = createDisciplineFormSchema(t);
+  const schema = createTeacherClassDisciplineFormSchema(
+    baseSchema,
+    t("discipline.validation.studentRequired"),
+  );
+
   const saveDraft = useTeacherClassDisciplineDraftStore(
     (state) => state.saveDraft,
   );
@@ -123,7 +140,7 @@ export function TeacherClassDisciplineFormSheet({
     setValue,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(teacherClassDisciplineFormSchema),
+    resolver: zodResolver(schema),
     defaultValues,
   });
 
@@ -166,14 +183,14 @@ export function TeacherClassDisciplineFormSheet({
   }, [selectedType, setValue]);
 
   const submitLabel = editing
-    ? "Enregistrer les modifications"
-    : "Créer l'événement";
+    ? t("discipline.form.buttons.edit")
+    : t("discipline.form.buttons.create");
 
   const onSave = handleSubmit(async (values) => {
     await onSubmit({
       studentId: values.studentId,
       payload: {
-        ...buildLifeEventPayload(values),
+        ...buildLifeEventPayload(values, baseSchema),
         classId,
       },
     });
@@ -200,9 +217,11 @@ export function TeacherClassDisciplineFormSheet({
           <View style={styles.header}>
             <View>
               <Text style={styles.eyebrow}>
-                {editing ? "Modification" : "Nouvel événement"}
+                {editing
+                  ? t("discipline.form.eyebrowEdit")
+                  : t("discipline.form.eyebrowCreate")}
               </Text>
-              <Text style={styles.title}>Discipline</Text>
+              <Text style={styles.title}>{t("discipline.form.title")}</Text>
             </View>
             <TouchableOpacity onPress={onClose} testID="discipline-form-close">
               <Ionicons name="close" size={20} color={colors.textSecondary} />
@@ -220,12 +239,12 @@ export function TeacherClassDisciplineFormSheet({
               name="studentId"
               render={({ field: { value, onChange } }) => (
                 <StudentSelectField
-                  label="Élève"
+                  label={t("discipline.form.fields.student")}
                   value={value}
                   options={studentOptions}
                   onChange={onChange}
                   allowEmpty={false}
-                  placeholder="Choisir un élève"
+                  placeholder={t("discipline.form.fields.studentPlaceholder")}
                   testIDPrefix="discipline-form-student"
                 />
               )}
@@ -235,10 +254,13 @@ export function TeacherClassDisciplineFormSheet({
             ) : null}
 
             <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>Type d'événement</Text>
+              <Text style={styles.fieldLabel}>
+                {t("discipline.form.fields.type")}
+              </Text>
               <View style={styles.typeRow}>
                 {TYPES.map((type) => {
                   const cfg = DISCIPLINE_TYPE_CONFIG[type];
+                  const typeLabel = getDisciplineTypeLabel(t, type);
                   const active = selectedType === type;
                   return (
                     <TouchableOpacity
@@ -267,7 +289,7 @@ export function TeacherClassDisciplineFormSheet({
                           },
                         ]}
                       >
-                        {cfg.label}
+                        {typeLabel}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -280,10 +302,12 @@ export function TeacherClassDisciplineFormSheet({
               name="occurredAt"
               render={({ field: { value, onChange } }) => (
                 <FieldTextInput
-                  label="Date et heure"
+                  label={t("discipline.form.fields.dateTime")}
                   value={value}
                   onChangeText={onChange}
-                  placeholder="YYYY-MM-DDTHH:mm"
+                  placeholder={t(
+                    "discipline.form.fields.dateTimePlaceholderIso",
+                  )}
                   testID="discipline-form-occurred-at"
                 />
               )}
@@ -297,10 +321,12 @@ export function TeacherClassDisciplineFormSheet({
               name="reason"
               render={({ field: { value, onChange } }) => (
                 <FieldTextInput
-                  label="Description"
+                  label={t("discipline.form.fields.description")}
                   value={value}
                   onChangeText={onChange}
-                  placeholder="Ex : bus arrivé en retard"
+                  placeholder={t(
+                    "discipline.form.fields.reasonPlaceholderShort",
+                  )}
                   multiline
                   testID="discipline-form-reason"
                 />
@@ -315,10 +341,12 @@ export function TeacherClassDisciplineFormSheet({
               name="durationMinutes"
               render={({ field: { value, onChange } }) => (
                 <FieldTextInput
-                  label="Durée (minutes)"
+                  label={t("discipline.form.fields.duration")}
                   value={value}
                   onChangeText={onChange}
-                  placeholder="Ex : 40"
+                  placeholder={t(
+                    "discipline.form.fields.durationPlaceholderAlt",
+                  )}
                   keyboardType="numeric"
                   testID="discipline-form-duration"
                 />
@@ -337,10 +365,11 @@ export function TeacherClassDisciplineFormSheet({
                 render={({ field: { value, onChange } }) => (
                   <View style={styles.switchRow}>
                     <View style={styles.switchTextBlock}>
-                      <Text style={styles.fieldLabel}>Justifié</Text>
+                      <Text style={styles.fieldLabel}>
+                        {t("discipline.form.fields.justified")}
+                      </Text>
                       <Text style={styles.switchSub}>
-                        Absence ou retard validé par les parents ou
-                        l'administration
+                        {t("discipline.form.fields.justifiedHintAlt")}
                       </Text>
                     </View>
                     <Switch
@@ -363,10 +392,12 @@ export function TeacherClassDisciplineFormSheet({
               name="comment"
               render={({ field: { value, onChange } }) => (
                 <FieldTextInput
-                  label="Commentaire"
+                  label={t("discipline.form.fields.comment")}
                   value={value}
                   onChangeText={onChange}
-                  placeholder="Observations complémentaires"
+                  placeholder={t(
+                    "discipline.form.fields.commentPlaceholderAlt",
+                  )}
                   multiline
                   testID="discipline-form-comment"
                 />
@@ -392,7 +423,9 @@ export function TeacherClassDisciplineFormSheet({
               disabled={isSaving}
               testID="discipline-form-cancel"
             >
-              <Text style={styles.cancelBtnText}>Annuler</Text>
+              <Text style={styles.cancelBtnText}>
+                {t("discipline.form.buttons.cancel")}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.submitBtn, isSaving && styles.submitBtnDisabled]}

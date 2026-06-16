@@ -10,6 +10,10 @@ import {
   toWeekdayMondayFirst,
 } from "../../src/utils/timetable";
 import { formatDayNavLabel } from "../../src/components/timetable/ChildTimetableScreen";
+import { translate } from "../../src/i18n/useTranslation";
+import { DEFAULT_LOCALE } from "../../src/i18n/translations";
+
+const t = (key: string) => translate(DEFAULT_LOCALE, key);
 
 describe("timetable utils", () => {
   it("convertit correctement les minutes en heure texte", () => {
@@ -304,7 +308,7 @@ describe("formatDayNavLabel", () => {
   const OTHER = new Date("2026-04-15T12:00:00Z"); // Mercredi 15 avril 2026
 
   it("affiche 'Aujourd'hui · <jour complet>' quand c'est le jour courant", () => {
-    const label = formatDayNavLabel(TODAY, TODAY);
+    const label = formatDayNavLabel(TODAY, TODAY, t, DEFAULT_LOCALE);
     expect(label).toMatch(/^Aujourd'hui · /);
     expect(label).toMatch(/Lundi/i);
     expect(label).toMatch(/27/);
@@ -313,7 +317,7 @@ describe("formatDayNavLabel", () => {
   });
 
   it("affiche le jour de la semaine capitalisé et l'année pour un autre jour", () => {
-    const label = formatDayNavLabel(TOMORROW, TODAY);
+    const label = formatDayNavLabel(TOMORROW, TODAY, t, DEFAULT_LOCALE);
     expect(label).not.toMatch(/Aujourd'hui/);
     expect(label).toMatch(/^Mardi/i);
     expect(label).toMatch(/28/);
@@ -322,14 +326,14 @@ describe("formatDayNavLabel", () => {
   });
 
   it("n'affiche pas 'Aujourd'hui' quand ce n'est pas le jour courant", () => {
-    const label = formatDayNavLabel(OTHER, TODAY);
+    const label = formatDayNavLabel(OTHER, TODAY, t, DEFAULT_LOCALE);
     expect(label).not.toContain("Aujourd'hui");
     expect(label).toMatch(/15/);
   });
 
   it("la première lettre est toujours en majuscule", () => {
-    const labelToday = formatDayNavLabel(TODAY, TODAY);
-    const labelOther = formatDayNavLabel(TOMORROW, TODAY);
+    const labelToday = formatDayNavLabel(TODAY, TODAY, t, DEFAULT_LOCALE);
+    const labelOther = formatDayNavLabel(TOMORROW, TODAY, t, DEFAULT_LOCALE);
     expect(labelToday.charAt(0)).toBe(labelToday.charAt(0).toUpperCase());
     expect(labelOther.charAt(0)).toBe(labelOther.charAt(0).toUpperCase());
   });

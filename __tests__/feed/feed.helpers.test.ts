@@ -1,6 +1,7 @@
 import {
   formatAuthorName,
   formatCompactAuthorName,
+  formatFeedDate,
   getAttachmentSummary,
   getCommentSummary,
   getFeedAudienceLabel,
@@ -8,6 +9,10 @@ import {
   isStaffRole,
   stripHtml,
 } from "../../src/components/feed/feed.helpers";
+import { translate } from "../../src/i18n/useTranslation";
+
+const tFr = (key: string) => translate("fr", key);
+const tEn = (key: string) => translate("en", key);
 
 describe("feed.helpers", () => {
   it("détecte correctement les rôles staff", () => {
@@ -46,39 +51,96 @@ describe("feed.helpers", () => {
   });
 
   it("résume les pièces jointes", () => {
-    expect(getAttachmentSummary([])).toBe("");
+    expect(getAttachmentSummary([], tFr)).toBe("");
     expect(
-      getAttachmentSummary([
-        { id: "a1", fileName: "note.pdf", sizeLabel: "12 Ko" },
-      ]),
+      getAttachmentSummary(
+        [{ id: "a1", fileName: "note.pdf", sizeLabel: "12 Ko" }],
+        tFr,
+      ),
     ).toBe("note.pdf");
     expect(
-      getAttachmentSummary([
-        { id: "a1", fileName: "note.pdf", sizeLabel: "12 Ko" },
-        { id: "a2", fileName: "photo.jpg", sizeLabel: "88 Ko" },
-      ]),
+      getAttachmentSummary(
+        [
+          { id: "a1", fileName: "note.pdf", sizeLabel: "12 Ko" },
+          { id: "a2", fileName: "photo.jpg", sizeLabel: "88 Ko" },
+        ],
+        tFr,
+      ),
     ).toBe("2 pièces jointes");
+    expect(
+      getAttachmentSummary(
+        [
+          { id: "a1", fileName: "note.pdf", sizeLabel: "12 KB" },
+          { id: "a2", fileName: "photo.jpg", sizeLabel: "88 KB" },
+        ],
+        tEn,
+      ),
+    ).toBe("2 attachments");
   });
 
   it("résume les commentaires", () => {
-    expect(getCommentSummary([])).toBe("Soyez le premier à réagir");
+    expect(getCommentSummary([], tFr)).toBe("Soyez le premier à réagir");
+    expect(getCommentSummary([], tEn)).toBe("Be the first to react");
     expect(
-      getCommentSummary([
-        {
-          id: "c1",
-          authorName: "Alice Martin",
-          text: "Bonjour",
-          createdAt: "2026-04-05T10:00:00.000Z",
-        },
-      ]),
+      getCommentSummary(
+        [
+          {
+            id: "c1",
+            authorName: "Alice Martin",
+            text: "Bonjour",
+            createdAt: "2026-04-05T10:00:00.000Z",
+          },
+        ],
+        tFr,
+      ),
     ).toBe("1 commentaire");
+    expect(
+      getCommentSummary(
+        [
+          {
+            id: "c1",
+            authorName: "Alice Martin",
+            text: "Bonjour",
+            createdAt: "2026-04-05T10:00:00.000Z",
+          },
+          {
+            id: "c2",
+            authorName: "Paul Durand",
+            text: "Merci",
+            createdAt: "2026-04-05T11:00:00.000Z",
+          },
+        ],
+        tFr,
+      ),
+    ).toBe("2 commentaires");
   });
 
   it("retourne un libellé d'audience adapté", () => {
-    expect(getFeedAudienceLabel("SCHOOL_ALL", "fallback")).toBe(
+    expect(getFeedAudienceLabel("SCHOOL_ALL", "fallback", tFr)).toBe(
       "Toute l'école",
     );
-    expect(getFeedAudienceLabel("CLASS", "Classe 6e A")).toBe("Classe 6e A");
+    expect(getFeedAudienceLabel("SCHOOL_ALL", "fallback", tEn)).toBe(
+      "Whole school",
+    );
+    expect(getFeedAudienceLabel("CLASS", "Classe 6e A", tFr)).toBe(
+      "Classe 6e A",
+    );
+  });
+
+  it("formate la date selon la locale", () => {
+    const dateIso = "2026-04-17T11:00:00.000Z";
+    expect(formatFeedDate(dateIso, "fr")).toEqual(
+      new Intl.DateTimeFormat("fr-FR", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(dateIso)),
+    );
+    expect(formatFeedDate(dateIso, "en")).toEqual(
+      new Intl.DateTimeFormat("en-GB", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(dateIso)),
+    );
   });
 
   it("ordonne les posts en mettant les publications en vedette en premier", () => {

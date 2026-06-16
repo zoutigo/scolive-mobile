@@ -19,33 +19,48 @@ import { z } from "zod";
 import { recoveryApi } from "../../src/api/recovery.api";
 import { SecureTextField } from "../../src/components/SecureTextField";
 import type { RecoveryQuestion } from "../../src/types/recovery.types";
+import { DEFAULT_LOCALE } from "../../src/i18n/translations";
+import {
+  translate,
+  useTranslation,
+  type TranslateFn,
+} from "../../src/i18n/useTranslation";
+
+const defaultT: TranslateFn = (key) => translate(DEFAULT_LOCALE, key);
 
 // ── Schémas Zod ───────────────────────────────────────────────────────────────
 
-export const pinRecoveryStep1PhoneSchema = z.object({
-  phone: z
-    .string()
-    .trim()
-    .min(1, "Le numéro de téléphone est requis.")
-    .regex(/^\d{9}$/, "Numéro invalide (9 chiffres attendus)."),
-});
-
-export const pinRecoveryStep3Schema = z
-  .object({
-    newPin: z
+export function buildPinRecoveryStep1PhoneSchema(t: TranslateFn) {
+  return z.object({
+    phone: z
       .string()
-      .regex(/^\d{6}$/, "Le PIN doit contenir exactement 6 chiffres."),
-    confirmPin: z.string().min(1, "Confirmez le PIN."),
-  })
-  .superRefine((v, ctx) => {
-    if (v.confirmPin && v.newPin !== v.confirmPin) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["confirmPin"],
-        message: "La confirmation ne correspond pas au PIN.",
-      });
-    }
+      .trim()
+      .min(1, t("recovery.pin.errors.phoneRequired"))
+      .regex(/^\d{9}$/, t("recovery.pin.errors.phoneInvalid")),
   });
+}
+
+export function buildPinRecoveryStep3Schema(t: TranslateFn) {
+  return z
+    .object({
+      newPin: z.string().regex(/^\d{6}$/, t("recovery.pin.errors.pinFormat")),
+      confirmPin: z.string().min(1, t("recovery.pin.errors.confirmRequired")),
+    })
+    .superRefine((v, ctx) => {
+      if (v.confirmPin && v.newPin !== v.confirmPin) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["confirmPin"],
+          message: t("recovery.pin.errors.confirmMismatch"),
+        });
+      }
+    });
+}
+
+export const pinRecoveryStep1PhoneSchema =
+  buildPinRecoveryStep1PhoneSchema(defaultT);
+
+export const pinRecoveryStep3Schema = buildPinRecoveryStep3Schema(defaultT);
 
 // ── Types internes ────────────────────────────────────────────────────────────
 
@@ -74,24 +89,26 @@ export function parseDateToISO(value: string): string | null {
   return `${year}-${month}-${day}`;
 }
 
-export function parseRecoveryApiError(err: unknown): string {
+export function parseRecoveryApiError(
+  err: unknown,
+  t: TranslateFn = defaultT,
+): string {
   const e = err as { code?: string; statusCode?: number };
   switch (e?.code) {
     case "RECOVERY_INVALID":
-      return "Informations de récupération invalides.";
+      return t("recovery.common.errors.recoveryInvalid");
     case "NOT_FOUND":
     case "USER_NOT_FOUND":
-      return "Aucun compte trouvé avec ces informations.";
+      return t("recovery.common.errors.notFound");
     case "RECOVERY_SESSION_EXPIRED":
-      return "Session expirée. Recommencez depuis le début.";
+      return t("recovery.common.errors.sessionExpired");
     case "SAME_PIN":
-      return "Le nouveau PIN doit être différent de l'actuel.";
+      return t("recovery.pin.errors.samePin");
     default:
-      if (e?.statusCode === 404)
-        return "Aucun compte trouvé avec ces informations.";
+      if (e?.statusCode === 404) return t("recovery.common.errors.notFound");
       if (e?.statusCode === 400)
-        return "Informations de récupération invalides.";
-      return "Impossible de se connecter. Vérifiez votre connexion.";
+        return t("recovery.common.errors.recoveryInvalid");
+      return t("apiErrors.generic");
   }
 }
 
@@ -99,6 +116,7 @@ export function parseRecoveryApiError(err: unknown): string {
 
 export default function PinRecoveryScreen() {
   const insets = useSafeAreaInsets();
+  const { locale, t } = useTranslation();
   const [step, setStep] = useState<Step>(1);
 
   const [principalHint, setPrincipalHint] = useState("");
@@ -109,8 +127,14 @@ export default function PinRecoveryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const step1Form = useForm<z.infer<typeof pinRecoveryStep1PhoneSchema>>({
-    resolver: zodResolver(pinRecoveryStep1PhoneSchema),
+  const step1Schema = useMemo(
+    () => buildPinRecoveryStep1PhoneSchema(t),
+    [locale],
+  );
+  const step3Schema = useMemo(() => buildPinRecoveryStep3Schema(t), [locale]);
+
+  const step1Form = useForm<z.infer<typeof step1Schema>>({
+    resolver: zodResolver(step1Schema),
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
@@ -124,12 +148,12 @@ export default function PinRecoveryScreen() {
         .object({
           birthDate: z
             .string()
-            .min(1, "La date de naissance est obligatoire.")
+            .min(1, t("recovery.common.errors.birthDateRequired"))
             .refine((value) => /^\d{2}\/\d{2}\/\d{4}$/.test(value), {
-              message: "Format attendu : JJ/MM/AAAA.",
+              message: t("recovery.common.errors.birthDateFormat"),
             })
             .refine((value) => parseDateToISO(value) !== null, {
-              message: "Date de naissance invalide.",
+              message: t("recovery.common.errors.birthDateInvalid"),
             }),
           answers: z.record(z.string(), z.string().trim()),
         })
@@ -140,12 +164,12 @@ export default function PinRecoveryScreen() {
               ctx.addIssue({
                 code: "custom",
                 path: ["answers", question.key],
-                message: "Réponse obligatoire (au moins 2 caractères).",
+                message: t("recovery.common.errors.answerRequired"),
               });
             }
           });
         }),
-    [questions],
+    [questions, locale],
   );
 
   const step2Form = useForm<PinRecoveryStep2Values>({
@@ -158,8 +182,8 @@ export default function PinRecoveryScreen() {
     },
   });
 
-  const step3Form = useForm<z.infer<typeof pinRecoveryStep3Schema>>({
-    resolver: zodResolver(pinRecoveryStep3Schema),
+  const step3Form = useForm<z.infer<typeof step3Schema>>({
+    resolver: zodResolver(step3Schema),
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
@@ -198,7 +222,7 @@ export default function PinRecoveryScreen() {
       setQuestions(res.questions);
       setStep(2);
     } catch (err) {
-      setError(parseRecoveryApiError(err));
+      setError(parseRecoveryApiError(err, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -225,7 +249,7 @@ export default function PinRecoveryScreen() {
       setRecoveryToken(res.recoveryToken);
       setStep(3);
     } catch (err) {
-      setError(parseRecoveryApiError(err));
+      setError(parseRecoveryApiError(err, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -243,7 +267,7 @@ export default function PinRecoveryScreen() {
       });
       setStep(4);
     } catch (err) {
-      setError(parseRecoveryApiError(err));
+      setError(parseRecoveryApiError(err, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -280,19 +304,25 @@ export default function PinRecoveryScreen() {
               }}
               style={styles.backButton}
             >
-              <Text style={styles.backButtonText}>‹ Retour</Text>
+              <Text style={styles.backButtonText}>
+                {t("recovery.common.back")}
+              </Text>
             </Pressable>
           )}
         </View>
         <View style={styles.brandAccent} />
 
         <Text style={styles.headerTitle}>
-          {isSuccess ? "PIN mis à jour !" : "Récupération de PIN"}
+          {isSuccess
+            ? t("recovery.pin.headerTitleSuccess")
+            : t("recovery.pin.headerTitle")}
         </Text>
 
         {!isSuccess && (
           <>
-            <Text style={styles.stepIndicator}>Étape {step} sur 3</Text>
+            <Text style={styles.stepIndicator}>
+              {t("recovery.pin.step").replace("{step}", String(step))}
+            </Text>
             <View style={styles.progressTrack}>
               <View
                 style={[styles.progressFill, { width: `${(step / 3) * 100}%` }]}
@@ -316,10 +346,11 @@ export default function PinRecoveryScreen() {
             {/* ── Step 1 : Identification ──────────────────── */}
             {step === 1 && (
               <View testID="step-1">
-                <Text style={styles.stepTitle}>Identifiez votre compte</Text>
+                <Text style={styles.stepTitle}>
+                  {t("recovery.pin.step1.title")}
+                </Text>
                 <Text style={styles.stepSubtitle}>
-                  Renseignez votre numéro de téléphone pour retrouver l'accès à
-                  votre compte.
+                  {t("recovery.pin.step1.subtitle")}
                 </Text>
 
                 <View style={styles.fieldGroup}>
@@ -327,7 +358,9 @@ export default function PinRecoveryScreen() {
                     <View style={styles.fieldIcon}>
                       <Text style={styles.fieldIconText}>📱</Text>
                     </View>
-                    <Text style={styles.label}>Numéro de téléphone</Text>
+                    <Text style={styles.label}>
+                      {t("recovery.pin.fields.phone")}
+                    </Text>
                   </View>
                   <View style={styles.phoneRow}>
                     <View style={styles.dialCode}>
@@ -346,7 +379,7 @@ export default function PinRecoveryScreen() {
                             clearUiErrors();
                             field.onChange(value);
                           }}
-                          placeholder="6XX XXX XXX"
+                          placeholder={t("recovery.common.phonePlaceholder")}
                           keyboardType="phone-pad"
                           style={[
                             styles.input,
@@ -386,7 +419,9 @@ export default function PinRecoveryScreen() {
                   {isSubmitting ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text style={styles.primaryButtonText}>Continuer →</Text>
+                    <Text style={styles.primaryButtonText}>
+                      {t("recovery.common.continue")}
+                    </Text>
                   )}
                 </Pressable>
               </View>
@@ -395,15 +430,17 @@ export default function PinRecoveryScreen() {
             {/* ── Step 2 : Vérification identité ──────────── */}
             {step === 2 && (
               <View testID="step-2">
-                <Text style={styles.stepTitle}>Vérification d'identité</Text>
+                <Text style={styles.stepTitle}>
+                  {t("recovery.pin.step2.title")}
+                </Text>
                 <Text style={styles.stepSubtitle}>
-                  Confirmez votre identité pour accéder à la réinitialisation.
+                  {t("recovery.pin.step2.subtitle")}
                 </Text>
 
                 {principalHint ? (
                   <View style={styles.hintBox}>
                     <Text style={styles.hintText}>
-                      Compte :{" "}
+                      {t("recovery.pin.step2.accountHint")}
                       <Text style={styles.hintValue}>{principalHint}</Text>
                     </Text>
                   </View>
@@ -414,7 +451,9 @@ export default function PinRecoveryScreen() {
                     <View style={styles.fieldIcon}>
                       <Text style={styles.fieldIconText}>📅</Text>
                     </View>
-                    <Text style={styles.label}>Date de naissance</Text>
+                    <Text style={styles.label}>
+                      {t("recovery.common.birthDateLabel")}
+                    </Text>
                   </View>
                   <Controller
                     control={step2Form.control}
@@ -429,7 +468,7 @@ export default function PinRecoveryScreen() {
                           clearUiErrors();
                           field.onChange(formatDateInput(value));
                         }}
-                        placeholder="JJ/MM/AAAA"
+                        placeholder={t("recovery.common.birthDatePlaceholder")}
                         keyboardType="numeric"
                         style={[
                           styles.input,
@@ -472,7 +511,7 @@ export default function PinRecoveryScreen() {
                               clearUiErrors();
                               field.onChange(value);
                             }}
-                            placeholder="Votre réponse"
+                            placeholder={t("recovery.common.answerPlaceholder")}
                             autoCapitalize="none"
                             style={[
                               styles.input,
@@ -514,7 +553,9 @@ export default function PinRecoveryScreen() {
                   {isSubmitting ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text style={styles.primaryButtonText}>Vérifier →</Text>
+                    <Text style={styles.primaryButtonText}>
+                      {t("recovery.common.verify")}
+                    </Text>
                   )}
                 </Pressable>
               </View>
@@ -523,10 +564,11 @@ export default function PinRecoveryScreen() {
             {/* ── Step 3 : Nouveau PIN ─────────────────────── */}
             {step === 3 && (
               <View testID="step-3">
-                <Text style={styles.stepTitle}>Nouveau PIN</Text>
+                <Text style={styles.stepTitle}>
+                  {t("recovery.pin.step3.title")}
+                </Text>
                 <Text style={styles.stepSubtitle}>
-                  Choisissez un code PIN à 6 chiffres pour sécuriser votre
-                  accès.
+                  {t("recovery.pin.step3.subtitle")}
                 </Text>
 
                 <View style={styles.fieldGroup}>
@@ -534,7 +576,9 @@ export default function PinRecoveryScreen() {
                     <View style={styles.fieldIcon}>
                       <Text style={styles.fieldIconText}>🔒</Text>
                     </View>
-                    <Text style={styles.label}>Nouveau PIN</Text>
+                    <Text style={styles.label}>
+                      {t("recovery.pin.fields.newPin")}
+                    </Text>
                   </View>
                   <Controller
                     control={step3Form.control}
@@ -549,7 +593,7 @@ export default function PinRecoveryScreen() {
                           clearUiErrors();
                           field.onChange(value);
                         }}
-                        placeholder="6 chiffres"
+                        placeholder={t("recovery.pin.placeholders.newPin")}
                         keyboardType="number-pad"
                         maxLength={6}
                         containerStyle={
@@ -572,7 +616,9 @@ export default function PinRecoveryScreen() {
                     <View style={styles.fieldIcon}>
                       <Text style={styles.fieldIconText}>🔒</Text>
                     </View>
-                    <Text style={styles.label}>Confirmer le PIN</Text>
+                    <Text style={styles.label}>
+                      {t("recovery.pin.fields.confirmPin")}
+                    </Text>
                   </View>
                   <Controller
                     control={step3Form.control}
@@ -587,7 +633,7 @@ export default function PinRecoveryScreen() {
                           clearUiErrors();
                           field.onChange(value);
                         }}
-                        placeholder="Confirmez votre PIN"
+                        placeholder={t("recovery.pin.placeholders.confirmPin")}
                         keyboardType="number-pad"
                         maxLength={6}
                         containerStyle={
@@ -629,7 +675,7 @@ export default function PinRecoveryScreen() {
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
                     <Text style={styles.primaryButtonText}>
-                      Enregistrer le PIN
+                      {t("recovery.pin.step3.submit")}
                     </Text>
                   )}
                 </Pressable>
@@ -642,17 +688,20 @@ export default function PinRecoveryScreen() {
                 <View style={styles.successIconWrap}>
                   <Text style={styles.successCheck}>✓</Text>
                 </View>
-                <Text style={styles.successTitle}>PIN mis à jour !</Text>
+                <Text style={styles.successTitle}>
+                  {t("recovery.pin.headerTitleSuccess")}
+                </Text>
                 <Text style={styles.successSubtitle}>
-                  Votre code PIN a été modifié avec succès. Vous pouvez
-                  maintenant vous connecter.
+                  {t("recovery.pin.success.subtitle")}
                 </Text>
                 <Pressable
                   testID="btn-go-login"
                   style={[styles.primaryButton, styles.fullWidth]}
                   onPress={() => router.replace("/login")}
                 >
-                  <Text style={styles.primaryButtonText}>Se connecter</Text>
+                  <Text style={styles.primaryButtonText}>
+                    {t("recovery.common.loginButton")}
+                  </Text>
                 </Pressable>
               </View>
             )}

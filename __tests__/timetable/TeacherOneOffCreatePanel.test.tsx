@@ -18,13 +18,67 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
-import {
-  TeacherOneOffCreatePanel,
-  teacherOneOffCreateSchema,
-} from "../../src/components/timetable/TeacherOneOffCreatePanel";
+import { TeacherOneOffCreatePanel } from "../../src/components/timetable/TeacherOneOffCreatePanel";
 import { timetableApi } from "../../src/api/timetable.api";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useSuccessToastStore } from "../../src/store/success-toast.store";
+import { translate } from "../../src/i18n/useTranslation";
+import { DEFAULT_LOCALE } from "../../src/i18n/translations";
+import { timeLabelToMinute } from "../../src/utils/timetable";
+import { z } from "zod";
+
+const t = (key: string) => translate(DEFAULT_LOCALE, key);
+
+const teacherOneOffCreateSchema = z
+  .object({
+    classId: z
+      .string()
+      .min(1, t("timetable.oneOffPanel.validation.chooseClass")),
+    occurrenceDate: z
+      .string()
+      .regex(
+        /^\d{4}-\d{2}-\d{2}$/,
+        t("timetable.classManager.validation.dateFormat"),
+      ),
+    start: z
+      .string()
+      .trim()
+      .min(1, t("timetable.oneOffPanel.validation.startRequired"))
+      .regex(
+        /^\d{1,2}:\d{2}$/,
+        t("timetable.classManager.validation.timeFormat"),
+      ),
+    end: z
+      .string()
+      .trim()
+      .min(1, t("timetable.oneOffPanel.validation.endRequired"))
+      .regex(
+        /^\d{1,2}:\d{2}$/,
+        t("timetable.classManager.validation.timeFormat"),
+      ),
+    subjectId: z
+      .string()
+      .min(1, t("timetable.classManager.validation.chooseSubject")),
+    teacherUserId: z
+      .string()
+      .min(1, t("timetable.classManager.validation.chooseTeacher")),
+    room: z
+      .string()
+      .trim()
+      .min(1, t("timetable.oneOffPanel.validation.roomRequired")),
+  })
+  .refine(
+    (d) => {
+      const s = timeLabelToMinute(d.start);
+      const e = timeLabelToMinute(d.end);
+      if (s === null || e === null) return true;
+      return e > s;
+    },
+    {
+      path: ["end"],
+      message: t("timetable.oneOffPanel.validation.endAfterStart"),
+    },
+  );
 import type {
   ClassTimetableContextResponse,
   TimetableClassOption,

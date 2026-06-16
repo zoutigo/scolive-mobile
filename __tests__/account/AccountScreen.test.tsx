@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
   fireEvent,
@@ -11,6 +12,11 @@ import { AccountScreen } from "../../src/components/account/AccountScreen";
 import { accountApi } from "../../src/api/account.api";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useSuccessToastStore } from "../../src/store/success-toast.store";
+import { DEFAULT_LOCALE } from "../../src/i18n/translations";
+import {
+  LOCALE_STORAGE_KEY,
+  useLocaleStore,
+} from "../../src/store/locale.store";
 import { colors } from "../../src/theme";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
@@ -35,6 +41,7 @@ const profileResponse = {
   firstName: "Remi",
   lastName: "Ntamack",
   gender: "M" as const,
+  preferredLocale: "FR" as const,
   email: "remi@example.com",
   phone: "237650123456",
   role: "PARENT" as const,
@@ -65,11 +72,13 @@ const recoveryResponse = {
 };
 
 describe("AccountScreen", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
     useSuccessToastStore.getState().hide();
+    await AsyncStorage.clear();
+    useLocaleStore.setState({ locale: DEFAULT_LOCALE });
     useAuthStore.setState({
       user: {
         id: "user-1",
@@ -408,6 +417,107 @@ describe("AccountScreen", () => {
 
     await waitFor(() => {
       expect(useAuthStore.getState().user?.activeRole).toBe("TEACHER");
+    });
+  });
+
+  it("bascule l'interface en anglais et persiste le choix", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+
+    expect(screen.getByText("Langue de cet appareil")).toBeTruthy();
+    expect(screen.getAllByText("Français").length).toBeGreaterThan(0);
+
+    fireEvent.press(screen.getByTestId("account-language-en"));
+
+    expect(useLocaleStore.getState().locale).toBe("en");
+    expect(screen.getByText("Language of this device")).toBeTruthy();
+    expect(screen.getByText("Choose the application language")).toBeTruthy();
+
+    await waitFor(async () => {
+      const stored = await AsyncStorage.getItem(LOCALE_STORAGE_KEY);
+      expect(stored).not.toBeNull();
+      expect(JSON.parse(stored as string)).toMatchObject({
+        state: { locale: "en" },
+      });
+    });
+  });
+
+  it("restaure la langue anglaise persistée au prochain démarrage", async () => {
+    await AsyncStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify({ state: { locale: "en" }, version: 0 }),
+    );
+    await useLocaleStore.persist.rehydrate();
+
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+
+    expect(screen.getByText("Language of this device")).toBeTruthy();
+    expect(screen.getByTestId("account-language-en")).toBeTruthy();
+  });
+
+  it("affiche la langue du compte et permet de la modifier", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+
+    expect(
+      screen.getByTestId("account-settings-account-language-card"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("account-profile-language-fr")).toBeTruthy();
+    expect(screen.getByTestId("account-profile-language-en")).toBeTruthy();
+  });
+
+  it("met à jour la langue du compte et synchronise la langue de l'appareil", async () => {
+    api.updateLanguage.mockResolvedValueOnce({
+      ...profileResponse,
+      preferredLocale: "EN",
+    });
+
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("account-profile-language-en"));
+    });
+
+    await waitFor(() => {
+      expect(api.updateLanguage).toHaveBeenCalledWith({
+        preferredLocale: "EN",
+      });
+    });
+
+    await waitFor(() => {
+      expect(useLocaleStore.getState().locale).toBe("en");
+    });
+
+    await waitFor(() => {
+      expect(useAuthStore.getState().user?.preferredLocale).toBe("EN");
+    });
+
+    await waitFor(() => {
+      expect(useSuccessToastStore.getState().message).toBe(
+        "La langue de votre compte a été enregistrée.",
+      );
     });
   });
 });

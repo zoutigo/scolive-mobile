@@ -16,8 +16,8 @@ import {
   groupOccurrencesByDate,
   initials,
   minuteToTimeLabel,
-  WEEKDAY_LABELS,
 } from "../../utils/timetable";
+import { useTranslation } from "../../i18n/useTranslation";
 import type {
   TimetableCalendarEvent,
   TimetableOccurrence,
@@ -175,7 +175,17 @@ export function OccurrencesAgenda(props: {
   emptyMessage: string;
   testID?: string;
 }) {
+  const { t } = useTranslation();
   const groups = groupOccurrencesByDate(props.occurrences);
+  const weekdayLabels: Record<number, string> = {
+    1: t("timetable.classManager.weekdays.mon"),
+    2: t("timetable.classManager.weekdays.tue"),
+    3: t("timetable.classManager.weekdays.wed"),
+    4: t("timetable.classManager.weekdays.thu"),
+    5: t("timetable.classManager.weekdays.fri"),
+    6: t("timetable.classManager.weekdays.sat"),
+    7: t("timetable.classManager.weekdays.sun"),
+  };
 
   if (groups.length === 0) {
     return (
@@ -232,10 +242,10 @@ export function OccurrencesAgenda(props: {
                       >
                         <Text style={styles.sourceBadgeText}>
                           {item.source === "ONE_OFF"
-                            ? "Exception"
+                            ? t("timetable.common.sourceException")
                             : item.source === "EXCEPTION_OVERRIDE"
-                              ? "Ajusté"
-                              : WEEKDAY_LABELS[item.weekday]}
+                              ? t("timetable.common.sourceAdjusted")
+                              : (weekdayLabels[item.weekday] ?? "")}
                         </Text>
                       </View>
                     </View>
@@ -246,13 +256,17 @@ export function OccurrencesAgenda(props: {
                       ]}
                     >
                       {fullTeacherName(item.teacherUser)} •{" "}
-                      {item.room?.trim() ? item.room : "Salle à confirmer"}
+                      {item.room?.trim()
+                        ? item.room
+                        : t("timetable.common.roomToConfirm")}
                     </Text>
                     {item.reason ? (
                       <Text style={styles.occurrenceReason}>{item.reason}</Text>
                     ) : null}
                     {cancelled ? (
-                      <Text style={styles.cancelBadge}>Cours annulé</Text>
+                      <Text style={styles.cancelBadge}>
+                        {t("timetable.common.courseCancelled")}
+                      </Text>
                     ) : null}
                   </View>
                 </View>
@@ -270,12 +284,14 @@ export function CalendarEventList(props: {
   onEdit?: (event: TimetableCalendarEvent) => void;
   onDelete?: (event: TimetableCalendarEvent) => void;
 }) {
+  const { t } = useTranslation();
+
   if (props.events.length === 0) {
     return (
       <EmptyState
         icon="sunny-outline"
-        title="Aucune fermeture enregistrée"
-        message="Les jours fériés et vacances créés pour l'école apparaîtront ici."
+        title={t("timetable.common.noClosureTitle")}
+        message={t("timetable.common.noClosureMessage")}
       />
     );
   }
@@ -294,7 +310,8 @@ export function CalendarEventList(props: {
           <View style={styles.eventBody}>
             <Text style={styles.eventTitle}>{event.label}</Text>
             <Text style={styles.eventDates}>
-              {formatHumanDate(event.startDate)} au{" "}
+              {formatHumanDate(event.startDate)}{" "}
+              {t("timetable.classManager.dateRangeTo")}{" "}
               {formatHumanDate(event.endDate)}
             </Text>
           </View>

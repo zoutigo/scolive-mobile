@@ -7,11 +7,16 @@ import {
   StyleSheet,
 } from "react-native";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import type { FolderKey } from "../../types/messaging.types";
 
 interface FolderTab {
   key: FolderKey;
-  label: string;
+  labelKey:
+    | "messaging.folders.inbox"
+    | "messaging.folders.sent"
+    | "messaging.folders.drafts"
+    | "messaging.folders.archive";
   badge?: number;
 }
 
@@ -22,13 +27,15 @@ interface Props {
 }
 
 const FOLDERS: FolderTab[] = [
-  { key: "inbox", label: "Réception" },
-  { key: "sent", label: "Envoyés" },
-  { key: "drafts", label: "Brouillons" },
-  { key: "archive", label: "Archives" },
+  { key: "inbox", labelKey: "messaging.folders.inbox" },
+  { key: "sent", labelKey: "messaging.folders.sent" },
+  { key: "drafts", labelKey: "messaging.folders.drafts" },
+  { key: "archive", labelKey: "messaging.folders.archive" },
 ];
 
 export function FolderTabs({ activeFolder, unreadCount, onSelect }: Props) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -50,7 +57,7 @@ export function FolderTabs({ activeFolder, unreadCount, onSelect }: Props) {
               testID={`folder-tab-${tab.key}`}
             >
               <Text style={[styles.label, isActive && styles.labelActive]}>
-                {tab.label}
+                {t(tab.labelKey)}
               </Text>
               {badge > 0 && (
                 <View style={styles.badge} testID={`folder-badge-${tab.key}`}>

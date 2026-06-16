@@ -13,10 +13,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import {
   buildLifeEventPayload,
+  createDisciplineFormSchema,
   DISCIPLINE_TYPE_CONFIG,
-  disciplineFormSchema,
+  getDisciplineTypeLabel,
   STUDENT_LIFE_EVENT_TYPES,
   typeHasJustified,
   type CreateLifeEventPayload,
@@ -79,11 +81,13 @@ export function StudentDisciplineEventModal({
   onClose,
   onSubmit,
 }: Props) {
+  const { t } = useTranslation();
+  const schema = createDisciplineFormSchema(t);
   const [typePickerOpen, setTypePickerOpen] = useState(false);
 
   const { control, handleSubmit, watch, reset, setValue } =
     useForm<DisciplineFormInput>({
-      resolver: zodResolver(disciplineFormSchema),
+      resolver: zodResolver(schema),
       mode: "onChange",
       reValidateMode: "onChange",
       defaultValues: editing ? eventToFormValues(editing) : defaultFormValues(),
@@ -102,7 +106,7 @@ export function StudentDisciplineEventModal({
   }, [selectedType, setValue]);
 
   const onSave = handleSubmit(async (values) => {
-    await onSubmit(buildLifeEventPayload(values));
+    await onSubmit(buildLifeEventPayload(values, schema));
   });
 
   const typeCfg = DISCIPLINE_TYPE_CONFIG[selectedType];
@@ -126,9 +130,11 @@ export function StudentDisciplineEventModal({
             <View style={styles.header}>
               <View>
                 <Text style={styles.eyebrow}>
-                  {editing ? "Modification" : "Nouvel événement"}
+                  {editing
+                    ? t("discipline.form.eyebrowEdit")
+                    : t("discipline.form.eyebrowCreate")}
                 </Text>
-                <Text style={styles.title}>Discipline</Text>
+                <Text style={styles.title}>{t("discipline.form.title")}</Text>
               </View>
               <TouchableOpacity onPress={onClose} testID="modal-close">
                 <Ionicons name="close" size={20} color={colors.textSecondary} />
@@ -143,7 +149,9 @@ export function StudentDisciplineEventModal({
             >
               {/* Type d'événement — label + trigger inline */}
               <View style={styles.inlineField}>
-                <Text style={styles.inlineLabel}>Type d'événement</Text>
+                <Text style={styles.inlineLabel}>
+                  {t("discipline.form.fields.type")}
+                </Text>
                 <TouchableOpacity
                   style={styles.inlineTrigger}
                   activeOpacity={0.8}
@@ -161,7 +169,7 @@ export function StudentDisciplineEventModal({
                       { color: typeCfg.accent },
                     ]}
                   >
-                    {typeCfg.label}
+                    {getDisciplineTypeLabel(t, selectedType)}
                   </Text>
                   <Ionicons
                     name="chevron-down"
@@ -177,7 +185,7 @@ export function StudentDisciplineEventModal({
                 name="occurredAt"
                 render={({ field, fieldState }) => (
                   <FormField
-                    label="Date et heure *"
+                    label={t("discipline.form.fields.dateTimeRequired")}
                     error={fieldState.error?.message}
                   >
                     <TextInput
@@ -189,7 +197,9 @@ export function StudentDisciplineEventModal({
                       value={field.value}
                       onBlur={field.onBlur}
                       onChangeText={field.onChange}
-                      placeholder="2026-04-09T08:30"
+                      placeholder={t(
+                        "discipline.form.fields.dateTimePlaceholder",
+                      )}
                       placeholderTextColor={colors.textSecondary}
                       autoCapitalize="none"
                       testID="modal-occurred-at"
@@ -203,7 +213,10 @@ export function StudentDisciplineEventModal({
                 control={control}
                 name="reason"
                 render={({ field, fieldState }) => (
-                  <FormField label="Motif *" error={fieldState.error?.message}>
+                  <FormField
+                    label={t("discipline.form.fields.reasonRequired")}
+                    error={fieldState.error?.message}
+                  >
                     <TextInput
                       ref={field.ref}
                       style={[
@@ -214,7 +227,9 @@ export function StudentDisciplineEventModal({
                       value={field.value}
                       onBlur={field.onBlur}
                       onChangeText={field.onChange}
-                      placeholder="Ex : travail non rendu, absence non justifiée…"
+                      placeholder={t(
+                        "discipline.form.fields.reasonPlaceholder",
+                      )}
                       placeholderTextColor={colors.textSecondary}
                       multiline
                       numberOfLines={3}
@@ -231,7 +246,7 @@ export function StudentDisciplineEventModal({
                 name="durationMinutes"
                 render={({ field, fieldState }) => (
                   <FormField
-                    label="Durée (minutes, optionnel)"
+                    label={t("discipline.form.fields.durationOptional")}
                     error={fieldState.error?.message}
                   >
                     <TextInput
@@ -243,7 +258,9 @@ export function StudentDisciplineEventModal({
                       value={field.value}
                       onBlur={field.onBlur}
                       onChangeText={field.onChange}
-                      placeholder="Ex : 15"
+                      placeholder={t(
+                        "discipline.form.fields.durationPlaceholder",
+                      )}
                       placeholderTextColor={colors.textSecondary}
                       keyboardType="numeric"
                       testID="modal-duration"
@@ -260,10 +277,11 @@ export function StudentDisciplineEventModal({
                   render={({ field }) => (
                     <View style={styles.switchRow}>
                       <View style={styles.switchInfo}>
-                        <Text style={styles.fieldLabel}>Justifié</Text>
+                        <Text style={styles.fieldLabel}>
+                          {t("discipline.form.fields.justified")}
+                        </Text>
                         <Text style={styles.switchSub}>
-                          Absence ou retard justifié par les parents /
-                          administration
+                          {t("discipline.form.fields.justifiedHint")}
                         </Text>
                       </View>
                       <Switch
@@ -288,14 +306,18 @@ export function StudentDisciplineEventModal({
                 control={control}
                 name="comment"
                 render={({ field }) => (
-                  <FormField label="Commentaire (optionnel)">
+                  <FormField
+                    label={t("discipline.form.fields.commentOptional")}
+                  >
                     <TextInput
                       ref={field.ref}
                       style={[styles.input, styles.textarea]}
                       value={field.value}
                       onBlur={field.onBlur}
                       onChangeText={field.onChange}
-                      placeholder="Observations supplémentaires…"
+                      placeholder={t(
+                        "discipline.form.fields.commentPlaceholder",
+                      )}
                       placeholderTextColor={colors.textSecondary}
                       multiline
                       numberOfLines={3}
@@ -327,7 +349,9 @@ export function StudentDisciplineEventModal({
                 disabled={isSaving}
                 testID="modal-cancel"
               >
-                <Text style={styles.cancelBtnText}>Annuler</Text>
+                <Text style={styles.cancelBtnText}>
+                  {t("discipline.form.buttons.cancel")}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.submitBtn, isSaving && styles.submitBtnDisabled]}
@@ -337,8 +361,8 @@ export function StudentDisciplineEventModal({
               >
                 <Text style={styles.submitBtnText}>
                   {editing
-                    ? "Enregistrer les modifications"
-                    : "Créer l'événement"}
+                    ? t("discipline.form.buttons.edit")
+                    : t("discipline.form.buttons.create")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -360,9 +384,12 @@ export function StudentDisciplineEventModal({
             onPress={() => setTypePickerOpen(false)}
           />
           <View style={styles.typeSheet} testID="modal-type-picker">
-            <Text style={styles.typeSheetTitle}>Type d'événement</Text>
+            <Text style={styles.typeSheetTitle}>
+              {t("discipline.form.fields.type")}
+            </Text>
             {STUDENT_LIFE_EVENT_TYPES.map((type: StudentLifeEventType) => {
               const cfg = DISCIPLINE_TYPE_CONFIG[type];
+              const typeLabel = getDisciplineTypeLabel(t, type);
               const active = type === selectedType;
               return (
                 <TouchableOpacity
@@ -392,7 +419,7 @@ export function StudentDisciplineEventModal({
                       active && { color: cfg.accent, fontWeight: "700" },
                     ]}
                   >
-                    {cfg.label}
+                    {typeLabel}
                   </Text>
                   {active ? (
                     <Ionicons name="checkmark" size={16} color={cfg.accent} />

@@ -61,7 +61,7 @@ describe("IndexScreen", () => {
     setupStore({ isAuthenticated: false, isLoading: false });
     render(<IndexScreen />);
     expect(screen.getByText("SCO")).toBeOnTheScreen();
-    expect(screen.getByTestId("tab-phone")).toBeOnTheScreen();
+    expect(screen.getByTestId("panel-phone")).toBeOnTheScreen();
   });
 
   it("affiche le header avec le bouton menu quand authentifié", () => {

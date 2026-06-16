@@ -122,7 +122,7 @@ describe("ChildNotesScreen", () => {
     render(<ChildNotesScreen />);
 
     expect(screen.getByTestId("child-notes-header")).toBeTruthy();
-    expect(screen.getByText("Evaluations et moyennes")).toBeTruthy();
+    expect(screen.getByText("Évaluations et moyennes")).toBeTruthy();
     expect(screen.getByText("Lisa Ntamack • 6e A")).toBeTruthy();
     expect(screen.getAllByText("Trimestre 1").length).toBeGreaterThan(0);
     expect(screen.getByText("MATHÉMATIQUES")).toBeTruthy();
@@ -223,7 +223,7 @@ describe("ChildNotesScreen", () => {
     render(<ChildNotesScreen />);
 
     expect(screen.queryByText("Evaluations et moyennes de l'eleve")).toBeNull();
-    expect(screen.getByText("Evaluations et moyennes")).toBeTruthy();
+    expect(screen.getByText("Évaluations et moyennes")).toBeTruthy();
     expect(screen.getByText("Lisa Ntamack • 6e A")).toBeTruthy();
   });
 
@@ -275,7 +275,7 @@ describe("ChildNotesScreen", () => {
 
     fireEvent.press(screen.getByTestId("child-notes-evaluation-eval-1"));
 
-    expect(screen.getByText("Detail de l'evaluation")).toBeTruthy();
+    expect(screen.getByText("Détail de l'évaluation")).toBeTruthy();
     expect(screen.getAllByText("Interro 1").length).toBeGreaterThan(0);
   });
 
@@ -306,20 +306,18 @@ describe("ChildNotesScreen", () => {
     render(<ChildNotesScreen />);
 
     expect(screen.getByTestId("notes-period-hero")).toBeTruthy();
-    expect(screen.getByText("BULLETIN DE PERIODE")).toBeTruthy();
-    expect(screen.getByText("DONNEES PUBLIEES")).toBeTruthy();
+    expect(screen.getByText("BULLETIN DE PÉRIODE")).toBeTruthy();
+    expect(screen.getByText("DONNÉES PUBLIÉES")).toBeTruthy();
     expect(screen.getByText("Données publiées le 12/04/2026")).toBeTruthy();
   });
 
   it("affiche les cartes de synthèse du bulletin", () => {
     render(<ChildNotesScreen />);
 
-    expect(screen.getByTestId("notes-period-stat-moyenne-eleve")).toBeTruthy();
-    expect(screen.getByTestId("notes-period-stat-moyenne-classe")).toBeTruthy();
-    expect(screen.getByTestId("notes-period-stat-matiere-forte")).toBeTruthy();
-    expect(
-      screen.getByTestId("notes-period-stat-point-de-vigilance"),
-    ).toBeTruthy();
+    expect(screen.getByTestId("notes-period-stat-student-avg")).toBeTruthy();
+    expect(screen.getByTestId("notes-period-stat-class-avg")).toBeTruthy();
+    expect(screen.getByTestId("notes-period-stat-best-subject")).toBeTruthy();
+    expect(screen.getByTestId("notes-period-stat-watch-subject")).toBeTruthy();
   });
 
   it("affiche la vue moyennes proche du tableau web mobile", () => {
@@ -343,7 +341,7 @@ describe("ChildNotesScreen", () => {
 
     fireEvent.press(screen.getByTestId("child-notes-view-charts"));
 
-    expect(screen.getByText("Comparaison par matiere")).toBeTruthy();
+    expect(screen.getByText("Comparaison par matière")).toBeTruthy();
     expect(screen.getByText("Radar des moyennes")).toBeTruthy();
     expect(screen.getByTestId("child-notes-radar-panel")).toBeTruthy();
   });

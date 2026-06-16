@@ -6,6 +6,8 @@ import type {
   FeedPost,
   FeedViewerRole,
 } from "../../types/feed.types";
+import type { TranslateFn } from "../../i18n/useTranslation";
+import type { Locale } from "../../i18n/translations";
 
 const STAFF_ROLES = new Set<FeedViewerRole>([
   "SCHOOL_ADMIN",
@@ -37,8 +39,8 @@ export function stripHtml(html: string): string {
     .trim();
 }
 
-export function formatFeedDate(dateIso: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
+export function formatFeedDate(dateIso: string, locale: Locale = "fr") {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "fr-FR", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(dateIso));
@@ -82,16 +84,17 @@ export function formatCompactAuthorName(author: FeedAuthor) {
 export function getFeedAudienceLabel(
   scope: FeedAudienceScope,
   fallbackLabel: string,
+  t: TranslateFn,
 ) {
   switch (scope) {
     case "SCHOOL_ALL":
-      return "Toute l'école";
+      return t("feed.audience.wholeSchool");
     case "STAFF_ONLY":
-      return "Équipe interne";
+      return t("feed.audience.staffOnly");
     case "PARENTS_STUDENTS":
-      return "Parents & élèves";
+      return t("feed.audience.parentsAndStudents");
     case "PARENTS_ONLY":
-      return "Parents uniquement";
+      return t("feed.audience.parentsOnly");
     case "LEVEL":
     case "CLASS":
       return fallbackLabel;
@@ -100,24 +103,33 @@ export function getFeedAudienceLabel(
   }
 }
 
-export function getAttachmentSummary(attachments: FeedAttachment[]) {
+export function getAttachmentSummary(
+  attachments: FeedAttachment[],
+  t: TranslateFn,
+) {
   if (attachments.length === 0) {
     return "";
   }
   if (attachments.length === 1) {
     return attachments[0]?.fileName ?? "";
   }
-  return `${attachments.length} pièces jointes`;
+  return t("feed.attachments.summaryMultiple").replace(
+    "{count}",
+    String(attachments.length),
+  );
 }
 
-export function getCommentSummary(comments: FeedComment[]) {
+export function getCommentSummary(comments: FeedComment[], t: TranslateFn) {
   if (comments.length === 0) {
-    return "Soyez le premier à réagir";
+    return t("feed.comments.summaryNone");
   }
   if (comments.length === 1) {
-    return "1 commentaire";
+    return t("feed.comments.summaryOne");
   }
-  return `${comments.length} commentaires`;
+  return t("feed.comments.summaryMany").replace(
+    "{count}",
+    String(comments.length),
+  );
 }
 
 function isFeatured(post: FeedPost) {

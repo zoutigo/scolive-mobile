@@ -58,7 +58,7 @@ import {
   findInitialMonthSelection,
   findInitialWeekSelection,
   formatDayNavLabel,
-  MODE_OPTIONS,
+  getModeOptions,
   MonthAgenda,
   MonthGrid,
   WeekGrid,
@@ -66,6 +66,7 @@ import {
 } from "./ChildTimetableScreen";
 import { EmptyState, ErrorBanner, LoadingBlock } from "./TimetableCommon";
 import { TeacherSlotEditPanel } from "./TeacherSlotEditPanel";
+import { useTranslation } from "../../i18n/useTranslation";
 
 const P = "teacher-agenda";
 
@@ -126,7 +127,7 @@ export function TeacherAgendaScreenInner({
   lockedClassId,
   lockedClassName,
   hideClassPicker = false,
-  headerTitle = "Agenda",
+  headerTitle,
   lockedClassTabLabel,
   viewAsTeacherId,
   viewAsTeacherName,
@@ -136,6 +137,7 @@ export function TeacherAgendaScreenInner({
   const router = useRouter();
   const { openDrawer } = useDrawer();
   const { user } = useAuthStore();
+  const { t } = useTranslation();
   const admin = isSchoolAdmin(user);
   const isLockedClassView = !admin && Boolean(lockedClassId);
   const subtitle = viewAsTeacherName
@@ -150,7 +152,9 @@ export function TeacherAgendaScreenInner({
       : null;
   const classTabLabel =
     lockedClassTabLabel ??
-    (lockedClassName ? `Agenda ${lockedClassName}` : "Agenda de classe");
+    (lockedClassName
+      ? `${t("timetable.teacherAgenda.classTabLabelPrefix")} ${lockedClassName}`
+      : t("timetable.teacherAgenda.classTabLabelDefault"));
   const [activeTab, setActiveTab] = useState<AgendaTab>(
     isLockedClassView
       ? "classes"
@@ -164,7 +168,7 @@ export function TeacherAgendaScreenInner({
     >
       {showHeader ? (
         <ModuleHeader
-          title={headerTitle}
+          title={headerTitle ?? t("timetable.teacherAgenda.headerTitle")}
           subtitle={subtitle}
           onBack={() => router.back()}
           rightIcon="menu-outline"
@@ -194,7 +198,7 @@ export function TeacherAgendaScreenInner({
                   activeTab === "users" && styles.tabBtnTextActive,
                 ]}
               >
-                Users
+                {t("timetable.teacherAgenda.tabs.users")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -211,7 +215,7 @@ export function TeacherAgendaScreenInner({
                   activeTab === "classes" && styles.tabBtnTextActive,
                 ]}
               >
-                Classes
+                {t("timetable.teacherAgenda.tabs.classes")}
               </Text>
             </TouchableOpacity>
           </>
@@ -250,7 +254,7 @@ export function TeacherAgendaScreenInner({
                       activeTab === "mine" && styles.tabBtnTextActive,
                     ]}
                   >
-                    Mon agenda
+                    {t("timetable.teacherAgenda.tabs.mine")}
                   </Text>
                 </TouchableOpacity>
               </>
@@ -270,7 +274,7 @@ export function TeacherAgendaScreenInner({
                       activeTab === "mine" && styles.tabBtnTextActive,
                     ]}
                   >
-                    Mon agenda
+                    {t("timetable.teacherAgenda.tabs.mine")}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -287,7 +291,7 @@ export function TeacherAgendaScreenInner({
                       activeTab === "classes" && styles.tabBtnTextActive,
                     ]}
                   >
-                    Mes classes
+                    {t("timetable.teacherAgenda.tabs.myClasses")}
                   </Text>
                 </TouchableOpacity>
               </>
@@ -335,6 +339,7 @@ function TeacherMyAgendaPane({
   viewAsTeacherId?: string;
 }) {
   const { schoolSlug, user } = useAuthStore();
+  const { t, locale } = useTranslation();
   const effectiveTeacherId = viewAsTeacherId ?? user?.id;
   const { loadClassOptions } = useTimetableStore();
 
@@ -413,7 +418,7 @@ function TeacherMyAgendaPane({
         contextByOccId,
       });
     } catch {
-      setErrorMessage("Impossible de charger votre agenda pour le moment.");
+      setErrorMessage(t("timetable.teacherAgenda.errors.loadMyAgenda"));
     } finally {
       setIsLoading(false);
     }
@@ -423,6 +428,7 @@ function TeacherMyAgendaPane({
     range.fromDate,
     range.toDate,
     schoolSlug,
+    locale,
   ]);
 
   useEffect(() => {
@@ -486,8 +492,8 @@ function TeacherMyAgendaPane({
         setSchedule(null);
         void load().catch(() => {});
       }}
-      emptyTitle="Aucun cours"
-      emptyMessage="Aucun créneau n'est planifié pour vous sur cette période."
+      emptyTitle={t("timetable.common.noCourseTitle")}
+      emptyMessage={t("timetable.teacherAgenda.emptyMessageMine")}
       teacherUserId={user?.id}
       getOccurrenceContext={getOccurrenceContext}
       schoolSlug={schoolSlug ?? ""}
@@ -505,6 +511,7 @@ function TeacherMyAgendaPane({
 
 function AdminUserAgendaPane({ insetBottom }: { insetBottom: number }) {
   const { schoolSlug } = useAuthStore();
+  const { t, locale } = useTranslation();
   const { loadClassOptions } = useTimetableStore();
 
   // Teacher discovery
@@ -564,10 +571,10 @@ function AdminUserAgendaPane({ insetBottom }: { insetBottom: number }) {
         setTeachers(sorted);
       })
       .catch(() =>
-        setTeacherLoadError("Impossible de charger la liste des enseignants."),
+        setTeacherLoadError(t("timetable.teacherAgenda.errors.loadTeachers")),
       )
       .finally(() => setIsLoadingTeachers(false));
-  }, [loadClassOptions, schoolSlug]);
+  }, [loadClassOptions, schoolSlug, locale]);
 
   // Load agenda for selected teacher
   const loadTeacherSchedule = useCallback(async () => {
@@ -616,11 +623,18 @@ function AdminUserAgendaPane({ insetBottom }: { insetBottom: number }) {
         contextByOccId,
       });
     } catch {
-      setScheduleError("Impossible de charger l'agenda de cet enseignant.");
+      setScheduleError(t("timetable.teacherAgenda.errors.loadTeacherAgenda"));
     } finally {
       setIsLoadingSchedule(false);
     }
-  }, [schoolSlug, selectedTeacherId, allClasses, range.fromDate, range.toDate]);
+  }, [
+    schoolSlug,
+    selectedTeacherId,
+    allClasses,
+    range.fromDate,
+    range.toDate,
+    locale,
+  ]);
 
   useEffect(() => {
     if (selectedTeacherId) {
@@ -681,7 +695,7 @@ function AdminUserAgendaPane({ insetBottom }: { insetBottom: number }) {
         <TextInput
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Chercher un enseignant..."
+          placeholder={t("timetable.teacherAgenda.searchTeacherPlaceholder")}
           placeholderTextColor={colors.textSecondary}
           style={styles.searchInput}
           testID={`${P}-users-search`}
@@ -690,14 +704,14 @@ function AdminUserAgendaPane({ insetBottom }: { insetBottom: number }) {
 
       {/* Teacher list */}
       {isLoadingTeachers ? (
-        <LoadingBlock label="Chargement des enseignants..." />
+        <LoadingBlock label={t("timetable.teacherAgenda.loadingTeachers")} />
       ) : teacherLoadError ? (
         <ErrorBanner message={teacherLoadError} />
       ) : filteredTeachers.length === 0 && teachers.length > 0 ? (
         <EmptyState
           icon="person-outline"
-          title="Aucun résultat"
-          message="Aucun enseignant ne correspond à votre recherche."
+          title={t("timetable.teacherAgenda.noResultTitle")}
+          message={t("timetable.teacherAgenda.noResultMessage")}
         />
       ) : (
         <ScrollView
@@ -763,8 +777,8 @@ function AdminUserAgendaPane({ insetBottom }: { insetBottom: number }) {
               setSchedule(null);
               void loadTeacherSchedule().catch(() => {});
             }}
-            emptyTitle="Aucun cours"
-            emptyMessage="Aucun créneau planifié pour cet enseignant sur cette période."
+            emptyTitle={t("timetable.common.noCourseTitle")}
+            emptyMessage={t("timetable.teacherAgenda.emptyMessageTeacher")}
             teacherUserId={selectedTeacherId}
             getOccurrenceContext={getOccurrenceContext}
             schoolSlug={schoolSlug ?? ""}
@@ -780,8 +794,8 @@ function AdminUserAgendaPane({ insetBottom }: { insetBottom: number }) {
       ) : !isLoadingTeachers && teachers.length > 0 ? (
         <EmptyState
           icon="person-outline"
-          title="Sélectionnez un enseignant"
-          message="Choisissez un enseignant ci-dessus pour consulter son agenda."
+          title={t("timetable.teacherAgenda.selectTeacherTitle")}
+          message={t("timetable.teacherAgenda.selectTeacherMessage")}
         />
       ) : null}
     </View>
@@ -802,6 +816,7 @@ function TeacherClassAgendaPane({
   hideClassPicker?: boolean;
 }) {
   const { schoolSlug, user } = useAuthStore();
+  const { t } = useTranslation();
   const {
     classOptions,
     isLoadingClassOptions,
@@ -931,12 +946,12 @@ function TeacherClassAgendaPane({
     <View style={styles.root}>
       {/* Class picker */}
       {isLoadingClasses ? (
-        <LoadingBlock label="Chargement des classes..." />
+        <LoadingBlock label={t("timetable.teacherAgenda.loadingClasses")} />
       ) : classes.length === 0 ? (
         <EmptyState
           icon="school-outline"
-          title="Aucune classe accessible"
-          message="Aucune affectation trouvée pour ce profil."
+          title={t("timetable.teacherAgenda.noClassTitle")}
+          message={t("timetable.teacherAgenda.noClassMessage")}
         />
       ) : (
         <>
@@ -954,7 +969,8 @@ function TeacherClassAgendaPane({
                   color={colors.primary}
                 />
                 <Text style={styles.classDropdownBtnText} numberOfLines={1}>
-                  {selectedClass?.className ?? "Sélectionner une classe"}
+                  {selectedClass?.className ??
+                    t("timetable.teacherAgenda.selectClassPlaceholder")}
                 </Text>
                 <Ionicons
                   name="chevron-down"
@@ -978,7 +994,7 @@ function TeacherClassAgendaPane({
                   <View style={styles.classDropdownModal}>
                     <View style={styles.classDropdownHeader}>
                       <Text style={styles.classDropdownTitle}>
-                        Choisir une classe
+                        {t("timetable.teacherAgenda.chooseClassTitle")}
                       </Text>
                       <TouchableOpacity onPress={() => setDropdownOpen(false)}>
                         <Ionicons
@@ -1095,8 +1111,8 @@ function TeacherClassAgendaPane({
                 clearError();
                 void loadClass().catch(() => {});
               }}
-              emptyTitle="Aucun cours"
-              emptyMessage="Aucun créneau planifié pour cette classe sur cette période."
+              emptyTitle={t("timetable.common.noCourseTitle")}
+              emptyMessage={t("timetable.teacherAgenda.emptyMessageClass")}
               teacherUserId={isAdminMode ? undefined : (user?.id ?? undefined)}
               isAdminMode={isAdminMode}
               getOccurrenceContext={(occId) => {
@@ -1197,6 +1213,7 @@ function TimetablePane({
   prefilledClassId,
   prefilledTeacherId,
 }: TimetablePaneProps) {
+  const { t, locale } = useTranslation();
   const [editingOccurrence, setEditingOccurrence] =
     useState<TimetableOccurrence | null>(null);
   const [creating, setCreating] = useState(false);
@@ -1249,7 +1266,11 @@ function TimetablePane({
   }, []);
 
   const closeEdit = useCallback(() => setEditingOccurrence(null), []);
-  const weekDays = useMemo(() => buildWeekDays(cursorDate), [cursorDate]);
+  const modeOptions = useMemo(() => getModeOptions(t), [t]);
+  const weekDays = useMemo(
+    () => buildWeekDays(cursorDate, t),
+    [cursorDate, locale],
+  );
   const visibleWeekDays = useMemo(
     () =>
       weekDays.filter((entry) => {
@@ -1308,17 +1329,18 @@ function TimetablePane({
   }, [occurrences, selectedMonthDate]);
 
   const periodLabel = useMemo(() => {
-    if (viewMode === "day") return formatDayNavLabel(cursorDate, today);
+    if (viewMode === "day")
+      return formatDayNavLabel(cursorDate, today, t, locale);
     if (viewMode === "week") {
       return sameDate(startOfWeek(cursorDate), startOfWeek(today))
-        ? "Cette semaine"
+        ? t("timetable.common.thisWeek")
         : formatWeekRangeLabel(cursorDate);
     }
     return cursorDate.getMonth() === today.getMonth() &&
       cursorDate.getFullYear() === today.getFullYear()
-      ? "Ce mois"
+      ? t("timetable.common.thisMonth")
       : formatMonthLabel(cursorDate);
-  }, [cursorDate, today, viewMode]);
+  }, [cursorDate, today, viewMode, t, locale]);
 
   function moveCursor(direction: -1 | 1) {
     if (viewMode === "day") {
@@ -1373,13 +1395,13 @@ function TimetablePane({
 
         {isLoading && !hasData ? (
           <View style={styles.moduleCard}>
-            <LoadingBlock label="Chargement de l'agenda..." />
+            <LoadingBlock label={t("timetable.common.loadingAgenda")} />
           </View>
         ) : (
           <View style={styles.moduleCard}>
             {/* Mode tabs */}
             <View style={styles.modeTabs} testID={`${testIDPrefix}-mode-tabs`}>
-              {MODE_OPTIONS.map((entry) => {
+              {modeOptions.map((entry) => {
                 const active = viewMode === entry.value;
                 return (
                   <TouchableOpacity
@@ -1484,7 +1506,7 @@ function TimetablePane({
                   }}
                 >
                   <Text style={styles.weekSelectedSlotLabel}>
-                    CRENEAU SELECTIONNE
+                    {t("timetable.common.weekSelectedSlotLabel")}
                   </Text>
                   {selectedWeekCell ? (
                     <DayCard
@@ -1505,8 +1527,7 @@ function TimetablePane({
                     />
                   ) : (
                     <Text style={styles.weekSelectedSlotPlaceholder}>
-                      Sélectionnez un créneau dans le tableau pour afficher son
-                      détail.
+                      {t("timetable.common.weekSelectedSlotPlaceholder")}
                     </Text>
                   )}
                 </View>

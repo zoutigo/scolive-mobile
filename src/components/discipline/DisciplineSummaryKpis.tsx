@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import {
   DISCIPLINE_TYPE_CONFIG,
   type DisciplineSummary,
@@ -71,11 +72,13 @@ interface Props {
 }
 
 export function DisciplineSummaryKpis({ summary, onFilterPress }: Props) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.grid} testID="discipline-summary-kpis">
       <KpiCard
         icon={DISCIPLINE_TYPE_CONFIG.ABSENCE.icon}
-        label="ABSENCES"
+        label={t("discipline.kpi.absences")}
         count={summary.absences}
         backgroundColor="#2E8FE1"
         iconBubble="rgba(255,255,255,0.18)"
@@ -85,7 +88,7 @@ export function DisciplineSummaryKpis({ summary, onFilterPress }: Props) {
       />
       <KpiCard
         icon={DISCIPLINE_TYPE_CONFIG.RETARD.icon}
-        label="RETARDS"
+        label={t("discipline.kpi.retards")}
         count={summary.retards}
         backgroundColor="#FF6B39"
         iconBubble="rgba(255,255,255,0.18)"
@@ -94,7 +97,7 @@ export function DisciplineSummaryKpis({ summary, onFilterPress }: Props) {
       />
       <KpiCard
         icon={DISCIPLINE_TYPE_CONFIG.SANCTION.icon}
-        label="SANCTIONS"
+        label={t("discipline.kpi.sanctions")}
         count={summary.sanctions}
         backgroundColor="#E9151A"
         iconBubble="rgba(255,255,255,0.18)"
@@ -103,7 +106,7 @@ export function DisciplineSummaryKpis({ summary, onFilterPress }: Props) {
       />
       <KpiCard
         icon={DISCIPLINE_TYPE_CONFIG.PUNITION.icon}
-        label="PUNITIONS"
+        label={t("discipline.kpi.punitions")}
         count={summary.punitions}
         backgroundColor="#B432D6"
         iconBubble="rgba(255,255,255,0.18)"

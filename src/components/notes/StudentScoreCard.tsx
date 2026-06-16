@@ -13,6 +13,7 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 import { colors } from "../../theme";
 import type {
   EvaluationStudentScore,
@@ -21,7 +22,7 @@ import type {
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
-function buildSchema(maxScore: number) {
+function buildSchema(maxScore: number, t: TranslateFn) {
   return z
     .object({
       status: z.enum(["NOT_GRADED", "ENTERED", "ABSENT", "EXCUSED"] as const),
@@ -34,7 +35,7 @@ function buildSchema(maxScore: number) {
       if (!trimmed) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "La note est requise",
+          message: t("notes.score.validation.required"),
           path: ["score"],
         });
         return;
@@ -43,13 +44,13 @@ function buildSchema(maxScore: number) {
       if (isNaN(num) || num < 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Valeur invalide (nombre ≥ 0)",
+          message: t("notes.score.validation.invalid"),
           path: ["score"],
         });
       } else if (num > maxScore) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: `Note supérieure au barème (/${maxScore})`,
+          message: `${t("notes.score.validation.aboveMax")} (/${maxScore})`,
           path: ["score"],
         });
       }
@@ -73,13 +74,17 @@ export interface StudentScoreSaveData {
 
 // ─── Options statut ───────────────────────────────────────────────────────────
 
-const STATUS_OPTIONS: Array<{ value: StudentEvaluationStatus; label: string }> =
-  [
-    { value: "NOT_GRADED", label: "Non noté" },
-    { value: "ENTERED", label: "Noté" },
-    { value: "ABSENT", label: "Absent" },
-    { value: "EXCUSED", label: "Dispensé" },
+function buildStatusOptions(t: TranslateFn): Array<{
+  value: StudentEvaluationStatus;
+  label: string;
+}> {
+  return [
+    { value: "NOT_GRADED", label: t("notes.score.status.notGraded") },
+    { value: "ENTERED", label: t("notes.score.status.entered") },
+    { value: "ABSENT", label: t("notes.score.status.absent") },
+    { value: "EXCUSED", label: t("notes.score.status.excused") },
   ];
+}
 
 // ─── Composant ────────────────────────────────────────────────────────────────
 
@@ -96,9 +101,11 @@ export function StudentScoreCard({
   onSave,
   testID,
 }: StudentScoreCardProps) {
+  const { t } = useTranslation();
   const hasExistingScore = student.score !== null;
 
-  const schema = useMemo(() => buildSchema(maxScore), [maxScore]);
+  const statusOptions = useMemo(() => buildStatusOptions(t), [t]);
+  const schema = useMemo(() => buildSchema(maxScore, t), [maxScore, t]);
 
   const {
     control,
@@ -127,7 +134,8 @@ export function StudentScoreCard({
   const [statusPickerOpen, setStatusPickerOpen] = useState(false);
 
   const selectedStatusLabel =
-    STATUS_OPTIONS.find((o) => o.value === status)?.label ?? "Non noté";
+    statusOptions.find((o) => o.value === status)?.label ??
+    t("notes.score.status.notGraded");
 
   function buildSaveData(values: ScoreFormValues): StudentScoreSaveData {
     return {
@@ -191,7 +199,7 @@ export function StudentScoreCard({
       <View style={styles.noteRow}>
         {status === "ENTERED" ? (
           <View style={styles.scoreBlock}>
-            <Text style={styles.noteLabel}>Note</Text>
+            <Text style={styles.noteLabel}>{t("notes.score.noteLabel")}</Text>
             {isViewMode ? (
               <Text
                 style={styles.scoreDisplay}
@@ -244,7 +252,7 @@ export function StudentScoreCard({
             <ActivityIndicator size="small" color={colors.white} />
           ) : (
             <Text style={styles.submitBtnText}>
-              {isViewMode ? "Modifier" : "Enregistrer"}
+              {isViewMode ? t("notes.score.modify") : t("notes.score.save")}
             </Text>
           )}
         </TouchableOpacity>
@@ -278,7 +286,7 @@ export function StudentScoreCard({
               hasComment && styles.commentToggleLabelActive,
             ]}
           >
-            Commentaire
+            {t("notes.score.comment")}
           </Text>
           {hasComment ? (
             <View
@@ -306,7 +314,7 @@ export function StudentScoreCard({
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
-                placeholder="Observation individuelle…"
+                placeholder={t("notes.score.commentPlaceholder")}
                 placeholderTextColor={colors.textSecondary}
                 multiline
                 testID={`scores-comment-${student.id}`}
@@ -326,7 +334,7 @@ export function StudentScoreCard({
               <ActivityIndicator size="small" color={colors.white} />
             ) : (
               <Text style={styles.submitBtnText}>
-                Enregistrer le commentaire
+                {t("notes.score.saveComment")}
               </Text>
             )}
           </TouchableOpacity>
@@ -349,7 +357,7 @@ export function StudentScoreCard({
             style={styles.pickerCard}
             onPress={(e) => e.stopPropagation()}
           >
-            {STATUS_OPTIONS.map((opt) => (
+            {statusOptions.map((opt) => (
               <TouchableOpacity
                 key={opt.value}
                 style={[

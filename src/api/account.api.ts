@@ -11,6 +11,7 @@ import type {
   SetActiveRoleResponse,
   UpdateAccountProfilePayload,
   UpdateAccountRecoveryPayload,
+  UpdatePreferredLocalePayload,
 } from "../types/account.types";
 
 export const accountApi = {
@@ -23,6 +24,19 @@ export const accountApi = {
   ): Promise<AccountProfileResponse> {
     return apiFetch(
       "/me/profile",
+      {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      },
+      true,
+    );
+  },
+
+  updateLanguage(
+    payload: UpdatePreferredLocalePayload,
+  ): Promise<AccountProfileResponse> {
+    return apiFetch(
+      "/me/language",
       {
         method: "PUT",
         body: JSON.stringify(payload),

@@ -23,10 +23,18 @@ import type {
   Gender,
   OnboardingOptionsResponse,
 } from "../src/types/onboarding.types";
+import { DEFAULT_LOCALE } from "../src/i18n/translations";
+import {
+  translate,
+  useTranslation,
+  type TranslateFn,
+} from "../src/i18n/useTranslation";
 import { formatDateInput, parseDateToISO } from "./recovery/pin";
 
 const PASSWORD_COMPLEXITY_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 const PHONE_PIN_REGEX = /^\d{6}$/;
+
+const defaultT: TranslateFn = (key) => translate(DEFAULT_LOCALE, key);
 
 type Step = 1 | 2 | 3 | 4 | 5 | 6;
 type Step1FormValues = {
@@ -41,165 +49,221 @@ type Step2FormValues = z.infer<typeof onboardingProfileStepSchema>;
 type Step3FormValues = z.infer<typeof onboardingPinStepSchema>;
 type RecoveryFormValues = z.infer<typeof onboardingRecoveryStepSchema>;
 
-export const usernameOnboardingStep1Schema = z
-  .object({
-    username: z.string().trim().min(1, "Identifiant requis."),
-    temporaryPassword: z
-      .string()
-      .trim()
-      .min(1, "Le mot de passe provisoire est obligatoire."),
-    newPassword: z
-      .string()
-      .min(8, "Le mot de passe doit faire au moins 8 caractères.")
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/,
-        "Le mot de passe doit contenir majuscules, minuscules et chiffres.",
-      ),
-    confirmPassword: z.string().min(1, "Confirmez le mot de passe."),
-  })
-  .superRefine((value, ctx) => {
-    if (value.newPassword !== value.confirmPassword) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["confirmPassword"],
-        message: "La confirmation ne correspond pas au nouveau mot de passe.",
-      });
-    }
-  });
-
-export const emailOnboardingStep1Schema = z
-  .object({
-    email: z.string().trim().email("Adresse email invalide."),
-    temporaryPassword: z
-      .string()
-      .trim()
-      .min(8, "Le mot de passe provisoire est obligatoire."),
-    newPassword: z
-      .string()
-      .min(8, "Le mot de passe doit faire au moins 8 caractères.")
-      .regex(
-        PASSWORD_COMPLEXITY_REGEX,
-        "Le mot de passe doit contenir majuscules, minuscules et chiffres.",
-      ),
-    confirmPassword: z.string().min(1, "Confirmez le mot de passe."),
-  })
-  .superRefine((value, ctx) => {
-    if (value.newPassword !== value.confirmPassword) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["confirmPassword"],
-        message: "La confirmation ne correspond pas au nouveau mot de passe.",
-      });
-    }
-  });
-
-export const phoneOnboardingStep1Schema = z.object({
-  email: z
-    .string()
-    .trim()
-    .refine(
-      (value) =>
-        value.length === 0 ||
-        z.string().email("Adresse email invalide.").safeParse(value).success,
-      "Adresse email invalide.",
-    ),
-  setupToken: z.string().trim().min(1, "Jeton d'activation manquant."),
-});
-
-export const onboardingProfileStepSchema = z.object({
-  firstName: z.string().trim().min(1, "Le prénom est obligatoire."),
-  lastName: z.string().trim().min(1, "Le nom est obligatoire."),
-  gender: z.enum(["M", "F", "OTHER"], {
-    message: "Le genre est obligatoire.",
-  }),
-  birthDate: z
-    .string()
-    .min(1, "La date de naissance est obligatoire.")
-    .refine((value) => /^\d{2}\/\d{2}\/\d{4}$/.test(value), {
-      message: "Format attendu : JJ/MM/AAAA.",
+export function buildUsernameOnboardingStep1Schema(t: TranslateFn) {
+  return z
+    .object({
+      username: z
+        .string()
+        .trim()
+        .min(1, t("onboarding.errors.usernameRequired")),
+      temporaryPassword: z
+        .string()
+        .trim()
+        .min(1, t("onboarding.errors.temporaryPasswordRequired")),
+      newPassword: z
+        .string()
+        .min(8, t("recovery.password.errors.passwordTooShort"))
+        .regex(
+          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/,
+          t("recovery.password.errors.passwordComplexity"),
+        ),
+      confirmPassword: z
+        .string()
+        .min(1, t("recovery.password.errors.confirmRequired")),
     })
-    .refine((value) => parseDateToISO(value) !== null, {
-      message: "Date de naissance invalide.",
-    })
-    .refine((value) => {
-      const isoDate = parseDateToISO(value);
-      if (!isoDate) {
-        return false;
-      }
-      return new Date(`${isoDate}T23:59:59.999Z`) <= new Date();
-    }, "La date de naissance ne peut pas être dans le futur."),
-});
-
-export const onboardingPinStepSchema = z
-  .object({
-    newPin: z
-      .string()
-      .trim()
-      .regex(PHONE_PIN_REGEX, "Le PIN doit contenir exactement 6 chiffres."),
-    confirmPin: z.string().trim().min(1, "Confirmez le PIN."),
-  })
-  .superRefine((value, ctx) => {
-    if (value.newPin !== value.confirmPin) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["confirmPin"],
-        message: "La confirmation ne correspond pas au PIN.",
-      });
-    }
-  });
-
-export const onboardingRecoveryStepSchema = z
-  .object({
-    selectedQuestions: z
-      .array(z.string())
-      .length(3, "Choisissez exactement 3 questions.")
-      .refine((items) => new Set(items).size === 3, {
-        message: "Les 3 questions doivent être différentes.",
-      }),
-    answers: z.record(z.string(), z.string().trim().min(2)),
-    isParent: z.boolean(),
-    parentClassId: z.string().optional(),
-    parentStudentId: z.string().optional(),
-  })
-  .superRefine((value, ctx) => {
-    value.selectedQuestions.forEach((questionKey) => {
-      if (
-        !value.answers[questionKey] ||
-        value.answers[questionKey].trim().length < 2
-      ) {
+    .superRefine((value, ctx) => {
+      if (value.newPassword !== value.confirmPassword) {
         ctx.addIssue({
           code: "custom",
-          path: ["answers", questionKey],
-          message: "Chaque réponse doit contenir au moins 2 caractères.",
+          path: ["confirmPassword"],
+          message: t("recovery.password.errors.confirmMismatch"),
         });
       }
     });
+}
 
-    if (value.isParent && !value.parentClassId) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["parentClassId"],
-        message: "La classe de votre enfant est obligatoire.",
-      });
-    }
+export const usernameOnboardingStep1Schema =
+  buildUsernameOnboardingStep1Schema(defaultT);
 
-    if (value.isParent && !value.parentStudentId) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["parentStudentId"],
-        message: "Le nom de votre enfant est obligatoire.",
-      });
-    }
+export function buildEmailOnboardingStep1Schema(t: TranslateFn) {
+  return z
+    .object({
+      email: z
+        .string()
+        .trim()
+        .email(t("recovery.password.errors.emailInvalid")),
+      temporaryPassword: z
+        .string()
+        .trim()
+        .min(8, t("onboarding.errors.temporaryPasswordRequired")),
+      newPassword: z
+        .string()
+        .min(8, t("recovery.password.errors.passwordTooShort"))
+        .regex(
+          PASSWORD_COMPLEXITY_REGEX,
+          t("recovery.password.errors.passwordComplexity"),
+        ),
+      confirmPassword: z
+        .string()
+        .min(1, t("recovery.password.errors.confirmRequired")),
+    })
+    .superRefine((value, ctx) => {
+      if (value.newPassword !== value.confirmPassword) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["confirmPassword"],
+          message: t("recovery.password.errors.confirmMismatch"),
+        });
+      }
+    });
+}
+
+export const emailOnboardingStep1Schema =
+  buildEmailOnboardingStep1Schema(defaultT);
+
+export function buildPhoneOnboardingStep1Schema(t: TranslateFn) {
+  return z.object({
+    email: z
+      .string()
+      .trim()
+      .refine(
+        (value) =>
+          value.length === 0 ||
+          z
+            .string()
+            .email(t("recovery.password.errors.emailInvalid"))
+            .safeParse(value).success,
+        t("recovery.password.errors.emailInvalid"),
+      ),
+    setupToken: z
+      .string()
+      .trim()
+      .min(1, t("onboarding.errors.setupTokenRequired")),
   });
+}
 
-export const onboardingRecoverySelectionStepSchema = z.object({
-  selectedQuestions: z
-    .array(z.string())
-    .length(3, "Choisissez exactement 3 questions.")
-    .refine((items) => new Set(items).size === 3, {
-      message: "Les 3 questions doivent être différentes.",
+export const phoneOnboardingStep1Schema =
+  buildPhoneOnboardingStep1Schema(defaultT);
+
+export function buildOnboardingProfileStepSchema(t: TranslateFn) {
+  return z.object({
+    firstName: z
+      .string()
+      .trim()
+      .min(1, t("onboarding.errors.firstNameRequired")),
+    lastName: z.string().trim().min(1, t("onboarding.errors.lastNameRequired")),
+    gender: z.enum(["M", "F", "OTHER"], {
+      message: t("onboarding.errors.genderRequired"),
     }),
-});
+    birthDate: z
+      .string()
+      .min(1, t("recovery.common.errors.birthDateRequired"))
+      .refine((value) => /^\d{2}\/\d{2}\/\d{4}$/.test(value), {
+        message: t("recovery.common.errors.birthDateFormat"),
+      })
+      .refine((value) => parseDateToISO(value) !== null, {
+        message: t("recovery.common.errors.birthDateInvalid"),
+      })
+      .refine((value) => {
+        const isoDate = parseDateToISO(value);
+        if (!isoDate) {
+          return false;
+        }
+        return new Date(`${isoDate}T23:59:59.999Z`) <= new Date();
+      }, t("onboarding.errors.birthDateFuture")),
+  });
+}
+
+export const onboardingProfileStepSchema =
+  buildOnboardingProfileStepSchema(defaultT);
+
+export function buildOnboardingPinStepSchema(t: TranslateFn) {
+  return z
+    .object({
+      newPin: z
+        .string()
+        .trim()
+        .regex(PHONE_PIN_REGEX, t("onboarding.errors.pinFormat")),
+      confirmPin: z
+        .string()
+        .trim()
+        .min(1, t("onboarding.errors.confirmPinRequired")),
+    })
+    .superRefine((value, ctx) => {
+      if (value.newPin !== value.confirmPin) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["confirmPin"],
+          message: t("onboarding.errors.confirmPinMismatch"),
+        });
+      }
+    });
+}
+
+export const onboardingPinStepSchema = buildOnboardingPinStepSchema(defaultT);
+
+export function buildOnboardingRecoveryStepSchema(t: TranslateFn) {
+  return z
+    .object({
+      selectedQuestions: z
+        .array(z.string())
+        .length(3, t("onboarding.errors.questionsCount"))
+        .refine((items) => new Set(items).size === 3, {
+          message: t("onboarding.errors.questionsUnique"),
+        }),
+      answers: z.record(z.string(), z.string().trim().min(2)),
+      isParent: z.boolean(),
+      parentClassId: z.string().optional(),
+      parentStudentId: z.string().optional(),
+    })
+    .superRefine((value, ctx) => {
+      value.selectedQuestions.forEach((questionKey) => {
+        if (
+          !value.answers[questionKey] ||
+          value.answers[questionKey].trim().length < 2
+        ) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["answers", questionKey],
+            message: t("recovery.username.errors.answerTooShort"),
+          });
+        }
+      });
+
+      if (value.isParent && !value.parentClassId) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["parentClassId"],
+          message: t("onboarding.errors.parentClassRequired"),
+        });
+      }
+
+      if (value.isParent && !value.parentStudentId) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["parentStudentId"],
+          message: t("onboarding.errors.parentStudentRequired"),
+        });
+      }
+    });
+}
+
+export const onboardingRecoveryStepSchema =
+  buildOnboardingRecoveryStepSchema(defaultT);
+
+export function buildOnboardingRecoverySelectionStepSchema(t: TranslateFn) {
+  return z.object({
+    selectedQuestions: z
+      .array(z.string())
+      .length(3, t("onboarding.errors.questionsCount"))
+      .refine((items) => new Set(items).size === 3, {
+        message: t("onboarding.errors.questionsUnique"),
+      }),
+  });
+}
+
+export const onboardingRecoverySelectionStepSchema =
+  buildOnboardingRecoverySelectionStepSchema(defaultT);
 
 export function buildOnboardingRecoveryRows(
   selectedQuestions: string[],
@@ -211,13 +275,16 @@ export function buildOnboardingRecoveryRows(
   }));
 }
 
-export function parseOnboardingApiError(err: unknown): string {
+export function parseOnboardingApiError(
+  err: unknown,
+  t: TranslateFn = defaultT,
+): string {
   const apiErr = err as ApiClientError;
   switch (apiErr?.code) {
     case "INVALID_CREDENTIALS":
-      return "Informations d'activation invalides.";
+      return t("onboarding.errors.invalidCredentials");
     case "PROFILE_SETUP_REQUIRED":
-      return "Le profil doit encore être complété.";
+      return t("onboarding.errors.profileSetupRequired");
     default:
       if (
         typeof apiErr?.message === "string" &&
@@ -226,12 +293,12 @@ export function parseOnboardingApiError(err: unknown): string {
         return apiErr.message;
       }
       if (apiErr?.statusCode === 401) {
-        return "Informations d'activation invalides.";
+        return t("onboarding.errors.invalidCredentials");
       }
       if (apiErr?.statusCode === 400 || apiErr?.statusCode === 403) {
-        return "Impossible de finaliser l'activation avec ces informations.";
+        return t("onboarding.errors.activationFailed");
       }
-      return "Impossible de se connecter. Vérifiez votre connexion.";
+      return t("apiErrors.generic");
   }
 }
 
@@ -306,18 +373,49 @@ export default function OnboardingScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { locale, t } = useTranslation();
+
   const isParent = useMemo(
     () => (options?.schoolRoles ?? []).includes("PARENT"),
     [options?.schoolRoles],
   );
 
+  const usernameStep1Schema = useMemo(
+    () => buildUsernameOnboardingStep1Schema(t),
+    [locale],
+  );
+  const emailStep1Schema = useMemo(
+    () => buildEmailOnboardingStep1Schema(t),
+    [locale],
+  );
+  const phoneStep1Schema = useMemo(
+    () => buildPhoneOnboardingStep1Schema(t),
+    [locale],
+  );
+  const profileStepSchema = useMemo(
+    () => buildOnboardingProfileStepSchema(t),
+    [locale],
+  );
+  const pinStepSchema = useMemo(
+    () => buildOnboardingPinStepSchema(t),
+    [locale],
+  );
+  const recoveryStepSchema = useMemo(
+    () => buildOnboardingRecoveryStepSchema(t),
+    [locale],
+  );
+  const recoverySelectionStepSchema = useMemo(
+    () => buildOnboardingRecoverySelectionStepSchema(t),
+    [locale],
+  );
+
   const step1Form = useForm<Step1FormValues>({
     resolver: zodResolver(
       isUsernameFlow
-        ? usernameOnboardingStep1Schema
+        ? usernameStep1Schema
         : isTokenFlow
-          ? phoneOnboardingStep1Schema
-          : emailOnboardingStep1Schema,
+          ? phoneStep1Schema
+          : emailStep1Schema,
     ) as never,
     mode: "onChange",
     reValidateMode: "onChange",
@@ -332,7 +430,7 @@ export default function OnboardingScreen() {
   });
 
   const step2Form = useForm<Step2FormValues>({
-    resolver: zodResolver(onboardingProfileStepSchema),
+    resolver: zodResolver(profileStepSchema),
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
@@ -344,7 +442,7 @@ export default function OnboardingScreen() {
   });
 
   const step3Form = useForm<Step3FormValues>({
-    resolver: zodResolver(onboardingPinStepSchema),
+    resolver: zodResolver(pinStepSchema),
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
@@ -354,7 +452,7 @@ export default function OnboardingScreen() {
   });
 
   const recoveryForm = useForm<RecoveryFormValues>({
-    resolver: zodResolver(onboardingRecoveryStepSchema),
+    resolver: zodResolver(recoveryStepSchema),
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
@@ -408,7 +506,7 @@ export default function OnboardingScreen() {
   useEffect(() => {
     const normalizedUsername = watchedUsername?.trim() ?? "";
     if (!watchedEmail && !watchedSetupToken && !normalizedUsername) {
-      setError("Lien d'activation invalide.");
+      setError(t("onboarding.errors.invalidActivationLink"));
       return;
     }
 
@@ -430,7 +528,7 @@ export default function OnboardingScreen() {
         if (!active) {
           return;
         }
-        setError(parseOnboardingApiError(err));
+        setError(parseOnboardingApiError(err, t));
       } finally {
         if (active) {
           setIsLoadingOptions(false);
@@ -467,12 +565,13 @@ export default function OnboardingScreen() {
 
   function validateRecoverySelectionStep() {
     clearErrors();
-    const result = onboardingRecoverySelectionStepSchema.safeParse({
+    const result = recoverySelectionStepSchema.safeParse({
       selectedQuestions,
     });
     if (!result.success) {
       const message =
-        result.error.issues[0]?.message ?? "Choisissez exactement 3 questions.";
+        result.error.issues[0]?.message ??
+        t("onboarding.errors.questionsCount");
       setError(message);
       return false;
     }
@@ -513,7 +612,7 @@ export default function OnboardingScreen() {
       return;
     }
     if (current.length >= 3) {
-      setError("Choisissez exactement 3 questions.");
+      setError(t("onboarding.errors.questionsCount"));
       return;
     }
     recoveryForm.setValue("selectedQuestions", [...current, questionKey], {
@@ -532,7 +631,7 @@ export default function OnboardingScreen() {
     const isoBirthDate = parseDateToISO(birthDate);
     if (!isoBirthDate) {
       step2Form.setError("birthDate", {
-        message: "Date de naissance invalide.",
+        message: t("recovery.common.errors.birthDateInvalid"),
       });
       return;
     }
@@ -595,7 +694,7 @@ export default function OnboardingScreen() {
       }
       setStep(successStep);
     } catch (err) {
-      setError(parseOnboardingApiError(err));
+      setError(parseOnboardingApiError(err, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -604,7 +703,7 @@ export default function OnboardingScreen() {
   const progressWidth =
     `${((Math.min(step, totalSteps) / totalSteps) * 100).toFixed(0)}%` as `${number}%`;
   const title =
-    step === successStep ? "Activation terminée" : "Première connexion";
+    step === successStep ? t("onboarding.titleSuccess") : t("onboarding.title");
 
   return (
     <View style={styles.screen}>
@@ -625,7 +724,9 @@ export default function OnboardingScreen() {
             style={styles.backButton}
           >
             <Text style={styles.backButtonText}>
-              {step === successStep ? "Se connecter" : "‹ Retour"}
+              {step === successStep
+                ? t("recovery.common.loginButton")
+                : t("recovery.common.back")}
             </Text>
           </Pressable>
         </View>
@@ -635,7 +736,9 @@ export default function OnboardingScreen() {
         {step !== successStep ? (
           <>
             <Text style={styles.stepIndicator}>
-              Étape {step} sur {totalSteps}
+              {t("recovery.password.step")
+                .replace("{step}", String(step))
+                .replace("{total}", String(totalSteps))}
             </Text>
             <View style={styles.progressTrack}>
               <View
@@ -646,17 +749,14 @@ export default function OnboardingScreen() {
               />
             </View>
             <Text style={styles.headerSubtitle}>
-              {isUsernameFlow
-                ? "Changez votre mot de passe provisoire puis terminez la configuration du compte."
-                : isTokenFlow
-                  ? "Complétez votre profil, changez votre PIN et configurez la récupération."
-                  : "Changez votre mot de passe provisoire puis terminez la configuration du compte."}
+              {isTokenFlow
+                ? t("onboarding.subtitle.tokenFlow")
+                : t("onboarding.subtitle.passwordFlow")}
             </Text>
           </>
         ) : (
           <Text style={styles.headerSubtitle}>
-            Votre compte est prêt. Vous pouvez maintenant revenir à la
-            connexion.
+            {t("onboarding.subtitle.success")}
           </Text>
         )}
       </View>
@@ -675,7 +775,9 @@ export default function OnboardingScreen() {
             {isLoadingOptions && step !== successStep ? (
               <View style={styles.loadingBox} testID="loading-options">
                 <ActivityIndicator size="small" color={BLUE} />
-                <Text style={styles.loadingText}>Chargement des options…</Text>
+                <Text style={styles.loadingText}>
+                  {t("onboarding.loadingOptions")}
+                </Text>
               </View>
             ) : null}
 
@@ -690,7 +792,9 @@ export default function OnboardingScreen() {
                 {isUsernameFlow ? (
                   <>
                     <View style={styles.fieldGroup}>
-                      <Text style={styles.label}>Identifiant</Text>
+                      <Text style={styles.label}>
+                        {t("onboarding.step1.username.label")}
+                      </Text>
                       <Controller
                         control={step1Form.control}
                         name="username"
@@ -723,7 +827,9 @@ export default function OnboardingScreen() {
                       ) : null}
                     </View>
                     <View style={styles.fieldGroup}>
-                      <Text style={styles.label}>Mot de passe provisoire</Text>
+                      <Text style={styles.label}>
+                        {t("onboarding.step1.temporaryPassword.label")}
+                      </Text>
                       <Controller
                         control={step1Form.control}
                         name="temporaryPassword"
@@ -754,7 +860,9 @@ export default function OnboardingScreen() {
                       ) : null}
                     </View>
                     <View style={styles.fieldGroup}>
-                      <Text style={styles.label}>Nouveau mot de passe</Text>
+                      <Text style={styles.label}>
+                        {t("recovery.password.fields.newPassword")}
+                      </Text>
                       <Controller
                         control={step1Form.control}
                         name="newPassword"
@@ -786,7 +894,7 @@ export default function OnboardingScreen() {
                     </View>
                     <View style={styles.fieldGroup}>
                       <Text style={styles.label}>
-                        Confirmer le mot de passe
+                        {t("recovery.password.fields.confirmPassword")}
                       </Text>
                       <Controller
                         control={step1Form.control}
@@ -822,7 +930,7 @@ export default function OnboardingScreen() {
                   <>
                     <View style={styles.fieldGroup}>
                       <Text style={styles.label}>
-                        Adresse email optionnelle
+                        {t("onboarding.step1.emailOptional.label")}
                       </Text>
                       <Controller
                         control={step1Form.control}
@@ -837,7 +945,7 @@ export default function OnboardingScreen() {
                               clearErrors();
                               field.onChange(value);
                             }}
-                            placeholder="nom@etablissement.cm"
+                            placeholder={t("login.placeholders.email")}
                             keyboardType="email-address"
                             autoCapitalize="none"
                             style={[
@@ -855,7 +963,9 @@ export default function OnboardingScreen() {
                       ) : null}
                     </View>
                     <View style={styles.fieldGroup}>
-                      <Text style={styles.label}>Jeton d'activation</Text>
+                      <Text style={styles.label}>
+                        {t("onboarding.step1.setupToken.label")}
+                      </Text>
                       <Controller
                         control={step1Form.control}
                         name="setupToken"
@@ -891,7 +1001,9 @@ export default function OnboardingScreen() {
                 ) : (
                   <>
                     <View style={styles.fieldGroup}>
-                      <Text style={styles.label}>Adresse email</Text>
+                      <Text style={styles.label}>
+                        {t("onboarding.step1.email.label")}
+                      </Text>
                       <Controller
                         control={step1Form.control}
                         name="email"
@@ -905,7 +1017,7 @@ export default function OnboardingScreen() {
                               clearErrors();
                               field.onChange(value);
                             }}
-                            placeholder="nom@etablissement.cm"
+                            placeholder={t("login.placeholders.email")}
                             keyboardType="email-address"
                             autoCapitalize="none"
                             style={[
@@ -923,7 +1035,9 @@ export default function OnboardingScreen() {
                       ) : null}
                     </View>
                     <View style={styles.fieldGroup}>
-                      <Text style={styles.label}>Mot de passe provisoire</Text>
+                      <Text style={styles.label}>
+                        {t("onboarding.step1.temporaryPassword.label")}
+                      </Text>
                       <Controller
                         control={step1Form.control}
                         name="temporaryPassword"
@@ -954,7 +1068,9 @@ export default function OnboardingScreen() {
                       ) : null}
                     </View>
                     <View style={styles.fieldGroup}>
-                      <Text style={styles.label}>Nouveau mot de passe</Text>
+                      <Text style={styles.label}>
+                        {t("recovery.password.fields.newPassword")}
+                      </Text>
                       <Controller
                         control={step1Form.control}
                         name="newPassword"
@@ -986,7 +1102,7 @@ export default function OnboardingScreen() {
                     </View>
                     <View style={styles.fieldGroup}>
                       <Text style={styles.label}>
-                        Confirmer le mot de passe
+                        {t("recovery.password.fields.confirmPassword")}
                       </Text>
                       <Controller
                         control={step1Form.control}
@@ -1025,7 +1141,9 @@ export default function OnboardingScreen() {
                   onPress={goNextStep1}
                   style={styles.primaryButton}
                 >
-                  <Text style={styles.primaryButtonText}>Continuer</Text>
+                  <Text style={styles.primaryButtonText}>
+                    {t("recovery.username.continueButton")}
+                  </Text>
                 </Pressable>
               </View>
             ) : null}
@@ -1033,7 +1151,9 @@ export default function OnboardingScreen() {
             {step === 2 ? (
               <View style={styles.form} testID="step-2">
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Prénom</Text>
+                  <Text style={styles.label}>
+                    {t("onboarding.step2.firstName.label")}
+                  </Text>
                   <Controller
                     control={step2Form.control}
                     name="firstName"
@@ -1063,7 +1183,9 @@ export default function OnboardingScreen() {
                 </View>
 
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Nom</Text>
+                  <Text style={styles.label}>
+                    {t("onboarding.step2.lastName.label")}
+                  </Text>
                   <Controller
                     control={step2Form.control}
                     name="lastName"
@@ -1093,11 +1215,13 @@ export default function OnboardingScreen() {
                 </View>
 
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Genre</Text>
+                  <Text style={styles.label}>
+                    {t("onboarding.step2.gender.label")}
+                  </Text>
                   <View style={styles.choiceRow}>
                     <GenderButton
                       value="F"
-                      label="Femme"
+                      label={t("onboarding.step2.gender.female")}
                       currentValue={watchedGender}
                       onPress={(value) => {
                         clearErrors();
@@ -1109,7 +1233,7 @@ export default function OnboardingScreen() {
                     />
                     <GenderButton
                       value="M"
-                      label="Homme"
+                      label={t("onboarding.step2.gender.male")}
                       currentValue={watchedGender}
                       onPress={(value) => {
                         clearErrors();
@@ -1121,7 +1245,7 @@ export default function OnboardingScreen() {
                     />
                     <GenderButton
                       value="OTHER"
-                      label="Autre"
+                      label={t("onboarding.step2.gender.other")}
                       currentValue={watchedGender}
                       onPress={(value) => {
                         clearErrors();
@@ -1140,7 +1264,9 @@ export default function OnboardingScreen() {
                 </View>
 
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Date de naissance</Text>
+                  <Text style={styles.label}>
+                    {t("recovery.common.birthDateLabel")}
+                  </Text>
                   <Controller
                     control={step2Form.control}
                     name="birthDate"
@@ -1155,7 +1281,7 @@ export default function OnboardingScreen() {
                           field.onChange(formatDateInput(value));
                         }}
                         keyboardType="number-pad"
-                        placeholder="JJ/MM/AAAA"
+                        placeholder={t("recovery.common.birthDatePlaceholder")}
                         style={[
                           styles.input,
                           fieldState.error && styles.inputError,
@@ -1176,7 +1302,9 @@ export default function OnboardingScreen() {
                   onPress={goNextStep2}
                   style={styles.primaryButton}
                 >
-                  <Text style={styles.primaryButtonText}>Continuer</Text>
+                  <Text style={styles.primaryButtonText}>
+                    {t("recovery.username.continueButton")}
+                  </Text>
                 </Pressable>
               </View>
             ) : null}
@@ -1184,7 +1312,9 @@ export default function OnboardingScreen() {
             {step === 3 && isTokenFlow ? (
               <View style={styles.form} testID="step-3">
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Nouveau PIN</Text>
+                  <Text style={styles.label}>
+                    {t("onboarding.step3.newPin.label")}
+                  </Text>
                   <Controller
                     control={step3Form.control}
                     name="newPin"
@@ -1215,7 +1345,9 @@ export default function OnboardingScreen() {
                   ) : null}
                 </View>
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Confirmer le PIN</Text>
+                  <Text style={styles.label}>
+                    {t("onboarding.step3.confirmPin.label")}
+                  </Text>
                   <Controller
                     control={step3Form.control}
                     name="confirmPin"
@@ -1250,7 +1382,9 @@ export default function OnboardingScreen() {
                   onPress={goNextStep3}
                   style={styles.primaryButton}
                 >
-                  <Text style={styles.primaryButtonText}>Continuer</Text>
+                  <Text style={styles.primaryButtonText}>
+                    {t("recovery.username.continueButton")}
+                  </Text>
                 </Pressable>
               </View>
             ) : null}
@@ -1270,10 +1404,13 @@ export default function OnboardingScreen() {
                   ]}
                 >
                   <Text style={styles.sectionTitle}>
-                    Choisissez 3 questions
+                    {t("onboarding.recoverySelection.title")}
                   </Text>
                   <Text style={styles.sectionHint}>
-                    Sélection {selectedQuestions.length}/3
+                    {t("onboarding.recoverySelection.hint").replace(
+                      "{selected}",
+                      String(selectedQuestions.length),
+                    )}
                   </Text>
                   <View style={styles.choiceWrap}>
                     {(options?.questions ?? []).map((question) => {
@@ -1313,7 +1450,9 @@ export default function OnboardingScreen() {
                   onPress={goNextSelection}
                   style={styles.primaryButton}
                 >
-                  <Text style={styles.primaryButtonText}>Continuer</Text>
+                  <Text style={styles.primaryButtonText}>
+                    {t("recovery.username.continueButton")}
+                  </Text>
                 </Pressable>
               </View>
             )}
@@ -1399,7 +1538,7 @@ export default function OnboardingScreen() {
                       ]}
                     >
                       <Text style={styles.sectionTitle}>
-                        Classe de votre enfant
+                        {t("onboarding.recoveryAnswers.classTitle")}
                       </Text>
                       <View
                         style={[
@@ -1472,7 +1611,7 @@ export default function OnboardingScreen() {
                       ]}
                     >
                       <Text style={styles.sectionTitle}>
-                        Nom de votre enfant
+                        {t("onboarding.recoveryAnswers.studentTitle")}
                       </Text>
                       <View
                         style={[
@@ -1548,7 +1687,9 @@ export default function OnboardingScreen() {
                   {isSubmitting ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text style={styles.primaryButtonText}>Finaliser</Text>
+                    <Text style={styles.primaryButtonText}>
+                      {t("onboarding.submitButton")}
+                    </Text>
                   )}
                 </Pressable>
               </View>
@@ -1556,17 +1697,24 @@ export default function OnboardingScreen() {
 
             {step === successStep ? (
               <View style={styles.successCard} testID={`step-${successStep}`}>
-                <Text style={styles.successTitle}>Compte configuré</Text>
+                <Text style={styles.successTitle}>
+                  {t("onboarding.success.title")}
+                </Text>
                 <Text style={styles.successText}>
-                  Votre première connexion est terminée pour
-                  {schoolSlug ? ` ${schoolSlug}` : " votre compte"}.
+                  {t("onboarding.success.textPrefix")}
+                  {schoolSlug
+                    ? ` ${schoolSlug}`
+                    : ` ${t("onboarding.success.defaultAccount")}`}
+                  .
                 </Text>
                 <Pressable
                   testID="btn-go-login"
                   onPress={() => router.replace("/login")}
                   style={styles.primaryButton}
                 >
-                  <Text style={styles.primaryButtonText}>Se connecter</Text>
+                  <Text style={styles.primaryButtonText}>
+                    {t("recovery.common.loginButton")}
+                  </Text>
                 </Pressable>
               </View>
             ) : null}

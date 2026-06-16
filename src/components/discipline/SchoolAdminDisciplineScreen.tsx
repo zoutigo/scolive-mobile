@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import { useAuthStore } from "../../store/auth.store";
 import { useDisciplineStore } from "../../store/discipline.store";
 import { teachersApi } from "../../api/teachers.api";
@@ -59,14 +60,14 @@ type StudentForDisplay = {
 type MainTab = "students" | "class";
 type ClassTab = "events" | "carnets";
 
-const MAIN_TABS = [
-  { key: "students" as const, label: "Élèves" },
-  { key: "class" as const, label: "Par classe" },
+const MAIN_TAB_KEYS = [
+  { key: "students" as const, labelKey: "discipline.adminTabs.students" },
+  { key: "class" as const, labelKey: "discipline.adminTabs.byClass" },
 ];
 
-const CLASS_TABS = [
-  { key: "events" as const, label: "Événements" },
-  { key: "carnets" as const, label: "Carnets" },
+const CLASS_TAB_KEYS = [
+  { key: "events" as const, labelKey: "discipline.tabs.events" },
+  { key: "carnets" as const, labelKey: "discipline.tabs.booklets" },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -86,6 +87,7 @@ function sortEventsDesc(events: StudentLifeEvent[]): StudentLifeEvent[] {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function SchoolAdminDisciplineScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { openDrawer } = useDrawer();
@@ -155,7 +157,7 @@ export function SchoolAdminDisciplineScreen() {
       const active = yrs.find((y) => y.isActive) ?? yrs[0];
       if (active) setSelectedYearId(active.id);
     } catch {
-      setMetaError("Impossible de charger les années et classes.");
+      setMetaError(t("discipline.errors.loadYearsClasses"));
     } finally {
       setIsLoadingMeta(false);
     }
@@ -231,7 +233,7 @@ export function SchoolAdminDisciplineScreen() {
       })
       .catch(() => {
         if (!cancelled)
-          setContextError("Impossible de charger les élèves de cette classe.");
+          setContextError(t("discipline.errors.loadClassStudents"));
       })
       .finally(() => {
         if (!cancelled) setIsLoadingContext(false);
@@ -269,7 +271,7 @@ export function SchoolAdminDisciplineScreen() {
         );
         replaceManyStudentEvents(results);
       } catch {
-        setContextError("Impossible de charger les événements de discipline.");
+        setContextError(t("discipline.errors.loadEvents"));
       } finally {
         setIsLoadingEvents(false);
       }
@@ -384,8 +386,8 @@ export function SchoolAdminDisciplineScreen() {
         );
         updateEvent(editingEvent.studentId, updated);
         showSuccess({
-          title: "Événement modifié",
-          message: "La fiche discipline a été mise à jour.",
+          title: t("discipline.toasts.eventUpdatedTitle"),
+          message: t("discipline.toasts.eventUpdatedMessageClassUpdatedAlt"),
         });
       } else {
         const created = await disciplineApi.create(
@@ -395,17 +397,19 @@ export function SchoolAdminDisciplineScreen() {
         );
         addEvent(input.studentId, created);
         showSuccess({
-          title: "Événement créé",
-          message: "L'événement a été ajouté à l'historique.",
+          title: t("discipline.toasts.eventCreatedTitle"),
+          message: t("discipline.toasts.eventCreatedMessageGlobal"),
         });
       }
       setFormVisible(false);
       setEditingEvent(null);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Impossible d'enregistrer.";
+        error instanceof Error
+          ? error.message
+          : t("discipline.errors.saveGeneric");
       setFormError(message);
-      showError({ title: "Enregistrement impossible", message });
+      showError({ title: t("discipline.errors.saveTitle"), message });
     } finally {
       setIsSavingForm(false);
     }
@@ -422,15 +426,17 @@ export function SchoolAdminDisciplineScreen() {
       );
       removeEvent(deleteTarget.studentId, deleteTarget.id);
       showSuccess({
-        title: "Événement supprimé",
-        message: "L'événement a été retiré du module discipline.",
+        title: t("discipline.toasts.eventDeletedTitle"),
+        message: t("discipline.toasts.eventDeletedMessageModule"),
       });
       setDeleteTarget(null);
     } catch (error) {
       showError({
-        title: "Suppression impossible",
+        title: t("discipline.errors.deleteTitle"),
         message:
-          error instanceof Error ? error.message : "Impossible de supprimer.",
+          error instanceof Error
+            ? error.message
+            : t("discipline.errors.deleteGeneric"),
       });
     } finally {
       setIsDeleting(false);
@@ -485,12 +491,14 @@ export function SchoolAdminDisciplineScreen() {
     <View style={styles.filtersWrapper}>
       <SectionCard
         title={
-          context === "students" ? "Rechercher un élève" : "Vue par classe"
+          context === "students"
+            ? t("discipline.sections.searchStudents.title")
+            : t("discipline.sections.byClass.title")
         }
         subtitle={
           context === "students"
-            ? "Filtrez par classe ou saisissez un nom pour chercher dans toutes les classes."
-            : "Sélectionnez une année et une classe."
+            ? t("discipline.sections.searchStudents.subtitle")
+            : t("discipline.sections.byClass.subtitle")
         }
         testID={
           context === "students"
@@ -499,7 +507,7 @@ export function SchoolAdminDisciplineScreen() {
         }
       >
         <StudentSelectField
-          label="Année"
+          label={t("discipline.filters.year")}
           value={selectedYearId}
           options={yearOptions}
           onChange={(val) => {
@@ -507,11 +515,11 @@ export function SchoolAdminDisciplineScreen() {
             setSelectedClassId("");
           }}
           allowEmpty={false}
-          placeholder="Choisir une année"
+          placeholder={t("discipline.filters.selectYear")}
           testIDPrefix={`admin-discipline-${context}-year`}
         />
         <StudentSelectField
-          label="Classe"
+          label={t("discipline.filters.class")}
           value={selectedClassId}
           options={classOptions}
           onChange={(val) => {
@@ -519,8 +527,8 @@ export function SchoolAdminDisciplineScreen() {
             setStudentSearch("");
           }}
           allowEmpty={context === "students"}
-          emptyOptionLabel="Toutes les classes"
-          placeholder="Sélectionner une classe"
+          emptyOptionLabel={t("discipline.filters.allClasses")}
+          placeholder={t("discipline.filters.selectClass")}
           testIDPrefix={`admin-discipline-${context}-class`}
         />
         {context === "students" ? (
@@ -533,7 +541,7 @@ export function SchoolAdminDisciplineScreen() {
             <TextInput
               value={studentSearch}
               onChangeText={setStudentSearch}
-              placeholder="Rechercher par nom"
+              placeholder={t("discipline.filters.searchByName")}
               placeholderTextColor={colors.textSecondary}
               style={styles.searchInput}
               testID="admin-discipline-student-search"
@@ -553,7 +561,7 @@ export function SchoolAdminDisciplineScreen() {
     >
       <View style={styles.headerWrap}>
         <ModuleHeader
-          title="Discipline"
+          title={t("discipline.header.discipline")}
           subtitle={subtitle}
           onBack={() => router.back()}
           rightIcon="menu-outline"
@@ -568,10 +576,11 @@ export function SchoolAdminDisciplineScreen() {
       </View>
 
       <UnderlineTabs
-        items={MAIN_TABS.map((t) => ({
-          ...t,
+        items={MAIN_TAB_KEYS.map((item) => ({
+          key: item.key,
+          label: t(item.labelKey),
           badge:
-            t.key === "class" && classEvents.length > 0
+            item.key === "class" && classEvents.length > 0
               ? classEvents.length
               : 0,
         }))}
@@ -592,7 +601,7 @@ export function SchoolAdminDisciplineScreen() {
 
       {isLoadingMeta ? (
         <View style={styles.centered}>
-          <LoadingBlock label="Chargement..." />
+          <LoadingBlock label={t("discipline.loading.generic")} />
         </View>
       ) : mainTab === "students" ? (
         // ── Élèves tab ──────────────────────────────────────────────────────
@@ -603,23 +612,23 @@ export function SchoolAdminDisciplineScreen() {
             <View style={styles.centered}>
               <EmptyState
                 icon="people-outline"
-                title="Recherchez un élève"
-                message="Saisissez un nom pour chercher dans toutes les classes, ou sélectionnez d'abord une classe."
+                title={t("discipline.empty.searchStudent.title")}
+                message={t("discipline.empty.searchStudent.message")}
               />
             </View>
           ) : isLoadingContext || (!selectedClassId && isLoadingAllStudents) ? (
             <View style={styles.centered}>
-              <LoadingBlock label="Chargement des élèves..." />
+              <LoadingBlock label={t("discipline.loading.students")} />
             </View>
           ) : filteredStudents.length === 0 ? (
             <View style={styles.centered}>
               <EmptyState
                 icon="person-outline"
-                title="Aucun élève"
+                title={t("discipline.empty.noStudent.title")}
                 message={
                   studentSearch
-                    ? "Aucun élève ne correspond à cette recherche."
-                    : "Cette classe ne contient aucun élève."
+                    ? t("discipline.empty.noStudent.messageSearch")
+                    : t("discipline.empty.noStudent.messageClass")
                 }
               />
             </View>
@@ -643,21 +652,22 @@ export function SchoolAdminDisciplineScreen() {
             <View style={styles.centered}>
               <EmptyState
                 icon="book-outline"
-                title="Sélectionnez une classe"
-                message="Choisissez une classe pour afficher les événements de discipline."
+                title={t("discipline.empty.chooseClass.title")}
+                message={t("discipline.empty.chooseClass.message")}
               />
             </View>
           ) : isLoadingContext ? (
             <View style={styles.centered}>
-              <LoadingBlock label="Chargement de la classe..." />
+              <LoadingBlock label={t("discipline.loading.class")} />
             </View>
           ) : (
             <View style={styles.body}>
               <UnderlineTabs
-                items={CLASS_TABS.map((t) => ({
-                  ...t,
+                items={CLASS_TAB_KEYS.map((item) => ({
+                  key: item.key,
+                  label: t(item.labelKey),
                   badge:
-                    t.key === "events"
+                    item.key === "events"
                       ? classEvents.length
                       : carnetStudentId
                         ? carnetEvents.length
@@ -671,17 +681,17 @@ export function SchoolAdminDisciplineScreen() {
               {classTab === "events" ? (
                 <View style={styles.body}>
                   <SectionCard
-                    title="Événements de classe"
-                    subtitle="Parcourez et filtrez l'historique du plus récent au plus ancien."
+                    title={t("discipline.sections.classEvents.title")}
+                    subtitle={t("discipline.sections.classEvents.subtitle")}
                     testID="admin-discipline-class-events-card"
                   >
                     <StudentSelectField
-                      label="Élève"
+                      label={t("discipline.filters.student")}
                       value={eventStudentId}
                       options={studentOptions}
                       onChange={setEventStudentId}
                       allowEmpty
-                      emptyOptionLabel="Tous les élèves"
+                      emptyOptionLabel={t("discipline.filters.allStudents")}
                       testIDPrefix="admin-discipline-class-event-student"
                     />
                   </SectionCard>
@@ -693,11 +703,12 @@ export function SchoolAdminDisciplineScreen() {
                     onRefresh={() => {
                       void loadClassEvents(true);
                     }}
-                    emptyTitle="Aucun événement de discipline"
-                    emptySub="Aucun événement n'a encore été saisi pour cette classe."
+                    emptyTitle={t("discipline.empty.noClassEvents.title")}
+                    emptySub={t("discipline.empty.noClassEvents.message")}
                     showActions
                     getHeadline={(event) =>
-                      studentNameById[event.studentId] ?? "Élève"
+                      studentNameById[event.studentId] ??
+                      t("discipline.header.student")
                     }
                     canEdit={() => true}
                     canDelete={() => true}
@@ -718,6 +729,7 @@ export function SchoolAdminDisciplineScreen() {
                       setFormVisible(true);
                     }}
                     testID="admin-discipline-fab"
+                    accessibilityLabel={t("discipline.fab.addEvent")}
                   >
                     <Ionicons name="add" size={28} color={colors.white} />
                   </TouchableOpacity>
@@ -725,17 +737,19 @@ export function SchoolAdminDisciplineScreen() {
               ) : (
                 <View style={styles.body}>
                   <SectionCard
-                    title="Carnets"
-                    subtitle="Sélectionnez un élève pour afficher sa synthèse vie scolaire."
+                    title={t("discipline.sections.booklets.title")}
+                    subtitle={t("discipline.sections.booklets.subtitle")}
                     testID="admin-discipline-class-carnets-card"
                   >
                     <StudentSelectField
-                      label="Recherche par élève"
+                      label={t("discipline.filters.searchByStudent")}
                       value={carnetStudentId}
                       options={studentOptions}
                       onChange={setCarnetStudentId}
                       allowEmpty
-                      emptyOptionLabel="Choisir un élève"
+                      emptyOptionLabel={t(
+                        "discipline.studentSelect.placeholder",
+                      )}
                       testIDPrefix="admin-discipline-class-carnet-student"
                     />
                   </SectionCard>
@@ -755,8 +769,10 @@ export function SchoolAdminDisciplineScreen() {
                     <View style={styles.centered}>
                       <EmptyState
                         icon="people-outline"
-                        title="Choisissez un élève"
-                        message="La synthèse vie scolaire apparaît ici après sélection d'un élève."
+                        title={t("discipline.empty.chooseStudent.title")}
+                        message={t(
+                          "discipline.empty.chooseStudentGlobal.message",
+                        )}
                       />
                     </View>
                   )}

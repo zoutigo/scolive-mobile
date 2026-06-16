@@ -6,10 +6,19 @@ import {
   syncPushRegistration,
   unregisterPushRegistration,
 } from "../notifications/push-registration";
+import { useLocaleStore } from "./locale.store";
 import type { AuthUser, LoginResponse } from "../types/auth.types";
 
 const STORAGE_TIMEOUT_MS = 1500;
 const REFRESH_TIMEOUT_MS = 5000;
+
+// Account preference wins over the device locale, per user request.
+function applyAccountLocale(user: AuthUser | null | undefined): void {
+  if (!user?.preferredLocale) return;
+  useLocaleStore
+    .getState()
+    .setLocale(user.preferredLocale === "EN" ? "en" : "fr");
+}
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -88,7 +97,12 @@ export const useAuthStore = create<AuthState>((set) => ({
         const fetchUser = schoolSlug
           ? authApi.me(schoolSlug)
           : authApi.meGlobal();
-        fetchUser.then((user) => set({ user })).catch(() => {});
+        fetchUser
+          .then((user) => {
+            set({ user });
+            applyAccountLocale(user);
+          })
+          .catch(() => {});
         return;
       }
 
@@ -119,7 +133,10 @@ export const useAuthStore = create<AuthState>((set) => ({
         if (response.schoolSlug) {
           authApi
             .me(response.schoolSlug)
-            .then((user) => set({ user }))
+            .then((user) => {
+              set({ user });
+              applyAccountLocale(user);
+            })
             .catch(() => {});
         }
       } catch {
@@ -154,6 +171,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         ? await authApi.me(response.schoolSlug)
         : await authApi.meGlobal();
       set({ user });
+      applyAccountLocale(user);
     } catch {
       // user stays null; home screen will handle gracefully
     }

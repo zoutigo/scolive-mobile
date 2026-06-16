@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { TranslateFn } from "../i18n/useTranslation";
 
 // ── Enum ─────────────────────────────────────────────────────────────────────
 
@@ -87,43 +88,50 @@ export interface DisciplineFormInput {
   comment: string;
 }
 
-export const disciplineFormSchema = z.object({
-  type: z.enum(STUDENT_LIFE_EVENT_TYPES),
-  occurredAt: z
-    .string()
-    .trim()
-    .superRefine((value, ctx) => {
-      if (!value) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "La date est obligatoire.",
-        });
-        return;
-      }
+export function createDisciplineFormSchema(t: TranslateFn) {
+  return z.object({
+    type: z.enum(STUDENT_LIFE_EVENT_TYPES),
+    occurredAt: z
+      .string()
+      .trim()
+      .superRefine((value, ctx) => {
+        if (!value) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: t("discipline.validation.dateRequired"),
+          });
+          return;
+        }
 
-      if (Number.isNaN(new Date(value).getTime())) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "La date est invalide.",
-        });
-      }
-    }),
-  reason: z.string().trim().min(1, "Le motif est obligatoire."),
-  durationMinutes: z
-    .string()
-    .trim()
-    .refine(
-      (value) => value === "" || (/^\d+$/.test(value) && Number(value) >= 0),
-      "La durée doit être un entier positif.",
-    ),
-  justified: z.boolean(),
-  comment: z.string(),
-});
+        if (Number.isNaN(new Date(value).getTime())) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: t("discipline.validation.dateInvalid"),
+          });
+        }
+      }),
+    reason: z.string().trim().min(1, t("discipline.validation.reasonRequired")),
+    durationMinutes: z
+      .string()
+      .trim()
+      .refine(
+        (value) => value === "" || (/^\d+$/.test(value) && Number(value) >= 0),
+        t("discipline.validation.durationPositive"),
+      ),
+    justified: z.boolean(),
+    comment: z.string(),
+  });
+}
+
+export type DisciplineFormSchema = ReturnType<
+  typeof createDisciplineFormSchema
+>;
 
 export function buildLifeEventPayload(
   values: DisciplineFormInput,
+  schema: DisciplineFormSchema,
 ): CreateLifeEventPayload {
-  const parsed = disciplineFormSchema.parse(values);
+  const parsed = schema.parse(values);
   const duration = parsed.durationMinutes.trim();
   const comment = parsed.comment.trim();
 
@@ -154,8 +162,6 @@ export interface DisciplineSummary {
 // ── Couleurs et labels par type ───────────────────────────────────────────────
 
 export interface TypeConfig {
-  label: string;
-  pluralLabel: string;
   bg: string;
   text: string;
   accent: string;
@@ -165,38 +171,68 @@ export interface TypeConfig {
 export const DISCIPLINE_TYPE_CONFIG: Record<StudentLifeEventType, TypeConfig> =
   {
     ABSENCE: {
-      label: "Absence",
-      pluralLabel: "ABSENCES",
       bg: "#EAF3FF",
       text: "#1E5FAF",
       accent: "#1E5FAF",
       icon: "time-outline",
     },
     RETARD: {
-      label: "Retard",
-      pluralLabel: "RETARDS",
       bg: "#FFF2E8",
       text: "#C15600",
       accent: "#C15600",
       icon: "alert-circle-outline",
     },
     SANCTION: {
-      label: "Sanction",
-      pluralLabel: "SANCTIONS",
       bg: "#FFF0F0",
       text: "#C0392B",
       accent: "#C0392B",
       icon: "shield-outline",
     },
     PUNITION: {
-      label: "Punition",
-      pluralLabel: "PUNITIONS",
       bg: "#F5F0FF",
       text: "#6B5EA8",
       accent: "#6B5EA8",
       icon: "shield-half-outline",
     },
   };
+
+// ── Libellés traduits par type ────────────────────────────────────────────────
+
+export const DISCIPLINE_TYPE_LABEL_KEYS: Record<
+  StudentLifeEventType,
+  { label: string; pluralLabel: string }
+> = {
+  ABSENCE: {
+    label: "discipline.types.absence",
+    pluralLabel: "discipline.types.absencePlural",
+  },
+  RETARD: {
+    label: "discipline.types.retard",
+    pluralLabel: "discipline.types.retardPlural",
+  },
+  SANCTION: {
+    label: "discipline.types.sanction",
+    pluralLabel: "discipline.types.sanctionPlural",
+  },
+  PUNITION: {
+    label: "discipline.types.punition",
+    pluralLabel: "discipline.types.punitionPlural",
+  },
+};
+
+export function getDisciplineTypeLabel(
+  t: TranslateFn,
+  type: StudentLifeEventType,
+): string {
+  return t(DISCIPLINE_TYPE_LABEL_KEYS[type].label);
+}
+
+export function getDisciplineTypePluralLabel(
+  t: TranslateFn,
+  type: StudentLifeEventType,
+): string {
+  return t(DISCIPLINE_TYPE_LABEL_KEYS[type].pluralLabel);
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

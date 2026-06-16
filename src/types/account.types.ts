@@ -3,10 +3,13 @@ import type { RecoveryQuestion } from "./recovery.types";
 
 export type AccountGender = "M" | "F" | "OTHER";
 
+export type AccountLocale = "FR" | "EN";
+
 export interface AccountProfileResponse {
   firstName: string;
   lastName: string;
   gender?: AccountGender | null;
+  preferredLocale: AccountLocale;
   email?: string | null;
   phone?: string | null;
   role: AppRole;
@@ -34,6 +37,10 @@ export interface UpdateAccountProfilePayload {
   lastName: string;
   gender: AccountGender;
   phone: string;
+}
+
+export interface UpdatePreferredLocalePayload {
+  preferredLocale: AccountLocale;
 }
 
 export interface ChangePasswordPayload {

@@ -41,27 +41,42 @@ import {
   toWeekdayMondayFirst,
 } from "../../utils/timetable";
 import { EmptyState, ErrorBanner, LoadingBlock } from "./TimetableCommon";
+import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 
-export const MODE_OPTIONS: Array<{
+export function getModeOptions(t: TranslateFn): Array<{
   value: TimetableCalendarViewMode;
   label: string;
-}> = [
-  { value: "day", label: "Jour" },
-  { value: "week", label: "Semaine" },
-  { value: "month", label: "Mois" },
-];
+}> {
+  return [
+    { value: "day", label: t("timetable.common.viewDay") },
+    { value: "week", label: t("timetable.common.viewWeek") },
+    { value: "month", label: t("timetable.common.viewMonth") },
+  ];
+}
 
-const WEEKDAY_LABELS_FULL = [
-  "Lundi",
-  "Mardi",
-  "Mercredi",
-  "Jeudi",
-  "Vendredi",
-  "Samedi",
-  "Dimanche",
-] as const;
+function getWeekdayLabelsFull(t: TranslateFn): readonly string[] {
+  return [
+    t("timetable.weekdays.monFull"),
+    t("timetable.weekdays.tueFull"),
+    t("timetable.weekdays.wedFull"),
+    t("timetable.weekdays.thuFull"),
+    t("timetable.weekdays.friFull"),
+    t("timetable.weekdays.satFull"),
+    t("timetable.weekdays.sunFull"),
+  ];
+}
 
-const WEEKDAY_LABELS_COMPACT = ["L", "M", "M", "J", "V", "S", "D"] as const;
+function getWeekdayLabelsCompact(t: TranslateFn): readonly string[] {
+  return [
+    t("timetable.weekdays.monCompact"),
+    t("timetable.weekdays.tueCompact"),
+    t("timetable.weekdays.wedCompact"),
+    t("timetable.weekdays.thuCompact"),
+    t("timetable.weekdays.friCompact"),
+    t("timetable.weekdays.satCompact"),
+    t("timetable.weekdays.sunCompact"),
+  ];
+}
 
 export type WeekSelection = {
   occurrence: TimetableOccurrence;
@@ -72,32 +87,45 @@ function teacherLabel(occurrence: TimetableOccurrence): string {
   return fullTeacherName(occurrence.teacherUser);
 }
 
-export function buildWeekDays(cursorDate: Date) {
+export function buildWeekDays(cursorDate: Date, t: TranslateFn) {
   const weekStart = startOfWeek(cursorDate);
+  const labelsFull = getWeekdayLabelsFull(t);
+  const labelsCompact = getWeekdayLabelsCompact(t);
   return Array.from({ length: 7 }, (_, index) => {
     const date = addDays(weekStart, index);
     return {
       weekday: index + 1,
       date,
-      label: WEEKDAY_LABELS_FULL[index] ?? "",
-      compactLabel: WEEKDAY_LABELS_COMPACT[index] ?? "",
+      label: labelsFull[index] ?? "",
+      compactLabel: labelsCompact[index] ?? "",
     };
   });
 }
 
-export function formatDayNavLabel(cursorDate: Date, today: Date) {
-  const full = new Intl.DateTimeFormat("fr-FR", {
+function intlLocale(locale: string): string {
+  return locale === "en" ? "en-US" : "fr-FR";
+}
+
+export function formatDayNavLabel(
+  cursorDate: Date,
+  today: Date,
+  t: TranslateFn,
+  locale: string,
+) {
+  const full = new Intl.DateTimeFormat(intlLocale(locale), {
     weekday: "long",
     day: "numeric",
     month: "short",
     year: "numeric",
   }).format(cursorDate);
   const label = full.charAt(0).toUpperCase() + full.slice(1);
-  return sameDate(cursorDate, today) ? `Aujourd'hui · ${label}` : label;
+  return sameDate(cursorDate, today)
+    ? `${t("timetable.common.today")} · ${label}`
+    : label;
 }
 
-export function formatDetailDay(date: Date) {
-  return new Intl.DateTimeFormat("fr-FR", {
+export function formatDetailDay(date: Date, locale: string) {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -160,6 +188,7 @@ export function ChildTimetableScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { openDrawer } = useDrawer();
+  const { t, locale } = useTranslation();
   const params = useLocalSearchParams<{ childId?: string }>();
   const childId = typeof params.childId === "string" ? params.childId : "";
   const { schoolSlug } = useAuthStore();
@@ -258,7 +287,12 @@ export function ChildTimetableScreen() {
     [cursorDate, plannedOccurrences],
   );
 
-  const weekDays = useMemo(() => buildWeekDays(cursorDate), [cursorDate]);
+  const modeOptions = useMemo(() => getModeOptions(t), [t]);
+
+  const weekDays = useMemo(
+    () => buildWeekDays(cursorDate, t),
+    [cursorDate, locale],
+  );
   const visibleWeekDays = useMemo(
     () =>
       weekDays.filter((entry) => {
@@ -309,18 +343,18 @@ export function ChildTimetableScreen() {
 
   const periodLabel = useMemo(() => {
     if (viewMode === "day") {
-      return formatDayNavLabel(cursorDate, today);
+      return formatDayNavLabel(cursorDate, today, t, locale);
     }
     if (viewMode === "week") {
       return sameDate(startOfWeek(cursorDate), startOfWeek(today))
-        ? "Cette semaine"
+        ? t("timetable.common.thisWeek")
         : formatWeekRangeLabel(cursorDate);
     }
     return cursorDate.getMonth() === today.getMonth() &&
       cursorDate.getFullYear() === today.getFullYear()
-      ? "Ce mois"
+      ? t("timetable.common.thisMonth")
       : formatMonthLabel(cursorDate);
-  }, [cursorDate, today, viewMode]);
+  }, [cursorDate, today, viewMode, t, locale]);
 
   function moveCursor(direction: -1 | 1) {
     if (viewMode === "day") {
@@ -384,7 +418,7 @@ export function ChildTimetableScreen() {
         showsVerticalScrollIndicator={false}
       >
         <ModuleHeader
-          title="Emploi du temps"
+          title={t("timetable.classManager.defaultTitle")}
           subtitle={subtitle}
           onBack={() => router.push(buildChildHomeTarget(childId) as never)}
           rightIcon="menu-outline"
@@ -401,12 +435,12 @@ export function ChildTimetableScreen() {
 
         {isLoadingMyTimetable && !myTimetable ? (
           <View style={styles.panelCard}>
-            <LoadingBlock label="Chargement de l'emploi du temps..." />
+            <LoadingBlock label={t("timetable.common.loadingAgenda")} />
           </View>
         ) : myTimetable ? (
           <View style={styles.moduleCard}>
             <View style={styles.modeTabs} testID="child-timetable-mode-tabs">
-              {MODE_OPTIONS.map((entry) => {
+              {modeOptions.map((entry) => {
                 const active = viewMode === entry.value;
                 return (
                   <TouchableOpacity
@@ -465,8 +499,8 @@ export function ChildTimetableScreen() {
                 {daySlots.length === 0 ? (
                   <EmptyState
                     icon="calendar-clear-outline"
-                    title="Aucun cours"
-                    message="Aucun créneau n'est prévu pour cette journée."
+                    title={t("timetable.common.noCourseTitle")}
+                    message={t("timetable.childAgenda.emptyDayMessage")}
                   />
                 ) : (
                   daySlots.map((occurrence) => (
@@ -522,8 +556,8 @@ export function ChildTimetableScreen() {
           <View style={styles.panelCard}>
             <EmptyState
               icon="calendar-clear-outline"
-              title="Impossible d'afficher ce planning"
-              message="Vérifiez que l'enfant est bien lié à ce compte parent."
+              title={t("timetable.childAgenda.unavailableTitle")}
+              message={t("timetable.childAgenda.unavailableMessage")}
             />
           </View>
         )}
@@ -545,6 +579,7 @@ export function DayCard({
   className?: string;
   onEditPress?: () => void;
 }) {
+  const { t } = useTranslation();
   const tone = subjectVisualTone(colorHex);
 
   return (
@@ -573,7 +608,9 @@ export function DayCard({
           <Text style={styles.dayCardTeacher}>{teacherLabel(occurrence)}</Text>
           <View style={styles.dayCardFooter}>
             {occurrence.room ? (
-              <Text style={styles.dayCardRoom}>SALLE {occurrence.room}</Text>
+              <Text style={styles.dayCardRoom}>
+                {t("timetable.childAgenda.roomPrefix")} {occurrence.room}
+              </Text>
             ) : null}
             {className ? (
               <Text
@@ -812,6 +849,7 @@ export function WeekDetailCard({
   className?: string;
   onEditPress?: () => void;
 }) {
+  const { t, locale } = useTranslation();
   const tone = subjectVisualTone(colorHex);
   return (
     <View
@@ -828,13 +866,15 @@ export function WeekDetailCard({
         <View style={styles.detailCardContent}>
           <View style={styles.detailCardLabelRow}>
             <Text style={styles.detailCardLabel}>
-              DETAIL DU CRENEAU SELECTIONNE
+              {t("timetable.common.weekSelectedSlotLabel")}
             </Text>
           </View>
           {selectedWeekCell ? (
             <View style={styles.detailCardBody}>
               <Text style={styles.detailCardText}>
-                <Text style={styles.detailCardTextStrong}>Matière :</Text>{" "}
+                <Text style={styles.detailCardTextStrong}>
+                  {t("timetable.childAgenda.detail.subject")}
+                </Text>{" "}
                 {selectedWeekCell.occurrence.subject.name}
               </Text>
               {className ? (
@@ -842,31 +882,41 @@ export function WeekDetailCard({
                   style={styles.detailCardText}
                   testID={`${testIDPrefix}-week-detail-class`}
                 >
-                  <Text style={styles.detailCardTextStrong}>Classe :</Text>{" "}
+                  <Text style={styles.detailCardTextStrong}>
+                    {t("timetable.childAgenda.detail.class")}
+                  </Text>{" "}
                   {className}
                 </Text>
               ) : null}
               <Text style={styles.detailCardText}>
-                <Text style={styles.detailCardTextStrong}>Jour :</Text>{" "}
-                {formatDetailDay(selectedWeekCell.date)}
+                <Text style={styles.detailCardTextStrong}>
+                  {t("timetable.childAgenda.detail.day")}
+                </Text>{" "}
+                {formatDetailDay(selectedWeekCell.date, locale)}
               </Text>
               <Text style={styles.detailCardText}>
-                <Text style={styles.detailCardTextStrong}>Horaire :</Text>{" "}
+                <Text style={styles.detailCardTextStrong}>
+                  {t("timetable.childAgenda.detail.time")}
+                </Text>{" "}
                 {minuteToTimeLabel(selectedWeekCell.occurrence.startMinute)} -{" "}
                 {minuteToTimeLabel(selectedWeekCell.occurrence.endMinute)}
               </Text>
               <Text style={styles.detailCardText}>
-                <Text style={styles.detailCardTextStrong}>Enseignant :</Text>{" "}
+                <Text style={styles.detailCardTextStrong}>
+                  {t("timetable.childAgenda.detail.teacher")}
+                </Text>{" "}
                 {teacherLabel(selectedWeekCell.occurrence)}
               </Text>
               <Text style={styles.detailCardText}>
-                <Text style={styles.detailCardTextStrong}>Salle :</Text>{" "}
+                <Text style={styles.detailCardTextStrong}>
+                  {t("timetable.childAgenda.detail.room")}
+                </Text>{" "}
                 {selectedWeekCell.occurrence.room ?? "-"}
               </Text>
             </View>
           ) : (
             <Text style={styles.detailPlaceholder}>
-              Sélectionnez un créneau dans le tableau pour afficher son détail.
+              {t("timetable.common.weekSelectedSlotPlaceholder")}
             </Text>
           )}
         </View>
@@ -877,7 +927,9 @@ export function WeekDetailCard({
             testID={`${testIDPrefix}-week-detail-edit`}
           >
             <Ionicons name="pencil" size={18} color={colors.white} />
-            <Text style={styles.detailEditRailText}>MODIFIER</Text>
+            <Text style={styles.detailEditRailText}>
+              {t("timetable.common.edit")}
+            </Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -900,10 +952,12 @@ export function MonthGrid({
   showSunday: boolean;
   testIDPrefix?: string;
 }) {
+  const { t } = useTranslation();
+  const weekdayLabelsCompact = getWeekdayLabelsCompact(t);
   const weekdayLabels = [
-    ...WEEKDAY_LABELS_COMPACT.slice(0, 5),
-    ...(showSaturday ? [WEEKDAY_LABELS_COMPACT[5]!] : []),
-    ...(showSunday ? [WEEKDAY_LABELS_COMPACT[6]!] : []),
+    ...weekdayLabelsCompact.slice(0, 5),
+    ...(showSaturday ? [weekdayLabelsCompact[5]!] : []),
+    ...(showSunday ? [weekdayLabelsCompact[6]!] : []),
   ];
   const columns = weekdayLabels.length;
 
@@ -1003,19 +1057,22 @@ export function MonthAgenda({
   getClassName?: (occId: string) => string | undefined;
   onEditPress?: (occ: TimetableOccurrence) => void;
 }) {
+  const { t, locale } = useTranslation();
   return (
     <View
       style={styles.monthAgendaCard}
       testID={`${testIDPrefix}-month-agenda`}
     >
-      <Text style={styles.monthAgendaLabel}>AGENDA DU JOUR SELECTIONNE</Text>
+      <Text style={styles.monthAgendaLabel}>
+        {t("timetable.childAgenda.monthAgendaLabel")}
+      </Text>
       <Text style={styles.monthAgendaDate}>
-        {selectedDate ? formatDetailDay(selectedDate) : "-"}
+        {selectedDate ? formatDetailDay(selectedDate, locale) : "-"}
       </Text>
       <View style={styles.monthAgendaList}>
         {agenda.length === 0 ? (
           <Text style={styles.detailPlaceholder}>
-            Aucun cours prevu pour cette journee.
+            {t("timetable.childAgenda.emptyDayMessage")}
           </Text>
         ) : (
           agenda.map((occurrence) => (

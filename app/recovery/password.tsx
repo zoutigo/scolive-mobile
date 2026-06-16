@@ -19,47 +19,69 @@ import { z } from "zod";
 import { recoveryApi } from "../../src/api/recovery.api";
 import { SecureTextField } from "../../src/components/SecureTextField";
 import type { RecoveryQuestion } from "../../src/types/recovery.types";
+import { DEFAULT_LOCALE } from "../../src/i18n/translations";
+import {
+  translate,
+  useTranslation,
+  type TranslateFn,
+} from "../../src/i18n/useTranslation";
 import { formatDateInput, parseDateToISO } from "./pin";
+
+const defaultT: TranslateFn = (key) => translate(DEFAULT_LOCALE, key);
 
 // ── Schémas Zod ───────────────────────────────────────────────────────────────
 
-export const pwdRecoveryStep1Schema = z.object({
-  email: z
-    .string()
-    .trim()
-    .min(1, "L'adresse email est requise.")
-    .email("Adresse email invalide."),
-});
+export function buildPwdRecoveryStep1Schema(t: TranslateFn) {
+  return z.object({
+    email: z
+      .string()
+      .trim()
+      .min(1, t("recovery.password.errors.emailRequired"))
+      .email(t("recovery.password.errors.emailInvalid")),
+  });
+}
 
-export const pwdRecoveryStep2Schema = z.object({
-  token: z
-    .string()
-    .trim()
-    .min(16, "Le lien de réinitialisation est invalide (trop court)."),
-});
+export const pwdRecoveryStep1Schema = buildPwdRecoveryStep1Schema(defaultT);
+
+export function buildPwdRecoveryStep2Schema(t: TranslateFn) {
+  return z.object({
+    token: z
+      .string()
+      .trim()
+      .min(16, t("recovery.password.errors.tokenInvalid")),
+  });
+}
+
+export const pwdRecoveryStep2Schema = buildPwdRecoveryStep2Schema(defaultT);
 
 const PASSWORD_COMPLEXITY_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
-export const pwdRecoveryStep4Schema = z
-  .object({
-    newPassword: z
-      .string()
-      .min(8, "Le mot de passe doit faire au moins 8 caractères.")
-      .regex(
-        PASSWORD_COMPLEXITY_REGEX,
-        "Le mot de passe doit contenir majuscules, minuscules et chiffres.",
-      ),
-    confirmPassword: z.string().min(1, "Confirmez le mot de passe."),
-  })
-  .superRefine((v, ctx) => {
-    if (v.confirmPassword && v.newPassword !== v.confirmPassword) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["confirmPassword"],
-        message: "La confirmation ne correspond pas au nouveau mot de passe.",
-      });
-    }
-  });
+export function buildPwdRecoveryStep4Schema(t: TranslateFn) {
+  return z
+    .object({
+      newPassword: z
+        .string()
+        .min(8, t("recovery.password.errors.passwordTooShort"))
+        .regex(
+          PASSWORD_COMPLEXITY_REGEX,
+          t("recovery.password.errors.passwordComplexity"),
+        ),
+      confirmPassword: z
+        .string()
+        .min(1, t("recovery.password.errors.confirmRequired")),
+    })
+    .superRefine((v, ctx) => {
+      if (v.confirmPassword && v.newPassword !== v.confirmPassword) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["confirmPassword"],
+          message: t("recovery.password.errors.confirmMismatch"),
+        });
+      }
+    });
+}
+
+export const pwdRecoveryStep4Schema = buildPwdRecoveryStep4Schema(defaultT);
 
 // ── Types internes ────────────────────────────────────────────────────────────
 
@@ -72,30 +94,33 @@ type PasswordRecoveryStep3Values = {
 
 // ── Helper erreur API ─────────────────────────────────────────────────────────
 
-export function parsePasswordRecoveryApiError(err: unknown): string {
+export function parsePasswordRecoveryApiError(
+  err: unknown,
+  t: TranslateFn = defaultT,
+): string {
   const e = err as { code?: string; statusCode?: number };
   switch (e?.code) {
     case "RECOVERY_INVALID":
-      return "Informations de récupération invalides.";
+      return t("recovery.common.errors.recoveryInvalid");
     case "NOT_FOUND":
     case "USER_NOT_FOUND":
-      return "Aucun compte trouvé pour cette adresse email.";
+      return t("recovery.password.errors.notFoundEmail");
     case "TOKEN_EXPIRED":
     case "RESET_TOKEN_EXPIRED":
-      return "Le lien a expiré. Recommencez depuis le début.";
+      return t("recovery.password.errors.tokenExpired");
     case "TOKEN_INVALID":
     case "RESET_TOKEN_INVALID":
-      return "Lien de réinitialisation invalide.";
+      return t("recovery.password.errors.tokenInvalidLink");
     case "SAME_PASSWORD":
-      return "Le nouveau mot de passe doit être différent de l'actuel.";
+      return t("recovery.password.errors.samePassword");
     default:
       if (e?.statusCode === 404)
-        return "Aucun compte trouvé pour cette adresse email.";
+        return t("recovery.password.errors.notFoundEmail");
       if (e?.statusCode === 400)
-        return "Informations de récupération invalides.";
+        return t("recovery.common.errors.recoveryInvalid");
       if (e?.statusCode === 401)
-        return "Lien de réinitialisation invalide ou expiré.";
-      return "Impossible de se connecter. Vérifiez votre connexion.";
+        return t("recovery.password.errors.tokenInvalidOrExpired");
+      return t("apiErrors.generic");
   }
 }
 
@@ -103,6 +128,7 @@ export function parsePasswordRecoveryApiError(err: unknown): string {
 
 export default function PasswordRecoveryScreen() {
   const insets = useSafeAreaInsets();
+  const { locale, t } = useTranslation();
   const [step, setStep] = useState<Step>(1);
   const [emailHint, setEmailHint] = useState("");
   const [questions, setQuestions] = useState<RecoveryQuestion[]>([]);
@@ -110,8 +136,12 @@ export default function PasswordRecoveryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const step1Schema = useMemo(() => buildPwdRecoveryStep1Schema(t), [locale]);
+  const step2Schema = useMemo(() => buildPwdRecoveryStep2Schema(t), [locale]);
+  const step4Schema = useMemo(() => buildPwdRecoveryStep4Schema(t), [locale]);
+
   const step1Form = useForm<z.infer<typeof pwdRecoveryStep1Schema>>({
-    resolver: zodResolver(pwdRecoveryStep1Schema),
+    resolver: zodResolver(step1Schema),
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
@@ -120,7 +150,7 @@ export default function PasswordRecoveryScreen() {
   });
 
   const step2Form = useForm<z.infer<typeof pwdRecoveryStep2Schema>>({
-    resolver: zodResolver(pwdRecoveryStep2Schema),
+    resolver: zodResolver(step2Schema),
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
@@ -134,12 +164,12 @@ export default function PasswordRecoveryScreen() {
         .object({
           birthDate: z
             .string()
-            .min(1, "La date de naissance est obligatoire.")
+            .min(1, t("recovery.common.errors.birthDateRequired"))
             .refine((value) => /^\d{2}\/\d{2}\/\d{4}$/.test(value), {
-              message: "Format attendu : JJ/MM/AAAA.",
+              message: t("recovery.common.errors.birthDateFormat"),
             })
             .refine((value) => parseDateToISO(value) !== null, {
-              message: "Date de naissance invalide.",
+              message: t("recovery.common.errors.birthDateInvalid"),
             }),
           answers: z.record(z.string(), z.string().trim()),
         })
@@ -150,12 +180,12 @@ export default function PasswordRecoveryScreen() {
               ctx.addIssue({
                 code: "custom",
                 path: ["answers", question.key],
-                message: "Réponse obligatoire (au moins 2 caractères).",
+                message: t("recovery.common.errors.answerRequired"),
               });
             }
           });
         }),
-    [questions],
+    [questions, locale],
   );
 
   const step3Form = useForm<PasswordRecoveryStep3Values>({
@@ -169,7 +199,7 @@ export default function PasswordRecoveryScreen() {
   });
 
   const step4Form = useForm<z.infer<typeof pwdRecoveryStep4Schema>>({
-    resolver: zodResolver(pwdRecoveryStep4Schema),
+    resolver: zodResolver(step4Schema),
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
@@ -206,7 +236,7 @@ export default function PasswordRecoveryScreen() {
       await recoveryApi.forgotPasswordRequest({ email: values.email.trim() });
       setStep(2);
     } catch (err) {
-      setError(parsePasswordRecoveryApiError(err));
+      setError(parsePasswordRecoveryApiError(err, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -225,7 +255,7 @@ export default function PasswordRecoveryScreen() {
       setQuestions(res.questions);
       setStep(3);
     } catch (err) {
-      setError(parsePasswordRecoveryApiError(err));
+      setError(parsePasswordRecoveryApiError(err, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -251,7 +281,7 @@ export default function PasswordRecoveryScreen() {
       });
       setStep(4);
     } catch (err) {
-      setError(parsePasswordRecoveryApiError(err));
+      setError(parsePasswordRecoveryApiError(err, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -269,7 +299,7 @@ export default function PasswordRecoveryScreen() {
       });
       setStep(5);
     } catch (err) {
-      setError(parsePasswordRecoveryApiError(err));
+      setError(parsePasswordRecoveryApiError(err, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -307,20 +337,26 @@ export default function PasswordRecoveryScreen() {
               }}
               style={styles.backButton}
             >
-              <Text style={styles.backButtonText}>‹ Retour</Text>
+              <Text style={styles.backButtonText}>
+                {t("recovery.common.back")}
+              </Text>
             </Pressable>
           )}
         </View>
         <View style={styles.brandAccent} />
 
         <Text style={styles.headerTitle}>
-          {isSuccess ? "Mot de passe mis à jour !" : "Mot de passe oublié"}
+          {isSuccess
+            ? t("recovery.password.headerTitleSuccess")
+            : t("recovery.password.headerTitle")}
         </Text>
 
         {!isSuccess && (
           <>
             <Text style={styles.stepIndicator}>
-              Étape {step} sur {totalSteps}
+              {t("recovery.password.step")
+                .replace("{step}", String(step))
+                .replace("{total}", String(totalSteps))}
             </Text>
             <View style={styles.progressTrack}>
               <View
@@ -349,11 +385,10 @@ export default function PasswordRecoveryScreen() {
             {step === 1 && (
               <View testID="step-1">
                 <Text style={styles.stepTitle}>
-                  Réinitialiser le mot de passe
+                  {t("recovery.password.step1.title")}
                 </Text>
                 <Text style={styles.stepSubtitle}>
-                  Entrez votre adresse email. Nous vous enverrons un lien pour
-                  réinitialiser votre mot de passe.
+                  {t("recovery.password.step1.subtitle")}
                 </Text>
 
                 <View style={styles.fieldGroup}>
@@ -361,7 +396,9 @@ export default function PasswordRecoveryScreen() {
                     <View style={styles.fieldIcon}>
                       <Text style={styles.fieldIconText}>✉️</Text>
                     </View>
-                    <Text style={styles.label}>Adresse email</Text>
+                    <Text style={styles.label}>
+                      {t("recovery.password.fields.email")}
+                    </Text>
                   </View>
                   <Controller
                     control={step1Form.control}
@@ -376,7 +413,7 @@ export default function PasswordRecoveryScreen() {
                           clearUiErrors();
                           field.onChange(value);
                         }}
-                        placeholder="nom@etablissement.cm"
+                        placeholder={t("login.placeholders.email")}
                         keyboardType="email-address"
                         autoCapitalize="none"
                         style={[
@@ -416,7 +453,7 @@ export default function PasswordRecoveryScreen() {
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
                     <Text style={styles.primaryButtonText}>
-                      Envoyer le lien →
+                      {t("recovery.password.step1.submit")}
                     </Text>
                   )}
                 </Pressable>
@@ -426,17 +463,17 @@ export default function PasswordRecoveryScreen() {
             {/* ── Step 2 : Saisie du token ─────────────────── */}
             {step === 2 && (
               <View testID="step-2">
-                <Text style={styles.stepTitle}>Vérifiez votre email</Text>
+                <Text style={styles.stepTitle}>
+                  {t("recovery.password.step2.title")}
+                </Text>
 
                 <View style={styles.infoBox}>
                   <Text style={styles.infoText}>
-                    Un email a été envoyé à{" "}
+                    {t("recovery.password.step2.infoPrefix")}
                     <Text style={styles.infoValueBold}>
                       {step1Form.getValues("email")}
                     </Text>
-                    .{"\n"}
-                    Ouvrez le lien dans l'email et copiez le code de
-                    réinitialisation ci-dessous.
+                    {t("recovery.password.step2.infoSuffix")}
                   </Text>
                 </View>
 
@@ -445,7 +482,9 @@ export default function PasswordRecoveryScreen() {
                     <View style={styles.fieldIcon}>
                       <Text style={styles.fieldIconText}>🔗</Text>
                     </View>
-                    <Text style={styles.label}>Code de réinitialisation</Text>
+                    <Text style={styles.label}>
+                      {t("recovery.password.fields.token")}
+                    </Text>
                   </View>
                   <Controller
                     control={step2Form.control}
@@ -460,7 +499,7 @@ export default function PasswordRecoveryScreen() {
                           clearUiErrors();
                           field.onChange(value);
                         }}
-                        placeholder="Collez votre code ici"
+                        placeholder={t("recovery.password.placeholders.token")}
                         autoCapitalize="none"
                         autoCorrect={false}
                         style={[
@@ -498,7 +537,9 @@ export default function PasswordRecoveryScreen() {
                   {isSubmitting ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text style={styles.primaryButtonText}>Continuer →</Text>
+                    <Text style={styles.primaryButtonText}>
+                      {t("recovery.common.continue")}
+                    </Text>
                   )}
                 </Pressable>
 
@@ -508,7 +549,9 @@ export default function PasswordRecoveryScreen() {
                   onPress={handleStep1}
                   disabled={isSubmitting}
                 >
-                  <Text style={styles.linkButtonText}>Renvoyer l'email</Text>
+                  <Text style={styles.linkButtonText}>
+                    {t("recovery.password.step2.resend")}
+                  </Text>
                 </Pressable>
               </View>
             )}
@@ -516,15 +559,18 @@ export default function PasswordRecoveryScreen() {
             {/* ── Step 3 : Vérification identité ──────────── */}
             {step === 3 && (
               <View testID="step-3">
-                <Text style={styles.stepTitle}>Vérification d'identité</Text>
+                <Text style={styles.stepTitle}>
+                  {t("recovery.password.step3.title")}
+                </Text>
                 <Text style={styles.stepSubtitle}>
-                  Confirmez votre identité pour sécuriser la réinitialisation.
+                  {t("recovery.password.step3.subtitle")}
                 </Text>
 
                 {emailHint ? (
                   <View style={styles.hintBox}>
                     <Text style={styles.hintText}>
-                      Compte : <Text style={styles.hintValue}>{emailHint}</Text>
+                      {t("recovery.password.step3.accountHint")}
+                      <Text style={styles.hintValue}>{emailHint}</Text>
                     </Text>
                   </View>
                 ) : null}
@@ -534,7 +580,9 @@ export default function PasswordRecoveryScreen() {
                     <View style={styles.fieldIcon}>
                       <Text style={styles.fieldIconText}>📅</Text>
                     </View>
-                    <Text style={styles.label}>Date de naissance</Text>
+                    <Text style={styles.label}>
+                      {t("recovery.common.birthDateLabel")}
+                    </Text>
                   </View>
                   <Controller
                     control={step3Form.control}
@@ -549,7 +597,7 @@ export default function PasswordRecoveryScreen() {
                           clearUiErrors();
                           field.onChange(formatDateInput(value));
                         }}
-                        placeholder="JJ/MM/AAAA"
+                        placeholder={t("recovery.common.birthDatePlaceholder")}
                         keyboardType="numeric"
                         style={[
                           styles.input,
@@ -592,7 +640,7 @@ export default function PasswordRecoveryScreen() {
                               clearUiErrors();
                               field.onChange(value);
                             }}
-                            placeholder="Votre réponse"
+                            placeholder={t("recovery.common.answerPlaceholder")}
                             autoCapitalize="none"
                             style={[
                               styles.input,
@@ -634,7 +682,9 @@ export default function PasswordRecoveryScreen() {
                   {isSubmitting ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text style={styles.primaryButtonText}>Vérifier →</Text>
+                    <Text style={styles.primaryButtonText}>
+                      {t("recovery.common.verify")}
+                    </Text>
                   )}
                 </Pressable>
               </View>
@@ -643,10 +693,11 @@ export default function PasswordRecoveryScreen() {
             {/* ── Step 4 : Nouveau mot de passe ────────────── */}
             {step === 4 && (
               <View testID="step-4">
-                <Text style={styles.stepTitle}>Nouveau mot de passe</Text>
+                <Text style={styles.stepTitle}>
+                  {t("recovery.password.step4.title")}
+                </Text>
                 <Text style={styles.stepSubtitle}>
-                  Choisissez un mot de passe fort : au moins 8 caractères avec
-                  majuscules, minuscules et chiffres.
+                  {t("recovery.password.step4.subtitle")}
                 </Text>
 
                 <View style={styles.fieldGroup}>
@@ -654,7 +705,9 @@ export default function PasswordRecoveryScreen() {
                     <View style={styles.fieldIcon}>
                       <Text style={styles.fieldIconText}>🔒</Text>
                     </View>
-                    <Text style={styles.label}>Nouveau mot de passe</Text>
+                    <Text style={styles.label}>
+                      {t("recovery.password.fields.newPassword")}
+                    </Text>
                   </View>
                   <Controller
                     control={step4Form.control}
@@ -669,7 +722,9 @@ export default function PasswordRecoveryScreen() {
                           clearUiErrors();
                           field.onChange(value);
                         }}
-                        placeholder="Votre nouveau mot de passe"
+                        placeholder={t(
+                          "recovery.password.placeholders.newPassword",
+                        )}
                         containerStyle={
                           fieldState.error ? styles.inputError : null
                         }
@@ -694,7 +749,9 @@ export default function PasswordRecoveryScreen() {
                     <View style={styles.fieldIcon}>
                       <Text style={styles.fieldIconText}>🔒</Text>
                     </View>
-                    <Text style={styles.label}>Confirmer le mot de passe</Text>
+                    <Text style={styles.label}>
+                      {t("recovery.password.fields.confirmPassword")}
+                    </Text>
                   </View>
                   <Controller
                     control={step4Form.control}
@@ -709,7 +766,9 @@ export default function PasswordRecoveryScreen() {
                           clearUiErrors();
                           field.onChange(value);
                         }}
-                        placeholder="Confirmez votre mot de passe"
+                        placeholder={t(
+                          "recovery.password.placeholders.confirmPassword",
+                        )}
                         containerStyle={
                           fieldState.error ? styles.inputError : null
                         }
@@ -748,7 +807,7 @@ export default function PasswordRecoveryScreen() {
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
                     <Text style={styles.primaryButtonText}>
-                      Enregistrer le mot de passe
+                      {t("recovery.password.step4.submit")}
                     </Text>
                   )}
                 </Pressable>
@@ -762,18 +821,19 @@ export default function PasswordRecoveryScreen() {
                   <Text style={styles.successCheck}>✓</Text>
                 </View>
                 <Text style={styles.successTitle}>
-                  Mot de passe mis à jour !
+                  {t("recovery.password.headerTitleSuccess")}
                 </Text>
                 <Text style={styles.successSubtitle}>
-                  Votre mot de passe a été modifié avec succès. Vous pouvez
-                  maintenant vous connecter.
+                  {t("recovery.password.success.subtitle")}
                 </Text>
                 <Pressable
                   testID="btn-go-login"
                   style={[styles.primaryButton, styles.fullWidth]}
                   onPress={() => router.replace("/login")}
                 >
-                  <Text style={styles.primaryButtonText}>Se connecter</Text>
+                  <Text style={styles.primaryButtonText}>
+                    {t("recovery.common.loginButton")}
+                  </Text>
                 </Pressable>
               </View>
             )}

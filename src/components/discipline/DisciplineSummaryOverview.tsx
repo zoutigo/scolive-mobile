@@ -10,8 +10,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import {
-  DISCIPLINE_TYPE_CONFIG,
+  getDisciplineTypePluralLabel,
   type DisciplineSummary,
   type StudentLifeEvent,
   type StudentLifeEventType,
@@ -36,10 +37,13 @@ export function DisciplineSummaryOverview({
   isLoading = false,
   isRefreshing = false,
   onRefresh,
-  emptyTitle = "Tout va bien !",
-  emptySub = "Aucun événement de vie scolaire enregistré sur l'année en cours.",
+  emptyTitle,
+  emptySub,
   testID = "discipline-summary-overview",
 }: Props) {
+  const { t } = useTranslation();
+  const resolvedEmptyTitle = emptyTitle ?? t("discipline.summary.allGoodTitle");
+  const resolvedEmptySub = emptySub ?? t("discipline.summary.allGoodSubtitle");
   const [activeFilter, setActiveFilter] = useState<StudentLifeEventType | null>(
     null,
   );
@@ -62,8 +66,11 @@ export function DisciplineSummaryOverview({
 
   const hasAny = events.length > 0;
   const sectionTitle = activeFilter
-    ? `Derniers événements : ${DISCIPLINE_TYPE_CONFIG[activeFilter].pluralLabel}`
-    : "Derniers événements";
+    ? t("discipline.summary.recentEventsFiltered").replace(
+        "{type}",
+        getDisciplineTypePluralLabel(t, activeFilter),
+      )
+    : t("discipline.summary.recentEvents");
 
   return (
     <ScrollView
@@ -82,7 +89,7 @@ export function DisciplineSummaryOverview({
       testID={testID}
     >
       <Text style={styles.sectionTitle} testID="school-year-section-title">
-        Cette année scolaire
+        {t("discipline.summary.currentYear")}
       </Text>
 
       <DisciplineSummaryKpis
@@ -99,11 +106,14 @@ export function DisciplineSummaryOverview({
           />
           <Text style={styles.alertText}>
             <Text style={styles.alertStrong}>
-              {summary.unjustifiedAbsences} absence
-              {summary.unjustifiedAbsences > 1 ? "s" : ""}
+              {(summary.unjustifiedAbsences > 1
+                ? t("discipline.summary.unjustifiedPrefixMany")
+                : t("discipline.summary.unjustifiedPrefixOne")
+              ).replace("{count}", String(summary.unjustifiedAbsences))}
             </Text>{" "}
-            non justifiée{summary.unjustifiedAbsences > 1 ? "s" : ""} cette
-            année.
+            {summary.unjustifiedAbsences > 1
+              ? t("discipline.summary.unjustifiedSuffixMany")
+              : t("discipline.summary.unjustifiedSuffixOne")}
           </Text>
         </View>
       ) : null}
@@ -123,7 +133,9 @@ export function DisciplineSummaryOverview({
                 onPress={() => setActiveFilter(null)}
                 testID="btn-see-all"
               >
-                <Text style={styles.sectionLink}>Tout voir</Text>
+                <Text style={styles.sectionLink}>
+                  {t("discipline.summary.showAll")}
+                </Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -140,7 +152,7 @@ export function DisciplineSummaryOverview({
                 color={colors.warmBorder}
               />
               <Text style={styles.filterEmptyText}>
-                Aucun événement de ce type.
+                {t("discipline.summary.noEventsOfType")}
               </Text>
             </View>
           )}
@@ -154,8 +166,8 @@ export function DisciplineSummaryOverview({
               color={colors.warmBorder}
             />
           </View>
-          <Text style={styles.emptyTitle}>{emptyTitle}</Text>
-          <Text style={styles.emptySub}>{emptySub}</Text>
+          <Text style={styles.emptyTitle}>{resolvedEmptyTitle}</Text>
+          <Text style={styles.emptySub}>{resolvedEmptySub}</Text>
         </View>
       )}
     </ScrollView>

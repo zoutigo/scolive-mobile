@@ -1,3 +1,7 @@
+import { translate, type TranslateFn } from "../i18n/useTranslation";
+
+const tFr: TranslateFn = (key) => translate("fr", key);
+
 import type {
   EvaluationRow,
   StudentEvaluation,
@@ -16,6 +20,7 @@ export function formatScore(value: number | null) {
 export function formatDelta(
   studentValue: number | null,
   classValue: number | null,
+  t: TranslateFn = tFr,
 ) {
   if (studentValue === null || classValue === null) {
     return null;
@@ -23,11 +28,11 @@ export function formatDelta(
 
   const delta = studentValue - classValue;
   if (Math.abs(delta) < 0.01) {
-    return "Au niveau de la classe";
+    return t("notes.delta.atClassLevel");
   }
 
   const prefix = delta > 0 ? "+" : "";
-  return `${prefix}${delta.toFixed(2).replace(".", ",")} pts vs classe`;
+  return `${prefix}${delta.toFixed(2).replace(".", ",")} ${t("notes.delta.vsClass")}`;
 }
 
 export function formatEvaluationLabel(evaluation: StudentEvaluation) {
@@ -35,15 +40,18 @@ export function formatEvaluationLabel(evaluation: StudentEvaluation) {
   return `${formatScore(evaluation.score)}/${formatScore(evaluation.maxScore)}${weightLabel}`;
 }
 
-export function formatPlainEvaluationScore(evaluation: StudentEvaluation) {
+export function formatPlainEvaluationScore(
+  evaluation: StudentEvaluation,
+  t: TranslateFn = tFr,
+) {
   if (evaluation.status === "ABSENT") {
-    return { score: "Abs", maxScore: null };
+    return { score: t("notes.scoreStatus.absent"), maxScore: null };
   }
   if (evaluation.status === "EXCUSED") {
-    return { score: "Disp", maxScore: null };
+    return { score: t("notes.scoreStatus.excused"), maxScore: null };
   }
   if (evaluation.status === "NOT_GRADED") {
-    return { score: "NE", maxScore: null };
+    return { score: t("notes.scoreStatus.notGraded"), maxScore: null };
   }
   return {
     score: formatScore(evaluation.score),
@@ -51,14 +59,14 @@ export function formatPlainEvaluationScore(evaluation: StudentEvaluation) {
   };
 }
 
-export function termLabel(term: StudentNotesTerm) {
+export function termLabel(term: StudentNotesTerm, t: TranslateFn = tFr) {
   switch (term) {
     case "TERM_1":
-      return "Trimestre 1";
+      return t("notes.terms.term1");
     case "TERM_2":
-      return "Trimestre 2";
+      return t("notes.terms.term2");
     case "TERM_3":
-      return "Trimestre 3";
+      return t("notes.terms.term3");
   }
 }
 
@@ -170,9 +178,12 @@ export function getWatchSubject(subjects: StudentSubjectNotes[]) {
     .sort((a, b) => (a.studentAverage ?? 99) - (b.studentAverage ?? 99))[0];
 }
 
-export function formatEvaluationDate(value?: string | null) {
+export function formatEvaluationDate(
+  value: string | null | undefined,
+  t: TranslateFn = tFr,
+) {
   if (!value) {
-    return "Date non définie";
+    return t("notes.dateNotSet");
   }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {

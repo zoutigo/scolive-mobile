@@ -22,6 +22,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../../src/theme";
+import { useTranslation } from "../../../src/i18n/useTranslation";
 import { useAuthStore } from "../../../src/store/auth.store";
 import { useDisciplineStore } from "../../../src/store/discipline.store";
 import { disciplineApi } from "../../../src/api/discipline.api";
@@ -44,9 +45,17 @@ import type {
 
 type TabKey = "synthese" | "historique";
 
-const TABS: Array<{ key: TabKey; label: string; icon: string }> = [
-  { key: "synthese", label: "Synthèse", icon: "stats-chart-outline" },
-  { key: "historique", label: "Historique", icon: "list-outline" },
+const TAB_KEYS: Array<{ key: TabKey; labelKey: string; icon: string }> = [
+  {
+    key: "synthese",
+    labelKey: "discipline.tabs.synthesis",
+    icon: "stats-chart-outline",
+  },
+  {
+    key: "historique",
+    labelKey: "discipline.tabs.history",
+    icon: "list-outline",
+  },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -73,6 +82,7 @@ function canEditEvent(
 // ── Écran ─────────────────────────────────────────────────────────────────────
 
 export default function DisciplineStudentScreen() {
+  const { t } = useTranslation();
   const { studentId, studentName, className } = useLocalSearchParams<{
     studentId: string;
     studentName?: string;
@@ -123,7 +133,7 @@ export default function DisciplineStudentScreen() {
     try {
       await loadEvents(schoolSlug, studentId, { scope: "current", limit: 200 });
     } catch {
-      setLoadError("Impossible de charger l'historique.");
+      setLoadError(t("discipline.errors.loadHistory"));
     }
   }, [schoolSlug, studentId, loadEvents]);
 
@@ -179,8 +189,8 @@ export default function DisciplineStudentScreen() {
         );
         updateEvent(studentId, updated);
         showSuccess({
-          title: "Événement modifié",
-          message: "Les changements ont bien été enregistrés.",
+          title: t("discipline.toasts.eventUpdatedTitle"),
+          message: t("discipline.toasts.eventUpdatedMessage"),
         });
       } else {
         const created = await disciplineApi.create(
@@ -190,14 +200,14 @@ export default function DisciplineStudentScreen() {
         );
         addEvent(studentId, created);
         showSuccess({
-          title: "Événement enregistré",
-          message: "L'événement a bien été ajouté à l'historique discipline.",
+          title: t("discipline.toasts.eventRegisteredTitle"),
+          message: t("discipline.toasts.eventCreatedMessageHistory"),
         });
       }
       closeModal();
     } catch (err) {
       const msg =
-        err instanceof Error ? err.message : "Erreur lors de l'enregistrement.";
+        err instanceof Error ? err.message : t("discipline.errors.saveGeneric");
       setSaveError(msg);
     } finally {
       setIsSaving(false);
@@ -213,13 +223,15 @@ export default function DisciplineStudentScreen() {
       await disciplineApi.remove(schoolSlug, studentId, deleteTarget.id);
       removeEvent(studentId, deleteTarget.id);
       showSuccess({
-        title: "Événement supprimé",
-        message: "L'événement a été retiré de l'historique discipline.",
+        title: t("discipline.toasts.eventDeletedTitle"),
+        message: t("discipline.toasts.eventDeletedMessageHistory"),
       });
       setDeleteTarget(null);
     } catch (err) {
       const msg =
-        err instanceof Error ? err.message : "Erreur lors de la suppression.";
+        err instanceof Error
+          ? err.message
+          : t("discipline.errors.deleteGeneric");
       setSaveError(msg);
       setDeleteTarget(null);
     } finally {
@@ -229,7 +241,7 @@ export default function DisciplineStudentScreen() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
-  const displayName = studentName ?? "Élève";
+  const displayName = studentName ?? t("discipline.header.student");
   const headerSubtitle = className
     ? `${displayName} · ${className}`
     : displayName;
@@ -242,7 +254,7 @@ export default function DisciplineStudentScreen() {
     >
       {/* Header */}
       <ModuleHeader
-        title="Discipline"
+        title={t("discipline.header.discipline")}
         subtitle={headerSubtitle}
         onBack={() => router.back()}
         rightIcon="menu-outline"
@@ -257,25 +269,28 @@ export default function DisciplineStudentScreen() {
 
       {/* Onglets */}
       <View style={styles.tabs}>
-        {TABS.map((t) => (
+        {TAB_KEYS.map((item) => (
           <TouchableOpacity
-            key={t.key}
-            style={[styles.tab, tab === t.key && styles.tabActive]}
-            onPress={() => setTab(t.key)}
-            testID={`tab-${t.key}`}
-            accessibilityState={{ selected: tab === t.key }}
+            key={item.key}
+            style={[styles.tab, tab === item.key && styles.tabActive]}
+            onPress={() => setTab(item.key)}
+            testID={`tab-${item.key}`}
+            accessibilityState={{ selected: tab === item.key }}
           >
             <Ionicons
-              name={t.icon as "stats-chart-outline"}
+              name={item.icon as "stats-chart-outline"}
               size={15}
-              color={tab === t.key ? colors.primary : colors.textSecondary}
+              color={tab === item.key ? colors.primary : colors.textSecondary}
             />
             <Text
-              style={[styles.tabLabel, tab === t.key && styles.tabLabelActive]}
+              style={[
+                styles.tabLabel,
+                tab === item.key && styles.tabLabelActive,
+              ]}
             >
-              {t.label}
+              {t(item.labelKey)}
             </Text>
-            {t.key === "historique" && events.length > 0 ? (
+            {item.key === "historique" && events.length > 0 ? (
               <View style={styles.countPill}>
                 <Text style={styles.countPillText}>{events.length}</Text>
               </View>
@@ -294,7 +309,7 @@ export default function DisciplineStudentScreen() {
           />
           <Text style={styles.errorText}>{loadError}</Text>
           <TouchableOpacity onPress={load} testID="btn-retry">
-            <Text style={styles.retryText}>Réessayer</Text>
+            <Text style={styles.retryText}>{t("discipline.retry")}</Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -315,7 +330,7 @@ export default function DisciplineStudentScreen() {
               style={[styles.fab, { bottom: insets.bottom + 18 }]}
               onPress={openCreateModal}
               testID="fab-synthese"
-              accessibilityLabel="Ajouter un événement de discipline"
+              accessibilityLabel={t("discipline.fab.addEvent")}
             >
               <Ionicons name="add" size={28} color={colors.white} />
             </TouchableOpacity>
@@ -333,15 +348,15 @@ export default function DisciplineStudentScreen() {
               onEdit={openEditModal}
               onDelete={(event) => setDeleteTarget(event)}
               emptyIcon="clipboard-outline"
-              emptyTitle="Aucun événement"
-              emptySub="Appuyez sur + pour enregistrer un premier événement."
+              emptyTitle={t("discipline.empty.noEventsHistory.title")}
+              emptySub={t("discipline.empty.noEventsHistory.message")}
               testID="list-historique"
             />
             <TouchableOpacity
               style={[styles.fab, { bottom: insets.bottom + 18 }]}
               onPress={openCreateModal}
               testID="fab-historique"
-              accessibilityLabel="Ajouter un événement de discipline"
+              accessibilityLabel={t("discipline.fab.addEvent")}
             >
               <Ionicons name="add" size={28} color={colors.white} />
             </TouchableOpacity>

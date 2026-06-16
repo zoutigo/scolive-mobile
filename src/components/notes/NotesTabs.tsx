@@ -7,12 +7,13 @@ import {
   View,
 } from "react-native";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 
 export type NotesTabKey = "evaluations" | "scores" | "notes" | "council";
 
 interface NotesTab {
   key: NotesTabKey;
-  label: string;
+  labelKey: string;
 }
 
 interface Props {
@@ -21,13 +22,14 @@ interface Props {
 }
 
 const TABS: NotesTab[] = [
-  { key: "evaluations", label: "Évaluations" },
-  { key: "scores", label: "Saisie notes" },
-  { key: "notes", label: "Notes" },
-  { key: "council", label: "Conseil classe" },
+  { key: "evaluations", labelKey: "notes.tabs.evaluations" },
+  { key: "scores", labelKey: "notes.tabs.scores" },
+  { key: "notes", labelKey: "notes.tabs.notes" },
+  { key: "council", labelKey: "notes.tabs.council" },
 ];
 
 export function NotesTabs({ activeTab, onSelect }: Props) {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
       <ScrollView
@@ -46,7 +48,7 @@ export function NotesTabs({ activeTab, onSelect }: Props) {
               testID={`notes-tab-${tab.key}`}
             >
               <Text style={[styles.label, isActive && styles.labelActive]}>
-                {tab.label}
+                {t(tab.labelKey)}
               </Text>
             </TouchableOpacity>
           );

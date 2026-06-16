@@ -4,19 +4,10 @@ import type {
   TimetableOccurrence,
   TimetableSubjectStyle,
 } from "../types/timetable.types";
+import { translate } from "../i18n/useTranslation";
+import { useLocaleStore } from "../store/locale.store";
 
 export type TimetableCalendarViewMode = "day" | "week" | "month";
-
-export const WEEKDAY_LABELS = [
-  "",
-  "Lun",
-  "Mar",
-  "Mer",
-  "Jeu",
-  "Ven",
-  "Sam",
-  "Dim",
-] as const;
 
 export function pad2(value: number): string {
   return String(value).padStart(2, "0");
@@ -342,6 +333,7 @@ export function groupOccurrencesByDate(
 export function buildTimetableClassOptions(
   payload: TimetableClassOptionsContext,
 ): TimetableClassOption[] {
+  const locale = useLocaleStore.getState().locale;
   const yearLabelById = new Map(
     payload.schoolYears.map((entry) => [entry.id, entry.label] as const),
   );
@@ -383,7 +375,8 @@ export function buildTimetableClassOptions(
       className: entry.className,
       schoolYearId: entry.schoolYearId,
       schoolYearLabel:
-        yearLabelById.get(entry.schoolYearId) ?? "Année non définie",
+        yearLabelById.get(entry.schoolYearId) ??
+        translate(locale, "timetable.common.unknownSchoolYear"),
       subjects: Array.from(entry.subjects.values()).sort((a, b) =>
         a.name.localeCompare(b.name),
       ),

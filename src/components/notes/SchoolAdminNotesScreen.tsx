@@ -21,6 +21,7 @@ import { useDrawer } from "../navigation/AppShell";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import type { UnderlineTabItem } from "../navigation/UnderlineTabs";
 import { EmptyState, LoadingBlock } from "../timetable/TimetableCommon";
+import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 import {
   StudentSelectField,
   type StudentSelectOption,
@@ -34,10 +35,12 @@ import type {
 
 type MainTab = "students" | "class";
 
-const MAIN_TABS: Array<UnderlineTabItem<MainTab>> = [
-  { key: "students", label: "Par élève" },
-  { key: "class", label: "Par classe" },
-];
+function buildMainTabs(t: TranslateFn): Array<UnderlineTabItem<MainTab>> {
+  return [
+    { key: "students", label: t("notes.admin.tabs.byStudent") },
+    { key: "class", label: t("notes.admin.tabs.byClass") },
+  ];
+}
 
 type StudentForDisplay = {
   id: string;
@@ -54,6 +57,7 @@ function fullName(s: { firstName: string; lastName: string }): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function SchoolAdminNotesScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { openDrawer } = useDrawer();
@@ -86,7 +90,7 @@ export function SchoolAdminNotesScreen() {
       const active = yrs.find((y) => y.isActive) ?? yrs[0];
       if (active) setSelectedYearId(active.id);
     } catch {
-      setMetaError("Impossible de charger les classes.");
+      setMetaError(t("notes.admin.error.loadFailed"));
     } finally {
       setIsLoadingMeta(false);
     }
@@ -197,7 +201,7 @@ export function SchoolAdminNotesScreen() {
       style={styles.root}
     >
       <ModuleHeader
-        title="Notes"
+        title={t("notes.admin.title")}
         onBack={() => router.back()}
         rightIcon="menu-outline"
         onRightPress={openDrawer}
@@ -208,7 +212,7 @@ export function SchoolAdminNotesScreen() {
       />
 
       <UnderlineTabs
-        items={MAIN_TABS}
+        items={buildMainTabs(t)}
         activeKey={tab}
         onSelect={setTab}
         testIDPrefix="school-admin-notes-tab"
@@ -220,23 +224,23 @@ export function SchoolAdminNotesScreen() {
           <View style={styles.filtersRow}>
             {yearOptions.length > 0 ? (
               <StudentSelectField
-                label="Année"
+                label={t("notes.admin.filters.year")}
                 value={selectedYearId}
                 options={yearOptions}
                 onChange={setSelectedYearId}
                 allowEmpty={false}
-                placeholder="Choisir une année"
+                placeholder={t("notes.admin.filters.yearPlaceholder")}
                 testIDPrefix="school-admin-notes-year"
               />
             ) : null}
             {classOptions.length > 0 ? (
               <StudentSelectField
-                label="Classe"
+                label={t("notes.admin.filters.class")}
                 value={selectedClassId}
                 options={classOptions}
                 onChange={setSelectedClassId}
                 allowEmpty
-                emptyOptionLabel="Toutes les classes"
+                emptyOptionLabel={t("notes.admin.filters.allClasses")}
                 testIDPrefix="school-admin-notes-class-filter"
               />
             ) : null}
@@ -252,7 +256,7 @@ export function SchoolAdminNotesScreen() {
               style={styles.searchInput}
               value={studentSearch}
               onChangeText={setStudentSearch}
-              placeholder="Rechercher un élève…"
+              placeholder={t("notes.admin.search.placeholder")}
               placeholderTextColor={colors.textSecondary}
               clearButtonMode="while-editing"
               testID="school-admin-notes-search-input"
@@ -273,13 +277,13 @@ export function SchoolAdminNotesScreen() {
 
           {isLoadingMeta || isLoadingStudents ? (
             <View style={styles.centered}>
-              <LoadingBlock label="Chargement des élèves…" />
+              <LoadingBlock label={t("notes.admin.loading.students")} />
             </View>
           ) : metaError ? (
             <View style={styles.centered}>
               <EmptyState
                 icon="alert-circle-outline"
-                title="Erreur"
+                title={t("notes.admin.error.title")}
                 message={metaError}
               />
             </View>
@@ -308,11 +312,15 @@ export function SchoolAdminNotesScreen() {
                 <View style={styles.centered}>
                   <EmptyState
                     icon="people-outline"
-                    title={studentSearch ? "Aucun résultat" : "Aucun élève"}
+                    title={
+                      studentSearch
+                        ? t("notes.admin.students.noResultTitle")
+                        : t("notes.admin.students.emptyTitle")
+                    }
                     message={
                       studentSearch
-                        ? "Modifiez votre recherche."
-                        : "Aucun élève disponible pour les filtres sélectionnés."
+                        ? t("notes.admin.students.noResultMessage")
+                        : t("notes.admin.students.emptyMessage")
                     }
                   />
                 </View>
@@ -333,12 +341,12 @@ export function SchoolAdminNotesScreen() {
           <View style={styles.filtersRow}>
             {yearOptions.length > 0 ? (
               <StudentSelectField
-                label="Année"
+                label={t("notes.admin.filters.year")}
                 value={selectedYearId}
                 options={yearOptions}
                 onChange={setSelectedYearId}
                 allowEmpty={false}
-                placeholder="Choisir une année"
+                placeholder={t("notes.admin.filters.yearPlaceholder")}
                 testIDPrefix="school-admin-notes-class-year"
               />
             ) : null}
@@ -346,7 +354,7 @@ export function SchoolAdminNotesScreen() {
 
           {isLoadingMeta ? (
             <View style={styles.centered}>
-              <LoadingBlock label="Chargement des classes…" />
+              <LoadingBlock label={t("notes.admin.loading.classes")} />
             </View>
           ) : (
             <FlatList
@@ -382,8 +390,8 @@ export function SchoolAdminNotesScreen() {
                 <View style={styles.centered}>
                   <EmptyState
                     icon="school-outline"
-                    title="Aucune classe"
-                    message="Aucune classe disponible pour cette année scolaire."
+                    title={t("notes.admin.classes.emptyTitle")}
+                    message={t("notes.admin.classes.emptyMessage")}
                   />
                 </View>
               }

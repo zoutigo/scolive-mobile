@@ -1,9 +1,17 @@
 # scolive-mobile — Contexte projet
 
+## Agents — règle absolue
+
+Ne jamais utiliser le tool `Agent` (sous-agents/Task) pour réaliser le travail demandé.
+Faire tout le travail soi-même, étape par étape si nécessaire.
+
 ## Git — règle absolue
 
 **Ne jamais créer de commit ni pousser sur le remote sans instruction explicite de l'utilisateur.**
 Terminer le travail, vérifier (format, lint, typecheck, tests), puis attendre qu'on demande le commit/push.
+
+**Sauf indication explicite contraire de l'utilisateur, tout le développement se fait sur la branche `dev`.**
+Si la branche courante n'est pas `dev`, basculer dessus avant toute modification ou signaler clairement le blocage.
 
 Application mobile React Native (Expo) du projet Scolive.
 Repo GitHub : `git@github.com:zoutigo/scolive-mobile.git`
@@ -27,6 +35,20 @@ Repo GitHub : `git@github.com:zoutigo/scolive-mobile.git`
 
 - Toute UI de liste avec chargement progressif passe par `src/components/lists/InfiniteScrollList.tsx`
 - Tout `POST` utilise le toast global centré pour ses retours `success/error`, affiché 7 secondes et fermable manuellement à tout moment
+
+## Internationalisation (i18n) — règle obligatoire
+
+Le projet utilise un système de traduction maison dans `src/i18n/` :
+
+- `translations.ts` : dictionnaires par locale, clés namespacées (ex. `settings.language.title`)
+- `useTranslation.ts` : hook `useTranslation()` → `{ locale, setLocale, t }`
+- Locales supportées (`SUPPORTED_LOCALES`) : `fr` (défaut, `DEFAULT_LOCALE`) et `en`
+
+**Pour tout nouveau développement ou correction :**
+
+- Jamais de texte en dur dans le code (titres, labels, messages, placeholders, erreurs, toasts, etc.)
+- Ajouter la clé correspondante dans `translations` pour CHAQUE locale supportée (`fr` ET `en`)
+- Afficher le texte via `t("namespace.cle")` (hook `useTranslation()`)
 
 ## Écrans existants
 

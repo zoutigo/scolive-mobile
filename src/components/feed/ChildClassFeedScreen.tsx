@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StyleSheet, View } from "react-native";
@@ -9,6 +15,7 @@ import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { feedApi } from "../../api/feed.api";
 import { timetableApi } from "../../api/timetable.api";
+import { useTranslation } from "../../i18n/useTranslation";
 import { FeedModuleScreen } from "./FeedModuleScreen";
 import type {
   CreateFeedPayload,
@@ -37,6 +44,9 @@ function resolveViewerRole(
 }
 
 export function ChildClassFeedScreen() {
+  const { t } = useTranslation();
+  const tRef = useRef(t);
+  tRef.current = t;
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { openDrawer } = useDrawer();
@@ -56,16 +66,18 @@ export function ChildClassFeedScreen() {
   }, [childId, setActiveChild]);
 
   const subtitle = useMemo(() => {
-    const childLabel = child ? `${child.firstName} ${child.lastName}` : "Élève";
+    const childLabel = child
+      ? `${child.firstName} ${child.lastName}`
+      : t("feed.classLife.studentFallback");
     const resolvedClassLabel = className || child?.className?.trim() || "";
     return resolvedClassLabel
       ? `${childLabel} • ${resolvedClassLabel}`
       : childLabel;
-  }, [child, className]);
+  }, [child, className, t]);
 
   const ensureContext = useCallback(async () => {
     if (!schoolSlug || !childId) {
-      throw new Error("Contexte enfant introuvable.");
+      throw new Error(tRef.current("feed.errors.childContextMissing"));
     }
 
     if (child?.classId && child?.className) {
@@ -119,7 +131,7 @@ export function ChildClassFeedScreen() {
   const handleUploadInlineImage = useCallback(
     async (file: { uri: string; name: string; mimeType: string }) => {
       if (!schoolSlug) {
-        throw new Error("Établissement introuvable");
+        throw new Error(tRef.current("feed.errors.schoolMissing"));
       }
       return feedApi.uploadInlineImage(schoolSlug, file);
     },
@@ -133,7 +145,7 @@ export function ChildClassFeedScreen() {
       renderHeader={() => (
         <View style={styles.headerWrap}>
           <ModuleHeader
-            title="Vie de classe"
+            title={t("feed.classLife.title")}
             subtitle={subtitle}
             onBack={() => router.push(buildChildHomeTarget(childId) as never)}
             rightIcon="menu-outline"
@@ -150,11 +162,11 @@ export function ChildClassFeedScreen() {
       loadPage={loadPage}
       testIDPrefix="child-class-feed"
       listTestID="child-class-feed-list"
-      endOfListLabel="Fin des publications de classe"
-      emptyTitle="Aucune actualité de classe"
-      emptyMessage="Les informations collectives partagées à la classe apparaîtront ici."
-      deleteSuccessMessage="Cette publication n'apparaît plus dans la vie de classe."
-      deleteContextLabel="fil de classe"
+      endOfListLabel={t("feed.classLife.endOfList")}
+      emptyTitle={t("feed.classLife.emptyTitle")}
+      emptyMessage={t("feed.classLife.emptyMessageChild")}
+      deleteSuccessMessage={t("feed.classLife.deleteSuccess")}
+      deleteContextLabel={t("feed.classLife.context")}
       heroSearchEnabled
       heroComposerActionsEnabled
       canCompose

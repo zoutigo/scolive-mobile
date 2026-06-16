@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useRef } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StyleSheet, View } from "react-native";
@@ -7,6 +7,7 @@ import { ModuleHeader } from "../navigation/ModuleHeader";
 import { useAuthStore } from "../../store/auth.store";
 import { useTeacherClassNavStore } from "../../store/teacher-class-nav.store";
 import { feedApi } from "../../api/feed.api";
+import { useTranslation } from "../../i18n/useTranslation";
 import { FeedModuleScreen } from "./FeedModuleScreen";
 import type {
   CreateFeedPayload,
@@ -39,6 +40,9 @@ export function TeacherClassFeedScreen({
 }: {
   showHeader?: boolean;
 } = {}) {
+  const { t } = useTranslation();
+  const tRef = useRef(t);
+  tRef.current = t;
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { openDrawer } = useDrawer();
@@ -51,7 +55,10 @@ export function TeacherClassFeedScreen({
     classOptions?.classes.find((entry) => entry.classId === classId)
       ?.className ?? null;
   const subtitle =
-    className ?? (classId ? `Classe ${classId}` : "Classe active");
+    className ??
+    (classId
+      ? t("feed.classLife.classWithId").replace("{classId}", classId)
+      : t("feed.classLife.classActive"));
 
   const loadPage = useCallback(
     async ({
@@ -64,7 +71,7 @@ export function TeacherClassFeedScreen({
       search: string;
     }) => {
       if (!schoolSlug || !classId) {
-        throw new Error("Contexte classe introuvable.");
+        throw new Error(tRef.current("feed.errors.classContextMissing"));
       }
 
       return feedApi.list(schoolSlug, {
@@ -82,14 +89,16 @@ export function TeacherClassFeedScreen({
   const handleCreatePost = useCallback(
     async (payload: CreateFeedPayload) => {
       if (!schoolSlug || !classId) {
-        throw new Error("Contexte classe introuvable.");
+        throw new Error(tRef.current("feed.errors.classContextMissing"));
       }
 
       return feedApi.create(schoolSlug, {
         ...payload,
         audienceScope: "CLASS",
         audienceClassId: classId,
-        audienceLabel: className ? `Classe ${className}` : `Classe ${classId}`,
+        audienceLabel: tRef
+          .current("feed.audience.classLabel")
+          .replace("{name}", className ?? classId),
       });
     },
     [classId, className, schoolSlug],
@@ -98,7 +107,7 @@ export function TeacherClassFeedScreen({
   const handleUploadInlineImage = useCallback(
     async (file: { uri: string; name: string; mimeType: string }) => {
       if (!schoolSlug) {
-        throw new Error("Établissement introuvable");
+        throw new Error(tRef.current("feed.errors.schoolMissing"));
       }
       return feedApi.uploadInlineImage(schoolSlug, file);
     },
@@ -113,7 +122,7 @@ export function TeacherClassFeedScreen({
         showHeader ? (
           <View style={styles.headerWrap}>
             <ModuleHeader
-              title="Vie de classe"
+              title={t("feed.classLife.title")}
               subtitle={subtitle}
               onBack={() => router.back()}
               rightIcon="menu-outline"
@@ -131,11 +140,11 @@ export function TeacherClassFeedScreen({
       loadPage={loadPage}
       testIDPrefix="teacher-class-feed"
       listTestID="teacher-class-feed-list"
-      endOfListLabel="Fin des publications de classe"
-      emptyTitle="Aucune actualité de classe"
-      emptyMessage="Les informations partagées avec cette classe apparaîtront ici."
-      deleteSuccessMessage="Cette publication n'apparaît plus dans la vie de classe."
-      deleteContextLabel="fil de classe"
+      endOfListLabel={t("feed.classLife.endOfList")}
+      emptyTitle={t("feed.classLife.emptyTitle")}
+      emptyMessage={t("feed.classLife.emptyMessageTeacher")}
+      deleteSuccessMessage={t("feed.classLife.deleteSuccess")}
+      deleteContextLabel={t("feed.classLife.context")}
       heroSearchEnabled
       heroComposerActionsEnabled
       canCompose
