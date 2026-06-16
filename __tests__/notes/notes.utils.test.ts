@@ -6,6 +6,10 @@ import {
   getCurrentTerm,
   termLabel,
 } from "../../src/utils/notes";
+import { translate } from "../../src/i18n/useTranslation";
+
+const tFr = (key: string) => translate("fr", key);
+const tEn = (key: string) => translate("en", key);
 
 describe("notes utils", () => {
   it("formate une note entière sans décimales", () => {
@@ -21,28 +25,47 @@ describe("notes utils", () => {
   });
 
   it("calcule l'écart positif avec la classe", () => {
-    expect(formatDelta(15, 12.5)).toBe("+2,50 pts vs classe");
+    expect(formatDelta(15, 12.5, tFr)).toBe("+2,50 pts vs classe");
+    expect(formatDelta(15, 12.5, tEn)).toBe("+2,50 pts vs class");
   });
 
   it("retourne le libellé neutre quand l'écart est insignifiant", () => {
-    expect(formatDelta(12, 12.005)).toBe("Au niveau de la classe");
+    expect(formatDelta(12, 12.005, tFr)).toBe("Au niveau de la classe");
+    expect(formatDelta(12, 12.005, tEn)).toBe("At class level");
   });
 
   it("traduit correctement les statuts spéciaux", () => {
     expect(
-      formatPlainEvaluationScore({
-        id: "e1",
-        label: "Interro",
-        score: null,
-        maxScore: 20,
-        recordedAt: "12/04/2026",
-        status: "ABSENT",
-      }),
+      formatPlainEvaluationScore(
+        {
+          id: "e1",
+          label: "Interro",
+          score: null,
+          maxScore: 20,
+          recordedAt: "12/04/2026",
+          status: "ABSENT",
+        },
+        tFr,
+      ),
+    ).toEqual({ score: "Abs", maxScore: null });
+    expect(
+      formatPlainEvaluationScore(
+        {
+          id: "e1",
+          label: "Interro",
+          score: null,
+          maxScore: 20,
+          recordedAt: "12/04/2026",
+          status: "ABSENT",
+        },
+        tEn,
+      ),
     ).toEqual({ score: "Abs", maxScore: null });
   });
 
   it("retourne le libellé de trimestre attendu", () => {
-    expect(termLabel("TERM_2")).toBe("Trimestre 2");
+    expect(termLabel("TERM_2", tFr)).toBe("Trimestre 2");
+    expect(termLabel("TERM_2", tEn)).toBe("Term 2");
   });
 
   it("calcule la progression des scores", () => {

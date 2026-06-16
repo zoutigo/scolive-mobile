@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import { notesApi } from "../../api/notes.api";
 import { useAuthStore } from "../../store/auth.store";
 import { useNotesStore } from "../../store/notes.store";
@@ -128,6 +129,7 @@ export function ClassNotesManagerScreen({
     saveTermReports,
     clearError,
   } = useNotesStore();
+  const { t } = useTranslation();
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
   const viewType = user ? getViewType(user) : "unknown";
@@ -193,10 +195,12 @@ export function ClassNotesManagerScreen({
   }, [sortedScoreStudents, scoresFilterStudentId]);
 
   const filterStudentLabel = useMemo(() => {
-    if (!scoresFilterStudentId) return "Tous les élèves";
+    if (!scoresFilterStudentId) return t("notes.manager.scores.allStudents");
     const s = sortedScoreStudents.find((x) => x.id === scoresFilterStudentId);
-    return s ? `${s.lastName} ${s.firstName}` : "Tous les élèves";
-  }, [scoresFilterStudentId, sortedScoreStudents]);
+    return s
+      ? `${s.lastName} ${s.firstName}`
+      : t("notes.manager.scores.allStudents");
+  }, [scoresFilterStudentId, sortedScoreStudents, t]);
 
   const load = useCallback(async () => {
     if (!schoolSlug || !classId || !canManage) return;
@@ -315,16 +319,16 @@ export function ClassNotesManagerScreen({
         ],
       });
       showSuccess({
-        title: "Note enregistrée",
-        message: "La note a bien été sauvegardée.",
+        title: t("notes.manager.toast.scoreTitle"),
+        message: t("notes.manager.toast.scoreMessage"),
       });
     } catch (error) {
       showError({
-        title: "Saisie impossible",
+        title: t("notes.manager.toast.scoreErrorTitle"),
         message:
           error instanceof Error
             ? error.message
-            : "Impossible d'enregistrer la note.",
+            : t("notes.manager.toast.scoreErrorMessage"),
       });
       throw error;
     }
@@ -335,16 +339,16 @@ export function ClassNotesManagerScreen({
     try {
       await deleteEvaluation(schoolSlug, classId, evalId);
       showSuccess({
-        title: "Évaluation supprimée",
-        message: "L'évaluation et ses notes associées ont été supprimées.",
+        title: t("notes.manager.toast.deleteTitle"),
+        message: t("notes.manager.toast.deleteMessage"),
       });
     } catch (error) {
       showError({
-        title: "Suppression impossible",
+        title: t("notes.manager.toast.deleteErrorTitle"),
         message:
           error instanceof Error
             ? error.message
-            : "Impossible de supprimer cette évaluation.",
+            : t("notes.manager.toast.deleteErrorMessage"),
       });
     }
   }
@@ -367,16 +371,16 @@ export function ClassNotesManagerScreen({
         })),
       });
       showSuccess({
-        title: "Conseil de classe enregistré",
-        message: "Les appréciations de période ont bien été sauvegardées.",
+        title: t("notes.manager.toast.councilTitle"),
+        message: t("notes.manager.toast.councilMessage"),
       });
     } catch (error) {
       showError({
-        title: "Enregistrement impossible",
+        title: t("notes.manager.toast.councilErrorTitle"),
         message:
           error instanceof Error
             ? error.message
-            : "Impossible d'enregistrer les appréciations.",
+            : t("notes.manager.toast.councilErrorMessage"),
       });
     }
   }
@@ -386,8 +390,8 @@ export function ClassNotesManagerScreen({
       <View style={[styles.root, styles.centered]}>
         <EmptyState
           icon="lock-closed-outline"
-          title="Accès non autorisé"
-          message="Ce module est réservé aux enseignants et aux rôles établissement."
+          title={t("notes.manager.access.title")}
+          message={t("notes.manager.access.message")}
         />
       </View>
     );
@@ -400,10 +404,12 @@ export function ClassNotesManagerScreen({
     >
       {showHeader ? (
         <ModuleHeader
-          title="Notes"
+          title={t("notes.manager.header.title")}
           subtitle={
             teacherContext?.class.name ??
-            (classId ? `Classe ${classId}` : undefined)
+            (classId
+              ? `${t("notes.manager.header.classPrefix")} ${classId}`
+              : undefined)
           }
           onBack={() => router.back()}
           rightIcon="menu-outline"
@@ -432,7 +438,7 @@ export function ClassNotesManagerScreen({
               style={styles.searchInput}
               value={evalSearchQuery}
               onChangeText={setEvalSearchQuery}
-              placeholder="Rechercher une évaluation…"
+              placeholder={t("notes.manager.search.placeholder")}
               placeholderTextColor={colors.textSecondary}
               clearButtonMode="while-editing"
               testID="class-notes-search-input"
@@ -453,7 +459,7 @@ export function ClassNotesManagerScreen({
 
           {isLoadingTeacherContext && !teacherContext ? (
             <View style={styles.centered}>
-              <LoadingBlock label="Chargement du cahier de notes..." />
+              <LoadingBlock label={t("notes.manager.loading.notebook")} />
             </View>
           ) : (
             <InfiniteScrollList
@@ -471,7 +477,9 @@ export function ClassNotesManagerScreen({
                   <View style={styles.evaluationRowTop}>
                     <Text style={styles.evaluationTitle}>{item.title}</Text>
                     <Text style={styles.evaluationStatus}>
-                      {item.status === "PUBLISHED" ? "Publié" : "Brouillon"}
+                      {item.status === "PUBLISHED"
+                        ? t("notes.manager.evalList.statusPublished")
+                        : t("notes.manager.evalList.statusDraft")}
                     </Text>
                   </View>
                   <Text style={styles.evaluationMeta}>
@@ -481,8 +489,8 @@ export function ClassNotesManagerScreen({
                       : ""}
                   </Text>
                   <Text style={styles.evaluationMeta}>
-                    {termLabel(item.term)} •{" "}
-                    {formatEvaluationDate(item.scheduledAt)}
+                    {termLabel(item.term, t)} •{" "}
+                    {formatEvaluationDate(item.scheduledAt, t)}
                   </Text>
                   {teacherContext ? (
                     <Text style={styles.evaluationMeta}>
@@ -490,7 +498,8 @@ export function ClassNotesManagerScreen({
                         item,
                         teacherContext.students.length,
                       )}{" "}
-                      scores saisis • coeff. {formatScore(item.coefficient)}
+                      {t("notes.manager.evalList.scoresSaisies")}{" "}
+                      {formatScore(item.coefficient)}
                     </Text>
                   ) : null}
 
@@ -509,7 +518,9 @@ export function ClassNotesManagerScreen({
                         size={16}
                         color={colors.primary}
                       />
-                      <Text style={styles.cardActionLabel}>Détails</Text>
+                      <Text style={styles.cardActionLabel}>
+                        {t("notes.manager.evalList.actionDetails")}
+                      </Text>
                     </TouchableOpacity>
                     <View style={styles.cardActionSeparator} />
                     <TouchableOpacity
@@ -522,7 +533,9 @@ export function ClassNotesManagerScreen({
                         size={16}
                         color={colors.primary}
                       />
-                      <Text style={styles.cardActionLabel}>Modifier</Text>
+                      <Text style={styles.cardActionLabel}>
+                        {t("notes.manager.evalList.actionEdit")}
+                      </Text>
                     </TouchableOpacity>
                     <View style={styles.cardActionSeparator} />
                     <TouchableOpacity
@@ -538,7 +551,9 @@ export function ClassNotesManagerScreen({
                         size={16}
                         color={colors.primary}
                       />
-                      <Text style={styles.cardActionLabel}>Notes</Text>
+                      <Text style={styles.cardActionLabel}>
+                        {t("notes.manager.evalList.actionScores")}
+                      </Text>
                     </TouchableOpacity>
                     <View style={styles.cardActionSeparator} />
                     <TouchableOpacity
@@ -557,7 +572,7 @@ export function ClassNotesManagerScreen({
                           styles.cardActionDanger,
                         ]}
                       >
-                        Supprimer
+                        {t("notes.manager.evalList.actionDelete")}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -571,14 +586,16 @@ export function ClassNotesManagerScreen({
               emptyComponent={
                 isLoadingEvaluations ? (
                   <View style={styles.centered}>
-                    <LoadingBlock label="Chargement des évaluations..." />
+                    <LoadingBlock
+                      label={t("notes.manager.loading.evaluations")}
+                    />
                   </View>
                 ) : (
                   <View style={styles.centered}>
                     <EmptyState
                       icon="document-text-outline"
-                      title="Aucune évaluation"
-                      message="Appuyez sur + pour créer la première évaluation de cette classe."
+                      title={t("notes.manager.evalList.empty.title")}
+                      message={t("notes.manager.evalList.empty.message")}
                     />
                   </View>
                 )
@@ -625,8 +642,8 @@ export function ClassNotesManagerScreen({
                 );
                 setSelectedEvaluationId(created.id);
                 showSuccess({
-                  title: "Évaluation créée",
-                  message: "L'évaluation a bien été enregistrée.",
+                  title: t("notes.manager.toast.createTitle"),
+                  message: t("notes.manager.toast.createMessage"),
                 });
               } else {
                 await updateEvaluation(
@@ -636,8 +653,8 @@ export function ClassNotesManagerScreen({
                   payload,
                 );
                 showSuccess({
-                  title: "Évaluation mise à jour",
-                  message: "Les modifications ont bien été enregistrées.",
+                  title: t("notes.manager.toast.updateTitle"),
+                  message: t("notes.manager.toast.updateMessage"),
                 });
               }
               await loadEvaluations(schoolSlug, classId);
@@ -651,7 +668,7 @@ export function ClassNotesManagerScreen({
           />
         ) : (
           <View style={styles.centered}>
-            <LoadingBlock label="Chargement du formulaire…" />
+            <LoadingBlock label={t("notes.manager.loading.form")} />
           </View>
         )
       ) : null}
@@ -676,28 +693,36 @@ export function ClassNotesManagerScreen({
               size={18}
               color={colors.primary}
             />
-            <Text style={styles.backText}>Liste des évaluations</Text>
+            <Text style={styles.backText}>
+              {t("notes.manager.evalList.backToList")}
+            </Text>
           </TouchableOpacity>
 
           {selectedEvalRow ? (
             <>
-              <SectionCard title="Détails de l'évaluation">
+              <SectionCard title={t("notes.manager.detail.sectionTitle")}>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Titre</Text>
+                  <Text style={styles.detailLabel}>
+                    {t("notes.manager.detail.labelTitle")}
+                  </Text>
                   <Text style={styles.detailValue}>
                     {selectedEvalRow.title}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Statut</Text>
+                  <Text style={styles.detailLabel}>
+                    {t("notes.manager.detail.labelStatus")}
+                  </Text>
                   <Text style={styles.detailValue}>
                     {selectedEvalRow.status === "PUBLISHED"
-                      ? "Publié"
-                      : "Brouillon"}
+                      ? t("notes.manager.evalList.statusPublished")
+                      : t("notes.manager.evalList.statusDraft")}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Matière</Text>
+                  <Text style={styles.detailLabel}>
+                    {t("notes.manager.detail.labelSubject")}
+                  </Text>
                   <Text style={styles.detailValue}>
                     {selectedEvalRow.subject.name}
                     {selectedEvalRow.subjectBranch?.name
@@ -706,38 +731,50 @@ export function ClassNotesManagerScreen({
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Type</Text>
+                  <Text style={styles.detailLabel}>
+                    {t("notes.manager.detail.labelType")}
+                  </Text>
                   <Text style={styles.detailValue}>
                     {selectedEvalRow.evaluationType.label}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Période</Text>
+                  <Text style={styles.detailLabel}>
+                    {t("notes.manager.detail.labelPeriod")}
+                  </Text>
                   <Text style={styles.detailValue}>
-                    {termLabel(selectedEvalRow.term)}
+                    {termLabel(selectedEvalRow.term, t)}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Date prévue</Text>
+                  <Text style={styles.detailLabel}>
+                    {t("notes.manager.detail.labelDate")}
+                  </Text>
                   <Text style={styles.detailValue}>
-                    {formatEvaluationDate(selectedEvalRow.scheduledAt)}
+                    {formatEvaluationDate(selectedEvalRow.scheduledAt, t)}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Coefficient</Text>
+                  <Text style={styles.detailLabel}>
+                    {t("notes.manager.detail.labelCoefficient")}
+                  </Text>
                   <Text style={styles.detailValue}>
                     {formatScore(selectedEvalRow.coefficient)}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Barème</Text>
+                  <Text style={styles.detailLabel}>
+                    {t("notes.manager.detail.labelMaxScore")}
+                  </Text>
                   <Text style={styles.detailValue}>
                     /{selectedEvalRow.maxScore}
                   </Text>
                 </View>
                 {selectedEvalRow.description ? (
                   <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Description</Text>
+                    <Text style={styles.detailLabel}>
+                      {t("notes.manager.detail.labelDescription")}
+                    </Text>
                     <Text style={styles.detailValue}>
                       {selectedEvalRow.description}
                     </Text>
@@ -745,13 +782,15 @@ export function ClassNotesManagerScreen({
                 ) : null}
                 {teacherContext ? (
                   <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Progression</Text>
+                    <Text style={styles.detailLabel}>
+                      {t("notes.manager.detail.labelProgress")}
+                    </Text>
                     <Text style={styles.detailValue}>
                       {buildEvaluationProgress(
                         selectedEvalRow,
                         teacherContext.students.length,
                       )}{" "}
-                      scores saisis
+                      {t("notes.manager.detail.scoresSaisies")}
                     </Text>
                   </View>
                 ) : null}
@@ -769,7 +808,7 @@ export function ClassNotesManagerScreen({
                     color={colors.primary}
                   />
                   <Text style={styles.detailActionText}>
-                    Modifier l'évaluation
+                    {t("notes.manager.detail.editEval")}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -791,7 +830,7 @@ export function ClassNotesManagerScreen({
                       styles.detailActionTextPrimary,
                     ]}
                   >
-                    Saisir les notes
+                    {t("notes.manager.detail.enterScores")}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -815,7 +854,9 @@ export function ClassNotesManagerScreen({
                 size={16}
                 color={colors.primary}
               />
-              <Text style={styles.backText}>Liste des évaluations</Text>
+              <Text style={styles.backText}>
+                {t("notes.manager.evalList.backToList")}
+              </Text>
             </TouchableOpacity>
             {selectedEvalRow ? (
               <>
@@ -823,7 +864,8 @@ export function ClassNotesManagerScreen({
                   {selectedEvalRow.title}
                 </Text>
                 <Text style={styles.scoresInfoMeta}>
-                  {selectedEvalRow.subject.name} • Barème /
+                  {selectedEvalRow.subject.name} •{" "}
+                  {t("notes.manager.detail.labelMaxScore")} /
                   {selectedEvalRow.maxScore}
                 </Text>
               </>
@@ -842,8 +884,7 @@ export function ClassNotesManagerScreen({
                 color={colors.warmAccent}
               />
               <Text style={styles.draftBannerText}>
-                Brouillon — les notes ne seront visibles dans l'onglet Notes
-                qu'après publication de l'évaluation.
+                {t("notes.manager.scores.draftBanner")}
               </Text>
             </View>
           ) : null}
@@ -916,7 +957,7 @@ export function ClassNotesManagerScreen({
                       !scoresFilterStudentId && styles.pickerOptionTextSelected,
                     ]}
                   >
-                    Tous les élèves
+                    {t("notes.manager.scores.allStudents")}
                   </Text>
                   {!scoresFilterStudentId ? (
                     <Ionicons
@@ -965,7 +1006,7 @@ export function ClassNotesManagerScreen({
           {/* Liste élèves */}
           {isLoadingEvaluationDetail && !selectedEvaluation ? (
             <View style={styles.centered}>
-              <LoadingBlock label="Chargement des élèves…" />
+              <LoadingBlock label={t("notes.manager.loading.scores")} />
             </View>
           ) : (
             <InfiniteScrollList
@@ -983,8 +1024,8 @@ export function ClassNotesManagerScreen({
                 <View style={styles.centered}>
                   <EmptyState
                     icon="people-outline"
-                    title="Aucun élève"
-                    message="Sélectionnez un élève dans le filtre ou vérifiez le chargement."
+                    title={t("notes.manager.scores.emptyTitle")}
+                    message={t("notes.manager.scores.emptyMessage")}
                   />
                 </View>
               }
@@ -1001,11 +1042,11 @@ export function ClassNotesManagerScreen({
       {/* ── Dialog de confirmation de suppression ─────────────── */}
       <ConfirmDialog
         visible={deleteConfirmId !== null}
-        title="Supprimer l'évaluation ?"
-        message="Cette action est irréversible. Les notes saisies seront également supprimées."
+        title={t("notes.manager.deleteConfirm.title")}
+        message={t("notes.manager.deleteConfirm.message")}
         variant="danger"
-        confirmLabel="Supprimer"
-        cancelLabel="Annuler"
+        confirmLabel={t("notes.manager.deleteConfirm.confirm")}
+        cancelLabel={t("notes.manager.deleteConfirm.cancel")}
         onConfirm={() => {
           if (deleteConfirmId) {
             void handleDeleteEvaluation(deleteConfirmId);
@@ -1052,8 +1093,8 @@ export function ClassNotesManagerScreen({
           {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
           {isLoadingTeacherContext && !teacherContext ? (
-            <SectionCard title="Chargement">
-              <LoadingBlock label="Chargement du cahier de notes..." />
+            <SectionCard title={t("notes.manager.loading.section")}>
+              <LoadingBlock label={t("notes.manager.loading.notebook")} />
             </SectionCard>
           ) : null}
 
@@ -1061,12 +1102,12 @@ export function ClassNotesManagerScreen({
             <>
               {tab === "scores" ? (
                 <SectionCard
-                  title="Saisie des notes"
-                  subtitle="Choisissez une évaluation puis renseignez note, statut et commentaire."
+                  title={t("notes.manager.scoresTab.sectionTitle")}
+                  subtitle={t("notes.manager.scoresTab.subtitle")}
                 >
                   {sortedEvaluations.length > 0 ? (
                     <PillSelector
-                      label="Évaluation"
+                      label={t("notes.manager.scoresTab.evalLabel")}
                       value={selectedEvaluationId}
                       options={sortedEvaluations.map((entry) => ({
                         value: entry.id,
@@ -1081,7 +1122,7 @@ export function ClassNotesManagerScreen({
                   ) : null}
 
                   {isLoadingEvaluationDetail && !selectedEvaluation ? (
-                    <LoadingBlock label="Chargement du détail de l'évaluation..." />
+                    <LoadingBlock label={t("notes.manager.loading.detail")} />
                   ) : selectedEvaluation ? (
                     <View style={styles.studentList}>
                       {sortedScoreStudents.map((student) => (
@@ -1097,8 +1138,8 @@ export function ClassNotesManagerScreen({
                   ) : (
                     <EmptyState
                       icon="create-outline"
-                      title="Aucune évaluation sélectionnée"
-                      message="Créez ou sélectionnez une évaluation pour commencer la saisie."
+                      title={t("notes.manager.scoresTab.emptyTitle")}
+                      message={t("notes.manager.scoresTab.emptyMessage")}
                     />
                   )}
                 </SectionCard>
@@ -1106,11 +1147,11 @@ export function ClassNotesManagerScreen({
 
               {tab === "council" ? (
                 <SectionCard
-                  title="Conseil de classe"
-                  subtitle="Saisissez les appréciations générales et par matière pour chaque élève."
+                  title={t("notes.manager.council.sectionTitle")}
+                  subtitle={t("notes.manager.council.subtitle")}
                 >
                   <PillSelector
-                    label="Période"
+                    label={t("notes.manager.council.periodLabel")}
                     value={councilTerm}
                     options={TERM_OPTIONS}
                     onChange={(value) =>
@@ -1119,11 +1160,17 @@ export function ClassNotesManagerScreen({
                     testIDPrefix="class-notes-council-term"
                   />
                   <PillSelector
-                    label="Statut"
+                    label={t("notes.manager.council.statusLabel")}
                     value={councilStatus}
                     options={[
-                      { value: "DRAFT", label: "Brouillon" },
-                      { value: "PUBLISHED", label: "Publié" },
+                      {
+                        value: "DRAFT",
+                        label: t("notes.manager.council.statusDraft"),
+                      },
+                      {
+                        value: "PUBLISHED",
+                        label: t("notes.manager.council.statusPublished"),
+                      },
                     ]}
                     onChange={(value) =>
                       setCouncilStatus(value as "DRAFT" | "PUBLISHED")
@@ -1131,7 +1178,7 @@ export function ClassNotesManagerScreen({
                     testIDPrefix="class-notes-council-status"
                   />
                   <TextField
-                    label="Date du conseil"
+                    label={t("notes.manager.council.dateLabel")}
                     value={councilHeldAt}
                     onChangeText={setCouncilHeldAt}
                     placeholder="2026-04-18T15:00:00.000Z"
@@ -1145,7 +1192,7 @@ export function ClassNotesManagerScreen({
                       </Text>
                       <View style={styles.fieldBlock}>
                         <Text style={styles.fieldLabel}>
-                          Appréciation générale
+                          {t("notes.manager.council.generalAppreciation")}
                         </Text>
                         <TextInput
                           value={
@@ -1160,7 +1207,9 @@ export function ClassNotesManagerScreen({
                               },
                             }))
                           }
-                          placeholder="Bilan général de l'élève"
+                          placeholder={t(
+                            "notes.manager.council.generalPlaceholder",
+                          )}
                           placeholderTextColor={colors.textSecondary}
                           multiline
                           style={[
@@ -1197,7 +1246,9 @@ export function ClassNotesManagerScreen({
                                 },
                               }))
                             }
-                            placeholder="Appréciation par matière"
+                            placeholder={t(
+                              "notes.manager.council.subjectPlaceholder",
+                            )}
                             placeholderTextColor={colors.textSecondary}
                             multiline
                             style={[
@@ -1221,7 +1272,7 @@ export function ClassNotesManagerScreen({
                     testID="class-notes-save-council"
                   >
                     <Text style={styles.submitBtnText}>
-                      Enregistrer le conseil
+                      {t("notes.manager.council.save")}
                     </Text>
                   </TouchableOpacity>
                 </SectionCard>

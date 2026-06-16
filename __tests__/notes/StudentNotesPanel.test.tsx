@@ -138,7 +138,7 @@ describe("Chargement", () => {
     render(<StudentNotesPanel {...DEFAULT_PROPS} />);
     await flushAsync();
 
-    expect(screen.getByText("Chargement des notes publiees...")).toBeTruthy();
+    expect(screen.getByText("Chargement des notes publiées...")).toBeTruthy();
   });
 
   it("ne rappelle pas loadStudentNotes si données déjà en cache", async () => {
@@ -178,7 +178,7 @@ describe("Navigation vue", () => {
     fireEvent.press(screen.getByTestId("child-notes-view-charts"));
 
     await waitFor(() =>
-      expect(screen.getByText("Comparaison par matiere")).toBeTruthy(),
+      expect(screen.getByText("Comparaison par matière")).toBeTruthy(),
     );
   });
 });
@@ -258,7 +258,7 @@ describe("État vide", () => {
     render(<StudentNotesPanel {...DEFAULT_PROPS} />);
     await flushAsync();
 
-    expect(screen.getByText("Aucune note publiee")).toBeTruthy();
+    expect(screen.getByText("Aucune note publiée")).toBeTruthy();
   });
 });
 

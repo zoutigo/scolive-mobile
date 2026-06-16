@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import { useAuthStore } from "../../store/auth.store";
 import { useNotesStore } from "../../store/notes.store";
 import { buildTeacherSubtitle } from "../navigation/nav-config";
@@ -27,6 +28,7 @@ import {
 } from "../timetable/TimetableCommon";
 
 export function NotesClassesScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { openDrawer } = useDrawer();
@@ -73,7 +75,7 @@ export function NotesClassesScreen() {
       style={styles.root}
     >
       <ModuleHeader
-        title="Cahier de notes"
+        title={t("notes.classes.title")}
         subtitle={subtitle}
         onBack={() => router.back()}
         rightIcon="menu-outline"
@@ -103,11 +105,11 @@ export function NotesClassesScreen() {
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
         <SectionCard
-          title="Filtrer par année"
-          subtitle="Les classes accessibles dépendent de vos affectations et de votre rôle."
+          title={t("notes.classes.filterTitle")}
+          subtitle={t("notes.classes.filterSubtitle")}
         >
           <PillSelector
-            label="Année scolaire"
+            label={t("notes.classes.yearLabel")}
             value={
               selectedSchoolYearId || classOptions?.selectedSchoolYearId || ""
             }
@@ -121,16 +123,16 @@ export function NotesClassesScreen() {
         </SectionCard>
 
         <SectionCard
-          title="Classes accessibles"
-          subtitle="Accédez au cahier de notes de chaque classe et reprenez là où vous vous êtes arrêté."
+          title={t("notes.classes.listTitle")}
+          subtitle={t("notes.classes.listSubtitle")}
         >
           {isLoadingClassOptions && !classOptions ? (
-            <LoadingBlock label="Chargement des classes..." />
+            <LoadingBlock label={t("notes.classes.loading")} />
           ) : filteredClasses.length === 0 ? (
             <EmptyState
               icon="school-outline"
-              title="Aucune classe disponible"
-              message="Aucune classe accessible n'a été trouvée pour ce profil."
+              title={t("notes.classes.emptyTitle")}
+              message={t("notes.classes.emptyMessage")}
             />
           ) : (
             <View style={styles.classList}>
@@ -160,7 +162,10 @@ export function NotesClassesScreen() {
                     <View style={styles.classTextBlock}>
                       <Text style={styles.className}>{entry.className}</Text>
                       <Text style={styles.classMeta}>
-                        {entry.schoolYearLabel} • {entry.studentCount} élèves
+                        {entry.schoolYearLabel} • {entry.studentCount}{" "}
+                        {entry.studentCount > 1
+                          ? t("notes.classes.studentPlural")
+                          : t("notes.classes.studentSingular")}
                       </Text>
                     </View>
                     <Ionicons

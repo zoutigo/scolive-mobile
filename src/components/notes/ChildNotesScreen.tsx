@@ -44,6 +44,7 @@ import {
   LoadingBlock,
   SectionCard,
 } from "../timetable/TimetableCommon";
+import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -56,11 +57,15 @@ type DetailState =
   | { type: "average"; subject: StudentSubjectNotes }
   | null;
 
-const VIEW_OPTIONS: Array<{ value: StudentNotesView; label: string }> = [
-  { value: "evaluations", label: "Eval" },
-  { value: "averages", label: "Moy" },
-  { value: "charts", label: "Graph" },
-];
+function buildViewOptions(
+  t: TranslateFn,
+): Array<{ value: StudentNotesView; label: string }> {
+  return [
+    { value: "evaluations", label: t("notes.panel.viewEval") },
+    { value: "averages", label: t("notes.panel.viewAvg") },
+    { value: "charts", label: t("notes.panel.viewChart") },
+  ];
+}
 
 export type StudentNotesPanelProps = {
   studentId: string;
@@ -77,6 +82,7 @@ export function StudentNotesPanel({
   bottomInset = 0,
   subjectFilter,
 }: StudentNotesPanelProps) {
+  const { t } = useTranslation();
   const {
     studentNotes,
     scoresVersion,
@@ -155,22 +161,17 @@ export function StudentNotesPanel({
             value={selectedTerm}
             options={(snapshots.length > 0
               ? snapshots
-              : buildDefaultSnapshots()
+              : buildDefaultSnapshots(t)
             ).map((entry) => ({
               value: entry.term,
-              label:
-                entry.term === "TERM_1"
-                  ? "1er Trimestre"
-                  : entry.term === "TERM_2"
-                    ? "2eme Trimestre"
-                    : "3eme Trimestre",
+              label: termLabel(entry.term, t),
             }))}
             onChange={(value) => setSelectedTerm(value as StudentNotesTerm)}
             testIDPrefix="child-notes-term"
           />
           <CompactSelector
             value={view}
-            options={VIEW_OPTIONS}
+            options={buildViewOptions(t)}
             onChange={(value) => setView(value as StudentNotesView)}
             testIDPrefix="child-notes-view"
             compact
@@ -178,8 +179,8 @@ export function StudentNotesPanel({
         </View>
 
         {isLoadingStudentNotes && snapshots.length === 0 ? (
-          <SectionCard title="Notes">
-            <LoadingBlock label="Chargement des notes publiees..." />
+          <SectionCard title={t("notes.panel.notes")}>
+            <LoadingBlock label={t("notes.panel.loading")} />
           </SectionCard>
         ) : currentSnapshot ? (
           <>
@@ -203,11 +204,11 @@ export function StudentNotesPanel({
             ) : null}
           </>
         ) : (
-          <SectionCard title="Notes">
+          <SectionCard title={t("notes.panel.notes")}>
             <EmptyState
               icon="ribbon-outline"
-              title="Aucune note publiee"
-              message="Les evaluations publiees pour cet enfant apparaitront ici."
+              title={t("notes.panel.emptyTitle")}
+              message={t("notes.panel.emptyMessage")}
             />
           </SectionCard>
         )}
@@ -221,6 +222,7 @@ export function StudentNotesPanel({
 // ─── ChildNotesScreen ────────────────────────────────────────────────────────
 
 export function ChildNotesScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { openDrawer } = useDrawer();
@@ -239,8 +241,8 @@ export function ChildNotesScreen() {
   const currentSnapshot = snapshots[0] ?? null;
 
   const child = children.find((entry) => entry.id === childId);
-  const title = "Evaluations et moyennes";
-  const subtitle = buildHeaderSubtitle(child, currentSnapshot);
+  const title = t("notes.child.title");
+  const subtitle = buildHeaderSubtitle(child, currentSnapshot, t);
   const classLabel = extractClassLabel(currentSnapshot?.councilLabel ?? "");
 
   useEffect(() => {
@@ -275,10 +277,10 @@ export function ChildNotesScreen() {
   );
 }
 
-function buildDefaultSnapshots(): StudentNotesTermSnapshot[] {
+function buildDefaultSnapshots(t: TranslateFn): StudentNotesTermSnapshot[] {
   return (["TERM_1", "TERM_2", "TERM_3"] as StudentNotesTerm[]).map((term) => ({
     term,
-    label: termLabel(term),
+    label: termLabel(term, t),
     councilLabel: "",
     generatedAtLabel: "",
     generalAverage: { student: null, class: null, min: null, max: null },
@@ -294,9 +296,10 @@ function buildHeaderSubtitle(
       }
     | undefined,
   snapshot: StudentNotesTermSnapshot | null,
+  t: TranslateFn,
 ) {
   if (!child) {
-    return "Eleve";
+    return t("notes.child.subtitle.student");
   }
 
   const classLabel = extractClassLabel(snapshot?.councilLabel ?? "");
@@ -326,14 +329,15 @@ function EvaluationsView(props: {
   snapshot: StudentNotesTermSnapshot;
   onOpenDetail: (value: DetailState) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <>
       <View style={styles.notesBoard}>
         {props.snapshot.subjects.length === 0 ? (
           <EmptyState
             icon="document-text-outline"
-            title="Aucune evaluation"
-            message="Les notes publiees pour cette periode apparaitront ici."
+            title={t("notes.evals.emptyTitle")}
+            message={t("notes.evals.emptyMessage")}
           />
         ) : (
           <View style={styles.subjectList}>
@@ -369,7 +373,7 @@ function EvaluationsView(props: {
                 <View style={styles.evaluationGrid}>
                   {subject.evaluations.length === 0 ? (
                     <Text style={styles.inlineEmptyText}>
-                      Aucune note publiee dans cette matiere.
+                      {t("notes.evals.inlineEmpty")}
                     </Text>
                   ) : (
                     subject.evaluations.map((evaluation) => (
@@ -394,13 +398,15 @@ function EvaluationsView(props: {
             ))}
 
             <View style={styles.generalAverageCard}>
-              <Text style={styles.generalAverageTitle}>MOYENNE GENERALE</Text>
+              <Text style={styles.generalAverageTitle}>
+                {t("notes.evals.generalAverage")}
+              </Text>
               <Text style={styles.generalAverageDash}>-</Text>
               <Text style={styles.generalAverageValue}>
                 {formatScore(props.snapshot.generalAverage.student)}
               </Text>
               <Text style={styles.generalAverageHint}>
-                Synthese des evaluations publiees sur la periode.
+                {t("notes.evals.generalHint")}
               </Text>
             </View>
           </View>
@@ -408,52 +414,60 @@ function EvaluationsView(props: {
       </View>
 
       <View style={styles.legendRow}>
-        <Text style={styles.legendAbs}>Abs</Text>
-        <Text style={styles.legendText}>Absent</Text>
-        <Text style={styles.legendExcused}>Disp</Text>
-        <Text style={styles.legendText}>Dispense</Text>
-        <Text style={styles.legendNeutral}>NE</Text>
-        <Text style={styles.legendText}>Non evalue</Text>
+        <Text style={styles.legendAbs}>{t("notes.evals.legendAbs")}</Text>
+        <Text style={styles.legendText}>{t("notes.evals.legendAbsent")}</Text>
+        <Text style={styles.legendExcused}>{t("notes.evals.legendDisp")}</Text>
+        <Text style={styles.legendText}>{t("notes.evals.legendDispense")}</Text>
+        <Text style={styles.legendNeutral}>{t("notes.evals.legendNE")}</Text>
+        <Text style={styles.legendText}>
+          {t("notes.evals.legendNonEvalue")}
+        </Text>
       </View>
     </>
   );
 }
 
 function PeriodHero({ snapshot }: { snapshot: StudentNotesTermSnapshot }) {
+  const { t } = useTranslation();
   const bestSubject = getBestSubject(snapshot.subjects);
   const watchSubject = getWatchSubject(snapshot.subjects);
   const stats = [
     {
-      label: "Moyenne eleve",
+      id: "student-avg",
+      label: t("notes.period.statStudentAvg"),
       value: formatScore(snapshot.generalAverage.student),
       hint: formatDelta(
         snapshot.generalAverage.student,
         snapshot.generalAverage.class,
+        t,
       ),
       icon: "medal-outline" as const,
     },
     {
-      label: "Moyenne classe",
+      id: "class-avg",
+      label: t("notes.period.statClassAvg"),
       value: formatScore(snapshot.generalAverage.class),
-      hint: `Amplitude ${formatScore(snapshot.generalAverage.min)} - ${formatScore(snapshot.generalAverage.max)}`,
+      hint: `${t("notes.period.amplitude")} ${formatScore(snapshot.generalAverage.min)} - ${formatScore(snapshot.generalAverage.max)}`,
       icon: "analytics-outline" as const,
     },
     {
-      label: "Matiere forte",
+      id: "best-subject",
+      label: t("notes.period.statBestSubject"),
       value: bestSubject?.subjectLabel ?? "-",
       hint:
         bestSubject?.studentAverage != null
           ? `${formatScore(bestSubject.studentAverage)}/20`
-          : "Aucune donnee",
+          : t("notes.period.noData"),
       icon: "sparkles-outline" as const,
     },
     {
-      label: "Point de vigilance",
+      id: "watch-subject",
+      label: t("notes.period.statWatchSubject"),
       value: watchSubject?.subjectLabel ?? "-",
       hint:
         watchSubject?.studentAverage != null
           ? `${formatScore(watchSubject.studentAverage)}/20`
-          : "Aucune donnee",
+          : t("notes.period.noData"),
       icon: "bar-chart-outline" as const,
     },
   ];
@@ -465,25 +479,23 @@ function PeriodHero({ snapshot }: { snapshot: StudentNotesTermSnapshot }) {
       <View style={styles.heroHeader}>
         <View style={styles.heroBadge}>
           <Ionicons name="calendar-outline" size={14} color={colors.primary} />
-          <Text style={styles.heroBadgeText}>BULLETIN DE PERIODE</Text>
+          <Text style={styles.heroBadgeText}>{t("notes.period.badge")}</Text>
         </View>
         <Text style={styles.heroTitle}>{snapshot.label}</Text>
         <Text style={styles.heroSubtitle}>{snapshot.councilLabel}</Text>
       </View>
 
       <View style={styles.publishedCard}>
-        <Text style={styles.publishedLabel}>DONNEES PUBLIEES</Text>
+        <Text style={styles.publishedLabel}>{t("notes.period.published")}</Text>
         <Text style={styles.publishedValue}>{snapshot.generatedAtLabel}</Text>
       </View>
 
       <View style={styles.heroStatsGrid}>
         {stats.map((stat) => (
           <View
-            key={stat.label}
+            key={stat.id}
             style={styles.heroStatCard}
-            testID={`notes-period-stat-${stat.label
-              .toLowerCase()
-              .replace(/\s+/g, "-")}`}
+            testID={`notes-period-stat-${stat.id}`}
           >
             <View style={styles.heroStatHeader}>
               <Text style={styles.heroStatLabel}>{stat.label}</Text>
@@ -504,13 +516,14 @@ function AveragesView(props: {
   snapshot: StudentNotesTermSnapshot;
   onOpenDetail: (value: DetailState) => void;
 }) {
+  const { t } = useTranslation();
   if (props.snapshot.subjects.length === 0) {
     return (
-      <SectionCard title="Moyennes">
+      <SectionCard title={t("notes.avgs.title")}>
         <EmptyState
           icon="bar-chart-outline"
-          title="Aucune moyenne calculable"
-          message="Les moyennes apparaitront des qu'une matiere aura des notes publiees."
+          title={t("notes.avgs.emptyTitle")}
+          message={t("notes.avgs.emptyMessage")}
         />
       </SectionCard>
     );
@@ -536,7 +549,7 @@ function AveragesView(props: {
                     {formatScore(subject.studentAverage)}
                   </Text>
                   <Text style={styles.averageCoeffCompact}>
-                    Coef. {subject.coefficient}
+                    {t("notes.avgs.coef")} {subject.coefficient}
                   </Text>
                 </View>
               </View>
@@ -549,19 +562,19 @@ function AveragesView(props: {
 
             <View style={styles.averageMetricsTextRow}>
               <Text style={styles.averageMetricText}>
-                Classe :{" "}
+                {t("notes.avgs.classLabel")}{" "}
                 <Text style={styles.averageMetricValue}>
                   {formatScore(subject.classAverage)}
                 </Text>
               </Text>
               <Text style={styles.averageMetricText}>
-                Min :{" "}
+                {t("notes.avgs.minLabel")}{" "}
                 <Text style={styles.averageMetricValue}>
                   {formatScore(subject.classMin)}
                 </Text>
               </Text>
               <Text style={styles.averageMetricText}>
-                Max :{" "}
+                {t("notes.avgs.maxLabel")}{" "}
                 <Text style={styles.averageMetricValue}>
                   {formatScore(subject.classMax)}
                 </Text>
@@ -597,7 +610,9 @@ function AveragesView(props: {
 
         <View style={styles.generalAverageRow}>
           <View style={styles.averageRowHeaderMain}>
-            <Text style={styles.generalAverageTitle}>MOYENNE GENERALE</Text>
+            <Text style={styles.generalAverageTitle}>
+              {t("notes.avgs.generalAverage")}
+            </Text>
             <View style={styles.averageHeaderRight}>
               <Text style={styles.averageValueCompact}>
                 {formatScore(props.snapshot.generalAverage.student)}
@@ -606,26 +621,26 @@ function AveragesView(props: {
           </View>
           <View style={styles.averageMetricsTextRow}>
             <Text style={styles.averageMetricText}>
-              Classe :{" "}
+              {t("notes.avgs.classLabel")}{" "}
               <Text style={styles.averageMetricValue}>
                 {formatScore(props.snapshot.generalAverage.class)}
               </Text>
             </Text>
             <Text style={styles.averageMetricText}>
-              Min :{" "}
+              {t("notes.avgs.minLabel")}{" "}
               <Text style={styles.averageMetricValue}>
                 {formatScore(props.snapshot.generalAverage.min)}
               </Text>
             </Text>
             <Text style={styles.averageMetricText}>
-              Max :{" "}
+              {t("notes.avgs.maxLabel")}{" "}
               <Text style={styles.averageMetricValue}>
                 {formatScore(props.snapshot.generalAverage.max)}
               </Text>
             </Text>
           </View>
           <Text style={styles.averageAppreciation}>
-            Positionnement global de l'eleve sur la periode.
+            {t("notes.avgs.positioning")}
           </Text>
         </View>
       </View>
@@ -634,16 +649,17 @@ function AveragesView(props: {
 }
 
 function ChartsView({ snapshot }: { snapshot: StudentNotesTermSnapshot }) {
+  const { t } = useTranslation();
   const radarData = buildRadarData(snapshot);
   const radarChart = buildRadarChart(snapshot);
 
   if (radarData.length === 0) {
     return (
-      <SectionCard title="Graphiques">
+      <SectionCard title={t("notes.charts.title")}>
         <EmptyState
           icon="pie-chart-outline"
-          title="Graphiques indisponibles"
-          message="Il faut des moyennes eleve et classe pour afficher cette vue."
+          title={t("notes.charts.emptyTitle")}
+          message={t("notes.charts.emptyMessage")}
         />
       </SectionCard>
     );
@@ -652,10 +668,11 @@ function ChartsView({ snapshot }: { snapshot: StudentNotesTermSnapshot }) {
   return (
     <View style={styles.chartPanels}>
       <View style={styles.chartPanelCard}>
-        <Text style={styles.chartPanelTitle}>Comparaison par matiere</Text>
+        <Text style={styles.chartPanelTitle}>
+          {t("notes.charts.comparisonTitle")}
+        </Text>
         <Text style={styles.chartPanelSubtitle}>
-          Chaque bande represente l'amplitude min-max de la classe, avec la
-          position de l'eleve et de la moyenne de classe.
+          {t("notes.charts.comparisonSubtitle")}
         </Text>
 
         <View style={styles.chartList}>
@@ -665,31 +682,44 @@ function ChartsView({ snapshot }: { snapshot: StudentNotesTermSnapshot }) {
         </View>
 
         <View style={styles.chartLegend}>
-          <LegendItem color={colors.primary} label="Moyenne eleve" />
-          <LegendItem color="#4b5563" label="Moyenne classe" />
-          <LegendItem color="#b9d4ef" label="Min - max classe" wide />
+          <LegendItem
+            color={colors.primary}
+            label={t("notes.charts.legendStudent")}
+          />
+          <LegendItem color="#4b5563" label={t("notes.charts.legendClass")} />
+          <LegendItem
+            color="#b9d4ef"
+            label={t("notes.charts.legendRange")}
+            wide
+          />
         </View>
       </View>
 
       <View style={styles.chartPanelCardAlt}>
-        <Text style={styles.chartPanelTitle}>Radar des moyennes</Text>
+        <Text style={styles.chartPanelTitle}>
+          {t("notes.charts.radarTitle")}
+        </Text>
         <Text style={styles.chartPanelSubtitle}>
-          Vue globale des matieres les plus fortes et des ecarts avec la classe.
+          {t("notes.charts.radarSubtitle")}
         </Text>
 
         <RadarPanel radar={radarChart} />
 
         <View style={styles.radarInfoGrid}>
           <View style={styles.radarInfoCard}>
-            <Text style={styles.radarInfoTitle}>Lecture du radar</Text>
+            <Text style={styles.radarInfoTitle}>
+              {t("notes.charts.radarReadTitle")}
+            </Text>
             <Text style={styles.radarInfoText}>
-              Plus le trace se rapproche du bord, plus la moyenne est elevee.
+              {t("notes.charts.radarReadText")}
             </Text>
           </View>
           <View style={styles.radarInfoCard}>
-            <Text style={styles.radarInfoTitle}>Comparaison</Text>
+            <Text style={styles.radarInfoTitle}>
+              {t("notes.charts.radarCompareTitle")}
+            </Text>
             <Text style={styles.radarInfoText}>
-              Le trace bleu represente l'eleve. Le gris correspond a la classe.
+              {t("notes.charts.radarCompareText")}
             </Text>
           </View>
         </View>
@@ -699,6 +729,7 @@ function ChartsView({ snapshot }: { snapshot: StudentNotesTermSnapshot }) {
 }
 
 function ComparisonBand({ subject }: { subject: StudentSubjectNotes }) {
+  const { t } = useTranslation();
   const min = subject.classMin ?? 0;
   const max = subject.classMax ?? 0;
   const bandStart = (min / 20) * 100;
@@ -712,8 +743,8 @@ function ComparisonBand({ subject }: { subject: StudentSubjectNotes }) {
         <View>
           <Text style={styles.chartTitle}>{subject.subjectLabel}</Text>
           <Text style={styles.chartValues}>
-            Eleve {formatScore(subject.studentAverage)} / Classe{" "}
-            {formatScore(subject.classAverage)}
+            {t("notes.charts.student")} {formatScore(subject.studentAverage)} /{" "}
+            {t("notes.charts.class")} {formatScore(subject.classAverage)}
           </Text>
         </View>
         <View style={styles.comparisonRangeBadge}>
@@ -991,6 +1022,7 @@ function ScoreMark({ evaluation }: { evaluation: StudentEvaluation }) {
 }
 
 function DetailModal(props: { detail: DetailState; onClose: () => void }) {
+  const { t } = useTranslation();
   if (!props.detail) {
     return null;
   }
@@ -1013,8 +1045,8 @@ function DetailModal(props: { detail: DetailState; onClose: () => void }) {
             <View style={styles.modalTitleBlock}>
               <Text style={styles.modalEyebrow}>
                 {props.detail.type === "evaluation"
-                  ? "Detail de l'evaluation"
-                  : "Detail de la moyenne"}
+                  ? t("notes.detail.evalTitle")
+                  : t("notes.detail.avgTitle")}
               </Text>
               <Text style={styles.modalTitle}>
                 {props.detail.subject.subjectLabel}
@@ -1035,58 +1067,57 @@ function DetailModal(props: { detail: DetailState; onClose: () => void }) {
               </Text>
               <View style={styles.modalStatGrid}>
                 <ModalStat
-                  label="Note"
+                  label={t("notes.detail.statNote")}
                   value={
-                    formatPlainEvaluationScore(props.detail.evaluation).score
+                    formatPlainEvaluationScore(props.detail.evaluation, t).score
                   }
                   suffix={
-                    formatPlainEvaluationScore(props.detail.evaluation).maxScore
-                      ? `/${formatPlainEvaluationScore(props.detail.evaluation).maxScore}`
+                    formatPlainEvaluationScore(props.detail.evaluation, t)
+                      .maxScore
+                      ? `/${formatPlainEvaluationScore(props.detail.evaluation, t).maxScore}`
                       : undefined
                   }
                 />
                 <ModalStat
-                  label="Statut"
+                  label={t("notes.detail.statStatus")}
                   value={
                     props.detail.evaluation.status === "ABSENT"
-                      ? "Absent"
+                      ? t("notes.detail.statusAbsent")
                       : props.detail.evaluation.status === "EXCUSED"
-                        ? "Dispense"
+                        ? t("notes.detail.statusExcused")
                         : props.detail.evaluation.status === "NOT_GRADED"
-                          ? "Non evalue"
-                          : "Note saisie"
+                          ? t("notes.detail.statusNotGraded")
+                          : t("notes.detail.statusGraded")
                   }
                 />
                 <ModalStat
-                  label="Date"
+                  label={t("notes.detail.statDate")}
                   value={props.detail.evaluation.recordedAt}
                 />
                 <ModalStat
-                  label="Coefficient"
+                  label={t("notes.detail.statCoefficient")}
                   value={formatScore(props.detail.evaluation.weight ?? 1)}
                 />
               </View>
             </>
           ) : (
             <>
-              <Text style={styles.modalLead}>
-                Comparez l'eleve a la classe et identifiez l'amplitude observee.
-              </Text>
+              <Text style={styles.modalLead}>{t("notes.detail.avgLead")}</Text>
               <View style={styles.modalStatGrid}>
                 <ModalStat
-                  label="Eleve"
+                  label={t("notes.detail.statStudent")}
                   value={formatScore(props.detail.subject.studentAverage)}
                 />
                 <ModalStat
-                  label="Classe"
+                  label={t("notes.detail.statClass")}
                   value={formatScore(props.detail.subject.classAverage)}
                 />
                 <ModalStat
-                  label="Min"
+                  label={t("notes.detail.statMin")}
                   value={formatScore(props.detail.subject.classMin)}
                 />
                 <ModalStat
-                  label="Max"
+                  label={t("notes.detail.statMax")}
                   value={formatScore(props.detail.subject.classMax)}
                 />
               </View>
@@ -1094,12 +1125,15 @@ function DetailModal(props: { detail: DetailState; onClose: () => void }) {
           )}
 
           <View style={styles.modalContextCard}>
-            <Text style={styles.modalContextLabel}>Contexte</Text>
+            <Text style={styles.modalContextLabel}>
+              {t("notes.detail.context")}
+            </Text>
             <Text style={styles.modalContextText}>
               {formatDelta(
                 props.detail.subject.studentAverage,
                 props.detail.subject.classAverage,
-              ) ?? "Aucune comparaison disponible"}
+                t,
+              ) ?? t("notes.detail.noComparison")}
             </Text>
             {props.detail.subject.appreciation ? (
               <Text style={styles.modalAppreciation}>
