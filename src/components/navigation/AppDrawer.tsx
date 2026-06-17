@@ -15,6 +15,7 @@ import { useRouter, usePathname } from "expo-router";
 import { colors } from "../../theme";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { useFamilyStore } from "../../store/family.store";
+import { useTranslation } from "../../i18n/useTranslation";
 import type {
   NavItem,
   ParentChildSection,
@@ -41,6 +42,7 @@ interface AppDrawerProps {
   userFullName: string;
   userInitials: string;
   userRole: string;
+  isTester?: boolean;
   onLogout: () => void;
 }
 
@@ -57,6 +59,7 @@ export function AppDrawer({
   userFullName,
   userInitials,
   userRole,
+  isTester = false,
   onLogout,
 }: AppDrawerProps) {
   const insets = useSafeAreaInsets();
@@ -76,6 +79,7 @@ export function AppDrawer({
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   const hasChildren = (childSections?.length ?? 0) > 0;
   const hasTeacherClasses = (teacherClassSections?.length ?? 0) > 0;
@@ -590,6 +594,25 @@ export function AppDrawer({
               })
           )}
         </ScrollView>
+
+        {isTester ? (
+          <TouchableOpacity
+            style={styles.logoutRow}
+            onPress={() => {
+              onClose();
+              setTimeout(() => router.push("/(home)/tests"), 120);
+            }}
+            activeOpacity={0.7}
+            testID="drawer-tests-btn"
+          >
+            <Ionicons
+              name="clipboard-outline"
+              size={20}
+              color="rgba(255,255,255,0.55)"
+            />
+            <Text style={styles.logoutLabel}>{t("tests.title")}</Text>
+          </TouchableOpacity>
+        ) : null}
 
         {/* Lien assistance — juste au-dessus de la déconnexion */}
         <TouchableOpacity

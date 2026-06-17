@@ -77,6 +77,8 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Ce compte Google n'est pas encore autorisé par votre établissement.",
     "apiErrors.invalidSchoolAccount":
       "Ce compte Google n'est pas rattaché à cette école.",
+    "apiErrors.apiUnreachable":
+      "Le serveur est inaccessible. Vérifiez que l'API est démarrée (port 3001).",
     "apiErrors.generic":
       "Impossible de se connecter. Vérifiez votre connexion.",
     "apiErrors.googleInterrupted": "Connexion Google interrompue.",
@@ -1095,6 +1097,70 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.nav.noUnreadMessages": "Aucun message non lu",
     "messaging.nav.loading": "Chargement…",
 
+    "tests.title": "Tests",
+    "tests.common.cancel": "Annuler",
+    "tests.common.noValue": "—",
+    "tests.common.restrictedTitle": "Accès restreint",
+    "tests.common.restrictedMessage":
+      "Ce module est réservé aux utilisateurs déclarés comme testeurs.",
+    "tests.common.errors.loadTitle": "Chargement impossible",
+    "tests.common.errors.loadGeneric":
+      "Impossible de charger les données de tests.",
+    "tests.common.errors.submitTitle": "Envoi impossible",
+    "tests.common.errors.submitGeneric":
+      "Impossible d'enregistrer ce résultat de test.",
+    "tests.status.todo": "À faire",
+    "tests.status.notStarted": "Non démarré",
+    "tests.status.inProgress": "En cours",
+    "tests.status.passed": "Validé",
+    "tests.status.failed": "Échoué",
+    "tests.status.blocked": "Bloqué",
+    "tests.status.skipped": "Ignoré",
+    "tests.priority.low": "Priorité basse",
+    "tests.priority.medium": "Priorité moyenne",
+    "tests.priority.high": "Priorité haute",
+    "tests.priority.critical": "Critique",
+    "tests.campaigns.subtitle": "Campagnes de recette",
+    "tests.campaigns.emptyTitle": "Aucune campagne active",
+    "tests.campaigns.emptyMessage":
+      "Les prochaines campagnes de test apparaîtront ici.",
+    "tests.campaigns.totalCases": "{count} tests",
+    "tests.campaigns.dueLabel": "Échéance {date}",
+    "tests.campaigns.targetVersion": "Version cible {version}",
+    "tests.campaigns.progressLabel": "{done} tests réalisés sur {total}",
+    "tests.cases.subtitle": "Liste des tests",
+    "tests.cases.executionCount": "{count} résultats",
+    "tests.detail.subtitle": "Détail du test",
+    "tests.detail.objective": "Objectif",
+    "tests.detail.preconditions": "Prérequis",
+    "tests.detail.expectedResult": "Résultat attendu",
+    "tests.detail.steps": "Étapes",
+    "tests.detail.noSteps": "Aucune étape détaillée.",
+    "tests.detail.completedBy": "Déjà réalisé par",
+    "tests.detail.noCompletedUsers":
+      "Aucun testeur n'a encore soumis de résultat.",
+    "tests.detail.submitTitle": "Soumettre mon résultat",
+    "tests.detail.resultPlaceholder":
+      "Décrivez ce que vous avez observé pendant le test…",
+    "tests.detail.commentPlaceholder":
+      "Commentaire complémentaire ou contexte utile…",
+    "tests.detail.submit": "Enregistrer le résultat",
+    "tests.detail.submitting": "Enregistrement…",
+    "tests.detail.historyTitle": "Historique des résultats",
+    "tests.detail.historyEmpty":
+      "Aucun résultat n'a encore été enregistré pour ce test.",
+    "tests.detail.permissions.title": "Permission requise",
+    "tests.detail.permissions.gallery":
+      "Autorisez l'accès à la galerie pour joindre une capture.",
+    "tests.detail.permissions.camera":
+      "Autorisez l'accès à la caméra pour joindre une capture.",
+    "tests.detail.attachments.title": "Ajouter des captures",
+    "tests.detail.attachments.message":
+      "Choisissez la source des images du résultat.",
+    "tests.detail.attachments.camera": "Prendre une photo",
+    "tests.detail.attachments.gallery": "Ouvrir la galerie",
+    "tests.detail.attachments.add": "Ajouter des captures",
+
     "feed.filters.all": "Tout",
     "feed.filters.featured": "À la une",
     "feed.filters.polls": "Sondages",
@@ -1598,6 +1664,8 @@ export const translations: Record<Locale, Record<string, string>> = {
       "This Google account is not yet authorized by your school.",
     "apiErrors.invalidSchoolAccount":
       "This Google account is not linked to this school.",
+    "apiErrors.apiUnreachable":
+      "Server unreachable. Make sure the API is running (port 3001).",
     "apiErrors.generic": "Unable to connect. Check your internet connection.",
     "apiErrors.googleInterrupted": "Google sign-in interrupted.",
     "apiErrors.googleMissingInfo":
@@ -2569,6 +2637,66 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.nav.unreadMessagesSub": "unread",
     "messaging.nav.noUnreadMessages": "No unread messages",
     "messaging.nav.loading": "Loading…",
+
+    "tests.title": "Tests",
+    "tests.common.cancel": "Cancel",
+    "tests.common.noValue": "—",
+    "tests.common.restrictedTitle": "Restricted access",
+    "tests.common.restrictedMessage":
+      "This module is reserved for users marked as testers.",
+    "tests.common.errors.loadTitle": "Unable to load",
+    "tests.common.errors.loadGeneric": "Unable to load the test data.",
+    "tests.common.errors.submitTitle": "Unable to submit",
+    "tests.common.errors.submitGeneric": "Unable to save this test result.",
+    "tests.status.todo": "To do",
+    "tests.status.notStarted": "Not started",
+    "tests.status.inProgress": "In progress",
+    "tests.status.passed": "Passed",
+    "tests.status.failed": "Failed",
+    "tests.status.blocked": "Blocked",
+    "tests.status.skipped": "Skipped",
+    "tests.priority.low": "Low priority",
+    "tests.priority.medium": "Medium priority",
+    "tests.priority.high": "High priority",
+    "tests.priority.critical": "Critical",
+    "tests.campaigns.subtitle": "Manual test campaigns",
+    "tests.campaigns.emptyTitle": "No active campaign",
+    "tests.campaigns.emptyMessage":
+      "Upcoming manual test campaigns will appear here.",
+    "tests.campaigns.totalCases": "{count} tests",
+    "tests.campaigns.dueLabel": "Due {date}",
+    "tests.campaigns.targetVersion": "Target version {version}",
+    "tests.campaigns.progressLabel": "{done} tests completed out of {total}",
+    "tests.cases.subtitle": "Test list",
+    "tests.cases.executionCount": "{count} results",
+    "tests.detail.subtitle": "Test details",
+    "tests.detail.objective": "Objective",
+    "tests.detail.preconditions": "Preconditions",
+    "tests.detail.expectedResult": "Expected result",
+    "tests.detail.steps": "Steps",
+    "tests.detail.noSteps": "No detailed steps.",
+    "tests.detail.completedBy": "Already completed by",
+    "tests.detail.noCompletedUsers": "No tester has submitted a result yet.",
+    "tests.detail.submitTitle": "Submit my result",
+    "tests.detail.resultPlaceholder":
+      "Describe what you observed during the test…",
+    "tests.detail.commentPlaceholder": "Additional comment or useful context…",
+    "tests.detail.submit": "Save result",
+    "tests.detail.submitting": "Saving…",
+    "tests.detail.historyTitle": "Result history",
+    "tests.detail.historyEmpty":
+      "No result has been recorded for this test yet.",
+    "tests.detail.permissions.title": "Permission required",
+    "tests.detail.permissions.gallery":
+      "Allow access to the gallery to attach screenshots.",
+    "tests.detail.permissions.camera":
+      "Allow access to the camera to attach screenshots.",
+    "tests.detail.attachments.title": "Add screenshots",
+    "tests.detail.attachments.message":
+      "Choose the source for the result images.",
+    "tests.detail.attachments.camera": "Take a photo",
+    "tests.detail.attachments.gallery": "Open gallery",
+    "tests.detail.attachments.add": "Add screenshots",
 
     "feed.filters.all": "All",
     "feed.filters.featured": "Featured",

@@ -85,7 +85,14 @@ export async function apiFetch<T>(
     if (token) headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  } catch {
+    const networkErr = new Error("API_UNREACHABLE") as ApiClientError;
+    networkErr.code = "API_UNREACHABLE";
+    throw networkErr;
+  }
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));

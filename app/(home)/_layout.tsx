@@ -110,6 +110,18 @@ export default function HomeLayout() {
         name="tickets/[ticketId]"
         options={{ animation: "slide_from_right" }}
       />
+      <Stack.Screen
+        name="tests/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="tests/[campaignId]"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="tests/cases/[testCaseId]"
+        options={{ animation: "slide_from_right" }}
+      />
     </Stack>
   );
 }

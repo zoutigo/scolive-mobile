@@ -24,6 +24,8 @@ export function parseApiError(
   const code = apiErr?.code;
   const statusCode = apiErr?.statusCode;
   switch (code) {
+    case "API_UNREACHABLE":
+      return t("apiErrors.apiUnreachable");
     case "INVALID_CREDENTIALS":
       return t("apiErrors.invalidCredentials");
     case "AUTH_RATE_LIMITED":
