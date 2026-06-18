@@ -2,6 +2,7 @@ import { useLocalSearchParams } from "expo-router";
 import { AppShell } from "../../../../src/components/navigation/AppShell";
 import { TeacherAgendaScreenInner } from "../../../../src/components/timetable/TeacherAgendaScreen";
 import { useTeacherClassNavStore } from "../../../../src/store/teacher-class-nav.store";
+import { useTranslation } from "../../../../src/i18n/useTranslation";
 
 export default function TeacherClassTimetableRoute() {
   const params = useLocalSearchParams<{ classId?: string }>();
@@ -10,6 +11,7 @@ export default function TeacherClassTimetableRoute() {
   const lockedClassName =
     classOptions?.classes.find((item) => item.classId === classId)?.className ??
     null;
+  const { t } = useTranslation();
 
   return (
     <AppShell showHeader={false}>
@@ -18,8 +20,8 @@ export default function TeacherClassTimetableRoute() {
         lockedClassId={classId}
         lockedClassName={lockedClassName ?? undefined}
         hideClassPicker
-        headerTitle="Emploi du temps"
-        lockedClassTabLabel="Emploi du temps"
+        headerTitle={t("classRoute.timetable.headerTitle")}
+        lockedClassTabLabel={t("classRoute.timetable.tabLabel")}
       />
     </AppShell>
   );

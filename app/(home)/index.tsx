@@ -9,18 +9,20 @@ import { TeacherHome } from "../../src/components/home/TeacherHome";
 import { ParentHome } from "../../src/components/home/ParentHome";
 import { StudentHome } from "../../src/components/home/StudentHome";
 import { colors } from "../../src/theme";
+import { useTranslation } from "../../src/i18n/useTranslation";
 
 export default function HomeScreen() {
   const { user, schoolSlug, logout } = useAuthStore();
+  const { t } = useTranslation();
 
   // Si user ne charge pas dans les 8 secondes, on déconnecte proprement.
   // Le logout doit être dans un useEffect — jamais pendant le rendu.
   React.useEffect(() => {
     if (user) return;
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       void logout();
     }, 8000);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [user, logout]);
 
   if (!user) {
@@ -49,7 +51,9 @@ export default function HomeScreen() {
         return (
           <View style={styles.fallback}>
             <Text style={styles.fallbackText}>
-              Bienvenue, {user.firstName} {user.lastName}
+              {t("home.fallback.welcome")
+                .replace("{firstName}", user.firstName)
+                .replace("{lastName}", user.lastName)}
             </Text>
           </View>
         );

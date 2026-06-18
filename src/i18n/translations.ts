@@ -1598,6 +1598,26 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.admin.classes.emptyTitle": "Aucune classe",
     "notes.admin.classes.emptyMessage":
       "Aucune classe disponible pour cette année scolaire.",
+
+    // App index — session expirée
+    "app.sessionExpired.title": "Session expirée",
+    "app.sessionExpired.subtitle":
+      "Votre espace a été verrouillé en toute sécurité",
+    "app.sessionExpired.message":
+      "Votre session a expiré. Veuillez vous connecter à nouveau.",
+    "app.sessionExpired.reconnect": "Se reconnecter",
+
+    // Home index — fallback
+    "home.fallback.welcome": "Bienvenue, {firstName} {lastName}",
+
+    // Placeholder screen
+    "placeholder.subtitle": "Module en cours de développement",
+    "placeholder.body": "Cette fonctionnalité sera disponible prochainement.",
+    "placeholder.defaultTitle": "Module",
+
+    // Teacher class timetable route
+    "classRoute.timetable.headerTitle": "Emploi du temps",
+    "classRoute.timetable.tabLabel": "Emploi du temps",
   },
   en: {
     "settings.language.title": "Language of this device",
@@ -3129,5 +3149,24 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.admin.classes.emptyTitle": "No class",
     "notes.admin.classes.emptyMessage":
       "No class available for this school year.",
+
+    // App index — session expired
+    "app.sessionExpired.title": "Session expired",
+    "app.sessionExpired.subtitle": "Your space has been securely locked",
+    "app.sessionExpired.message":
+      "Your session has expired. Please log in again.",
+    "app.sessionExpired.reconnect": "Log in again",
+
+    // Home index — fallback
+    "home.fallback.welcome": "Welcome, {firstName} {lastName}",
+
+    // Placeholder screen
+    "placeholder.subtitle": "Module under development",
+    "placeholder.body": "This feature will be available soon.",
+    "placeholder.defaultTitle": "Module",
+
+    // Teacher class timetable route
+    "classRoute.timetable.headerTitle": "Timetable",
+    "classRoute.timetable.tabLabel": "Timetable",
   },
 };
