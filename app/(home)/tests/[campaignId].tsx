@@ -20,11 +20,21 @@ import { testsApi } from "../../../src/api/tests.api";
 import { useAuthStore } from "../../../src/store/auth.store";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import { colors } from "../../../src/theme";
+import {
+  type CampaignDisplayStatus,
+  getCampaignDisplayStatus,
+} from "../../../src/components/tests/testCampaignStatus";
 import type {
   TestCampaignDetail,
   TestCasePriority,
   TestExecutionStatus,
 } from "../../../src/types/tests.types";
+
+const HERO_PALETTE: Record<CampaignDisplayStatus, string> = {
+  IN_PROGRESS: colors.accentTeal,
+  UPCOMING: colors.warmAccent,
+  COMPLETED: colors.primary,
+};
 
 export default function TestCampaignRoute() {
   return (
@@ -115,17 +125,7 @@ function TestCampaignScreen() {
             />
           }
         >
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>{campaign.title}</Text>
-            {campaign.description ? (
-              <Text style={styles.summaryBody}>{campaign.description}</Text>
-            ) : null}
-            <Text style={styles.summaryFoot}>
-              {t("tests.campaigns.progressLabel")
-                .replace("{done}", String(campaign.summary.completedCases))
-                .replace("{total}", String(campaign.summary.totalCases))}
-            </Text>
-          </View>
+          <CampaignHero campaign={campaign} t={t} />
 
           {campaign.testCases.map((testCase) => (
             <TouchableOpacity
@@ -181,6 +181,75 @@ function EmptyState(props: { title: string; message: string }) {
       />
       <Text style={styles.emptyTitle}>{props.title}</Text>
       <Text style={styles.emptyBody}>{props.message}</Text>
+    </View>
+  );
+}
+
+function campaignStatusKey(status: CampaignDisplayStatus) {
+  switch (status) {
+    case "IN_PROGRESS":
+      return "inProgress";
+    case "UPCOMING":
+      return "upcoming";
+    default:
+      return "completed";
+  }
+}
+
+function CampaignHero({
+  campaign,
+  t,
+}: {
+  campaign: TestCampaignDetail;
+  t: (key: string) => string;
+}) {
+  const status = getCampaignDisplayStatus(campaign);
+  const heroColor = HERO_PALETTE[status];
+  const total = campaign.summary.totalCases;
+  const done = campaign.summary.completedCases;
+  const progressRatio = total > 0 ? Math.min(1, done / total) : 0;
+
+  return (
+    <View
+      style={[styles.heroCard, { backgroundColor: heroColor }]}
+      testID="campaign-hero"
+    >
+      <View style={styles.heroStatusPill}>
+        <Text style={styles.heroStatusPillText}>
+          {t(`tests.campaigns.status.${campaignStatusKey(status)}`)}
+        </Text>
+      </View>
+      <Text style={styles.heroTitle}>{campaign.title}</Text>
+      {campaign.description ? (
+        <Text style={styles.heroBody}>{campaign.description}</Text>
+      ) : null}
+      <View style={styles.heroProgressTrack}>
+        <View
+          style={[
+            styles.heroProgressFill,
+            { width: `${Math.round(progressRatio * 100)}%` },
+          ]}
+        />
+      </View>
+      <View style={styles.heroFootRow}>
+        <Text style={styles.heroFoot}>
+          {t("tests.campaigns.progressLabel")
+            .replace("{done}", String(done))
+            .replace("{total}", String(total))}
+        </Text>
+        {campaign.dueAt ? (
+          <Text style={styles.heroFoot}>
+            {t("tests.campaigns.dueLabel").replace(
+              "{date}",
+              new Intl.DateTimeFormat("fr-FR", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              }).format(new Date(campaign.dueAt)),
+            )}
+          </Text>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -258,17 +327,45 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   scrollContent: { padding: 16, gap: 12 },
-  summaryCard: {
-    padding: 16,
-    borderRadius: 20,
+  heroCard: {
+    padding: 20,
+    borderRadius: 24,
+    gap: 12,
+  },
+  heroStatusPill: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.22)",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  heroStatusPillText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.white,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  heroTitle: { fontSize: 22, fontWeight: "800", color: colors.white },
+  heroBody: { fontSize: 14, lineHeight: 20, color: "rgba(255,255,255,0.88)" },
+  heroProgressTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    overflow: "hidden",
+  },
+  heroProgressFill: {
+    height: 8,
+    borderRadius: 4,
     backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: "#E8DCCD",
+  },
+  heroFootRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
     gap: 8,
   },
-  summaryTitle: { fontSize: 18, fontWeight: "700", color: colors.textPrimary },
-  summaryBody: { fontSize: 14, lineHeight: 20, color: colors.textSecondary },
-  summaryFoot: { fontSize: 13, fontWeight: "600", color: colors.primary },
+  heroFoot: { fontSize: 13, fontWeight: "600", color: colors.white },
   caseCard: {
     padding: 16,
     borderRadius: 18,

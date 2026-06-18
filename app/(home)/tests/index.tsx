@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,11 +15,16 @@ import {
   useDrawer,
 } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
+import { UnderlineTabs } from "../../../src/components/navigation/UnderlineTabs";
+import { TestsSummaryTab } from "../../../src/components/tests/TestsSummaryTab";
+import { TestsCampaignsTab } from "../../../src/components/tests/TestsCampaignsTab";
 import { testsApi } from "../../../src/api/tests.api";
 import { useAuthStore } from "../../../src/store/auth.store";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import { colors } from "../../../src/theme";
 import type { TestCampaignSummary } from "../../../src/types/tests.types";
+
+type TabKey = "summary" | "tests";
 
 export default function TestsHomeRoute() {
   return (
@@ -31,11 +35,12 @@ export default function TestsHomeRoute() {
 }
 
 function TestsHomeScreen() {
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { openDrawer } = useDrawer();
   const { schoolSlug, user } = useAuthStore();
+  const [activeTab, setActiveTab] = useState<TabKey>("summary");
   const [campaigns, setCampaigns] = useState<TestCampaignSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -103,72 +108,34 @@ function TestsHomeScreen() {
           title={t("tests.common.errors.loadTitle")}
           message={errorMessage}
         />
-      ) : campaigns.length === 0 ? (
-        <EmptyState
-          icon="clipboard-outline"
-          title={t("tests.campaigns.emptyTitle")}
-          message={t("tests.campaigns.emptyMessage")}
-        />
       ) : (
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={() => void load(true)}
-            />
-          }
-        >
-          {campaigns.map((campaign) => (
-            <TouchableOpacity
-              key={campaign.id}
-              style={styles.card}
-              onPress={() =>
-                router.push({
-                  pathname: "/(home)/tests/[campaignId]",
-                  params: { campaignId: campaign.id },
-                })
-              }
-              testID={`test-campaign-card-${campaign.id}`}
-            >
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>{campaign.title}</Text>
-                <Text style={styles.cardMeta}>
-                  {campaign.summary.completedCases}/
-                  {campaign.summary.totalCases}
-                </Text>
-              </View>
-              {campaign.description ? (
-                <Text style={styles.cardBody}>{campaign.description}</Text>
-              ) : null}
-              <View style={styles.metaRow}>
-                <LabelPill
-                  text={t("tests.campaigns.totalCases").replace(
-                    "{count}",
-                    String(campaign.summary.totalCases),
-                  )}
-                />
-                {campaign.dueAt ? (
-                  <LabelPill
-                    text={t("tests.campaigns.dueLabel").replace(
-                      "{date}",
-                      formatDate(campaign.dueAt, locale),
-                    )}
-                  />
-                ) : null}
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <>
+          <UnderlineTabs
+            items={[
+              { key: "summary", label: t("tests.tabs.summary") },
+              { key: "tests", label: t("tests.tabs.tests") },
+            ]}
+            activeKey={activeTab}
+            onSelect={setActiveTab}
+            testIDPrefix="tests-home-tab"
+          />
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={() => void load(true)}
+              />
+            }
+          >
+            {activeTab === "summary" ? (
+              <TestsSummaryTab campaigns={campaigns} />
+            ) : (
+              <TestsCampaignsTab campaigns={campaigns} />
+            )}
+          </ScrollView>
+        </>
       )}
-    </View>
-  );
-}
-
-function LabelPill({ text }: { text: string }) {
-  return (
-    <View style={styles.pill}>
-      <Text style={styles.pillText}>{text}</Text>
     </View>
   );
 }
@@ -187,64 +154,10 @@ function EmptyState(props: {
   );
 }
 
-function formatDate(value: string, locale: "fr" | "en") {
-  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(value));
-}
-
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   scrollContent: { padding: 16, gap: 12 },
-  card: {
-    borderRadius: 20,
-    backgroundColor: colors.white,
-    padding: 16,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: "#E8DCCD",
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-    alignItems: "center",
-  },
-  cardTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  cardMeta: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: colors.primary,
-  },
-  cardBody: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.textSecondary,
-  },
-  metaRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  pill: {
-    borderRadius: 999,
-    backgroundColor: "#F4E9DE",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  pillText: {
-    fontSize: 12,
-    color: colors.primary,
-    fontWeight: "600",
-  },
   empty: {
     flex: 1,
     justifyContent: "center",
