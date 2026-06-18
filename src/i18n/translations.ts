@@ -1160,6 +1160,45 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.detail.attachments.camera": "Prendre une photo",
     "tests.detail.attachments.gallery": "Ouvrir la galerie",
     "tests.detail.attachments.add": "Ajouter des captures",
+    "tests.detail.fabAdd": "Saisir un résultat",
+    "tests.detail.viewResults": "Voir les résultats",
+    "tests.detail.formModalTitle": "Soumettre mon résultat",
+    "tests.detail.toastSuccessTitle": "Résultat enregistré",
+    "tests.detail.toastSuccessMessage":
+      "Votre résultat a bien été pris en compte.",
+    "tests.detail.sections.info": "Informations du test",
+    "tests.detail.validation.resultRequired":
+      "Décrivez le résultat observé avant d'enregistrer.",
+    "tests.detail.validation.attachmentsRequired":
+      "Ce test exige au moins une capture en preuve.",
+
+    "tests.tabs.summary": "Synthèse",
+    "tests.tabs.tests": "Tests",
+
+    "tests.summary.subtitle": "Vue d'ensemble",
+    "tests.summary.kpi.totalCampaigns": "Campagnes",
+    "tests.summary.kpi.inProgress": "En cours",
+    "tests.summary.kpi.completed": "Terminées",
+    "tests.summary.kpi.upcoming": "À venir",
+    "tests.summary.kpi.totalCases": "Cas de test",
+    "tests.summary.kpi.myExecutions": "Mes résultats",
+    "tests.summary.kpi.pending": "Tests restants",
+    "tests.summary.highlight.title": "À faire aujourd'hui",
+    "tests.summary.highlight.campaignBadge": "Campagne",
+    "tests.summary.highlight.cta": "Ouvrir le test",
+    "tests.summary.highlight.empty":
+      "Tous les tests visibles sont à jour. Bravo !",
+    "tests.summary.emptyTitle": "Aucune campagne active",
+    "tests.summary.emptyMessage":
+      "Revenez plus tard pour suivre vos campagnes de test.",
+
+    "tests.campaigns.filters.all": "Toutes",
+    "tests.campaigns.filters.inProgress": "En cours",
+    "tests.campaigns.filters.upcoming": "À commencer",
+    "tests.campaigns.filters.completed": "Terminées",
+    "tests.campaigns.status.inProgress": "En cours",
+    "tests.campaigns.status.upcoming": "À commencer",
+    "tests.campaigns.status.completed": "Terminée",
 
     "feed.filters.all": "Tout",
     "feed.filters.featured": "À la une",
@@ -2717,6 +2756,43 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.detail.attachments.camera": "Take a photo",
     "tests.detail.attachments.gallery": "Open gallery",
     "tests.detail.attachments.add": "Add screenshots",
+    "tests.detail.fabAdd": "Submit a result",
+    "tests.detail.viewResults": "View results",
+    "tests.detail.formModalTitle": "Submit my result",
+    "tests.detail.toastSuccessTitle": "Result saved",
+    "tests.detail.toastSuccessMessage": "Your result has been recorded.",
+    "tests.detail.sections.info": "Test information",
+    "tests.detail.validation.resultRequired":
+      "Describe the observed result before saving.",
+    "tests.detail.validation.attachmentsRequired":
+      "This test requires at least one screenshot as evidence.",
+
+    "tests.tabs.summary": "Summary",
+    "tests.tabs.tests": "Tests",
+
+    "tests.summary.subtitle": "Overview",
+    "tests.summary.kpi.totalCampaigns": "Campaigns",
+    "tests.summary.kpi.inProgress": "In progress",
+    "tests.summary.kpi.completed": "Completed",
+    "tests.summary.kpi.upcoming": "Upcoming",
+    "tests.summary.kpi.totalCases": "Test cases",
+    "tests.summary.kpi.myExecutions": "My results",
+    "tests.summary.kpi.pending": "Remaining tests",
+    "tests.summary.highlight.title": "To do today",
+    "tests.summary.highlight.campaignBadge": "Campaign",
+    "tests.summary.highlight.cta": "Open test",
+    "tests.summary.highlight.empty":
+      "Every visible test is up to date. Nice work!",
+    "tests.summary.emptyTitle": "No active campaign",
+    "tests.summary.emptyMessage": "Upcoming test campaigns will appear here.",
+
+    "tests.campaigns.filters.all": "All",
+    "tests.campaigns.filters.inProgress": "In progress",
+    "tests.campaigns.filters.upcoming": "Upcoming",
+    "tests.campaigns.filters.completed": "Completed",
+    "tests.campaigns.status.inProgress": "In progress",
+    "tests.campaigns.status.upcoming": "Upcoming",
+    "tests.campaigns.status.completed": "Completed",
 
     "feed.filters.all": "All",
     "feed.filters.featured": "Featured",

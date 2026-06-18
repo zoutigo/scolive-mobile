@@ -1,19 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
-  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import * as Application from "expo-application";
-import * as ImagePicker from "expo-image-picker";
+import { Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -22,29 +19,16 @@ import {
   useDrawer,
 } from "../../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../../src/components/navigation/ModuleHeader";
+import { TestExecutionFormSheet } from "../../../../src/components/tests/TestExecutionFormSheet";
 import { testsApi } from "../../../../src/api/tests.api";
 import { useAuthStore } from "../../../../src/store/auth.store";
+import { useSuccessToastStore } from "../../../../src/store/success-toast.store";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 import { colors } from "../../../../src/theme";
 import type {
   TestCaseDetail,
   TestExecutionStatus,
 } from "../../../../src/types/tests.types";
-
-type LocalAttachment = {
-  id: string;
-  uri: string;
-  name: string;
-  mimeType: string;
-};
-
-const SUBMIT_STATUSES: TestExecutionStatus[] = [
-  "PASSED",
-  "FAILED",
-  "BLOCKED",
-  "SKIPPED",
-  "IN_PROGRESS",
-];
 
 export default function TestCaseRoute() {
   return (
@@ -61,15 +45,17 @@ function TestCaseScreen() {
   const { testCaseId } = useLocalSearchParams<{ testCaseId: string }>();
   const { openDrawer } = useDrawer();
   const { schoolSlug, user } = useAuthStore();
+  const showSuccess = useSuccessToastStore((state) => state.showSuccess);
+  const showError = useSuccessToastStore((state) => state.showError);
   const [detail, setDetail] = useState<TestCaseDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [status, setStatus] = useState<TestExecutionStatus>("PASSED");
-  const [resultText, setResultText] = useState("");
-  const [comment, setComment] = useState("");
-  const [attachments, setAttachments] = useState<LocalAttachment[]>([]);
+  const [isFormVisible, setIsFormVisible] = useState(false);
+
+  const scrollRef = useRef<ScrollView>(null);
+  const historyY = useRef(0);
 
   const load = useCallback(
     async (refresh = false) => {
@@ -98,122 +84,47 @@ function TestCaseScreen() {
     void load();
   }, [load]);
 
-  const canSubmit = useMemo(() => {
-    if (!resultText.trim()) return false;
-    if (!detail) return false;
-    if (detail.evidenceRequired && attachments.length === 0) return false;
-    return !isSubmitting;
-  }, [attachments.length, detail, isSubmitting, resultText]);
-
-  async function pickFromGallery() {
-    const { status: permission } =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permission !== "granted") {
-      Alert.alert(
-        t("tests.detail.permissions.title"),
-        t("tests.detail.permissions.gallery"),
-      );
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: true,
-      quality: 0.85,
-      exif: false,
-    });
-    if (!result.canceled) {
-      setAttachments((prev) => [
-        ...prev,
-        ...result.assets.map((asset) => ({
-          id: `${Date.now()}-${Math.random()}`,
-          uri: asset.uri,
-          name: asset.fileName ?? `capture_${Date.now()}.jpg`,
-          mimeType: asset.mimeType ?? "image/jpeg",
-        })),
-      ]);
-    }
-  }
-
-  async function takePhoto() {
-    const { status: permission } =
-      await ImagePicker.requestCameraPermissionsAsync();
-    if (permission !== "granted") {
-      Alert.alert(
-        t("tests.detail.permissions.title"),
-        t("tests.detail.permissions.camera"),
-      );
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["images"],
-      quality: 0.85,
-      exif: false,
-    });
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      setAttachments((prev) => [
-        ...prev,
-        {
-          id: `${Date.now()}-${Math.random()}`,
-          uri: asset.uri,
-          name: asset.fileName ?? `capture_${Date.now()}.jpg`,
-          mimeType: asset.mimeType ?? "image/jpeg",
-        },
-      ]);
-    }
-  }
-
-  function openAttachmentMenu() {
-    Alert.alert(
-      t("tests.detail.attachments.title"),
-      t("tests.detail.attachments.message"),
-      [
-        {
-          text: t("tests.detail.attachments.camera"),
-          onPress: () => void takePhoto(),
-        },
-        {
-          text: t("tests.detail.attachments.gallery"),
-          onPress: () => void pickFromGallery(),
-        },
-        { text: t("tests.common.cancel"), style: "cancel" },
-      ],
-    );
-  }
-
-  async function handleSubmit() {
-    if (!schoolSlug || !testCaseId || !canSubmit) return;
+  async function handleSubmit(values: {
+    status: TestExecutionStatus;
+    resultText: string;
+    comment: string;
+    attachments: Array<{ uri: string; name: string; mimeType: string }>;
+  }) {
+    if (!schoolSlug || !testCaseId) return;
     setIsSubmitting(true);
     try {
       await testsApi.createExecution(schoolSlug, testCaseId, {
-        status,
-        resultText: resultText.trim(),
-        comment: comment.trim() || undefined,
+        status: values.status,
+        resultText: values.resultText,
+        comment: values.comment || undefined,
         deviceInfo: `${Platform.OS}`,
         appVersion:
           Application.nativeApplicationVersion ??
           Application.nativeBuildVersion ??
           undefined,
-        attachments: attachments.map((attachment) => ({
-          uri: attachment.uri,
-          name: attachment.name,
-          mimeType: attachment.mimeType,
-        })),
+        attachments: values.attachments,
       });
-      setResultText("");
-      setComment("");
-      setAttachments([]);
+      setIsFormVisible(false);
+      showSuccess({
+        title: t("tests.detail.toastSuccessTitle"),
+        message: t("tests.detail.toastSuccessMessage"),
+      });
       await load(true);
     } catch (error) {
-      Alert.alert(
-        t("tests.common.errors.submitTitle"),
-        error instanceof Error
-          ? error.message
-          : t("tests.common.errors.submitGeneric"),
-      );
+      showError({
+        title: t("tests.common.errors.submitTitle"),
+        message:
+          error instanceof Error
+            ? error.message
+            : t("tests.common.errors.submitGeneric"),
+      });
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function scrollToResults() {
+    scrollRef.current?.scrollTo({ y: historyY.current, animated: true });
   }
 
   return (
@@ -244,196 +155,153 @@ function TestCaseScreen() {
           message={errorMessage ?? t("tests.common.errors.loadGeneric")}
         />
       ) : (
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={() => void load(true)}
-            />
-          }
-        >
-          <InfoCard
-            title={t("tests.detail.objective")}
-            value={detail.objective}
-            noValue={t("tests.common.noValue")}
-          />
-          <InfoCard
-            title={t("tests.detail.preconditions")}
-            value={detail.preconditions}
-            noValue={t("tests.common.noValue")}
-          />
-          <InfoCard
-            title={t("tests.detail.expectedResult")}
-            value={detail.expectedResult}
-            noValue={t("tests.common.noValue")}
-          />
-
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{t("tests.detail.steps")}</Text>
-            {detail.steps.length === 0 ? (
-              <Text style={styles.cardBody}>{t("tests.detail.noSteps")}</Text>
-            ) : (
-              detail.steps.map((step, index) => (
-                <Text key={`${index}-${step}`} style={styles.stepLine}>
-                  {index + 1}. {step}
+        <>
+          <ScrollView
+            ref={scrollRef}
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={() => void load(true)}
+              />
+            }
+          >
+            <View style={styles.actionsRow}>
+              <TouchableOpacity
+                style={styles.resultsButton}
+                onPress={scrollToResults}
+                testID="tests-view-results-btn"
+              >
+                <Ionicons
+                  name="list-outline"
+                  size={16}
+                  color={colors.primary}
+                />
+                <Text style={styles.resultsButtonText}>
+                  {t("tests.detail.viewResults")}
                 </Text>
-              ))
-            )}
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>
-              {t("tests.detail.completedBy")}
-            </Text>
-            {detail.completedByUsers.length === 0 ? (
-              <Text style={styles.cardBody}>
-                {t("tests.detail.noCompletedUsers")}
-              </Text>
-            ) : (
-              detail.completedByUsers.map((entry) => (
-                <View key={entry.userId} style={styles.userRow}>
-                  <Text style={styles.userName}>{entry.fullName}</Text>
-                  <Text style={styles.userMeta}>
-                    {statusLabel(t, entry.status)} ·{" "}
-                    {formatDateTime(entry.executedAt, locale)}
-                  </Text>
-                </View>
-              ))
-            )}
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>
-              {t("tests.detail.submitTitle")}
-            </Text>
-            <View style={styles.statusWrap}>
-              {SUBMIT_STATUSES.map((entry) => {
-                const selected = entry === status;
-                return (
-                  <TouchableOpacity
-                    key={entry}
-                    style={[
-                      styles.statusChip,
-                      selected && styles.statusChipSelected,
-                    ]}
-                    onPress={() => setStatus(entry)}
-                  >
-                    <Text
-                      style={[
-                        styles.statusChipText,
-                        selected && styles.statusChipTextSelected,
-                      ]}
-                    >
-                      {statusLabel(t, entry)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+              </TouchableOpacity>
             </View>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder={t("tests.detail.resultPlaceholder")}
-              value={resultText}
-              onChangeText={setResultText}
-              multiline
-              testID="tests-result-input"
-            />
-            <TextInput
-              style={[styles.input, styles.textAreaSmall]}
-              placeholder={t("tests.detail.commentPlaceholder")}
-              value={comment}
-              onChangeText={setComment}
-              multiline
-            />
-            <TouchableOpacity
-              style={styles.attachButton}
-              onPress={openAttachmentMenu}
-            >
-              <Ionicons name="image-outline" size={18} color={colors.primary} />
-              <Text style={styles.attachButtonText}>
-                {t("tests.detail.attachments.add")}
-              </Text>
-            </TouchableOpacity>
-            {attachments.map((attachment) => (
-              <View key={attachment.id} style={styles.attachmentRow}>
-                <Text style={styles.attachmentName} numberOfLines={1}>
-                  {attachment.name}
-                </Text>
-                <TouchableOpacity
-                  onPress={() =>
-                    setAttachments((prev) =>
-                      prev.filter((entry) => entry.id !== attachment.id),
-                    )
-                  }
-                >
-                  <Ionicons
-                    name="close-circle-outline"
-                    size={18}
-                    color="#A33E2B"
-                  />
-                </TouchableOpacity>
-              </View>
-            ))}
-            <TouchableOpacity
-              style={[
-                styles.submitButton,
-                !canSubmit && styles.submitButtonDisabled,
-              ]}
-              disabled={!canSubmit}
-              onPress={() => void handleSubmit()}
-              testID="tests-submit-btn"
-            >
-              <Text style={styles.submitButtonText}>
-                {isSubmitting
-                  ? t("tests.detail.submitting")
-                  : t("tests.detail.submit")}
-              </Text>
-            </TouchableOpacity>
-          </View>
 
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>
-              {t("tests.detail.historyTitle")}
-            </Text>
-            {detail.executions.length === 0 ? (
-              <Text style={styles.cardBody}>
-                {t("tests.detail.historyEmpty")}
-              </Text>
-            ) : (
-              detail.executions.map((execution) => (
-                <View key={execution.id} style={styles.historyCard}>
-                  <Text style={styles.historyTitle}>
-                    {execution.user.fullName} ·{" "}
-                    {statusLabel(t, execution.status)}
+            <SectionCard
+              icon="flag-outline"
+              title={t("tests.detail.objective")}
+              value={detail.objective}
+              noValue={t("tests.common.noValue")}
+            />
+            <SectionCard
+              icon="key-outline"
+              title={t("tests.detail.preconditions")}
+              value={detail.preconditions}
+              noValue={t("tests.common.noValue")}
+            />
+            <SectionCard
+              icon="checkmark-circle-outline"
+              title={t("tests.detail.expectedResult")}
+              value={detail.expectedResult}
+              noValue={t("tests.common.noValue")}
+            />
+
+            <View style={styles.card}>
+              <CardHeader icon="list-outline" title={t("tests.detail.steps")} />
+              {detail.steps.length === 0 ? (
+                <Text style={styles.cardBody}>{t("tests.detail.noSteps")}</Text>
+              ) : (
+                detail.steps.map((step, index) => (
+                  <Text key={`${index}-${step}`} style={styles.stepLine}>
+                    {index + 1}. {step}
                   </Text>
-                  <Text style={styles.historyMeta}>
-                    {formatDateTime(execution.executedAt, locale)}
-                  </Text>
-                  {execution.resultText ? (
-                    <Text style={styles.historyBody}>
-                      {execution.resultText}
+                ))
+              )}
+            </View>
+
+            <View style={styles.card}>
+              <CardHeader
+                icon="people-outline"
+                title={t("tests.detail.completedBy")}
+              />
+              {detail.completedByUsers.length === 0 ? (
+                <Text style={styles.cardBody}>
+                  {t("tests.detail.noCompletedUsers")}
+                </Text>
+              ) : (
+                detail.completedByUsers.map((entry) => (
+                  <View key={entry.userId} style={styles.userRow}>
+                    <Text style={styles.userName}>{entry.fullName}</Text>
+                    <Text style={styles.userMeta}>
+                      {statusLabel(t, entry.status)} ·{" "}
+                      {formatDateTime(entry.executedAt, locale)}
                     </Text>
-                  ) : null}
-                  {execution.comment ? (
-                    <Text style={styles.historyComment}>
-                      {execution.comment}
-                    </Text>
-                  ) : null}
-                  <View style={styles.imageRow}>
-                    {execution.attachments.map((attachment) => (
-                      <Image
-                        key={attachment.id}
-                        source={{ uri: attachment.url }}
-                        style={styles.previewImage}
-                      />
-                    ))}
                   </View>
-                </View>
-              ))
-            )}
-          </View>
-        </ScrollView>
+                ))
+              )}
+            </View>
+
+            <View
+              style={styles.card}
+              onLayout={(event) => {
+                historyY.current = event.nativeEvent.layout.y;
+              }}
+            >
+              <CardHeader
+                icon="time-outline"
+                title={t("tests.detail.historyTitle")}
+              />
+              {detail.executions.length === 0 ? (
+                <Text style={styles.cardBody}>
+                  {t("tests.detail.historyEmpty")}
+                </Text>
+              ) : (
+                detail.executions.map((execution) => (
+                  <View key={execution.id} style={styles.historyCard}>
+                    <Text style={styles.historyTitle}>
+                      {execution.user.fullName} ·{" "}
+                      {statusLabel(t, execution.status)}
+                    </Text>
+                    <Text style={styles.historyMeta}>
+                      {formatDateTime(execution.executedAt, locale)}
+                    </Text>
+                    {execution.resultText ? (
+                      <Text style={styles.historyBody}>
+                        {execution.resultText}
+                      </Text>
+                    ) : null}
+                    {execution.comment ? (
+                      <Text style={styles.historyComment}>
+                        {execution.comment}
+                      </Text>
+                    ) : null}
+                    <View style={styles.imageRow}>
+                      {execution.attachments.map((attachment) => (
+                        <Image
+                          key={attachment.id}
+                          source={{ uri: attachment.url }}
+                          style={styles.previewImage}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                ))
+              )}
+            </View>
+          </ScrollView>
+
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => setIsFormVisible(true)}
+            testID="tests-fab-add"
+          >
+            <Ionicons name="add" size={28} color={colors.white} />
+          </TouchableOpacity>
+
+          <TestExecutionFormSheet
+            visible={isFormVisible}
+            evidenceRequired={detail.evidenceRequired}
+            isSubmitting={isSubmitting}
+            onClose={() => setIsFormVisible(false)}
+            onSubmit={handleSubmit}
+          />
+        </>
       )}
     </View>
   );
@@ -453,14 +321,29 @@ function CenteredMessage(props: {
   );
 }
 
-function InfoCard(props: {
+function CardHeader(props: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+}) {
+  return (
+    <View style={styles.cardHeaderRow}>
+      <View style={styles.cardIconWrap}>
+        <Ionicons name={props.icon} size={16} color={colors.primary} />
+      </View>
+      <Text style={styles.cardTitle}>{props.title}</Text>
+    </View>
+  );
+}
+
+function SectionCard(props: {
+  icon: keyof typeof Ionicons.glyphMap;
   title: string;
   value: string | null;
   noValue: string;
 }) {
   return (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>{props.title}</Text>
+      <CardHeader icon={props.icon} title={props.title} />
       <Text style={styles.cardBody}>
         {props.value?.trim() || props.noValue}
       </Text>
@@ -517,7 +400,20 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
   },
-  scrollContent: { padding: 16, gap: 12 },
+  scrollContent: { padding: 16, paddingBottom: 100, gap: 12 },
+  actionsRow: { flexDirection: "row", justifyContent: "flex-end" },
+  resultsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#D9CBBF",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: colors.white,
+  },
+  resultsButtonText: { fontSize: 12, fontWeight: "700", color: colors.primary },
   card: {
     backgroundColor: colors.white,
     borderRadius: 18,
@@ -525,6 +421,15 @@ const styles = StyleSheet.create({
     borderColor: "#E8DCCD",
     padding: 16,
     gap: 10,
+  },
+  cardHeaderRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  cardIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#F4E9DE",
+    alignItems: "center",
+    justifyContent: "center",
   },
   cardTitle: { fontSize: 16, fontWeight: "700", color: colors.textPrimary },
   cardBody: { fontSize: 14, lineHeight: 20, color: colors.textSecondary },
@@ -536,63 +441,6 @@ const styles = StyleSheet.create({
   },
   userName: { fontSize: 14, fontWeight: "600", color: colors.textPrimary },
   userMeta: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  statusWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  statusChip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#D9CBBF",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  statusChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  statusChipText: {
-    color: colors.textPrimary,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  statusChipTextSelected: { color: colors.white },
-  input: {
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#D9CBBF",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: colors.textPrimary,
-    backgroundColor: "#FFFDFC",
-  },
-  textArea: { minHeight: 110, textAlignVertical: "top" },
-  textAreaSmall: { minHeight: 80, textAlignVertical: "top" },
-  attachButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  attachButtonText: { color: colors.primary, fontWeight: "600", fontSize: 14 },
-  attachmentRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  attachmentName: { flex: 1, fontSize: 13, color: colors.textSecondary },
-  submitButton: {
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  submitButtonDisabled: {
-    opacity: 0.45,
-  },
-  submitButtonText: {
-    color: colors.white,
-    fontSize: 15,
-    fontWeight: "700",
-  },
   historyCard: {
     borderRadius: 14,
     backgroundColor: "#FBF7F2",
@@ -609,5 +457,21 @@ const styles = StyleSheet.create({
     height: 92,
     borderRadius: 10,
     backgroundColor: "#EEE7DE",
+  },
+  fab: {
+    position: "absolute",
+    right: 20,
+    bottom: 24,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 6,
   },
 });
