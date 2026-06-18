@@ -102,6 +102,7 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
           userFullName={userFullName}
           userInitials={userInitials}
           userRole={userRole}
+          isTester={Boolean(user?.isTester)}
           onLogout={logout}
         />
       </View>

@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
-    "start": "NODE_ENV=development EXPO_NO_DEVTOOLS=1 EXPO_USE_FAST_RESOLVER=1 EXPO_NO_METRO_WORKSPACE_ROOT=1 npx expo start --scheme scolive --localhost --max-workers 4",
-    "start:clean": "NODE_ENV=development EXPO_NO_DEVTOOLS=1 EXPO_USE_FAST_RESOLVER=1 EXPO_NO_METRO_WORKSPACE_ROOT=1 npx expo start --clear --scheme scolive --localhost --max-workers 4",
+    "start": "bash scripts/expo-start-raw.sh",
+    "start:clean": "bash scripts/expo-start-raw.sh --clear",
     "android": "bash scripts/android-dev-build.sh",
     "android:build": "bash scripts/android-dev-build.sh",
     "android:build:e2e:mock": "bash scripts/android-e2e-mock-build.sh",

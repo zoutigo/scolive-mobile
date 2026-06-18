@@ -6,12 +6,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppShell } from "../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../src/components/navigation/ModuleHeader";
 import { colors } from "../../src/theme";
+import { useTranslation } from "../../src/i18n/useTranslation";
 
 export default function PlaceholderScreen() {
   const { title } = useLocalSearchParams<{ title?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const label = title ?? "Module";
+  const { t } = useTranslation();
+  const label = title ?? t("placeholder.defaultTitle");
 
   return (
     <AppShell showHeader={false}>
@@ -32,10 +34,8 @@ export default function PlaceholderScreen() {
             />
           </View>
           <Text style={styles.title}>{label}</Text>
-          <Text style={styles.subtitle}>Module en cours de développement</Text>
-          <Text style={styles.body}>
-            Cette fonctionnalité sera disponible prochainement.
-          </Text>
+          <Text style={styles.subtitle}>{t("placeholder.subtitle")}</Text>
+          <Text style={styles.body}>{t("placeholder.body")}</Text>
         </View>
       </View>
     </AppShell>

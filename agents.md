@@ -1,143 +1,126 @@
 # agents.md — scolive-mobile
 
-Guide opérationnel pour agents IA travaillant sur le projet React Native.
+## Git
 
----
+- Ne jamais créer de commit ni pousser sur le remote sans instruction explicite de l'utilisateur.
+- Sauf indication explicite contraire de l'utilisateur, tout le développement se fait sur la branche `dev`.
+- Si la branche courante n'est pas `dev`, basculer dessus avant toute modification ou signaler clairement le blocage.
 
-## Internationalisation (i18n) — règle obligatoire
+## Agents
+
+- Ne jamais utiliser de sous-agents ou de délégation pour réaliser le travail demandé.
+- Faire tout le travail soi-même, étape par étape si nécessaire.
+
+## Internationalisation (i18n)
 
 Le projet utilise un système de traduction maison dans `src/i18n/` :
 
 - `translations.ts` : dictionnaires par locale, clés namespacées (ex. `settings.language.title`)
-- `useTranslation.ts` : hook `useTranslation()` → `{ locale, setLocale, t }`
+- `useTranslation.ts` : hook `useTranslation()` -> `{ locale, setLocale, t }`
 - Locales supportées (`SUPPORTED_LOCALES`) : `fr` (défaut, `DEFAULT_LOCALE`) et `en`
 
-**Pour tout nouveau développement ou correction :**
+Pour tout nouveau développement ou correction :
 
-- Jamais de texte en dur dans le code (titres, labels, messages, placeholders, erreurs, toasts, etc.)
-- Ajouter la clé correspondante dans `translations` pour CHAQUE locale supportée (`fr` ET `en`)
-- Afficher le texte via `t("namespace.cle")` (hook `useTranslation()`)
+- Ne jamais laisser de texte en dur dans le code.
+- Ajouter la clé correspondante dans `translations` pour chaque locale supportée (`fr` et `en`).
+- Afficher le texte via `t("namespace.key")`.
 
----
+## UI et formulaires
 
-## Environnement de dev Android
+- Toute UI de liste avec chargement progressif passe par `src/components/lists/InfiniteScrollList.tsx`.
+- Tout `POST` utilise le toast global centré pour ses retours `success/error`, affiché 7 secondes et fermable manuellement.
+- Tout formulaire métier utilise `react-hook-form` avec `zod` via `zodResolver`.
+- Ne jamais bloquer un submit avec `isDirty`, `dirtyFields`, `isValid` ou une condition équivalente.
+- Les erreurs doivent être affichées directement sous les champs, avec un état d'erreur visuel clair.
+- Les placeholders doivent aider réellement à la saisie.
+- Configuration UX attendue : `mode: "onChange"` et `reValidateMode: "onChange"`.
+- En cas de submit invalide, focus sur le premier champ invalide.
 
-### AVD de référence
+## Clavier Android
 
-**`Scolive_GooglePlay_API33`** — image Google Play API 33, GPU `swiftshader_indirect`.
-C'est le seul AVD qui inclut Chrome, donc le seul compatible avec Google OAuth (Chrome Custom Tabs).
+`android:windowSoftInputMode="adjustPan"` est la règle de référence dans `android/app/src/main/AndroidManifest.xml`.
 
-Ne jamais suggérer `Scolive_Dev_AOSP_API33` pour des scénarios impliquant Google Auth.
+- Ne pas ajouter de scroll JavaScript au focus pour compenser le clavier sur Android.
+- Utiliser `KeyboardAvoidingView` uniquement pour iOS et laisser Android gérer la visibilité du champ nativement.
+- Tout changement dans `AndroidManifest.xml` nécessite `npm run android:build`.
 
-### Snapshot de démarrage
+## Environnement Android
 
-Un snapshot `startup_ready` est présent dans :
+- Android Studio : `~/android-studio/bin/studio`
+- SDK Android : `~/Android/Sdk`
+- AVD de dev quotidien : `Scolive_GooglePlay_API33`
+- AVD dédié E2E Maestro : `Scolive_E2E_GooglePlay_API33`
 
+Lancement manuel :
+
+```bash
+cd /home/zoutigo/projets/scolive/scolive-mobile
+npm run android:emulator
+npm run android:build
+npm start
 ```
-~/.android/avd/Scolive_GooglePlay_API33.avd/snapshots/startup_ready/
+
+Flux quotidien recommandé :
+
+```bash
+cd /home/zoutigo/projets/scolive
+code .
 ```
 
-`scripts/android-emulator-nvidia.sh` le charge automatiquement → boot en ~25 s.
+Le script `dev.sh` et l'ouverture du workspace démarrent l'émulateur de dev si besoin, les tâches utiles et Expo Go.
 
-Si le snapshot est absent, le premier boot dure 30+ min (compilation AOT de TrichromeLibrary/Chrome).
-Dans ce cas, attendre que `dex2oat64` n'apparaisse plus dans logcat, puis recréer le snapshot
-(`Emulator → Extended Controls → Snapshots → Take snapshot`, nom : `startup_ready`).
+En cas de problème :
 
-### Ports adb reverse
+```bash
+npm run android:reinstall
+```
 
-Configurés automatiquement par `scripts/android-dev-install.sh` et `scripts/workspace-mobile-start.sh` :
+Utiliser seulement si Metro est cassé :
 
-| Port | Service                                    |
-| ---- | ------------------------------------------ |
-| 8081 | Metro bundler                              |
-| 3000 | App web Next.js (requis pour Google OAuth) |
-| 3001 | Mock server E2E                            |
-
-Vérification : `adb reverse --list`
-
----
-
-## Flux `code .` (développement quotidien)
-
-## Git
-
-- sauf indication explicite contraire de l'utilisateur, toujours travailler sur la branche `dev`
-- si la branche courante n'est pas `dev`, basculer dessus avant toute modification ou signaler le blocage
-
-## Flux `code .` (développement quotidien)
-
-1. `dev.sh` démarre VS Code et lance `Scolive_GooglePlay_API33` (snapshot)
-2. Tâche `mobile-emulator` : `android-emulator-nvidia.sh Scolive_GooglePlay_API33`
-3. Tâche `mobile` : `workspace-mobile-start.sh`
-   - Démarre Metro (`expo-start-raw.sh`)
-   - Arrière-plan : `bootstrap_android_app`
-     - Attend que l'émulateur réponde (`adb shell pm list packages`)
-     - Configure `adb reverse` pour 8081, 3000, 3001
-     - Attend Metro (`curl http://localhost:8081/status`)
-     - Réveille l'écran (`KEYCODE_WAKEUP`)
-     - Ouvre l'app native (`am start -n com.zoutigo.scoliveapp/.MainActivity`)
-     - Vérifie `logcat | grep "ReactNativeJS: Running"`, réessaie 5 fois si nécessaire
-
-Durée totale attendue : ~100 s pour avoir l'écran de login visible.
-
----
+```bash
+npm run start:clean
+```
 
 ## Google Auth Android
 
-### Flux complet
+- Tester Google Auth sur une vraie app native Android, pas dans Expo Go.
+- Ne pas réintroduire de remplacement `localhost -> 10.0.2.2` dans `src/auth/google-auth.ts`.
+- Ne pas désactiver `com.android.chrome` dans les scripts d'installation/dev Android.
 
+## E2E Android (Maestro)
+
+Les E2E Android reposent sur Maestro.
+
+- Utiliser exclusivement l'AVD `Scolive_E2E_GooglePlay_API33`.
+- Libérer le port `3001` avant chaque run.
+- Utiliser l'APK `release`, jamais l'APK `debug`.
+- Chemin attendu : `android/app/build/outputs/apk/release/app-release.apk`.
+
+Préparation fiable :
+
+```bash
+cd /home/zoutigo/projets/scolive/scolive-mobile
+lsof -ti :3001 | xargs -r kill
+curl -sS --max-time 1 http://127.0.0.1:3001/api/health || true
+bash scripts/android-emulator-nvidia.sh Scolive_E2E_GooglePlay_API33
 ```
-Bouton "Connexion Google" (app native)
-  → WebBrowser.openAuthSessionAsync("http://localhost:3000/auth/mobile-sso-start?redirectUri=scolive://auth/callback")
-  → Chrome Custom Tab (localhost:3000 joignable via adb reverse)
-  → NextAuth démarre le flux OAuth Google
-  → Redirection Google (sélecteur de compte forcé : prompt="select_account")
-  → Callback NextAuth sur localhost:3000 (cookie state domain=localhost → cohérent)
-  → Redirection vers scolive://auth/callback
-  → Chrome Custom Tab fermé, deep link reçu par l'app
-  → Session stockée, écran home affiché
+
+Le `curl` doit échouer avant le lancement.
+
+Séquence fiable validée :
+
+```bash
+cd /home/zoutigo/projets/scolive/scolive-mobile
+lsof -ti :3001 | xargs -r kill
+bash scripts/android-emulator-nvidia.sh Scolive_E2E_GooglePlay_API33
+npm run android:build:release
+ANDROID_SERIAL=emulator-5556 npm run e2e:test:notes:parent
+ANDROID_SERIAL=emulator-5556 npm run e2e:test:notes:crud
 ```
 
-### Fichiers clés
+## DevTools Linux
 
-- `src/auth/google-auth.ts` :
-  - `buildGoogleSsoStartUrl()` construit l'URL de départ
-  - `normalizeWebBaseUrlForRuntime()` normalise l'URL sans remplacer `localhost` par `10.0.2.2`
-    (adb reverse rend `localhost:3000` directement accessible)
-  - Lève `GoogleAuthError("GOOGLE_AUTH_NATIVE_BUILD_REQUIRED")` si Expo Go détecté
-
-- `scolive-web/apps/web/src/auth.ts` :
-  - Google provider configuré avec `prompt: "select_account"`
-  - `resolveAllowedRedirect` autorise `scolive://auth/callback` via `buildAllowedRedirectOrigins`
-
-### Invariants à ne pas casser
-
-- Ne pas réintroduire de remplacement `localhost → 10.0.2.2` dans `google-auth.ts`
-  (casserait le domaine du cookie NextAuth)
-- Ne pas désactiver `com.android.chrome` dans `android-dev-install.sh` (`apply_dev_tuning`)
-- Ne pas utiliser `Expo Go` pour tester Google Auth (rejeté explicitement par le code)
-
----
-
-## Scripts principaux
-
-| Script                                | Rôle                                                              |
-| ------------------------------------- | ----------------------------------------------------------------- |
-| `scripts/android-emulator-nvidia.sh`  | Lance l'AVD avec le bon GPU et charge le snapshot si présent      |
-| `scripts/workspace-mobile-start.sh`   | Démarre Metro + bootstrap Android en arrière-plan                 |
-| `scripts/android-dev-install.sh`      | Installe l'APK, configure adb reverse, précompile l'app           |
-| `scripts/expo-start-raw.sh`           | Lance Metro avec `REACT_NATIVE_DEVTOOLS=0`, `EXPO_NO_DEVTOOLS=1`  |
-| `scripts/maestro-run-flow.sh`         | Lance un flow Maestro E2E avec mock server                        |
-| `scripts/android-e2e-google-build.sh` | Build APK release avec mock URL baked in (`http://10.0.2.2:3001`) |
-
----
-
-## React Native DevTools — Linux
-
-Le binaire `chrome-sandbox` doit être owned root + setuid pour que l'Electron DevTools fonctionne.
-Sans ça, Metro tente de passer `--no-sandbox` que `parseArgs` rejette.
-
-Correction permanente (une seule fois par machine) :
+Si React Native DevTools échoue à cause de `chrome-sandbox`, appliquer une seule fois :
 
 ```bash
 SANDBOX="$HOME/.cache/dotslash/cb/$(ls ~/.cache/dotslash/cb/)/React Native DevTools-linux-x64/chrome-sandbox"
@@ -145,35 +128,4 @@ sudo chown root:root "$SANDBOX"
 sudo chmod 4755 "$SANDBOX"
 ```
 
-`REACT_NATIVE_DEVTOOLS=0` dans `expo-start-raw.sh` désactive DevTools comme protection temporaire.
-
----
-
-## E2E Android (Maestro)
-
-Architecture :
-
-- `.maestro/flows/` — flows YAML par scénario
-- `.maestro/mock-server/server.js` — simule l'API + SSO sur `http://10.0.2.2:3001`
-  - `GET /auth/mobile-sso-start` → redirect vers `scolive://auth/callback` avec user mock
-- APK release standard : `scripts/android-release-build.sh`
-- APK Google E2E (mock URL baked in) : `scripts/android-e2e-google-build.sh`
-
-Flows disponibles : `smoke`, `auth-email`, `auth-phone`, `auth-google-full`, `onboarding-email`,
-`onboarding-phone`, `recovery-password`, `recovery-pin`
-
-```bash
-npm run e2e:test:auth-google    # flow auth-google avec mock (ne pas confondre avec vrai Google)
-npm run e2e                     # rebuild APK + suite complète
-```
-
----
-
-## Avertissements connus (non bloquants)
-
-- `WARN  Bridgeless mode is enabled but native module "RNCNetInfo" still uses legacy CatalystInstance`
-  → dépendance interne, non bloquant
-- `WARN  Inspector proxy has not received a "hello" message`
-  → interne Expo, non bloquant
-- `dex2oat64: Could not open dex files for location TrichromeLibrary.apk, fd=-1`
-  → visible seulement sur premier boot sans snapshot, non bloquant après le snapshot
+`REACT_NATIVE_DEVTOOLS=0` est déjà utilisé comme protection temporaire dans `scripts/expo-start-raw.sh`.
