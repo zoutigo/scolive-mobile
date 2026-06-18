@@ -172,7 +172,11 @@ function TestCaseScreen() {
                 onPress={scrollToResults}
                 testID="tests-view-results-btn"
               >
-                <Ionicons name="list-outline" size={16} color={colors.primary} />
+                <Ionicons
+                  name="list-outline"
+                  size={16}
+                  color={colors.primary}
+                />
                 <Text style={styles.resultsButtonText}>
                   {t("tests.detail.viewResults")}
                 </Text>

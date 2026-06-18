@@ -2781,7 +2781,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.summary.highlight.title": "To do today",
     "tests.summary.highlight.campaignBadge": "Campaign",
     "tests.summary.highlight.cta": "Open test",
-    "tests.summary.highlight.empty": "Every visible test is up to date. Nice work!",
+    "tests.summary.highlight.empty":
+      "Every visible test is up to date. Nice work!",
     "tests.summary.emptyTitle": "No active campaign",
     "tests.summary.emptyMessage": "Upcoming test campaigns will appear here.",
 

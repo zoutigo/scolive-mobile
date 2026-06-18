@@ -1,5 +1,10 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import { TestExecutionFormSheet } from "../../src/components/tests/TestExecutionFormSheet";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));

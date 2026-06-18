@@ -124,9 +124,9 @@ describe("Tests screen", () => {
     await waitFor(() => {
       expect(screen.getByTestId("tests-summary-tab")).toBeTruthy();
       expect(screen.getByTestId("tests-highlight-cta")).toBeTruthy();
-      expect(screen.getByTestId("tests-kpi-total-campaigns-count")).toHaveTextContent(
-        "1",
-      );
+      expect(
+        screen.getByTestId("tests-kpi-total-campaigns-count"),
+      ).toHaveTextContent("1");
     });
   });
 });

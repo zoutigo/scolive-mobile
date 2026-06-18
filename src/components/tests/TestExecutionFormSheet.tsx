@@ -42,10 +42,7 @@ type FormValues = {
   attachmentsCount: number;
 };
 
-function buildSchema(
-  t: (key: string) => string,
-  evidenceRequired: boolean,
-) {
+function buildSchema(t: (key: string) => string, evidenceRequired: boolean) {
   return z.object({
     status: z.enum([
       "PASSED",
@@ -234,9 +231,7 @@ export function TestExecutionFormSheet({
         />
         <View style={styles.sheet} testID="test-execution-form-sheet">
           <View style={styles.header}>
-            <Text style={styles.title}>
-              {t("tests.detail.formModalTitle")}
-            </Text>
+            <Text style={styles.title}>{t("tests.detail.formModalTitle")}</Text>
             <TouchableOpacity
               onPress={onClose}
               testID="test-execution-form-close"
@@ -304,9 +299,7 @@ export function TestExecutionFormSheet({
               )}
             />
             {errors.resultText ? (
-              <Text style={styles.fieldError}>
-                {errors.resultText.message}
-              </Text>
+              <Text style={styles.fieldError}>{errors.resultText.message}</Text>
             ) : null}
 
             <Controller

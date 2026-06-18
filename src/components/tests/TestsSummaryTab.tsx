@@ -67,7 +67,11 @@ export function TestsSummaryTab({ campaigns }: Props) {
   if (campaigns.length === 0) {
     return (
       <View style={styles.empty}>
-        <Ionicons name="clipboard-outline" size={42} color={colors.warmBorder} />
+        <Ionicons
+          name="clipboard-outline"
+          size={42}
+          color={colors.warmBorder}
+        />
         <Text style={styles.emptyTitle}>{t("tests.summary.emptyTitle")}</Text>
         <Text style={styles.emptyBody}>{t("tests.summary.emptyMessage")}</Text>
       </View>
@@ -90,7 +94,11 @@ export function TestsSummaryTab({ campaigns }: Props) {
 
       <View style={styles.highlightCard} testID="tests-highlight-card">
         <View style={styles.highlightHeader}>
-          <Ionicons name="sparkles-outline" size={18} color={colors.warmAccent} />
+          <Ionicons
+            name="sparkles-outline"
+            size={18}
+            color={colors.warmAccent}
+          />
           <Text style={styles.highlightTitle}>
             {t("tests.summary.highlight.title")}
           </Text>
@@ -112,9 +120,7 @@ export function TestsSummaryTab({ campaigns }: Props) {
                 {t("tests.summary.highlight.campaignBadge")}
               </Text>
             </View>
-            <Text style={styles.highlightCampaignTitle}>
-              {highlight.title}
-            </Text>
+            <Text style={styles.highlightCampaignTitle}>{highlight.title}</Text>
             <Text style={styles.highlightMeta}>
               {t("tests.campaigns.progressLabel")
                 .replace("{done}", String(highlight.summary.completedCases))
@@ -148,7 +154,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   highlightHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
-  highlightTitle: { fontSize: 15, fontWeight: "700", color: colors.textPrimary },
+  highlightTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
   highlightBody: { gap: 8 },
   highlightBadge: {
     alignSelf: "flex-start",
@@ -157,7 +167,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  highlightBadgeText: { fontSize: 11, fontWeight: "700", color: colors.primary },
+  highlightBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.primary,
+  },
   highlightCampaignTitle: {
     fontSize: 17,
     fontWeight: "700",

@@ -105,7 +105,9 @@ export function TestsCampaignsTab({ campaigns }: Props) {
                 <View
                   style={[styles.statusPill, { backgroundColor: palette.bg }]}
                 >
-                  <Text style={[styles.statusPillText, { color: palette.text }]}>
+                  <Text
+                    style={[styles.statusPillText, { color: palette.text }]}
+                  >
                     {t(`tests.campaigns.status.${statusKey(status)}`)}
                   </Text>
                 </View>
@@ -183,7 +185,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
-  filterChipText: { fontSize: 12, fontWeight: "600", color: colors.textPrimary },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
   filterChipTextActive: { color: colors.white },
   list: { gap: 12 },
   card: {

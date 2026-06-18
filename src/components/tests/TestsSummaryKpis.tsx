@@ -11,7 +11,13 @@ interface KpiCardProps {
   testID: string;
 }
 
-function KpiCard({ icon, label, count, backgroundColor, testID }: KpiCardProps) {
+function KpiCard({
+  icon,
+  label,
+  count,
+  backgroundColor,
+  testID,
+}: KpiCardProps) {
   return (
     <View style={[styles.kpiCard, { backgroundColor }]} testID={testID}>
       <View style={styles.kpiHeader}>
