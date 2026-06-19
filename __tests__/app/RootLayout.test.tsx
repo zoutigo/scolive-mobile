@@ -107,6 +107,7 @@ describe("RootLayout", () => {
       initialize: jest.fn().mockResolvedValue(undefined),
     } as never);
     mockUseAppVersionCheck.mockReturnValue({
+      status: "ready",
       updateAvailable: false,
       mandatory: false,
       latestVersionName: null,
@@ -115,6 +116,7 @@ describe("RootLayout", () => {
       currentVersionCode: 10,
       downloadUrl: "",
       dismiss: jest.fn(),
+      retry: jest.fn(),
     });
     jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
   });
@@ -145,6 +147,7 @@ describe("RootLayout", () => {
     (Linking.openURL as jest.Mock).mockResolvedValue(undefined);
 
     mockUseAppVersionCheck.mockReturnValue({
+      status: "ready",
       updateAvailable: true,
       mandatory: false,
       latestVersionName: "1.1.0",
@@ -153,6 +156,7 @@ describe("RootLayout", () => {
       currentVersionCode: 10,
       downloadUrl: "https://downloads.example.com/scolive.apk",
       dismiss: jest.fn(),
+      retry: jest.fn(),
     });
 
     render(<RootLayout />);
@@ -168,6 +172,7 @@ describe("RootLayout", () => {
     const dismiss = jest.fn();
 
     mockUseAppVersionCheck.mockReturnValue({
+      status: "ready",
       updateAvailable: true,
       mandatory: false,
       latestVersionName: "1.1.0",
@@ -176,11 +181,112 @@ describe("RootLayout", () => {
       currentVersionCode: 10,
       downloadUrl: "https://downloads.example.com/scolive.apk",
       dismiss,
+      retry: jest.fn(),
     });
 
     render(<RootLayout />);
     fireEvent.press(screen.getByTestId("root-update-dismiss"));
 
     expect(dismiss).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── Gate de démarrage — élimine la course check-de-version / login ───────────
+
+describe("RootLayout — gate de démarrage", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseAuthStoreGetState.mockReturnValue({
+      initialize: jest.fn().mockResolvedValue(undefined),
+    } as never);
+  });
+
+  it("n'affiche ni le Stack (login inclus) ni les modales tant que status='checking'", () => {
+    mockUseAppVersionCheck.mockReturnValue({
+      status: "checking",
+      updateAvailable: false,
+      mandatory: false,
+      latestVersionName: null,
+      latestVersionCode: null,
+      currentVersionName: null,
+      currentVersionCode: null,
+      downloadUrl: "",
+      dismiss: jest.fn(),
+      retry: jest.fn(),
+    });
+
+    render(<RootLayout />);
+
+    expect(screen.getByTestId("startup-checking")).toBeTruthy();
+    expect(screen.queryByText("login")).toBeNull();
+    expect(screen.queryByText("index")).toBeNull();
+  });
+
+  it("affiche un écran de blocage avec retry si status='error', sans monter le Stack", () => {
+    const retry = jest.fn();
+    mockUseAppVersionCheck.mockReturnValue({
+      status: "error",
+      updateAvailable: false,
+      mandatory: false,
+      latestVersionName: null,
+      latestVersionCode: null,
+      currentVersionName: null,
+      currentVersionCode: null,
+      downloadUrl: "",
+      dismiss: jest.fn(),
+      retry,
+    });
+
+    render(<RootLayout />);
+
+    expect(screen.getByTestId("startup-error")).toBeTruthy();
+    expect(screen.queryByText("login")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("startup-error-retry"));
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it("affiche le Stack normalement une fois status='ready'", () => {
+    mockUseAppVersionCheck.mockReturnValue({
+      status: "ready",
+      updateAvailable: false,
+      mandatory: false,
+      latestVersionName: null,
+      latestVersionCode: null,
+      currentVersionName: "1.0.0",
+      currentVersionCode: 10,
+      downloadUrl: "",
+      dismiss: jest.fn(),
+      retry: jest.fn(),
+    });
+
+    render(<RootLayout />);
+
+    expect(screen.queryByTestId("startup-checking")).toBeNull();
+    expect(screen.queryByTestId("startup-error")).toBeNull();
+    expect(screen.getByText("login")).toBeTruthy();
+  });
+
+  it("bloque même si une mise à jour mandatory est détectée pendant 'checking' (pas de fenêtre de login possible)", () => {
+    // Le scénario qui causait le bug initial : un check encore en cours ne doit
+    // jamais laisser un écran interactif apparaître, y compris transitoirement.
+    mockUseAppVersionCheck.mockReturnValue({
+      status: "checking",
+      updateAvailable: false,
+      mandatory: false,
+      latestVersionName: null,
+      latestVersionCode: null,
+      currentVersionName: null,
+      currentVersionCode: null,
+      downloadUrl: "",
+      dismiss: jest.fn(),
+      retry: jest.fn(),
+    });
+
+    render(<RootLayout />);
+
+    expect(screen.queryByTestId("root-update-download")).toBeNull();
+    expect(screen.queryByTestId("root-update-dismiss")).toBeNull();
+    expect(screen.getByTestId("startup-checking")).toBeTruthy();
   });
 });

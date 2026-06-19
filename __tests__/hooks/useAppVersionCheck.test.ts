@@ -27,10 +27,32 @@ beforeEach(() => {
   Object.defineProperty(Platform, "OS", { value: "android", writable: true });
 });
 
+// ── État initial ──────────────────────────────────────────────────────────────
+
+describe("État initial", () => {
+  it("démarre en status 'checking' sur Android, avant toute réponse réseau", () => {
+    mockGetMeta.mockReturnValue(new Promise(() => {})); // jamais résolue dans ce test
+
+    const { result } = renderHook(() => useAppVersionCheck());
+
+    expect(result.current.status).toBe("checking");
+    expect(result.current.updateAvailable).toBe(false);
+  });
+
+  it("démarre directement en status 'ready' sur iOS (pas de mécanisme de check)", () => {
+    Object.defineProperty(Platform, "OS", { value: "ios", writable: true });
+
+    const { result } = renderHook(() => useAppVersionCheck());
+
+    expect(result.current.status).toBe("ready");
+    expect(mockGetMeta).not.toHaveBeenCalled();
+  });
+});
+
 // ── Aucune mise à jour ────────────────────────────────────────────────────────
 
 describe("Pas de mise à jour", () => {
-  it("retourne updateAvailable=false si le serveur a le même versionCode", async () => {
+  it("passe en status 'ready' et updateAvailable=false si même versionCode", async () => {
     mockGetMeta.mockResolvedValueOnce({
       versionName: "1.0.0",
       versionCode: 10,
@@ -42,7 +64,7 @@ describe("Pas de mise à jour", () => {
     const { result } = renderHook(() => useAppVersionCheck());
 
     await waitFor(() => {
-      expect(mockGetMeta).toHaveBeenCalledTimes(1);
+      expect(result.current.status).toBe("ready");
     });
 
     expect(result.current.updateAvailable).toBe(false);
@@ -60,7 +82,7 @@ describe("Pas de mise à jour", () => {
     const { result } = renderHook(() => useAppVersionCheck());
 
     await waitFor(() => {
-      expect(mockGetMeta).toHaveBeenCalledTimes(1);
+      expect(result.current.status).toBe("ready");
     });
 
     expect(result.current.updateAvailable).toBe(false);
@@ -96,8 +118,28 @@ describe("Mise à jour disponible", () => {
       expect(result.current.updateAvailable).toBe(true);
     });
 
+    expect(result.current.status).toBe("ready");
     expect(result.current.latestVersionName).toBe("1.1.0");
     expect(result.current.latestVersionCode).toBe(11);
+  });
+
+  it("marque mandatory=true si minimumVersionCode dépasse la version installée", async () => {
+    mockGetMeta.mockResolvedValueOnce({
+      versionName: "1.2.0",
+      versionCode: 12,
+      minimumVersionCode: 12,
+      uploadedAt: "2026-01-01T00:00:00Z",
+      fileSize: 2000,
+      mimeType: "application/vnd.android.package-archive",
+    });
+
+    const { result } = renderHook(() => useAppVersionCheck());
+
+    await waitFor(() => {
+      expect(result.current.updateAvailable).toBe(true);
+    });
+
+    expect(result.current.mandatory).toBe(true);
   });
 
   it("expose l'URL de téléchargement depuis downloadUrl du meta", async () => {
@@ -157,7 +199,7 @@ describe("Versions actuelles", () => {
     const { result } = renderHook(() => useAppVersionCheck());
 
     await waitFor(() => {
-      expect(mockGetMeta).toHaveBeenCalledTimes(1);
+      expect(result.current.status).toBe("ready");
     });
 
     expect(result.current.currentVersionName).toBe("1.0.0");
@@ -189,19 +231,91 @@ describe("Dismiss", () => {
 
     expect(result.current.updateAvailable).toBe(false);
   });
+
+  it("dismiss() ne masque pas une mise à jour mandatory", async () => {
+    mockGetMeta.mockResolvedValueOnce({
+      versionName: "1.2.0",
+      versionCode: 12,
+      minimumVersionCode: 12,
+      uploadedAt: "2026-01-01T00:00:00Z",
+      fileSize: 2000,
+      mimeType: "application/vnd.android.package-archive",
+    });
+
+    const { result } = renderHook(() => useAppVersionCheck());
+
+    await waitFor(() => {
+      expect(result.current.updateAvailable).toBe(true);
+    });
+
+    act(() => {
+      result.current.dismiss();
+    });
+
+    expect(result.current.updateAvailable).toBe(true);
+  });
 });
 
-// ── Résilience aux erreurs ────────────────────────────────────────────────────
+// ── Résilience aux erreurs : on bloque désormais au lieu d'ignorer ────────────
 
-describe("Résilience aux erreurs", () => {
-  it("ne propage pas l'erreur si l'API échoue", async () => {
+describe("Échec de la vérification (status='error')", () => {
+  it("passe en status='error' si l'API échoue, au lieu de laisser passer silencieusement", async () => {
     mockGetMeta.mockRejectedValueOnce(new Error("Network error"));
 
     const { result } = renderHook(() => useAppVersionCheck());
 
-    await act(async () => {});
+    await waitFor(() => {
+      expect(result.current.status).toBe("error");
+    });
 
     expect(result.current.updateAvailable).toBe(false);
     expect(result.current.latestVersionName).toBeNull();
+  });
+
+  it("retry() relance la vérification et peut repasser en status='ready'", async () => {
+    mockGetMeta
+      .mockRejectedValueOnce(new Error("Network error"))
+      .mockResolvedValueOnce({
+        versionName: "1.0.0",
+        versionCode: 10,
+        uploadedAt: "2026-01-01T00:00:00Z",
+        fileSize: 1000,
+        mimeType: "application/vnd.android.package-archive",
+      });
+
+    const { result } = renderHook(() => useAppVersionCheck());
+
+    await waitFor(() => {
+      expect(result.current.status).toBe("error");
+    });
+
+    act(() => {
+      result.current.retry();
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe("ready");
+    });
+
+    expect(mockGetMeta).toHaveBeenCalledTimes(2);
+  });
+
+  it("passe en status='error' si l'API ne répond jamais (timeout de sécurité)", async () => {
+    jest.useFakeTimers();
+    mockGetMeta.mockReturnValue(new Promise(() => {}));
+
+    const { result } = renderHook(() => useAppVersionCheck());
+
+    expect(result.current.status).toBe("checking");
+
+    await act(async () => {
+      jest.advanceTimersByTime(8000);
+      // Laisse les microtasks de la Promise.race se résoudre.
+      await Promise.resolve();
+    });
+
+    expect(result.current.status).toBe("error");
+
+    jest.useRealTimers();
   });
 });

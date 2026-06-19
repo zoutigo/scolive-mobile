@@ -1733,6 +1733,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     // Teacher class timetable route
     "classRoute.timetable.headerTitle": "Emploi du temps",
     "classRoute.timetable.tabLabel": "Emploi du temps",
+
+    // Vérification de version au démarrage
+    "startup.checking": "Vérification de la version…",
+    "startup.error.title": "Connexion impossible",
+    "startup.error.message":
+      "Nous n'avons pas pu vérifier que votre application est à jour. Vérifiez votre connexion puis réessayez.",
+    "startup.error.retry": "Réessayer",
   },
   en: {
     "settings.language.title": "Language of this device",
@@ -3395,5 +3402,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     // Teacher class timetable route
     "classRoute.timetable.headerTitle": "Timetable",
     "classRoute.timetable.tabLabel": "Timetable",
+
+    // Startup version check
+    "startup.checking": "Checking app version…",
+    "startup.error.title": "Unable to continue",
+    "startup.error.message":
+      "We couldn't verify that your app is up to date. Check your connection and try again.",
+    "startup.error.retry": "Retry",
   },
 };
