@@ -212,6 +212,12 @@ const PLATFORM_NAV: NavItem[] = [
   placeholder("Élèves", "people-outline", "students"),
   placeholder("Utilisateurs", "person-outline", "users"),
   placeholder("Indicateurs", "bar-chart-outline", "indicators"),
+  {
+    key: "admin-tests",
+    label: "Tests",
+    icon: "clipboard-outline",
+    route: "/admin-tests",
+  },
   accountItem(),
 ];
 

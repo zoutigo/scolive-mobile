@@ -42,9 +42,9 @@ describe("Tests screen", () => {
     expect(screen.getByText("Accès restreint")).toBeTruthy();
   });
 
-  it("loads and renders test campaigns for tester users", async () => {
+  it("loads and renders test campaigns for tester users with no active school (tests are global)", async () => {
     (useAuthStore as unknown as jest.Mock).mockReturnValue({
-      schoolSlug: "college-vogt",
+      schoolSlug: null,
       user: {
         id: "u1",
         firstName: "Valery",

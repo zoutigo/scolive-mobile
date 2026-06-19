@@ -44,7 +44,7 @@ function TestCaseScreen() {
   const router = useRouter();
   const { testCaseId } = useLocalSearchParams<{ testCaseId: string }>();
   const { openDrawer } = useDrawer();
-  const { schoolSlug, user } = useAuthStore();
+  const { user } = useAuthStore();
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
   const [detail, setDetail] = useState<TestCaseDetail | null>(null);
@@ -59,11 +59,11 @@ function TestCaseScreen() {
 
   const load = useCallback(
     async (refresh = false) => {
-      if (!schoolSlug || !testCaseId) return;
+      if (!testCaseId) return;
       if (refresh) setIsRefreshing(true);
       else setIsLoading(true);
       try {
-        const response = await testsApi.getTestCase(schoolSlug, testCaseId);
+        const response = await testsApi.getTestCase(testCaseId);
         setDetail(response);
         setErrorMessage(null);
       } catch (error) {
@@ -77,7 +77,7 @@ function TestCaseScreen() {
         setIsRefreshing(false);
       }
     },
-    [schoolSlug, testCaseId],
+    [testCaseId],
   );
 
   useEffect(() => {
@@ -90,10 +90,10 @@ function TestCaseScreen() {
     comment: string;
     attachments: Array<{ uri: string; name: string; mimeType: string }>;
   }) {
-    if (!schoolSlug || !testCaseId) return;
+    if (!testCaseId) return;
     setIsSubmitting(true);
     try {
-      await testsApi.createExecution(schoolSlug, testCaseId, {
+      await testsApi.createExecution(testCaseId, {
         status: values.status,
         resultText: values.resultText,
         comment: values.comment || undefined,
