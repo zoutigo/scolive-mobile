@@ -39,7 +39,7 @@ function TestsHomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { openDrawer } = useDrawer();
-  const { schoolSlug, user } = useAuthStore();
+  const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<TabKey>("summary");
   const [campaigns, setCampaigns] = useState<TestCampaignSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,7 +48,7 @@ function TestsHomeScreen() {
 
   const load = useCallback(
     async (refresh = false) => {
-      if (!schoolSlug || !user?.isTester) {
+      if (!user?.isTester) {
         setCampaigns([]);
         setIsLoading(false);
         return;
@@ -59,7 +59,7 @@ function TestsHomeScreen() {
         setIsLoading(true);
       }
       try {
-        const response = await testsApi.listCampaigns(schoolSlug);
+        const response = await testsApi.listCampaigns();
         setCampaigns(response);
         setErrorMessage(null);
       } catch (error) {
@@ -73,7 +73,7 @@ function TestsHomeScreen() {
         setIsRefreshing(false);
       }
     },
-    [schoolSlug, user?.isTester],
+    [user?.isTester],
   );
 
   useEffect(() => {

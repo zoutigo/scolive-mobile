@@ -146,27 +146,17 @@ function normalizeAttachments<
 }
 
 export const testsApi = {
-  listCampaigns(schoolSlug: string): Promise<TestCampaignSummary[]> {
-    return apiFetch(`/schools/${schoolSlug}/tests/campaigns`, {}, true);
+  listCampaigns(): Promise<TestCampaignSummary[]> {
+    return apiFetch(`/tests/campaigns`, {}, true);
   },
 
-  getCampaign(
-    schoolSlug: string,
-    campaignId: string,
-  ): Promise<TestCampaignDetail> {
-    return apiFetch(
-      `/schools/${schoolSlug}/tests/campaigns/${campaignId}`,
-      {},
-      true,
-    );
+  getCampaign(campaignId: string): Promise<TestCampaignDetail> {
+    return apiFetch(`/tests/campaigns/${campaignId}`, {}, true);
   },
 
-  async getTestCase(
-    schoolSlug: string,
-    testCaseId: string,
-  ): Promise<TestCaseDetail> {
+  async getTestCase(testCaseId: string): Promise<TestCaseDetail> {
     const response = await apiFetch<TestCaseDetail>(
-      `/schools/${schoolSlug}/tests/cases/${testCaseId}`,
+      `/tests/cases/${testCaseId}`,
       {},
       true,
     );
@@ -183,7 +173,6 @@ export const testsApi = {
   },
 
   async createExecution(
-    schoolSlug: string,
     testCaseId: string,
     payload: {
       status: TestExecutionStatus;
@@ -215,7 +204,7 @@ export const testsApi = {
     }
 
     const response = await postMultipart(
-      `/schools/${schoolSlug}/tests/cases/${testCaseId}/executions`,
+      `/tests/cases/${testCaseId}/executions`,
       formData,
     );
 

@@ -66,16 +66,24 @@ beforeEach(() => {
 describe("testsApi.listCampaigns()", () => {
   it("calls the campaigns endpoint with auth", async () => {
     mockFetch.mockResolvedValueOnce(okJson([]));
-    await testsApi.listCampaigns("college-vogt");
+    await testsApi.listCampaigns();
 
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/schools/college-vogt/tests/campaigns"),
+      expect.stringContaining("/tests/campaigns"),
       expect.objectContaining({
         headers: expect.objectContaining({
           Authorization: "Bearer test-token",
         }),
       }),
     );
+  });
+
+  it("does not scope the request to any school (tests are global)", async () => {
+    mockFetch.mockResolvedValueOnce(okJson([]));
+    await testsApi.listCampaigns();
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).not.toContain("/schools/");
   });
 });
 
@@ -132,7 +140,7 @@ describe("testsApi.getTestCase()", () => {
       }),
     );
 
-    const result = await testsApi.getTestCase("college-vogt", "case-1");
+    const result = await testsApi.getTestCase("case-1");
     expect(result.latestOwnExecution?.attachments[0].url).toBe(
       "http://10.0.2.2:9000/tests/capture.png",
     );
@@ -157,7 +165,7 @@ describe("testsApi.createExecution()", () => {
         }),
     });
 
-    await testsApi.createExecution("college-vogt", "case-1", {
+    await testsApi.createExecution("case-1", {
       status: "PASSED",
       resultText: "Ok",
       attachments: [
@@ -170,9 +178,7 @@ describe("testsApi.createExecution()", () => {
     });
 
     const [url, options] = mockFetch.mock.calls[0];
-    expect(url).toContain(
-      "/schools/college-vogt/tests/cases/case-1/executions",
-    );
+    expect(url).toContain("/tests/cases/case-1/executions");
     expect(options.method).toBe("POST");
     expect(options.headers.Authorization).toBe("Bearer test-token");
   });

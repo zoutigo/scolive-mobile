@@ -176,12 +176,12 @@ describe("Scrollabilité de la liste de navigation", () => {
     expect(scrollViews.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("tous les items plateforme (10) sont dans le ScrollView", () => {
+  it("tous les items plateforme (11) sont dans le ScrollView", () => {
     render(<AppDrawer {...baseProps} navItems={getNavItems(platformUser)} />);
-    // 10 items = home + schools + classes + subjects + curriculums +
-    //            enrollments + students + users + indicators + account
+    // 11 items = home + schools + classes + subjects + curriculums +
+    //            enrollments + students + users + indicators + tests + account
     const platformItems = getNavItems(platformUser);
-    expect(platformItems).toHaveLength(10);
+    expect(platformItems).toHaveLength(11);
     platformItems.forEach((item) => {
       expect(screen.getByTestId(`nav-item-${item.key}`)).toBeTruthy();
     });

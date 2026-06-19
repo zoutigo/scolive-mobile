@@ -26,7 +26,7 @@ jest.mock("../../src/store/auth.store");
 jest.mock("../../src/api/tests.api");
 
 const TESTER_USER = {
-  schoolSlug: "college-vogt",
+  schoolSlug: null,
   user: {
     id: "u1",
     firstName: "Valery",

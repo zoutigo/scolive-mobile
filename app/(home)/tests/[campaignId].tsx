@@ -50,7 +50,7 @@ function TestCampaignScreen() {
   const router = useRouter();
   const { campaignId } = useLocalSearchParams<{ campaignId: string }>();
   const { openDrawer } = useDrawer();
-  const { schoolSlug, user } = useAuthStore();
+  const { user } = useAuthStore();
   const [campaign, setCampaign] = useState<TestCampaignDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -58,11 +58,11 @@ function TestCampaignScreen() {
 
   const load = useCallback(
     async (refresh = false) => {
-      if (!schoolSlug || !campaignId) return;
+      if (!campaignId) return;
       if (refresh) setIsRefreshing(true);
       else setIsLoading(true);
       try {
-        const response = await testsApi.getCampaign(schoolSlug, campaignId);
+        const response = await testsApi.getCampaign(campaignId);
         setCampaign(response);
         setErrorMessage(null);
       } catch (error) {
@@ -76,7 +76,7 @@ function TestCampaignScreen() {
         setIsRefreshing(false);
       }
     },
-    [campaignId, schoolSlug],
+    [campaignId],
   );
 
   useEffect(() => {
