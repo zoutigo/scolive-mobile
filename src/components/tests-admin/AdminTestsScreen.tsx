@@ -17,10 +17,19 @@ import { useAuthStore } from "../../store/auth.store";
 import { testsAdminApi } from "../../api/tests-admin.api";
 import type { AdminTestsSynthesis } from "../../types/tests-admin.types";
 import { AdminTestsSummaryTab } from "./AdminTestsSummaryTab";
-import { AdminTestsCampaignsTab } from "./AdminTestsCampaignsTab";
+import {
+  AdminTestsCampaignsTab,
+  EMPTY_CAMPAIGNS_FILTER,
+  type AdminCampaignsFilter,
+} from "./AdminTestsCampaignsTab";
 import { AdminTestersTab } from "./AdminTestersTab";
+import {
+  AdminTestsExecutionsTab,
+  EMPTY_EXECUTIONS_FILTER,
+  type AdminExecutionsFilter,
+} from "./AdminTestsExecutionsTab";
 
-type TabKey = "summary" | "campaigns" | "testers";
+type TabKey = "summary" | "campaigns" | "testers" | "executions";
 
 export function AdminTestsScreen() {
   const { t } = useTranslation();
@@ -32,6 +41,21 @@ export function AdminTestsScreen() {
   const [synthesis, setSynthesis] = useState<AdminTestsSynthesis | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [executionsFilter, setExecutionsFilter] =
+    useState<AdminExecutionsFilter>(EMPTY_EXECUTIONS_FILTER);
+  const [campaignsFilter, setCampaignsFilter] = useState<AdminCampaignsFilter>(
+    EMPTY_CAMPAIGNS_FILTER,
+  );
+
+  function openExecutionsWithFilter(filter: AdminExecutionsFilter) {
+    setExecutionsFilter(filter);
+    setActiveTab("executions");
+  }
+
+  function openCampaignsWithFilter(filter: AdminCampaignsFilter) {
+    setCampaignsFilter(filter);
+    setActiveTab("campaigns");
+  }
 
   const isPlatformAdmin = (user?.platformRoles ?? []).some((role) =>
     ["SUPER_ADMIN", "ADMIN"].includes(role),
@@ -93,6 +117,7 @@ export function AdminTestsScreen() {
               { key: "summary", label: t("testsAdmin.tabs.summary") },
               { key: "campaigns", label: t("testsAdmin.tabs.campaigns") },
               { key: "testers", label: t("testsAdmin.tabs.testers") },
+              { key: "executions", label: t("testsAdmin.tabs.executions") },
             ]}
             activeKey={activeTab}
             onSelect={setActiveTab}
@@ -103,10 +128,25 @@ export function AdminTestsScreen() {
             showsVerticalScrollIndicator={false}
           >
             {activeTab === "summary" && synthesis ? (
-              <AdminTestsSummaryTab data={synthesis} />
+              <AdminTestsSummaryTab
+                data={synthesis}
+                onKpiPress={openExecutionsWithFilter}
+                onCampaignsKpiPress={openCampaignsWithFilter}
+              />
             ) : null}
-            {activeTab === "campaigns" ? <AdminTestsCampaignsTab /> : null}
+            {activeTab === "campaigns" ? (
+              <AdminTestsCampaignsTab
+                filter={campaignsFilter}
+                onFilterChange={setCampaignsFilter}
+              />
+            ) : null}
             {activeTab === "testers" ? <AdminTestersTab /> : null}
+            {activeTab === "executions" ? (
+              <AdminTestsExecutionsTab
+                filter={executionsFilter}
+                onFilterChange={setExecutionsFilter}
+              />
+            ) : null}
           </ScrollView>
         </>
       )}

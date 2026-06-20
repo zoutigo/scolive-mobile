@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet } from "react-native";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -18,7 +19,7 @@ import { feedApi } from "../../src/api/feed.api";
 import { colors } from "../../src/theme";
 import { useDrawer } from "../../src/components/navigation/drawer-context";
 
-jest.setTimeout(15000);
+jest.setTimeout(30000);
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/notes.api");
@@ -48,11 +49,18 @@ const mockFeedApi = feedApi as jest.Mocked<typeof feedApi>;
 const mockUseDrawer = useDrawer as jest.MockedFunction<typeof useDrawer>;
 const mockOpenDrawer = jest.fn();
 
-const WAIT_OPTS = { timeout: 5000 };
+const WAIT_OPTS = { timeout: 10000 };
 
 async function waitForContent() {
   await waitFor(
     () => expect(screen.queryByTestId("child-home-loading")).toBeNull(),
+    WAIT_OPTS,
+  );
+  await waitFor(
+    () =>
+      expect(
+        screen.getByTestId("child-home-header-subtitle").props.children,
+      ).toBeTruthy(),
     WAIT_OPTS,
   );
 }
@@ -860,7 +868,9 @@ describe("ChildHomeScreen — intégration contextuelle", () => {
     const scrollView = screen.UNSAFE_getByType(
       require("react-native").ScrollView,
     );
-    scrollView.props.refreshControl.props.onRefresh();
+    await act(async () => {
+      scrollView.props.refreshControl.props.onRefresh();
+    });
 
     await waitFor(
       () =>

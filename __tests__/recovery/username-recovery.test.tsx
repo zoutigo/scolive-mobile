@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -65,16 +66,22 @@ async function fillAndSubmitStep2(birthDate = "15/01/1990") {
 describe("UsernameRecoveryScreen — Step 1", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    useLocaleStore.setState({ locale: DEFAULT_LOCALE });
+    act(() => {
+      useLocaleStore.setState({ locale: DEFAULT_LOCALE });
+    });
   });
 
   afterEach(() => {
-    useLocaleStore.setState({ locale: DEFAULT_LOCALE });
+    act(() => {
+      useLocaleStore.setState({ locale: DEFAULT_LOCALE });
+    });
   });
 
   describe("Traduction (anglais)", () => {
     it("affiche l'étape 1 en anglais lorsque la locale est 'en'", async () => {
-      useLocaleStore.setState({ locale: "en" });
+      act(() => {
+        useLocaleStore.setState({ locale: "en" });
+      });
       render(<UsernameRecoveryScreen />);
 
       expect(screen.getByText("Account recovery")).toBeTruthy();
@@ -83,7 +90,9 @@ describe("UsernameRecoveryScreen — Step 1", () => {
     });
 
     it("affiche une erreur de validation traduite en anglais", async () => {
-      useLocaleStore.setState({ locale: "en" });
+      act(() => {
+        useLocaleStore.setState({ locale: "en" });
+      });
       render(<UsernameRecoveryScreen />);
 
       fireEvent.press(screen.getByTestId("btn-step1"));

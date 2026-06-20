@@ -1,31 +1,54 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
 import type { AdminTestsSynthesis } from "../../types/tests-admin.types";
+import {
+  EMPTY_EXECUTIONS_FILTER,
+  type AdminExecutionsFilter,
+} from "./AdminTestsExecutionsTab";
+import {
+  EMPTY_CAMPAIGNS_FILTER,
+  type AdminCampaignsFilter,
+} from "./AdminTestsCampaignsTab";
 
 type Props = {
   data: AdminTestsSynthesis;
+  onKpiPress?: (filter: AdminExecutionsFilter) => void;
+  onCampaignsKpiPress?: (filter: AdminCampaignsFilter) => void;
 };
 
-export function AdminTestsSummaryTab({ data }: Props) {
+export function AdminTestsSummaryTab({
+  data,
+  onKpiPress,
+  onCampaignsKpiPress,
+}: Props) {
   const { t } = useTranslation();
 
-  const kpis = [
+  const kpis: Array<{
+    key: string;
+    label: string;
+    value: string | number;
+    filter?: AdminExecutionsFilter;
+    campaignsFilter?: AdminCampaignsFilter;
+  }> = [
     {
       key: "campaignsActive",
       label: t("testsAdmin.summary.kpi.campaignsActive"),
       value: data.campaigns.active,
+      campaignsFilter: "ACTIVE",
     },
     {
       key: "campaignsTotal",
       label: t("testsAdmin.summary.kpi.campaignsTotal"),
       value: data.campaigns.total,
+      campaignsFilter: EMPTY_CAMPAIGNS_FILTER,
     },
     {
       key: "totalCases",
       label: t("testsAdmin.summary.kpi.totalCases"),
       value: data.totalCases,
+      campaignsFilter: EMPTY_CAMPAIGNS_FILTER,
     },
     {
       key: "testersCount",
@@ -36,26 +59,75 @@ export function AdminTestsSummaryTab({ data }: Props) {
       key: "executions",
       label: t("testsAdmin.summary.kpi.executions"),
       value: data.executions.total,
+      filter: EMPTY_EXECUTIONS_FILTER,
     },
     {
       key: "successRate",
       label: t("testsAdmin.summary.kpi.successRate"),
       value: `${Math.round(data.executions.successRate * 100)}%`,
+      filter: { ...EMPTY_EXECUTIONS_FILTER, status: "PASSED" },
+    },
+    {
+      key: "failed",
+      label: t("tests.status.failed"),
+      value: data.executions.failed,
+      filter: { ...EMPTY_EXECUTIONS_FILTER, status: "FAILED" },
+    },
+    {
+      key: "pendingReview",
+      label: t("testsAdmin.summary.kpi.pendingReview"),
+      value: data.executions.pendingReview,
+      filter: { ...EMPTY_EXECUTIONS_FILTER, reviewed: "false" },
     },
   ];
 
   return (
     <View style={styles.grid} testID="admin-tests-summary">
-      {kpis.map((kpi) => (
-        <View
-          key={kpi.key}
-          style={styles.card}
-          testID={`admin-tests-kpi-${kpi.key}`}
-        >
-          <Text style={styles.value}>{kpi.value}</Text>
-          <Text style={styles.label}>{kpi.label}</Text>
-        </View>
-      ))}
+      {kpis.map((kpi) => {
+        const content = (
+          <>
+            <Text style={styles.value}>{kpi.value}</Text>
+            <Text style={styles.label}>{kpi.label}</Text>
+          </>
+        );
+
+        if (kpi.filter && onKpiPress) {
+          return (
+            <Pressable
+              key={kpi.key}
+              style={styles.card}
+              onPress={() => onKpiPress(kpi.filter as AdminExecutionsFilter)}
+              testID={`admin-tests-kpi-${kpi.key}`}
+            >
+              {content}
+            </Pressable>
+          );
+        }
+
+        if (kpi.campaignsFilter !== undefined && onCampaignsKpiPress) {
+          const campaignsFilter = kpi.campaignsFilter;
+          return (
+            <Pressable
+              key={kpi.key}
+              style={styles.card}
+              onPress={() => onCampaignsKpiPress(campaignsFilter)}
+              testID={`admin-tests-kpi-${kpi.key}`}
+            >
+              {content}
+            </Pressable>
+          );
+        }
+
+        return (
+          <View
+            key={kpi.key}
+            style={styles.card}
+            testID={`admin-tests-kpi-${kpi.key}`}
+          >
+            {content}
+          </View>
+        );
+      })}
     </View>
   );
 }

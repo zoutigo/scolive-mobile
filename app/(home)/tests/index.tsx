@@ -17,14 +17,19 @@ import {
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import { UnderlineTabs } from "../../../src/components/navigation/UnderlineTabs";
 import { TestsSummaryTab } from "../../../src/components/tests/TestsSummaryTab";
-import { TestsCampaignsTab } from "../../../src/components/tests/TestsCampaignsTab";
+import {
+  ALL_CAMPAIGNS_FILTER,
+  TestsCampaignsTab,
+  type TestsCampaignsFilter,
+} from "../../../src/components/tests/TestsCampaignsTab";
+import { TestsExecutionsTab } from "../../../src/components/tests/TestsExecutionsTab";
 import { testsApi } from "../../../src/api/tests.api";
 import { useAuthStore } from "../../../src/store/auth.store";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import { colors } from "../../../src/theme";
 import type { TestCampaignSummary } from "../../../src/types/tests.types";
 
-type TabKey = "summary" | "tests";
+type TabKey = "summary" | "campaigns" | "executions";
 
 export default function TestsHomeRoute() {
   return (
@@ -41,6 +46,8 @@ function TestsHomeScreen() {
   const { openDrawer } = useDrawer();
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<TabKey>("summary");
+  const [campaignsFilter, setCampaignsFilter] =
+    useState<TestsCampaignsFilter>(ALL_CAMPAIGNS_FILTER);
   const [campaigns, setCampaigns] = useState<TestCampaignSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -80,6 +87,11 @@ function TestsHomeScreen() {
     void load();
   }, [load]);
 
+  function openCampaignsWithFilter(filter: TestsCampaignsFilter) {
+    setCampaignsFilter(filter);
+    setActiveTab("campaigns");
+  }
+
   return (
     <View style={styles.root}>
       <ModuleHeader
@@ -113,7 +125,8 @@ function TestsHomeScreen() {
           <UnderlineTabs
             items={[
               { key: "summary", label: t("tests.tabs.summary") },
-              { key: "tests", label: t("tests.tabs.tests") },
+              { key: "campaigns", label: t("tests.tabs.campaigns") },
+              { key: "executions", label: t("tests.tabs.executions") },
             ]}
             activeKey={activeTab}
             onSelect={setActiveTab}
@@ -129,9 +142,18 @@ function TestsHomeScreen() {
             }
           >
             {activeTab === "summary" ? (
-              <TestsSummaryTab campaigns={campaigns} />
+              <TestsSummaryTab
+                campaigns={campaigns}
+                onCampaignsFilterPress={openCampaignsWithFilter}
+              />
+            ) : activeTab === "campaigns" ? (
+              <TestsCampaignsTab
+                campaigns={campaigns}
+                filter={campaignsFilter}
+                onFilterChange={setCampaignsFilter}
+              />
             ) : (
-              <TestsCampaignsTab campaigns={campaigns} />
+              <TestsExecutionsTab campaigns={campaigns} />
             )}
           </ScrollView>
         </>

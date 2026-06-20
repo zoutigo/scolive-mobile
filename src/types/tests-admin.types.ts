@@ -1,4 +1,9 @@
-import type { TestCampaignStatus, TestCasePriority } from "./tests.types";
+import type {
+  TestCampaignStatus,
+  TestCasePriority,
+  TestExecutionDetail,
+  TestExecutionRow,
+} from "./tests.types";
 
 export type AdminSchoolRef = { id: string; name: string; slug: string };
 
@@ -70,13 +75,50 @@ export type AdminTestsSynthesis = {
     failed: number;
     blocked: number;
     successRate: number;
+    pendingReview: number;
   };
   testersCount: number;
 };
 
-export type UpdateCaseInstructionsPayload = {
+export type AdminTestExecutionRow = TestExecutionRow;
+export type AdminTestExecutionDetail = TestExecutionDetail;
+
+export type CreateTestCampaignPayload = {
+  title: string;
+  description?: string;
+  targetVersion?: string;
+  startsAt?: string;
+  dueAt?: string;
+  status?: TestCampaignStatus;
+};
+
+export type UpdateTestCampaignPayload = {
+  title?: string;
+  description?: string | null;
+  targetVersion?: string | null;
+  startsAt?: string | null;
+  dueAt?: string | null;
+  status?: TestCampaignStatus;
+};
+
+export type CreateTestCasePayload = {
+  title: string;
+  module?: string;
+  objective?: string;
+  preconditions?: string;
+  expectedResult: string;
+  priority?: TestCasePriority;
+  evidenceRequired?: boolean;
+  dueAt?: string;
+};
+
+export type UpdateTestCasePayload = {
+  title?: string;
   module?: string | null;
   objective?: string | null;
   preconditions?: string | null;
   expectedResult?: string;
+  priority?: TestCasePriority;
+  evidenceRequired?: boolean;
+  dueAt?: string | null;
 };

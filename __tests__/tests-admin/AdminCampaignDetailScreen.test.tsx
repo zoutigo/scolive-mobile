@@ -1,4 +1,5 @@
 import React from "react";
+import { Alert } from "react-native";
 import {
   fireEvent,
   render,
@@ -88,9 +89,11 @@ describe("AdminCampaignDetailScreen", () => {
       items: [TESTER_1],
     });
     (testsAdminApi.recycleCase as jest.Mock).mockResolvedValue(undefined);
-    (testsAdminApi.updateCaseInstructions as jest.Mock).mockResolvedValue(
-      undefined,
-    );
+    (testsAdminApi.updateCase as jest.Mock).mockResolvedValue(undefined);
+    (testsAdminApi.createCase as jest.Mock).mockResolvedValue(undefined);
+    (testsAdminApi.deleteCase as jest.Mock).mockResolvedValue(undefined);
+    (testsAdminApi.updateCampaign as jest.Mock).mockResolvedValue(undefined);
+    (testsAdminApi.deleteCampaign as jest.Mock).mockResolvedValue(undefined);
     (testsAdminApi.assignCampaign as jest.Mock).mockResolvedValue(ASSIGNMENT_1);
     (testsAdminApi.unassignCampaign as jest.Mock).mockResolvedValue(undefined);
     (messagingApi.send as jest.Mock).mockResolvedValue(undefined);
@@ -108,7 +111,7 @@ describe("AdminCampaignDetailScreen", () => {
     });
   });
 
-  it("edits the instructions of a test case", async () => {
+  it("edits a test case", async () => {
     render(<AdminCampaignDetailScreen />);
 
     fireEvent.press(await screen.findByTestId("admin-case-edit-case-1"));
@@ -122,13 +125,98 @@ describe("AdminCampaignDetailScreen", () => {
     fireEvent.press(screen.getByTestId("edit-case-save-btn"));
 
     await waitFor(() => {
-      expect(testsAdminApi.updateCaseInstructions).toHaveBeenCalledWith(
+      expect(testsAdminApi.updateCase).toHaveBeenCalledWith(
         "case-1",
         expect.objectContaining({
           expectedResult: "Le mot de passe est réinitialisé",
         }),
       );
     });
+  });
+
+  it("creates a new test case from the campaign detail screen", async () => {
+    render(<AdminCampaignDetailScreen />);
+
+    fireEvent.press(await screen.findByTestId("admin-open-create-case-btn"));
+    expect(await screen.findByTestId("create-case-sheet")).toBeTruthy();
+
+    fireEvent.changeText(
+      screen.getByTestId("edit-case-title"),
+      "Mot de passe oublié",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("edit-case-expected-result"),
+      "Le lien de réinitialisation est envoyé",
+    );
+    fireEvent.press(screen.getByTestId("edit-case-save-btn"));
+
+    await waitFor(() => {
+      expect(testsAdminApi.createCase).toHaveBeenCalledWith(
+        "camp-1",
+        expect.objectContaining({
+          title: "Mot de passe oublié",
+          expectedResult: "Le lien de réinitialisation est envoyé",
+        }),
+      );
+    });
+  });
+
+  it("deletes a test case after confirmation", async () => {
+    const alertSpy = jest
+      .spyOn(Alert, "alert")
+      .mockImplementation((_title, _message, buttons) => {
+        const destructive = buttons?.find((b) => b.style === "destructive");
+        destructive?.onPress?.();
+      });
+
+    render(<AdminCampaignDetailScreen />);
+
+    fireEvent.press(await screen.findByTestId("admin-case-delete-case-1"));
+
+    await waitFor(() => {
+      expect(testsAdminApi.deleteCase).toHaveBeenCalledWith("case-1");
+    });
+
+    alertSpy.mockRestore();
+  });
+
+  it("edits the campaign", async () => {
+    render(<AdminCampaignDetailScreen />);
+
+    fireEvent.press(await screen.findByTestId("admin-edit-campaign-btn"));
+    expect(await screen.findByTestId("campaign-form-sheet")).toBeTruthy();
+
+    fireEvent.changeText(
+      screen.getByTestId("campaign-form-title"),
+      "Recette mobile v2",
+    );
+    fireEvent.press(screen.getByTestId("campaign-form-save-btn"));
+
+    await waitFor(() => {
+      expect(testsAdminApi.updateCampaign).toHaveBeenCalledWith(
+        "camp-1",
+        expect.objectContaining({ title: "Recette mobile v2" }),
+      );
+    });
+  });
+
+  it("deletes the campaign after confirmation", async () => {
+    const alertSpy = jest
+      .spyOn(Alert, "alert")
+      .mockImplementation((_title, _message, buttons) => {
+        const destructive = buttons?.find((b) => b.style === "destructive");
+        destructive?.onPress?.();
+      });
+
+    render(<AdminCampaignDetailScreen />);
+
+    fireEvent.press(await screen.findByTestId("admin-delete-campaign-btn"));
+
+    await waitFor(() => {
+      expect(testsAdminApi.deleteCampaign).toHaveBeenCalledWith("camp-1");
+    });
+
+    alertSpy.mockRestore();
   });
 
   it("assigns a tester to the campaign", async () => {

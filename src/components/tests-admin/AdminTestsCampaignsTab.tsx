@@ -14,16 +14,30 @@ import { useTranslation } from "../../i18n/useTranslation";
 import { testsAdminApi } from "../../api/tests-admin.api";
 import type { AdminCampaignRow } from "../../types/tests-admin.types";
 import type { TestCampaignStatus } from "../../types/tests.types";
+import {
+  CampaignFormSheet,
+  type CampaignFormValues,
+} from "./CampaignFormSheet";
 
-type FilterKey = "" | TestCampaignStatus;
+export type AdminCampaignsFilter = "" | TestCampaignStatus;
+export const EMPTY_CAMPAIGNS_FILTER: AdminCampaignsFilter = "";
 
-export function AdminTestsCampaignsTab() {
+type FilterKey = AdminCampaignsFilter;
+
+type Props = {
+  filter: AdminCampaignsFilter;
+  onFilterChange: (filter: AdminCampaignsFilter) => void;
+};
+
+export function AdminTestsCampaignsTab({ filter, onFilterChange }: Props) {
   const { t } = useTranslation();
   const router = useRouter();
   const [campaigns, setCampaigns] = useState<AdminCampaignRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterKey>("");
+  const [showCreate, setShowCreate] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -42,6 +56,31 @@ export function AdminTestsCampaignsTab() {
     void load();
   }, [load]);
 
+  async function handleCreateSubmit(values: CampaignFormValues) {
+    setSaving(true);
+    setCreateError(null);
+    try {
+      await testsAdminApi.createCampaign({
+        title: values.title,
+        description: values.description || undefined,
+        targetVersion: values.targetVersion || undefined,
+        startsAt: values.startsAt || undefined,
+        dueAt: values.dueAt || undefined,
+        status: values.status,
+      });
+      setShowCreate(false);
+      await load();
+    } catch (err) {
+      setCreateError(
+        err instanceof Error
+          ? err.message
+          : t("testsAdmin.common.errors.submitGeneric"),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const filters: Array<{ key: FilterKey; label: string }> = [
     { key: "", label: t("testsAdmin.campaigns.filters.all") },
     { key: "DRAFT", label: t("testsAdmin.campaigns.filters.draft") },
@@ -51,6 +90,16 @@ export function AdminTestsCampaignsTab() {
 
   return (
     <View style={styles.container} testID="admin-tests-campaigns-tab">
+      <TouchableOpacity
+        style={styles.createButton}
+        onPress={() => setShowCreate(true)}
+        testID="admin-open-create-campaign-btn"
+      >
+        <Text style={styles.createButtonText}>
+          {t("testsAdmin.campaigns.createButton")}
+        </Text>
+      </TouchableOpacity>
+
       <TextInput
         style={styles.search}
         value={search}
@@ -71,7 +120,7 @@ export function AdminTestsCampaignsTab() {
             <TouchableOpacity
               key={entry.key || "all"}
               style={[styles.filterChip, isActive && styles.filterChipActive]}
-              onPress={() => setFilter(entry.key)}
+              onPress={() => onFilterChange(entry.key)}
               testID={`admin-tests-filter-${entry.key || "all"}`}
             >
               <Text
@@ -127,6 +176,15 @@ export function AdminTestsCampaignsTab() {
           ))}
         </View>
       )}
+
+      {showCreate ? (
+        <CampaignFormSheet
+          saving={saving}
+          error={createError}
+          onSubmit={handleCreateSubmit}
+          onCancel={() => setShowCreate(false)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -153,6 +211,14 @@ function StatusPill({ status }: { status: TestCampaignStatus }) {
 
 const styles = StyleSheet.create({
   container: { gap: 14 },
+  createButton: {
+    alignSelf: "flex-start",
+    borderRadius: 999,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  createButtonText: { fontSize: 13, fontWeight: "700", color: colors.white },
   search: {
     minHeight: 44,
     borderRadius: 10,

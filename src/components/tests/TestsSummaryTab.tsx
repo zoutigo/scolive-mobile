@@ -7,12 +7,14 @@ import { useTranslation } from "../../i18n/useTranslation";
 import type { TestCampaignSummary } from "../../types/tests.types";
 import { TestsSummaryKpis, type TestsKpiData } from "./TestsSummaryKpis";
 import { getCampaignDisplayStatus } from "./testCampaignStatus";
+import type { TestsCampaignsFilter } from "./TestsCampaignsTab";
 
 interface Props {
   campaigns: TestCampaignSummary[];
+  onCampaignsFilterPress?: (filter: TestsCampaignsFilter) => void;
 }
 
-export function TestsSummaryTab({ campaigns }: Props) {
+export function TestsSummaryTab({ campaigns, onCampaignsFilterPress }: Props) {
   const { t } = useTranslation();
   const router = useRouter();
 
@@ -90,6 +92,7 @@ export function TestsSummaryTab({ campaigns }: Props) {
           totalCases: t("tests.summary.kpi.totalCases"),
           pending: t("tests.summary.kpi.pending"),
         }}
+        onCampaignsFilterPress={onCampaignsFilterPress}
       />
 
       <View style={styles.highlightCard} testID="tests-highlight-card">

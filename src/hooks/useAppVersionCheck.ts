@@ -26,11 +26,15 @@ function timeout(ms: number): Promise<never> {
   });
 }
 
+// La vérification compare la build installée à la dernière build publiée :
+// en dev (__DEV__), l'app tourne hors cycle de publication et ne doit jamais être bloquée.
+function shouldCheck(): boolean {
+  return Platform.OS === "android" && !__DEV__;
+}
+
 export function useAppVersionCheck(): AppVersionCheckResult {
-  // Sur les plateformes non gérées (iOS), aucune vérification n'existe encore :
-  // on ne bloque jamais l'app dans ce cas, faute de mécanisme côté backend.
   const [status, setStatus] = useState<AppVersionCheckStatus>(
-    Platform.OS === "android" ? "checking" : "ready",
+    shouldCheck() ? "checking" : "ready",
   );
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [mandatory, setMandatory] = useState(false);
@@ -50,7 +54,7 @@ export function useAppVersionCheck(): AppVersionCheckResult {
     : null;
 
   useEffect(() => {
-    if (Platform.OS !== "android") return;
+    if (!shouldCheck()) return;
 
     let cancelled = false;
     setStatus("checking");

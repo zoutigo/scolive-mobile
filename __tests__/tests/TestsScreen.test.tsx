@@ -77,9 +77,9 @@ describe("Tests screen", () => {
     render(<TestsScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("tests-home-tab-tests")).toBeTruthy();
+      expect(screen.getByTestId("tests-home-tab-campaigns")).toBeTruthy();
     });
-    fireEvent.press(screen.getByTestId("tests-home-tab-tests"));
+    fireEvent.press(screen.getByTestId("tests-home-tab-campaigns"));
 
     await waitFor(() => {
       expect(screen.getByText("Messagerie mobile")).toBeTruthy();
