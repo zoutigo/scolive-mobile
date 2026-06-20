@@ -1,4 +1,9 @@
-import type { TestCampaignStatus, TestCasePriority } from "./tests.types";
+import type {
+  TestCampaignStatus,
+  TestCasePriority,
+  TestExecutionDetail,
+  TestExecutionRow,
+} from "./tests.types";
 
 export type AdminSchoolRef = { id: string; name: string; slug: string };
 
@@ -70,9 +75,13 @@ export type AdminTestsSynthesis = {
     failed: number;
     blocked: number;
     successRate: number;
+    pendingReview: number;
   };
   testersCount: number;
 };
+
+export type AdminTestExecutionRow = TestExecutionRow;
+export type AdminTestExecutionDetail = TestExecutionDetail;
 
 export type UpdateCaseInstructionsPayload = {
   module?: string | null;

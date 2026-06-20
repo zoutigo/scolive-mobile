@@ -3,11 +3,16 @@ import type {
   AdminAssignmentRow,
   AdminCampaignDetail,
   AdminCampaignRow,
+  AdminTestExecutionDetail,
+  AdminTestExecutionRow,
   AdminTesterRow,
   AdminTestsSynthesis,
   UpdateCaseInstructionsPayload,
 } from "../types/tests-admin.types";
-import type { TestCampaignStatus } from "../types/tests.types";
+import type {
+  TestCampaignStatus,
+  TestExecutionStatus,
+} from "../types/tests.types";
 
 type ListCampaignsParams = {
   search?: string;
@@ -18,6 +23,17 @@ type ListCampaignsParams = {
 
 type ListTestersParams = {
   search?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type ListAdminExecutionsParams = {
+  status?: TestExecutionStatus | "";
+  campaignId?: string;
+  testerId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  reviewed?: boolean;
   page?: number;
   limit?: number;
 };
@@ -94,6 +110,37 @@ export const testsAdminApi = {
     return apiFetch(
       `/admin/tests/assignments/${assignmentId}`,
       { method: "DELETE" },
+      true,
+    );
+  },
+
+  async listExecutions(
+    params: ListAdminExecutionsParams = {},
+  ): Promise<{ items: AdminTestExecutionRow[] }> {
+    const query = new URLSearchParams();
+    if (params.status) query.set("status", params.status);
+    if (params.campaignId) query.set("campaignId", params.campaignId);
+    if (params.testerId) query.set("testerId", params.testerId);
+    if (params.dateFrom) query.set("dateFrom", params.dateFrom);
+    if (params.dateTo) query.set("dateTo", params.dateTo);
+    if (params.reviewed !== undefined)
+      query.set("reviewed", String(params.reviewed));
+    if (params.page) query.set("page", String(params.page));
+    if (params.limit) query.set("limit", String(params.limit));
+    return apiFetch(`/admin/tests/executions?${query.toString()}`, {}, true);
+  },
+
+  getExecution(executionId: string): Promise<AdminTestExecutionDetail> {
+    return apiFetch(`/admin/tests/executions/${executionId}`, {}, true);
+  },
+
+  reviewExecution(
+    executionId: string,
+    payload: { reviewed: boolean; note?: string },
+  ): Promise<AdminTestExecutionRow> {
+    return apiFetch(
+      `/admin/tests/executions/${executionId}/review`,
+      { method: "PATCH", body: JSON.stringify(payload) },
       true,
     );
   },

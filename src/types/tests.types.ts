@@ -76,6 +76,27 @@ export type TestExecutionItem = {
   attachments: TestExecutionAttachment[];
 };
 
+export type TestExecutionRow = {
+  id: string;
+  status: TestExecutionStatus;
+  resultText: string | null;
+  comment: string | null;
+  executedAt: string;
+  adminReviewedAt: string | null;
+  adminReviewNote: string | null;
+  user: { id: string; fullName: string };
+  adminReviewedBy: { id: string; fullName: string } | null;
+  testCase: { id: string; title: string };
+  campaign: { id: string; title: string };
+};
+
+export type TestExecutionDetail = TestExecutionRow & {
+  deviceInfo: string | null;
+  appVersion: string | null;
+  createdAt: string;
+  attachments: TestExecutionAttachment[];
+};
+
 export type TestCaseDetail = {
   id: string;
   title: string;

@@ -4,8 +4,17 @@ import type {
   TestCampaignSummary,
   TestCaseDetail,
   TestExecutionAttachment,
+  TestExecutionDetail,
+  TestExecutionRow,
   TestExecutionStatus,
 } from "../types/tests.types";
+
+export type ListExecutionsParams = {
+  status?: TestExecutionStatus | "";
+  campaignId?: string;
+  page?: number;
+  limit?: number;
+};
 
 function normalizeMediaUrl(url: string) {
   const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? "";
@@ -224,5 +233,25 @@ export const testsApi = {
     };
 
     return normalizeAttachments(data);
+  },
+
+  async listExecutions(
+    params: ListExecutionsParams = {},
+  ): Promise<{ items: TestExecutionRow[] }> {
+    const query = new URLSearchParams();
+    if (params.status) query.set("status", params.status);
+    if (params.campaignId) query.set("campaignId", params.campaignId);
+    if (params.page) query.set("page", String(params.page));
+    if (params.limit) query.set("limit", String(params.limit));
+    return apiFetch(`/tests/executions?${query.toString()}`, {}, true);
+  },
+
+  async getExecution(executionId: string): Promise<TestExecutionDetail> {
+    const response = await apiFetch<TestExecutionDetail>(
+      `/tests/executions/${executionId}`,
+      {},
+      true,
+    );
+    return normalizeAttachments(response);
   },
 };
