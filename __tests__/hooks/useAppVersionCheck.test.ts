@@ -22,9 +22,17 @@ const mockGetMeta =
     typeof mobileBuildsApi.getLatestAndroidBuildMeta
   >;
 
+const originalDev = __DEV__;
+
 beforeEach(() => {
   jest.clearAllMocks();
   Object.defineProperty(Platform, "OS", { value: "android", writable: true });
+  // Le check de version est désactivé en __DEV__ : ces tests simulent un build de production.
+  (global as unknown as { __DEV__: boolean }).__DEV__ = false;
+});
+
+afterEach(() => {
+  (global as unknown as { __DEV__: boolean }).__DEV__ = originalDev;
 });
 
 // ── État initial ──────────────────────────────────────────────────────────────

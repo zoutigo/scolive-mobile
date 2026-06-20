@@ -66,13 +66,20 @@ const mockGetMeta =
     typeof mobileBuildsApi.getLatestAndroidBuildMeta
   >;
 const mockUseAuthStoreGetState = jest.mocked(useAuthStore.getState);
+const originalDev = __DEV__;
 
 beforeEach(() => {
   jest.clearAllMocks();
   Object.defineProperty(Platform, "OS", { value: "android", writable: true });
+  // Le check de version est désactivé en __DEV__ : ce fichier simule un build de production.
+  (global as unknown as { __DEV__: boolean }).__DEV__ = false;
   mockUseAuthStoreGetState.mockReturnValue({
     initialize: jest.fn().mockResolvedValue(undefined),
   } as never);
+});
+
+afterEach(() => {
+  (global as unknown as { __DEV__: boolean }).__DEV__ = originalDev;
 });
 
 describe("Gate de démarrage — scénario réel ayant causé le bug", () => {
