@@ -436,6 +436,60 @@ describe("Bouton de déconnexion", () => {
   });
 });
 
+// ── Assistance ────────────────────────────────────────────────────────────────
+// L'assistance doit être disponible pour TOUS les rôles, indépendamment du
+// statut testeur — voir les tests dédiés au lien "Tests" dans
+// __tests__/tests/tests.navigation.test.tsx.
+
+describe("Lien Assistance", () => {
+  it("est présent dans le mode plateforme", () => {
+    renderDrawer(getNavItems(platformUser));
+    expect(screen.getByTestId("drawer-tickets-btn")).toBeTruthy();
+  });
+
+  it("est présent dans le mode enseignant", () => {
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    expect(screen.getByTestId("drawer-tickets-btn")).toBeTruthy();
+  });
+
+  it("est présent dans le mode parent", () => {
+    renderDrawer(getNavItems(parentUser), {
+      childSections: buildChildSections([child1]),
+    });
+    expect(screen.getByTestId("drawer-tickets-btn")).toBeTruthy();
+  });
+
+  it("est présent dans le mode élève", () => {
+    renderDrawer(getNavItems(studentUser));
+    expect(screen.getByTestId("drawer-tickets-btn")).toBeTruthy();
+  });
+
+  it("est présent que l'utilisateur soit testeur ou non", () => {
+    renderDrawer(getNavItems(parentUser), { isTester: true });
+    expect(screen.getByTestId("drawer-tickets-btn")).toBeTruthy();
+
+    renderDrawer(getNavItems(parentUser), { isTester: false });
+    expect(screen.getByTestId("drawer-tickets-btn")).toBeTruthy();
+  });
+
+  it("navigue vers /tickets au clic", () => {
+    renderDrawer();
+    fireEvent.press(screen.getByTestId("drawer-tickets-btn"));
+    act(() => jest.runAllTimers());
+    expect(mockPush).toHaveBeenCalledWith("/(home)/tickets");
+  });
+
+  it("appelle onClose avant de naviguer vers l'assistance", () => {
+    const onClose = jest.fn();
+    renderDrawer(getNavItems(parentUser), { onClose });
+    fireEvent.press(screen.getByTestId("drawer-tickets-btn"));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
 // ── Accordéon parent+enfants ──────────────────────────────────────────────────
 
 describe("Accordéon parent — sections enfants", () => {
