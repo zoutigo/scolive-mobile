@@ -1,7 +1,27 @@
-import React from "react";
+import React, { useState } from "react";
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { TestsCampaignsTab } from "../../src/components/tests/TestsCampaignsTab";
+import {
+  ALL_CAMPAIGNS_FILTER,
+  TestsCampaignsTab,
+  type TestsCampaignsFilter,
+} from "../../src/components/tests/TestsCampaignsTab";
 import type { TestCampaignSummary } from "../../src/types/tests.types";
+
+function ControlledTestsCampaignsTab({
+  campaigns,
+}: {
+  campaigns: TestCampaignSummary[];
+}) {
+  const [filter, setFilter] =
+    useState<TestsCampaignsFilter>(ALL_CAMPAIGNS_FILTER);
+  return (
+    <TestsCampaignsTab
+      campaigns={campaigns}
+      filter={filter}
+      onFilterChange={setFilter}
+    />
+  );
+}
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
@@ -49,7 +69,7 @@ describe("TestsCampaignsTab", () => {
   });
 
   it("renders all campaigns with the in-progress one first", () => {
-    render(<TestsCampaignsTab campaigns={CAMPAIGNS} />);
+    render(<ControlledTestsCampaignsTab campaigns={CAMPAIGNS} />);
 
     expect(screen.getByText("Campagne en cours")).toBeTruthy();
     expect(screen.getByText("Campagne à venir")).toBeTruthy();
@@ -57,7 +77,7 @@ describe("TestsCampaignsTab", () => {
   });
 
   it("filters to only show in-progress campaigns when selected", () => {
-    render(<TestsCampaignsTab campaigns={CAMPAIGNS} />);
+    render(<ControlledTestsCampaignsTab campaigns={CAMPAIGNS} />);
 
     fireEvent.press(screen.getByTestId("tests-campaigns-filter-IN_PROGRESS"));
 
@@ -67,7 +87,7 @@ describe("TestsCampaignsTab", () => {
   });
 
   it("navigates to the campaign screen when a card is pressed", () => {
-    render(<TestsCampaignsTab campaigns={CAMPAIGNS} />);
+    render(<ControlledTestsCampaignsTab campaigns={CAMPAIGNS} />);
 
     fireEvent.press(screen.getByTestId("test-campaign-card-progress-1"));
 

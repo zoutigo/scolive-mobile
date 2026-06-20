@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -16,7 +16,10 @@ import {
   sortCampaignsByDisplayStatus,
 } from "./testCampaignStatus";
 
-type FilterKey = "ALL" | CampaignDisplayStatus;
+export type TestsCampaignsFilter = "ALL" | CampaignDisplayStatus;
+export const ALL_CAMPAIGNS_FILTER: TestsCampaignsFilter = "ALL";
+
+type FilterKey = TestsCampaignsFilter;
 
 const STATUS_PALETTE: Record<
   CampaignDisplayStatus,
@@ -29,12 +32,17 @@ const STATUS_PALETTE: Record<
 
 interface Props {
   campaigns: TestCampaignSummary[];
+  filter: TestsCampaignsFilter;
+  onFilterChange: (filter: TestsCampaignsFilter) => void;
 }
 
-export function TestsCampaignsTab({ campaigns }: Props) {
+export function TestsCampaignsTab({
+  campaigns,
+  filter,
+  onFilterChange,
+}: Props) {
   const { t, locale } = useTranslation();
   const router = useRouter();
-  const [filter, setFilter] = useState<FilterKey>("ALL");
 
   const sorted = useMemo(
     () => sortCampaignsByDisplayStatus(campaigns),
@@ -68,7 +76,7 @@ export function TestsCampaignsTab({ campaigns }: Props) {
             <TouchableOpacity
               key={entry.key}
               style={[styles.filterChip, isActive && styles.filterChipActive]}
-              onPress={() => setFilter(entry.key)}
+              onPress={() => onFilterChange(entry.key)}
               testID={`tests-campaigns-filter-${entry.key}`}
             >
               <Text

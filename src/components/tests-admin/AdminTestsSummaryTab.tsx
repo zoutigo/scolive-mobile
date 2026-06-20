@@ -7,13 +7,22 @@ import {
   EMPTY_EXECUTIONS_FILTER,
   type AdminExecutionsFilter,
 } from "./AdminTestsExecutionsTab";
+import {
+  EMPTY_CAMPAIGNS_FILTER,
+  type AdminCampaignsFilter,
+} from "./AdminTestsCampaignsTab";
 
 type Props = {
   data: AdminTestsSynthesis;
   onKpiPress?: (filter: AdminExecutionsFilter) => void;
+  onCampaignsKpiPress?: (filter: AdminCampaignsFilter) => void;
 };
 
-export function AdminTestsSummaryTab({ data, onKpiPress }: Props) {
+export function AdminTestsSummaryTab({
+  data,
+  onKpiPress,
+  onCampaignsKpiPress,
+}: Props) {
   const { t } = useTranslation();
 
   const kpis: Array<{
@@ -21,21 +30,25 @@ export function AdminTestsSummaryTab({ data, onKpiPress }: Props) {
     label: string;
     value: string | number;
     filter?: AdminExecutionsFilter;
+    campaignsFilter?: AdminCampaignsFilter;
   }> = [
     {
       key: "campaignsActive",
       label: t("testsAdmin.summary.kpi.campaignsActive"),
       value: data.campaigns.active,
+      campaignsFilter: "ACTIVE",
     },
     {
       key: "campaignsTotal",
       label: t("testsAdmin.summary.kpi.campaignsTotal"),
       value: data.campaigns.total,
+      campaignsFilter: EMPTY_CAMPAIGNS_FILTER,
     },
     {
       key: "totalCases",
       label: t("testsAdmin.summary.kpi.totalCases"),
       value: data.totalCases,
+      campaignsFilter: EMPTY_CAMPAIGNS_FILTER,
     },
     {
       key: "testersCount",
@@ -84,6 +97,20 @@ export function AdminTestsSummaryTab({ data, onKpiPress }: Props) {
               key={kpi.key}
               style={styles.card}
               onPress={() => onKpiPress(kpi.filter as AdminExecutionsFilter)}
+              testID={`admin-tests-kpi-${kpi.key}`}
+            >
+              {content}
+            </Pressable>
+          );
+        }
+
+        if (kpi.campaignsFilter !== undefined && onCampaignsKpiPress) {
+          const campaignsFilter = kpi.campaignsFilter;
+          return (
+            <Pressable
+              key={kpi.key}
+              style={styles.card}
+              onPress={() => onCampaignsKpiPress(campaignsFilter)}
               testID={`admin-tests-kpi-${kpi.key}`}
             >
               {content}

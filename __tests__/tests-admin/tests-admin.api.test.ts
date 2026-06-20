@@ -51,8 +51,8 @@ describe("testsAdminApi", () => {
     );
   });
 
-  it("updates case instructions via PATCH", async () => {
-    await testsAdminApi.updateCaseInstructions("case-1", {
+  it("updates a test case via PATCH", async () => {
+    await testsAdminApi.updateCase("case-1", {
       expectedResult: "ça marche",
     });
     expect(apiFetch).toHaveBeenCalledWith(
@@ -61,6 +61,60 @@ describe("testsAdminApi", () => {
         method: "PATCH",
         body: JSON.stringify({ expectedResult: "ça marche" }),
       },
+      true,
+    );
+  });
+
+  it("creates a campaign via POST", async () => {
+    await testsAdminApi.createCampaign({ title: "Recette mobile v2" });
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/admin/tests/campaigns",
+      { method: "POST", body: JSON.stringify({ title: "Recette mobile v2" }) },
+      true,
+    );
+  });
+
+  it("updates a campaign via PATCH", async () => {
+    await testsAdminApi.updateCampaign("camp-1", { status: "ARCHIVED" });
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/admin/tests/campaigns/camp-1",
+      { method: "PATCH", body: JSON.stringify({ status: "ARCHIVED" }) },
+      true,
+    );
+  });
+
+  it("deletes a campaign via DELETE", async () => {
+    await testsAdminApi.deleteCampaign("camp-1");
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/admin/tests/campaigns/camp-1",
+      { method: "DELETE" },
+      true,
+    );
+  });
+
+  it("creates a test case via POST", async () => {
+    await testsAdminApi.createCase("camp-1", {
+      title: "Connexion email",
+      expectedResult: "L'utilisateur est connecté",
+    });
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/admin/tests/campaigns/camp-1/cases",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          title: "Connexion email",
+          expectedResult: "L'utilisateur est connecté",
+        }),
+      },
+      true,
+    );
+  });
+
+  it("deletes a test case via DELETE", async () => {
+    await testsAdminApi.deleteCase("case-1");
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/admin/tests/cases/case-1",
+      { method: "DELETE" },
       true,
     );
   });

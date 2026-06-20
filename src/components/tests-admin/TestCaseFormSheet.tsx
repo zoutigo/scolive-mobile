@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Modal,
+  Switch,
   StyleSheet,
   Text,
   TextInput,
@@ -12,24 +13,31 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
+import { DatePickerField } from "../DatePickerField";
+import { SelectField } from "./SelectField";
 import type { AdminCaseRow } from "../../types/tests-admin.types";
+import type { TestCasePriority } from "../../types/tests.types";
 
 type FormValues = {
+  title: string;
   module: string;
   objective: string;
   preconditions: string;
   expectedResult: string;
+  priority: TestCasePriority;
+  evidenceRequired: boolean;
+  dueAt: string;
 };
 
 type Props = {
-  testCase: AdminCaseRow;
+  testCase?: AdminCaseRow | null;
   saving: boolean;
   error: string | null;
   onSubmit: (values: FormValues) => void;
   onCancel: () => void;
 };
 
-export function EditCaseInstructionsSheet({
+export function TestCaseFormSheet({
   testCase,
   saving,
   error,
@@ -37,15 +45,20 @@ export function EditCaseInstructionsSheet({
   onCancel,
 }: Props) {
   const { t } = useTranslation();
+  const isEdit = Boolean(testCase);
 
   const schema = z.object({
+    title: z.string().trim().min(1, t("testsAdmin.caseForm.titleRequired")),
     module: z.string(),
     objective: z.string(),
     preconditions: z.string(),
     expectedResult: z
       .string()
       .trim()
-      .min(1, t("testsAdmin.editCase.expectedResultRequired")),
+      .min(1, t("testsAdmin.caseForm.expectedResultRequired")),
+    priority: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
+    evidenceRequired: z.boolean(),
+    dueAt: z.string(),
   });
 
   const {
@@ -57,14 +70,26 @@ export function EditCaseInstructionsSheet({
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
-      module: testCase.module ?? "",
-      objective: testCase.objective ?? "",
-      preconditions: testCase.preconditions ?? "",
-      expectedResult: testCase.expectedResult ?? "",
+      title: testCase?.title ?? "",
+      module: testCase?.module ?? "",
+      objective: testCase?.objective ?? "",
+      preconditions: testCase?.preconditions ?? "",
+      expectedResult: testCase?.expectedResult ?? "",
+      priority: testCase?.priority ?? "MEDIUM",
+      evidenceRequired: testCase?.evidenceRequired ?? false,
+      dueAt: testCase?.dueAt ?? "",
     },
   });
 
   const onSave = handleSubmit((values) => onSubmit(values));
+  const sheetTestID = isEdit ? "edit-case-sheet" : "create-case-sheet";
+
+  const priorityOptions: Array<{ value: TestCasePriority; label: string }> = [
+    { value: "LOW", label: t("testsAdmin.caseForm.priority.low") },
+    { value: "MEDIUM", label: t("testsAdmin.caseForm.priority.medium") },
+    { value: "HIGH", label: t("testsAdmin.caseForm.priority.high") },
+    { value: "CRITICAL", label: t("testsAdmin.caseForm.priority.critical") },
+  ];
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onCancel}>
@@ -74,18 +99,30 @@ export function EditCaseInstructionsSheet({
           activeOpacity={1}
           onPress={onCancel}
         />
-        <View style={styles.sheet} testID="edit-case-sheet">
-          <Text style={styles.title}>{t("testsAdmin.editCase.title")}</Text>
+        <View style={styles.sheet} testID={sheetTestID}>
+          <Text style={styles.title}>
+            {isEdit
+              ? t("testsAdmin.caseForm.editTitle")
+              : t("testsAdmin.caseForm.createTitle")}
+          </Text>
 
           <Field
-            label={t("testsAdmin.editCase.moduleLabel")}
+            label={t("testsAdmin.caseForm.titleLabel")}
+            name="title"
+            control={control}
+            errors={errors}
+            testID="edit-case-title"
+            placeholder={t("testsAdmin.caseForm.titlePlaceholder")}
+          />
+          <Field
+            label={t("testsAdmin.caseForm.moduleLabel")}
             name="module"
             control={control}
             errors={errors}
             testID="edit-case-module"
           />
           <Field
-            label={t("testsAdmin.editCase.objectiveLabel")}
+            label={t("testsAdmin.caseForm.objectiveLabel")}
             name="objective"
             control={control}
             errors={errors}
@@ -93,7 +130,7 @@ export function EditCaseInstructionsSheet({
             multiline
           />
           <Field
-            label={t("testsAdmin.editCase.preconditionsLabel")}
+            label={t("testsAdmin.caseForm.preconditionsLabel")}
             name="preconditions"
             control={control}
             errors={errors}
@@ -101,13 +138,63 @@ export function EditCaseInstructionsSheet({
             multiline
           />
           <Field
-            label={t("testsAdmin.editCase.expectedResultLabel")}
+            label={t("testsAdmin.caseForm.expectedResultLabel")}
             name="expectedResult"
             control={control}
             errors={errors}
             testID="edit-case-expected-result"
             multiline
           />
+
+          <Controller
+            control={control}
+            name="priority"
+            render={({ field }) => (
+              <SelectField
+                label={t("testsAdmin.caseForm.priorityLabel")}
+                value={field.value}
+                onChange={(value) => field.onChange(value as TestCasePriority)}
+                options={priorityOptions}
+                placeholder={t("testsAdmin.caseForm.priorityLabel")}
+                closeLabel={t("testsAdmin.common.close")}
+                testIDPrefix="edit-case-priority"
+              />
+            )}
+          />
+
+          <View style={styles.field}>
+            <Text style={styles.label}>
+              {t("testsAdmin.caseForm.dueAtLabel")}
+            </Text>
+            <Controller
+              control={control}
+              name="dueAt"
+              render={({ field }) => (
+                <DatePickerField
+                  value={field.value}
+                  onChange={field.onChange}
+                  testID="edit-case-due-at"
+                />
+              )}
+            />
+          </View>
+
+          <View style={styles.switchRow}>
+            <Text style={styles.label}>
+              {t("testsAdmin.caseForm.evidenceRequiredLabel")}
+            </Text>
+            <Controller
+              control={control}
+              name="evidenceRequired"
+              render={({ field }) => (
+                <Switch
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  testID="edit-case-evidence-required"
+                />
+              )}
+            />
+          </View>
 
           {error ? <Text style={styles.fieldError}>{error}</Text> : null}
 
@@ -148,6 +235,7 @@ function Field(props: {
   errors: ReturnType<typeof useForm<FormValues>>["formState"]["errors"];
   testID: string;
   multiline?: boolean;
+  placeholder?: string;
 }) {
   return (
     <View style={styles.field}>
@@ -163,12 +251,13 @@ function Field(props: {
               props.multiline && styles.textarea,
               fieldState.error && styles.inputError,
             ]}
-            value={field.value}
+            value={String(field.value)}
             onBlur={field.onBlur}
             onChangeText={field.onChange}
             multiline={props.multiline}
             numberOfLines={props.multiline ? 3 : 1}
             textAlignVertical={props.multiline ? "top" : "center"}
+            placeholder={props.placeholder}
             placeholderTextColor={colors.textSecondary}
             testID={props.testID}
           />
@@ -176,7 +265,7 @@ function Field(props: {
       />
       {props.errors[props.name]?.message ? (
         <Text style={styles.fieldError}>
-          {props.errors[props.name]?.message}
+          {String(props.errors[props.name]?.message)}
         </Text>
       ) : null}
     </View>
@@ -196,7 +285,7 @@ const styles = StyleSheet.create({
     borderColor: colors.warmBorder,
     padding: 18,
     gap: 12,
-    maxHeight: "85%",
+    maxHeight: "88%",
   },
   title: { fontSize: 16, fontWeight: "800", color: colors.textPrimary },
   field: { gap: 6 },
@@ -214,6 +303,11 @@ const styles = StyleSheet.create({
   textarea: { minHeight: 72, paddingTop: 10 },
   inputError: { borderColor: colors.notification },
   fieldError: { fontSize: 12, color: colors.notification },
+  switchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   actions: { flexDirection: "row", gap: 10 },
   primaryButton: {
     flex: 1,

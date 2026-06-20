@@ -1,7 +1,11 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
+import {
+  ALL_CAMPAIGNS_FILTER,
+  type TestsCampaignsFilter,
+} from "./TestsCampaignsTab";
 
 interface KpiCardProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -9,6 +13,7 @@ interface KpiCardProps {
   count: number;
   backgroundColor: string;
   testID: string;
+  onPress?: () => void;
 }
 
 function KpiCard({
@@ -17,9 +22,10 @@ function KpiCard({
   count,
   backgroundColor,
   testID,
+  onPress,
 }: KpiCardProps) {
-  return (
-    <View style={[styles.kpiCard, { backgroundColor }]} testID={testID}>
+  const content = (
+    <>
       <View style={styles.kpiHeader}>
         <Text style={styles.kpiLabel} testID={`${testID}-label`}>
           {label}
@@ -31,6 +37,24 @@ function KpiCard({
       <Text style={styles.kpiCount} testID={`${testID}-count`}>
         {String(count)}
       </Text>
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable
+        style={[styles.kpiCard, { backgroundColor }]}
+        onPress={onPress}
+        testID={testID}
+      >
+        {content}
+      </Pressable>
+    );
+  }
+
+  return (
+    <View style={[styles.kpiCard, { backgroundColor }]} testID={testID}>
+      {content}
     </View>
   );
 }
@@ -54,9 +78,14 @@ interface Props {
     totalCases: string;
     pending: string;
   };
+  onCampaignsFilterPress?: (filter: TestsCampaignsFilter) => void;
 }
 
-export function TestsSummaryKpis({ data, labels }: Props) {
+export function TestsSummaryKpis({
+  data,
+  labels,
+  onCampaignsFilterPress,
+}: Props) {
   return (
     <View style={styles.grid} testID="tests-summary-kpis">
       <KpiCard
@@ -65,6 +94,7 @@ export function TestsSummaryKpis({ data, labels }: Props) {
         count={data.totalCampaigns}
         backgroundColor={colors.primary}
         testID="tests-kpi-total-campaigns"
+        onPress={() => onCampaignsFilterPress?.(ALL_CAMPAIGNS_FILTER)}
       />
       <KpiCard
         icon="play-circle-outline"
@@ -72,6 +102,7 @@ export function TestsSummaryKpis({ data, labels }: Props) {
         count={data.inProgressCampaigns}
         backgroundColor={colors.accentTeal}
         testID="tests-kpi-in-progress"
+        onPress={() => onCampaignsFilterPress?.("IN_PROGRESS")}
       />
       <KpiCard
         icon="time-outline"
@@ -79,6 +110,7 @@ export function TestsSummaryKpis({ data, labels }: Props) {
         count={data.upcomingCampaigns}
         backgroundColor={colors.warmAccent}
         testID="tests-kpi-upcoming"
+        onPress={() => onCampaignsFilterPress?.("UPCOMING")}
       />
       <KpiCard
         icon="checkmark-done-outline"
@@ -86,6 +118,7 @@ export function TestsSummaryKpis({ data, labels }: Props) {
         count={data.completedCampaigns}
         backgroundColor="#5F5A52"
         testID="tests-kpi-completed"
+        onPress={() => onCampaignsFilterPress?.("COMPLETED")}
       />
       <KpiCard
         icon="document-text-outline"
@@ -93,6 +126,7 @@ export function TestsSummaryKpis({ data, labels }: Props) {
         count={data.totalCases}
         backgroundColor="#7C6AA3"
         testID="tests-kpi-total-cases"
+        onPress={() => onCampaignsFilterPress?.(ALL_CAMPAIGNS_FILTER)}
       />
       <KpiCard
         icon="alert-circle-outline"
@@ -100,6 +134,7 @@ export function TestsSummaryKpis({ data, labels }: Props) {
         count={data.pendingCases}
         backgroundColor="#B45A3C"
         testID="tests-kpi-pending"
+        onPress={() => onCampaignsFilterPress?.(ALL_CAMPAIGNS_FILTER)}
       />
     </View>
   );

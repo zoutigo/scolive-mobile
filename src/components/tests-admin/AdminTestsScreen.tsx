@@ -17,7 +17,11 @@ import { useAuthStore } from "../../store/auth.store";
 import { testsAdminApi } from "../../api/tests-admin.api";
 import type { AdminTestsSynthesis } from "../../types/tests-admin.types";
 import { AdminTestsSummaryTab } from "./AdminTestsSummaryTab";
-import { AdminTestsCampaignsTab } from "./AdminTestsCampaignsTab";
+import {
+  AdminTestsCampaignsTab,
+  EMPTY_CAMPAIGNS_FILTER,
+  type AdminCampaignsFilter,
+} from "./AdminTestsCampaignsTab";
 import { AdminTestersTab } from "./AdminTestersTab";
 import {
   AdminTestsExecutionsTab,
@@ -39,10 +43,18 @@ export function AdminTestsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [executionsFilter, setExecutionsFilter] =
     useState<AdminExecutionsFilter>(EMPTY_EXECUTIONS_FILTER);
+  const [campaignsFilter, setCampaignsFilter] = useState<AdminCampaignsFilter>(
+    EMPTY_CAMPAIGNS_FILTER,
+  );
 
   function openExecutionsWithFilter(filter: AdminExecutionsFilter) {
     setExecutionsFilter(filter);
     setActiveTab("executions");
+  }
+
+  function openCampaignsWithFilter(filter: AdminCampaignsFilter) {
+    setCampaignsFilter(filter);
+    setActiveTab("campaigns");
   }
 
   const isPlatformAdmin = (user?.platformRoles ?? []).some((role) =>
@@ -119,9 +131,15 @@ export function AdminTestsScreen() {
               <AdminTestsSummaryTab
                 data={synthesis}
                 onKpiPress={openExecutionsWithFilter}
+                onCampaignsKpiPress={openCampaignsWithFilter}
               />
             ) : null}
-            {activeTab === "campaigns" ? <AdminTestsCampaignsTab /> : null}
+            {activeTab === "campaigns" ? (
+              <AdminTestsCampaignsTab
+                filter={campaignsFilter}
+                onFilterChange={setCampaignsFilter}
+              />
+            ) : null}
             {activeTab === "testers" ? <AdminTestersTab /> : null}
             {activeTab === "executions" ? (
               <AdminTestsExecutionsTab

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,7 +23,11 @@ import type {
   AdminTesterRow,
 } from "../../types/tests-admin.types";
 import { AssignCampaignSheet } from "./AssignCampaignSheet";
-import { EditCaseInstructionsSheet } from "./EditCaseInstructionsSheet";
+import {
+  CampaignFormSheet,
+  type CampaignFormValues,
+} from "./CampaignFormSheet";
+import { TestCaseFormSheet } from "./TestCaseFormSheet";
 import { QuickMessageSheet } from "./QuickMessageSheet";
 
 export function AdminCampaignDetailScreen() {
@@ -38,6 +43,7 @@ export function AdminCampaignDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [recyclingId, setRecyclingId] = useState<string | null>(null);
   const [editingCase, setEditingCase] = useState<AdminCaseRow | null>(null);
+  const [showCreateCase, setShowCreateCase] = useState(false);
   const [savingCase, setSavingCase] = useState(false);
   const [caseError, setCaseError] = useState<string | null>(null);
   const [showAssignSheet, setShowAssignSheet] = useState(false);
@@ -46,6 +52,9 @@ export function AdminCampaignDetailScreen() {
   const [messageTarget, setMessageTarget] = useState<AdminTesterRow | null>(
     null,
   );
+  const [showEditCampaign, setShowEditCampaign] = useState(false);
+  const [savingCampaign, setSavingCampaign] = useState(false);
+  const [campaignError, setCampaignError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!campaignId) return;
@@ -78,21 +87,31 @@ export function AdminCampaignDetailScreen() {
     }
   }
 
-  async function handleEditCaseSubmit(values: {
+  type CaseFormValues = {
+    title: string;
     module: string;
     objective: string;
     preconditions: string;
     expectedResult: string;
-  }) {
+    priority: AdminCaseRow["priority"];
+    evidenceRequired: boolean;
+    dueAt: string;
+  };
+
+  async function handleEditCaseSubmit(values: CaseFormValues) {
     if (!editingCase) return;
     setSavingCase(true);
     setCaseError(null);
     try {
-      await testsAdminApi.updateCaseInstructions(editingCase.id, {
+      await testsAdminApi.updateCase(editingCase.id, {
+        title: values.title,
         module: values.module || null,
         objective: values.objective || null,
         preconditions: values.preconditions || null,
         expectedResult: values.expectedResult,
+        priority: values.priority,
+        evidenceRequired: values.evidenceRequired,
+        dueAt: values.dueAt || null,
       });
       setEditingCase(null);
       await load();
@@ -105,6 +124,101 @@ export function AdminCampaignDetailScreen() {
     } finally {
       setSavingCase(false);
     }
+  }
+
+  async function handleCreateCaseSubmit(values: CaseFormValues) {
+    if (!campaignId) return;
+    setSavingCase(true);
+    setCaseError(null);
+    try {
+      await testsAdminApi.createCase(campaignId, {
+        title: values.title,
+        module: values.module || undefined,
+        objective: values.objective || undefined,
+        preconditions: values.preconditions || undefined,
+        expectedResult: values.expectedResult,
+        priority: values.priority,
+        evidenceRequired: values.evidenceRequired,
+        dueAt: values.dueAt || undefined,
+      });
+      setShowCreateCase(false);
+      await load();
+    } catch (err) {
+      setCaseError(
+        err instanceof Error
+          ? err.message
+          : t("testsAdmin.common.errors.submitGeneric"),
+      );
+    } finally {
+      setSavingCase(false);
+    }
+  }
+
+  function handleDeleteCase(testCaseId: string) {
+    Alert.alert(
+      t("testsAdmin.detail.deleteCaseConfirmTitle"),
+      t("testsAdmin.detail.deleteCaseConfirmMessage"),
+      [
+        { text: t("testsAdmin.common.cancel"), style: "cancel" },
+        {
+          text: t("testsAdmin.detail.delete"),
+          style: "destructive",
+          onPress: () => {
+            void (async () => {
+              await testsAdminApi.deleteCase(testCaseId);
+              await load();
+            })();
+          },
+        },
+      ],
+    );
+  }
+
+  async function handleEditCampaignSubmit(values: CampaignFormValues) {
+    if (!campaignId) return;
+    setSavingCampaign(true);
+    setCampaignError(null);
+    try {
+      await testsAdminApi.updateCampaign(campaignId, {
+        title: values.title,
+        description: values.description || null,
+        targetVersion: values.targetVersion || null,
+        startsAt: values.startsAt || null,
+        dueAt: values.dueAt || null,
+        status: values.status,
+      });
+      setShowEditCampaign(false);
+      await load();
+    } catch (err) {
+      setCampaignError(
+        err instanceof Error
+          ? err.message
+          : t("testsAdmin.common.errors.submitGeneric"),
+      );
+    } finally {
+      setSavingCampaign(false);
+    }
+  }
+
+  function handleDeleteCampaign() {
+    if (!campaignId) return;
+    Alert.alert(
+      t("testsAdmin.detail.deleteCampaignConfirmTitle"),
+      t("testsAdmin.detail.deleteCampaignConfirmMessage"),
+      [
+        { text: t("testsAdmin.common.cancel"), style: "cancel" },
+        {
+          text: t("testsAdmin.detail.delete"),
+          style: "destructive",
+          onPress: () => {
+            void (async () => {
+              await testsAdminApi.deleteCampaign(campaignId);
+              router.back();
+            })();
+          },
+        },
+      ],
+    );
   }
 
   async function handleAssignSubmit(values: {
@@ -155,6 +269,27 @@ export function AdminCampaignDetailScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          <View style={styles.caseActions}>
+            <TouchableOpacity
+              style={styles.smallButton}
+              onPress={() => setShowEditCampaign(true)}
+              testID="admin-edit-campaign-btn"
+            >
+              <Text style={styles.smallButtonText}>
+                {t("testsAdmin.detail.editCampaign")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.outlineButton}
+              onPress={handleDeleteCampaign}
+              testID="admin-delete-campaign-btn"
+            >
+              <Text style={styles.outlineButtonText}>
+                {t("testsAdmin.detail.deleteCampaign")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>
@@ -227,12 +362,23 @@ export function AdminCampaignDetailScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              {t("testsAdmin.detail.casesTitle").replace(
-                "{count}",
-                String(campaign.testCases.length),
-              )}
-            </Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {t("testsAdmin.detail.casesTitle").replace(
+                  "{count}",
+                  String(campaign.testCases.length),
+                )}
+              </Text>
+              <TouchableOpacity
+                style={styles.smallButton}
+                onPress={() => setShowCreateCase(true)}
+                testID="admin-open-create-case-btn"
+              >
+                <Text style={styles.smallButtonText}>
+                  {t("testsAdmin.detail.addCase")}
+                </Text>
+              </TouchableOpacity>
+            </View>
             <View style={styles.list}>
               {campaign.testCases.map((testCase) => (
                 <View
@@ -285,6 +431,15 @@ export function AdminCampaignDetailScreen() {
                           : t("testsAdmin.detail.recycle")}
                       </Text>
                     </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.outlineButton}
+                      onPress={() => handleDeleteCase(testCase.id)}
+                      testID={`admin-case-delete-${testCase.id}`}
+                    >
+                      <Text style={styles.outlineButtonText}>
+                        {t("testsAdmin.detail.delete")}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               ))}
@@ -304,12 +459,31 @@ export function AdminCampaignDetailScreen() {
       ) : null}
 
       {editingCase ? (
-        <EditCaseInstructionsSheet
+        <TestCaseFormSheet
           testCase={editingCase}
           saving={savingCase}
           error={caseError}
           onSubmit={handleEditCaseSubmit}
           onCancel={() => setEditingCase(null)}
+        />
+      ) : null}
+
+      {showCreateCase ? (
+        <TestCaseFormSheet
+          saving={savingCase}
+          error={caseError}
+          onSubmit={handleCreateCaseSubmit}
+          onCancel={() => setShowCreateCase(false)}
+        />
+      ) : null}
+
+      {showEditCampaign && campaign ? (
+        <CampaignFormSheet
+          campaign={campaign}
+          saving={savingCampaign}
+          error={campaignError}
+          onSubmit={handleEditCampaignSubmit}
+          onCancel={() => setShowEditCampaign(false)}
         />
       ) : null}
 

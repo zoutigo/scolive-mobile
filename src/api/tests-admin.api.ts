@@ -3,11 +3,15 @@ import type {
   AdminAssignmentRow,
   AdminCampaignDetail,
   AdminCampaignRow,
+  AdminCaseRow,
   AdminTestExecutionDetail,
   AdminTestExecutionRow,
   AdminTesterRow,
   AdminTestsSynthesis,
-  UpdateCaseInstructionsPayload,
+  CreateTestCampaignPayload,
+  CreateTestCasePayload,
+  UpdateTestCampaignPayload,
+  UpdateTestCasePayload,
 } from "../types/tests-admin.types";
 import type {
   TestCampaignStatus,
@@ -58,6 +62,46 @@ export const testsAdminApi = {
     return apiFetch(`/admin/tests/campaigns/${campaignId}`, {}, true);
   },
 
+  createCampaign(
+    payload: CreateTestCampaignPayload,
+  ): Promise<AdminCampaignRow> {
+    return apiFetch(
+      `/admin/tests/campaigns`,
+      { method: "POST", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  updateCampaign(
+    campaignId: string,
+    payload: UpdateTestCampaignPayload,
+  ): Promise<AdminCampaignRow> {
+    return apiFetch(
+      `/admin/tests/campaigns/${campaignId}`,
+      { method: "PATCH", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  deleteCampaign(campaignId: string): Promise<void> {
+    return apiFetch(
+      `/admin/tests/campaigns/${campaignId}`,
+      { method: "DELETE" },
+      true,
+    );
+  },
+
+  createCase(
+    campaignId: string,
+    payload: CreateTestCasePayload,
+  ): Promise<AdminCaseRow> {
+    return apiFetch(
+      `/admin/tests/campaigns/${campaignId}/cases`,
+      { method: "POST", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
   recycleCase(testCaseId: string): Promise<void> {
     return apiFetch(
       `/admin/tests/cases/${testCaseId}/recycle`,
@@ -66,13 +110,21 @@ export const testsAdminApi = {
     );
   },
 
-  updateCaseInstructions(
+  updateCase(
     testCaseId: string,
-    payload: UpdateCaseInstructionsPayload,
-  ): Promise<void> {
+    payload: UpdateTestCasePayload,
+  ): Promise<AdminCaseRow> {
     return apiFetch(
       `/admin/tests/cases/${testCaseId}`,
       { method: "PATCH", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  deleteCase(testCaseId: string): Promise<void> {
+    return apiFetch(
+      `/admin/tests/cases/${testCaseId}`,
+      { method: "DELETE" },
       true,
     );
   },
