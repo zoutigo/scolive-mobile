@@ -3,7 +3,10 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
 import type { AdminTestsSynthesis } from "../../types/tests-admin.types";
-import { EMPTY_EXECUTIONS_FILTER, type AdminExecutionsFilter } from "./AdminTestsExecutionsTab";
+import {
+  EMPTY_EXECUTIONS_FILTER,
+  type AdminExecutionsFilter,
+} from "./AdminTestsExecutionsTab";
 
 type Props = {
   data: AdminTestsSynthesis;
@@ -89,7 +92,11 @@ export function AdminTestsSummaryTab({ data, onKpiPress }: Props) {
         }
 
         return (
-          <View key={kpi.key} style={styles.card} testID={`admin-tests-kpi-${kpi.key}`}>
+          <View
+            key={kpi.key}
+            style={styles.card}
+            testID={`admin-tests-kpi-${kpi.key}`}
+          >
             {content}
           </View>
         );

@@ -105,7 +105,10 @@ export function AdminExecutionDetailCard({ executionId, isActive }: Props) {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>{detail.testCase.title}</Text>
-          <StatusPill status={detail.status} label={statusLabel(t, detail.status)} />
+          <StatusPill
+            status={detail.status}
+            label={statusLabel(t, detail.status)}
+          />
         </View>
         <Text style={styles.meta}>
           {t("testsAdmin.executions.cardTester").replace(
@@ -119,7 +122,9 @@ export function AdminExecutionDetailCard({ executionId, isActive }: Props) {
             detail.campaign.title,
           )}
         </Text>
-        <Text style={styles.meta}>{formatDateTime(detail.executedAt, locale)}</Text>
+        <Text style={styles.meta}>
+          {formatDateTime(detail.executedAt, locale)}
+        </Text>
 
         <Section title={t("testsAdmin.executions.detail.resultLabel")}>
           <Text style={styles.body}>
@@ -137,12 +142,14 @@ export function AdminExecutionDetailCard({ executionId, isActive }: Props) {
           <View style={styles.metaRow}>
             {detail.deviceInfo ? (
               <Text style={styles.metaPill}>
-                {t("testsAdmin.executions.detail.deviceLabel")}: {detail.deviceInfo}
+                {t("testsAdmin.executions.detail.deviceLabel")}:{" "}
+                {detail.deviceInfo}
               </Text>
             ) : null}
             {detail.appVersion ? (
               <Text style={styles.metaPill}>
-                {t("testsAdmin.executions.detail.versionLabel")}: {detail.appVersion}
+                {t("testsAdmin.executions.detail.versionLabel")}:{" "}
+                {detail.appVersion}
               </Text>
             ) : null}
           </View>
@@ -168,7 +175,10 @@ export function AdminExecutionDetailCard({ executionId, isActive }: Props) {
               <Text style={styles.reviewedText}>
                 {t("testsAdmin.executions.detail.reviewedBy")
                   .replace("{name}", detail.adminReviewedBy?.fullName ?? "")
-                  .replace("{date}", formatDateTime(detail.adminReviewedAt, locale))}
+                  .replace(
+                    "{date}",
+                    formatDateTime(detail.adminReviewedAt, locale),
+                  )}
               </Text>
               {detail.adminReviewNote ? (
                 <Text style={styles.body}>{detail.adminReviewNote}</Text>
@@ -292,7 +302,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  title: { flex: 1, fontSize: 18, fontWeight: "800", color: colors.textPrimary },
+  title: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "800",
+    color: colors.textPrimary,
+  },
   meta: { fontSize: 13, color: colors.textSecondary },
   metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   metaPill: {

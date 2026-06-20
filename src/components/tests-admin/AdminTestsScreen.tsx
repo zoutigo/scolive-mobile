@@ -37,9 +37,8 @@ export function AdminTestsScreen() {
   const [synthesis, setSynthesis] = useState<AdminTestsSynthesis | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [executionsFilter, setExecutionsFilter] = useState<AdminExecutionsFilter>(
-    EMPTY_EXECUTIONS_FILTER,
-  );
+  const [executionsFilter, setExecutionsFilter] =
+    useState<AdminExecutionsFilter>(EMPTY_EXECUTIONS_FILTER);
 
   function openExecutionsWithFilter(filter: AdminExecutionsFilter) {
     setExecutionsFilter(filter);

@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
@@ -40,8 +46,12 @@ export function AdminTestsExecutionsTab({ filter, onFilterChange }: Props) {
   const { t, locale } = useTranslation();
   const router = useRouter();
   const [items, setItems] = useState<AdminTestExecutionRow[]>([]);
-  const [campaigns, setCampaigns] = useState<Array<{ id: string; title: string }>>([]);
-  const [testers, setTesters] = useState<Array<{ id: string; fullName: string }>>([]);
+  const [campaigns, setCampaigns] = useState<
+    Array<{ id: string; title: string }>
+  >([]);
+  const [testers, setTesters] = useState<
+    Array<{ id: string; fullName: string }>
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -118,7 +128,10 @@ export function AdminTestsExecutionsTab({ filter, onFilterChange }: Props) {
   const testerOptions = useMemo(
     () => [
       { value: "", label: t("testsAdmin.executions.filters.testerAll") },
-      ...testers.map((tester) => ({ value: tester.id, label: tester.fullName })),
+      ...testers.map((tester) => ({
+        value: tester.id,
+        label: tester.fullName,
+      })),
     ],
     [testers, t],
   );
@@ -157,7 +170,10 @@ export function AdminTestsExecutionsTab({ filter, onFilterChange }: Props) {
             value={filter.status}
             options={statusOptions}
             onChange={(value) =>
-              onFilterChange({ ...filter, status: value as TestExecutionStatus | "" })
+              onFilterChange({
+                ...filter,
+                status: value as TestExecutionStatus | "",
+              })
             }
             placeholder={t("testsAdmin.executions.filters.statusAll")}
             closeLabel={t("testsAdmin.common.cancel")}
@@ -187,7 +203,9 @@ export function AdminTestsExecutionsTab({ filter, onFilterChange }: Props) {
             label={t("testsAdmin.executions.filters.campaign")}
             value={filter.campaignId}
             options={campaignOptions}
-            onChange={(value) => onFilterChange({ ...filter, campaignId: value })}
+            onChange={(value) =>
+              onFilterChange({ ...filter, campaignId: value })
+            }
             placeholder={t("testsAdmin.executions.filters.campaignAll")}
             closeLabel={t("testsAdmin.common.cancel")}
             testIDPrefix="admin-executions-filter-campaign"
@@ -232,7 +250,10 @@ export function AdminTestsExecutionsTab({ filter, onFilterChange }: Props) {
             >
               <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>{execution.testCase.title}</Text>
-                <StatusPill status={execution.status} label={statusLabel(t, execution.status)} />
+                <StatusPill
+                  status={execution.status}
+                  label={statusLabel(t, execution.status)}
+                />
               </View>
               <Text style={styles.cardMeta}>
                 {t("testsAdmin.executions.cardTester").replace(
@@ -374,5 +395,9 @@ const styles = StyleSheet.create({
   },
   reviewBadgeDone: { backgroundColor: "#E4F5EA" },
   reviewBadgePending: { backgroundColor: "#FFF3DD" },
-  reviewBadgeText: { fontSize: 11, fontWeight: "700", color: colors.textPrimary },
+  reviewBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
 });

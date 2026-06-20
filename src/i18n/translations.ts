@@ -2979,8 +2979,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "testsAdmin.executions.filters.reviewedPending": "Pending",
     "testsAdmin.executions.filters.reviewedDone": "Reviewed",
     "testsAdmin.executions.emptyTitle": "No test done yet",
-    "testsAdmin.executions.emptyMessage":
-      "No execution matches these filters.",
+    "testsAdmin.executions.emptyMessage": "No execution matches these filters.",
     "testsAdmin.executions.cardTester": "By {name}",
     "testsAdmin.executions.cardCampaign": "Campaign: {title}",
     "testsAdmin.executions.reviewedBadge": "Reviewed",

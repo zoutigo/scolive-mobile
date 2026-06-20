@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
@@ -145,7 +151,10 @@ export function TestsExecutionsTab({ campaigns }: Props) {
             >
               <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>{execution.testCase.title}</Text>
-                <StatusPill status={execution.status} label={statusLabel(t, execution.status)} />
+                <StatusPill
+                  status={execution.status}
+                  label={statusLabel(t, execution.status)}
+                />
               </View>
               <Text style={styles.cardMeta}>
                 {t("tests.executions.cardCampaign").replace(

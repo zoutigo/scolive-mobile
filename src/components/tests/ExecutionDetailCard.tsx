@@ -70,7 +70,10 @@ export function ExecutionDetailCard({ executionId, isActive }: Props) {
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>{detail.testCase.title}</Text>
-        <StatusPill status={detail.status} label={statusLabel(t, detail.status)} />
+        <StatusPill
+          status={detail.status}
+          label={statusLabel(t, detail.status)}
+        />
       </View>
       <Text style={styles.meta}>
         {t("tests.executions.cardCampaign").replace(
@@ -78,7 +81,9 @@ export function ExecutionDetailCard({ executionId, isActive }: Props) {
           detail.campaign.title,
         )}
       </Text>
-      <Text style={styles.meta}>{formatDateTime(detail.executedAt, locale)}</Text>
+      <Text style={styles.meta}>
+        {formatDateTime(detail.executedAt, locale)}
+      </Text>
 
       <Section title={t("tests.executions.detail.resultLabel")}>
         <Text style={styles.body}>
@@ -168,7 +173,10 @@ const STATUS_PALETTE: Record<
   TODO: { bg: "#F1ECE7", text: colors.textSecondary },
 };
 
-export function statusLabel(t: (key: string) => string, value: TestExecutionStatus) {
+export function statusLabel(
+  t: (key: string) => string,
+  value: TestExecutionStatus,
+) {
   switch (value) {
     case "PASSED":
       return t("tests.status.passed");
@@ -205,7 +213,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  title: { flex: 1, fontSize: 18, fontWeight: "800", color: colors.textPrimary },
+  title: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "800",
+    color: colors.textPrimary,
+  },
   meta: { fontSize: 13, color: colors.textSecondary },
   metaRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   metaPill: {
