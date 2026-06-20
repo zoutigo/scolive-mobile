@@ -3,6 +3,12 @@ name: Publish Android APK
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      mandatory:
+        description: "Forcer la mise à jour (minimumVersionCode = ce build)"
+        type: boolean
+        default: true
 
 concurrency:
   group: publish-android-${{ github.ref }}
@@ -49,8 +55,12 @@ jobs:
       - name: Resolve Android build version
         id: version
         run: |
-          VERSION_NAME="$(node -p "require('./app.json').expo.version")"
+          BASE_VERSION="$(node -p "require('./app.json').expo.version")"
           VERSION_CODE="${GITHUB_RUN_NUMBER}"
+          # BASE_VERSION (app.json) ne change qu'aux vraies releases ; on suffixe
+          # toujours avec le build number pour que versionName soit unique par
+          # build et que la modale de mise à jour affiche un vrai delta.
+          VERSION_NAME="${BASE_VERSION}+${VERSION_CODE}"
           BUILD_ID="${GITHUB_REF_NAME}-${GITHUB_RUN_NUMBER}"
           SHORT_SHA="$(git rev-parse --short HEAD)"
           echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
@@ -88,6 +98,8 @@ jobs:
           VERSION_CODE: ${{ steps.version.outputs.version_code }}
           BUILD_ID: ${{ steps.version.outputs.build_id }}
           GIT_SHA: ${{ steps.version.outputs.git_sha }}
+          # Sur push (pas de workflow_dispatch), garder le comportement actuel : obligatoire.
+          MANDATORY: ${{ github.event.inputs.mandatory || 'true' }}
         run: |
           if [ -z "$MOBILE_BUILD_UPLOAD_TOKEN" ]; then
             echo "MOBILE_BUILD_UPLOAD_TOKEN secret is missing" >&2
@@ -96,12 +108,19 @@ jobs:
 
           UPLOAD_URL="${MOBILE_BUILD_UPLOAD_URL:-https://scolive.lisaweb.fr/api/mobile-builds/android}"
 
-          curl --fail --show-error --location \
-            -X POST "$UPLOAD_URL" \
-            -H "Authorization: Bearer $MOBILE_BUILD_UPLOAD_TOKEN" \
-            -F "file=@android/app/build/outputs/apk/release/app-release.apk;type=application/vnd.android.package-archive" \
-            -F "versionName=$VERSION_NAME" \
-            -F "versionCode=$VERSION_CODE" \
-            -F "minimumVersionCode=$VERSION_CODE" \
-            -F "buildId=$BUILD_ID" \
+          ARGS=(
+            --fail --show-error --location
+            -X POST "$UPLOAD_URL"
+            -H "Authorization: Bearer $MOBILE_BUILD_UPLOAD_TOKEN"
+            -F "file=@android/app/build/outputs/apk/release/app-release.apk;type=application/vnd.android.package-archive"
+            -F "versionName=$VERSION_NAME"
+            -F "versionCode=$VERSION_CODE"
+            -F "buildId=$BUILD_ID"
             -F "gitSha=$GIT_SHA"
+          )
+
+          if [ "$MANDATORY" = "true" ]; then
+            ARGS+=(-F "minimumVersionCode=$VERSION_CODE")
+          fi
+
+          curl "${ARGS[@]}"
