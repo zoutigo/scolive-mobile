@@ -42,13 +42,9 @@ export default function RootLayout() {
   }, []);
 
   const handleDownload = useCallback(() => {
-    if (mandatory) {
-      void Linking.openURL("https://scolive.lisaweb.fr");
-    } else {
-      void Linking.openURL(downloadUrl);
-      setShowInstallGuide(true);
-    }
-  }, [mandatory, downloadUrl]);
+    void Linking.openURL(downloadUrl);
+    setShowInstallGuide(true);
+  }, [downloadUrl]);
 
   const handleCloseInstallGuide = useCallback(() => {
     setShowInstallGuide(false);
@@ -121,6 +117,7 @@ export default function RootLayout() {
       />
       <AppInstallGuideModal
         visible={showInstallGuide}
+        mandatory={mandatory}
         onClose={handleCloseInstallGuide}
       />
     </>

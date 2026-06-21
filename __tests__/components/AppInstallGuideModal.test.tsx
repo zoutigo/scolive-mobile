@@ -63,6 +63,18 @@ describe("Rendu", () => {
     render(<AppInstallGuideModal {...baseProps} visible={false} />);
     expect(screen.queryByTestId("install-guide-card")).toBeNull();
   });
+
+  it("n'affiche pas la note de repli en mode facultatif", () => {
+    render(<AppInstallGuideModal {...baseProps} />);
+    expect(screen.queryByTestId("install-guide-fallback-note")).toBeNull();
+  });
+
+  it("affiche la note de repli désinstallation en mode mandatory", () => {
+    render(<AppInstallGuideModal {...baseProps} mandatory />);
+    expect(screen.getByTestId("install-guide-fallback-note")).toHaveTextContent(
+      /sinstallez/,
+    );
+  });
 });
 
 // ── Accessibilité ─────────────────────────────────────────────────────────────

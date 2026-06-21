@@ -168,6 +168,34 @@ describe("RootLayout", () => {
     expect(screen.getByTestId("root-install-guide")).toBeTruthy();
   });
 
+  it("en mode mandatory, télécharge l'APK directement et affiche le guide d'installation (pas de redirection web)", () => {
+    (Linking.openURL as jest.Mock).mockResolvedValue(undefined);
+
+    mockUseAppVersionCheck.mockReturnValue({
+      status: "ready",
+      updateAvailable: true,
+      mandatory: true,
+      latestVersionName: "2.0.0",
+      latestVersionCode: 20,
+      currentVersionName: "1.0.0",
+      currentVersionCode: 10,
+      downloadUrl: "https://downloads.example.com/scolive.apk",
+      dismiss: jest.fn(),
+      retry: jest.fn(),
+    });
+
+    render(<RootLayout />);
+    fireEvent.press(screen.getByTestId("root-update-download"));
+
+    expect(Linking.openURL).toHaveBeenCalledWith(
+      "https://downloads.example.com/scolive.apk",
+    );
+    expect(Linking.openURL).not.toHaveBeenCalledWith(
+      "https://scolive.lisaweb.fr",
+    );
+    expect(screen.getByTestId("root-install-guide")).toBeTruthy();
+  });
+
   it("relaye l'action dismiss du hook vers la modale de mise à jour", () => {
     const dismiss = jest.fn();
 

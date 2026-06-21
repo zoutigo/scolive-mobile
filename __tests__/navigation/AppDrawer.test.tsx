@@ -15,6 +15,11 @@ jest.mock("@expo/vector-icons", () => ({
   Ionicons: () => null,
 }));
 
+jest.mock("expo-application", () => ({
+  nativeApplicationVersion: "1.2.3",
+  nativeBuildVersion: "38",
+}));
+
 const mockPush = jest.fn();
 let mockPathname = "/";
 jest.mock("expo-router", () => ({
@@ -1727,5 +1732,23 @@ describe("Effect A — auto-ouverture de la section enfant par route", () => {
     renderParentOnRoute("/", "c1");
     expect(screen.getByTestId("nav-item-child-c1-grades")).toBeTruthy();
     expect(screen.queryByTestId("nav-item-home")).toBeNull();
+  });
+});
+
+// ── Version de l'application ───────────────────────────────────────────────────
+
+describe("Version de l'application", () => {
+  it("affiche le versionName au format V.x.x.x, pas le build number", () => {
+    renderDrawer();
+    expect(screen.getByTestId("drawer-app-version")).toHaveTextContent(
+      "V1.2.3",
+    );
+  });
+
+  it("n'affiche pas le build number natif dans le tiroir", () => {
+    renderDrawer();
+    expect(screen.getByTestId("drawer-app-version")).not.toHaveTextContent(
+      "38",
+    );
   });
 });

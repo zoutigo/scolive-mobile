@@ -650,7 +650,7 @@ export function AppDrawer({
         {/* Version de l'application */}
         <View style={styles.versionRow} testID="drawer-app-version">
           <Text style={styles.versionText}>
-            build {Application.nativeBuildVersion ?? "—"}
+            V{Application.nativeApplicationVersion ?? "—"}
           </Text>
         </View>
       </Animated.View>

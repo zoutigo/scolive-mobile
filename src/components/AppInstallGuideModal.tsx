@@ -13,6 +13,7 @@ import { colors } from "../theme";
 
 interface AppInstallGuideModalProps {
   visible: boolean;
+  mandatory?: boolean;
   onClose: () => void;
 }
 
@@ -37,6 +38,7 @@ const STEPS = [
 
 export function AppInstallGuideModal({
   visible,
+  mandatory = false,
   onClose,
 }: AppInstallGuideModalProps) {
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
@@ -172,6 +174,22 @@ export function AppInstallGuideModal({
               navigateur. Les mises à jour suivantes seront plus rapides.
             </Text>
           </View>
+
+          {/* Note de repli — installation refusée (signature incompatible) */}
+          {mandatory && (
+            <View style={styles.fallbackNotePanel} testID="install-guide-fallback-note">
+              <Ionicons
+                name="alert-circle-outline"
+                size={15}
+                color={colors.warmAccent}
+                style={{ flexShrink: 0 }}
+              />
+              <Text style={styles.fallbackNoteText}>
+                Si l&apos;installation est refusée, désinstallez d&apos;abord
+                l&apos;application Scolive puis recommencez le téléchargement.
+              </Text>
+            </View>
+          )}
 
           {/* Bouton */}
           <TouchableOpacity
@@ -355,6 +373,24 @@ const styles = StyleSheet.create({
     color: colors.accentTealDark,
     lineHeight: 18,
     fontStyle: "italic",
+  },
+  fallbackNotePanel: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "#FFF8F0",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: `${colors.warmAccent}30`,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  fallbackNoteText: {
+    flex: 1,
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
   closeBtn: {
     width: "100%",
