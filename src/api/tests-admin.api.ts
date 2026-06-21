@@ -3,6 +3,7 @@ import type {
   AdminAssignmentRow,
   AdminCampaignDetail,
   AdminCampaignRow,
+  AdminCaseDetail,
   AdminCaseRow,
   AdminTestExecutionDetail,
   AdminTestExecutionRow,
@@ -100,6 +101,10 @@ export const testsAdminApi = {
       { method: "POST", body: JSON.stringify(payload) },
       true,
     );
+  },
+
+  getCase(testCaseId: string): Promise<AdminCaseDetail> {
+    return apiFetch(`/admin/tests/cases/${testCaseId}`, {}, true);
   },
 
   recycleCase(testCaseId: string): Promise<void> {

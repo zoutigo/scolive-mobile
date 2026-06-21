@@ -22,10 +22,15 @@ type FormValues = {
 
 type Props = {
   tester: AdminTesterRow;
+  initialSubject?: string;
   onClose: () => void;
 };
 
-export function QuickMessageSheet({ tester, onClose }: Props) {
+export function QuickMessageSheet({
+  tester,
+  initialSubject = "",
+  onClose,
+}: Props) {
   const { t } = useTranslation();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +50,7 @@ export function QuickMessageSheet({ tester, onClose }: Props) {
     resolver: zodResolver(schema),
     mode: "onChange",
     reValidateMode: "onChange",
-    defaultValues: { subject: "", body: "" },
+    defaultValues: { subject: initialSubject, body: "" },
   });
 
   const onSend = handleSubmit(async (values) => {

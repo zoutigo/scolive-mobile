@@ -18,7 +18,7 @@ import { SelectField } from "./SelectField";
 import type { AdminCaseRow } from "../../types/tests-admin.types";
 import type { TestCasePriority } from "../../types/tests.types";
 
-type FormValues = {
+export type CaseFormValues = {
   title: string;
   module: string;
   objective: string;
@@ -28,6 +28,8 @@ type FormValues = {
   evidenceRequired: boolean;
   dueAt: string;
 };
+
+type FormValues = CaseFormValues;
 
 type Props = {
   testCase?: AdminCaseRow | null;
