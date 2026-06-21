@@ -177,7 +177,10 @@ export function AppInstallGuideModal({
 
           {/* Note de repli — installation refusée (signature incompatible) */}
           {mandatory && (
-            <View style={styles.fallbackNotePanel} testID="install-guide-fallback-note">
+            <View
+              style={styles.fallbackNotePanel}
+              testID="install-guide-fallback-note"
+            >
               <Ionicons
                 name="alert-circle-outline"
                 size={15}

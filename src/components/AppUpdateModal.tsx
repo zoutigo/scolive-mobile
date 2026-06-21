@@ -171,9 +171,9 @@ export function AppUpdateModal({
             {mandatory ? (
               <Text style={styles.message} testID="app-update-message">
                 Cette version n&apos;est plus compatible. Téléchargez et
-                installez la nouvelle version pour continuer à utiliser
-                Scolive. En cas d&apos;échec de l&apos;installation,
-                désinstallez d&apos;abord l&apos;application puis recommencez.
+                installez la nouvelle version pour continuer à utiliser Scolive.
+                En cas d&apos;échec de l&apos;installation, désinstallez
+                d&apos;abord l&apos;application puis recommencez.
               </Text>
             ) : (
               <Text style={styles.message} testID="app-update-message">
