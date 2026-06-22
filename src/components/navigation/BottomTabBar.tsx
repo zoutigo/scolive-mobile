@@ -11,6 +11,9 @@ import { useTranslation } from "../../i18n/useTranslation";
 /** Hauteur du contenu de la barre, hors zone de sécurité bas (insets.bottom). */
 export const BOTTOM_TAB_BAR_HEIGHT = 58;
 
+/** Couleur des icônes/labels inactifs sur le fond sombre du thème header. */
+const INACTIVE_COLOR = "rgba(255,255,255,0.72)";
+
 type TabKey = "home" | "account" | "assistance" | "menu" | "tests";
 
 interface TabDef {
@@ -146,11 +149,11 @@ export function BottomTabBar() {
               <Ionicons
                 name={active ? tab.activeIcon : tab.inactiveIcon}
                 size={22}
-                color={active ? colors.primary : colors.textSecondary}
+                color={active ? colors.warmAccent : INACTIVE_COLOR}
               />
             </View>
             <Text
-              style={[styles.label, active && styles.labelActive]}
+              style={[styles.label, active ? styles.labelActive : null]}
               numberOfLines={1}
               testID={`bottom-tab-${tab.key}-label`}
             >
@@ -171,9 +174,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     height: BOTTOM_TAB_BAR_HEIGHT,
     flexDirection: "row",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.primary,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: "rgba(255,255,255,0.12)",
     elevation: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -3 },
@@ -185,7 +188,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 2,
-    paddingTop: 6,
+    paddingTop: 12,
   },
   iconWrap: {
     width: 40,
@@ -195,15 +198,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   iconWrapActive: {
-    backgroundColor: colors.warmHighlight,
+    backgroundColor: "rgba(255,255,255,0.16)",
   },
   label: {
     fontSize: 11,
     fontWeight: "500",
-    color: colors.textSecondary,
+    color: INACTIVE_COLOR,
   },
   labelActive: {
-    color: colors.primary,
+    color: colors.white,
     fontWeight: "700",
   },
 });

@@ -11,8 +11,17 @@ import {
 } from "../../src/components/navigation/BottomTabBar";
 import { useAuthStore } from "../../src/store/auth.store";
 import type { AuthUser } from "../../src/types/auth.types";
+import { colors } from "../../src/theme";
 
-jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
+interface IoniconsMockProps {
+  name: string;
+  color: string;
+}
+
+const mockIonicons = jest.fn<null, [IoniconsMockProps]>(() => null);
+jest.mock("@expo/vector-icons", () => ({
+  Ionicons: (props: IoniconsMockProps) => mockIonicons(props),
+}));
 
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 10, left: 0, right: 0 }),
@@ -232,5 +241,65 @@ describe("BOTTOM_TAB_BAR_HEIGHT", () => {
   it("est un nombre positif exploitable pour décaler les FAB et le contenu", () => {
     expect(typeof BOTTOM_TAB_BAR_HEIGHT).toBe("number");
     expect(BOTTOM_TAB_BAR_HEIGHT).toBeGreaterThan(0);
+  });
+});
+
+// ── Thème — alignement visuel avec le ModuleHeader ───────────────────────────
+
+function flattenStyle(style: unknown): Record<string, unknown> {
+  return Object.assign({}, ...[style].flat(Infinity).filter(Boolean));
+}
+
+describe("Thème de la barre", () => {
+  it("utilise le même fond que le ModuleHeader (colors.primary)", () => {
+    render(<BottomTabBar />);
+    const container = screen.getByTestId("bottom-tab-bar");
+    const flat = flattenStyle(container.props.style);
+    expect(flat.backgroundColor).toBe(colors.primary);
+  });
+
+  it("ne réutilise plus le fond clair colors.surface", () => {
+    render(<BottomTabBar />);
+    const container = screen.getByTestId("bottom-tab-bar");
+    const flat = flattenStyle(container.props.style);
+    expect(flat.backgroundColor).not.toBe(colors.surface);
+  });
+
+  it("laisse un espace entre le haut de l'onglet et l'icône", () => {
+    render(<BottomTabBar />);
+    const tab = screen.getByTestId("bottom-tab-home");
+    const flat = flattenStyle(tab.props.style);
+    expect(flat.paddingTop as number).toBeGreaterThanOrEqual(10);
+  });
+
+  it("colore l'icône active avec l'accent chaud, visible sur fond bleu", () => {
+    mockPathname = "/";
+    render(<BottomTabBar />);
+    const activeCall = mockIonicons.mock.calls.find(
+      ([props]) => props.name === "home",
+    );
+    expect(activeCall?.[0].color).toBe(colors.warmAccent);
+  });
+
+  it("colore l'icône inactive en blanc translucide, lisible sur fond bleu", () => {
+    mockPathname = "/";
+    render(<BottomTabBar />);
+    const inactiveCall = mockIonicons.mock.calls.find(
+      ([props]) => props.name === "person-circle-outline",
+    );
+    expect(inactiveCall?.[0].color).toBe("rgba(255,255,255,0.72)");
+  });
+
+  it("le libellé actif passe en blanc, le libellé inactif reste translucide", () => {
+    mockPathname = "/";
+    render(<BottomTabBar />);
+    const activeLabel = flattenStyle(
+      screen.getByTestId("bottom-tab-home-label").props.style,
+    );
+    const inactiveLabel = flattenStyle(
+      screen.getByTestId("bottom-tab-account-label").props.style,
+    );
+    expect(activeLabel.color).toBe(colors.white);
+    expect(inactiveLabel.color).toBe("rgba(255,255,255,0.72)");
   });
 });
