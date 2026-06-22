@@ -1,20 +1,24 @@
 import React from "react";
-import { Platform, StatusBar, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { colors } from "../../theme";
 import { HeaderBackButton } from "./HeaderBackButton";
-import { HeaderMenuButton } from "./HeaderMenuButton";
+import { useHeaderScroll, HEADER_HIDE_DISTANCE } from "./header-scroll-context";
 
 interface ModuleHeaderProps {
   title: string;
   subtitle?: string | null;
   onBack: () => void;
-  rightIcon?: string;
-  onRightPress?: () => void;
   testID?: string;
   backTestID?: string;
   titleTestID?: string;
   subtitleTestID?: string;
-  rightTestID?: string;
   topInset?: number;
   backgroundColor?: string;
 }
@@ -23,60 +27,62 @@ export function ModuleHeader({
   title,
   subtitle,
   onBack,
-  rightIcon,
-  onRightPress,
   testID = "module-header",
   backTestID = "module-header-back",
   titleTestID = "module-header-title",
   subtitleTestID = "module-header-subtitle",
-  rightTestID = "module-header-right",
   topInset = 0,
   backgroundColor = colors.primary,
 }: ModuleHeaderProps) {
+  const { translateY } = useHeaderScroll();
   const androidStatusInset =
     Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0;
   const resolvedTopInset = Math.max(topInset, androidStatusInset);
 
   return (
-    <View
-      style={[
-        styles.headerCard,
-        { paddingTop: resolvedTopInset + 10, backgroundColor },
-      ]}
-      testID={testID}
+    <Animated.View
+      style={{
+        transform: [
+          {
+            translateY: translateY.interpolate({
+              inputRange: [0, HEADER_HIDE_DISTANCE],
+              outputRange: [0, -HEADER_HIDE_DISTANCE],
+              extrapolate: "clamp",
+            }),
+          },
+        ],
+      }}
     >
-      {/* Blobs décoratifs */}
-      <View style={styles.blobTopRight} pointerEvents="none" />
-      <View style={styles.blobBottomLeft} pointerEvents="none" />
-      <View style={styles.blobMid} pointerEvents="none" />
+      <View
+        style={[
+          styles.headerCard,
+          { paddingTop: resolvedTopInset + 10, backgroundColor },
+        ]}
+        testID={testID}
+      >
+        {/* Blobs décoratifs */}
+        <View style={styles.blobTopRight} pointerEvents="none" />
+        <View style={styles.blobBottomLeft} pointerEvents="none" />
+        <View style={styles.blobMid} pointerEvents="none" />
 
-      <HeaderBackButton onPress={onBack} testID={backTestID} />
-      <View style={styles.headerText}>
-        <Text style={styles.title} numberOfLines={1} testID={titleTestID}>
-          {title}
-        </Text>
-        {subtitle ? (
-          <Text
-            style={styles.subtitle}
-            numberOfLines={1}
-            testID={subtitleTestID}
-          >
-            {subtitle}
+        <HeaderBackButton onPress={onBack} testID={backTestID} />
+        <View style={styles.headerText}>
+          <Text style={styles.title} numberOfLines={1} testID={titleTestID}>
+            {title}
           </Text>
-        ) : null}
-      </View>
-      {rightIcon && onRightPress ? (
-        <HeaderMenuButton
-          onPress={onRightPress}
-          icon={
-            rightIcon as React.ComponentProps<typeof HeaderMenuButton>["icon"]
-          }
-          testID={rightTestID}
-        />
-      ) : (
+          {subtitle ? (
+            <Text
+              style={styles.subtitle}
+              numberOfLines={1}
+              testID={subtitleTestID}
+            >
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
         <View style={styles.rightSpacer} />
-      )}
-    </View>
+      </View>
+    </Animated.View>
   );
 }
 

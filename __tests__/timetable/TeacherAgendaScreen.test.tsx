@@ -267,12 +267,11 @@ beforeEach(() => {
 // ── Tests — Header & structure ─────────────────────────────────────────────
 
 describe("TeacherAgendaScreen — header et structure", () => {
-  it("affiche le ModuleHeader avec back, menu, titre et sous-titre école·classe", () => {
+  it("affiche le ModuleHeader avec back, titre et sous-titre école·classe", () => {
     render(<TeacherAgendaScreen />);
 
     expect(screen.getByTestId("teacher-agenda-header")).toBeTruthy();
     expect(screen.getByTestId("teacher-agenda-back")).toBeTruthy();
-    expect(screen.getByTestId("teacher-agenda-menu")).toBeTruthy();
     expect(screen.getByTestId("module-header-title")).toBeTruthy();
     expect(screen.getByTestId("module-header-subtitle").props.children).toBe(
       "Collège Vogt · 6eC",

@@ -264,14 +264,4 @@ describe("VieScolaireScreen", () => {
       expect(api.list).toHaveBeenCalledTimes(2);
     });
   });
-
-  it("ouvre le menu de navigation enfant via le bouton header droit", async () => {
-    useDisciplineStore.setState({
-      eventsMap: { "child-1": [makeLifeEvent({ studentId: "child-1" })] },
-    });
-
-    render(<VieScolaireScreen />);
-    fireEvent.press(screen.getByTestId("btn-menu"));
-    expect(mockOpenDrawer).toHaveBeenCalledTimes(1);
-  });
 });

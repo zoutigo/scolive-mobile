@@ -167,12 +167,11 @@ describe("FeedScreen", () => {
     expect(screen.getByText("RÉUNION DES PARENTS")).toBeTruthy();
   });
 
-  it("affiche un ModuleHeader avec back et menu", async () => {
+  it("affiche un ModuleHeader avec back (menu déplacé vers la bottom tab bar)", async () => {
     await renderFeedScreen();
 
     expect(screen.getByTestId("feed-header")).toBeTruthy();
     expect(screen.getByTestId("feed-back-btn")).toBeTruthy();
-    expect(screen.getByTestId("feed-menu-btn")).toBeTruthy();
     expect(screen.getByTestId("module-header-title")).toBeTruthy();
   });
 
@@ -198,17 +197,6 @@ describe("FeedScreen", () => {
     expect(screen.getByTestId("module-header-subtitle").props.children).toBe(
       "Collège Vogt · 6eC",
     );
-  });
-
-  it("affiche le menu dans le header et ouvre le drawer contextuel", async () => {
-    await renderFeedScreen();
-
-    expect(screen.getByTestId("feed-menu-btn")).toBeTruthy();
-    expect(screen.getByTestId("drawer-root").props.pointerEvents).toBe("none");
-
-    fireEvent.press(screen.getByTestId("feed-menu-btn"));
-
-    expect(screen.getByTestId("drawer-root").props.pointerEvents).toBe("auto");
   });
 
   it("affiche les filtres dans une barre basse avec 'Tout' actif par défaut", async () => {

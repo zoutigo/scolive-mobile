@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -10,8 +10,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useDrawer } from "../navigation/AppShell";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
@@ -34,7 +34,6 @@ export function AdminCampaignDetailScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const { campaignId } = useLocalSearchParams<{ campaignId: string }>();
 
   const [campaign, setCampaign] = useState<AdminCampaignDetail | null>(null);
@@ -73,9 +72,11 @@ export function AdminCampaignDetailScreen() {
     }
   }, [campaignId]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
 
   async function handleRecycle(testCaseId: string) {
     setRecyclingId(testCaseId);
@@ -254,8 +255,6 @@ export function AdminCampaignDetailScreen() {
         title={campaign?.title ?? t("testsAdmin.title")}
         subtitle={t("testsAdmin.detail.back")}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         topInset={insets.top}
         testID="admin-campaign-detail-header"
       />
@@ -386,29 +385,43 @@ export function AdminCampaignDetailScreen() {
                   style={styles.caseCard}
                   testID={`admin-case-row-${testCase.id}`}
                 >
-                  <View style={styles.caseHeader}>
-                    <Text style={styles.reference}>
-                      {t("testsAdmin.detail.referencePrefix").replace(
-                        "{reference}",
-                        String(testCase.reference).padStart(6, "0"),
-                      )}
-                    </Text>
-                    <Text style={styles.caseTitle}>{testCase.title}</Text>
-                  </View>
-                  <Text style={styles.caseMeta}>
-                    {t("testsAdmin.detail.executionsCount").replace(
-                      "{count}",
-                      String(testCase.executionsCount),
-                    )}
-                  </Text>
-                  {testCase.recycledAt ? (
+                  <TouchableOpacity
+                    onPress={() =>
+                      router.push(
+                        `/admin-tests/cases/${testCase.id}?campaignId=${campaignId}`,
+                      )
+                    }
+                    testID={`admin-case-open-${testCase.id}`}
+                  >
+                    <View style={styles.caseHeader}>
+                      <Text style={styles.reference}>
+                        {t("testsAdmin.detail.referencePrefix").replace(
+                          "{reference}",
+                          String(testCase.reference).padStart(6, "0"),
+                        )}
+                      </Text>
+                      <Text style={styles.caseTitle}>{testCase.title}</Text>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={18}
+                        color={colors.textSecondary}
+                      />
+                    </View>
                     <Text style={styles.caseMeta}>
-                      {t("testsAdmin.detail.recycledOn").replace(
-                        "{date}",
-                        formatDate(testCase.recycledAt),
+                      {t("testsAdmin.detail.executionsCount").replace(
+                        "{count}",
+                        String(testCase.executionsCount),
                       )}
                     </Text>
-                  ) : null}
+                    {testCase.recycledAt ? (
+                      <Text style={styles.caseMeta}>
+                        {t("testsAdmin.detail.recycledOn").replace(
+                          "{date}",
+                          formatDate(testCase.recycledAt),
+                        )}
+                      </Text>
+                    ) : null}
+                  </TouchableOpacity>
                   <View style={styles.caseActions}>
                     <TouchableOpacity
                       style={styles.smallButton}

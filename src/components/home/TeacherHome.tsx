@@ -20,6 +20,7 @@ import {
   buildTeacherClassNotesTarget,
 } from "../navigation/nav-config";
 import { useDrawer } from "../navigation/AppShell";
+import { useHeaderScroll } from "../navigation/header-scroll-context";
 import { minuteToTimeLabel, parseDateInput } from "../../utils/timetable";
 import { useTranslation } from "../../i18n/useTranslation";
 
@@ -177,6 +178,7 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
   const router = useRouter();
   const { setFolder } = useMessagingStore();
   const { openDrawerForClass } = useDrawer();
+  const { onScroll } = useHeaderScroll();
   const { data, isLoading, error, refresh } = useTeacherDashboard(
     schoolSlug,
     user.id,
@@ -198,6 +200,8 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
       style={styles.scroll}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
       refreshControl={
         <RefreshControl
           refreshing={isLoading && !!data}

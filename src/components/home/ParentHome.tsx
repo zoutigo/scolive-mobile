@@ -13,6 +13,7 @@ import { colors } from "../../theme";
 import { useFamilyStore } from "../../store/family.store";
 import { useMessagingStore } from "../../store/messaging.store";
 import { buildChildHomeTarget } from "../navigation/nav-config";
+import { useHeaderScroll } from "../navigation/header-scroll-context";
 import type { AuthUser } from "../../types/auth.types";
 import type { ParentChild } from "../../types/family.types";
 
@@ -25,6 +26,7 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
   const { children, isLoading, setActiveChild } = useFamilyStore();
   const { unreadCount, loadUnreadCount } = useMessagingStore();
   const router = useRouter();
+  const { onScroll } = useHeaderScroll();
 
   useEffect(() => {
     if (!schoolSlug) return;
@@ -62,6 +64,8 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
       style={styles.scroll}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
     >
       {/* Banner */}
       <View style={styles.banner}>

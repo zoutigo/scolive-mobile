@@ -2,10 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  AppShell,
-  useDrawer,
-} from "../../../../src/components/navigation/AppShell";
+import { AppShell } from "../../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../../src/components/navigation/ModuleHeader";
 import { ExecutionsPager } from "../../../../src/components/tests/ExecutionsPager";
 import { ExecutionDetailCard } from "../../../../src/components/tests/ExecutionDetailCard";
@@ -26,7 +23,6 @@ function TestExecutionScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const params = useLocalSearchParams<{
     executionId: string;
     status?: string;
@@ -70,8 +66,6 @@ function TestExecutionScreen() {
         title={t("tests.executions.detail.subtitle")}
         subtitle={t("tests.executions.detail.swipeHint")}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         topInset={insets.top}
         testID="test-execution-detail-header"
       />

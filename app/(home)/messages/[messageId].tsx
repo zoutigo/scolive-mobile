@@ -19,10 +19,7 @@ import { useMessagingStore } from "../../../src/store/messaging.store";
 import { useAuthStore } from "../../../src/store/auth.store";
 import { useSuccessToastStore } from "../../../src/store/success-toast.store";
 import { ConfirmDialog } from "../../../src/components/ConfirmDialog";
-import {
-  AppShell,
-  useDrawer,
-} from "../../../src/components/navigation/AppShell";
+import { AppShell } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import type {
@@ -123,7 +120,6 @@ export default function MessageDetailScreen() {
   const { schoolSlug } = useAuthStore();
   const { markLocalRead, markLocalUnread, removeLocal } = useMessagingStore();
   const showFeedbackToast = useSuccessToastStore((state) => state.show);
-  const { openDrawer } = useDrawer();
 
   const [message, setMessage] = useState<MessageDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -276,12 +272,9 @@ export default function MessageDetailScreen() {
         <ModuleHeader
           title={t("messaging.title")}
           onBack={() => router.back()}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
           topInset={insets.top}
           testID="message-detail-header"
           backTestID="msg-back-btn"
-          rightTestID="message-detail-menu-btn"
         />
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -304,12 +297,9 @@ export default function MessageDetailScreen() {
       <ModuleHeader
         title={message.subject}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         topInset={insets.top}
         testID="message-detail-header"
         backTestID="msg-back-btn"
-        rightTestID="message-detail-menu-btn"
       />
 
       {/* Content */}

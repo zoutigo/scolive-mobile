@@ -13,7 +13,6 @@ import { LedgerRow } from "./LedgerRow";
 import { WalletCard } from "./WalletCard";
 import { InvoiceCard } from "./InvoiceCard";
 import { PaymentChannelCard } from "./PaymentChannelCard";
-import { useDrawer } from "../navigation/drawer-context";
 import type {
   FinanceTab,
   LedgerEntry,
@@ -174,7 +173,6 @@ export function FinanceScreen() {
 function FinanceScreenContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { openDrawer } = useDrawer();
   const [tab, setTab] = useState<FinanceTab>("compte");
 
   const balance = useMemo(() => {
@@ -206,8 +204,6 @@ function FinanceScreenContent() {
         <ModuleHeader
           title="Situation financière"
           onBack={() => router.back()}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
           topInset={insets.top}
           testID="finance-header"
         />

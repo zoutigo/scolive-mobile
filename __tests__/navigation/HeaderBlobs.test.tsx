@@ -30,6 +30,11 @@ jest.mock("../../src/components/navigation/drawer-context", () => ({
   useDrawer: jest.fn(),
 }));
 
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ replace: jest.fn() }),
+  usePathname: () => "/feed",
+}));
+
 jest.mock("../../src/components/ScoliveLogo", () => ({
   ScoliveLogo: ({ testID }: { testID?: string }) => {
     const React = require("react");
@@ -179,36 +184,24 @@ describe("ModuleHeader — contenu fonctionnel non affecté par les blobs", () =
     expect(screen.getByTestId("module-header-subtitle")).toBeTruthy();
   });
 
-  it("le bouton menu est toujours présent quand fourni", () => {
-    render(
-      <ModuleHeader
-        title="Notes"
-        onBack={jest.fn()}
-        rightIcon="menu-outline"
-        onRightPress={jest.fn()}
-        rightTestID="mh-menu"
-      />,
-    );
-    expect(screen.getByTestId("mh-menu")).toBeTruthy();
+  it("n'a plus de bouton menu (déplacé vers la bottom tab bar)", () => {
+    render(<ModuleHeader title="Notes" onBack={jest.fn()} />);
+    expect(screen.queryByTestId("module-header-right")).toBeNull();
   });
 });
 
 // ── AppHeader — blobs présents ────────────────────────────────────────────────
 
 describe("AppHeader — blobs décoratifs présents", () => {
-  it("le header logo est rendu (AppHeader fonctionnel)", () => {
+  it("le titre est rendu hors de la route accueil", () => {
     render(<AppHeader />);
-    expect(screen.getByTestId("header-logo")).toBeTruthy();
+    expect(screen.getByTestId("app-header-title")).toBeTruthy();
   });
 
-  it("le header-menu-btn est rendu", () => {
+  it("n'affiche plus de logo ni de bouton menu (déplacés/supprimés)", () => {
     render(<AppHeader />);
-    expect(screen.getByTestId("header-menu-btn")).toBeTruthy();
-  });
-
-  it("le titre est rendu", () => {
-    render(<AppHeader />);
-    expect(screen.getByTestId("header-title")).toBeTruthy();
+    expect(screen.queryByTestId("header-logo")).toBeNull();
+    expect(screen.queryByTestId("header-menu-btn")).toBeNull();
   });
 });
 

@@ -17,7 +17,6 @@ import { teachersApi } from "../../api/teachers.api";
 import { notesApi } from "../../api/notes.api";
 import { useAuthStore } from "../../store/auth.store";
 import { ModuleHeader } from "../navigation/ModuleHeader";
-import { useDrawer } from "../navigation/AppShell";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import type { UnderlineTabItem } from "../navigation/UnderlineTabs";
 import { EmptyState, LoadingBlock } from "../timetable/TimetableCommon";
@@ -60,7 +59,6 @@ export function SchoolAdminNotesScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { openDrawer } = useDrawer();
   const { schoolSlug } = useAuthStore();
 
   const [tab, setTab] = useState<MainTab>("students");
@@ -203,12 +201,9 @@ export function SchoolAdminNotesScreen() {
       <ModuleHeader
         title={t("notes.admin.title")}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         testID="school-admin-notes-header"
         backTestID="school-admin-notes-back"
         titleTestID="school-admin-notes-title"
-        rightTestID="school-admin-notes-menu"
       />
 
       <UnderlineTabs

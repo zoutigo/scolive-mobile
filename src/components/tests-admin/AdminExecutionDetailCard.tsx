@@ -12,15 +12,25 @@ import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
 import { testsAdminApi } from "../../api/tests-admin.api";
 import { ReviewExecutionSheet } from "./ReviewExecutionSheet";
-import type { AdminTestExecutionDetail } from "../../types/tests-admin.types";
+import { TestCaseContentSheet } from "./TestCaseContentSheet";
+import { QuickMessageSheet } from "./QuickMessageSheet";
+import type {
+  AdminTestExecutionDetail,
+  AdminTesterRow,
+} from "../../types/tests-admin.types";
 import type { TestExecutionStatus } from "../../types/tests.types";
 
 type Props = {
   executionId: string;
   isActive: boolean;
+  testers?: AdminTesterRow[];
 };
 
-export function AdminExecutionDetailCard({ executionId, isActive }: Props) {
+export function AdminExecutionDetailCard({
+  executionId,
+  isActive,
+  testers = [],
+}: Props) {
   const { t, locale } = useTranslation();
   const [detail, setDetail] = useState<AdminTestExecutionDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,6 +38,8 @@ export function AdminExecutionDetailCard({ executionId, isActive }: Props) {
   const [showReviewSheet, setShowReviewSheet] = useState(false);
   const [isSavingReview, setIsSavingReview] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [showCaseContent, setShowCaseContent] = useState(false);
+  const [showQuickMessage, setShowQuickMessage] = useState(false);
 
   async function load() {
     setIsLoading(true);
@@ -100,6 +112,8 @@ export function AdminExecutionDetailCard({ executionId, isActive }: Props) {
     );
   }
 
+  const tester = testers.find((item) => item.id === detail.user.id) ?? null;
+
   return (
     <>
       <ScrollView contentContainerStyle={styles.content}>
@@ -116,6 +130,29 @@ export function AdminExecutionDetailCard({ executionId, isActive }: Props) {
             detail.user.fullName,
           )}
         </Text>
+
+        <View style={styles.metaRow}>
+          <TouchableOpacity
+            style={styles.secondaryButtonInline}
+            onPress={() => setShowCaseContent(true)}
+            testID={`admin-execution-view-case-${executionId}`}
+          >
+            <Text style={styles.secondaryButtonInlineText}>
+              {t("testsAdmin.executions.detail.viewCase")}
+            </Text>
+          </TouchableOpacity>
+          {tester ? (
+            <TouchableOpacity
+              style={styles.secondaryButtonInline}
+              onPress={() => setShowQuickMessage(true)}
+              testID={`admin-execution-quick-message-${executionId}`}
+            >
+              <Text style={styles.secondaryButtonInlineText}>
+                {t("testsAdmin.executions.detail.quickMessage")}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
         <Text style={styles.meta}>
           {t("testsAdmin.executions.cardCampaign").replace(
             "{title}",
@@ -215,6 +252,21 @@ export function AdminExecutionDetailCard({ executionId, isActive }: Props) {
           error={reviewError}
           onSubmit={(note) => void handleMarkReviewed(note)}
           onCancel={() => setShowReviewSheet(false)}
+        />
+      ) : null}
+
+      {showCaseContent ? (
+        <TestCaseContentSheet
+          testCaseId={detail.testCase.id}
+          onClose={() => setShowCaseContent(false)}
+        />
+      ) : null}
+
+      {showQuickMessage && tester ? (
+        <QuickMessageSheet
+          tester={tester}
+          initialSubject={detail.testCase.title}
+          onClose={() => setShowQuickMessage(false)}
         />
       ) : null}
     </>
@@ -358,5 +410,17 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontWeight: "700",
     fontSize: 14,
+  },
+  secondaryButtonInline: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  secondaryButtonInlineText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textPrimary,
   },
 });

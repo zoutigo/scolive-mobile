@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
+import { TouchableOpacity } from "react-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { AppShell, useDrawer } from "../../src/components/navigation/AppShell";
-import { ModuleHeader } from "../../src/components/navigation/ModuleHeader";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useFamilyStore } from "../../src/store/family.store";
 
@@ -26,14 +26,7 @@ function ChildModuleHeaderHarness() {
   }, [setActiveChild]);
 
   return (
-    <ModuleHeader
-      title="Module enfant"
-      subtitle="Remi Ntamack • 6e C"
-      onBack={jest.fn()}
-      rightIcon="menu-outline"
-      onRightPress={openDrawer}
-      rightTestID="child-module-menu-btn"
-    />
+    <TouchableOpacity testID="child-module-menu-btn" onPress={openDrawer} />
   );
 }
 
@@ -46,14 +39,7 @@ function ParentModuleHeaderHarness() {
   }, [setActiveChild]);
 
   return (
-    <ModuleHeader
-      title="Module parent"
-      subtitle="Robert Ntamack"
-      onBack={jest.fn()}
-      rightIcon="menu-outline"
-      onRightPress={openDrawer}
-      rightTestID="parent-module-menu-btn"
-    />
+    <TouchableOpacity testID="parent-module-menu-btn" onPress={openDrawer} />
   );
 }
 

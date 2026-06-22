@@ -1308,6 +1308,20 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Cette action est irréversible.",
     "testsAdmin.detail.executionsCount": "{count} exécution(s)",
     "testsAdmin.detail.referencePrefix": "CAS-{reference}",
+    "testsAdmin.caseDetail.title": "Détail du cas de test",
+    "testsAdmin.caseDetail.swipeHint": "Glissez pour passer au cas suivant",
+    "testsAdmin.caseDetail.updateSuccessTitle": "Cas de test modifié",
+    "testsAdmin.caseDetail.updateSuccessMessage":
+      "Les modifications ont été enregistrées.",
+    "testsAdmin.caseDetail.recycleSuccessTitle": "Cas de test recyclé",
+    "testsAdmin.caseDetail.recycleSuccessMessage":
+      "Le cas de test a été recyclé.",
+    "testsAdmin.caseDetail.deleteSuccessTitle": "Cas de test supprimé",
+    "testsAdmin.caseDetail.deleteSuccessMessage":
+      "Le cas de test a été supprimé.",
+    "testsAdmin.executions.detail.viewCase": "Voir la demande complète",
+    "testsAdmin.executions.detail.caseContentTitle": "Contenu du test",
+    "testsAdmin.executions.detail.quickMessage": "Message rapide au testeur",
     "testsAdmin.assign.title": "Affecter une campagne",
     "testsAdmin.assign.testerLabel": "Testeur",
     "testsAdmin.assign.testerPlaceholder": "Choisir un testeur…",
@@ -1826,6 +1840,22 @@ export const translations: Record<Locale, Record<string, string>> = {
     "startup.error.message":
       "Nous n'avons pas pu vérifier que votre application est à jour. Vérifiez votre connexion puis réessayez.",
     "startup.error.retry": "Réessayer",
+
+    // Bottom tab bar
+    "nav.tabs.home": "Accueil",
+    "nav.tabs.account": "Mon compte",
+    "nav.tabs.assistance": "Assistance",
+    "nav.tabs.menu": "Menu",
+    "nav.tabs.tests": "Tests",
+
+    // Home header (AppHeader, variante accueil)
+    "header.home.loginAction": "Se connecter",
+    "header.home.logoutAction": "Se déconnecter",
+    "header.home.logoutConfirmTitle": "Se déconnecter ?",
+    "header.home.logoutConfirmMessage":
+      "Vous serez redirigé vers l'écran de connexion. Vos données locales seront effacées.",
+    "header.home.logoutConfirmConfirm": "Se déconnecter",
+    "header.home.logoutConfirmCancel": "Annuler",
   },
   en: {
     "settings.language.title": "Language of this device",
@@ -3067,6 +3097,18 @@ export const translations: Record<Locale, Record<string, string>> = {
       "This action is irreversible.",
     "testsAdmin.detail.executionsCount": "{count} execution(s)",
     "testsAdmin.detail.referencePrefix": "CAS-{reference}",
+    "testsAdmin.caseDetail.title": "Test case detail",
+    "testsAdmin.caseDetail.swipeHint": "Swipe to go to the next case",
+    "testsAdmin.caseDetail.updateSuccessTitle": "Test case updated",
+    "testsAdmin.caseDetail.updateSuccessMessage": "Your changes were saved.",
+    "testsAdmin.caseDetail.recycleSuccessTitle": "Test case recycled",
+    "testsAdmin.caseDetail.recycleSuccessMessage":
+      "The test case was recycled.",
+    "testsAdmin.caseDetail.deleteSuccessTitle": "Test case deleted",
+    "testsAdmin.caseDetail.deleteSuccessMessage": "The test case was deleted.",
+    "testsAdmin.executions.detail.viewCase": "View the full request",
+    "testsAdmin.executions.detail.caseContentTitle": "Test content",
+    "testsAdmin.executions.detail.quickMessage": "Quick message to tester",
     "testsAdmin.assign.title": "Assign a campaign",
     "testsAdmin.assign.testerLabel": "Tester",
     "testsAdmin.assign.testerPlaceholder": "Choose a tester…",
@@ -3578,5 +3620,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     "startup.error.message":
       "We couldn't verify that your app is up to date. Check your connection and try again.",
     "startup.error.retry": "Retry",
+
+    // Bottom tab bar
+    "nav.tabs.home": "Home",
+    "nav.tabs.account": "My account",
+    "nav.tabs.assistance": "Support",
+    "nav.tabs.menu": "Menu",
+    "nav.tabs.tests": "Tests",
+
+    // Home header (AppHeader, home variant)
+    "header.home.loginAction": "Sign in",
+    "header.home.logoutAction": "Sign out",
+    "header.home.logoutConfirmTitle": "Sign out?",
+    "header.home.logoutConfirmMessage":
+      "You will be redirected to the login screen. Your local data will be cleared.",
+    "header.home.logoutConfirmConfirm": "Sign out",
+    "header.home.logoutConfirmCancel": "Cancel",
   },
 };

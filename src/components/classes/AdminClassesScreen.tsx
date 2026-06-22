@@ -6,15 +6,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
 import { useAuthStore } from "../../store/auth.store";
 import { useTeacherClassNavStore } from "../../store/teacher-class-nav.store";
-import { useDrawer } from "../navigation/drawer-context";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { LoadingBlock, ErrorBanner } from "../timetable/TimetableCommon";
 import { ClassSelectModal } from "./ClassSelectModal";
 
 export function AdminClassesScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const { schoolSlug } = useAuthStore();
   const {
     classOptions,
@@ -59,12 +58,9 @@ export function AdminClassesScreen() {
       <ModuleHeader
         title="Classes"
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         testID="admin-classes-header"
         backTestID="admin-classes-back"
         titleTestID="admin-classes-title"
-        rightTestID="admin-classes-menu"
         topInset={insets.top}
       />
 
@@ -100,7 +96,10 @@ export function AdminClassesScreen() {
       </View>
 
       <TouchableOpacity
-        style={[styles.fab, { bottom: insets.bottom + 20 }]}
+        style={[
+          styles.fab,
+          { bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT },
+        ]}
         onPress={() => setModalVisible(true)}
         testID="admin-classes-fab"
         activeOpacity={0.85}

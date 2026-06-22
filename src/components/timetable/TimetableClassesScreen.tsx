@@ -17,7 +17,6 @@ import { useAuthStore } from "../../store/auth.store";
 import { useTimetableStore } from "../../store/timetable.store";
 import { buildTeacherSubtitle } from "../navigation/nav-config";
 import { ModuleHeader } from "../navigation/ModuleHeader";
-import { useDrawer } from "../navigation/AppShell";
 import {
   EmptyState,
   ErrorBanner,
@@ -31,7 +30,6 @@ export function TimetableClassesScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const { schoolSlug, user } = useAuthStore();
   const {
     classOptions,
@@ -80,11 +78,8 @@ export function TimetableClassesScreen() {
         title={t("timetable.classesScreen.headerTitle")}
         subtitle={subtitle}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         testID="timetable-classes-header"
         backTestID="timetable-classes-back"
-        rightTestID="timetable-classes-menu"
       />
       <ScrollView
         style={styles.root}

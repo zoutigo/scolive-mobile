@@ -39,8 +39,8 @@ import {
   termLabel,
 } from "../../utils/notes";
 import { getViewType } from "../navigation/nav-config";
-import { useDrawer } from "../navigation/AppShell";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { NotesTabs } from "./NotesTabs";
 import type { NotesTabKey } from "./NotesTabs";
@@ -95,7 +95,6 @@ export function ClassNotesManagerScreen({
 } = {}) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const params = useLocalSearchParams<{
     classId?: string;
     schoolYearId?: string;
@@ -412,13 +411,10 @@ export function ClassNotesManagerScreen({
               : undefined)
           }
           onBack={() => router.back()}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
           testID="class-notes-header"
           backTestID="class-notes-back"
           titleTestID="class-notes-title"
           subtitleTestID="class-notes-subtitle"
-          rightTestID="class-notes-menu-btn"
         />
       ) : null}
       <NotesTabs activeTab={tab} onSelect={setTab} />
@@ -609,7 +605,10 @@ export function ClassNotesManagerScreen({
           )}
 
           <TouchableOpacity
-            style={[styles.fab, { bottom: insets.bottom + 16 }]}
+            style={[
+              styles.fab,
+              { bottom: insets.bottom + 16 + BOTTOM_TAB_BAR_HEIGHT },
+            ]}
             onPress={() => {
               resetEvaluationForm();
               setEvaluationView("form");

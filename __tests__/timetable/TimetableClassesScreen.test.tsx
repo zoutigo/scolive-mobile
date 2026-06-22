@@ -96,12 +96,11 @@ describe("TimetableClassesScreen", () => {
     });
   });
 
-  it("affiche le ModuleHeader avec back, menu et titre", () => {
+  it("affiche le ModuleHeader avec back et titre (menu déplacé vers la bottom tab bar)", () => {
     render(<TimetableClassesScreen />);
 
     expect(screen.getByTestId("timetable-classes-header")).toBeTruthy();
     expect(screen.getByTestId("timetable-classes-back")).toBeTruthy();
-    expect(screen.getByTestId("timetable-classes-menu")).toBeTruthy();
     expect(screen.getByTestId("module-header-title")).toBeTruthy();
   });
 

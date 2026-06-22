@@ -14,11 +14,9 @@ import { Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  AppShell,
-  useDrawer,
-} from "../../../../src/components/navigation/AppShell";
+import { AppShell } from "../../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../../src/components/navigation/ModuleHeader";
+import { BOTTOM_TAB_BAR_HEIGHT } from "../../../../src/components/navigation/BottomTabBar";
 import { TestExecutionFormSheet } from "../../../../src/components/tests/TestExecutionFormSheet";
 import { testsApi } from "../../../../src/api/tests.api";
 import { useAuthStore } from "../../../../src/store/auth.store";
@@ -43,7 +41,6 @@ function TestCaseScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { testCaseId } = useLocalSearchParams<{ testCaseId: string }>();
-  const { openDrawer } = useDrawer();
   const { user } = useAuthStore();
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
@@ -133,8 +130,6 @@ function TestCaseScreen() {
         title={detail?.title ?? t("tests.title")}
         subtitle={detail?.campaign.title ?? t("tests.detail.subtitle")}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         topInset={insets.top}
       />
 
@@ -461,7 +456,7 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     right: 20,
-    bottom: 24,
+    bottom: 24 + BOTTOM_TAB_BAR_HEIGHT,
     width: 58,
     height: 58,
     borderRadius: 29,

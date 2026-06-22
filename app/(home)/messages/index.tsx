@@ -20,6 +20,7 @@ import { FolderTabs } from "../../../src/components/messaging/FolderTabs";
 import { MessageRow } from "../../../src/components/messaging/MessageRow";
 import { InfiniteScrollList } from "../../../src/components/lists/InfiniteScrollList";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
+import { BOTTOM_TAB_BAR_HEIGHT } from "../../../src/components/navigation/BottomTabBar";
 import { HeaderBackButton } from "../../../src/components/navigation/HeaderBackButton";
 import { HeaderMenuButton } from "../../../src/components/navigation/HeaderMenuButton";
 import { buildChildHomeTarget } from "../../../src/components/navigation/nav-config";
@@ -168,13 +169,10 @@ function MessagesScreenContent() {
               }
               router.back();
             }}
-            rightIcon="menu-outline"
-            onRightPress={openDrawer}
             testID="messages-header"
             backTestID="back-btn"
             titleTestID="messages-header-title"
             subtitleTestID="messages-header-subtitle"
-            rightTestID="messages-menu-btn"
             topInset={insets.top}
           />
         </View>
@@ -256,7 +254,10 @@ function MessagesScreenContent() {
 
       {/* FAB Compose */}
       <TouchableOpacity
-        style={[styles.fab, { bottom: insets.bottom + 20 }]}
+        style={[
+          styles.fab,
+          { bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT },
+        ]}
         onPress={handleCompose}
         activeOpacity={0.85}
         testID="compose-fab"

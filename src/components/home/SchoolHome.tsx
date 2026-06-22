@@ -9,6 +9,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { colors } from "../../theme";
+import { useHeaderScroll } from "../navigation/header-scroll-context";
 import type { AuthUser, SchoolRole } from "../../types/auth.types";
 
 interface SchoolHomeProps {
@@ -55,6 +56,7 @@ function QuickLink({ icon, label, color, count, onPress }: QuickLinkProps) {
 
 export function SchoolHome({ user, schoolSlug }: SchoolHomeProps) {
   const router = useRouter();
+  const { onScroll } = useHeaderScroll();
   const role = (user.activeRole ?? user.role) as SchoolRole | null;
   const roleLabel = role ? (ROLE_LABELS[role] ?? role) : "";
   const schoolDisplay = schoolSlug
@@ -87,6 +89,8 @@ export function SchoolHome({ user, schoolSlug }: SchoolHomeProps) {
       style={styles.scroll}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
     >
       {/* Welcome banner */}
       <View style={styles.banner}>

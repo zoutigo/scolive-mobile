@@ -31,11 +31,9 @@ import { DisciplineList } from "../../../src/components/discipline/DisciplineLis
 import { DisciplineDeleteDialog } from "../../../src/components/discipline/DisciplineDeleteDialog";
 import { DisciplineSummaryOverview } from "../../../src/components/discipline/DisciplineSummaryOverview";
 import { StudentDisciplineEventModal } from "../../../src/components/discipline/StudentDisciplineEventModal";
-import {
-  AppShell,
-  useDrawer,
-} from "../../../src/components/navigation/AppShell";
+import { AppShell } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
+import { BOTTOM_TAB_BAR_HEIGHT } from "../../../src/components/navigation/BottomTabBar";
 import type {
   CreateLifeEventPayload,
   StudentLifeEvent,
@@ -103,7 +101,6 @@ export default function DisciplineStudentScreen() {
     getSummary,
   } = useDisciplineStore();
   const { showSuccess } = useSuccessToastStore();
-  const { openDrawer } = useDrawer();
 
   const [tab, setTab] = useState<TabKey>("synthese");
   const [modalVisible, setModalVisible] = useState(false);
@@ -257,14 +254,11 @@ export default function DisciplineStudentScreen() {
         title={t("discipline.header.discipline")}
         subtitle={headerSubtitle}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         topInset={insets.top}
         testID="module-header"
         backTestID="btn-back"
         titleTestID="discipline-header-title"
         subtitleTestID="discipline-header-subtitle"
-        rightTestID="btn-menu"
       />
 
       {/* Onglets */}
@@ -327,7 +321,10 @@ export default function DisciplineStudentScreen() {
               testID="synthese-tab"
             />
             <TouchableOpacity
-              style={[styles.fab, { bottom: insets.bottom + 18 }]}
+              style={[
+                styles.fab,
+                { bottom: insets.bottom + 18 + BOTTOM_TAB_BAR_HEIGHT },
+              ]}
               onPress={openCreateModal}
               testID="fab-synthese"
               accessibilityLabel={t("discipline.fab.addEvent")}
@@ -353,7 +350,10 @@ export default function DisciplineStudentScreen() {
               testID="list-historique"
             />
             <TouchableOpacity
-              style={[styles.fab, { bottom: insets.bottom + 18 }]}
+              style={[
+                styles.fab,
+                { bottom: insets.bottom + 18 + BOTTOM_TAB_BAR_HEIGHT },
+              ]}
               onPress={openCreateModal}
               testID="fab-historique"
               accessibilityLabel={t("discipline.fab.addEvent")}

@@ -16,7 +16,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { buildChildHomeTarget } from "../navigation/nav-config";
-import { useDrawer } from "../navigation/drawer-context";
 import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { useTimetableStore } from "../../store/timetable.store";
@@ -187,7 +186,6 @@ export function findInitialMonthSelection(
 export function ChildTimetableScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const { t, locale } = useTranslation();
   const params = useLocalSearchParams<{ childId?: string }>();
   const childId = typeof params.childId === "string" ? params.childId : "";
@@ -421,13 +419,10 @@ export function ChildTimetableScreen() {
           title={t("timetable.classManager.defaultTitle")}
           subtitle={subtitle}
           onBack={() => router.push(buildChildHomeTarget(childId) as never)}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
           testID="child-timetable-header"
           backTestID="child-timetable-back"
           titleTestID="child-timetable-header-title"
           subtitleTestID="child-timetable-header-subtitle"
-          rightTestID="child-timetable-menu"
           topInset={insets.top}
         />
 

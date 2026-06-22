@@ -10,10 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  AppShell,
-  useDrawer,
-} from "../../../src/components/navigation/AppShell";
+import { AppShell } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import { UnderlineTabs } from "../../../src/components/navigation/UnderlineTabs";
 import { TestsSummaryTab } from "../../../src/components/tests/TestsSummaryTab";
@@ -43,7 +40,6 @@ function TestsHomeScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<TabKey>("summary");
   const [campaignsFilter, setCampaignsFilter] =
@@ -98,8 +94,6 @@ function TestsHomeScreen() {
         title={t("tests.title")}
         subtitle={t("tests.campaigns.subtitle")}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         topInset={insets.top}
         testID="tests-header"
       />

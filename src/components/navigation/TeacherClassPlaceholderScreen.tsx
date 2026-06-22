@@ -2,7 +2,6 @@ import React from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useDrawer } from "./AppShell";
 import { ModuleHeader } from "./ModuleHeader";
 import { colors } from "../../theme";
 
@@ -21,7 +20,6 @@ export function TeacherClassPlaceholderScreen({
 }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { openDrawer } = useDrawer();
   const params = useLocalSearchParams<{ classId?: string }>();
   const classId = typeof params.classId === "string" ? params.classId : "";
   const subtitle = classId ? `Classe ${classId}` : "Classe active";
@@ -32,13 +30,10 @@ export function TeacherClassPlaceholderScreen({
         title={moduleTitle}
         subtitle={subtitle}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         testID={`${testIDPrefix}-header`}
         backTestID={`${testIDPrefix}-back`}
         titleTestID={`${testIDPrefix}-title`}
         subtitleTestID={`${testIDPrefix}-subtitle`}
-        rightTestID={`${testIDPrefix}-menu`}
       />
       <ScrollView
         style={styles.root}

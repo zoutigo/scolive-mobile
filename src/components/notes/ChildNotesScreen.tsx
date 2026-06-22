@@ -16,7 +16,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { buildChildHomeTarget } from "../navigation/nav-config";
-import { useDrawer } from "../navigation/drawer-context";
 import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { useNotesStore } from "../../store/notes.store";
@@ -225,7 +224,6 @@ export function ChildNotesScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const params = useLocalSearchParams<{ childId?: string }>();
   const childId = typeof params.childId === "string" ? params.childId : "";
   const { schoolSlug } = useAuthStore();
@@ -259,13 +257,10 @@ export function ChildNotesScreen() {
         title={title}
         subtitle={subtitle}
         onBack={() => router.push(buildChildHomeTarget(childId) as never)}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         testID="child-notes-header"
         backTestID="child-notes-back"
         titleTestID="child-notes-header-title"
         subtitleTestID="child-notes-header-subtitle"
-        rightTestID="child-notes-menu"
         topInset={insets.top}
       />
       <StudentNotesPanel

@@ -36,10 +36,7 @@ import { useMessagingStore } from "../../../src/store/messaging.store";
 import { useSuccessToastStore } from "../../../src/store/success-toast.store";
 import { RichTextToolbar } from "../../../src/components/editor/RichTextToolbar";
 import { RecipientPickerModal } from "../../../src/components/messaging/RecipientPickerModal";
-import {
-  AppShell,
-  useDrawer,
-} from "../../../src/components/navigation/AppShell";
+import { AppShell } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import {
   useTranslation,
@@ -274,7 +271,6 @@ export default function ComposeScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const { schoolSlug } = useAuthStore();
   const { folder, loadMessages } = useMessagingStore();
   const showFeedbackToast = useSuccessToastStore((state) => state.show);
@@ -734,13 +730,10 @@ export default function ComposeScreen() {
               : t("messaging.compose.titleNew")
           }
           onBack={() => router.back()}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
           topInset={insets.top}
           testID="compose-header"
           backTestID="compose-back"
           titleTestID="compose-header-title"
-          rightTestID="compose-menu-btn"
         />
 
         {/* Inserting image indicator */}

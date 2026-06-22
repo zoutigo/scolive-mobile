@@ -2,7 +2,6 @@ import React, { useCallback, useRef } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StyleSheet, View } from "react-native";
-import { useDrawer } from "../navigation/drawer-context";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { useAuthStore } from "../../store/auth.store";
 import { useTeacherClassNavStore } from "../../store/teacher-class-nav.store";
@@ -45,7 +44,6 @@ export function TeacherClassFeedScreen({
   tRef.current = t;
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const params = useLocalSearchParams<{ classId?: string }>();
   const classId = typeof params.classId === "string" ? params.classId : "";
   const { schoolSlug, user } = useAuthStore();
@@ -125,13 +123,10 @@ export function TeacherClassFeedScreen({
               title={t("feed.classLife.title")}
               subtitle={subtitle}
               onBack={() => router.back()}
-              rightIcon="menu-outline"
-              onRightPress={openDrawer}
               testID="teacher-class-feed-header"
               backTestID="teacher-class-feed-back"
               titleTestID="teacher-class-feed-title"
               subtitleTestID="teacher-class-feed-subtitle"
-              rightTestID="teacher-class-feed-menu-btn"
               topInset={insets.top}
             />
           </View>

@@ -25,9 +25,9 @@ export type AdminCaseRow = {
   reference: number;
   title: string;
   module: string | null;
-  objective?: string | null;
-  preconditions?: string | null;
-  expectedResult?: string;
+  objective: string | null;
+  preconditions: string | null;
+  expectedResult: string;
   priority: TestCasePriority;
   dueAt: string | null;
   evidenceRequired: boolean;
@@ -38,6 +38,10 @@ export type AdminCaseRow = {
 
 export type AdminCampaignDetail = AdminCampaignRow & {
   testCases: AdminCaseRow[];
+};
+
+export type AdminCaseDetail = AdminCaseRow & {
+  campaign: { id: string; title: string };
 };
 
 export type AdminAssignmentRow = {

@@ -139,13 +139,6 @@ describe("ChildNotesScreen", () => {
     });
   });
 
-  it("ouvre le menu de navigation enfant via l'icone droite", () => {
-    render(<ChildNotesScreen />);
-
-    fireEvent.press(screen.getByTestId("child-notes-menu"));
-    expect(mockOpenDrawer).toHaveBeenCalledTimes(1);
-  });
-
   it("selectionne au premier affichage le trimestre courant et la vue eval", () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date("2026-04-13T10:00:00Z"));

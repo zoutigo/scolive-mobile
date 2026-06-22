@@ -15,6 +15,11 @@ jest.mock("@expo/vector-icons", () => ({
   Ionicons: () => null,
 }));
 
+jest.mock("expo-application", () => ({
+  nativeApplicationVersion: "1.2.3",
+  nativeBuildVersion: "38",
+}));
+
 const mockPush = jest.fn();
 let mockPathname = "/";
 jest.mock("expo-router", () => ({
@@ -30,7 +35,6 @@ const baseProps = {
   userFullName: "Robert Ntamack",
   userInitials: "RN",
   userRole: "Parent",
-  onLogout: jest.fn(),
 };
 
 const makeUser = (overrides: Partial<AuthUser>): AuthUser => ({
@@ -174,7 +178,6 @@ describe("Items de navigation — plateforme", () => {
     "students",
     "users",
     "indicators",
-    "account",
   ];
 
   expectedKeys.forEach((key) => {
@@ -182,6 +185,11 @@ describe("Items de navigation — plateforme", () => {
       renderDrawer(items);
       expect(screen.getByTestId(`nav-item-${key}`)).toBeTruthy();
     });
+  });
+
+  it("n'affiche plus 'Mon compte' (déplacé vers la bottom tab bar)", () => {
+    renderDrawer(items);
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 });
 
@@ -202,7 +210,6 @@ describe("Items de navigation — établissement", () => {
     "parents",
     "grades",
     "messages",
-    "account",
   ];
 
   expectedKeys.forEach((key) => {
@@ -211,26 +218,29 @@ describe("Items de navigation — établissement", () => {
       expect(screen.getByTestId(`nav-item-${key}`)).toBeTruthy();
     });
   });
+
+  it("n'affiche plus 'Mon compte' (déplacé vers la bottom tab bar)", () => {
+    renderDrawer(items);
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
+  });
 });
 
 // ── Navigation — rôle enseignant ──────────────────────────────────────────────
 
 describe("Items de navigation — enseignant", () => {
   const items = getNavItems(teacherUser);
-  const expectedKeys = [
-    "home",
-    "feed",
-    "agenda",
-    "timetable",
-    "messages",
-    "account",
-  ];
+  const expectedKeys = ["home", "feed", "agenda", "timetable", "messages"];
 
   expectedKeys.forEach((key) => {
     it(`affiche l'item "${key}"`, () => {
       renderDrawer(items);
       expect(screen.getByTestId(`nav-item-${key}`)).toBeTruthy();
     });
+  });
+
+  it("n'affiche plus 'Mon compte' (déplacé vers la bottom tab bar)", () => {
+    renderDrawer(items);
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 
   it("affiche une section 'Menu enseignant' et une section par classe quand les classes sont fournies", () => {
@@ -335,14 +345,7 @@ describe("Items de navigation — enseignant", () => {
 
 describe("Items de navigation — parent", () => {
   const items = getNavItems(parentUser);
-  const expectedKeys = [
-    "home",
-    "feed",
-    "finance",
-    "messages",
-    "documents",
-    "account",
-  ];
+  const expectedKeys = ["home", "feed", "finance", "messages", "documents"];
 
   expectedKeys.forEach((key) => {
     it(`affiche l'item "${key}"`, () => {
@@ -350,19 +353,29 @@ describe("Items de navigation — parent", () => {
       expect(screen.getByTestId(`nav-item-${key}`)).toBeTruthy();
     });
   });
+
+  it("n'affiche plus 'Mon compte' (déplacé vers la bottom tab bar)", () => {
+    renderDrawer(items);
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
+  });
 });
 
 // ── Navigation — rôle élève ───────────────────────────────────────────────────
 
 describe("Items de navigation — élève", () => {
   const items = getNavItems(studentUser);
-  const expectedKeys = ["home", "grades", "messages", "documents", "account"];
+  const expectedKeys = ["home", "grades", "messages", "documents"];
 
   expectedKeys.forEach((key) => {
     it(`affiche l'item "${key}"`, () => {
       renderDrawer(items);
       expect(screen.getByTestId(`nav-item-${key}`)).toBeTruthy();
     });
+  });
+
+  it("n'affiche plus 'Mon compte' (déplacé vers la bottom tab bar)", () => {
+    renderDrawer(items);
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 });
 
@@ -391,102 +404,24 @@ describe("Navigation — clic sur un item", () => {
   });
 });
 
-// ── Déconnexion ───────────────────────────────────────────────────────────────
+// ── Déconnexion / Assistance / Tests — déplacés vers la bottom tab bar ────────
+// Ces fonctionnalités ne vivent plus dans le drawer : voir
+// __tests__/navigation/BottomTabBar.test.tsx et __tests__/navigation/AppHeader.test.tsx.
 
-describe("Bouton de déconnexion", () => {
-  it("est présent dans le drawer", () => {
+describe("Drawer allégé — plus de déconnexion ni de lien assistance", () => {
+  it("n'affiche plus de bouton de déconnexion", () => {
     renderDrawer();
-    expect(screen.getByTestId("drawer-logout-btn")).toBeTruthy();
+    expect(screen.queryByTestId("drawer-logout-btn")).toBeNull();
   });
 
-  it("affiche le ConfirmDialog au clic sur le bouton de déconnexion", () => {
+  it("n'affiche plus de lien assistance", () => {
     renderDrawer();
-    fireEvent.press(screen.getByTestId("drawer-logout-btn"));
-    expect(screen.getByTestId("confirm-dialog-card")).toBeTruthy();
+    expect(screen.queryByTestId("drawer-tickets-btn")).toBeNull();
   });
 
-  it("n'appelle pas onLogout directement au clic (passe par la confirmation)", () => {
-    const onLogout = jest.fn();
-    renderDrawer(getNavItems(parentUser), { onLogout });
-    fireEvent.press(screen.getByTestId("drawer-logout-btn"));
-    expect(onLogout).not.toHaveBeenCalled();
-  });
-
-  it("appelle onLogout après confirmation dans le dialog", () => {
-    const onLogout = jest.fn();
-    renderDrawer(getNavItems(parentUser), { onLogout });
-    fireEvent.press(screen.getByTestId("drawer-logout-btn"));
-    fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
-    expect(onLogout).toHaveBeenCalledTimes(1);
-  });
-
-  it("n'appelle pas onLogout si on annule dans le dialog", () => {
-    const onLogout = jest.fn();
-    renderDrawer(getNavItems(parentUser), { onLogout });
-    fireEvent.press(screen.getByTestId("drawer-logout-btn"));
-    fireEvent.press(screen.getByTestId("confirm-dialog-cancel"));
-    expect(onLogout).not.toHaveBeenCalled();
-  });
-
-  it("ferme le dialog si on annule (la carte disparaît)", () => {
-    renderDrawer();
-    fireEvent.press(screen.getByTestId("drawer-logout-btn"));
-    fireEvent.press(screen.getByTestId("confirm-dialog-cancel"));
-    expect(screen.queryByTestId("confirm-dialog-card")).toBeNull();
-  });
-});
-
-// ── Assistance ────────────────────────────────────────────────────────────────
-// L'assistance doit être disponible pour TOUS les rôles, indépendamment du
-// statut testeur — voir les tests dédiés au lien "Tests" dans
-// __tests__/tests/tests.navigation.test.tsx.
-
-describe("Lien Assistance", () => {
-  it("est présent dans le mode plateforme", () => {
-    renderDrawer(getNavItems(platformUser));
-    expect(screen.getByTestId("drawer-tickets-btn")).toBeTruthy();
-  });
-
-  it("est présent dans le mode enseignant", () => {
-    renderDrawer(getNavItems(teacherUser), {
-      teacherClassSections,
-      isTeacherClassNavEnabled: true,
-    });
-    expect(screen.getByTestId("drawer-tickets-btn")).toBeTruthy();
-  });
-
-  it("est présent dans le mode parent", () => {
-    renderDrawer(getNavItems(parentUser), {
-      childSections: buildChildSections([child1]),
-    });
-    expect(screen.getByTestId("drawer-tickets-btn")).toBeTruthy();
-  });
-
-  it("est présent dans le mode élève", () => {
-    renderDrawer(getNavItems(studentUser));
-    expect(screen.getByTestId("drawer-tickets-btn")).toBeTruthy();
-  });
-
-  it("est présent que l'utilisateur soit testeur ou non", () => {
-    renderDrawer(getNavItems(parentUser), { isTester: true });
-    expect(screen.getByTestId("drawer-tickets-btn")).toBeTruthy();
-
-    renderDrawer(getNavItems(parentUser), { isTester: false });
-    expect(screen.getByTestId("drawer-tickets-btn")).toBeTruthy();
-  });
-
-  it("navigue vers /tickets au clic", () => {
-    renderDrawer();
-    fireEvent.press(screen.getByTestId("drawer-tickets-btn"));
-    act(() => jest.runAllTimers());
-    expect(mockPush).toHaveBeenCalledWith("/(home)/tickets");
-  });
-
-  it("appelle onClose avant de naviguer vers l'assistance", () => {
-    const onClose = jest.fn();
-    renderDrawer(getNavItems(parentUser), { onClose });
-    fireEvent.press(screen.getByTestId("drawer-tickets-btn"));
-    expect(onClose).toHaveBeenCalledTimes(1);
+  it("n'affiche plus de lien Tests, même pour un testeur", () => {
+    renderDrawer(getNavItems(parentUser));
+    expect(screen.queryByTestId("drawer-tests-btn")).toBeNull();
   });
 });
 
@@ -698,42 +633,37 @@ describe("Accordéon — cycle ouverture/fermeture", () => {
   });
 });
 
-// ── Mon compte — toujours en premier, quel que soit le rôle ──────────────────
+// ── Mon compte — supprimé du drawer, déplacé vers la bottom tab bar ──────────
 
-describe("Mon compte — premier lien du aside", () => {
-  it("est visible dans le mode simple (plateforme)", () => {
+describe("Mon compte — n'apparaît plus dans le drawer, quel que soit le rôle", () => {
+  it("absent en mode simple (plateforme)", () => {
     renderDrawer(getNavItems(platformUser));
-    expect(screen.getByTestId("nav-item-account")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 
-  it("est visible dans le mode simple (élève)", () => {
+  it("absent en mode simple (élève)", () => {
     renderDrawer(getNavItems(studentUser));
-    expect(screen.getByTestId("nav-item-account")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 
-  it("est visible dans le mode enseignant avec section générale ouverte", () => {
+  it("absent en mode enseignant avec section générale ouverte", () => {
     renderDrawer(getNavItems(teacherUser), {
       teacherClassSections,
       isTeacherClassNavEnabled: true,
     });
-    expect(screen.getByTestId("nav-item-account")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 
-  it("reste visible quand une section classe enseignant est ouverte", () => {
+  it("absent quand une section classe enseignant est ouverte", () => {
     renderDrawer(getNavItems(teacherUser), {
       teacherClassSections,
       isTeacherClassNavEnabled: true,
     });
-
-    // Ouvrir une section classe (ferme la section générale = nav-item-home disparaît)
     fireEvent.press(screen.getByTestId("drawer-section-teacher-class-class-1"));
-    expect(screen.queryByTestId("nav-item-home")).toBeNull();
-
-    // Mon compte doit rester visible
-    expect(screen.getByTestId("nav-item-account")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 
-  it("reste visible dans le mode parent avec section générale ouverte", () => {
+  it("absent en mode parent avec section générale ouverte", () => {
     const childSections = buildChildSections([child1]);
     render(
       <AppDrawer
@@ -742,10 +672,10 @@ describe("Mon compte — premier lien du aside", () => {
         childSections={childSections}
       />,
     );
-    expect(screen.getByTestId("nav-item-account")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 
-  it("reste visible quand une section enfant est ouverte (mode parent)", () => {
+  it("absent quand une section enfant est ouverte (mode parent)", () => {
     const childSections = buildChildSections([child1]);
     useFamilyStore.setState({ activeChildId: null, children: [] });
     render(
@@ -755,39 +685,8 @@ describe("Mon compte — premier lien du aside", () => {
         childSections={childSections}
       />,
     );
-
-    // Ouvrir la section enfant (ferme la section générale = nav-item-home disparaît)
     fireEvent.press(screen.getByTestId("drawer-section-child-c1"));
-    expect(screen.queryByTestId("nav-item-home")).toBeNull();
-
-    // Mon compte doit rester visible
-    expect(screen.getByTestId("nav-item-account")).toBeTruthy();
-  });
-
-  it("n'est pas dans la section générale enseignant (pas dupliqué)", () => {
-    renderDrawer(getNavItems(teacherUser), {
-      teacherClassSections,
-      isTeacherClassNavEnabled: true,
-    });
-    // openSection = "general" → les items de section s'affichent
-    // On vérifie qu'account n'apparaît qu'une seule fois
-    const allAccountItems = screen.queryAllByTestId("nav-item-account");
-    expect(allAccountItems).toHaveLength(1);
-  });
-
-  it("n'est pas dupliqué dans la section générale parent", () => {
-    const childSections = buildChildSections([child1]);
-    useFamilyStore.setState({ activeChildId: null, children: [] });
-    render(
-      <AppDrawer
-        {...baseProps}
-        navItems={getNavItems(parentUser)}
-        childSections={childSections}
-      />,
-    );
-    // La section générale est ouverte — account ne doit apparaître qu'une fois
-    const allAccountItems = screen.queryAllByTestId("nav-item-account");
-    expect(allAccountItems).toHaveLength(1);
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 });
 
@@ -897,50 +796,12 @@ describe("forcedSection — ouverture directe d'une section classe", () => {
   });
 });
 
-// ── Style visuel des sections classes et enfants = navItem (comme "Mon compte") ─
+// ── Style visuel des sections classes et enfants = navItem ──────────────────
+// (la référence "Mon compte" a été retirée du drawer ; on compare désormais
+// les sections entre elles pour vérifier l'harmonie visuelle du navItem.)
 
-describe("Style visuel — sections classes enseignant identiques à Mon compte (navItem)", () => {
-  it("le bouton de section classe a le même paddingVertical que un navItem", () => {
-    renderDrawer(getNavItems(teacherUser), {
-      teacherClassSections,
-      isTeacherClassNavEnabled: true,
-    });
-
-    const { StyleSheet } = require("react-native");
-    const accountBtn = screen.getByTestId("nav-item-account");
-    const classBtn = screen.getByTestId("drawer-section-teacher-class-class-1");
-
-    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
-      paddingVertical?: number;
-    };
-    const flatClass = StyleSheet.flatten(classBtn.props.style) as {
-      paddingVertical?: number;
-    };
-
-    expect(flatClass.paddingVertical).toBe(flatAccount.paddingVertical);
-  });
-
-  it("le bouton de section classe a le même paddingHorizontal que un navItem", () => {
-    renderDrawer(getNavItems(teacherUser), {
-      teacherClassSections,
-      isTeacherClassNavEnabled: true,
-    });
-
-    const { StyleSheet } = require("react-native");
-    const accountBtn = screen.getByTestId("nav-item-account");
-    const classBtn = screen.getByTestId("drawer-section-teacher-class-class-1");
-
-    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
-      paddingHorizontal?: number;
-    };
-    const flatClass = StyleSheet.flatten(classBtn.props.style) as {
-      paddingHorizontal?: number;
-    };
-
-    expect(flatClass.paddingHorizontal).toBe(flatAccount.paddingHorizontal);
-  });
-
-  it("avec deux classes, les deux boutons ont le même style que Mon compte", () => {
+describe("Style visuel — sections classes enseignant cohérentes entre elles (navItem)", () => {
+  it("deux sections classe partagent le même paddingVertical/paddingHorizontal", () => {
     const twoClassSections = buildTeacherClassSections([
       {
         classId: "cl-a",
@@ -965,14 +826,9 @@ describe("Style visuel — sections classes enseignant identiques à Mon compte 
     });
 
     const { StyleSheet } = require("react-native");
-    const accountBtn = screen.getByTestId("nav-item-account");
     const clABtn = screen.getByTestId("drawer-section-teacher-class-cl-a");
     const clBBtn = screen.getByTestId("drawer-section-teacher-class-cl-b");
 
-    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
-      paddingVertical?: number;
-      paddingHorizontal?: number;
-    };
     const flatA = StyleSheet.flatten(clABtn.props.style) as {
       paddingVertical?: number;
       paddingHorizontal?: number;
@@ -982,14 +838,12 @@ describe("Style visuel — sections classes enseignant identiques à Mon compte 
       paddingHorizontal?: number;
     };
 
-    expect(flatA.paddingVertical).toBe(flatAccount.paddingVertical);
-    expect(flatA.paddingHorizontal).toBe(flatAccount.paddingHorizontal);
-    expect(flatB.paddingVertical).toBe(flatAccount.paddingVertical);
-    expect(flatB.paddingHorizontal).toBe(flatAccount.paddingHorizontal);
+    expect(flatA.paddingVertical).toBe(flatB.paddingVertical);
+    expect(flatA.paddingHorizontal).toBe(flatB.paddingHorizontal);
   });
 });
 
-describe("Style visuel — sections enfants identiques à Mon compte (navItem)", () => {
+describe("Style visuel — sections enfants cohérentes entre elles (navItem)", () => {
   const childSections = buildChildSections([child1, child2]);
 
   function renderParentDrawer2(activeChildId: string | null = null) {
@@ -1003,52 +857,13 @@ describe("Style visuel — sections enfants identiques à Mon compte (navItem)",
     );
   }
 
-  it("le bouton de section enfant a le même paddingVertical que Mon compte", () => {
+  it("les deux sections enfant partagent le même paddingVertical/paddingHorizontal", () => {
     renderParentDrawer2(null);
 
     const { StyleSheet } = require("react-native");
-    const accountBtn = screen.getByTestId("nav-item-account");
-    const childBtn = screen.getByTestId("drawer-section-child-c1");
-
-    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
-      paddingVertical?: number;
-    };
-    const flatChild = StyleSheet.flatten(childBtn.props.style) as {
-      paddingVertical?: number;
-    };
-
-    expect(flatChild.paddingVertical).toBe(flatAccount.paddingVertical);
-  });
-
-  it("le bouton de section enfant a le même paddingHorizontal que Mon compte", () => {
-    renderParentDrawer2(null);
-
-    const { StyleSheet } = require("react-native");
-    const accountBtn = screen.getByTestId("nav-item-account");
-    const childBtn = screen.getByTestId("drawer-section-child-c1");
-
-    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
-      paddingHorizontal?: number;
-    };
-    const flatChild = StyleSheet.flatten(childBtn.props.style) as {
-      paddingHorizontal?: number;
-    };
-
-    expect(flatChild.paddingHorizontal).toBe(flatAccount.paddingHorizontal);
-  });
-
-  it("les deux sections enfant ont le même style que Mon compte", () => {
-    renderParentDrawer2(null);
-
-    const { StyleSheet } = require("react-native");
-    const accountBtn = screen.getByTestId("nav-item-account");
     const c1Btn = screen.getByTestId("drawer-section-child-c1");
     const c2Btn = screen.getByTestId("drawer-section-child-c2");
 
-    const flatAccount = StyleSheet.flatten(accountBtn.props.style) as {
-      paddingVertical?: number;
-      paddingHorizontal?: number;
-    };
     const flat1 = StyleSheet.flatten(c1Btn.props.style) as {
       paddingVertical?: number;
       paddingHorizontal?: number;
@@ -1058,10 +873,8 @@ describe("Style visuel — sections enfants identiques à Mon compte (navItem)",
       paddingHorizontal?: number;
     };
 
-    expect(flat1.paddingVertical).toBe(flatAccount.paddingVertical);
-    expect(flat1.paddingHorizontal).toBe(flatAccount.paddingHorizontal);
-    expect(flat2.paddingVertical).toBe(flatAccount.paddingVertical);
-    expect(flat2.paddingHorizontal).toBe(flatAccount.paddingHorizontal);
+    expect(flat1.paddingVertical).toBe(flat2.paddingVertical);
+    expect(flat1.paddingHorizontal).toBe(flat2.paddingHorizontal);
   });
 });
 
@@ -1083,18 +896,18 @@ function flatStyle(element: ReturnType<typeof screen.getByTestId>) {
 
 describe("Hiérarchie visuelle — NavRow top-level inactif (mode simple)", () => {
   // En mode "simple" (ex. élève), tous les items sont des NavRow sans indent.
-  // mockPathname = "/" → seul "home" est actif ; "account" reste inactif.
+  // mockPathname = "/" → seul "home" est actif ; "documents" reste inactif.
 
   it("un item inactif top-level a un topLevelBar", () => {
     mockPathname = "/";
     renderDrawer(getNavItems(studentUser));
-    expect(screen.getByTestId("account-top-level-bar")).toBeTruthy();
+    expect(screen.getByTestId("documents-top-level-bar")).toBeTruthy();
   });
 
   it("un item inactif top-level n'a pas d'activeBar", () => {
     mockPathname = "/";
     renderDrawer(getNavItems(studentUser));
-    expect(screen.queryByTestId("account-active-bar")).toBeNull();
+    expect(screen.queryByTestId("documents-active-bar")).toBeNull();
   });
 
   it("un item actif a un activeBar et pas de topLevelBar", () => {
@@ -1107,14 +920,14 @@ describe("Hiérarchie visuelle — NavRow top-level inactif (mode simple)", () =
   it("le label d'un item inactif top-level a la couleur navLabelTopLevel", () => {
     mockPathname = "/";
     renderDrawer(getNavItems(studentUser));
-    const style = flatStyle(screen.getByTestId("account-label"));
+    const style = flatStyle(screen.getByTestId("documents-label"));
     expect(style.color).toBe("rgba(255,255,255,0.92)");
   });
 
   it("le label d'un item inactif top-level a fontWeight 600", () => {
     mockPathname = "/";
     renderDrawer(getNavItems(studentUser));
-    const style = flatStyle(screen.getByTestId("account-label"));
+    const style = flatStyle(screen.getByTestId("documents-label"));
     expect(style.fontWeight).toBe("600");
   });
 
@@ -1123,13 +936,6 @@ describe("Hiérarchie visuelle — NavRow top-level inactif (mode simple)", () =
     renderDrawer(getNavItems(studentUser));
     const style = flatStyle(screen.getByTestId("home-label"));
     expect(style.color).toBe("#FFFFFF");
-  });
-
-  it("quand account devient la route active, il passe à activeBar et perd topLevelBar", () => {
-    mockPathname = "/account";
-    renderDrawer(getNavItems(studentUser));
-    expect(screen.getByTestId("account-active-bar")).toBeTruthy();
-    expect(screen.queryByTestId("account-top-level-bar")).toBeNull();
   });
 });
 
@@ -1244,8 +1050,7 @@ describe("Hiérarchie visuelle — sectionHeader 'Menu enseignant'", () => {
     expect(style.fontWeight).toBe("600");
   });
 
-  it("sur /account : n'est pas visuellement actif — pas de double actif avec Mon compte", () => {
-    // Scénario utilisateur : on est sur Mon compte, Menu enseignant doit être inactif.
+  it("sur /account (Mon compte, désormais hors drawer) : Menu enseignant reste inactif", () => {
     mockPathname = "/account";
     renderTeacher();
     expect(
@@ -1254,8 +1059,6 @@ describe("Hiérarchie visuelle — sectionHeader 'Menu enseignant'", () => {
     expect(
       screen.queryByTestId("drawer-section-teacher-general-active-bar"),
     ).toBeNull();
-    // Mon compte lui est actif
-    expect(screen.getByTestId("account-active-bar")).toBeTruthy();
   });
 });
 
@@ -1396,7 +1199,7 @@ describe("Hiérarchie visuelle — sectionHeader 'Mon espace famille'", () => {
     expect(style.fontWeight).toBe("600");
   });
 
-  it("sur /account : n'est pas visuellement actif — pas de double actif avec Mon compte", () => {
+  it("sur /account (Mon compte, désormais hors drawer) : Mon espace famille reste inactif", () => {
     mockPathname = "/account";
     renderParentWithChildren(null);
     expect(
@@ -1405,7 +1208,6 @@ describe("Hiérarchie visuelle — sectionHeader 'Mon espace famille'", () => {
     expect(
       screen.queryByTestId("drawer-section-general-active-bar"),
     ).toBeNull();
-    expect(screen.getByTestId("account-active-bar")).toBeTruthy();
   });
 
   it("ouvrir l'accordéon d'un enfant (clic) ne rend pas Mon espace famille inactif si la route y est", () => {
@@ -1510,35 +1312,35 @@ describe("Hiérarchie visuelle — ExpandableNavRow sections enfants", () => {
   });
 });
 
-// ── Cohérence globale : "Mon compte" a toujours le bon liseré ─────────────────
+// ── Cohérence globale : "Mon compte" n'apparaît plus jamais dans le drawer ───
 
-describe("Hiérarchie visuelle — 'Mon compte' top-level dans tous les modes", () => {
-  it("mode simple : inactif → topLevelBar", () => {
+describe("'Mon compte' — absent du drawer dans tous les modes (déplacé vers la bottom tab bar)", () => {
+  it("mode simple", () => {
     mockPathname = "/";
     renderDrawer(getNavItems(studentUser));
-    expect(screen.getByTestId("account-top-level-bar")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 
-  it("mode enseignant, section générale ouverte : inactif → topLevelBar", () => {
+  it("mode enseignant, section générale ouverte", () => {
     mockPathname = "/";
     renderDrawer(getNavItems(teacherUser), {
       teacherClassSections,
       isTeacherClassNavEnabled: true,
     });
-    expect(screen.getByTestId("account-top-level-bar")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 
-  it("mode enseignant, section classe ouverte : inactif → topLevelBar", () => {
+  it("mode enseignant, section classe ouverte", () => {
     mockPathname = "/";
     renderDrawer(getNavItems(teacherUser), {
       teacherClassSections,
       isTeacherClassNavEnabled: true,
     });
     fireEvent.press(screen.getByTestId("drawer-section-teacher-class-class-1"));
-    expect(screen.getByTestId("account-top-level-bar")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 
-  it("mode parent, section générale ouverte : inactif → topLevelBar", () => {
+  it("mode parent, section générale ouverte", () => {
     mockPathname = "/";
     const childSecs = buildChildSections([child1]);
     useFamilyStore.setState({ activeChildId: null, children: [] });
@@ -1549,10 +1351,10 @@ describe("Hiérarchie visuelle — 'Mon compte' top-level dans tous les modes", 
         childSections={childSecs}
       />,
     );
-    expect(screen.getByTestId("account-top-level-bar")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 
-  it("mode parent, section enfant ouverte : inactif → topLevelBar", () => {
+  it("mode parent, section enfant ouverte", () => {
     mockPathname = "/";
     const childSecs = buildChildSections([child1]);
     useFamilyStore.setState({ activeChildId: "c1", children: [] });
@@ -1563,14 +1365,13 @@ describe("Hiérarchie visuelle — 'Mon compte' top-level dans tous les modes", 
         childSections={childSecs}
       />,
     );
-    expect(screen.getByTestId("account-top-level-bar")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 
-  it("actif (/account) → activeBar, pas de topLevelBar", () => {
+  it("même sur la route /account", () => {
     mockPathname = "/account";
     renderDrawer(getNavItems(studentUser));
-    expect(screen.getByTestId("account-active-bar")).toBeTruthy();
-    expect(screen.queryByTestId("account-top-level-bar")).toBeNull();
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 });
 
@@ -1640,9 +1441,9 @@ describe("isItemActive — clés '-home' enfant : route réelle, pas la racine '
     ).toBeTruthy();
   });
 
-  it("sur /account : Mon compte seul actif, Mon espace famille et enfants inactifs", () => {
+  it("sur /account : Mon espace famille et enfants inactifs (Mon compte n'est plus dans le drawer)", () => {
     renderParentOnRoute("/account");
-    expect(screen.getByTestId("account-active-bar")).toBeTruthy();
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
     expect(
       screen.getByTestId("drawer-section-general-top-level-bar"),
     ).toBeTruthy();
@@ -1727,5 +1528,23 @@ describe("Effect A — auto-ouverture de la section enfant par route", () => {
     renderParentOnRoute("/", "c1");
     expect(screen.getByTestId("nav-item-child-c1-grades")).toBeTruthy();
     expect(screen.queryByTestId("nav-item-home")).toBeNull();
+  });
+});
+
+// ── Version de l'application ───────────────────────────────────────────────────
+
+describe("Version de l'application", () => {
+  it("affiche le versionName au format V.x.x.x, pas le build number", () => {
+    renderDrawer();
+    expect(screen.getByTestId("drawer-app-version")).toHaveTextContent(
+      "V1.2.3",
+    );
+  });
+
+  it("n'affiche pas le build number natif dans le tiroir", () => {
+    renderDrawer();
+    expect(screen.getByTestId("drawer-app-version")).not.toHaveTextContent(
+      "38",
+    );
   });
 });

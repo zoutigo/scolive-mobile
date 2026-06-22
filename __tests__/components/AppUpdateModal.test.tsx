@@ -117,18 +117,17 @@ describe("Rendu — mode obligatoire (mandatory=true)", () => {
     expect(screen.queryByTestId("app-update-dismiss")).toBeNull();
   });
 
-  it("affiche le bouton 'Aller sur le site'", () => {
+  it("affiche le bouton 'Télécharger et installer'", () => {
     render(<AppUpdateModal {...mandatoryProps} />);
     expect(screen.getByTestId("app-update-download")).toHaveTextContent(
-      "Aller sur le site",
+      "Télécharger et installer",
     );
   });
 
-  it("le message mentionne la désinstallation et scolive.lisaweb.fr", () => {
+  it("le message mentionne le repli désinstallation en cas d'échec", () => {
     render(<AppUpdateModal {...mandatoryProps} />);
     const message = screen.getByTestId("app-update-message");
-    expect(message).toHaveTextContent(/sinstaller/);
-    expect(message).toHaveTextContent(/scolive\.lisaweb\.fr/);
+    expect(message).toHaveTextContent(/sinstallez/);
   });
 });
 
@@ -165,11 +164,11 @@ describe("Accessibilité — mode facultatif", () => {
 });
 
 describe("Accessibilité — mode obligatoire", () => {
-  it("le bouton 'Aller sur le site' a le bon accessibilityLabel", () => {
+  it("le bouton 'Télécharger et installer' a le bon accessibilityLabel", () => {
     render(<AppUpdateModal {...baseProps} mandatory />);
     expect(
       screen.getByTestId("app-update-download").props.accessibilityLabel,
-    ).toBe("Aller sur le site");
+    ).toBe("Télécharger et installer");
   });
 });
 

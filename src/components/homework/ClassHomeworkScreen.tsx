@@ -42,9 +42,9 @@ import { notesApi } from "../../api/notes.api";
 import { timetableApi } from "../../api/timetable.api";
 import { homeworkApi } from "../../api/homework.api";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { getViewType } from "../navigation/nav-config";
-import { useDrawer } from "../navigation/AppShell";
 import { RichTextToolbar } from "../editor/RichTextToolbar";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
@@ -977,7 +977,6 @@ export function ClassHomeworkScreen({
   const routeChildId = typeof params.childId === "string" ? params.childId : "";
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { openDrawer } = useDrawer();
   const { schoolSlug, user } = useAuthStore();
   const { children, activeChildId } = useFamilyStore();
   const {
@@ -1541,13 +1540,10 @@ export function ClassHomeworkScreen({
             title={t("homework.header.title")}
             subtitle={subtitle}
             onBack={() => router.back()}
-            rightIcon="menu-outline"
-            onRightPress={openDrawer}
             testID="class-homework-header"
             backTestID="class-homework-back"
             titleTestID="class-homework-header-title"
             subtitleTestID="class-homework-header-subtitle"
-            rightTestID="class-homework-menu"
             topInset={insets.top}
           />
         ) : null}
@@ -2514,7 +2510,7 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     right: 20,
-    bottom: 20,
+    bottom: 20 + BOTTOM_TAB_BAR_HEIGHT,
     width: 60,
     height: 60,
     borderRadius: 30,

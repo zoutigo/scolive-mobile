@@ -2,10 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  AppShell,
-  useDrawer,
-} from "../../../../src/components/navigation/AppShell";
+import { AppShell } from "../../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../../src/components/navigation/ModuleHeader";
 import { ExecutionsPager } from "../../../../src/components/tests/ExecutionsPager";
 import { AdminExecutionDetailCard } from "../../../../src/components/tests-admin/AdminExecutionDetailCard";
@@ -13,6 +10,7 @@ import { testsAdminApi } from "../../../../src/api/tests-admin.api";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 import { colors } from "../../../../src/theme";
 import type { TestExecutionStatus } from "../../../../src/types/tests.types";
+import type { AdminTesterRow } from "../../../../src/types/tests-admin.types";
 
 export default function AdminTestExecutionRoute() {
   return (
@@ -26,7 +24,6 @@ function AdminTestExecutionScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const params = useLocalSearchParams<{
     executionId: string;
     status?: string;
@@ -35,23 +32,28 @@ function AdminTestExecutionScreen() {
     reviewed?: string;
   }>();
   const [ids, setIds] = useState<string[] | null>(null);
+  const [testers, setTesters] = useState<AdminTesterRow[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const response = await testsAdminApi.listExecutions({
-          status: (params.status as TestExecutionStatus | "") || undefined,
-          campaignId: params.campaignId || undefined,
-          testerId: params.testerId || undefined,
-          reviewed:
-            params.reviewed === "" || params.reviewed === undefined
-              ? undefined
-              : params.reviewed === "true",
-        });
+        const [response, testersResponse] = await Promise.all([
+          testsAdminApi.listExecutions({
+            status: (params.status as TestExecutionStatus | "") || undefined,
+            campaignId: params.campaignId || undefined,
+            testerId: params.testerId || undefined,
+            reviewed:
+              params.reviewed === "" || params.reviewed === undefined
+                ? undefined
+                : params.reviewed === "true",
+          }),
+          testsAdminApi.listTesters({ limit: 100 }),
+        ]);
         if (!cancelled) {
           setIds(response.items.map((item) => item.id));
+          setTesters(testersResponse.items ?? []);
           setErrorMessage(null);
         }
       } catch (error) {
@@ -77,8 +79,6 @@ function AdminTestExecutionScreen() {
         title={t("testsAdmin.executions.detail.subtitle")}
         subtitle={t("testsAdmin.executions.detail.swipeHint")}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         topInset={insets.top}
         testID="admin-test-execution-detail-header"
       />
@@ -96,7 +96,11 @@ function AdminTestExecutionScreen() {
           ids={ids}
           initialIndex={initialIndex}
           renderPage={(id, isActive) => (
-            <AdminExecutionDetailCard executionId={id} isActive={isActive} />
+            <AdminExecutionDetailCard
+              executionId={id}
+              isActive={isActive}
+              testers={testers}
+            />
           )}
         />
       )}

@@ -23,7 +23,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import { accountApi } from "../../api/account.api";
 import { ModuleHeader } from "../navigation/ModuleHeader";
-import { AppShell, useDrawer } from "../navigation/AppShell";
+import { AppShell } from "../navigation/AppShell";
+import { useHeaderScroll } from "../navigation/header-scroll-context";
 import { SecureTextField } from "../SecureTextField";
 import { colors } from "../../theme";
 import {
@@ -1462,7 +1463,7 @@ function SecurityFormCard({
 
 function AccountScreenContent() {
   const router = useRouter();
-  const { openDrawer } = useDrawer();
+  const { onScroll } = useHeaderScroll();
   const setUser = useAuthStore((state) => state.setUser);
   const showError = useSuccessToastStore((state) => state.showError);
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
@@ -1646,8 +1647,6 @@ function AccountScreenContent() {
           title="Mon compte"
           subtitle="Chargement du profil"
           onBack={() => router.back()}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
           backgroundColor={colors.primaryDark}
         />
         <TopTabs tab={tab} onChange={setTab} />
@@ -1666,8 +1665,6 @@ function AccountScreenContent() {
             : "Mon espace personnel"
         }
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         backgroundColor={colors.primaryDark}
         testID="account-header"
       />
@@ -1676,6 +1673,8 @@ function AccountScreenContent() {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

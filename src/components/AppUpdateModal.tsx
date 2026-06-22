@@ -170,10 +170,10 @@ export function AppUpdateModal({
           >
             {mandatory ? (
               <Text style={styles.message} testID="app-update-message">
-                {"Cette version n'est plus compatible. Pour continuer, vous devez :\n\n" +
-                  "1. Désinstaller l'application Scolive\n" +
-                  "2. Aller sur scolive.lisaweb.fr\n" +
-                  "3. Télécharger et installer la nouvelle version"}
+                Cette version n&apos;est plus compatible. Téléchargez et
+                installez la nouvelle version pour continuer à utiliser Scolive.
+                En cas d&apos;échec de l&apos;installation, désinstallez
+                d&apos;abord l&apos;application puis recommencez.
               </Text>
             ) : (
               <Text style={styles.message} testID="app-update-message">
@@ -210,17 +210,17 @@ export function AppUpdateModal({
               testID="app-update-download"
               accessibilityRole="button"
               accessibilityLabel={
-                mandatory ? "Aller sur le site" : "Télécharger"
+                mandatory ? "Télécharger et installer" : "Télécharger"
               }
             >
               <Ionicons
-                name={mandatory ? "globe-outline" : "download-outline"}
+                name="download-outline"
                 size={17}
                 color={colors.white}
                 style={styles.downloadBtnIcon}
               />
               <Text style={styles.downloadLabel}>
-                {mandatory ? "Aller sur le site" : "Télécharger"}
+                {mandatory ? "Télécharger et installer" : "Télécharger"}
               </Text>
             </TouchableOpacity>
           </View>

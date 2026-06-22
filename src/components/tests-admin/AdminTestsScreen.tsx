@@ -8,7 +8,6 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useDrawer } from "../navigation/AppShell";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { colors } from "../../theme";
@@ -35,7 +34,6 @@ export function AdminTestsScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<TabKey>("summary");
   const [synthesis, setSynthesis] = useState<AdminTestsSynthesis | null>(null);
@@ -90,8 +88,6 @@ export function AdminTestsScreen() {
         title={t("testsAdmin.title")}
         subtitle={t("testsAdmin.subtitle")}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         topInset={insets.top}
         testID="admin-tests-header"
       />

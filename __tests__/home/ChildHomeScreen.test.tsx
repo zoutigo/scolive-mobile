@@ -736,16 +736,6 @@ describe("ChildHomeScreen — navigation", () => {
     fireEvent.press(screen.getByTestId("child-home-back"));
     expect(mockPush).toHaveBeenCalledWith("/");
   });
-
-  it("icône menu → ouvre le drawer", async () => {
-    render(<ChildHomeScreen />);
-    await waitFor(
-      () => expect(screen.getByTestId("child-home-menu")).toBeTruthy(),
-      WAIT_OPTS,
-    );
-    fireEvent.press(screen.getByTestId("child-home-menu"));
-    expect(mockOpenDrawer).toHaveBeenCalledTimes(1);
-  });
 });
 
 // ── Chargement et erreurs ─────────────────────────────────────────────────────

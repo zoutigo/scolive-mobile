@@ -42,6 +42,15 @@ describe("testsAdminApi", () => {
     );
   });
 
+  it("fetches a single test case by id without a schoolSlug in the path", async () => {
+    await testsAdminApi.getCase("case-1");
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/admin/tests/cases/case-1",
+      {},
+      true,
+    );
+  });
+
   it("recycles a test case via POST", async () => {
     await testsAdminApi.recycleCase("case-1");
     expect(apiFetch).toHaveBeenCalledWith(

@@ -35,6 +35,11 @@ jest.mock("../../src/components/navigation/drawer-context", () => ({
   useDrawer: jest.fn(),
 }));
 
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ replace: jest.fn() }),
+  usePathname: () => "/feed",
+}));
+
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<
   typeof useAuthStore
 >;
@@ -132,20 +137,11 @@ describe("ModuleHeader — sous-titre warmAccent et centré", () => {
 // ── ModuleHeader — centrage robuste avec et sans bouton droit ─────────────────
 
 describe("ModuleHeader — centrage robuste", () => {
-  it("le headerText a flex:1 (équilibre les deux boutons)", () => {
+  it("le titre reste centré avec le bouton retour et le spacer droit", () => {
     render(
-      <ModuleHeader
-        title="Accueil"
-        onBack={jest.fn()}
-        rightIcon="menu-outline"
-        onRightPress={jest.fn()}
-        backTestID="mh-back"
-        rightTestID="mh-menu"
-      />,
+      <ModuleHeader title="Accueil" onBack={jest.fn()} backTestID="mh-back" />,
     );
-    // Vérifie que back et menu sont tous deux présents et le titre est centré
     expect(screen.getByTestId("mh-back")).toBeTruthy();
-    expect(screen.getByTestId("mh-menu")).toBeTruthy();
     const flat = StyleSheet.flatten(
       screen.getByTestId("module-header-title").props.style,
     );
@@ -176,7 +172,7 @@ describe("AppHeader — titre uppercase", () => {
 
   it("affiche le titre en majuscules pour un slug d'école", () => {
     renderAppHeader(teacher, "college-vogt");
-    const text = screen.getByTestId("header-title").props.children;
+    const text = screen.getByTestId("app-header-title").props.children;
     expect(text).toBe("COLLEGE VOGT");
     expect(text).toBe(text.toUpperCase());
   });
@@ -189,7 +185,7 @@ describe("AppHeader — titre uppercase", () => {
       activeRole: "SUPER_ADMIN",
     };
     renderAppHeader(platformUser, null);
-    const text = screen.getByTestId("header-title").props.children;
+    const text = screen.getByTestId("app-header-title").props.children;
     expect(text).toBe("SCOLIVE");
   });
 

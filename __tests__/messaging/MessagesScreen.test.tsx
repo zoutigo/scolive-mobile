@@ -142,15 +142,9 @@ describe("Rendu initial", () => {
     expect(screen.getByTestId("compose-fab")).toBeTruthy();
   });
 
-  it("affiche le bouton menu en contexte enfant et ouvre le drawer", () => {
+  it("n'affiche plus de bouton menu dans le header par défaut (déplacé vers la bottom tab bar)", () => {
     render(<MessagesScreen />);
-
-    expect(screen.getByTestId("messages-menu-btn")).toBeTruthy();
-    expect(screen.getByTestId("drawer-root").props.pointerEvents).toBe("none");
-
-    fireEvent.press(screen.getByTestId("messages-menu-btn"));
-
-    expect(screen.getByTestId("drawer-root").props.pointerEvents).toBe("auto");
+    expect(screen.queryByTestId("messages-menu-btn")).toBeNull();
   });
 });
 
