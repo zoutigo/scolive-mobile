@@ -430,7 +430,10 @@ export function TeacherClassDisciplineScreen({
           />
 
           <TouchableOpacity
-            style={[styles.fab, { bottom: insets.bottom + 18 + BOTTOM_TAB_BAR_HEIGHT }]}
+            style={[
+              styles.fab,
+              { bottom: insets.bottom + 18 + BOTTOM_TAB_BAR_HEIGHT },
+            ]}
             onPress={() => {
               setEditingEvent(null);
               setFormError(null);

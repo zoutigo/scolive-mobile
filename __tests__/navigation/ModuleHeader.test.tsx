@@ -8,7 +8,9 @@ jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
 describe("ModuleHeader", () => {
   it("n'affiche plus de bouton menu à droite (déplacé vers la bottom tab bar)", () => {
-    render(<ModuleHeader title="Titre" subtitle="Sous-titre" onBack={jest.fn()} />);
+    render(
+      <ModuleHeader title="Titre" subtitle="Sous-titre" onBack={jest.fn()} />,
+    );
     expect(screen.queryByTestId("module-header-right")).toBeNull();
   });
 

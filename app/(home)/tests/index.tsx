@@ -10,9 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  AppShell,
-} from "../../../src/components/navigation/AppShell";
+import { AppShell } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import { UnderlineTabs } from "../../../src/components/navigation/UnderlineTabs";
 import { TestsSummaryTab } from "../../../src/components/tests/TestsSummaryTab";

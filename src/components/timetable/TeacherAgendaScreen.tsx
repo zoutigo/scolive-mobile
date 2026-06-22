@@ -1568,7 +1568,10 @@ function TimetablePane({
       {/* FAB — création d'un nouveau créneau */}
       {canCreate && !editingOccurrence && !creating ? (
         <TouchableOpacity
-          style={[styles.fab, { bottom: insetBottom + 20 + BOTTOM_TAB_BAR_HEIGHT }]}
+          style={[
+            styles.fab,
+            { bottom: insetBottom + 20 + BOTTOM_TAB_BAR_HEIGHT },
+          ]}
           onPress={() => setCreating(true)}
           testID={`${testIDPrefix}-fab-create`}
         >

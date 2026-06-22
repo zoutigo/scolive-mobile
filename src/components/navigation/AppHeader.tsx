@@ -1,5 +1,11 @@
 import React, { useMemo, useState } from "react";
-import { Animated, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import {
+  Animated,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -52,7 +58,9 @@ export function AppHeader() {
   };
 
   return (
-    <Animated.View style={{ transform: [{ translateY: Animated.multiply(translateY, -1) }] }}>
+    <Animated.View
+      style={{ transform: [{ translateY: Animated.multiply(translateY, -1) }] }}
+    >
       <SafeAreaView edges={["top"]} style={styles.safeArea}>
         <View style={styles.bar} testID="app-header">
           {/* Blobs décoratifs */}

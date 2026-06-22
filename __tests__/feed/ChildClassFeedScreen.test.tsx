@@ -336,5 +336,4 @@ describe("ChildClassFeedScreen", () => {
       params: { childId: "child-1" },
     });
   });
-
 });

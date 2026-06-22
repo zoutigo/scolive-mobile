@@ -1,5 +1,12 @@
 import React from "react";
-import { Animated, Platform, StatusBar, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { colors } from "../../theme";
 import { HeaderBackButton } from "./HeaderBackButton";
 import { useHeaderScroll, HEADER_HIDE_DISTANCE } from "./header-scroll-context";

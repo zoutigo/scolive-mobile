@@ -107,7 +107,10 @@ export function AdminClassDetailScreen() {
       </View>
 
       <TouchableOpacity
-        style={[styles.fab, { bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT }]}
+        style={[
+          styles.fab,
+          { bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT },
+        ]}
         onPress={() => setModalVisible(true)}
         testID="admin-class-detail-fab"
         activeOpacity={0.85}

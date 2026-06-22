@@ -1,5 +1,9 @@
 import { createContext, useContext, useRef } from "react";
-import { Animated, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
+import {
+  Animated,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+} from "react-native";
 
 export const HEADER_HIDE_DISTANCE = 90;
 
@@ -28,36 +32,34 @@ export function useCreateHeaderScroll(): HeaderScrollContextValue {
   const translateY = useRef(new Animated.Value(0)).current;
   const lastOffset = useRef(0);
 
-  const onScroll = useRef(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offsetY = event.nativeEvent.contentOffset.y;
-      const delta = offsetY - lastOffset.current;
-      lastOffset.current = offsetY;
+  const onScroll = useRef((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    const delta = offsetY - lastOffset.current;
+    lastOffset.current = offsetY;
 
-      if (offsetY <= 0) {
-        Animated.timing(translateY, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: true,
-        }).start();
-        return;
-      }
+    if (offsetY <= 0) {
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+      return;
+    }
 
-      if (delta > 0) {
-        Animated.timing(translateY, {
-          toValue: HEADER_HIDE_DISTANCE,
-          duration: 150,
-          useNativeDriver: true,
-        }).start();
-      } else if (delta < 0) {
-        Animated.timing(translateY, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: true,
-        }).start();
-      }
-    },
-  ).current;
+    if (delta > 0) {
+      Animated.timing(translateY, {
+        toValue: HEADER_HIDE_DISTANCE,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+    } else if (delta < 0) {
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+    }
+  }).current;
 
   return { translateY, onScroll };
 }

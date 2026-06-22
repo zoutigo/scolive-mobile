@@ -2,9 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  AppShell,
-} from "../../../../src/components/navigation/AppShell";
+import { AppShell } from "../../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../../src/components/navigation/ModuleHeader";
 import { ExecutionsPager } from "../../../../src/components/tests/ExecutionsPager";
 import { ExecutionDetailCard } from "../../../../src/components/tests/ExecutionDetailCard";

@@ -736,7 +736,6 @@ describe("ChildHomeScreen — navigation", () => {
     fireEvent.press(screen.getByTestId("child-home-back"));
     expect(mockPush).toHaveBeenCalledWith("/");
   });
-
 });
 
 // ── Chargement et erreurs ─────────────────────────────────────────────────────

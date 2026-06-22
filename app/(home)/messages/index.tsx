@@ -254,7 +254,10 @@ function MessagesScreenContent() {
 
       {/* FAB Compose */}
       <TouchableOpacity
-        style={[styles.fab, { bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT }]}
+        style={[
+          styles.fab,
+          { bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT },
+        ]}
         onPress={handleCompose}
         activeOpacity={0.85}
         testID="compose-fab"

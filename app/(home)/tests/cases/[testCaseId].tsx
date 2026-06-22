@@ -14,9 +14,7 @@ import { Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  AppShell,
-} from "../../../../src/components/navigation/AppShell";
+import { AppShell } from "../../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../../src/components/navigation/ModuleHeader";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../../../../src/components/navigation/BottomTabBar";
 import { TestExecutionFormSheet } from "../../../../src/components/tests/TestExecutionFormSheet";

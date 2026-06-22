@@ -19,9 +19,7 @@ import { useMessagingStore } from "../../../src/store/messaging.store";
 import { useAuthStore } from "../../../src/store/auth.store";
 import { useSuccessToastStore } from "../../../src/store/success-toast.store";
 import { ConfirmDialog } from "../../../src/components/ConfirmDialog";
-import {
-  AppShell,
-} from "../../../src/components/navigation/AppShell";
+import { AppShell } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import type {

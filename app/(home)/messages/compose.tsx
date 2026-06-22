@@ -36,9 +36,7 @@ import { useMessagingStore } from "../../../src/store/messaging.store";
 import { useSuccessToastStore } from "../../../src/store/success-toast.store";
 import { RichTextToolbar } from "../../../src/components/editor/RichTextToolbar";
 import { RecipientPickerModal } from "../../../src/components/messaging/RecipientPickerModal";
-import {
-  AppShell,
-} from "../../../src/components/navigation/AppShell";
+import { AppShell } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import {
   useTranslation,

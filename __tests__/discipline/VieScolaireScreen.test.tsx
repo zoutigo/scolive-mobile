@@ -264,5 +264,4 @@ describe("VieScolaireScreen", () => {
       expect(api.list).toHaveBeenCalledTimes(2);
     });
   });
-
 });

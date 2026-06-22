@@ -605,7 +605,10 @@ export function ClassNotesManagerScreen({
           )}
 
           <TouchableOpacity
-            style={[styles.fab, { bottom: insets.bottom + 16 + BOTTOM_TAB_BAR_HEIGHT }]}
+            style={[
+              styles.fab,
+              { bottom: insets.bottom + 16 + BOTTOM_TAB_BAR_HEIGHT },
+            ]}
             onPress={() => {
               resetEvaluationForm();
               setEvaluationView("form");

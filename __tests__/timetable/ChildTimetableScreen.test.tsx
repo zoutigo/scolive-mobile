@@ -221,7 +221,6 @@ describe("ChildTimetableScreen", () => {
     });
   });
 
-
   it("permet de basculer en vue semaine et de consulter le detail d'un creneau", async () => {
     render(<ChildTimetableScreen />);
 

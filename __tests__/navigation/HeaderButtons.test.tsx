@@ -324,9 +324,7 @@ describe("Intégration — ModuleHeader utilise les deux composants", () => {
 
   it("le bouton retour fonctionne seul, sans bouton menu", () => {
     const onBack = jest.fn();
-    render(
-      <ModuleHeader title="Test" onBack={onBack} backTestID="mh-back" />,
-    );
+    render(<ModuleHeader title="Test" onBack={onBack} backTestID="mh-back" />);
     fireEvent.press(screen.getByTestId("mh-back"));
     expect(onBack).toHaveBeenCalledTimes(1);
   });

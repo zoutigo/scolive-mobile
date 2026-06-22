@@ -92,9 +92,9 @@ describe("Rendu", () => {
     expect(screen.getByTestId("bottom-tab-account-label")).toHaveTextContent(
       "Mon compte",
     );
-    expect(
-      screen.getByTestId("bottom-tab-assistance-label"),
-    ).toHaveTextContent("Assistance");
+    expect(screen.getByTestId("bottom-tab-assistance-label")).toHaveTextContent(
+      "Assistance",
+    );
     expect(screen.getByTestId("bottom-tab-menu-label")).toHaveTextContent(
       "Menu",
     );
@@ -151,8 +151,7 @@ describe("État actif selon la route", () => {
     setUser({ isTester: true });
     render(<BottomTabBar />);
     expect(
-      screen.getByTestId("bottom-tab-tests").props.accessibilityState
-        .selected,
+      screen.getByTestId("bottom-tab-tests").props.accessibilityState.selected,
     ).toBe(true);
     expect(
       screen.getByTestId("bottom-tab-menu").props.accessibilityState.selected,
