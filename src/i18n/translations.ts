@@ -1840,6 +1840,22 @@ export const translations: Record<Locale, Record<string, string>> = {
     "startup.error.message":
       "Nous n'avons pas pu vérifier que votre application est à jour. Vérifiez votre connexion puis réessayez.",
     "startup.error.retry": "Réessayer",
+
+    // Bottom tab bar
+    "nav.tabs.home": "Accueil",
+    "nav.tabs.account": "Mon compte",
+    "nav.tabs.assistance": "Assistance",
+    "nav.tabs.menu": "Menu",
+    "nav.tabs.tests": "Tests",
+
+    // Home header (AppHeader, variante accueil)
+    "header.home.loginAction": "Se connecter",
+    "header.home.logoutAction": "Se déconnecter",
+    "header.home.logoutConfirmTitle": "Se déconnecter ?",
+    "header.home.logoutConfirmMessage":
+      "Vous serez redirigé vers l'écran de connexion. Vos données locales seront effacées.",
+    "header.home.logoutConfirmConfirm": "Se déconnecter",
+    "header.home.logoutConfirmCancel": "Annuler",
   },
   en: {
     "settings.language.title": "Language of this device",
@@ -3604,5 +3620,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     "startup.error.message":
       "We couldn't verify that your app is up to date. Check your connection and try again.",
     "startup.error.retry": "Retry",
+
+    // Bottom tab bar
+    "nav.tabs.home": "Home",
+    "nav.tabs.account": "My account",
+    "nav.tabs.assistance": "Support",
+    "nav.tabs.menu": "Menu",
+    "nav.tabs.tests": "Tests",
+
+    // Home header (AppHeader, home variant)
+    "header.home.loginAction": "Sign in",
+    "header.home.logoutAction": "Sign out",
+    "header.home.logoutConfirmTitle": "Sign out?",
+    "header.home.logoutConfirmMessage":
+      "You will be redirected to the login screen. Your local data will be cleared.",
+    "header.home.logoutConfirmConfirm": "Sign out",
+    "header.home.logoutConfirmCancel": "Cancel",
   },
 };

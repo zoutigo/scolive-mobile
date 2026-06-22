@@ -12,7 +12,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useDrawer } from "../navigation/AppShell";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
@@ -35,7 +34,6 @@ export function AdminCampaignDetailScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const { campaignId } = useLocalSearchParams<{ campaignId: string }>();
 
   const [campaign, setCampaign] = useState<AdminCampaignDetail | null>(null);
@@ -257,8 +255,6 @@ export function AdminCampaignDetailScreen() {
         title={campaign?.title ?? t("testsAdmin.title")}
         subtitle={t("testsAdmin.detail.back")}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         topInset={insets.top}
         testID="admin-campaign-detail-header"
       />

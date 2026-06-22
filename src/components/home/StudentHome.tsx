@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
+import { useHeaderScroll } from "../navigation/header-scroll-context";
 import type { AuthUser } from "../../types/auth.types";
 
 interface StudentHomeProps {
@@ -32,6 +33,7 @@ const MONTH_LABELS = [
 ];
 
 export function StudentHome({ user, schoolSlug }: StudentHomeProps) {
+  const { onScroll } = useHeaderScroll();
   const now = new Date();
   const dayLabel = DAY_LABELS[now.getDay()];
   const dateStr = `${dayLabel} ${now.getDate()} ${MONTH_LABELS[now.getMonth()]}`;
@@ -45,6 +47,8 @@ export function StudentHome({ user, schoolSlug }: StudentHomeProps) {
       style={styles.scroll}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
     >
       {/* Banner */}
       <View style={styles.banner}>

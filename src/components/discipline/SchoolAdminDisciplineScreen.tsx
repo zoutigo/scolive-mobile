@@ -21,7 +21,7 @@ import { notesApi } from "../../api/notes.api";
 import { disciplineApi } from "../../api/discipline.api";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { ModuleHeader } from "../navigation/ModuleHeader";
-import { useDrawer } from "../navigation/drawer-context";
+import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import {
   EmptyState,
@@ -90,7 +90,6 @@ export function SchoolAdminDisciplineScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { openDrawer } = useDrawer();
   const { schoolSlug, user } = useAuthStore();
   const {
     eventsMap,
@@ -564,13 +563,10 @@ export function SchoolAdminDisciplineScreen() {
           title={t("discipline.header.discipline")}
           subtitle={subtitle}
           onBack={() => router.back()}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
           testID="admin-discipline-header"
           backTestID="admin-discipline-back"
           titleTestID="admin-discipline-title"
           subtitleTestID="admin-discipline-subtitle"
-          rightTestID="admin-discipline-menu"
           topInset={insets.top}
         />
       </View>
@@ -722,7 +718,7 @@ export function SchoolAdminDisciplineScreen() {
                   />
 
                   <TouchableOpacity
-                    style={[styles.fab, { bottom: insets.bottom + 18 }]}
+                    style={[styles.fab, { bottom: insets.bottom + 18 + BOTTOM_TAB_BAR_HEIGHT }]}
                     onPress={() => {
                       setEditingEvent(null);
                       setFormError(null);

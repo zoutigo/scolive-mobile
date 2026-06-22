@@ -4,7 +4,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   AppShell,
-  useDrawer,
 } from "../../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../../src/components/navigation/ModuleHeader";
 import { ExecutionsPager } from "../../../../src/components/tests/ExecutionsPager";
@@ -27,7 +26,6 @@ function AdminTestExecutionScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const params = useLocalSearchParams<{
     executionId: string;
     status?: string;
@@ -83,8 +81,6 @@ function AdminTestExecutionScreen() {
         title={t("testsAdmin.executions.detail.subtitle")}
         subtitle={t("testsAdmin.executions.detail.swipeHint")}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         topInset={insets.top}
         testID="admin-test-execution-detail-header"
       />

@@ -109,13 +109,12 @@ describe("NotesClassesScreen", () => {
     } as never);
   });
 
-  it("affiche le ModuleHeader avec back, menu et titre", async () => {
+  it("affiche le ModuleHeader avec back et titre (menu déplacé vers la bottom tab bar)", async () => {
     render(<NotesClassesScreen />);
     await waitFor(() => expect(screen.getByText("6e A")).toBeTruthy());
 
     expect(screen.getByTestId("notes-classes-header")).toBeTruthy();
     expect(screen.getByTestId("notes-classes-back")).toBeTruthy();
-    expect(screen.getByTestId("notes-classes-menu-btn")).toBeTruthy();
     expect(screen.getByTestId("module-header-title")).toBeTruthy();
     expect(screen.getByText("6e A")).toBeTruthy();
     expect(screen.getByText("Mathématiques")).toBeTruthy();

@@ -13,9 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, usePathname } from "expo-router";
 import { colors } from "../../theme";
-import { ConfirmDialog } from "../ConfirmDialog";
 import { useFamilyStore } from "../../store/family.store";
-import { useTranslation } from "../../i18n/useTranslation";
 import type {
   NavItem,
   ParentChildSection,
@@ -42,8 +40,6 @@ interface AppDrawerProps {
   userFullName: string;
   userInitials: string;
   userRole: string;
-  isTester?: boolean;
-  onLogout: () => void;
 }
 
 export function AppDrawer({
@@ -59,14 +55,11 @@ export function AppDrawer({
   userFullName,
   userInitials,
   userRole,
-  isTester = false,
-  onLogout,
 }: AppDrawerProps) {
   const insets = useSafeAreaInsets();
   const drawerTop = insets.top + BAR_HEIGHT;
   const drawerBottom = insets.bottom;
 
-  const [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false);
   const { activeChildId, setActiveChild } = useFamilyStore();
   // "general" = section menu principal ouverte
   // "child-{id}" = section enfant ouverte
@@ -79,7 +72,6 @@ export function AppDrawer({
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const router = useRouter();
   const pathname = usePathname();
-  const { t } = useTranslation();
 
   const hasChildren = (childSections?.length ?? 0) > 0;
   const hasTeacherClasses = (teacherClassSections?.length ?? 0) > 0;
@@ -288,20 +280,6 @@ export function AppDrawer({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.navContent}
         >
-          {/* ── Mon compte — toujours en premier, quel que soit le rôle ── */}
-          {(() => {
-            const accountItem = navItems.find((i) => i.key === "account");
-            if (!accountItem) return null;
-            return (
-              <NavRow
-                key="account-top"
-                item={accountItem}
-                active={isItemActive(accountItem)}
-                onPress={handleNavPress}
-              />
-            );
-          })()}
-
           {hasChildren ? (
             <>
               {/* ── Section "Mon espace famille" ── */}
@@ -595,58 +573,6 @@ export function AppDrawer({
           )}
         </ScrollView>
 
-        {isTester ? (
-          <TouchableOpacity
-            style={styles.logoutRow}
-            onPress={() => {
-              onClose();
-              setTimeout(() => router.push("/(home)/tests"), 120);
-            }}
-            activeOpacity={0.7}
-            testID="drawer-tests-btn"
-          >
-            <Ionicons
-              name="clipboard-outline"
-              size={20}
-              color="rgba(255,255,255,0.55)"
-            />
-            <Text style={styles.logoutLabel}>{t("tests.title")}</Text>
-          </TouchableOpacity>
-        ) : null}
-
-        {/* Lien assistance — juste au-dessus de la déconnexion */}
-        <TouchableOpacity
-          style={styles.logoutRow}
-          onPress={() => {
-            onClose();
-            setTimeout(() => router.push("/(home)/tickets"), 120);
-          }}
-          activeOpacity={0.7}
-          testID="drawer-tickets-btn"
-        >
-          <Ionicons
-            name="help-circle-outline"
-            size={20}
-            color="rgba(255,255,255,0.55)"
-          />
-          <Text style={styles.logoutLabel}>Assistance</Text>
-        </TouchableOpacity>
-
-        {/* Bouton de déconnexion */}
-        <TouchableOpacity
-          style={styles.logoutRow}
-          onPress={() => setConfirmLogoutVisible(true)}
-          activeOpacity={0.7}
-          testID="drawer-logout-btn"
-        >
-          <Ionicons
-            name="log-out-outline"
-            size={20}
-            color="rgba(255,255,255,0.55)"
-          />
-          <Text style={styles.logoutLabel}>Se déconnecter</Text>
-        </TouchableOpacity>
-
         {/* Version de l'application */}
         <View style={styles.versionRow} testID="drawer-app-version">
           <Text style={styles.versionText}>
@@ -654,23 +580,6 @@ export function AppDrawer({
           </Text>
         </View>
       </Animated.View>
-
-      {/* Dialog confirmation déconnexion */}
-      <ConfirmDialog
-        visible={confirmLogoutVisible}
-        variant="danger"
-        icon="log-out-outline"
-        title="Se déconnecter ?"
-        message="Vous serez redirigé vers l'écran de connexion. Vos données locales seront effacées."
-        confirmLabel="Se déconnecter"
-        cancelLabel="Annuler"
-        onConfirm={() => {
-          setConfirmLogoutVisible(false);
-          onClose();
-          onLogout();
-        }}
-        onCancel={() => setConfirmLogoutVisible(false)}
-      />
 
       {/* Zone de clic à gauche du drawer */}
       {isOpen && (
@@ -945,18 +854,6 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.92)",
     fontWeight: "600",
   },
-
-  // ── Déconnexion ─────────────────────────────────────────────────────────────
-  logoutRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 18,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.1)",
-    gap: 14,
-  },
-  logoutLabel: { color: "rgba(255,255,255,0.55)", fontSize: 15 },
 
   // ── Version ──────────────────────────────────────────────────────────────────
   versionRow: {

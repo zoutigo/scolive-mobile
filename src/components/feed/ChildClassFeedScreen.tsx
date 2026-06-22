@@ -10,7 +10,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StyleSheet, View } from "react-native";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { buildChildHomeTarget } from "../navigation/nav-config";
-import { useDrawer } from "../navigation/drawer-context";
 import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { feedApi } from "../../api/feed.api";
@@ -49,7 +48,6 @@ export function ChildClassFeedScreen() {
   tRef.current = t;
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const params = useLocalSearchParams<{ childId?: string }>();
   const childId = typeof params.childId === "string" ? params.childId : "";
   const { schoolSlug, user } = useAuthStore();
@@ -148,13 +146,10 @@ export function ChildClassFeedScreen() {
             title={t("feed.classLife.title")}
             subtitle={subtitle}
             onBack={() => router.push(buildChildHomeTarget(childId) as never)}
-            rightIcon="menu-outline"
-            onRightPress={openDrawer}
             testID="child-class-feed-header"
             backTestID="child-class-feed-back"
             titleTestID="child-class-feed-header-title"
             subtitleTestID="child-class-feed-header-subtitle"
-            rightTestID="child-class-feed-menu-btn"
             topInset={insets.top}
           />
         </View>

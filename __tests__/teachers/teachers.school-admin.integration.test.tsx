@@ -6,8 +6,8 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
+import { TouchableOpacity } from "react-native";
 import { AppShell, useDrawer } from "../../src/components/navigation/AppShell";
-import { ModuleHeader } from "../../src/components/navigation/ModuleHeader";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useFamilyStore } from "../../src/store/family.store";
 import { useTeacherClassNavStore } from "../../src/store/teacher-class-nav.store";
@@ -29,13 +29,9 @@ function SchoolAdminTeachersHarness() {
   const { openDrawer } = useDrawer();
 
   return (
-    <ModuleHeader
-      title="Enseignants"
-      subtitle="Collège Vogt"
-      onBack={jest.fn()}
-      rightIcon="menu-outline"
-      onRightPress={openDrawer}
-      rightTestID="school-admin-teachers-menu-btn"
+    <TouchableOpacity
+      testID="school-admin-teachers-menu-btn"
+      onPress={openDrawer}
     />
   );
 }

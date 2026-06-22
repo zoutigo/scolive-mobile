@@ -18,7 +18,6 @@ import { useAuthStore } from "../../store/auth.store";
 import { useNotesStore } from "../../store/notes.store";
 import { buildTeacherSubtitle } from "../navigation/nav-config";
 import { ModuleHeader } from "../navigation/ModuleHeader";
-import { useDrawer } from "../navigation/AppShell";
 import {
   EmptyState,
   ErrorBanner,
@@ -31,7 +30,6 @@ export function NotesClassesScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const { schoolSlug, user } = useAuthStore();
   const {
     classOptions,
@@ -78,11 +76,8 @@ export function NotesClassesScreen() {
         title={t("notes.classes.title")}
         subtitle={subtitle}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         testID="notes-classes-header"
         backTestID="notes-classes-back"
-        rightTestID="notes-classes-menu-btn"
       />
       <ScrollView
         style={styles.root}

@@ -156,7 +156,6 @@ describe("SchoolAdminDisciplineScreen — rendu initial", () => {
     expect(screen.getByTestId("admin-discipline-header")).toBeOnTheScreen();
     expect(screen.getByTestId("admin-discipline-title")).toBeOnTheScreen();
     expect(screen.getByTestId("admin-discipline-back")).toBeOnTheScreen();
-    expect(screen.getByTestId("admin-discipline-menu")).toBeOnTheScreen();
 
     await waitFor(() => {
       expect(screen.getByTestId("admin-discipline-subtitle")).toHaveTextContent(

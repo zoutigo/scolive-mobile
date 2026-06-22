@@ -1,19 +1,23 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { View, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { useTeacherClassNavStore } from "../../store/teacher-class-nav.store";
 import { colors } from "../../theme";
 import { AppHeader } from "./AppHeader";
 import { AppDrawer } from "./AppDrawer";
+import { BottomTabBar, BOTTOM_TAB_BAR_HEIGHT } from "./BottomTabBar";
 import {
   getRoleLabel,
   getViewType,
   buildDrawerNavigationConfig,
 } from "./nav-config";
 import { DrawerContext } from "./drawer-context";
+import { HeaderScrollContext, useCreateHeaderScroll } from "./header-scroll-context";
 
 export { useDrawer } from "./drawer-context";
+export { useHeaderScroll } from "./header-scroll-context";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -21,9 +25,11 @@ interface AppShellProps {
 }
 
 export function AppShell({ children, showHeader = true }: AppShellProps) {
+  const insets = useSafeAreaInsets();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [pendingSection, setPendingSection] = useState<string | null>(null);
-  const { user, schoolSlug, logout } = useAuthStore();
+  const { user, schoolSlug } = useAuthStore();
+  const headerScroll = useCreateHeaderScroll();
   const {
     children: familyChildren,
     loadChildren,
@@ -82,30 +88,38 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
     <DrawerContext.Provider
       value={{ openDrawer, openDrawerForClass, closeDrawer, isDrawerOpen }}
     >
-      <View style={styles.container}>
-        {showHeader ? <AppHeader /> : null}
-        <View style={styles.content}>{children}</View>
-        <AppDrawer
-          isOpen={isDrawerOpen}
-          onClose={closeDrawer}
-          navItems={navItems}
-          childSections={childSections}
-          teacherClassSections={teacherClassSections}
-          isTeacherClassNavEnabled={viewType === "teacher"}
-          isLoadingTeacherClassSections={
-            viewType === "teacher" && isLoadingTeacherClassOptions
-          }
-          teacherClassSectionsError={
-            viewType === "teacher" ? teacherClassNavError : null
-          }
-          forcedSection={pendingSection}
-          userFullName={userFullName}
-          userInitials={userInitials}
-          userRole={userRole}
-          isTester={Boolean(user?.isTester)}
-          onLogout={logout}
-        />
-      </View>
+      <HeaderScrollContext.Provider value={headerScroll}>
+        <View style={styles.container}>
+          {showHeader ? <AppHeader /> : null}
+          <View
+            style={[
+              styles.content,
+              { paddingBottom: BOTTOM_TAB_BAR_HEIGHT + insets.bottom },
+            ]}
+          >
+            {children}
+          </View>
+          <BottomTabBar />
+          <AppDrawer
+            isOpen={isDrawerOpen}
+            onClose={closeDrawer}
+            navItems={navItems}
+            childSections={childSections}
+            teacherClassSections={teacherClassSections}
+            isTeacherClassNavEnabled={viewType === "teacher"}
+            isLoadingTeacherClassSections={
+              viewType === "teacher" && isLoadingTeacherClassOptions
+            }
+            teacherClassSectionsError={
+              viewType === "teacher" ? teacherClassNavError : null
+            }
+            forcedSection={pendingSection}
+            userFullName={userFullName}
+            userInitials={userInitials}
+            userRole={userRole}
+          />
+        </View>
+      </HeaderScrollContext.Provider>
     </DrawerContext.Provider>
   );
 }

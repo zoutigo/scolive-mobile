@@ -20,7 +20,6 @@ import { ReadonlyDisciplineList } from "../../../src/components/discipline/Reado
 import { DisciplineSummaryOverview } from "../../../src/components/discipline/DisciplineSummaryOverview";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import { buildChildHomeTarget } from "../../../src/components/navigation/nav-config";
-import { useDrawer } from "../../../src/components/navigation/drawer-context";
 import { AppShell } from "../../../src/components/navigation/AppShell";
 import type {
   DisciplineSummary,
@@ -64,7 +63,6 @@ function VieScolaireScreenContent() {
   const { childId } = useLocalSearchParams<{ childId: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { openDrawer } = useDrawer();
   const { schoolSlug } = useAuthStore();
   const { children, setActiveChild, updateChild } = useFamilyStore();
   const {
@@ -145,13 +143,10 @@ function VieScolaireScreenContent() {
           title={t("discipline.header.vieScolaire")}
           subtitle={subtitle}
           onBack={() => router.push(buildChildHomeTarget(childId) as never)}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
           testID="vie-scolaire-header"
           backTestID="btn-back"
           titleTestID="vie-scolaire-header-title"
           subtitleTestID="vie-scolaire-header-subtitle"
-          rightTestID="btn-menu"
           topInset={insets.top}
         />
       </View>

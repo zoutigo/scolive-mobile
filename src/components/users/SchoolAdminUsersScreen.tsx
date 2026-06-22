@@ -16,7 +16,6 @@ import { useAuthStore } from "../../store/auth.store";
 import { useUsersStore } from "../../store/users.store";
 import { usersApi } from "../../api/users.api";
 import { ModuleHeader } from "../navigation/ModuleHeader";
-import { useDrawer } from "../navigation/drawer-context";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { EmptyState, LoadingBlock } from "../timetable/TimetableCommon";
 import { UserCard } from "./UserCard";
@@ -42,7 +41,6 @@ const separatorStyles = StyleSheet.create({
 export function SchoolAdminUsersScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { openDrawer } = useDrawer();
   const { schoolSlug, user } = useAuthStore();
 
   const {
@@ -205,13 +203,10 @@ export function SchoolAdminUsersScreen() {
           title="Utilisateurs"
           subtitle={user?.schoolName}
           onBack={() => router.back()}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
           testID="users-header"
           backTestID="users-back"
           titleTestID="users-title"
           subtitleTestID="users-subtitle"
-          rightTestID="users-menu"
           topInset={insets.top}
         />
       </View>

@@ -221,11 +221,6 @@ describe("ChildTimetableScreen", () => {
     });
   });
 
-  it("ouvre le menu de navigation enfant via l'icone droite", () => {
-    render(<ChildTimetableScreen />);
-    fireEvent.press(screen.getByTestId("child-timetable-menu"));
-    expect(mockOpenDrawer).toHaveBeenCalledTimes(1);
-  });
 
   it("permet de basculer en vue semaine et de consulter le detail d'un creneau", async () => {
     render(<ChildTimetableScreen />);

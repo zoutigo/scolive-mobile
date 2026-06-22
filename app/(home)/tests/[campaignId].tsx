@@ -13,7 +13,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   AppShell,
-  useDrawer,
 } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import { testsApi } from "../../../src/api/tests.api";
@@ -49,7 +48,6 @@ function TestCampaignScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { campaignId } = useLocalSearchParams<{ campaignId: string }>();
-  const { openDrawer } = useDrawer();
   const { user } = useAuthStore();
   const [campaign, setCampaign] = useState<TestCampaignDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -96,8 +94,6 @@ function TestCampaignScreen() {
             : t("tests.cases.subtitle")
         }
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         topInset={insets.top}
       />
 

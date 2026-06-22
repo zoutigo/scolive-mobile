@@ -1,4 +1,5 @@
 import React from "react";
+import { TouchableOpacity } from "react-native";
 import {
   fireEvent,
   render,
@@ -6,7 +7,6 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { AppShell, useDrawer } from "../../src/components/navigation/AppShell";
-import { ModuleHeader } from "../../src/components/navigation/ModuleHeader";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useTeacherClassNavStore } from "../../src/store/teacher-class-nav.store";
 
@@ -26,14 +26,7 @@ function TeacherModuleHeaderHarness() {
   const { openDrawer } = useDrawer();
 
   return (
-    <ModuleHeader
-      title="Module enseignant"
-      subtitle="6eC"
-      onBack={jest.fn()}
-      rightIcon="menu-outline"
-      onRightPress={openDrawer}
-      rightTestID="teacher-module-menu-btn"
-    />
+    <TouchableOpacity testID="teacher-module-menu-btn" onPress={openDrawer} />
   );
 }
 

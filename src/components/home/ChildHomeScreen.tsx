@@ -13,7 +13,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
 import { ModuleHeader } from "../navigation/ModuleHeader";
-import { useDrawer } from "../navigation/drawer-context";
 import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { notesApi } from "../../api/notes.api";
@@ -128,7 +127,6 @@ export function ChildHomeScreen() {
   const params = useLocalSearchParams<{ childId?: string }>();
   const childId = typeof params.childId === "string" ? params.childId : "";
   const { schoolSlug } = useAuthStore();
-  const { openDrawer } = useDrawer();
   const { children, setActiveChild, updateChild } = useFamilyStore();
   const [state, setState] = useState<DashboardState>(INITIAL_STATE);
   const [isLoading, setIsLoading] = useState(true);
@@ -288,13 +286,10 @@ export function ChildHomeScreen() {
           title="Accueil enfant"
           subtitle={subtitle}
           onBack={() => router.push("/" as never)}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
           testID="child-home-header"
           backTestID="child-home-back"
           titleTestID="child-home-header-title"
           subtitleTestID="child-home-header-subtitle"
-          rightTestID="child-home-menu"
           topInset={insets.top}
         />
 

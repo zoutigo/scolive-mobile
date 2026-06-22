@@ -20,9 +20,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { teachersApi } from "../../api/teachers.api";
 import { ConfirmDialog } from "../ConfirmDialog";
-import { useDrawer } from "../navigation/drawer-context";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { useAuthStore } from "../../store/auth.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
@@ -888,7 +888,6 @@ function AssignmentFormSheet(props: {
 export function TeachersAdminScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { openDrawer } = useDrawer();
   const { schoolSlug, user } = useAuthStore();
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
@@ -1175,12 +1174,9 @@ export function TeachersAdminScreen() {
           title="Enseignants"
           subtitle={getPortalLabel(getViewType(user))}
           onBack={() => router.back()}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
           topInset={insets.top}
           testID="teachers-admin-header"
           backTestID="teachers-admin-back-btn"
-          rightTestID="teachers-admin-menu-btn"
         />
         <View style={styles.lockedWrap}>
           <EmptyState
@@ -1199,12 +1195,9 @@ export function TeachersAdminScreen() {
         title="Enseignants"
         subtitle={subtitle}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         topInset={insets.top}
         testID="teachers-admin-header"
         backTestID="teachers-admin-back-btn"
-        rightTestID="teachers-admin-menu-btn"
       />
 
       <UnderlineTabs
@@ -1841,7 +1834,7 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     right: 20,
-    bottom: 24,
+    bottom: 24 + BOTTOM_TAB_BAR_HEIGHT,
     width: 58,
     height: 58,
     borderRadius: 20,

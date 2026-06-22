@@ -22,8 +22,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { curriculumsApi } from "../../api/curriculums.api";
 import { ConfirmDialog } from "../ConfirmDialog";
-import { useDrawer } from "../navigation/drawer-context";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { useAuthStore } from "../../store/auth.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
@@ -942,7 +942,6 @@ function CurriculumSubjectFormSheet(props: {
 export function CurriculumsAdminScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { openDrawer } = useDrawer();
   const { schoolSlug, user } = useAuthStore();
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
@@ -1361,11 +1360,8 @@ export function CurriculumsAdminScreen() {
           title="Curriculums"
           subtitle={subtitle}
           onBack={() => router.back()}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
           testID="curriculums-header"
           backTestID="curriculums-back-btn"
-          rightTestID="curriculums-menu-btn"
           topInset={insets.top}
         />
         <View style={styles.stateWrap}>
@@ -1386,11 +1382,8 @@ export function CurriculumsAdminScreen() {
           title="Curriculums"
           subtitle={subtitle ?? getPortalLabel(getViewType(user!))}
           onBack={() => router.back()}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
           testID="curriculums-header"
           backTestID="curriculums-back-btn"
-          rightTestID="curriculums-menu-btn"
           topInset={insets.top}
         />
         <View style={styles.stateWrap}>
@@ -1410,11 +1403,8 @@ export function CurriculumsAdminScreen() {
         title="Curriculums"
         subtitle={subtitle}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         testID="curriculums-header"
         backTestID="curriculums-back-btn"
-        rightTestID="curriculums-menu-btn"
         topInset={insets.top}
       />
 
@@ -1934,7 +1924,7 @@ export function CurriculumsAdminScreen() {
               style={[
                 styles.fab,
                 {
-                  bottom: insets.bottom + 20,
+                  bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT,
                   backgroundColor: fabDisabled
                     ? colors.textSecondary
                     : accentForTab(tab),

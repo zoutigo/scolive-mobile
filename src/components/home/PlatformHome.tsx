@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
+import { useHeaderScroll } from "../navigation/header-scroll-context";
 import type { AuthUser } from "../../types/auth.types";
 
 interface PlatformHomeProps {
@@ -53,6 +54,7 @@ function ActionCard({ icon, label, subtitle, color }: ActionCardProps) {
 }
 
 export function PlatformHome({ user }: PlatformHomeProps) {
+  const { onScroll } = useHeaderScroll();
   const platformRole = user.platformRoles[0];
   const roleColors: Record<string, string> = {
     SUPER_ADMIN: colors.notification,
@@ -78,6 +80,8 @@ export function PlatformHome({ user }: PlatformHomeProps) {
       style={styles.scroll}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
     >
       {/* Welcome banner */}
       <View style={styles.banner}>

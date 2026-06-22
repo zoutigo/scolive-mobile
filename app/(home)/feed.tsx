@@ -6,7 +6,6 @@ import { feedApi } from "../../src/api/feed.api";
 import { useTranslation } from "../../src/i18n/useTranslation";
 import { FeedModuleScreen } from "../../src/components/feed/FeedModuleScreen";
 import { AppShell } from "../../src/components/navigation/AppShell";
-import { useDrawer } from "../../src/components/navigation/drawer-context";
 import { ModuleHeader } from "../../src/components/navigation/ModuleHeader";
 import { buildTeacherSubtitle } from "../../src/components/navigation/nav-config";
 import type {
@@ -48,7 +47,6 @@ function FeedScreen() {
   const tRef = useRef(t);
   tRef.current = t;
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const { schoolSlug, user } = useAuthStore();
   const viewerRole = resolveViewerRole(user?.activeRole ?? user?.role ?? null);
   const subtitle = user ? buildTeacherSubtitle(user) : null;
@@ -96,11 +94,8 @@ function FeedScreen() {
           title={t("feed.page.title")}
           subtitle={subtitle}
           onBack={() => router.back()}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
           testID="feed-header"
           backTestID="feed-back-btn"
-          rightTestID="feed-menu-btn"
         />
       )}
       loadPage={loadPage}

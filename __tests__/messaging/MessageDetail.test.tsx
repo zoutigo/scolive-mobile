@@ -110,14 +110,12 @@ describe("Rendu du détail", () => {
     render(<MessageDetailScreen />);
     expect(screen.getByTestId("message-detail-header")).toBeTruthy();
     expect(screen.getByTestId("msg-back-btn")).toBeTruthy();
-    expect(screen.getByTestId("message-detail-menu-btn")).toBeTruthy();
   });
 
   it("affiche l'en-tête du message avec les bons testIDs", async () => {
     await renderDetailAndWait();
     expect(screen.getByTestId("message-detail-header")).toBeTruthy();
     expect(screen.getByTestId("msg-back-btn")).toBeTruthy();
-    expect(screen.getByTestId("message-detail-menu-btn")).toBeTruthy();
   });
 
   it("affiche le sujet dans la carte de résumé", async () => {

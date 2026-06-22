@@ -16,6 +16,7 @@ import { colors } from "../../theme";
 import { feedApi } from "../../api/feed.api";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
+import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { FeedComposerCard } from "./FeedComposerCard";
 import { FeedPostCard } from "./FeedPostCard";
@@ -387,6 +388,7 @@ export function FeedModuleScreen({
     !heroTitle && !heroSubtitle && (showHeroSearch || showHeroComposerActions);
   const listBottomPadding =
     Math.max(insets.bottom, 18) +
+    BOTTOM_TAB_BAR_HEIGHT +
     (canCompose && !showHeroComposerActions ? 90 : 72);
   const showHeroControls = showHeroSearch || showHeroComposerActions;
 

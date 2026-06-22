@@ -22,11 +22,11 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import {
   buildAdminSubtitle,
   buildTeacherSubtitle,
 } from "../navigation/nav-config";
-import { useDrawer } from "../navigation/AppShell";
 import { useAuthStore } from "../../store/auth.store";
 import { useTimetableStore } from "../../store/timetable.store";
 import { timetableApi } from "../../api/timetable.api";
@@ -135,7 +135,6 @@ export function TeacherAgendaScreenInner({
 }: TeacherAgendaScreenProps = {}) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const admin = isSchoolAdmin(user);
@@ -171,11 +170,8 @@ export function TeacherAgendaScreenInner({
           title={headerTitle ?? t("timetable.teacherAgenda.headerTitle")}
           subtitle={subtitle}
           onBack={() => router.back()}
-          rightIcon="menu-outline"
-          onRightPress={openDrawer}
           testID={`${P}-header`}
           backTestID={`${P}-back`}
-          rightTestID={`${P}-menu`}
           topInset={insets.top}
         />
       ) : null}
@@ -1572,7 +1568,7 @@ function TimetablePane({
       {/* FAB — création d'un nouveau créneau */}
       {canCreate && !editingOccurrence && !creating ? (
         <TouchableOpacity
-          style={[styles.fab, { bottom: insetBottom + 20 }]}
+          style={[styles.fab, { bottom: insetBottom + 20 + BOTTOM_TAB_BAR_HEIGHT }]}
           onPress={() => setCreating(true)}
           testID={`${testIDPrefix}-fab-create`}
         >

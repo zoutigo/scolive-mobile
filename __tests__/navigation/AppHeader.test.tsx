@@ -5,7 +5,6 @@ import {
   slugToDisplayName,
 } from "../../src/components/navigation/AppHeader";
 import { useAuthStore } from "../../src/store/auth.store";
-import { useDrawer } from "../../src/components/navigation/drawer-context";
 import type { AuthUser } from "../../src/types/auth.types";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
@@ -18,16 +17,18 @@ jest.mock("../../src/store/auth.store", () => ({
   useAuthStore: jest.fn(),
 }));
 
-jest.mock("../../src/components/navigation/drawer-context", () => ({
-  useDrawer: jest.fn(),
+let mockPathname = "/feed";
+const mockReplace = jest.fn();
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ replace: mockReplace }),
+  usePathname: () => mockPathname,
 }));
 
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<
   typeof useAuthStore
 >;
-const mockUseDrawer = useDrawer as jest.MockedFunction<typeof useDrawer>;
 
-const mockOpenDrawer = jest.fn();
+const mockLogout = jest.fn();
 
 // Utilisateur plateforme
 const platformUser: AuthUser = {
@@ -53,56 +54,17 @@ const teacherUser: AuthUser = {
   activeRole: "TEACHER",
 };
 
-// Utilisateur parent
-const parentUser: AuthUser = {
-  id: "u3",
-  firstName: "Claire",
-  lastName: "Parent",
-  platformRoles: [],
-  memberships: [{ schoolId: "s1", role: "PARENT" }],
-  profileCompleted: true,
-  role: "PARENT",
-  activeRole: "PARENT",
-};
-
-// Utilisateur élève
-const studentUser: AuthUser = {
-  id: "u4",
-  firstName: "Denis",
-  lastName: "Eleve",
-  platformRoles: [],
-  memberships: [{ schoolId: "s1", role: "STUDENT" }],
-  profileCompleted: true,
-  role: "STUDENT",
-  activeRole: "STUDENT",
-};
-
-// Utilisateur SCHOOL_ADMIN
-const schoolAdminUser: AuthUser = {
-  id: "u5",
-  firstName: "Eve",
-  lastName: "Directrice",
-  platformRoles: [],
-  memberships: [{ schoolId: "s1", role: "SCHOOL_ADMIN" }],
-  profileCompleted: true,
-  role: "SCHOOL_ADMIN",
-  activeRole: "SCHOOL_ADMIN",
-};
-
 beforeEach(() => {
   jest.clearAllMocks();
-  mockUseDrawer.mockReturnValue({
-    openDrawer: mockOpenDrawer,
-    closeDrawer: jest.fn(),
-    openDrawerForClass: jest.fn(),
-    isDrawerOpen: false,
-  });
+  mockPathname = "/feed";
 });
 
 function renderHeader(user: AuthUser | null, schoolSlug: string | null = null) {
-  mockUseAuthStore.mockReturnValue({ user, schoolSlug } as ReturnType<
-    typeof useAuthStore
-  >);
+  mockUseAuthStore.mockReturnValue({
+    user,
+    schoolSlug,
+    logout: mockLogout,
+  } as ReturnType<typeof useAuthStore>);
   return render(<AppHeader />);
 }
 
@@ -124,89 +86,122 @@ describe("slugToDisplayName", () => {
   });
 });
 
-// ── Logo ─────────────────────────────────────────────────────────────────────
+// ── Variante par défaut (hors accueil) — titre uniquement ─────────────────────
 
-describe("Logo", () => {
-  it("affiche le logo Scolive (testID header-logo)", () => {
+describe("Variante par défaut (hors accueil)", () => {
+  it("affiche le titre centré, sans logo ni bouton menu", () => {
     renderHeader(platformUser, null);
-    expect(screen.getByTestId("header-logo")).toBeTruthy();
-  });
-});
-
-// ── Titre — rôle plateforme ───────────────────────────────────────────────────
-
-describe("Titre — rôles plateforme", () => {
-  const platformRoles = ["SUPER_ADMIN", "ADMIN", "SALES", "SUPPORT"] as const;
-
-  platformRoles.forEach((role) => {
-    it(`affiche "SCOLIVE" en majuscules pour ${role}`, () => {
-      const user: AuthUser = {
-        ...platformUser,
-        platformRoles: [role],
-        role,
-        activeRole: role,
-      };
-      renderHeader(user, null);
-      expect(screen.getByTestId("header-title").props.children).toBe("SCOLIVE");
-    });
-  });
-});
-
-// ── Titre — rôles école ───────────────────────────────────────────────────────
-
-describe("Titre — rôles école (nom de l'établissement)", () => {
-  const cases: [string, AuthUser][] = [
-    ["TEACHER", teacherUser],
-    ["PARENT", parentUser],
-    ["STUDENT", studentUser],
-    ["SCHOOL_ADMIN", schoolAdminUser],
-  ];
-
-  cases.forEach(([role, user]) => {
-    it(`affiche le nom de l'école en majuscules pour ${role}`, () => {
-      renderHeader(user, "college-vogt");
-      expect(screen.getByTestId("header-title").props.children).toBe(
-        "COLLEGE VOGT",
-      );
-    });
+    expect(screen.getByTestId("app-header-title")).toBeTruthy();
+    expect(screen.queryByTestId("header-logo")).toBeNull();
+    expect(screen.queryByTestId("header-menu-btn")).toBeNull();
   });
 
-  it("affiche le slug transformé en majuscules pour un slug complexe", () => {
-    renderHeader(teacherUser, "lycee-bilingue-de-yaounde");
-    expect(screen.getByTestId("header-title").props.children).toBe(
-      "LYCEE BILINGUE DE YAOUNDE",
+  it('affiche "SCOLIVE" pour un rôle plateforme', () => {
+    renderHeader(platformUser, null);
+    expect(screen.getByTestId("app-header-title").props.children).toBe(
+      "SCOLIVE",
+    );
+  });
+
+  it("affiche le nom de l'école en majuscules pour un rôle école", () => {
+    renderHeader(teacherUser, "college-vogt");
+    expect(screen.getByTestId("app-header-title").props.children).toBe(
+      "COLLEGE VOGT",
     );
   });
 
   it('affiche "SCOLIVE" quand schoolSlug est null', () => {
     renderHeader(teacherUser, null);
-    expect(screen.getByTestId("header-title").props.children).toBe("SCOLIVE");
-  });
-});
-
-// ── Bouton menu ───────────────────────────────────────────────────────────────
-
-describe("Bouton menu", () => {
-  it("est présent dans le header (testID header-menu-btn)", () => {
-    renderHeader(platformUser, null);
-    expect(screen.getByTestId("header-menu-btn")).toBeTruthy();
-  });
-
-  it("a le label d'accessibilité 'Ouvrir le menu'", () => {
-    renderHeader(platformUser, null);
-    expect(screen.getByTestId("header-menu-btn").props.accessibilityLabel).toBe(
-      "Ouvrir le menu",
+    expect(screen.getByTestId("app-header-title").props.children).toBe(
+      "SCOLIVE",
     );
   });
 
-  it("appelle openDrawer au clic", () => {
-    renderHeader(platformUser, null);
-    fireEvent.press(screen.getByTestId("header-menu-btn"));
-    expect(mockOpenDrawer).toHaveBeenCalledTimes(1);
+  it("n'affiche pas le nom/rôle utilisateur ni le bouton auth", () => {
+    renderHeader(teacherUser, "college-vogt");
+    expect(screen.queryByTestId("app-header-home-name")).toBeNull();
+    expect(screen.queryByTestId("app-header-auth-btn")).toBeNull();
+  });
+});
+
+// ── Variante accueil — nom + rôle + bouton connexion/déconnexion ─────────────
+
+describe("Variante accueil", () => {
+  beforeEach(() => {
+    mockPathname = "/";
   });
 
-  it("n'appelle pas openDrawer si on ne clique pas", () => {
-    renderHeader(platformUser, null);
-    expect(mockOpenDrawer).not.toHaveBeenCalled();
+  it("affiche le nom complet de l'utilisateur à gauche", () => {
+    renderHeader(teacherUser, "college-vogt");
+    expect(screen.getByTestId("app-header-home-name")).toHaveTextContent(
+      "Bob Enseignant",
+    );
+  });
+
+  it("affiche le rôle de l'utilisateur", () => {
+    renderHeader(teacherUser, "college-vogt");
+    expect(screen.getByTestId("app-header-home-role")).toHaveTextContent(
+      "Enseignant(e)",
+    );
+  });
+
+  it("n'affiche ni le titre centré ni le logo", () => {
+    renderHeader(teacherUser, "college-vogt");
+    expect(screen.queryByTestId("app-header-title")).toBeNull();
+    expect(screen.queryByTestId("header-logo")).toBeNull();
+  });
+
+  it("affiche le bouton auth (icône de déconnexion) quand un utilisateur est connecté", () => {
+    renderHeader(teacherUser, "college-vogt");
+    expect(screen.getByTestId("app-header-auth-btn")).toBeTruthy();
+  });
+
+  it("ouvre la confirmation de déconnexion au clic sur le bouton auth", () => {
+    renderHeader(teacherUser, "college-vogt");
+    fireEvent.press(screen.getByTestId("app-header-auth-btn"));
+    expect(screen.getByTestId("confirm-dialog-card")).toBeTruthy();
+  });
+
+  it("appelle logout() après confirmation", () => {
+    renderHeader(teacherUser, "college-vogt");
+    fireEvent.press(screen.getByTestId("app-header-auth-btn"));
+    fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
+    expect(mockLogout).toHaveBeenCalledTimes(1);
+  });
+
+  it("n'appelle pas logout() si on annule la confirmation", () => {
+    renderHeader(teacherUser, "college-vogt");
+    fireEvent.press(screen.getByTestId("app-header-auth-btn"));
+    fireEvent.press(screen.getByTestId("confirm-dialog-cancel"));
+    expect(mockLogout).not.toHaveBeenCalled();
+  });
+
+  it("propose une connexion si aucun utilisateur n'est présent", () => {
+    mockPathname = "/";
+    renderHeader(null, null);
+    fireEvent.press(screen.getByTestId("app-header-auth-btn"));
+    expect(mockReplace).toHaveBeenCalledWith("/login");
+    expect(mockLogout).not.toHaveBeenCalled();
+  });
+});
+
+describe("Reconnaissance de la route accueil", () => {
+  it('"/" est considéré comme la page accueil', () => {
+    mockPathname = "/";
+    renderHeader(teacherUser, "college-vogt");
+    expect(screen.getByTestId("app-header-home-name")).toBeTruthy();
+  });
+
+  it('"/(home)/" est considéré comme la page accueil (groupe expo-router)', () => {
+    mockPathname = "/(home)/";
+    renderHeader(teacherUser, "college-vogt");
+    expect(screen.getByTestId("app-header-home-name")).toBeTruthy();
+  });
+
+  it("toute autre route n'est pas considérée comme accueil", () => {
+    mockPathname = "/account";
+    renderHeader(teacherUser, "college-vogt");
+    expect(screen.queryByTestId("app-header-home-name")).toBeNull();
+    expect(screen.getByTestId("app-header-title")).toBeTruthy();
   });
 });

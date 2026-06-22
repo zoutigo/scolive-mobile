@@ -309,21 +309,6 @@ describe("Intégration — ModuleHeader utilise les deux composants", () => {
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
-  it("le bouton menu de ModuleHeader déclenche onRightPress", () => {
-    const onRightPress = jest.fn();
-    render(
-      <ModuleHeader
-        title="Test"
-        onBack={jest.fn()}
-        rightIcon="menu-outline"
-        onRightPress={onRightPress}
-        rightTestID="mh-menu"
-      />,
-    );
-    fireEvent.press(screen.getByTestId("mh-menu"));
-    expect(onRightPress).toHaveBeenCalledTimes(1);
-  });
-
   it("le bouton retour de ModuleHeader a le style back (fond blanc)", () => {
     render(
       <ModuleHeader title="Test" onBack={jest.fn()} backTestID="mh-back" />,
@@ -332,43 +317,17 @@ describe("Intégration — ModuleHeader utilise les deux composants", () => {
     expect(flat.backgroundColor).toBe("rgba(255,255,255,0.14)");
   });
 
-  it("le bouton menu de ModuleHeader a le style menu (fond warmAccent)", () => {
-    render(
-      <ModuleHeader
-        title="Test"
-        onBack={jest.fn()}
-        rightIcon="menu-outline"
-        onRightPress={jest.fn()}
-        rightTestID="mh-menu"
-      />,
-    );
-    const flat = StyleSheet.flatten(screen.getByTestId("mh-menu").props.style);
-    expect(flat.backgroundColor).toBe("rgba(216,155,91,0.12)");
-  });
-
-  it("affiche un spacer droit quand rightIcon/onRightPress absents", () => {
+  it("n'affiche plus de bouton menu (déplacé vers la bottom tab bar)", () => {
     render(<ModuleHeader title="Test" onBack={jest.fn()} />);
     expect(screen.queryByTestId("module-header-right")).toBeNull();
   });
 
-  it("rend back et menu indépendamment sans interférence", () => {
+  it("le bouton retour fonctionne seul, sans bouton menu", () => {
     const onBack = jest.fn();
-    const onMenu = jest.fn();
     render(
-      <ModuleHeader
-        title="Test"
-        onBack={onBack}
-        backTestID="mh-back"
-        rightIcon="menu-outline"
-        onRightPress={onMenu}
-        rightTestID="mh-menu"
-      />,
+      <ModuleHeader title="Test" onBack={onBack} backTestID="mh-back" />,
     );
     fireEvent.press(screen.getByTestId("mh-back"));
-    expect(onBack).toHaveBeenCalledTimes(1);
-    expect(onMenu).not.toHaveBeenCalled();
-    fireEvent.press(screen.getByTestId("mh-menu"));
-    expect(onMenu).toHaveBeenCalledTimes(1);
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 });

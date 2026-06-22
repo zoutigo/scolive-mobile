@@ -18,7 +18,8 @@ import { useTicketsStore } from "../../store/tickets.store";
 import { useAuthStore } from "../../store/auth.store";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { ModuleHeader } from "../navigation/ModuleHeader";
-import { useDrawer } from "../navigation/drawer-context";
+import { useHeaderScroll } from "../navigation/header-scroll-context";
+import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { AssistanceFaqPanel } from "./AssistanceFaqPanel";
 import { TicketCard } from "./TicketCard";
 import { AssistanceGuidePanel } from "./AssistanceGuidePanel";
@@ -61,8 +62,8 @@ const ASSISTANCE_TABS: Array<{
 
 export function TicketListScreen() {
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const insets = useSafeAreaInsets();
+  const { onScroll } = useHeaderScroll();
   const { user } = useAuthStore();
   const {
     tickets,
@@ -222,8 +223,6 @@ export function TicketListScreen() {
         title="Assistance"
         subtitle={subtitle}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         topInset={androidStatusInset}
         testID="ticket-list-header"
       />
@@ -351,10 +350,15 @@ export function TicketListScreen() {
             emptyComponent={emptyComponent}
             contentContainerStyle={styles.listContent}
             testID="ticket-flat-list"
+            onScroll={onScroll}
+            scrollEventThrottle={16}
           />
 
           <TouchableOpacity
-            style={[styles.fab, { bottom: insets.bottom + 20 }]}
+            style={[
+              styles.fab,
+              { bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT },
+            ]}
             onPress={() => router.push("/(home)/tickets/create")}
             testID="ticket-list-fab"
           >

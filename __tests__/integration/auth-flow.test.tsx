@@ -187,7 +187,7 @@ describe("Flux écrans auth", () => {
     expect(useAuthStore.getState().authErrorMessage).toBeNull();
   });
 
-  it("IndexScreen affiche le header Scolive quand l'utilisateur est connecté", () => {
+  it("IndexScreen affiche le header accueil (nom + rôle + bouton auth) quand l'utilisateur est connecté", () => {
     useAuthStore.setState({
       user: fakeUser,
       accessToken: "access-token",
@@ -198,9 +198,8 @@ describe("Flux écrans auth", () => {
 
     render(<IndexScreen />);
 
-    // Le header avec logo et bouton menu doit être présent
-    expect(screen.getByTestId("header-logo")).toBeOnTheScreen();
-    expect(screen.getByTestId("header-menu-btn")).toBeOnTheScreen();
+    expect(screen.getByTestId("app-header-home-name")).toBeOnTheScreen();
+    expect(screen.getByTestId("app-header-auth-btn")).toBeOnTheScreen();
   });
 
   it("HomeScreen parent affiche le badge de messages non lus sur le raccourci messagerie", async () => {
@@ -257,7 +256,7 @@ describe("Flux écrans auth", () => {
     });
   });
 
-  it("HomeScreen déclenche bien logout via le drawer avec confirmation", async () => {
+  it("HomeScreen déclenche bien logout via le bouton auth du header avec confirmation", async () => {
     useAuthStore.setState({
       user: fakeUser,
       accessToken: "access-token",
@@ -269,14 +268,8 @@ describe("Flux écrans auth", () => {
 
     render(<HomeScreen />);
 
-    // Ouvrir le drawer via le bouton menu du header
-    fireEvent.press(screen.getByTestId("header-menu-btn"));
-
-    // Appuyer sur le bouton de déconnexion dans le drawer
-    await waitFor(() => {
-      expect(screen.getByTestId("drawer-logout-btn")).toBeOnTheScreen();
-    });
-    fireEvent.press(screen.getByTestId("drawer-logout-btn"));
+    // Appuyer sur le bouton auth (déconnexion) du header accueil
+    fireEvent.press(screen.getByTestId("app-header-auth-btn"));
 
     // Le ConfirmDialog doit apparaître — l'utilisateur n'est pas encore déconnecté
     await waitFor(() => {
@@ -304,12 +297,7 @@ describe("Flux écrans auth", () => {
 
     render(<HomeScreen />);
 
-    fireEvent.press(screen.getByTestId("header-menu-btn"));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("drawer-logout-btn")).toBeOnTheScreen();
-    });
-    fireEvent.press(screen.getByTestId("drawer-logout-btn"));
+    fireEvent.press(screen.getByTestId("app-header-auth-btn"));
 
     await waitFor(() => {
       expect(screen.getByTestId("confirm-dialog-card")).toBeOnTheScreen();

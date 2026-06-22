@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useDrawer } from "../navigation/AppShell";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
@@ -14,7 +13,6 @@ export function AdminCaseDetailScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { openDrawer } = useDrawer();
   const { campaignId, testCaseId } = useLocalSearchParams<{
     campaignId: string;
     testCaseId: string;
@@ -56,8 +54,6 @@ export function AdminCaseDetailScreen() {
         title={t("testsAdmin.caseDetail.title")}
         subtitle={t("testsAdmin.caseDetail.swipeHint")}
         onBack={() => router.back()}
-        rightIcon="menu-outline"
-        onRightPress={openDrawer}
         topInset={insets.top}
         testID="admin-case-detail-header"
       />

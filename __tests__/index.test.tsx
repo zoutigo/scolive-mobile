@@ -64,7 +64,7 @@ describe("IndexScreen", () => {
     expect(screen.getByTestId("panel-phone")).toBeOnTheScreen();
   });
 
-  it("affiche le header avec le bouton menu quand authentifié", () => {
+  it("affiche le nom et le rôle de l'utilisateur dans le header accueil quand authentifié", () => {
     setupStore({
       isAuthenticated: true,
       isLoading: false,
@@ -72,18 +72,8 @@ describe("IndexScreen", () => {
       schoolSlug: "college-vogt",
     });
     render(<IndexScreen />);
-    expect(screen.getByTestId("header-menu-btn")).toBeOnTheScreen();
-  });
-
-  it("affiche le logo Scolive quand authentifié", () => {
-    setupStore({
-      isAuthenticated: true,
-      isLoading: false,
-      user: fakeTeacher,
-      schoolSlug: "college-vogt",
-    });
-    render(<IndexScreen />);
-    expect(screen.getByTestId("header-logo")).toBeOnTheScreen();
+    expect(screen.getByTestId("app-header-home-name")).toBeOnTheScreen();
+    expect(screen.getByTestId("app-header-auth-btn")).toBeOnTheScreen();
   });
 
   it("affiche une vraie modale si la session a expiré", () => {

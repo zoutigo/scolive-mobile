@@ -66,7 +66,6 @@ describe("DisciplineStudentScreen", () => {
     render(<DisciplineStudentScreen />);
     expect(screen.getByTestId("module-header")).toBeOnTheScreen();
     expect(screen.getByTestId("btn-back")).toBeOnTheScreen();
-    expect(screen.getByTestId("btn-menu")).toBeOnTheScreen();
     expect(screen.getByTestId("discipline-header-title")).toBeOnTheScreen();
     expect(screen.getByTestId("discipline-header-subtitle")).toBeOnTheScreen();
     expect(screen.getAllByText("Discipline").length).toBeGreaterThan(0);

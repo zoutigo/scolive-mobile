@@ -176,18 +176,19 @@ describe("Scrollabilité de la liste de navigation", () => {
     expect(scrollViews.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("tous les items plateforme (11) sont dans le ScrollView", () => {
+  it("tous les items plateforme sont dans le ScrollView (hors 'Mon compte', déplacé vers la bottom tab bar)", () => {
     render(<AppDrawer {...baseProps} navItems={getNavItems(platformUser)} />);
-    // 11 items = home + schools + classes + subjects + curriculums +
-    //            enrollments + students + users + indicators + tests + account
     const platformItems = getNavItems(platformUser);
     expect(platformItems).toHaveLength(11);
-    platformItems.forEach((item) => {
-      expect(screen.getByTestId(`nav-item-${item.key}`)).toBeTruthy();
-    });
+    platformItems
+      .filter((item) => item.key !== "account")
+      .forEach((item) => {
+        expect(screen.getByTestId(`nav-item-${item.key}`)).toBeTruthy();
+      });
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 
-  it("tous les items établissement (14) sont dans le ScrollView", () => {
+  it("tous les items établissement sont dans le ScrollView (hors 'Mon compte', déplacé vers la bottom tab bar)", () => {
     const schoolUser: AuthUser = {
       id: "u3",
       firstName: "Eve",
@@ -201,8 +202,11 @@ describe("Scrollabilité de la liste de navigation", () => {
     render(<AppDrawer {...baseProps} navItems={getNavItems(schoolUser)} />);
     const schoolItems = getNavItems(schoolUser);
     expect(schoolItems).toHaveLength(15);
-    schoolItems.forEach((item) => {
-      expect(screen.getByTestId(`nav-item-${item.key}`)).toBeTruthy();
-    });
+    schoolItems
+      .filter((item) => item.key !== "account")
+      .forEach((item) => {
+        expect(screen.getByTestId(`nav-item-${item.key}`)).toBeTruthy();
+      });
+    expect(screen.queryByTestId("nav-item-account")).toBeNull();
   });
 });

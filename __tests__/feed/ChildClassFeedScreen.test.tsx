@@ -337,13 +337,4 @@ describe("ChildClassFeedScreen", () => {
     });
   });
 
-  it("ouvre le menu de navigation enfant via l'icone droite", async () => {
-    render(<ChildClassFeedScreen />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("child-class-feed-menu-btn")).toBeTruthy();
-    });
-    fireEvent.press(screen.getByTestId("child-class-feed-menu-btn"));
-    expect(mockOpenDrawer).toHaveBeenCalledTimes(1);
-  });
 });
