@@ -349,4 +349,120 @@ describe("buildDrawerNavigationConfig", () => {
       }),
     ).toEqual({ navItems: [] });
   });
+
+  it("applique les badges fil/messagerie et par enfant pour un parent", () => {
+    const parentUser = makeUser({
+      role: "PARENT",
+      activeRole: "PARENT",
+      memberships: [{ schoolId: "s1", role: "PARENT" }],
+    });
+
+    const config = buildDrawerNavigationConfig({
+      user: parentUser,
+      familyChildren: [
+        { id: "child-1", firstName: "Lisa", lastName: "Ntamack" },
+      ],
+      badges: {
+        messagesUnread: 5,
+        feedUnread: 2,
+        ticketsNeedingResponse: 0,
+        ticketsUnreadReplies: 0,
+        children: [
+          {
+            studentId: "child-1",
+            firstName: "Lisa",
+            lastName: "Ntamack",
+            homeworkPending: 1,
+            notesUnread: 4,
+            disciplineUnread: 3,
+          },
+        ],
+        teacherClasses: [],
+        total: 15,
+      },
+    });
+
+    expect(
+      config.navItems.find((item) => item.key === "feed")?.unread,
+    ).toBe(2);
+    expect(
+      config.navItems.find((item) => item.key === "messages")?.unread,
+    ).toBe(5);
+
+    const childItems = config.childSections?.[0].navItems ?? [];
+    expect(
+      childItems.find((item) => item.key === "child-child-1-grades")?.unread,
+    ).toBe(4);
+    expect(
+      childItems.find((item) => item.key === "child-child-1-life")?.unread,
+    ).toBe(3);
+  });
+
+  it("applique le badge évaluations à saisir par classe pour un enseignant", () => {
+    const teacherUser = makeUser({
+      role: "TEACHER",
+      activeRole: "TEACHER",
+      memberships: [{ schoolId: "s1", role: "TEACHER" }],
+    });
+
+    const config = buildDrawerNavigationConfig({
+      user: teacherUser,
+      teacherClasses: [
+        {
+          classId: "class-1",
+          className: "6e C",
+          schoolYearId: "sy1",
+          schoolYearLabel: "2025-2026",
+          subjects: [{ id: "math", name: "Mathématiques" }],
+          studentCount: 12,
+        },
+      ],
+      badges: {
+        messagesUnread: 0,
+        feedUnread: 0,
+        ticketsNeedingResponse: 0,
+        ticketsUnreadReplies: 0,
+        children: [],
+        teacherClasses: [
+          { classId: "class-1", className: "6e C", evaluationsToGrade: 6 },
+        ],
+        total: 6,
+      },
+    });
+
+    const classItems = config.teacherClassSections?.[0].navItems ?? [];
+    expect(
+      classItems.find((item) => item.key === "teacher-class-class-1-notes")
+        ?.unread,
+    ).toBe(6);
+  });
+
+  it("n'affiche pas de badge quand le compteur correspondant est à zéro", () => {
+    const parentUser = makeUser({
+      role: "PARENT",
+      activeRole: "PARENT",
+      memberships: [{ schoolId: "s1", role: "PARENT" }],
+    });
+
+    const config = buildDrawerNavigationConfig({
+      user: parentUser,
+      familyChildren: [],
+      badges: {
+        messagesUnread: 0,
+        feedUnread: 0,
+        ticketsNeedingResponse: 0,
+        ticketsUnreadReplies: 0,
+        children: [],
+        teacherClasses: [],
+        total: 0,
+      },
+    });
+
+    expect(
+      config.navItems.find((item) => item.key === "feed")?.unread,
+    ).toBeUndefined();
+    expect(
+      config.navItems.find((item) => item.key === "messages")?.unread,
+    ).toBeUndefined();
+  });
 });

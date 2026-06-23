@@ -4,7 +4,7 @@
  * Fonctionnels : navigation, ouverture du menu, états actifs par route.
  */
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react-native";
+import { render, screen, fireEvent, within } from "@testing-library/react-native";
 import {
   BottomTabBar,
   BOTTOM_TAB_BAR_HEIGHT,
@@ -34,6 +34,17 @@ jest.mock("../../src/store/auth.store", () => ({
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<
   typeof useAuthStore
 >;
+
+jest.mock("../../src/store/badges.store", () => ({
+  useBadgesStore: jest.fn(),
+}));
+
+const mockUseBadgesStore = jest.requireMock("../../src/store/badges.store")
+  .useBadgesStore as jest.Mock;
+
+function setBadgesSummary(summary: Record<string, unknown> | null) {
+  mockUseBadgesStore.mockReturnValue({ summary });
+}
 
 const mockOpenDrawer = jest.fn();
 jest.mock("../../src/components/navigation/drawer-context", () => ({
@@ -68,6 +79,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockPathname = "/";
   setUser();
+  setBadgesSummary(null);
 });
 
 // ── Rendu de base ─────────────────────────────────────────────────────────────
@@ -301,5 +313,59 @@ describe("Thème de la barre", () => {
     );
     expect(activeLabel.color).toBe(colors.white);
     expect(inactiveLabel.color).toBe("rgba(255,255,255,0.72)");
+  });
+});
+
+describe("Badges", () => {
+  it("affiche le total agrégé sur le tab Menu", () => {
+    setBadgesSummary({
+      messagesUnread: 1,
+      feedUnread: 2,
+      ticketsNeedingResponse: 0,
+      ticketsUnreadReplies: 0,
+      children: [],
+      teacherClasses: [],
+      total: 3,
+    });
+    render(<BottomTabBar />);
+    const badge = screen.getByTestId("bottom-tab-menu-badge");
+    expect(within(badge).getByText("3")).toBeTruthy();
+  });
+
+  it("affiche la somme tickets sur le tab Assistance", () => {
+    setBadgesSummary({
+      messagesUnread: 0,
+      feedUnread: 0,
+      ticketsNeedingResponse: 2,
+      ticketsUnreadReplies: 1,
+      children: [],
+      teacherClasses: [],
+      total: 3,
+    });
+    render(<BottomTabBar />);
+    const badge = screen.getByTestId("bottom-tab-assistance-badge");
+    expect(within(badge).getByText("3")).toBeTruthy();
+  });
+
+  it("n'affiche aucun badge sans résumé chargé", () => {
+    setBadgesSummary(null);
+    render(<BottomTabBar />);
+    expect(screen.queryByTestId("bottom-tab-menu-badge")).toBeNull();
+    expect(screen.queryByTestId("bottom-tab-assistance-badge")).toBeNull();
+  });
+
+  it("n'affiche pas de badge sur le tab Accueil ou Mon compte", () => {
+    setBadgesSummary({
+      messagesUnread: 5,
+      feedUnread: 5,
+      ticketsNeedingResponse: 5,
+      ticketsUnreadReplies: 5,
+      children: [],
+      teacherClasses: [],
+      total: 20,
+    });
+    render(<BottomTabBar />);
+    expect(screen.queryByTestId("bottom-tab-home-badge")).toBeNull();
+    expect(screen.queryByTestId("bottom-tab-account-badge")).toBeNull();
   });
 });

@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act } from "@testing-library/react-native";
 import { AppDrawer } from "../../src/components/navigation/AppDrawer";
 import {
   getNavItems,
+  buildChildNavItems,
   buildChildSections,
   buildTeacherClassSections,
 } from "../../src/components/navigation/nav-config";
@@ -1546,5 +1547,48 @@ describe("Version de l'application", () => {
     expect(screen.getByTestId("drawer-app-version")).not.toHaveTextContent(
       "38",
     );
+  });
+});
+
+// ── Badges ───────────────────────────────────────────────────────────────────
+
+describe("Badges sur les items de navigation", () => {
+  it("affiche un badge quand item.unread est défini et positif", () => {
+    const navItems = getNavItems(parentUser).map((item) =>
+      item.key === "messages" ? { ...item, unread: 4 } : item,
+    );
+    renderDrawer(navItems);
+    expect(screen.getByTestId("messages-badge")).toBeTruthy();
+    expect(screen.getByTestId("messages-badge")).toHaveTextContent("4");
+  });
+
+  it("n'affiche pas de badge quand item.unread est absent ou nul", () => {
+    const navItems = getNavItems(parentUser);
+    renderDrawer(navItems);
+    expect(screen.queryByTestId("messages-badge")).toBeNull();
+  });
+
+  it("affiche le badge notes pour un enfant en section accordéon", () => {
+    useFamilyStore.setState({ activeChildId: "c1", children: [child1] });
+    const childSections = [
+      {
+        ...child1,
+        navItems: buildChildNavItems(child1, {
+          studentId: "c1",
+          firstName: "Lisa",
+          lastName: "Ntamack",
+          homeworkPending: 0,
+          notesUnread: 7,
+          disciplineUnread: 0,
+        }),
+      },
+    ];
+
+    renderDrawer(getNavItems(parentUser), { childSections });
+
+    expect(
+      screen.getByTestId("child-c1-grades-badge"),
+    ).toHaveTextContent("7");
+    expect(screen.queryByTestId("child-c1-life-badge")).toBeNull();
   });
 });
