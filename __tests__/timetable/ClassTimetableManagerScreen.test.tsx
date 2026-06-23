@@ -17,8 +17,7 @@ const mockListAvailableRooms = jest.fn();
 jest.mock("../../src/api/rooms.api", () => ({
   roomsApi: {
     listRooms: jest.fn().mockResolvedValue([]),
-    listAvailableRooms: (...args: unknown[]) =>
-      mockListAvailableRooms(...args),
+    listAvailableRooms: (...args: unknown[]) => mockListAvailableRooms(...args),
   },
 }));
 

@@ -302,13 +302,7 @@ export function ClassTimetableManagerScreen() {
     return () => {
       cancelled = true;
     };
-  }, [
-    schoolSlug,
-    oneOffOccurrenceDate,
-    oneOffStart,
-    oneOffEnd,
-    oneOffEditId,
-  ]);
+  }, [schoolSlug, oneOffOccurrenceDate, oneOffStart, oneOffEnd, oneOffEditId]);
 
   function roomPillOptions(
     availability: RoomAvailability[],
