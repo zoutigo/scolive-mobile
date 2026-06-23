@@ -4,7 +4,12 @@
  * Fonctionnels : navigation, ouverture du menu, états actifs par route.
  */
 import React from "react";
-import { render, screen, fireEvent, within } from "@testing-library/react-native";
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+} from "@testing-library/react-native";
 import {
   BottomTabBar,
   BOTTOM_TAB_BAR_HEIGHT,

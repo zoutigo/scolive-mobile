@@ -4,9 +4,17 @@ import { NavBadge } from "../../src/components/navigation/NavBadge";
 
 describe("NavBadge", () => {
   it("renders nothing when count is undefined, zero or negative", () => {
-    expect(render(<NavBadge count={undefined} testID="badge" />).queryByTestId("badge")).toBeNull();
-    expect(render(<NavBadge count={0} testID="badge" />).queryByTestId("badge")).toBeNull();
-    expect(render(<NavBadge count={-1} testID="badge" />).queryByTestId("badge")).toBeNull();
+    expect(
+      render(<NavBadge count={undefined} testID="badge" />).queryByTestId(
+        "badge",
+      ),
+    ).toBeNull();
+    expect(
+      render(<NavBadge count={0} testID="badge" />).queryByTestId("badge"),
+    ).toBeNull();
+    expect(
+      render(<NavBadge count={-1} testID="badge" />).queryByTestId("badge"),
+    ).toBeNull();
   });
 
   it("renders the count when positive", () => {

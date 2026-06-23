@@ -382,9 +382,7 @@ describe("buildDrawerNavigationConfig", () => {
       },
     });
 
-    expect(
-      config.navItems.find((item) => item.key === "feed")?.unread,
-    ).toBe(2);
+    expect(config.navItems.find((item) => item.key === "feed")?.unread).toBe(2);
     expect(
       config.navItems.find((item) => item.key === "messages")?.unread,
     ).toBe(5);

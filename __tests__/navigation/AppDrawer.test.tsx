@@ -1586,9 +1586,7 @@ describe("Badges sur les items de navigation", () => {
 
     renderDrawer(getNavItems(parentUser), { childSections });
 
-    expect(
-      screen.getByTestId("child-c1-grades-badge"),
-    ).toHaveTextContent("7");
+    expect(screen.getByTestId("child-c1-grades-badge")).toHaveTextContent("7");
     expect(screen.queryByTestId("child-c1-life-badge")).toBeNull();
   });
 });
