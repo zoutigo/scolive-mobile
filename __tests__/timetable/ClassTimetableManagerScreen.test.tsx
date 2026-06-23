@@ -13,6 +13,15 @@ import { useTimetableStore } from "../../src/store/timetable.store";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
+const mockListAvailableRooms = jest.fn();
+jest.mock("../../src/api/rooms.api", () => ({
+  roomsApi: {
+    listRooms: jest.fn().mockResolvedValue([]),
+    listAvailableRooms: (...args: unknown[]) =>
+      mockListAvailableRooms(...args),
+  },
+}));
+
 const mockBack = jest.fn();
 const mockLoadClassContext = jest.fn();
 const mockLoadClassTimetable = jest.fn();
@@ -29,6 +38,28 @@ jest.mock("react-native-safe-area-context", () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockListAvailableRooms.mockResolvedValue([
+    {
+      id: "room-1",
+      name: "B14",
+      description: null,
+      capacity: 30,
+      maxConcurrentSlots: 1,
+      status: "AVAILABLE",
+      occupiedSlots: 0,
+      isAvailable: true,
+    },
+    {
+      id: "room-gym",
+      name: "Gymnase",
+      description: null,
+      capacity: 100,
+      maxConcurrentSlots: 3,
+      status: "AVAILABLE",
+      occupiedSlots: 3,
+      isAvailable: false,
+    },
+  ]);
   useSuccessToastStore.getState().hide();
   useAuthStore.setState({
     user: {
@@ -147,6 +178,55 @@ describe("ClassTimetableManagerScreen", () => {
         }),
       );
     });
+  });
+
+  it("affiche les salles disponibles et soumet la salle sélectionnée", async () => {
+    render(<ClassTimetableManagerScreen />);
+
+    await waitFor(() => {
+      expect(mockLoadClassContext).toHaveBeenCalled();
+    });
+    fireEvent.press(screen.getByTestId("class-timetable-tab-slots"));
+
+    await waitFor(() => {
+      expect(mockListAvailableRooms).toHaveBeenCalled();
+    });
+
+    expect(await screen.findByTestId("slot-form-room-room-1")).toBeTruthy();
+    expect(screen.getByText("B14")).toBeTruthy();
+    expect(screen.getByText("Gymnase (complet)")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("slot-form-room-room-1"));
+    fireEvent.press(screen.getByTestId("slot-form-submit"));
+
+    await waitFor(() => {
+      expect(mockCreateRecurringSlot).toHaveBeenCalledWith(
+        "college-vogt",
+        "class-1",
+        expect.objectContaining({ roomId: "room-1" }),
+      );
+    });
+  });
+
+  it("marque une salle indisponible ou en maintenance dans le sélecteur", async () => {
+    mockListAvailableRooms.mockResolvedValue([
+      {
+        id: "room-2",
+        name: "A08",
+        description: null,
+        capacity: 25,
+        maxConcurrentSlots: 1,
+        status: "UNAVAILABLE",
+        occupiedSlots: 0,
+        isAvailable: false,
+      },
+    ]);
+
+    render(<ClassTimetableManagerScreen />);
+    await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
+    fireEvent.press(screen.getByTestId("class-timetable-tab-slots"));
+
+    expect(await screen.findByText("A08 (indisponible)")).toBeTruthy();
   });
 
   it("utilise le sélecteur d'heure réutilisable pour le formulaire récurrent", async () => {

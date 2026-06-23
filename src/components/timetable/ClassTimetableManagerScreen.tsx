@@ -20,6 +20,8 @@ import { useAuthStore } from "../../store/auth.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { useTimetableStore } from "../../store/timetable.store";
 import { TimePickerField } from "../TimePickerField";
+import { roomsApi } from "../../api/rooms.api";
+import type { RoomAvailability } from "../../types/room.types";
 import { getViewType } from "../navigation/nav-config";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import {
@@ -67,7 +69,7 @@ function createSlotSchema(t: TranslateFn) {
     end: z
       .string()
       .regex(TIME_REGEX, t("timetable.classManager.validation.timeFormat")),
-    room: z.string(),
+    roomId: z.string(),
     activeFromDate: z
       .string()
       .regex(ISO_DATE_REGEX, t("timetable.classManager.validation.dateFormat")),
@@ -94,7 +96,7 @@ function createOneOffSchema(t: TranslateFn) {
     end: z
       .string()
       .regex(TIME_REGEX, t("timetable.classManager.validation.timeFormat")),
-    room: z.string(),
+    roomId: z.string(),
     status: z.enum(["PLANNED", "CANCELLED"]),
   });
 }
@@ -200,7 +202,7 @@ export function ClassTimetableManagerScreen() {
       weekday: "1",
       start: "07:30",
       end: "08:20",
-      room: "",
+      roomId: "",
       activeFromDate: range.fromDate,
       activeToDate: range.toDate,
     },
@@ -216,7 +218,7 @@ export function ClassTimetableManagerScreen() {
       occurrenceDate: range.fromDate,
       start: "10:00",
       end: "10:50",
-      room: "",
+      roomId: "",
       status: "PLANNED",
     },
   });
@@ -233,6 +235,114 @@ export function ClassTimetableManagerScreen() {
   });
 
   const slotSubjectId = slotRhf.watch("subjectId");
+  const slotWeekday = slotRhf.watch("weekday");
+  const slotStart = slotRhf.watch("start");
+  const slotEnd = slotRhf.watch("end");
+  const oneOffOccurrenceDate = oneOffRhf.watch("occurrenceDate");
+  const oneOffStart = oneOffRhf.watch("start");
+  const oneOffEnd = oneOffRhf.watch("end");
+
+  const [slotRoomAvailability, setSlotRoomAvailability] = useState<
+    RoomAvailability[]
+  >([]);
+  const [oneOffRoomAvailability, setOneOffRoomAvailability] = useState<
+    RoomAvailability[]
+  >([]);
+
+  useEffect(() => {
+    if (!schoolSlug) return;
+    const startMinute = timeLabelToMinute(slotStart);
+    const endMinute = timeLabelToMinute(slotEnd);
+    const weekday = Number(slotWeekday);
+    if (startMinute === null || endMinute === null || !weekday) return;
+
+    let cancelled = false;
+    roomsApi
+      .listAvailableRooms(schoolSlug, {
+        weekday,
+        startMinute,
+        endMinute,
+        excludeSlotId: slotEditId || undefined,
+      })
+      .then((result) => {
+        if (!cancelled) setSlotRoomAvailability(result);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolSlug, slotWeekday, slotStart, slotEnd, slotEditId]);
+
+  useEffect(() => {
+    if (!schoolSlug) return;
+    const startMinute = timeLabelToMinute(oneOffStart);
+    const endMinute = timeLabelToMinute(oneOffEnd);
+    if (
+      startMinute === null ||
+      endMinute === null ||
+      !ISO_DATE_REGEX.test(oneOffOccurrenceDate)
+    )
+      return;
+    const weekdayFromDate =
+      new Date(`${oneOffOccurrenceDate}T00:00:00`).getDay() || 7;
+
+    let cancelled = false;
+    roomsApi
+      .listAvailableRooms(schoolSlug, {
+        weekday: weekdayFromDate,
+        startMinute,
+        endMinute,
+        occurrenceDate: oneOffOccurrenceDate,
+        excludeOneOffSlotId: oneOffEditId || undefined,
+      })
+      .then((result) => {
+        if (!cancelled) setOneOffRoomAvailability(result);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    schoolSlug,
+    oneOffOccurrenceDate,
+    oneOffStart,
+    oneOffEnd,
+    oneOffEditId,
+  ]);
+
+  function roomPillOptions(
+    availability: RoomAvailability[],
+    currentRoomId: string,
+    t: TranslateFn,
+  ) {
+    return [
+      { value: "", label: t("timetable.classManager.fields.roomNone") },
+      ...availability.map((room) => {
+        if (room.id === currentRoomId) {
+          return { value: room.id, label: room.name };
+        }
+        if (room.status === "UNAVAILABLE") {
+          return {
+            value: room.id,
+            label: `${room.name} (${t("timetable.classManager.room.statusUnavailable")})`,
+          };
+        }
+        if (room.status === "MAINTENANCE") {
+          return {
+            value: room.id,
+            label: `${room.name} (${t("timetable.classManager.room.statusMaintenance")})`,
+          };
+        }
+        if (!room.isAvailable) {
+          return {
+            value: room.id,
+            label: `${room.name} (${t("timetable.classManager.room.statusFull")})`,
+          };
+        }
+        return { value: room.id, label: room.name };
+      }),
+    ];
+  }
 
   const load = useCallback(async () => {
     if (!schoolSlug || !classId) return;
@@ -318,7 +428,7 @@ export function ClassTimetableManagerScreen() {
       weekday: "1",
       start: "07:30",
       end: "08:20",
-      room: "",
+      roomId: "",
       activeFromDate: range.fromDate,
       activeToDate: range.toDate,
     });
@@ -333,7 +443,7 @@ export function ClassTimetableManagerScreen() {
       occurrenceDate: range.fromDate,
       start: "10:00",
       end: "10:50",
-      room: "",
+      roomId: "",
       status: "PLANNED",
     });
   }
@@ -368,7 +478,7 @@ export function ClassTimetableManagerScreen() {
           ),
           subjectId: data.subjectId,
           teacherUserId: data.teacherUserId,
-          room: data.room.trim() || null,
+          roomId: data.roomId || null,
           activeFromDate: data.activeFromDate,
           activeToDate: data.activeToDate,
         };
@@ -423,7 +533,7 @@ export function ClassTimetableManagerScreen() {
           ),
           subjectId: data.subjectId,
           teacherUserId: data.teacherUserId,
-          room: data.room.trim() || null,
+          roomId: data.roomId || null,
           status: data.status,
         };
         if (oneOffEditId) {
@@ -574,7 +684,7 @@ export function ClassTimetableManagerScreen() {
       weekday: String(slot.weekday),
       start: minuteToTimeLabel(slot.startMinute),
       end: minuteToTimeLabel(slot.endMinute),
-      room: slot.room ?? "",
+      roomId: slot.roomId ?? "",
       activeFromDate: slot.activeFromDate ?? range.fromDate,
       activeToDate: slot.activeToDate ?? range.toDate,
     });
@@ -589,7 +699,7 @@ export function ClassTimetableManagerScreen() {
       occurrenceDate: slot.occurrenceDate,
       start: minuteToTimeLabel(slot.startMinute),
       end: minuteToTimeLabel(slot.endMinute),
-      room: slot.room ?? "",
+      roomId: slot.roomId ?? "",
       status: slot.status,
     });
   }
@@ -837,16 +947,18 @@ export function ClassTimetableManagerScreen() {
                 </View>
                 <Controller
                   control={slotRhf.control}
-                  name="room"
+                  name="roomId"
                   render={({ field }) => (
-                    <TextField
+                    <PillSelector
                       label={t("timetable.classManager.fields.room")}
                       value={field.value}
-                      onChangeText={field.onChange}
-                      placeholder={t(
-                        "timetable.classManager.placeholders.roomA2",
+                      onChange={field.onChange}
+                      options={roomPillOptions(
+                        slotRoomAvailability,
+                        field.value,
+                        t,
                       )}
-                      testID="slot-form-room"
+                      testIDPrefix="slot-form-room"
                     />
                   )}
                 />
@@ -1094,15 +1206,18 @@ export function ClassTimetableManagerScreen() {
                 </View>
                 <Controller
                   control={oneOffRhf.control}
-                  name="room"
+                  name="roomId"
                   render={({ field }) => (
-                    <TextField
+                    <PillSelector
                       label={t("timetable.classManager.fields.room")}
                       value={field.value}
-                      onChangeText={field.onChange}
-                      placeholder={t(
-                        "timetable.classManager.placeholders.roomMultipurpose",
+                      onChange={field.onChange}
+                      options={roomPillOptions(
+                        oneOffRoomAvailability,
+                        field.value,
+                        t,
                       )}
+                      testIDPrefix="oneoff-form-room"
                     />
                   )}
                 />
