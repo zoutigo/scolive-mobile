@@ -1,6 +1,11 @@
 import type { AuthUser, AppRole, SchoolRole } from "../../types/auth.types";
 import type { ParentChild } from "../../types/family.types";
 import type { TimetableClassOption } from "../../types/timetable.types";
+import type {
+  ChildBadgeSummary,
+  TeacherClassBadgeSummary,
+  UnreadSummary,
+} from "../../types/badges.types";
 
 export type NavItem = {
   key: string;
@@ -8,7 +13,12 @@ export type NavItem = {
   icon: string;
   route: string;
   params?: Record<string, string>;
+  unread?: number;
 };
+
+function toUnread(count: number | undefined): number | undefined {
+  return count && count > 0 ? count : undefined;
+}
 
 export function buildChildHomeTarget(childId: string) {
   return {
@@ -335,7 +345,10 @@ const STUDENT_NAV: NavItem[] = [
   accountItem(),
 ];
 
-export function buildChildNavItems(child: ParentChild): NavItem[] {
+export function buildChildNavItems(
+  child: ParentChild,
+  childBadge?: ChildBadgeSummary,
+): NavItem[] {
   const childId = child.id;
   const classId = child.classId ?? child.currentEnrollment?.class?.id ?? null;
 
@@ -353,6 +366,7 @@ export function buildChildNavItems(child: ParentChild): NavItem[] {
       icon: "ribbon-outline",
       route: "/(home)/notes/child/[childId]",
       params: { childId },
+      unread: toUnread(childBadge?.notesUnread),
     },
     ...(classId
       ? [
@@ -362,6 +376,7 @@ export function buildChildNavItems(child: ParentChild): NavItem[] {
             icon: "document-text-outline",
             route: buildChildHomeworkTarget(childId, classId).pathname,
             params: buildChildHomeworkTarget(childId, classId).params,
+            unread: toUnread(childBadge?.homeworkPending),
           } satisfies NavItem,
         ]
       : []),
@@ -377,6 +392,7 @@ export function buildChildNavItems(child: ParentChild): NavItem[] {
       icon: "person-circle-outline",
       route: "/(home)/vie-scolaire/[childId]",
       params: { childId },
+      unread: toUnread(childBadge?.disciplineUnread),
     },
     {
       key: `child-${childId}-class-life`,
@@ -403,14 +419,21 @@ export function buildChildNavItems(child: ParentChild): NavItem[] {
 
 export function buildChildSections(
   children: ParentChild[],
+  badges?: UnreadSummary | null,
 ): ParentChildSection[] {
   return children.map((child) => ({
     ...child,
-    navItems: buildChildNavItems(child),
+    navItems: buildChildNavItems(
+      child,
+      badges?.children.find((entry) => entry.studentId === child.id),
+    ),
   }));
 }
 
-export function buildTeacherClassItems(classId: string): NavItem[] {
+export function buildTeacherClassItems(
+  classId: string,
+  classBadge?: TeacherClassBadgeSummary,
+): NavItem[] {
   return [
     {
       key: `teacher-class-${classId}-feed`,
@@ -425,6 +448,7 @@ export function buildTeacherClassItems(classId: string): NavItem[] {
       icon: "journal-outline",
       route: buildTeacherClassNotesTarget(classId).pathname,
       params: buildTeacherClassNotesTarget(classId).params,
+      unread: toUnread(classBadge?.evaluationsToGrade),
     },
     {
       key: `teacher-class-${classId}-discipline`,
@@ -452,10 +476,16 @@ export function buildTeacherClassItems(classId: string): NavItem[] {
 
 export function buildTeacherClassSections(
   classes: TimetableClassOption[],
+  badges?: UnreadSummary | null,
 ): TeacherClassSection[] {
   return classes.map((entry) => ({
     ...entry,
-    navItems: buildTeacherClassItems(entry.classId),
+    navItems: buildTeacherClassItems(
+      entry.classId,
+      badges?.teacherClasses.find(
+        (classBadge) => classBadge.classId === entry.classId,
+      ),
+    ),
   }));
 }
 
@@ -463,26 +493,27 @@ export function buildDrawerNavigationConfig(input: {
   user: AuthUser | null;
   familyChildren?: ParentChild[];
   teacherClasses?: TimetableClassOption[];
+  badges?: UnreadSummary | null;
 }): DrawerNavigationConfig {
-  const { user, familyChildren = [], teacherClasses = [] } = input;
+  const { user, familyChildren = [], teacherClasses = [], badges } = input;
   if (!user) {
     return { navItems: [] };
   }
 
   const view = getViewType(user);
-  const navItems = getNavItems(user);
+  const navItems = getNavItems(user, badges);
 
   if (view === "parent") {
     return {
       navItems,
-      childSections: buildChildSections(familyChildren),
+      childSections: buildChildSections(familyChildren, badges),
     };
   }
 
   if (view === "teacher") {
     return {
       navItems,
-      teacherClassSections: buildTeacherClassSections(teacherClasses),
+      teacherClassSections: buildTeacherClassSections(teacherClasses, badges),
     };
   }
 
@@ -500,20 +531,46 @@ export function buildAdminSubtitle(user: AuthUser): string | null {
   return user.schoolName ?? null;
 }
 
-export function getNavItems(user: AuthUser): NavItem[] {
-  const view = getViewType(user);
-  switch (view) {
-    case "platform":
-      return PLATFORM_NAV;
-    case "school":
-      return SCHOOL_NAV;
-    case "teacher":
-      return TEACHER_NAV;
-    case "parent":
-      return PARENT_NAV;
-    case "student":
-      return STUDENT_NAV;
-    default:
-      return [];
+function applyTopLevelBadges(
+  items: NavItem[],
+  badges?: UnreadSummary | null,
+): NavItem[] {
+  if (!badges) {
+    return items;
   }
+
+  return items.map((item) => {
+    if (item.key === "feed") {
+      return { ...item, unread: toUnread(badges.feedUnread) };
+    }
+    if (item.key === "messages") {
+      return { ...item, unread: toUnread(badges.messagesUnread) };
+    }
+    return item;
+  });
+}
+
+export function getNavItems(
+  user: AuthUser,
+  badges?: UnreadSummary | null,
+): NavItem[] {
+  const view = getViewType(user);
+  const items = (() => {
+    switch (view) {
+      case "platform":
+        return PLATFORM_NAV;
+      case "school":
+        return SCHOOL_NAV;
+      case "teacher":
+        return TEACHER_NAV;
+      case "parent":
+        return PARENT_NAV;
+      case "student":
+        return STUDENT_NAV;
+      default:
+        return [];
+    }
+  })();
+
+  return applyTopLevelBadges(items, badges);
 }

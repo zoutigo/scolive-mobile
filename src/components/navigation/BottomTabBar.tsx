@@ -5,7 +5,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter, usePathname } from "expo-router";
 import { colors } from "../../theme";
 import { useDrawer } from "./drawer-context";
+import { NavBadge } from "./NavBadge";
 import { useAuthStore } from "../../store/auth.store";
+import { useBadgesStore } from "../../store/badges.store";
 import { useTranslation } from "../../i18n/useTranslation";
 
 /** Hauteur du contenu de la barre, hors zone de sécurité bas (insets.bottom). */
@@ -68,6 +70,7 @@ export function BottomTabBar() {
   const pathname = usePathname();
   const { openDrawer } = useDrawer();
   const { user } = useAuthStore();
+  const { summary } = useBadgesStore();
   const { t } = useTranslation();
 
   const isTester = Boolean(user?.isTester);
@@ -75,6 +78,17 @@ export function BottomTabBar() {
     () => (isTester ? [...BASE_TABS, TESTS_TAB] : BASE_TABS),
     [isTester],
   );
+
+  const menuUnread = summary?.total;
+  const assistanceUnread = summary
+    ? summary.ticketsNeedingResponse + summary.ticketsUnreadReplies
+    : undefined;
+
+  const badgeForTab = (key: TabKey): number | undefined => {
+    if (key === "menu") return menuUnread;
+    if (key === "assistance") return assistanceUnread;
+    return undefined;
+  };
 
   const normalized = normalize(pathname);
   const isHomeActive =
@@ -151,6 +165,12 @@ export function BottomTabBar() {
                 size={22}
                 color={active ? colors.warmAccent : INACTIVE_COLOR}
               />
+              <View style={styles.badgeAnchor}>
+                <NavBadge
+                  count={badgeForTab(tab.key)}
+                  testID={`bottom-tab-${tab.key}-badge`}
+                />
+              </View>
             </View>
             <Text
               style={[styles.label, active ? styles.labelActive : null]}
@@ -196,9 +216,15 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
   },
   iconWrapActive: {
     backgroundColor: "rgba(255,255,255,0.16)",
+  },
+  badgeAnchor: {
+    position: "absolute",
+    top: -4,
+    right: 0,
   },
   label: {
     fontSize: 11,

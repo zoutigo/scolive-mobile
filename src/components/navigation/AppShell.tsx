@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, AppState } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../../store/auth.store";
+import { useBadgesStore } from "../../store/badges.store";
 import { useFamilyStore } from "../../store/family.store";
 import { useTeacherClassNavStore } from "../../store/teacher-class-nav.store";
 import { colors } from "../../theme";
@@ -45,6 +46,11 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
     loadClassOptions: loadTeacherClassOptions,
     reset: resetTeacherClassNav,
   } = useTeacherClassNavStore();
+  const {
+    summary: badgesSummary,
+    loadSummary: loadBadgesSummary,
+    clear: clearBadgesSummary,
+  } = useBadgesStore();
 
   const openDrawer = useCallback(() => setIsDrawerOpen(true), []);
   const closeDrawer = useCallback(() => {
@@ -80,11 +86,32 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
     }
   }, [viewType, schoolSlug, loadTeacherClassOptions, resetTeacherClassNav]);
 
+  useEffect(() => {
+    if (!schoolSlug || viewType === "unknown") {
+      clearBadgesSummary();
+      return;
+    }
+
+    void loadBadgesSummary(schoolSlug);
+
+    // Connectivity in the field is unreliable: refresh badges whenever the
+    // app comes back to the foreground, which is the most common moment
+    // connectivity returns after a drop.
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        void loadBadgesSummary(schoolSlug);
+      }
+    });
+
+    return () => subscription.remove();
+  }, [viewType, schoolSlug, loadBadgesSummary, clearBadgesSummary]);
+
   const { navItems, childSections, teacherClassSections } =
     buildDrawerNavigationConfig({
       user,
       familyChildren,
       teacherClasses: teacherClassOptions?.classes ?? [],
+      badges: badgesSummary,
     });
 
   return (

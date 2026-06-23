@@ -27,6 +27,7 @@ export type TimetableRecurringSlot = {
   startMinute: number;
   endMinute: number;
   room: string | null;
+  roomId?: string | null;
   activeFromDate?: string | null;
   activeToDate?: string | null;
   subject: TimetableSubjectRef;
@@ -39,6 +40,7 @@ export type TimetableOneOffSlot = {
   startMinute: number;
   endMinute: number;
   room: string | null;
+  roomId?: string | null;
   status: "PLANNED" | "CANCELLED";
   sourceSlotId?: string | null;
   subject: TimetableSubjectRef;
@@ -185,6 +187,7 @@ export type UpsertRecurringSlotInput = {
   subjectId: string;
   teacherUserId: string;
   room?: string | null;
+  roomId?: string | null;
   activeFromDate?: string | null;
   activeToDate?: string | null;
   effectiveFromDate?: string | null;
@@ -198,6 +201,7 @@ export type UpsertOneOffSlotInput = {
   subjectId: string;
   teacherUserId: string;
   room?: string | null;
+  roomId?: string | null;
   status?: "PLANNED" | "CANCELLED";
   sourceSlotId?: string | null;
 };

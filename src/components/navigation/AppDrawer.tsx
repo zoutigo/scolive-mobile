@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter, usePathname } from "expo-router";
 import { colors } from "../../theme";
 import { useFamilyStore } from "../../store/family.store";
+import { NavBadge } from "./NavBadge";
 import type {
   NavItem,
   ParentChildSection,
@@ -646,6 +647,7 @@ function NavRow({ item, active, onPress, indented = false }: NavRowProps) {
       >
         {item.label}
       </Text>
+      <NavBadge count={item.unread} testID={`${item.key}-badge`} />
     </TouchableOpacity>
   );
 }
