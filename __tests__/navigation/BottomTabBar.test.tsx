@@ -28,8 +28,14 @@ jest.mock("@expo/vector-icons", () => ({
   Ionicons: (props: IoniconsMockProps) => mockIonicons(props),
 }));
 
+let mockInsetBottom = 10;
 jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({ top: 0, bottom: 10, left: 0, right: 0 }),
+  useSafeAreaInsets: () => ({
+    top: 0,
+    bottom: mockInsetBottom,
+    left: 0,
+    right: 0,
+  }),
 }));
 
 jest.mock("../../src/store/auth.store", () => ({
@@ -83,6 +89,7 @@ function setUser(overrides: Partial<AuthUser> = {}) {
 beforeEach(() => {
   jest.clearAllMocks();
   mockPathname = "/";
+  mockInsetBottom = 10;
   setUser();
   setBadgesSummary(null);
 });
@@ -318,6 +325,61 @@ describe("Thème de la barre", () => {
     );
     expect(activeLabel.color).toBe(colors.white);
     expect(inactiveLabel.color).toBe("rgba(255,255,255,0.72)");
+  });
+});
+
+// ── Bande de sécurité bas (pastille de geste / boutons système) ──────────────
+//
+// La barre de tabs (fond bleu) ne doit plus s'étendre dans la zone système du
+// bas : une bande claire dédiée (colors.background) y est dessinée à la place
+// pour que la pastille de geste ou les 3 boutons Android restent visibles par
+// contraste, quelle que soit la hauteur réelle de l'inset (mode geste vs
+// 3-boutons).
+
+describe("Bande de sécurité bas", () => {
+  it("n'ajoute plus de paddingBottom sur la barre de tabs elle-même", () => {
+    render(<BottomTabBar />);
+    const container = screen.getByTestId("bottom-tab-bar");
+    const flat = flattenStyle(container.props.style);
+    expect(flat.paddingBottom).toBeUndefined();
+  });
+
+  it("dimensionne la bande de sécurité sur insets.bottom (mode geste, inset faible)", () => {
+    mockInsetBottom = 10;
+    render(<BottomTabBar />);
+    const strip = screen.getByTestId("bottom-tab-bar-safe-area");
+    const flat = flattenStyle(strip.props.style);
+    expect(flat.height).toBe(10);
+  });
+
+  it("agrandit la bande de sécurité quand l'inset est plus grand (mode 3-boutons)", () => {
+    mockInsetBottom = 48;
+    render(<BottomTabBar />);
+    const strip = screen.getByTestId("bottom-tab-bar-safe-area");
+    const flat = flattenStyle(strip.props.style);
+    expect(flat.height).toBe(48);
+  });
+
+  it("n'occupe aucun espace si l'inset est nul", () => {
+    mockInsetBottom = 0;
+    render(<BottomTabBar />);
+    const strip = screen.getByTestId("bottom-tab-bar-safe-area");
+    const flat = flattenStyle(strip.props.style);
+    expect(flat.height).toBe(0);
+  });
+
+  it("utilise un fond clair distinct du fond sombre de la tab bar pour le contraste", () => {
+    render(<BottomTabBar />);
+    const strip = screen.getByTestId("bottom-tab-bar-safe-area");
+    const flat = flattenStyle(strip.props.style);
+    expect(flat.backgroundColor).toBe(colors.background);
+    expect(flat.backgroundColor).not.toBe(colors.primary);
+  });
+
+  it("ne capte aucun événement tactile (pointerEvents none)", () => {
+    render(<BottomTabBar />);
+    const strip = screen.getByTestId("bottom-tab-bar-safe-area");
+    expect(strip.props.pointerEvents).toBe("none");
   });
 });
 
