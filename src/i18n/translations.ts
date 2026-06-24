@@ -1046,9 +1046,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.detail.fromLabel": "De : ",
     "messaging.detail.recipientsToggleSingular": "1 destinataire",
     "messaging.detail.recipientsTogglePlural": "{count} destinataires",
-    "messaging.detail.sentPill": "Envoyé",
-    "messaging.detail.createdPill": "Créé",
     "messaging.detail.recipientsSectionTitle": "Destinataires",
+    "messaging.detail.header.inbox":
+      "Boîte de réception de {user} · {unread}/{total}",
+    "messaging.detail.header.sent": "Messages envoyés de {user} · {total}",
+    "messaging.detail.header.drafts": "Brouillons de {user} · {total}",
+    "messaging.detail.header.archive": "Archives de {user} · {total}",
     "messaging.detail.attachmentsTitle": "Pièces jointes",
     "messaging.detail.errors.loadFailedTitle": "Erreur",
     "messaging.detail.errors.loadFailedMessage":
@@ -1071,6 +1074,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.actions.deleteDialog.confirm": "Supprimer",
     "messaging.actions.deleteDialog.cancel": "Annuler",
 
+    "messaging.toasts.markedUnreadTitle": "Message marqué non lu",
+    "messaging.toasts.markedUnreadMessage":
+      "Vous le retrouverez non lu dans votre boîte.",
     "messaging.toasts.archivedTitle": "Message archivé",
     "messaging.toasts.archivedMessage":
       "Le message a été déplacé dans les archives.",
@@ -2849,9 +2855,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.detail.fromLabel": "From: ",
     "messaging.detail.recipientsToggleSingular": "1 recipient",
     "messaging.detail.recipientsTogglePlural": "{count} recipients",
-    "messaging.detail.sentPill": "Sent",
-    "messaging.detail.createdPill": "Created",
     "messaging.detail.recipientsSectionTitle": "Recipients",
+    "messaging.detail.header.inbox": "{user}'s inbox · {unread}/{total}",
+    "messaging.detail.header.sent": "{user}'s sent messages · {total}",
+    "messaging.detail.header.drafts": "{user}'s drafts · {total}",
+    "messaging.detail.header.archive": "{user}'s archive · {total}",
     "messaging.detail.attachmentsTitle": "Attachments",
     "messaging.detail.errors.loadFailedTitle": "Error",
     "messaging.detail.errors.loadFailedMessage": "Unable to load this message.",
@@ -2873,6 +2881,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.actions.deleteDialog.confirm": "Delete",
     "messaging.actions.deleteDialog.cancel": "Cancel",
 
+    "messaging.toasts.markedUnreadTitle": "Marked as unread",
+    "messaging.toasts.markedUnreadMessage":
+      "You'll find it unread in your mailbox.",
     "messaging.toasts.archivedTitle": "Message archived",
     "messaging.toasts.archivedMessage":
       "The message has been moved to the archive.",

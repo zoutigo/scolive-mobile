@@ -21,6 +21,7 @@ interface ModuleHeaderProps {
   subtitleTestID?: string;
   topInset?: number;
   backgroundColor?: string;
+  titleUppercase?: boolean;
 }
 
 export function ModuleHeader({
@@ -33,6 +34,7 @@ export function ModuleHeader({
   subtitleTestID = "module-header-subtitle",
   topInset = 0,
   backgroundColor = colors.primary,
+  titleUppercase = true,
 }: ModuleHeaderProps) {
   const { translateY } = useHeaderScroll();
   const androidStatusInset =
@@ -67,7 +69,11 @@ export function ModuleHeader({
 
         <HeaderBackButton onPress={onBack} testID={backTestID} />
         <View style={styles.headerText}>
-          <Text style={styles.title} numberOfLines={1} testID={titleTestID}>
+          <Text
+            style={[styles.title, !titleUppercase && styles.titleNormalCase]}
+            numberOfLines={1}
+            testID={titleTestID}
+          >
             {title}
           </Text>
           {subtitle ? (
@@ -141,6 +147,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textTransform: "uppercase",
     textAlign: "center",
+  },
+  titleNormalCase: {
+    textTransform: "none",
+    fontSize: 15,
+    fontWeight: "600",
   },
   subtitle: {
     color: colors.warmAccent,

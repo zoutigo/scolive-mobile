@@ -61,6 +61,7 @@ function MessagesScreenContent() {
     loadMessages,
     refreshMessages,
     loadMoreMessages,
+    loadUnreadCount,
   } = useMessagingStore();
 
   const [searchVisible, setSearchVisible] = useState(false);
@@ -73,6 +74,13 @@ function MessagesScreenContent() {
       console.error("MESSAGES_LOAD_FAILED", error);
     }
   }, [schoolSlug, loadMessages]);
+
+  // Garde le badge "non lus" des onglets à jour même quand l'écran est
+  // ouvert directement (sans passer par un écran d'accueil qui le charge).
+  useEffect(() => {
+    if (!schoolSlug) return;
+    void loadUnreadCount(schoolSlug);
+  }, [schoolSlug, loadUnreadCount]);
 
   // Reload when folder or search changes
   useEffect(() => {
