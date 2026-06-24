@@ -148,9 +148,9 @@ describe("Header de boîte de message", () => {
     storeState.unreadCount = 3;
     storeState.meta = { total: 12 };
     render(<MessageDetailScreen />);
-    expect(
-      screen.getByTestId("message-detail-header-title"),
-    ).toHaveTextContent("Boîte de réception de Valery Mbele · 3/12");
+    expect(screen.getByTestId("message-detail-header-title")).toHaveTextContent(
+      "Boîte de réception de Valery Mbele · 3/12",
+    );
   });
 
   it("ne répète pas le sujet du message dans le header", async () => {
@@ -164,9 +164,9 @@ describe("Header de boîte de message", () => {
     storeState.folder = "sent";
     storeState.meta = { total: 5 };
     render(<MessageDetailScreen />);
-    expect(
-      screen.getByTestId("message-detail-header-title"),
-    ).toHaveTextContent("Messages envoyés de Valery Mbele · 5");
+    expect(screen.getByTestId("message-detail-header-title")).toHaveTextContent(
+      "Messages envoyés de Valery Mbele · 5",
+    );
   });
 });
 

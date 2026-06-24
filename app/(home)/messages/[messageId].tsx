@@ -23,7 +23,10 @@ import { ConfirmDialog } from "../../../src/components/ConfirmDialog";
 import { AppShell } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import { SwipePager } from "../../../src/components/SwipePager";
-import { useTranslation, type TranslateFn } from "../../../src/i18n/useTranslation";
+import {
+  useTranslation,
+  type TranslateFn,
+} from "../../../src/i18n/useTranslation";
 import type {
   FolderKey,
   MessageAttachment,

@@ -68,7 +68,9 @@ export function SwipePager({
     >
       {ids.map((id, i) => (
         <View key={id} style={{ width }}>
-          {Math.abs(i - index) <= renderWindow ? renderPage(id, i === index) : null}
+          {Math.abs(i - index) <= renderWindow
+            ? renderPage(id, i === index)
+            : null}
         </View>
       ))}
     </ScrollView>
