@@ -13,6 +13,8 @@ import { useHeaderScroll, HEADER_HIDE_DISTANCE } from "./header-scroll-context";
 
 interface ModuleHeaderProps {
   title: string;
+  /** Segment appended after `title`, rendered in warm color (e.g. an unread/total counter). */
+  titleHighlight?: string;
   subtitle?: string | null;
   onBack: () => void;
   testID?: string;
@@ -21,10 +23,12 @@ interface ModuleHeaderProps {
   subtitleTestID?: string;
   topInset?: number;
   backgroundColor?: string;
+  titleUppercase?: boolean;
 }
 
 export function ModuleHeader({
   title,
+  titleHighlight,
   subtitle,
   onBack,
   testID = "module-header",
@@ -33,6 +37,7 @@ export function ModuleHeader({
   subtitleTestID = "module-header-subtitle",
   topInset = 0,
   backgroundColor = colors.primary,
+  titleUppercase = true,
 }: ModuleHeaderProps) {
   const { translateY } = useHeaderScroll();
   const androidStatusInset =
@@ -67,8 +72,15 @@ export function ModuleHeader({
 
         <HeaderBackButton onPress={onBack} testID={backTestID} />
         <View style={styles.headerText}>
-          <Text style={styles.title} numberOfLines={1} testID={titleTestID}>
+          <Text
+            style={[styles.title, !titleUppercase && styles.titleNormalCase]}
+            numberOfLines={1}
+            testID={titleTestID}
+          >
             {title}
+            {titleHighlight ? (
+              <Text style={styles.titleHighlight}>{titleHighlight}</Text>
+            ) : null}
           </Text>
           {subtitle ? (
             <Text
@@ -141,6 +153,15 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textTransform: "uppercase",
     textAlign: "center",
+  },
+  titleNormalCase: {
+    textTransform: "none",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  titleHighlight: {
+    color: colors.warmAccent,
+    fontWeight: "700",
   },
   subtitle: {
     color: colors.warmAccent,

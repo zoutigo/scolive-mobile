@@ -11,10 +11,11 @@ import { useRouter, usePathname } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
 import { useAuthStore } from "../../store/auth.store";
-import { getRoleLabel, getViewType } from "./nav-config";
+import { getViewType } from "./nav-config";
 import { useHeaderScroll } from "./header-scroll-context";
 import { useTranslation } from "../../i18n/useTranslation";
 import { ConfirmDialog } from "../ConfirmDialog";
+import type { AuthUser } from "../../types/auth.types";
 
 /** Convertit un slug en nom lisible : "college-vogt" → "College Vogt" */
 export function slugToDisplayName(slug: string): string {
@@ -22,6 +23,11 @@ export function slugToDisplayName(slug: string): string {
     .split("-")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
+}
+
+/** Nom affiché dans le header d'accueil : prénom en minuscule, nom en majuscules. */
+export function formatHeaderUserName(user: AuthUser): string {
+  return `${user.firstName.toLowerCase()} ${user.lastName.toUpperCase()}`;
 }
 
 function isHomePath(pathname: string): boolean {
@@ -46,8 +52,8 @@ export function AppHeader() {
     return "SCOLIVE";
   }, [user, schoolSlug]);
 
-  const userFullName = user ? `${user.firstName} ${user.lastName}` : "";
-  const userRoleLabel = user ? getRoleLabel(user) : "";
+  const userFullName = user ? formatHeaderUserName(user) : "";
+  const schoolDisplayName = schoolSlug ? slugToDisplayName(schoolSlug) : "";
 
   const handleAuthButtonPress = () => {
     if (user) {
@@ -58,68 +64,83 @@ export function AppHeader() {
   };
 
   return (
-    <Animated.View
-      style={{ transform: [{ translateY: Animated.multiply(translateY, -1) }] }}
-    >
-      <SafeAreaView edges={["top"]} style={styles.safeArea}>
-        <View style={styles.bar} testID="app-header">
-          {/* Blobs décoratifs */}
-          <View style={styles.blobTopRight} pointerEvents="none" />
-          <View style={styles.blobBottomLeft} pointerEvents="none" />
-          <View style={styles.blobMid} pointerEvents="none" />
+    <>
+      <Animated.View
+        style={{
+          transform: [{ translateY: Animated.multiply(translateY, -1) }],
+        }}
+      >
+        <SafeAreaView edges={["top"]} style={styles.safeArea}>
+          <View style={styles.bar} testID="app-header">
+            {/* Blobs décoratifs */}
+            <View style={styles.blobTopRight} pointerEvents="none" />
+            <View style={styles.blobBottomLeft} pointerEvents="none" />
+            <View style={styles.blobMid} pointerEvents="none" />
 
-          {isHome ? (
-            <>
-              <View style={styles.homeLeft} testID="app-header-home-left">
-                <Text
-                  style={styles.homeName}
-                  numberOfLines={1}
-                  testID="app-header-home-name"
-                >
-                  {userFullName}
-                </Text>
-                {userRoleLabel ? (
+            {isHome ? (
+              <>
+                <View style={styles.homeLeft} testID="app-header-home-left">
                   <Text
-                    style={styles.homeRole}
+                    style={styles.homeName}
                     numberOfLines={1}
-                    testID="app-header-home-role"
+                    testID="app-header-home-name"
                   >
-                    {userRoleLabel}
+                    {userFullName}
                   </Text>
-                ) : null}
-              </View>
-              <TouchableOpacity
-                onPress={handleAuthButtonPress}
-                style={styles.authBtn}
-                testID="app-header-auth-btn"
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  user
-                    ? t("header.home.logoutAction")
-                    : t("header.home.loginAction")
-                }
+                  {schoolDisplayName ? (
+                    <View style={styles.homeSchoolRow}>
+                      <Ionicons
+                        name="business"
+                        size={11}
+                        color={colors.warmAccent}
+                      />
+                      <Text
+                        style={styles.homeSchool}
+                        numberOfLines={1}
+                        testID="app-header-home-school"
+                      >
+                        {schoolDisplayName}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+                <TouchableOpacity
+                  onPress={handleAuthButtonPress}
+                  style={styles.authBtn}
+                  testID="app-header-auth-btn"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    user
+                      ? t("header.home.logoutAction")
+                      : t("header.home.loginAction")
+                  }
+                >
+                  <Ionicons
+                    name={user ? "log-out-outline" : "log-in-outline"}
+                    size={22}
+                    color={colors.white}
+                  />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <Text
+                style={styles.title}
+                numberOfLines={1}
+                testID="app-header-title"
+                pointerEvents="none"
               >
-                <Ionicons
-                  name={user ? "log-out-outline" : "log-in-outline"}
-                  size={22}
-                  color={colors.white}
-                />
-              </TouchableOpacity>
-            </>
-          ) : (
-            <Text
-              style={styles.title}
-              numberOfLines={1}
-              testID="app-header-title"
-              pointerEvents="none"
-            >
-              {centerTitle}
-            </Text>
-          )}
-        </View>
-      </SafeAreaView>
+                {centerTitle}
+              </Text>
+            )}
+          </View>
+        </SafeAreaView>
+      </Animated.View>
 
+      {/* Rendu hors de l'Animated.View : un <Modal> est un portail natif et ne
+       * doit pas dépendre du transform du header pour rester réactif au tap
+       * (régression Fabric connue quand un Modal est imbriqué sous un
+       * ancêtre animé). */}
       <ConfirmDialog
         visible={confirmLogoutVisible}
         variant="danger"
@@ -134,7 +155,7 @@ export function AppHeader() {
         }}
         onCancel={() => setConfirmLogoutVisible(false)}
       />
-    </Animated.View>
+    </>
   );
 }
 
@@ -206,8 +227,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  homeRole: {
-    color: colors.warmAccent,
+  homeSchoolRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 1,
+  },
+  homeSchool: {
+    color: "rgba(255,255,255,0.82)",
     fontSize: 12,
     fontWeight: "500",
   },

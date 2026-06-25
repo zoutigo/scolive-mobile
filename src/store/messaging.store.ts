@@ -14,6 +14,11 @@ interface MessagingState {
   isRefreshing: boolean;
   search: string;
   unreadCount: number;
+  /** Messages explicitement remis en "non lu" par l'utilisateur pendant la
+   * session courante. Empêche le marquage automatique en lu (déclenché par
+   * l'affichage du message, ex: navigation swipe) d'écraser ce choix
+   * explicite. */
+  keepUnreadIds: Set<string>;
 
   setFolder: (folder: FolderKey) => void;
   setSearch: (search: string) => void;
@@ -35,6 +40,7 @@ export const useMessagingStore = create<MessagingState>((set, get) => ({
   isRefreshing: false,
   search: "",
   unreadCount: 0,
+  keepUnreadIds: new Set<string>(),
 
   setFolder(folder) {
     set({ folder, messages: [], meta: null, search: "" });
@@ -104,18 +110,25 @@ export const useMessagingStore = create<MessagingState>((set, get) => ({
   },
 
   markLocalRead(messageId) {
-    set((state) => ({
-      messages: state.messages.map((m) =>
-        m.id === messageId ? { ...m, unread: false } : m,
-      ),
-      unreadCount: Math.max(0, state.unreadCount - 1),
-    }));
+    set((state) => {
+      const nextKeepUnread = new Set(state.keepUnreadIds);
+      nextKeepUnread.delete(messageId);
+      return {
+        messages: state.messages.map((m) =>
+          m.id === messageId ? { ...m, unread: false } : m,
+        ),
+        unreadCount: Math.max(0, state.unreadCount - 1),
+        keepUnreadIds: nextKeepUnread,
+      };
+    });
   },
 
   markLocalUnread(messageId) {
     set((state) => {
       const target = state.messages.find((message) => message.id === messageId);
       const shouldIncrement = !!target && !target.unread;
+      const nextKeepUnread = new Set(state.keepUnreadIds);
+      nextKeepUnread.add(messageId);
 
       return {
         messages: state.messages.map((m) =>
@@ -124,14 +137,20 @@ export const useMessagingStore = create<MessagingState>((set, get) => ({
         unreadCount: shouldIncrement
           ? state.unreadCount + 1
           : state.unreadCount,
+        keepUnreadIds: nextKeepUnread,
       };
     });
   },
 
   removeLocal(messageId) {
-    set((state) => ({
-      messages: state.messages.filter((m) => m.id !== messageId),
-    }));
+    set((state) => {
+      const nextKeepUnread = new Set(state.keepUnreadIds);
+      nextKeepUnread.delete(messageId);
+      return {
+        messages: state.messages.filter((m) => m.id !== messageId),
+        keepUnreadIds: nextKeepUnread,
+      };
+    });
   },
 
   reset() {
@@ -141,6 +160,7 @@ export const useMessagingStore = create<MessagingState>((set, get) => ({
       meta: null,
       search: "",
       unreadCount: 0,
+      keepUnreadIds: new Set<string>(),
     });
   },
 }));

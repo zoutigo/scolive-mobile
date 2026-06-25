@@ -46,6 +46,8 @@ type SendPayload = {
     mimeType: string;
     size?: number;
   }>;
+  /** Ids of attachments from another message to copy onto this one (forward), without re-uploading them. */
+  forwardAttachmentIds?: string[];
 };
 
 type MultipartResponse = {
@@ -240,6 +242,9 @@ export const messagingApi = {
         type: attachment.mimeType,
         name: attachment.name,
       } as unknown as Blob);
+    }
+    for (const attachmentId of payload.forwardAttachmentIds ?? []) {
+      formData.append("forwardAttachmentIds", attachmentId);
     }
 
     const response = await postMultipart(

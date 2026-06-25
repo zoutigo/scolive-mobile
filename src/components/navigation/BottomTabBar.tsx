@@ -142,56 +142,62 @@ export function BottomTabBar() {
   };
 
   return (
-    <View
-      style={[styles.container, { paddingBottom: insets.bottom }]}
-      testID="bottom-tab-bar"
-    >
-      {tabs.map((tab) => {
-        const active = isActive(tab.key);
-        return (
-          <TouchableOpacity
-            key={tab.key}
-            onPress={() => handlePress(tab)}
-            style={styles.tab}
-            activeOpacity={0.7}
-            testID={`bottom-tab-${tab.key}`}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: active }}
-            accessibilityLabel={t(tab.labelKey)}
-          >
-            <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
-              <Ionicons
-                name={active ? tab.activeIcon : tab.inactiveIcon}
-                size={22}
-                color={active ? colors.warmAccent : INACTIVE_COLOR}
-              />
-              <View style={styles.badgeAnchor}>
-                <NavBadge
-                  count={badgeForTab(tab.key)}
-                  testID={`bottom-tab-${tab.key}-badge`}
-                />
-              </View>
-            </View>
-            <Text
-              style={[styles.label, active ? styles.labelActive : null]}
-              numberOfLines={1}
-              testID={`bottom-tab-${tab.key}-label`}
+    <View style={styles.wrapper}>
+      <View style={styles.container} testID="bottom-tab-bar">
+        {tabs.map((tab) => {
+          const active = isActive(tab.key);
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              onPress={() => handlePress(tab)}
+              style={styles.tab}
+              activeOpacity={0.7}
+              testID={`bottom-tab-${tab.key}`}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={t(tab.labelKey)}
             >
-              {t(tab.labelKey)}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
+              <View style={[styles.iconWrap, active && styles.iconWrapActive]}>
+                <Ionicons
+                  name={active ? tab.activeIcon : tab.inactiveIcon}
+                  size={22}
+                  color={active ? colors.warmAccent : INACTIVE_COLOR}
+                />
+                <View style={styles.badgeAnchor}>
+                  <NavBadge
+                    count={badgeForTab(tab.key)}
+                    testID={`bottom-tab-${tab.key}-badge`}
+                  />
+                </View>
+              </View>
+              <Text
+                style={[styles.label, active ? styles.labelActive : null]}
+                numberOfLines={1}
+                testID={`bottom-tab-${tab.key}-label`}
+              >
+                {t(tab.labelKey)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+      <View
+        style={[styles.safeAreaStrip, { height: insets.bottom }]}
+        pointerEvents="none"
+        testID="bottom-tab-bar-safe-area"
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  wrapper: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  container: {
     height: BOTTOM_TAB_BAR_HEIGHT,
     flexDirection: "row",
     backgroundColor: colors.primary,
@@ -202,6 +208,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
+  },
+  /** Bande claire sous la barre de tabs : laisse la pastille/les boutons
+   * système (icônes sombres par défaut, sans expo-navigation-bar) visibles
+   * par contraste au lieu de se fondre dans le fond sombre de la tab bar. */
+  safeAreaStrip: {
+    backgroundColor: colors.background,
   },
   tab: {
     flex: 1,

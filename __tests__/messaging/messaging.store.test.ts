@@ -39,6 +39,7 @@ beforeEach(() => {
     isRefreshing: false,
     search: "",
     unreadCount: 0,
+    keepUnreadIds: new Set(),
   });
 });
 
@@ -207,6 +208,15 @@ describe("markLocalRead()", () => {
     useMessagingStore.getState().markLocalRead("m1");
     expect(useMessagingStore.getState().unreadCount).toBe(0);
   });
+
+  it("retire l'id de keepUnreadIds", () => {
+    useMessagingStore.setState({
+      messages: [message1],
+      keepUnreadIds: new Set(["m1"]),
+    });
+    useMessagingStore.getState().markLocalRead("m1");
+    expect(useMessagingStore.getState().keepUnreadIds.has("m1")).toBe(false);
+  });
 });
 
 // ── markLocalUnread ───────────────────────────────────────────────────────────
@@ -235,6 +245,15 @@ describe("markLocalUnread()", () => {
     useMessagingStore.getState().markLocalUnread("m1");
     expect(useMessagingStore.getState().unreadCount).toBe(2);
   });
+
+  it("ajoute l'id à keepUnreadIds (choix explicite de l'utilisateur)", () => {
+    useMessagingStore.setState({
+      messages: [{ ...message1, unread: false }],
+      keepUnreadIds: new Set(),
+    });
+    useMessagingStore.getState().markLocalUnread("m1");
+    expect(useMessagingStore.getState().keepUnreadIds.has("m1")).toBe(true);
+  });
 });
 
 // ── removeLocal ───────────────────────────────────────────────────────────────
@@ -252,6 +271,15 @@ describe("removeLocal()", () => {
     useMessagingStore.getState().removeLocal("inexistant");
     expect(useMessagingStore.getState().messages).toHaveLength(1);
   });
+
+  it("retire l'id de keepUnreadIds", () => {
+    useMessagingStore.setState({
+      messages: [message1],
+      keepUnreadIds: new Set(["m1"]),
+    });
+    useMessagingStore.getState().removeLocal("m1");
+    expect(useMessagingStore.getState().keepUnreadIds.has("m1")).toBe(false);
+  });
 });
 
 // ── reset ─────────────────────────────────────────────────────────────────────
@@ -264,6 +292,7 @@ describe("reset()", () => {
       meta: metaPage1,
       search: "test",
       unreadCount: 5,
+      keepUnreadIds: new Set(["m1"]),
     });
     useMessagingStore.getState().reset();
     const state = useMessagingStore.getState();
@@ -272,5 +301,6 @@ describe("reset()", () => {
     expect(state.meta).toBeNull();
     expect(state.search).toBe("");
     expect(state.unreadCount).toBe(0);
+    expect(state.keepUnreadIds.size).toBe(0);
   });
 });

@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import { useHeaderScroll } from "../navigation/header-scroll-context";
+import { useTranslation } from "../../i18n/useTranslation";
 import type { AuthUser, SchoolRole } from "../../types/auth.types";
 
 interface SchoolHomeProps {
@@ -17,12 +18,12 @@ interface SchoolHomeProps {
   schoolSlug: string | null;
 }
 
-const ROLE_LABELS: Partial<Record<SchoolRole, string>> = {
-  SCHOOL_ADMIN: "Administrateur",
-  SCHOOL_MANAGER: "Directeur",
-  SUPERVISOR: "Superviseur",
-  SCHOOL_ACCOUNTANT: "Comptable",
-  SCHOOL_STAFF: "Personnel",
+const ROLE_LABEL_KEYS: Partial<Record<SchoolRole, string>> = {
+  SCHOOL_ADMIN: "home.hero.role.schoolAdmin",
+  SCHOOL_MANAGER: "home.hero.role.schoolManager",
+  SUPERVISOR: "home.hero.role.supervisor",
+  SCHOOL_ACCOUNTANT: "home.hero.role.accountant",
+  SCHOOL_STAFF: "home.hero.role.staff",
 };
 
 interface QuickLinkProps {
@@ -54,14 +55,13 @@ function QuickLink({ icon, label, color, count, onPress }: QuickLinkProps) {
   );
 }
 
-export function SchoolHome({ user, schoolSlug }: SchoolHomeProps) {
+export function SchoolHome({ user }: SchoolHomeProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const { onScroll } = useHeaderScroll();
   const role = (user.activeRole ?? user.role) as SchoolRole | null;
-  const roleLabel = role ? (ROLE_LABELS[role] ?? role) : "";
-  const schoolDisplay = schoolSlug
-    ? schoolSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-    : "Mon établissement";
+  const roleLabelKey = role ? ROLE_LABEL_KEYS[role] : undefined;
+  const roleLabel = roleLabelKey ? t(roleLabelKey) : (role ?? "");
 
   function handleQuickLinkPress(label: string) {
     if (label === "Fil d'actualité") {
@@ -92,18 +92,11 @@ export function SchoolHome({ user, schoolSlug }: SchoolHomeProps) {
       onScroll={onScroll}
       scrollEventThrottle={16}
     >
-      {/* Welcome banner */}
+      {/* Hero */}
       <View style={styles.banner}>
-        <View style={styles.bannerInner}>
-          <Text style={styles.greeting}>Bonjour,</Text>
-          <Text style={styles.bannerName}>
-            {user.firstName} {user.lastName}
-          </Text>
-          <View style={styles.schoolRow}>
-            <Ionicons name="business" size={14} color={colors.primary} />
-            <Text style={styles.schoolLabel}>{schoolDisplay}</Text>
-          </View>
-        </View>
+        <Text style={styles.greeting} numberOfLines={1}>
+          {t("home.hero.greeting")} {roleLabel}
+        </Text>
         <View style={[styles.rolePill, { backgroundColor: colors.primary }]}>
           <Text style={styles.rolePillText}>{roleLabel}</Text>
         </View>
@@ -189,24 +182,23 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
+    overflow: "hidden",
   },
-  bannerInner: { flex: 1 },
-  greeting: { fontSize: 13, color: colors.textSecondary, marginBottom: 2 },
-  bannerName: {
-    fontSize: 21,
+  greeting: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 17,
     fontWeight: "700",
     color: colors.textPrimary,
-    marginBottom: 8,
   },
-  schoolRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  schoolLabel: { fontSize: 13, color: colors.primary, fontWeight: "500" },
   rolePill: {
+    flexShrink: 0,
+    marginLeft: 10,
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    alignSelf: "flex-start",
   },
   rolePillText: { color: colors.white, fontSize: 11, fontWeight: "600" },
 

@@ -823,6 +823,129 @@ describe("Mode réponse", () => {
     renderCompose({ replyToSubject: "Re: Compte rendu" });
     expect(screen.getByDisplayValue("Re: Compte rendu")).toBeTruthy();
   });
+
+  it("préremplit le corps avec la citation du message original sans toucher l'éditeur", async () => {
+    renderCompose({
+      replyToSubject: "Convocation",
+      replyToSenderId: "u1",
+      replyToSenderLabel: "Martin Alice",
+      quoteHeader: "Le 15 janvier 2026, Alice Martin a écrit :",
+      quoteBodyHtml: "<p>Bonjour, vous êtes convoqué le 20 janvier.</p>",
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("send-btn"));
+    });
+
+    await waitFor(() => {
+      expect(api.send).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({
+          recipientUserIds: ["u1"],
+          body: expect.stringContaining(
+            "Bonjour, vous êtes convoqué le 20 janvier.",
+          ),
+        }),
+      );
+    });
+    const sentBody = api.send.mock.calls[0][1].body;
+    expect(sentBody).toContain("Le 15 janvier 2026, Alice Martin a écrit :");
+    expect(sentBody).toContain("<blockquote>");
+  });
+});
+
+describe("Mode transfert", () => {
+  it("affiche 'Transférer' dans le titre", () => {
+    renderCompose({ forwardSubject: "Convocation" });
+    expect(screen.getByText("Transférer")).toBeTruthy();
+  });
+
+  it("préfixe le sujet avec 'Tr : ' si absent", () => {
+    renderCompose({ forwardSubject: "Compte rendu" });
+    expect(screen.getByDisplayValue("Tr : Compte rendu")).toBeTruthy();
+  });
+
+  it("ne double pas le préfixe 'Tr :'", () => {
+    renderCompose({ forwardSubject: "Tr : Compte rendu" });
+    expect(screen.getByDisplayValue("Tr : Compte rendu")).toBeTruthy();
+  });
+
+  it("ne préremplit aucun destinataire (contrairement à la réponse)", () => {
+    renderCompose({ forwardSubject: "Convocation" });
+    expect(screen.queryByText("Martin Alice")).toBeNull();
+    expect(screen.getByTestId("recipients-field")).toBeTruthy();
+  });
+
+  it("affiche les pièces jointes d'origine marquées comme transférées", () => {
+    renderCompose({
+      forwardSubject: "Convocation",
+      forwardAttachments: JSON.stringify([
+        {
+          id: "att-1",
+          fileName: "bulletin.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: 1024,
+        },
+      ]),
+    });
+
+    expect(screen.getByText("bulletin.pdf")).toBeTruthy();
+    expect(screen.getByText(/transféré/)).toBeTruthy();
+  });
+
+  it("envoie les pièces jointes transférées par référence, sans les ré-uploader", async () => {
+    renderCompose({
+      forwardSubject: "Convocation",
+      quoteHeader: "---------- Message transféré ----------",
+      quoteBodyHtml: "<p>Corps original</p>",
+      forwardAttachments: JSON.stringify([
+        {
+          id: "att-1",
+          fileName: "bulletin.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: 1024,
+        },
+      ]),
+    });
+
+    fireEvent.press(screen.getByTestId("recipients-field"));
+    fireEvent.press(screen.getByTestId("recipient-modal-confirm"));
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("send-btn"));
+    });
+
+    await waitFor(() => {
+      expect(api.send).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({
+          recipientUserIds: ["t1"],
+          forwardAttachmentIds: ["att-1"],
+          attachments: [],
+        }),
+      );
+    });
+  });
+
+  it("permet de retirer une pièce jointe transférée avant l'envoi", async () => {
+    renderCompose({
+      forwardSubject: "Convocation",
+      forwardAttachments: JSON.stringify([
+        {
+          id: "att-1",
+          fileName: "bulletin.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: 1024,
+        },
+      ]),
+    });
+
+    fireEvent.press(screen.getByTestId("remove-attachment-fwd-att-1"));
+
+    await waitFor(() => {
+      expect(screen.queryByText("bulletin.pdf")).toBeNull();
+    });
+  });
 });
 
 describe("fileIcon()", () => {

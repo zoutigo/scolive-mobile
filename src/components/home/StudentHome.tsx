@@ -9,6 +9,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
 import { useHeaderScroll } from "../navigation/header-scroll-context";
+import { useTranslation } from "../../i18n/useTranslation";
 import type { AuthUser } from "../../types/auth.types";
 
 interface StudentHomeProps {
@@ -32,15 +33,13 @@ const MONTH_LABELS = [
   "décembre",
 ];
 
-export function StudentHome({ user, schoolSlug }: StudentHomeProps) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- contrat de props commun aux écrans d'accueil
+export function StudentHome(props: StudentHomeProps) {
+  const { t } = useTranslation();
   const { onScroll } = useHeaderScroll();
   const now = new Date();
   const dayLabel = DAY_LABELS[now.getDay()];
   const dateStr = `${dayLabel} ${now.getDate()} ${MONTH_LABELS[now.getMonth()]}`;
-
-  const schoolDisplay = schoolSlug
-    ? schoolSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-    : "Mon établissement";
 
   return (
     <ScrollView
@@ -50,23 +49,16 @@ export function StudentHome({ user, schoolSlug }: StudentHomeProps) {
       onScroll={onScroll}
       scrollEventThrottle={16}
     >
-      {/* Banner */}
+      {/* Hero */}
       <View style={styles.banner}>
         <View style={styles.bannerLeft}>
-          <Text style={styles.greeting}>Bonjour,</Text>
-          <Text style={styles.bannerName}>{user.firstName}</Text>
-          <View style={styles.schoolRow}>
-            <Ionicons name="business" size={13} color={colors.primary} />
-            <Text style={styles.schoolLabel}>{schoolDisplay}</Text>
-          </View>
-        </View>
-        <View style={styles.bannerRight}>
-          <View
-            style={[styles.rolePill, { backgroundColor: colors.accentTeal }]}
-          >
-            <Text style={styles.rolePillText}>Élève</Text>
-          </View>
+          <Text style={styles.greeting} numberOfLines={1}>
+            {t("home.hero.greeting")} {t("home.hero.role.student")}
+          </Text>
           <Text style={styles.dateText}>{dateStr}</Text>
+        </View>
+        <View style={[styles.rolePill, { backgroundColor: colors.accentTeal }]}>
+          <Text style={styles.rolePillText}>{t("home.hero.role.student")}</Text>
         </View>
       </View>
 
@@ -190,21 +182,19 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 16,
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
+    overflow: "hidden",
   },
-  bannerLeft: { flex: 1 },
-  bannerRight: { alignItems: "flex-end", gap: 8 },
-  greeting: { fontSize: 13, color: colors.textSecondary, marginBottom: 2 },
-  bannerName: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    marginBottom: 8,
+  bannerLeft: { flex: 1, minWidth: 0, gap: 4 },
+  greeting: { fontSize: 17, fontWeight: "700", color: colors.textPrimary },
+  rolePill: {
+    flexShrink: 0,
+    marginLeft: 10,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
-  schoolRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  schoolLabel: { fontSize: 12, color: colors.primary, fontWeight: "500" },
-  rolePill: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
   rolePillText: { color: colors.white, fontSize: 11, fontWeight: "600" },
   dateText: { fontSize: 12, color: colors.textSecondary },
 

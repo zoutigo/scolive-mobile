@@ -57,6 +57,9 @@ export type AttachedFile = {
   uri: string;
   /** true when backend returned 200, false = unsupported type, null = not tried */
   uploaded: boolean | null;
+  /** Set when this attachment is carried over from a forwarded message — it is
+   * sent by reference (forwardAttachmentIds) instead of being re-uploaded. */
+  forwardedAttachmentId?: string;
 };
 
 export const TEXT_COLOR_PRESETS = [
@@ -144,11 +147,69 @@ export function resolveAttachmentMimeType(params: {
 function dedupeAttachedFiles(files: AttachedFile[]): AttachedFile[] {
   const seen = new Set<string>();
   return files.filter((file) => {
-    const key = `${file.name}::${file.uri}`;
+    const key = file.forwardedAttachmentId ?? `${file.name}::${file.uri}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
+}
+
+function escapeHtmlText(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+export function buildQuotedBodyHtml(
+  quoteHeader?: string,
+  quoteBodyHtml?: string,
+): string {
+  if (!quoteBodyHtml) return "";
+  const headerHtml = quoteHeader
+    ? quoteHeader.split("\n").map(escapeHtmlText).join("<br/>")
+    : "";
+  return `<p>&nbsp;</p><p>&nbsp;</p>${
+    headerHtml ? `<p>${headerHtml}</p>` : ""
+  }<blockquote>${quoteBodyHtml}</blockquote>`;
+}
+
+export function buildPrefixedSubject(
+  rawSubject: string,
+  prefix: string,
+): string {
+  const normalized = rawSubject.trim();
+  const trimmedPrefix = prefix.trim().toLowerCase();
+  if (normalized.toLowerCase().startsWith(trimmedPrefix)) {
+    return normalized;
+  }
+  return `${prefix}${normalized}`;
+}
+
+type ForwardAttachmentRef = {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+};
+
+function parseForwardAttachments(json?: string): AttachedFile[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json) as ForwardAttachmentRef[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((attachment) => ({
+      id: `fwd-${attachment.id}`,
+      name: attachment.fileName,
+      size: attachment.sizeBytes,
+      mimeType: attachment.mimeType,
+      uri: "",
+      uploaded: null,
+      forwardedAttachmentId: attachment.id,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export function buildFormatBlockCommand(tag: "h2" | "blockquote"): string {
@@ -251,6 +312,26 @@ function buildComposeSchema(t: TranslateFn) {
 }
 type ComposeValues = z.infer<ReturnType<typeof buildComposeSchema>>;
 
+function splitAttachmentsForSend(attachedFiles: AttachedFile[]) {
+  const newFiles = attachedFiles.filter((file) => !file.forwardedAttachmentId);
+  const forwardAttachmentIds = attachedFiles
+    .filter((file): file is AttachedFile & { forwardedAttachmentId: string } =>
+      Boolean(file.forwardedAttachmentId),
+    )
+    .map((file) => file.forwardedAttachmentId);
+
+  return {
+    attachments: newFiles.map((file) => ({
+      uri: file.uri,
+      name: file.name,
+      mimeType: file.mimeType,
+      size: file.size,
+    })),
+    forwardAttachmentIds:
+      forwardAttachmentIds.length > 0 ? forwardAttachmentIds : undefined,
+  };
+}
+
 function hasDraftContent(params: {
   subject: string;
   hasBody: boolean;
@@ -280,6 +361,10 @@ export default function ComposeScreen() {
     replyToSubject,
     replyToSenderId,
     replyToSenderLabel,
+    forwardSubject,
+    quoteHeader,
+    quoteBodyHtml,
+    forwardAttachments,
     prefilledRecipientId,
     prefilledRecipientLabel,
     prefilledRecipientEmail,
@@ -287,18 +372,30 @@ export default function ComposeScreen() {
     replyToSubject?: string;
     replyToSenderId?: string;
     replyToSenderLabel?: string;
+    forwardSubject?: string;
+    quoteHeader?: string;
+    quoteBodyHtml?: string;
+    forwardAttachments?: string;
     prefilledRecipientId?: string;
     prefilledRecipientLabel?: string;
     prefilledRecipientEmail?: string;
   }>();
 
   const isReply = !!replyToSubject;
+  const isForward = !!forwardSubject;
 
-  const initialSubject = replyToSubject
-    ? replyToSubject.startsWith("Re:") || replyToSubject.startsWith("RE:")
-      ? replyToSubject
-      : `Re: ${replyToSubject}`
-    : "";
+  const initialSubject = isForward
+    ? buildPrefixedSubject(
+        forwardSubject ?? "",
+        t("messaging.detail.forward.subjectPrefix"),
+      )
+    : isReply
+      ? replyToSubject!.startsWith("Re:") || replyToSubject!.startsWith("RE:")
+        ? replyToSubject!
+        : `Re: ${replyToSubject}`
+      : "";
+
+  const initialBodyHtml = buildQuotedBodyHtml(quoteHeader, quoteBodyHtml);
 
   const composeSchema = useMemo(() => buildComposeSchema(t), [t]);
 
@@ -313,8 +410,8 @@ export default function ComposeScreen() {
   const { submitCount } = formState;
   const watchedSubject = watch("subject");
 
-  const [bodyHtml, setBodyHtml] = useState("");
-  const [hasBody, setHasBody] = useState(false);
+  const [bodyHtml, setBodyHtml] = useState(initialBodyHtml);
+  const [hasBody, setHasBody] = useState(hasTextContent(initialBodyHtml));
   const [recipientsError, setRecipientsError] = useState<string | null>(null);
   const [bodyError, setBodyError] = useState<string | null>(null);
   const [selectedRecipients, setSelectedRecipients] = useState<
@@ -337,7 +434,9 @@ export default function ComposeScreen() {
   const [recipients, setRecipients] = useState<RecipientOption[]>([]);
   const [recipientsLoading, setRecipientsLoading] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
-  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>(() =>
+    parseForwardAttachments(forwardAttachments),
+  );
   const [isInsertingImage, setIsInsertingImage] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
@@ -630,12 +729,7 @@ export default function ComposeScreen() {
         body: hasBody ? bodyHtml : EMPTY_DRAFT_HTML,
         recipientUserIds: selectedRecipients.map((r) => r.value),
         isDraft: true,
-        attachments: attachedFiles.map((file) => ({
-          uri: file.uri,
-          name: file.name,
-          mimeType: file.mimeType,
-          size: file.size,
-        })),
+        ...splitAttachmentsForSend(attachedFiles),
       });
       if (folder === "drafts") await loadMessages(schoolSlug);
       showFeedbackToast({
@@ -670,12 +764,7 @@ export default function ComposeScreen() {
         subject,
         body: bodyHtml,
         recipientUserIds: selectedRecipients.map((r) => r.value),
-        attachments: attachedFiles.map((file) => ({
-          uri: file.uri,
-          name: file.name,
-          mimeType: file.mimeType,
-          size: file.size,
-        })),
+        ...splitAttachmentsForSend(attachedFiles),
       });
       if (folder === "sent") await loadMessages(schoolSlug);
       showFeedbackToast({
@@ -725,9 +814,11 @@ export default function ComposeScreen() {
         {/* Header */}
         <ModuleHeader
           title={
-            isReply
-              ? t("messaging.compose.titleReply")
-              : t("messaging.compose.titleNew")
+            isForward
+              ? t("messaging.compose.titleForward")
+              : isReply
+                ? t("messaging.compose.titleReply")
+                : t("messaging.compose.titleNew")
           }
           onBack={() => router.back()}
           topInset={insets.top}
@@ -861,6 +952,7 @@ export default function ComposeScreen() {
             }}
             placeholder={t("messaging.compose.bodyPlaceholder")}
             onChange={handleEditorChange}
+            initialContentHTML={initialBodyHtml}
             useContainer
             initialFocus={false}
             testID="rich-editor"
@@ -909,6 +1001,9 @@ export default function ComposeScreen() {
                     </Text>
                     <Text style={styles.attachmentMeta}>
                       {formatFileSize(file.size)}
+                      {file.forwardedAttachmentId
+                        ? ` · ${t("messaging.compose.attachments.forwardedTag")}`
+                        : ""}
                     </Text>
                   </View>
                   <TouchableOpacity

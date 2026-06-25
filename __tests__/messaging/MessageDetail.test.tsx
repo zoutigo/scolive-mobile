@@ -22,6 +22,25 @@ jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/messaging.api");
 jest.mock("../../src/store/messaging.store");
 jest.mock("../../src/store/auth.store");
+jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
+  default: jest
+    .fn()
+    .mockReturnValue({ width: 360, height: 800, scale: 2, fontScale: 1 }),
+}));
+
+const mockLoadSummary = jest.fn().mockResolvedValue(undefined);
+jest.mock("../../src/store/badges.store", () => ({
+  useBadgesStore: jest.fn(),
+}));
+const mockUseBadgesStore = jest.requireMock("../../src/store/badges.store")
+  .useBadgesStore as jest.Mock & { getState: () => unknown };
+mockUseBadgesStore.mockReturnValue({
+  summary: null,
+  loadSummary: mockLoadSummary,
+  clear: jest.fn(),
+});
+mockUseBadgesStore.getState = () => ({ loadSummary: mockLoadSummary });
+
 jest.spyOn(Linking, "canOpenURL").mockResolvedValue(true);
 jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
 
@@ -70,7 +89,11 @@ const messageWithImages = {
 };
 
 const storeState = {
-  folder: "inbox" as const,
+  folder: "inbox" as "inbox" | "sent" | "drafts" | "archive",
+  messages: [] as Array<{ id: string }>,
+  meta: null as { total: number } | null,
+  unreadCount: 0,
+  keepUnreadIds: new Set<string>(),
   markLocalRead: jest.fn(),
   markLocalUnread: jest.fn(),
   removeLocal: jest.fn(),
@@ -79,9 +102,25 @@ const showFeedbackToast = jest.fn();
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockLoadSummary.mockClear();
+  storeState.folder = "inbox";
+  storeState.messages = [];
+  storeState.meta = null;
+  storeState.unreadCount = 0;
+  storeState.keepUnreadIds = new Set<string>();
   useSuccessToastStore.setState({ show: showFeedbackToast });
   (useAuthStore as unknown as jest.Mock).mockReturnValue({
     schoolSlug: "college-vogt",
+    user: {
+      id: "parent-1",
+      firstName: "Valery",
+      lastName: "Mbele",
+      platformRoles: [],
+      memberships: [{ schoolId: "school-1", role: "PARENT" }],
+      profileCompleted: true,
+      role: "PARENT",
+      activeRole: "PARENT",
+    },
   });
   (useMessagingStore as unknown as jest.Mock).mockReturnValue(storeState);
   api.get.mockResolvedValue(messageDetail);
@@ -92,30 +131,53 @@ beforeEach(() => {
 
 async function renderDetailAndWait() {
   render(<MessageDetailScreen />);
-  await screen.findByTestId("recipients-toggle");
+  await screen.findByTestId("recipients-toggle-m1");
 }
 
-// ── Rendu ─────────────────────────────────────────────────────────────────────
+// ── Header / boîte de message ─────────────────────────────────────────────────
 
-describe("Rendu du détail", () => {
-  it("affiche une barre d'actions fixe sur une seule ligne", async () => {
-    await renderDetailAndWait();
-    expect(screen.getByTestId("message-detail-action-bar")).toHaveStyle({
-      flexDirection: "row",
-    });
-  });
-
-  it("affiche le header en état loading", () => {
+describe("Header de boîte de message", () => {
+  it("affiche le header immédiatement, sans dépendre du chargement du message", () => {
     api.get.mockImplementation(() => new Promise(() => {}));
     render(<MessageDetailScreen />);
     expect(screen.getByTestId("message-detail-header")).toBeTruthy();
     expect(screen.getByTestId("msg-back-btn")).toBeTruthy();
   });
 
-  it("affiche l'en-tête du message avec les bons testIDs", async () => {
+  it("affiche 'Boîte de réception de {user} · non lus/total' pour le dossier inbox", () => {
+    storeState.unreadCount = 3;
+    storeState.meta = { total: 12 };
+    render(<MessageDetailScreen />);
+    expect(screen.getByTestId("message-detail-header-title")).toHaveTextContent(
+      "Boîte de réception de Valery Mbele · 3/12",
+    );
+  });
+
+  it("ne répète pas le sujet du message dans le header", async () => {
     await renderDetailAndWait();
-    expect(screen.getByTestId("message-detail-header")).toBeTruthy();
-    expect(screen.getByTestId("msg-back-btn")).toBeTruthy();
+    expect(
+      screen.getByTestId("message-detail-header-title"),
+    ).not.toHaveTextContent("Convocation réunion parents");
+  });
+
+  it("affiche un libellé dédié pour le dossier sent (pas de fraction non-lus)", () => {
+    storeState.folder = "sent";
+    storeState.meta = { total: 5 };
+    render(<MessageDetailScreen />);
+    expect(screen.getByTestId("message-detail-header-title")).toHaveTextContent(
+      "Messages envoyés de Valery Mbele · 5",
+    );
+  });
+});
+
+// ── Rendu ─────────────────────────────────────────────────────────────────────
+
+describe("Rendu du détail", () => {
+  it("affiche une barre d'actions fixe sur une seule ligne", async () => {
+    await renderDetailAndWait();
+    expect(screen.getByTestId("message-detail-action-bar-m1")).toHaveStyle({
+      flexDirection: "row",
+    });
   });
 
   it("affiche le sujet dans la carte de résumé", async () => {
@@ -137,9 +199,17 @@ describe("Rendu du détail", () => {
     expect(screen.getByText("Martin Alice")).toBeTruthy();
   });
 
-  it("affiche le nombre de destinataires", async () => {
+  it("affiche le nombre de destinataires en version compacte avec un libellé accessible", async () => {
     await renderDetailAndWait();
-    expect(screen.getByText("1 destinataire")).toBeTruthy();
+    expect(screen.getByText("1")).toBeTruthy();
+    expect(screen.getByLabelText("1 destinataire")).toBeTruthy();
+  });
+
+  it("affiche un état d'erreur si le chargement échoue", async () => {
+    api.get.mockRejectedValueOnce(new Error("NETWORK_ERROR"));
+    render(<MessageDetailScreen />);
+    await screen.findByTestId("message-detail-error-m1");
+    expect(mockBack).not.toHaveBeenCalled();
   });
 });
 
@@ -160,6 +230,13 @@ describe("Marquage comme lu", () => {
     });
   });
 
+  it("rafraîchit le résumé global des badges", async () => {
+    await renderDetailAndWait();
+    await waitFor(() => {
+      expect(mockLoadSummary).toHaveBeenCalledWith("college-vogt");
+    });
+  });
+
   it("ne rappelle pas markRead si déjà lu", async () => {
     api.get.mockResolvedValueOnce({
       ...messageDetail,
@@ -174,6 +251,14 @@ describe("Marquage comme lu", () => {
       expect(api.markRead).not.toHaveBeenCalled();
     });
   });
+
+  it("ne marque pas lu un message que l'utilisateur a explicitement remis en non-lu", async () => {
+    storeState.keepUnreadIds = new Set(["m1"]);
+    await renderDetailAndWait();
+    await waitFor(() => {
+      expect(api.markRead).not.toHaveBeenCalled();
+    });
+  });
 });
 
 // ── Affichage des destinataires ───────────────────────────────────────────────
@@ -181,16 +266,16 @@ describe("Marquage comme lu", () => {
 describe("Liste des destinataires", () => {
   it("affiche les destinataires quand on presse le toggle", async () => {
     await renderDetailAndWait();
-    fireEvent.press(screen.getByTestId("recipients-toggle"));
+    fireEvent.press(screen.getByTestId("recipients-toggle-m1"));
     expect(screen.getByText("Ntamack Robert")).toBeTruthy();
     expect(screen.getByText("robert@school.cm")).toBeTruthy();
   });
 
   it("cache les destinataires quand on represse le toggle", async () => {
     await renderDetailAndWait();
-    fireEvent.press(screen.getByTestId("recipients-toggle"));
+    fireEvent.press(screen.getByTestId("recipients-toggle-m1"));
     expect(screen.getByText("Ntamack Robert")).toBeTruthy();
-    fireEvent.press(screen.getByTestId("recipients-toggle"));
+    fireEvent.press(screen.getByTestId("recipients-toggle-m1"));
     expect(screen.queryByText("Ntamack Robert")).toBeNull();
   });
 });
@@ -201,7 +286,7 @@ describe("Images inline", () => {
   it("affiche les images extraites du HTML", async () => {
     api.get.mockResolvedValueOnce(messageWithImages);
     await renderDetailAndWait();
-    expect(screen.getByTestId("inline-image-0")).toBeTruthy();
+    expect(screen.getByTestId("inline-image-m1-0")).toBeTruthy();
   });
 });
 
@@ -240,7 +325,7 @@ describe("Pièces jointes", () => {
     });
 
     await renderDetailAndWait();
-    fireEvent.press(screen.getByTestId("attachment-row-att-1"));
+    fireEvent.press(screen.getByTestId("attachment-row-m1-att-1"));
     await waitFor(() => {
       expect(Linking.openURL).toHaveBeenCalledWith(
         "http://10.0.2.2:9000/media/bulletin.pdf",
@@ -255,7 +340,7 @@ describe("Action archiver", () => {
   it("appelle archive() et removeLocal() puis revient", async () => {
     await renderDetailAndWait();
     await act(async () => {
-      fireEvent.press(screen.getByTestId("archive-btn"));
+      fireEvent.press(screen.getByTestId("archive-btn-m1"));
     });
     expect(api.archive).toHaveBeenCalledWith("college-vogt", "m1", true);
     expect(showFeedbackToast).toHaveBeenCalledWith({
@@ -272,7 +357,7 @@ describe("Action archiver", () => {
 
     await renderDetailAndWait();
     await act(async () => {
-      fireEvent.press(screen.getByTestId("archive-btn"));
+      fireEvent.press(screen.getByTestId("archive-btn-m1"));
     });
 
     await waitFor(() => {
@@ -297,15 +382,27 @@ describe("Action marquer non lu", () => {
     });
 
     await renderDetailAndWait();
-    expect(screen.getByTestId("mark-unread-btn")).toBeTruthy();
+    expect(screen.getByTestId("mark-unread-btn-m1")).toBeTruthy();
   });
 
-  it("cache le bouton si le message est déjà non lu", async () => {
+  it("affiche le bouton après le marquage automatique en lu (message reçu venant d'être ouvert)", async () => {
     await renderDetailAndWait();
-    expect(screen.queryByTestId("mark-unread-btn")).toBeNull();
+    await waitFor(() => {
+      expect(screen.getByTestId("mark-unread-btn-m1")).toBeTruthy();
+    });
   });
 
-  it("appelle markRead(false) et met à jour le store local", async () => {
+  it("cache le bouton pour un message envoyé par l'utilisateur (pas de recipientState)", async () => {
+    api.get.mockResolvedValueOnce({
+      ...messageDetail,
+      isSender: true,
+      recipientState: null,
+    });
+    await renderDetailAndWait();
+    expect(screen.queryByTestId("mark-unread-btn-m1")).toBeNull();
+  });
+
+  it("appelle markRead(false), met à jour le store et affiche un toast sans quitter l'écran", async () => {
     api.get.mockResolvedValueOnce({
       ...messageDetail,
       recipientState: {
@@ -317,25 +414,55 @@ describe("Action marquer non lu", () => {
 
     await renderDetailAndWait();
     await act(async () => {
-      fireEvent.press(screen.getByTestId("mark-unread-btn"));
+      fireEvent.press(screen.getByTestId("mark-unread-btn-m1"));
     });
 
     expect(api.markRead).toHaveBeenCalledWith("college-vogt", "m1", false);
     expect(storeState.markLocalUnread).toHaveBeenCalledWith("m1");
-    expect(mockBack).toHaveBeenCalled();
+    expect(showFeedbackToast).toHaveBeenCalledWith({
+      variant: "success",
+      title: "Message marqué non lu",
+      message: "Vous le retrouverez non lu dans votre boîte.",
+    });
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it("affiche une alerte d'erreur si l'appel échoue", async () => {
+    const { Alert } = require("react-native");
+    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(jest.fn());
+    api.get.mockResolvedValueOnce({
+      ...messageDetail,
+      recipientState: {
+        readAt: "2024-01-15T10:10:00Z",
+        archivedAt: null,
+        deletedAt: null,
+      },
+    });
+    api.markRead.mockRejectedValueOnce(new Error("MARK_UNREAD_FAILED"));
+
+    await renderDetailAndWait();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("mark-unread-btn-m1"));
+    });
+
+    expect(alertSpy).toHaveBeenCalledWith(
+      "Erreur",
+      "Impossible de marquer ce message comme non lu.",
+    );
+    alertSpy.mockRestore();
   });
 });
 
 describe("Action supprimer", () => {
   it("affiche le dialog de confirmation", async () => {
     await renderDetailAndWait();
-    fireEvent.press(screen.getByTestId("delete-btn"));
+    fireEvent.press(screen.getByTestId("delete-btn-m1"));
     expect(screen.getByTestId("confirm-dialog-card")).toBeTruthy();
   });
 
   it("supprime le message après confirmation", async () => {
     await renderDetailAndWait();
-    fireEvent.press(screen.getByTestId("delete-btn"));
+    fireEvent.press(screen.getByTestId("delete-btn-m1"));
     await act(async () => {
       fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
     });
@@ -346,13 +473,14 @@ describe("Action supprimer", () => {
       message: "Le message a bien été supprimé.",
     });
     expect(storeState.removeLocal).toHaveBeenCalledWith("m1");
+    expect(mockBack).toHaveBeenCalled();
   });
 
   it("affiche un toast d'erreur si la suppression échoue", async () => {
     api.remove.mockRejectedValueOnce(new Error("DELETE_FAILED"));
 
     await renderDetailAndWait();
-    fireEvent.press(screen.getByTestId("delete-btn"));
+    fireEvent.press(screen.getByTestId("delete-btn-m1"));
     await act(async () => {
       fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
     });
@@ -368,7 +496,7 @@ describe("Action supprimer", () => {
 
   it("n'appelle pas remove si on annule", async () => {
     await renderDetailAndWait();
-    fireEvent.press(screen.getByTestId("delete-btn"));
+    fireEvent.press(screen.getByTestId("delete-btn-m1"));
     fireEvent.press(screen.getByTestId("confirm-dialog-cancel"));
     expect(api.remove).not.toHaveBeenCalled();
   });
@@ -377,7 +505,7 @@ describe("Action supprimer", () => {
 describe("Action répondre", () => {
   it("navigue vers compose avec les bons params", async () => {
     await renderDetailAndWait();
-    fireEvent.press(screen.getByTestId("reply-btn"));
+    fireEvent.press(screen.getByTestId("reply-btn-m1"));
     expect(mockPush).toHaveBeenCalledWith(
       expect.objectContaining({
         params: expect.objectContaining({
@@ -390,10 +518,184 @@ describe("Action répondre", () => {
 
   it("préfixe le sujet avec 'Re:' si absent", async () => {
     await renderDetailAndWait();
-    fireEvent.press(screen.getByTestId("reply-btn"));
+    fireEvent.press(screen.getByTestId("reply-btn-m1"));
     const params = (
       mockPush.mock.calls[0][0] as { params: Record<string, string> }
     ).params;
     expect(params.replyToSubject).toBe("Convocation réunion parents");
+  });
+
+  it("préremplit la citation du message original (auteur, date, corps)", async () => {
+    await renderDetailAndWait();
+    fireEvent.press(screen.getByTestId("reply-btn-m1"));
+    const params = (
+      mockPush.mock.calls[0][0] as { params: Record<string, string> }
+    ).params;
+    expect(params.quoteHeader).toContain("Alice Martin");
+    expect(params.quoteBodyHtml).toBe(
+      "<p>Bonjour, vous êtes convoqué le 20 janvier.</p>",
+    );
+  });
+
+  it("ne propose pas de répondre à un message qu'on a soi-même envoyé", async () => {
+    api.get.mockResolvedValueOnce({
+      ...messageDetail,
+      isSender: true,
+      recipientState: null,
+    });
+    await renderDetailAndWait();
+    expect(screen.queryByTestId("reply-btn-m1")).toBeNull();
+  });
+});
+
+describe("Action transférer", () => {
+  it("navigue vers compose avec le sujet, la citation et les pièces jointes d'origine", async () => {
+    api.get.mockResolvedValueOnce({
+      ...messageDetail,
+      attachments: [
+        {
+          id: "att-1",
+          fileName: "bulletin.pdf",
+          url: "http://10.0.2.2:9000/media/bulletin.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: 1024,
+        },
+      ],
+    });
+    await renderDetailAndWait();
+    fireEvent.press(screen.getByTestId("forward-btn-m1"));
+
+    const params = (
+      mockPush.mock.calls[0][0] as { params: Record<string, string> }
+    ).params;
+    expect(params.forwardSubject).toBe("Convocation réunion parents");
+    expect(params.quoteHeader).toContain("Alice Martin");
+    expect(params.quoteHeader).toContain("Robert Ntamack");
+    expect(params.quoteBodyHtml).toBe(
+      "<p>Bonjour, vous êtes convoqué le 20 janvier.</p>",
+    );
+    expect(JSON.parse(params.forwardAttachments)).toEqual([
+      {
+        id: "att-1",
+        fileName: "bulletin.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 1024,
+      },
+    ]);
+  });
+
+  it("propose de transférer même un message qu'on a soi-même envoyé", async () => {
+    api.get.mockResolvedValueOnce({
+      ...messageDetail,
+      isSender: true,
+      recipientState: null,
+    });
+    await renderDetailAndWait();
+    expect(screen.getByTestId("forward-btn-m1")).toBeTruthy();
+  });
+});
+
+// ── Navigation par swipe entre messages ───────────────────────────────────────
+
+describe("Navigation par swipe entre messages", () => {
+  const message2 = {
+    ...messageDetail,
+    id: "m2",
+    subject: "Réunion pédagogique",
+    recipientState: { readAt: null, archivedAt: null, deletedAt: null },
+  };
+  const message3 = {
+    ...messageDetail,
+    id: "m3",
+    subject: "Sortie scolaire",
+    recipientState: {
+      readAt: "2024-01-10T08:00:00Z",
+      archivedAt: null,
+      deletedAt: null,
+    },
+  };
+
+  function swipeTo(index: number) {
+    fireEvent(screen.getByTestId("message-detail-pager"), "momentumScrollEnd", {
+      nativeEvent: { contentOffset: { x: index * 360 } },
+    });
+  }
+
+  beforeEach(() => {
+    storeState.messages = [{ id: "m1" }, { id: "m2" }, { id: "m3" }];
+    storeState.meta = { total: 3 };
+    api.get.mockImplementation((_slug, id) => {
+      if (id === "m2") return Promise.resolve(message2);
+      if (id === "m3") return Promise.resolve(message3);
+      return Promise.resolve(messageDetail);
+    });
+  });
+
+  it("affiche le message suivant après un swipe et le marque automatiquement comme lu", async () => {
+    await renderDetailAndWait();
+
+    swipeTo(1);
+
+    await screen.findByTestId("recipients-toggle-m2");
+    await waitFor(() => {
+      expect(api.markRead).toHaveBeenCalledWith("college-vogt", "m2", true);
+    });
+    expect(storeState.markLocalRead).toHaveBeenCalledWith("m2");
+  });
+
+  it("ne monte pas la 3e page tant qu'on n'a pas swipé jusqu'à elle (fenêtre de rendu)", async () => {
+    await renderDetailAndWait();
+    expect(screen.queryByTestId("recipients-toggle-m3")).toBeNull();
+
+    swipeTo(1);
+    await screen.findByTestId("recipients-toggle-m2");
+    await screen.findByTestId("recipients-toggle-m3");
+  });
+
+  it("revenir en arrière par swipe ne re-déclenche pas markRead", async () => {
+    await renderDetailAndWait();
+    swipeTo(1);
+    await screen.findByTestId("recipients-toggle-m2");
+    await waitFor(() => expect(api.markRead).toHaveBeenCalledTimes(2)); // m1 + m2
+
+    swipeTo(0);
+    await screen.findByTestId("recipients-toggle-m1");
+
+    expect(api.markRead).toHaveBeenCalledTimes(2);
+  });
+
+  it("respecte le choix explicite 'non lu' même après un aller-retour de swipe", async () => {
+    await renderDetailAndWait();
+    swipeTo(1);
+    await screen.findByTestId("mark-unread-btn-m2");
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("mark-unread-btn-m2"));
+    });
+    expect(storeState.markLocalUnread).toHaveBeenCalledWith("m2");
+
+    // Le choix "non lu" doit être respecté côté store : on simule sa prise
+    // en compte par keepUnreadIds, comme le ferait le vrai store.
+    storeState.keepUnreadIds = new Set(["m2"]);
+
+    swipeTo(0);
+    await screen.findByTestId("recipients-toggle-m1");
+    swipeTo(1);
+    await screen.findByTestId("recipients-toggle-m2");
+
+    // Un seul appel markRead(true) pour m2 : celui d'avant le marquage non lu.
+    const markReadM2TrueCalls = api.markRead.mock.calls.filter(
+      ([, id, read]) => id === "m2" && read === true,
+    );
+    expect(markReadM2TrueCalls).toHaveLength(1);
+  });
+
+  it("le message déjà lu (m3) ne déclenche pas markRead", async () => {
+    await renderDetailAndWait();
+    swipeTo(1);
+    swipeTo(2);
+    await screen.findByTestId("recipients-toggle-m3");
+
+    expect(api.markRead).not.toHaveBeenCalledWith("college-vogt", "m3", true);
   });
 });
