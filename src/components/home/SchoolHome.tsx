@@ -61,7 +61,7 @@ export function SchoolHome({ user }: SchoolHomeProps) {
   const { onScroll } = useHeaderScroll();
   const role = (user.activeRole ?? user.role) as SchoolRole | null;
   const roleLabelKey = role ? ROLE_LABEL_KEYS[role] : undefined;
-  const roleLabel = roleLabelKey ? t(roleLabelKey) : role ?? "";
+  const roleLabel = roleLabelKey ? t(roleLabelKey) : (role ?? "");
 
   function handleQuickLinkPress(label: string) {
     if (label === "Fil d'actualité") {

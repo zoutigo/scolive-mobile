@@ -98,7 +98,8 @@ export function ConfirmDialog({
   const accentColor = VARIANT_COLORS[variant];
   const iconBg = VARIANT_BG[variant];
   const iconName = icon ?? DEFAULT_ICONS[variant];
-  const resolvedConfirmLabel = confirmLabel ?? t("confirmDialog.defaultConfirm");
+  const resolvedConfirmLabel =
+    confirmLabel ?? t("confirmDialog.defaultConfirm");
   const resolvedCancelLabel = cancelLabel ?? t("confirmDialog.defaultCancel");
   const badgeLabel =
     variant === "danger"

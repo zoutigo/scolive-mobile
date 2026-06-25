@@ -57,12 +57,8 @@ export function StudentHome(props: StudentHomeProps) {
           </Text>
           <Text style={styles.dateText}>{dateStr}</Text>
         </View>
-        <View
-          style={[styles.rolePill, { backgroundColor: colors.accentTeal }]}
-        >
-          <Text style={styles.rolePillText}>
-            {t("home.hero.role.student")}
-          </Text>
+        <View style={[styles.rolePill, { backgroundColor: colors.accentTeal }]}>
+          <Text style={styles.rolePillText}>{t("home.hero.role.student")}</Text>
         </View>
       </View>
 

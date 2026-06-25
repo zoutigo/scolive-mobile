@@ -3717,8 +3717,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.parent.news.title": "News",
     "home.parent.news.seeAll": "See all",
     "home.parent.news.empty.title": "No news yet",
-    "home.parent.news.empty.subtitle":
-      "School announcements will appear here",
+    "home.parent.news.empty.subtitle": "School announcements will appear here",
 
     // Placeholder screen
     "placeholder.subtitle": "Module under development",
