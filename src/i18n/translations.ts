@@ -983,6 +983,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "messaging.compose.titleNew": "Nouveau message",
     "messaging.compose.titleReply": "Répondre",
+    "messaging.compose.titleForward": "Transférer",
     "messaging.compose.recipientsLabel": "À",
     "messaging.compose.subjectLabel": "Objet",
     "messaging.compose.subjectPlaceholder": "Objet du message",
@@ -994,6 +995,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.compose.subjectError": "L'objet est obligatoire.",
     "messaging.compose.insertingImage": "Insertion de l'image…",
     "messaging.compose.attachmentsTitle": "Pièces jointes ({count})",
+    "messaging.compose.attachments.forwardedTag": "transféré",
     "messaging.compose.attachBtn": "Joindre",
     "messaging.compose.draftBtn": "Brouillon",
     "messaging.compose.sendBtn": "Envoyer",
@@ -1047,8 +1049,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.detail.recipientsToggleSingular": "1 destinataire",
     "messaging.detail.recipientsTogglePlural": "{count} destinataires",
     "messaging.detail.recipientsSectionTitle": "Destinataires",
-    "messaging.detail.header.inbox":
-      "Boîte de réception de {user} · {unread}/{total}",
+    "messaging.detail.header.inboxPrefix": "Boîte de réception de {user} · ",
     "messaging.detail.header.sent": "Messages envoyés de {user} · {total}",
     "messaging.detail.header.drafts": "Brouillons de {user} · {total}",
     "messaging.detail.header.archive": "Archives de {user} · {total}",
@@ -1063,7 +1064,17 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.detail.errors.openAttachmentFailedMessage":
       "Impossible d'ouvrir cette pièce jointe sur cet appareil.",
 
+    "messaging.detail.reply.quoteHeader": "Le {date}, {sender} a écrit :",
+    "messaging.detail.forward.subjectPrefix": "Tr : ",
+    "messaging.detail.forward.quoteHeader":
+      "---------- Message transféré ----------",
+    "messaging.detail.forward.quoteFrom": "De : {sender}",
+    "messaging.detail.forward.quoteDate": "Date : {date}",
+    "messaging.detail.forward.quoteSubject": "Objet : {subject}",
+    "messaging.detail.forward.quoteTo": "À : {recipients}",
+
     "messaging.actions.reply": "Répondre",
+    "messaging.actions.forward": "Transférer",
     "messaging.actions.markUnread": "Non lu",
     "messaging.actions.archive": "Archiver",
     "messaging.actions.unarchive": "Restaurer",
@@ -2792,6 +2803,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "messaging.compose.titleNew": "New message",
     "messaging.compose.titleReply": "Reply",
+    "messaging.compose.titleForward": "Forward",
     "messaging.compose.recipientsLabel": "To",
     "messaging.compose.subjectLabel": "Subject",
     "messaging.compose.subjectPlaceholder": "Message subject",
@@ -2803,6 +2815,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.compose.subjectError": "Subject is required.",
     "messaging.compose.insertingImage": "Inserting image…",
     "messaging.compose.attachmentsTitle": "Attachments ({count})",
+    "messaging.compose.attachments.forwardedTag": "forwarded",
     "messaging.compose.attachBtn": "Attach",
     "messaging.compose.draftBtn": "Draft",
     "messaging.compose.sendBtn": "Send",
@@ -2856,7 +2869,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.detail.recipientsToggleSingular": "1 recipient",
     "messaging.detail.recipientsTogglePlural": "{count} recipients",
     "messaging.detail.recipientsSectionTitle": "Recipients",
-    "messaging.detail.header.inbox": "{user}'s inbox · {unread}/{total}",
+    "messaging.detail.header.inboxPrefix": "{user}'s inbox · ",
     "messaging.detail.header.sent": "{user}'s sent messages · {total}",
     "messaging.detail.header.drafts": "{user}'s drafts · {total}",
     "messaging.detail.header.archive": "{user}'s archive · {total}",
@@ -2870,7 +2883,17 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.detail.errors.openAttachmentFailedMessage":
       "Unable to open this attachment on this device.",
 
+    "messaging.detail.reply.quoteHeader": "On {date}, {sender} wrote:",
+    "messaging.detail.forward.subjectPrefix": "Fwd: ",
+    "messaging.detail.forward.quoteHeader":
+      "---------- Forwarded message ----------",
+    "messaging.detail.forward.quoteFrom": "From: {sender}",
+    "messaging.detail.forward.quoteDate": "Date: {date}",
+    "messaging.detail.forward.quoteSubject": "Subject: {subject}",
+    "messaging.detail.forward.quoteTo": "To: {recipients}",
+
     "messaging.actions.reply": "Reply",
+    "messaging.actions.forward": "Forward",
     "messaging.actions.markUnread": "Unread",
     "messaging.actions.archive": "Archive",
     "messaging.actions.unarchive": "Restore",

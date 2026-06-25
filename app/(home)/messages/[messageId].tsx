@@ -119,36 +119,47 @@ function formatAttachmentSize(sizeBytes: number) {
 }
 
 /** Construit le libellé de boîte de message affiché dans le header, sans
- * jamais répéter le sujet du message courant (déjà visible dans le hero). */
+ * jamais répéter le sujet du message courant (déjà visible dans le hero).
+ * Pour le dossier inbox, le compteur non-lus/total est isolé dans `highlight`
+ * afin d'être affiché en couleur chaude par `ModuleHeader`. */
 function buildMailboxHeaderLabel(params: {
   t: TranslateFn;
   folder: FolderKey;
   userLabel: string;
   unreadCount: number;
   total: number;
-}): string {
+}): { label: string; highlight?: string } {
   const { t, folder, userLabel, unreadCount, total } = params;
   const totalLabel = String(total);
 
   if (folder === "sent") {
-    return t("messaging.detail.header.sent")
-      .replace("{user}", userLabel)
-      .replace("{total}", totalLabel);
+    return {
+      label: t("messaging.detail.header.sent")
+        .replace("{user}", userLabel)
+        .replace("{total}", totalLabel),
+    };
   }
   if (folder === "drafts") {
-    return t("messaging.detail.header.drafts")
-      .replace("{user}", userLabel)
-      .replace("{total}", totalLabel);
+    return {
+      label: t("messaging.detail.header.drafts")
+        .replace("{user}", userLabel)
+        .replace("{total}", totalLabel),
+    };
   }
   if (folder === "archive") {
-    return t("messaging.detail.header.archive")
-      .replace("{user}", userLabel)
-      .replace("{total}", totalLabel);
+    return {
+      label: t("messaging.detail.header.archive")
+        .replace("{user}", userLabel)
+        .replace("{total}", totalLabel),
+    };
   }
-  return t("messaging.detail.header.inbox")
-    .replace("{user}", userLabel)
-    .replace("{unread}", String(unreadCount))
-    .replace("{total}", totalLabel);
+  return {
+    label: t("messaging.detail.header.inboxPrefix").replace(
+      "{user}",
+      userLabel,
+    ),
+    highlight: `${unreadCount}/${total}`,
+  };
 }
 
 export default function MessageDetailScreen() {
@@ -169,13 +180,14 @@ export default function MessageDetailScreen() {
   const initialIndex = Math.max(0, ids.indexOf(messageId));
 
   const userLabel = user ? `${user.firstName} ${user.lastName}`.trim() : "";
-  const headerLabel = buildMailboxHeaderLabel({
-    t,
-    folder,
-    userLabel,
-    unreadCount,
-    total: meta?.total ?? ids.length,
-  });
+  const { label: headerLabel, highlight: headerHighlight } =
+    buildMailboxHeaderLabel({
+      t,
+      folder,
+      userLabel,
+      unreadCount,
+      total: meta?.total ?? ids.length,
+    });
 
   function handleExit() {
     router.back();
@@ -185,6 +197,7 @@ export default function MessageDetailScreen() {
     <View style={styles.root}>
       <ModuleHeader
         title={headerLabel}
+        titleHighlight={headerHighlight}
         onBack={handleExit}
         topInset={insets.top}
         testID="message-detail-header"
@@ -369,6 +382,9 @@ function MessageDetailPage({
 
   function handleReply() {
     if (!message) return;
+    const senderLabel = message.sender
+      ? `${message.sender.firstName} ${message.sender.lastName}`
+      : "";
     router.push({
       pathname: "/(home)/messages/compose",
       params: {
@@ -377,6 +393,59 @@ function MessageDetailPage({
         replyToSenderLabel: message.sender
           ? `${message.sender.lastName} ${message.sender.firstName}`
           : "",
+        quoteHeader: t("messaging.detail.reply.quoteHeader")
+          .replace(
+            "{date}",
+            formatFullDate(message.sentAt ?? message.createdAt),
+          )
+          .replace("{sender}", senderLabel),
+        quoteBodyHtml: message.body,
+      },
+    });
+  }
+
+  function handleForward() {
+    if (!message) return;
+    const senderLabel = message.isSender
+      ? t("messaging.detail.fromYou")
+      : message.sender
+        ? `${message.sender.firstName} ${message.sender.lastName}`
+        : "";
+    const recipientsLabel = message.recipients
+      .map((r) => `${r.firstName} ${r.lastName}`)
+      .join(", ");
+
+    const quoteHeader = [
+      t("messaging.detail.forward.quoteHeader"),
+      t("messaging.detail.forward.quoteFrom").replace("{sender}", senderLabel),
+      t("messaging.detail.forward.quoteDate").replace(
+        "{date}",
+        formatFullDate(message.sentAt ?? message.createdAt),
+      ),
+      t("messaging.detail.forward.quoteSubject").replace(
+        "{subject}",
+        message.subject || t("messaging.list.noSubject"),
+      ),
+      t("messaging.detail.forward.quoteTo").replace(
+        "{recipients}",
+        recipientsLabel,
+      ),
+    ].join("\n");
+
+    router.push({
+      pathname: "/(home)/messages/compose",
+      params: {
+        forwardSubject: message.subject,
+        quoteHeader,
+        quoteBodyHtml: message.body,
+        forwardAttachments: JSON.stringify(
+          message.attachments.map((a) => ({
+            id: a.id,
+            fileName: a.fileName,
+            mimeType: a.mimeType,
+            sizeBytes: a.sizeBytes,
+          })),
+        ),
       },
     });
   }
@@ -485,26 +554,127 @@ function MessageDetailPage({
             {message.subject || t("messaging.list.noSubject")}
           </Text>
 
-          <TouchableOpacity
-            style={styles.recipientsToggle}
-            onPress={() => setShowRecipients((v) => !v)}
-            testID={`recipients-toggle-${id}`}
-          >
-            <Ionicons name="people-outline" size={14} color={colors.primary} />
-            <Text style={styles.recipientsCount}>
-              {message.recipients.length === 1
-                ? t("messaging.detail.recipientsToggleSingular")
-                : t("messaging.detail.recipientsTogglePlural").replace(
-                    "{count}",
-                    String(message.recipients.length),
-                  )}
-            </Text>
-            <Ionicons
-              name={showRecipients ? "chevron-up" : "chevron-down"}
-              size={14}
-              color={colors.textSecondary}
-            />
-          </TouchableOpacity>
+          <View style={styles.heroActionsRow}>
+            <TouchableOpacity
+              style={styles.recipientsToggleCompact}
+              onPress={() => setShowRecipients((v) => !v)}
+              testID={`recipients-toggle-${id}`}
+              accessibilityLabel={
+                message.recipients.length === 1
+                  ? t("messaging.detail.recipientsToggleSingular")
+                  : t("messaging.detail.recipientsTogglePlural").replace(
+                      "{count}",
+                      String(message.recipients.length),
+                    )
+              }
+            >
+              <Ionicons
+                name="people-outline"
+                size={14}
+                color={colors.primary}
+              />
+              <Text style={styles.recipientsCountCompact}>
+                {message.recipients.length}
+              </Text>
+              <Ionicons
+                name={showRecipients ? "chevron-up" : "chevron-down"}
+                size={14}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+
+            <View
+              style={styles.heroActionIcons}
+              testID={`message-detail-action-bar-${id}`}
+            >
+              {!message.isSender && (
+                <TouchableOpacity
+                  style={[
+                    styles.heroActionIconBtn,
+                    styles.heroActionIconBtnBlue,
+                  ]}
+                  onPress={handleReply}
+                  disabled={isBusy}
+                  testID={`reply-btn-${id}`}
+                  accessibilityLabel={t("messaging.actions.reply")}
+                >
+                  <Ionicons
+                    name="return-down-back-outline"
+                    size={18}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={[styles.heroActionIconBtn, styles.heroActionIconBtnBlue]}
+                onPress={handleForward}
+                disabled={isBusy}
+                testID={`forward-btn-${id}`}
+                accessibilityLabel={t("messaging.actions.forward")}
+              >
+                <Ionicons
+                  name="arrow-redo-outline"
+                  size={18}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+
+              {!message.isSender && !!message.recipientState?.readAt && (
+                <TouchableOpacity
+                  style={[
+                    styles.heroActionIconBtn,
+                    styles.heroActionIconBtnWarm,
+                  ]}
+                  onPress={handleMarkUnread}
+                  disabled={isBusy}
+                  testID={`mark-unread-btn-${id}`}
+                  accessibilityLabel={t("messaging.actions.markUnread")}
+                >
+                  <Ionicons
+                    name="mail-unread-outline"
+                    size={18}
+                    color={colors.warmAccent}
+                  />
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={[styles.heroActionIconBtn, styles.heroActionIconBtnTeal]}
+                onPress={handleArchiveToggle}
+                disabled={isBusy}
+                testID={`archive-btn-${id}`}
+                accessibilityLabel={
+                  isArchived
+                    ? t("messaging.actions.unarchive")
+                    : t("messaging.actions.archive")
+                }
+              >
+                <Ionicons
+                  name={isArchived ? "archive" : "archive-outline"}
+                  size={18}
+                  color={colors.accentTeal}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.heroActionIconBtn,
+                  styles.heroActionIconBtnDanger,
+                ]}
+                onPress={() => setConfirmDelete(true)}
+                disabled={isBusy}
+                testID={`delete-btn-${id}`}
+                accessibilityLabel={t("messaging.actions.delete")}
+              >
+                <Ionicons
+                  name="trash-outline"
+                  size={18}
+                  color={colors.notification}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
         {showRecipients && (
@@ -605,92 +775,6 @@ function MessageDetailPage({
         )}
       </ScrollView>
 
-      <View style={styles.bottomActionBarWrap}>
-        <View
-          style={styles.bottomActionBar}
-          testID={`message-detail-action-bar-${id}`}
-        >
-          {!message.isSender && (
-            <TouchableOpacity
-              style={styles.bottomActionBtn}
-              onPress={handleReply}
-              disabled={isBusy}
-              testID={`reply-btn-${id}`}
-            >
-              <Ionicons
-                name="return-down-back-outline"
-                size={18}
-                color={colors.primary}
-              />
-              <Text style={styles.bottomActionLabel}>
-                {t("messaging.actions.reply")}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {!message.isSender && !!message.recipientState?.readAt && (
-            <TouchableOpacity
-              style={styles.bottomActionBtn}
-              onPress={handleMarkUnread}
-              disabled={isBusy}
-              testID={`mark-unread-btn-${id}`}
-            >
-              <Ionicons
-                name="mail-unread-outline"
-                size={18}
-                color={colors.warmAccent}
-              />
-              <Text
-                style={[
-                  styles.bottomActionLabel,
-                  styles.bottomActionLabelWarning,
-                ]}
-              >
-                {t("messaging.actions.markUnread")}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={styles.bottomActionBtn}
-            onPress={handleArchiveToggle}
-            disabled={isBusy}
-            testID={`archive-btn-${id}`}
-          >
-            <Ionicons
-              name={isArchived ? "archive" : "archive-outline"}
-              size={18}
-              color={colors.accentTeal}
-            />
-            <Text
-              style={[styles.bottomActionLabel, styles.bottomActionLabelTeal]}
-            >
-              {isArchived
-                ? t("messaging.actions.unarchive")
-                : t("messaging.actions.archive")}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.bottomActionBtn}
-            onPress={() => setConfirmDelete(true)}
-            disabled={isBusy}
-            testID={`delete-btn-${id}`}
-          >
-            <Ionicons
-              name="trash-outline"
-              size={18}
-              color={colors.notification}
-            />
-            <Text
-              style={[styles.bottomActionLabel, styles.bottomActionLabelDanger]}
-            >
-              {t("messaging.actions.delete")}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
       <ConfirmDialog
         visible={confirmDelete}
         variant="danger"
@@ -723,52 +807,7 @@ const styles = StyleSheet.create({
   },
 
   scroll: { flex: 1 },
-  scrollContent: { padding: 16, paddingBottom: 136, gap: 14 },
-
-  bottomActionBarWrap: {
-    backgroundColor: "rgba(247, 242, 234, 0.96)",
-    borderTopWidth: 1,
-    borderTopColor: colors.warmBorder,
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 16,
-  },
-  bottomActionBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    borderRadius: 16,
-    padding: 8,
-    shadowColor: "#7B5E45",
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 4,
-  },
-  bottomActionBtn: {
-    flex: 1,
-    minHeight: 48,
-    paddingHorizontal: 4,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 4,
-  },
-  bottomActionLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    textAlign: "center",
-    color: colors.primary,
-    includeFontPadding: false,
-  },
-  bottomActionLabelWarning: { color: colors.warmAccent },
-  bottomActionLabelTeal: { color: colors.accentTeal },
-  bottomActionLabelDanger: { color: colors.notification },
+  scrollContent: { padding: 16, paddingBottom: 24, gap: 14 },
 
   summaryCard: {
     backgroundColor: colors.surface,
@@ -836,21 +875,44 @@ const styles = StyleSheet.create({
   metaName: { fontWeight: "700", color: colors.textPrimary },
   metaDate: { fontSize: 12, color: colors.textSecondary },
 
-  recipientsToggle: {
+  heroActionsRow: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-start",
-    gap: 6,
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  recipientsToggleCompact: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     backgroundColor: "rgba(12,95,168,0.08)",
     borderRadius: 999,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 7,
+    flexShrink: 0,
   },
-  recipientsCount: {
+  recipientsCountCompact: {
     fontSize: 13,
     color: colors.primary,
-    fontWeight: "600",
+    fontWeight: "700",
   },
+  heroActionIcons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 0,
+  },
+  heroActionIconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroActionIconBtnBlue: { backgroundColor: "rgba(12,95,168,0.10)" },
+  heroActionIconBtnWarm: { backgroundColor: "rgba(224,115,42,0.14)" },
+  heroActionIconBtnTeal: { backgroundColor: "rgba(56,173,169,0.12)" },
+  heroActionIconBtnDanger: { backgroundColor: "rgba(180,35,24,0.10)" },
 
   recipientsSectionTitle: {
     fontSize: 12,

@@ -199,9 +199,10 @@ describe("Rendu du détail", () => {
     expect(screen.getByText("Martin Alice")).toBeTruthy();
   });
 
-  it("affiche le nombre de destinataires", async () => {
+  it("affiche le nombre de destinataires en version compacte avec un libellé accessible", async () => {
     await renderDetailAndWait();
-    expect(screen.getByText("1 destinataire")).toBeTruthy();
+    expect(screen.getByText("1")).toBeTruthy();
+    expect(screen.getByLabelText("1 destinataire")).toBeTruthy();
   });
 
   it("affiche un état d'erreur si le chargement échoue", async () => {
@@ -522,6 +523,75 @@ describe("Action répondre", () => {
       mockPush.mock.calls[0][0] as { params: Record<string, string> }
     ).params;
     expect(params.replyToSubject).toBe("Convocation réunion parents");
+  });
+
+  it("préremplit la citation du message original (auteur, date, corps)", async () => {
+    await renderDetailAndWait();
+    fireEvent.press(screen.getByTestId("reply-btn-m1"));
+    const params = (
+      mockPush.mock.calls[0][0] as { params: Record<string, string> }
+    ).params;
+    expect(params.quoteHeader).toContain("Alice Martin");
+    expect(params.quoteBodyHtml).toBe(
+      "<p>Bonjour, vous êtes convoqué le 20 janvier.</p>",
+    );
+  });
+
+  it("ne propose pas de répondre à un message qu'on a soi-même envoyé", async () => {
+    api.get.mockResolvedValueOnce({
+      ...messageDetail,
+      isSender: true,
+      recipientState: null,
+    });
+    await renderDetailAndWait();
+    expect(screen.queryByTestId("reply-btn-m1")).toBeNull();
+  });
+});
+
+describe("Action transférer", () => {
+  it("navigue vers compose avec le sujet, la citation et les pièces jointes d'origine", async () => {
+    api.get.mockResolvedValueOnce({
+      ...messageDetail,
+      attachments: [
+        {
+          id: "att-1",
+          fileName: "bulletin.pdf",
+          url: "http://10.0.2.2:9000/media/bulletin.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: 1024,
+        },
+      ],
+    });
+    await renderDetailAndWait();
+    fireEvent.press(screen.getByTestId("forward-btn-m1"));
+
+    const params = (
+      mockPush.mock.calls[0][0] as { params: Record<string, string> }
+    ).params;
+    expect(params.forwardSubject).toBe("Convocation réunion parents");
+    expect(params.quoteHeader).toContain("Alice Martin");
+    expect(params.quoteHeader).toContain("Robert Ntamack");
+    expect(params.quoteBodyHtml).toBe(
+      "<p>Bonjour, vous êtes convoqué le 20 janvier.</p>",
+    );
+    expect(JSON.parse(params.forwardAttachments)).toEqual([
+      {
+        id: "att-1",
+        fileName: "bulletin.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 1024,
+      },
+    ]);
+  });
+
+  it("propose de transférer même un message qu'on a soi-même envoyé", async () => {
+    api.get.mockResolvedValueOnce({
+      ...messageDetail,
+      isSender: true,
+      recipientState: null,
+    });
+    await renderDetailAndWait();
+    expect(screen.getByTestId("forward-btn-m1")).toBeTruthy();
   });
 });
 

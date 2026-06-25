@@ -293,6 +293,24 @@ describe("messagingApi.send()", () => {
     expect(formData.get("isDraft")).toBe("true");
   });
 
+  it("inclut forwardAttachmentIds sans ré-uploader de fichier", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+      json: () => Promise.resolve({}),
+    });
+    await messagingApi.send("college-vogt", {
+      subject: "Tr : Bulletin trimestriel",
+      body: "<p>Voir le message ci-dessous</p>",
+      recipientUserIds: ["user-1"],
+      forwardAttachmentIds: ["att-1", "att-2"],
+    });
+    const [, options] = mockFetch.mock.calls[0];
+    const formData = options.body as FormData;
+    expect(formData.getAll("forwardAttachmentIds")).toEqual(["att-1", "att-2"]);
+    expect(formData.getAll("attachments")).toHaveLength(0);
+  });
+
   it("retente via XMLHttpRequest quand fetch échoue au niveau réseau", async () => {
     mockFetch.mockRejectedValueOnce(new TypeError("Network request failed"));
 

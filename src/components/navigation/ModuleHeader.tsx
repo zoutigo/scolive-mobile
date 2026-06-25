@@ -13,6 +13,8 @@ import { useHeaderScroll, HEADER_HIDE_DISTANCE } from "./header-scroll-context";
 
 interface ModuleHeaderProps {
   title: string;
+  /** Segment appended after `title`, rendered in warm color (e.g. an unread/total counter). */
+  titleHighlight?: string;
   subtitle?: string | null;
   onBack: () => void;
   testID?: string;
@@ -26,6 +28,7 @@ interface ModuleHeaderProps {
 
 export function ModuleHeader({
   title,
+  titleHighlight,
   subtitle,
   onBack,
   testID = "module-header",
@@ -75,6 +78,9 @@ export function ModuleHeader({
             testID={titleTestID}
           >
             {title}
+            {titleHighlight ? (
+              <Text style={styles.titleHighlight}>{titleHighlight}</Text>
+            ) : null}
           </Text>
           {subtitle ? (
             <Text
@@ -152,6 +158,10 @@ const styles = StyleSheet.create({
     textTransform: "none",
     fontSize: 15,
     fontWeight: "600",
+  },
+  titleHighlight: {
+    color: colors.warmAccent,
+    fontWeight: "700",
   },
   subtitle: {
     color: colors.warmAccent,
