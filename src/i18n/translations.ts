@@ -1844,6 +1844,41 @@ export const translations: Record<Locale, Record<string, string>> = {
     // Home index — fallback
     "home.fallback.welcome": "Bienvenue, {firstName} {lastName}",
 
+    // Hero d'accueil (générique, toutes pages d'accueil)
+    "home.hero.greeting": "Bonjour cher",
+    "home.hero.role.platformSuperAdmin": "Super administrateur",
+    "home.hero.role.platformAdmin": "Administrateur",
+    "home.hero.role.platformSales": "Commercial",
+    "home.hero.role.platformSupport": "Support",
+    "home.hero.role.schoolAdmin": "Administrateur",
+    "home.hero.role.schoolManager": "Directeur",
+    "home.hero.role.supervisor": "Superviseur",
+    "home.hero.role.accountant": "Comptable",
+    "home.hero.role.staff": "Personnel",
+    "home.hero.role.teacher": "Enseignant(e)",
+    "home.hero.role.parent": "Parent",
+    "home.hero.role.student": "Élève",
+
+    // Accueil Parent
+    "home.parent.children.title": "Mes enfants",
+    "home.parent.children.empty.title": "Aucun enfant associé",
+    "home.parent.children.empty.subtitle":
+      "Vos enfants inscrits apparaîtront ici",
+    "home.parent.quickAccess.title": "Accès rapides",
+    "home.parent.quickAccess.feed.label": "Fil d'actualité",
+    "home.parent.quickAccess.feed.sub": "Informations de l'école",
+    "home.parent.quickAccess.finance.label": "Finances",
+    "home.parent.quickAccess.finance.sub": "Paiements et solde",
+    "home.parent.quickAccess.messaging.label": "Messagerie",
+    "home.parent.quickAccess.messaging.sub": "Contacter l'équipe",
+    "home.parent.quickAccess.documents.label": "Documents",
+    "home.parent.quickAccess.documents.sub": "Bulletins, certificats…",
+    "home.parent.news.title": "Actualités",
+    "home.parent.news.seeAll": "Voir tout",
+    "home.parent.news.empty.title": "Aucune actualité",
+    "home.parent.news.empty.subtitle":
+      "Les informations de l'établissement apparaîtront ici",
+
     // Placeholder screen
     "placeholder.subtitle": "Module en cours de développement",
     "placeholder.body": "Cette fonctionnalité sera disponible prochainement.",
@@ -1866,6 +1901,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "nav.tabs.assistance": "Assistance",
     "nav.tabs.menu": "Menu",
     "nav.tabs.tests": "Tests",
+
+    // ConfirmDialog (générique)
+    "confirmDialog.badge.danger": "Action sensible",
+    "confirmDialog.badge.warning": "Attention",
+    "confirmDialog.badge.info": "Information",
+    "confirmDialog.defaultConfirm": "Confirmer",
+    "confirmDialog.defaultCancel": "Annuler",
 
     // Home header (AppHeader, variante accueil)
     "header.home.loginAction": "Se connecter",
@@ -3643,6 +3685,41 @@ export const translations: Record<Locale, Record<string, string>> = {
     // Home index — fallback
     "home.fallback.welcome": "Welcome, {firstName} {lastName}",
 
+    // Home hero (generic, all home pages)
+    "home.hero.greeting": "Hello dear",
+    "home.hero.role.platformSuperAdmin": "Super admin",
+    "home.hero.role.platformAdmin": "Administrator",
+    "home.hero.role.platformSales": "Sales",
+    "home.hero.role.platformSupport": "Support",
+    "home.hero.role.schoolAdmin": "Administrator",
+    "home.hero.role.schoolManager": "Principal",
+    "home.hero.role.supervisor": "Supervisor",
+    "home.hero.role.accountant": "Accountant",
+    "home.hero.role.staff": "Staff",
+    "home.hero.role.teacher": "Teacher",
+    "home.hero.role.parent": "Parent",
+    "home.hero.role.student": "Student",
+
+    // Parent home
+    "home.parent.children.title": "My children",
+    "home.parent.children.empty.title": "No child linked yet",
+    "home.parent.children.empty.subtitle":
+      "Your enrolled children will appear here",
+    "home.parent.quickAccess.title": "Quick access",
+    "home.parent.quickAccess.feed.label": "News feed",
+    "home.parent.quickAccess.feed.sub": "School information",
+    "home.parent.quickAccess.finance.label": "Finance",
+    "home.parent.quickAccess.finance.sub": "Payments and balance",
+    "home.parent.quickAccess.messaging.label": "Messaging",
+    "home.parent.quickAccess.messaging.sub": "Contact the staff",
+    "home.parent.quickAccess.documents.label": "Documents",
+    "home.parent.quickAccess.documents.sub": "Report cards, certificates…",
+    "home.parent.news.title": "News",
+    "home.parent.news.seeAll": "See all",
+    "home.parent.news.empty.title": "No news yet",
+    "home.parent.news.empty.subtitle":
+      "School announcements will appear here",
+
     // Placeholder screen
     "placeholder.subtitle": "Module under development",
     "placeholder.body": "This feature will be available soon.",
@@ -3665,6 +3742,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "nav.tabs.assistance": "Support",
     "nav.tabs.menu": "Menu",
     "nav.tabs.tests": "Tests",
+
+    // ConfirmDialog (generic)
+    "confirmDialog.badge.danger": "Sensitive action",
+    "confirmDialog.badge.warning": "Warning",
+    "confirmDialog.badge.info": "Information",
+    "confirmDialog.defaultConfirm": "Confirm",
+    "confirmDialog.defaultCancel": "Cancel",
 
     // Home header (AppHeader, home variant)
     "header.home.loginAction": "Sign in",

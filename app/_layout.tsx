@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 import { Stack } from "expo-router";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useAuthStore } from "../src/store/auth.store";
 import { SuccessToastHost } from "../src/components/feedback/SuccessToastHost";
 import { configurePushNotifications } from "../src/notifications/push-registration";
@@ -55,32 +56,36 @@ export default function RootLayout() {
   // et un login que l'utilisateur pourrait déclencher avant que le check ne réponde.
   if (status === "checking") {
     return (
-      <View style={styles.gateScreen} testID="startup-checking">
-        <ActivityIndicator color={colors.primary} size="large" />
-        <Text style={styles.gateText}>{t("startup.checking")}</Text>
-      </View>
+      <SafeAreaProvider>
+        <View style={styles.gateScreen} testID="startup-checking">
+          <ActivityIndicator color={colors.primary} size="large" />
+          <Text style={styles.gateText}>{t("startup.checking")}</Text>
+        </View>
+      </SafeAreaProvider>
     );
   }
 
   if (status === "error") {
     return (
-      <View style={styles.gateScreen} testID="startup-error">
-        <Text style={styles.gateTitle}>{t("startup.error.title")}</Text>
-        <Text style={styles.gateText}>{t("startup.error.message")}</Text>
-        <Text
-          style={styles.gateRetry}
-          onPress={retry}
-          testID="startup-error-retry"
-          accessibilityRole="button"
-        >
-          {t("startup.error.retry")}
-        </Text>
-      </View>
+      <SafeAreaProvider>
+        <View style={styles.gateScreen} testID="startup-error">
+          <Text style={styles.gateTitle}>{t("startup.error.title")}</Text>
+          <Text style={styles.gateText}>{t("startup.error.message")}</Text>
+          <Text
+            style={styles.gateRetry}
+            onPress={retry}
+            testID="startup-error-retry"
+            accessibilityRole="button"
+          >
+            {t("startup.error.retry")}
+          </Text>
+        </View>
+      </SafeAreaProvider>
     );
   }
 
   return (
-    <>
+    <SafeAreaProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen
@@ -120,7 +125,7 @@ export default function RootLayout() {
         mandatory={mandatory}
         onClose={handleCloseInstallGuide}
       />
-    </>
+    </SafeAreaProvider>
   );
 }
 

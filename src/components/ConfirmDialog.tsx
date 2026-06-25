@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../theme";
+import { useTranslation } from "../i18n/useTranslation";
 
 export type ConfirmDialogVariant = "danger" | "warning" | "info";
 
@@ -53,12 +54,13 @@ export function ConfirmDialog({
   subtitle,
   icon,
   variant = "info",
-  confirmLabel = "Confirmer",
-  cancelLabel = "Annuler",
+  confirmLabel,
+  cancelLabel,
   hideCancel = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -96,6 +98,14 @@ export function ConfirmDialog({
   const accentColor = VARIANT_COLORS[variant];
   const iconBg = VARIANT_BG[variant];
   const iconName = icon ?? DEFAULT_ICONS[variant];
+  const resolvedConfirmLabel = confirmLabel ?? t("confirmDialog.defaultConfirm");
+  const resolvedCancelLabel = cancelLabel ?? t("confirmDialog.defaultCancel");
+  const badgeLabel =
+    variant === "danger"
+      ? t("confirmDialog.badge.danger")
+      : variant === "warning"
+        ? t("confirmDialog.badge.warning")
+        : t("confirmDialog.badge.info");
 
   return (
     <Modal
@@ -173,11 +183,7 @@ export function ConfirmDialog({
             testID="confirm-dialog-badge"
           >
             <Text style={[styles.badgeLabel, { color: accentColor }]}>
-              {variant === "danger"
-                ? "Action sensible"
-                : variant === "warning"
-                  ? "Attention"
-                  : "Information"}
+              {badgeLabel}
             </Text>
           </View>
           <Text style={styles.title} testID="confirm-dialog-title">
@@ -216,9 +222,9 @@ export function ConfirmDialog({
                 activeOpacity={0.75}
                 testID="confirm-dialog-cancel"
                 accessibilityRole="button"
-                accessibilityLabel={cancelLabel}
+                accessibilityLabel={resolvedCancelLabel}
               >
-                <Text style={styles.cancelLabel}>{cancelLabel}</Text>
+                <Text style={styles.cancelLabel}>{resolvedCancelLabel}</Text>
               </TouchableOpacity>
             )}
 
@@ -232,9 +238,9 @@ export function ConfirmDialog({
               activeOpacity={0.8}
               testID="confirm-dialog-confirm"
               accessibilityRole="button"
-              accessibilityLabel={confirmLabel}
+              accessibilityLabel={resolvedConfirmLabel}
             >
-              <Text style={styles.confirmLabel}>{confirmLabel}</Text>
+              <Text style={styles.confirmLabel}>{resolvedConfirmLabel}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>

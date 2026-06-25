@@ -131,18 +131,23 @@ describe("Variante accueil", () => {
     mockPathname = "/";
   });
 
-  it("affiche le nom complet de l'utilisateur à gauche", () => {
+  it("affiche le nom complet de l'utilisateur à gauche, prénom en minuscule et nom en majuscules", () => {
     renderHeader(teacherUser, "college-vogt");
     expect(screen.getByTestId("app-header-home-name")).toHaveTextContent(
-      "Bob Enseignant",
+      "bob ENSEIGNANT",
     );
   });
 
-  it("affiche le rôle de l'utilisateur", () => {
+  it("affiche le nom de l'école en sous-titre", () => {
     renderHeader(teacherUser, "college-vogt");
-    expect(screen.getByTestId("app-header-home-role")).toHaveTextContent(
-      "Enseignant(e)",
+    expect(screen.getByTestId("app-header-home-school")).toHaveTextContent(
+      "College Vogt",
     );
+  });
+
+  it("n'affiche pas le sous-titre école quand schoolSlug est absent", () => {
+    renderHeader(teacherUser, null);
+    expect(screen.queryByTestId("app-header-home-school")).toBeNull();
   });
 
   it("n'affiche ni le titre centré ni le logo", () => {

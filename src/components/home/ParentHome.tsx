@@ -14,6 +14,7 @@ import { useFamilyStore } from "../../store/family.store";
 import { useMessagingStore } from "../../store/messaging.store";
 import { buildChildHomeTarget } from "../navigation/nav-config";
 import { useHeaderScroll } from "../navigation/header-scroll-context";
+import { useTranslation } from "../../i18n/useTranslation";
 import type { AuthUser } from "../../types/auth.types";
 import type { ParentChild } from "../../types/family.types";
 
@@ -22,7 +23,8 @@ interface ParentHomeProps {
   schoolSlug: string | null;
 }
 
-export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
+export function ParentHome({ schoolSlug }: ParentHomeProps) {
+  const { t } = useTranslation();
   const { children, isLoading, setActiveChild } = useFamilyStore();
   const { unreadCount, loadUnreadCount } = useMessagingStore();
   const router = useRouter();
@@ -33,22 +35,18 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
     loadUnreadCount(schoolSlug).catch(() => {});
   }, [loadUnreadCount, schoolSlug]);
 
-  const schoolDisplay = schoolSlug
-    ? schoolSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-    : "Mon établissement";
-
   function handleChildPress(child: ParentChild) {
     setActiveChild(child.id);
     router.push(buildChildHomeTarget(child.id) as never);
   }
 
-  function handleQuickAccessPress(label: string) {
-    if (label === "Fil d'actualité") {
+  function handleQuickAccessPress(id: string, label: string) {
+    if (id === "fil-d-actualit") {
       router.push("/(home)/feed");
       return;
     }
 
-    if (label === "Messagerie") {
+    if (id === "messagerie") {
       router.push("/(home)/messages");
       return;
     }
@@ -67,26 +65,21 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
       onScroll={onScroll}
       scrollEventThrottle={16}
     >
-      {/* Banner */}
+      {/* Hero */}
       <View style={styles.banner}>
-        <View>
-          <Text style={styles.greeting}>Bonjour,</Text>
-          <Text style={styles.bannerName}>
-            {user.firstName} {user.lastName}
-          </Text>
-          <View style={styles.schoolRow}>
-            <Ionicons name="business" size={13} color={colors.primary} />
-            <Text style={styles.schoolLabel}>{schoolDisplay}</Text>
-          </View>
-        </View>
+        <Text style={styles.greeting}>
+          {t("home.hero.greeting")} {t("home.hero.role.parent")}
+        </Text>
         <View style={[styles.rolePill, { backgroundColor: colors.warmAccent }]}>
-          <Text style={styles.rolePillText}>Parent</Text>
+          <Text style={styles.rolePillText}>{t("home.hero.role.parent")}</Text>
         </View>
       </View>
 
       {/* Mes enfants */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Mes enfants</Text>
+        <Text style={styles.sectionTitle}>
+          {t("home.parent.children.title")}
+        </Text>
         {children.length > 0 && (
           <View style={styles.countBadge} testID="children-count-badge">
             <Text style={styles.countBadgeText}>{children.length}</Text>
@@ -106,9 +99,11 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
               size={42}
               color={colors.warmBorder}
             />
-            <Text style={styles.emptyTitle}>Aucun enfant associé</Text>
+            <Text style={styles.emptyTitle}>
+              {t("home.parent.children.empty.title")}
+            </Text>
             <Text style={styles.emptySub}>
-              Vos enfants inscrits apparaîtront ici
+              {t("home.parent.children.empty.subtitle")}
             </Text>
           </View>
         </View>
@@ -126,46 +121,47 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
 
       {/* Accès rapides */}
       <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
-        Accès rapides
+        {t("home.parent.quickAccess.title")}
       </Text>
       <View style={styles.quickGrid}>
         {[
           {
+            id: "fil-d-actualit",
             icon: "newspaper-outline",
-            label: "Fil d'actualité",
-            sub: "Informations de l'école",
+            label: t("home.parent.quickAccess.feed.label"),
+            sub: t("home.parent.quickAccess.feed.sub"),
             color: colors.primary,
           },
           {
+            id: "finances",
             icon: "wallet-outline",
-            label: "Finances",
-            sub: "Paiements et solde",
+            label: t("home.parent.quickAccess.finance.label"),
+            sub: t("home.parent.quickAccess.finance.sub"),
             color: colors.accentTeal,
           },
           {
+            id: "messagerie",
             icon: "chatbubble-outline",
-            label: "Messagerie",
-            sub: "Contacter l'équipe",
+            label: t("home.parent.quickAccess.messaging.label"),
+            sub: t("home.parent.quickAccess.messaging.sub"),
             color: "#6B5EA8",
           },
           {
+            id: "documents",
             icon: "document-outline",
-            label: "Documents",
-            sub: "Bulletins, certificats…",
+            label: t("home.parent.quickAccess.documents.label"),
+            sub: t("home.parent.quickAccess.documents.sub"),
             color: colors.warmAccent,
           },
         ].map((item) => (
           <TouchableOpacity
-            key={item.label}
+            key={item.id}
             style={styles.quickCard}
             activeOpacity={0.75}
-            onPress={() => handleQuickAccessPress(item.label)}
-            testID={`quick-link-${item.label
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, "-")
-              .replace(/(^-|-$)/g, "")}`}
+            onPress={() => handleQuickAccessPress(item.id, item.label)}
+            testID={`quick-link-${item.id}`}
           >
-            {item.label === "Messagerie" && unreadCount > 0 ? (
+            {item.id === "messagerie" && unreadCount > 0 ? (
               <View
                 style={styles.quickBadge}
                 testID="quick-link-messagerie-badge"
@@ -192,9 +188,9 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
 
       {/* Actualités */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Actualités</Text>
+        <Text style={styles.sectionTitle}>{t("home.parent.news.title")}</Text>
         <TouchableOpacity onPress={() => router.push("/(home)/feed")}>
-          <Text style={styles.sectionLink}>Voir tout</Text>
+          <Text style={styles.sectionLink}>{t("home.parent.news.seeAll")}</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.newsCard}>
@@ -204,9 +200,11 @@ export function ParentHome({ user, schoolSlug }: ParentHomeProps) {
             size={36}
             color={colors.warmBorder}
           />
-          <Text style={styles.emptyTitle}>Aucune actualité</Text>
+          <Text style={styles.emptyTitle}>
+            {t("home.parent.news.empty.title")}
+          </Text>
           <Text style={styles.emptySub}>
-            Les informations de l'établissement apparaîtront ici
+            {t("home.parent.news.empty.subtitle")}
           </Text>
         </View>
       </View>
@@ -249,19 +247,24 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 20,
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
+    overflow: "hidden",
   },
-  greeting: { fontSize: 13, color: colors.textSecondary, marginBottom: 2 },
-  bannerName: {
-    fontSize: 21,
+  greeting: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 17,
     fontWeight: "700",
     color: colors.textPrimary,
-    marginBottom: 8,
   },
-  schoolRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  schoolLabel: { fontSize: 13, color: colors.primary, fontWeight: "500" },
-  rolePill: { borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5 },
+  rolePill: {
+    flexShrink: 0,
+    marginLeft: 10,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
   rolePillText: { color: colors.white, fontSize: 11, fontWeight: "600" },
 
   sectionHeader: {

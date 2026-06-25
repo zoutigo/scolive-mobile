@@ -186,9 +186,6 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
 
   const now = new Date();
   const todayLabel = `${DAY_LABELS[now.getDay()]} ${now.getDate()} ${MONTH_LABELS[now.getMonth()]} ${now.getFullYear()}`;
-  const schoolDisplay = schoolSlug
-    ? schoolSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-    : "Mon établissement";
 
   function goToMessages() {
     setFolder("inbox");
@@ -211,22 +208,19 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
       }
       testID="teacher-home-scroll"
     >
-      {/* Banner */}
+      {/* Hero */}
       <View style={styles.banner} testID="teacher-home-banner">
         <View style={styles.bannerTop}>
-          <View>
-            <Text style={styles.greeting}>Bonjour,</Text>
-            <Text style={styles.bannerName}>
-              {user.firstName} {user.lastName}
+          <Text style={styles.greeting} numberOfLines={1}>
+            {t("home.hero.greeting")} {t("home.hero.role.teacher")}
+          </Text>
+          <View style={styles.rolePill}>
+            <Text style={styles.rolePillText}>
+              {t("home.hero.role.teacher")}
             </Text>
           </View>
-          <View style={styles.rolePill}>
-            <Text style={styles.rolePillText}>Enseignant(e)</Text>
-          </View>
         </View>
-        <View style={styles.schoolRow}>
-          <Ionicons name="business" size={13} color={colors.textSecondary} />
-          <Text style={styles.schoolLabel}>{schoolDisplay}</Text>
+        <View style={styles.dateRow}>
           <Text style={styles.dateText}>{todayLabel}</Text>
         </View>
       </View>
@@ -586,28 +580,30 @@ const styles = StyleSheet.create({
     borderColor: colors.warmBorder,
     padding: 20,
     gap: 10,
+    overflow: "hidden",
   },
   bannerTop: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
   },
-  greeting: { fontSize: 13, color: colors.textSecondary },
-  bannerName: {
-    fontSize: 21,
+  greeting: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 17,
     fontWeight: "700",
     color: colors.textPrimary,
-    marginTop: 2,
   },
   rolePill: {
+    flexShrink: 0,
+    marginLeft: 10,
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 5,
     backgroundColor: colors.accentTeal,
   },
   rolePillText: { color: colors.white, fontSize: 11, fontWeight: "600" },
-  schoolRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  schoolLabel: { fontSize: 12, color: colors.textSecondary, flex: 1 },
+  dateRow: { flexDirection: "row", alignItems: "center" },
   dateText: { fontSize: 12, color: colors.textSecondary },
 
   loadingCard: {

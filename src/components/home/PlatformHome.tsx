@@ -9,6 +9,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
 import { useHeaderScroll } from "../navigation/header-scroll-context";
+import { useTranslation } from "../../i18n/useTranslation";
 import type { AuthUser } from "../../types/auth.types";
 
 interface PlatformHomeProps {
@@ -54,6 +55,7 @@ function ActionCard({ icon, label, subtitle, color }: ActionCardProps) {
 }
 
 export function PlatformHome({ user }: PlatformHomeProps) {
+  const { t } = useTranslation();
   const { onScroll } = useHeaderScroll();
   const platformRole = user.platformRoles[0];
   const roleColors: Record<string, string> = {
@@ -62,17 +64,17 @@ export function PlatformHome({ user }: PlatformHomeProps) {
     SALES: colors.accentTeal,
     SUPPORT: colors.warmAccent,
   };
-  const roleLabels: Record<string, string> = {
-    SUPER_ADMIN: "Super administrateur",
-    ADMIN: "Administrateur",
-    SALES: "Commercial",
-    SUPPORT: "Support",
+  const roleLabelKeys: Record<string, string> = {
+    SUPER_ADMIN: "home.hero.role.platformSuperAdmin",
+    ADMIN: "home.hero.role.platformAdmin",
+    SALES: "home.hero.role.platformSales",
+    SUPPORT: "home.hero.role.platformSupport",
   };
   const badgeColor = platformRole
     ? (roleColors[platformRole] ?? colors.primary)
     : colors.primary;
   const roleLabel = platformRole
-    ? (roleLabels[platformRole] ?? platformRole)
+    ? t(roleLabelKeys[platformRole] ?? platformRole)
     : "";
 
   return (
@@ -83,12 +85,11 @@ export function PlatformHome({ user }: PlatformHomeProps) {
       onScroll={onScroll}
       scrollEventThrottle={16}
     >
-      {/* Welcome banner */}
+      {/* Hero */}
       <View style={styles.banner}>
         <View style={styles.bannerLeft}>
-          <Text style={styles.greeting}>Bonjour,</Text>
-          <Text style={styles.bannerName}>
-            {user.firstName} {user.lastName}
+          <Text style={styles.greeting} numberOfLines={1}>
+            {t("home.hero.greeting")} {roleLabel}
           </Text>
           <View style={[styles.roleBadge, { backgroundColor: badgeColor }]}>
             <Text style={styles.roleBadgeText}>{roleLabel}</Text>
@@ -183,16 +184,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     flexDirection: "row",
     alignItems: "center",
+    overflow: "hidden",
   },
-  bannerLeft: { flex: 1 },
-  bannerIcon: { opacity: 0.7 },
+  bannerLeft: { flex: 1, minWidth: 0 },
+  bannerIcon: { flexShrink: 0, marginLeft: 10, opacity: 0.7 },
   greeting: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 2,
-  },
-  bannerName: {
-    fontSize: 22,
+    fontSize: 17,
     fontWeight: "700",
     color: colors.textPrimary,
     marginBottom: 10,

@@ -233,24 +233,14 @@ beforeEach(() => {
 // ── Banner ────────────────────────────────────────────────────────────────────
 
 describe("Banner", () => {
-  it("affiche le prénom et nom de l'enseignant", () => {
+  it("affiche le message de bienvenue avec le rôle", () => {
     render(<TeacherHome user={teacherUser} schoolSlug="college-vogt" />);
-    expect(screen.getByText("Sophie Martin")).toBeTruthy();
+    expect(screen.getByText("Bonjour cher Enseignant(e)")).toBeTruthy();
   });
 
-  it("affiche le label Enseignant(e)", () => {
+  it("affiche le badge de rôle Enseignant(e)", () => {
     render(<TeacherHome user={teacherUser} schoolSlug="college-vogt" />);
-    expect(screen.getByText("Enseignant(e)")).toBeTruthy();
-  });
-
-  it("affiche le nom de l'établissement reformaté", () => {
-    render(<TeacherHome user={teacherUser} schoolSlug="college-vogt" />);
-    expect(screen.getByText("College Vogt")).toBeTruthy();
-  });
-
-  it("affiche 'Mon établissement' si schoolSlug est null", () => {
-    render(<TeacherHome user={teacherUser} schoolSlug={null} />);
-    expect(screen.getByText("Mon établissement")).toBeTruthy();
+    expect(screen.getAllByText("Enseignant(e)").length).toBeGreaterThan(0);
   });
 });
 
