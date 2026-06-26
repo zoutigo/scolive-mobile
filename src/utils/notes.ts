@@ -6,6 +6,7 @@ import type {
   EvaluationRow,
   StudentEvaluation,
   StudentNotesTerm,
+  StudentNotesSequence,
   StudentNotesTermSnapshot,
   StudentSubjectNotes,
 } from "../types/notes.types";
@@ -70,6 +71,43 @@ export function termLabel(term: StudentNotesTerm, t: TranslateFn = tFr) {
   }
 }
 
+const SEQUENCE_KEY_MAP: Record<StudentNotesSequence, string> = {
+  SEQ_1: "notes.sequences.seq1",
+  SEQ_2: "notes.sequences.seq2",
+  SEQ_3: "notes.sequences.seq3",
+  SEQ_4: "notes.sequences.seq4",
+  SEQ_5: "notes.sequences.seq5",
+  SEQ_6: "notes.sequences.seq6",
+};
+
+export function sequenceLabel(
+  sequence: StudentNotesSequence,
+  t: TranslateFn = tFr,
+) {
+  return t(SEQUENCE_KEY_MAP[sequence]);
+}
+
+export function sequenceToTerm(
+  sequence: StudentNotesSequence,
+): StudentNotesTerm {
+  if (sequence === "SEQ_1" || sequence === "SEQ_2") return "TERM_1";
+  if (sequence === "SEQ_3" || sequence === "SEQ_4") return "TERM_2";
+  return "TERM_3";
+}
+
+export function isEvenSequence(sequence: StudentNotesSequence): boolean {
+  return sequence === "SEQ_2" || sequence === "SEQ_4" || sequence === "SEQ_6";
+}
+
+export const ALL_SEQUENCES: StudentNotesSequence[] = [
+  "SEQ_1",
+  "SEQ_2",
+  "SEQ_3",
+  "SEQ_4",
+  "SEQ_5",
+  "SEQ_6",
+];
+
 export function getCurrentTerm(date = new Date()): StudentNotesTerm {
   const month = date.getMonth() + 1;
   if (month >= 9 && month <= 12) {
@@ -81,8 +119,64 @@ export function getCurrentTerm(date = new Date()): StudentNotesTerm {
   return "TERM_3";
 }
 
-export function buildRadarData(snapshot: StudentNotesTermSnapshot) {
-  const eligibleSubjects = snapshot.subjects.filter(
+export function buildYearSubjects(
+  snapshots: StudentNotesTermSnapshot[],
+): StudentSubjectNotes[] {
+  const map = new Map<
+    string,
+    {
+      ref: StudentSubjectNotes;
+      studentScores: number[];
+      classScores: number[];
+      classMins: number[];
+      classMaxes: number[];
+    }
+  >();
+
+  for (const snapshot of snapshots) {
+    for (const subject of snapshot.subjects) {
+      const entry = map.get(subject.id);
+      if (!entry) {
+        map.set(subject.id, {
+          ref: subject,
+          studentScores:
+            subject.studentAverage !== null ? [subject.studentAverage] : [],
+          classScores:
+            subject.classAverage !== null ? [subject.classAverage] : [],
+          classMins: subject.classMin !== null ? [subject.classMin] : [],
+          classMaxes: subject.classMax !== null ? [subject.classMax] : [],
+        });
+      } else {
+        if (subject.studentAverage !== null)
+          entry.studentScores.push(subject.studentAverage);
+        if (subject.classAverage !== null)
+          entry.classScores.push(subject.classAverage);
+        if (subject.classMin !== null) entry.classMins.push(subject.classMin);
+        if (subject.classMax !== null) entry.classMaxes.push(subject.classMax);
+      }
+    }
+  }
+
+  return Array.from(map.values()).map(
+    ({ ref, studentScores, classScores, classMins, classMaxes }) => ({
+      ...ref,
+      studentAverage:
+        studentScores.length > 0
+          ? studentScores.reduce((a, b) => a + b, 0) / studentScores.length
+          : null,
+      classAverage:
+        classScores.length > 0
+          ? classScores.reduce((a, b) => a + b, 0) / classScores.length
+          : null,
+      classMin: classMins.length > 0 ? Math.min(...classMins) : null,
+      classMax: classMaxes.length > 0 ? Math.max(...classMaxes) : null,
+      evaluations: [],
+    }),
+  );
+}
+
+export function buildRadarData(subjects: StudentSubjectNotes[]) {
+  const eligibleSubjects = subjects.filter(
     (subject) =>
       subject.studentAverage !== null && subject.classAverage !== null,
   );
@@ -94,8 +188,8 @@ export function buildRadarData(snapshot: StudentNotesTermSnapshot) {
   }));
 }
 
-export function buildRadarChart(snapshot: StudentNotesTermSnapshot) {
-  const data = buildRadarData(snapshot);
+export function buildRadarChart(subjects: StudentSubjectNotes[]) {
+  const data = buildRadarData(subjects);
   const center = 110;
   const radius = 78;
   const angleStep = (Math.PI * 2) / Math.max(data.length, 1);

@@ -22,12 +22,18 @@ import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 import { RichTextToolbar } from "../editor/RichTextToolbar";
 import { DatePickerField } from "../DatePickerField";
 import { TimePickerField } from "../TimePickerField";
-import { getCurrentTerm, termLabel } from "../../utils/notes";
-import { parseDateInput, toIsoDateString } from "../../utils/timetable";
+import {
+  ALL_SEQUENCES,
+  isEvenSequence,
+  sequenceLabel,
+  sequenceToTerm,
+  termLabel,
+} from "../../utils/notes";
+import { toIsoDateString } from "../../utils/timetable";
 import type {
   EvaluationAttachmentDraft,
   NotesTeacherContext,
-  StudentNotesTerm,
+  StudentNotesSequence,
   UpsertEvaluationPayload,
 } from "../../types/notes.types";
 
@@ -60,11 +66,6 @@ function combineToIso(date: string, time: string): string {
   return `${date}T${hh}:${min}:00.000Z`;
 }
 
-function termFromDate(dateIso: string): StudentNotesTerm {
-  const d = parseDateInput(dateIso);
-  return d ? getCurrentTerm(d) : getCurrentTerm();
-}
-
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 function buildEvalSchema(t: TranslateFn) {
@@ -79,6 +80,8 @@ function buildEvalSchema(t: TranslateFn) {
     evaluationTypeId: z
       .string()
       .min(1, t("notes.form.validation.typeRequired")),
+    sequence: z.string().min(1, t("notes.form.validation.sequenceRequired")),
+    isFinalExam: z.boolean(),
     scheduledDate: z
       .string()
       .min(1, t("notes.form.validation.dateRequired"))
@@ -279,6 +282,8 @@ export function EvaluationForm({
         initialValues?.subjectId ?? teacherContext.subjects[0]?.id ?? "",
       subjectBranchId: initialValues?.subjectBranchId ?? "",
       evaluationTypeId: initialValues?.evaluationTypeId ?? defaultType,
+      sequence: initialValues?.sequence ?? "SEQ_1",
+      isFinalExam: initialValues?.isFinalExam ?? false,
       scheduledDate: isoToDatePart(initialValues?.scheduledAt ?? ""),
       scheduledTime: isoToTimePart(initialValues?.scheduledAt ?? ""),
       coefficient: String(initialValues?.coefficient ?? 1),
@@ -287,7 +292,7 @@ export function EvaluationForm({
   });
 
   const watchedSubjectId = watch("subjectId");
-  const watchedDate = watch("scheduledDate");
+  const watchedSequence = watch("sequence") as StudentNotesSequence;
 
   const prevSubjectRef = useRef(watchedSubjectId);
   useEffect(() => {
@@ -299,7 +304,8 @@ export function EvaluationForm({
 
   const selectedSubject =
     teacherContext.subjects.find((s) => s.id === watchedSubjectId) ?? null;
-  const autoTerm = watchedDate ? termFromDate(watchedDate) : getCurrentTerm();
+  const derivedTerm = sequenceToTerm(watchedSequence);
+  const isEven = isEvenSequence(watchedSequence);
 
   const subjectOptions: SelectOption[] = teacherContext.subjects.map((s) => ({
     value: s.id,
@@ -311,6 +317,10 @@ export function EvaluationForm({
   const branchOptions: SelectOption[] =
     selectedSubject?.branches.map((b) => ({ value: b.id, label: b.name })) ??
     [];
+  const sequenceOptions: SelectOption[] = ALL_SEQUENCES.map((seq) => ({
+    value: seq,
+    label: sequenceLabel(seq, t),
+  }));
 
   function openColorMenu() {
     Alert.alert(
@@ -381,7 +391,8 @@ export function EvaluationForm({
         description: finalHtml || undefined,
         coefficient: Number(values.coefficient),
         maxScore: Number(values.maxScore),
-        term: termFromDate(values.scheduledDate),
+        sequence: values.sequence as StudentNotesSequence,
+        isFinalExam: values.isFinalExam,
         scheduledAt: combineToIso(values.scheduledDate, values.scheduledTime),
         status,
         attachments,
@@ -533,6 +544,81 @@ export function EvaluationForm({
         )}
       />
 
+      {/* Séquence */}
+      <Controller
+        control={control}
+        name="sequence"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>
+              {t("notes.form.fields.sequence")}{" "}
+              <Text style={styles.required}>*</Text>
+            </Text>
+            <SelectField
+              options={sequenceOptions}
+              value={value}
+              onChange={(v) => {
+                onChange(v);
+                if (!isEvenSequence(v as StudentNotesSequence)) {
+                  setValue("isFinalExam", false);
+                }
+              }}
+              onBlur={onBlur}
+              placeholder={t("notes.form.fields.sequencePlaceholder")}
+              hasError={!!errors.sequence}
+              testID="eval-form-sequence"
+            />
+            {errors.sequence ? (
+              <Text style={styles.errorText} testID="eval-form-sequence-error">
+                {errors.sequence.message}
+              </Text>
+            ) : null}
+          </View>
+        )}
+      />
+
+      {/* Badge trimestre dérivé */}
+      <View style={styles.termBadgeRow}>
+        <Ionicons
+          name="calendar-clear-outline"
+          size={14}
+          color={colors.primary}
+        />
+        <Text style={styles.termBadgeText} testID="eval-form-term-auto">
+          {termLabel(derivedTerm, t)} — {t("notes.form.sequenceTermBadge")}
+        </Text>
+      </View>
+
+      {/* Examen de séquence (séquences paires uniquement) */}
+      {isEven ? (
+        <Controller
+          control={control}
+          name="isFinalExam"
+          render={({ field: { onChange, value } }) => (
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>
+                {t("notes.form.fields.isFinalExam")}
+              </Text>
+              <TouchableOpacity
+                style={styles.checkboxRow}
+                onPress={() => onChange(!value)}
+                testID="eval-form-is-final-exam"
+                activeOpacity={0.7}
+              >
+                <View style={[styles.checkbox, value && styles.checkboxActive]}>
+                  {value ? (
+                    <Ionicons name="checkmark" size={14} color={colors.white} />
+                  ) : null}
+                </View>
+                <Text style={styles.checkboxLabel}>
+                  {t("notes.form.fields.isFinalExamHint")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+      ) : null}
+
       {/* ════ PLANIFICATION ════════════════════════════════════ */}
       <SectionHeader label={t("notes.form.sections.planning")} />
 
@@ -590,18 +676,6 @@ export function EvaluationForm({
             </View>
           )}
         />
-      </View>
-
-      {/* Trimestre auto-détecté */}
-      <View style={styles.termBadgeRow}>
-        <Ionicons
-          name="calendar-clear-outline"
-          size={14}
-          color={colors.primary}
-        />
-        <Text style={styles.termBadgeText} testID="eval-form-term-auto">
-          {termLabel(autoTerm, t)} — {t("notes.form.termAutoSuffix")}
-        </Text>
       </View>
 
       {/* Coefficient + Barème */}
@@ -1053,4 +1127,38 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   actionBtnDisabled: { opacity: 0.6 },
+
+  checkboxRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+    flexShrink: 0,
+  },
+  checkboxActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  checkboxLabel: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
 });

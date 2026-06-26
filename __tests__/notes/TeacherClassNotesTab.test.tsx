@@ -46,6 +46,7 @@ const makeSnapshot = (
   councilLabel: "",
   generatedAtLabel: "",
   generalAverage: { student: avg, class: avg, min: 8, max: 18 },
+  sequences: [],
   subjects: [
     {
       id: "sub-1",

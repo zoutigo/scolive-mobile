@@ -62,6 +62,7 @@ describe("ChildNotesScreen", () => {
               min: 7,
               max: 18,
             },
+            sequences: [],
             subjects: [
               {
                 id: "math",
@@ -157,6 +158,7 @@ describe("ChildNotesScreen", () => {
               min: 7,
               max: 18,
             },
+            sequences: [],
             subjects: [],
           },
           {
@@ -170,6 +172,7 @@ describe("ChildNotesScreen", () => {
               min: 8,
               max: 18,
             },
+            sequences: [],
             subjects: [
               {
                 id: "term-3-math",

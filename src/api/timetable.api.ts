@@ -5,6 +5,7 @@ import type {
   ClassTimetableContextResponse,
   ClassTimetableResponse,
   MyTimetableResponse,
+  TeacherMyTimetableResponse,
   TimetableClassOptionsResponse,
   TimetableCalendarEvent,
   TimetableOneOffSlot,
@@ -38,6 +39,28 @@ export const timetableApi = {
     return apiFetch(
       `/schools/${schoolSlug}/timetable/me${toQuery({
         childId: input.childId,
+        schoolYearId: input.schoolYearId,
+        fromDate: input.fromDate ?? range.fromDate,
+        toDate: input.toDate ?? range.toDate,
+      })}`,
+      {},
+      true,
+    );
+  },
+
+  async getTeacherMyTimetable(
+    schoolSlug: string,
+    input: {
+      teacherUserId?: string;
+      schoolYearId?: string;
+      fromDate?: string;
+      toDate?: string;
+    } = {},
+  ): Promise<TeacherMyTimetableResponse> {
+    const range = buildDefaultDateRange();
+    return apiFetch(
+      `/schools/${schoolSlug}/timetable/me/teacher${toQuery({
+        teacherUserId: input.teacherUserId,
         schoolYearId: input.schoolYearId,
         fromDate: input.fromDate ?? range.fromDate,
         toDate: input.toDate ?? range.toDate,

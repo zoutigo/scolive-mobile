@@ -13,6 +13,11 @@ describe("translateApiMessage", () => {
     ).toContain("référent");
     expect(
       translateApiMessage(
+        "Teacher can only manage recurring slot series they are assigned to",
+      ),
+    ).toContain("séries");
+    expect(
+      translateApiMessage(
         "Teacher is not assigned to this class and subject for the school year",
       ),
     ).toContain("affecté");

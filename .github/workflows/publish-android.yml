@@ -56,11 +56,18 @@ jobs:
         id: version
         run: |
           BASE_VERSION="$(node -p "require('./app.json').expo.version")"
+          # VERSION_CODE (entier Android) ne recule jamais : toujours GITHUB_RUN_NUMBER.
+          # Cela garantit que toutes les installations existantes reçoivent bien
+          # les notifications de mise à jour (latestCode > currentVersionCode).
           VERSION_CODE="${GITHUB_RUN_NUMBER}"
-          # BASE_VERSION (app.json) ne change qu'aux vraies releases ; on suffixe
-          # toujours avec le build number pour que versionName soit unique par
-          # build et que la modale de mise à jour affiche un vrai delta.
-          VERSION_NAME="${BASE_VERSION}+${VERSION_CODE}"
+          # VERSION_NAME (affichage) : compteur réinitialisé à chaque nouveau cycle
+          # de version mineure. L'offset est lu depuis .version-build-offset (entier
+          # égal au dernier GITHUB_RUN_NUMBER du cycle précédent). Pour repartir à
+          # +1 lors du prochain bump de version, mettre à jour ce fichier avec la
+          # valeur du run courant avant de bumper app.json.
+          OFFSET="$(cat .version-build-offset 2>/dev/null | tr -d '[:space:]' || echo 0)"
+          DISPLAY_BUILD=$(( GITHUB_RUN_NUMBER - OFFSET ))
+          VERSION_NAME="${BASE_VERSION}+${DISPLAY_BUILD}"
           BUILD_ID="${GITHUB_REF_NAME}-${GITHUB_RUN_NUMBER}"
           SHORT_SHA="$(git rev-parse --short HEAD)"
           echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"

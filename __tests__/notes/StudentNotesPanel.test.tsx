@@ -19,6 +19,7 @@ const SNAPSHOT_T1 = {
   councilLabel: "6e A • Conseil du 12 avril",
   generatedAtLabel: "Données publiées le 12/04/2026",
   generalAverage: { student: 13.5, class: 12.2, min: 7, max: 18 },
+  sequences: [],
   subjects: [
     {
       id: "math",

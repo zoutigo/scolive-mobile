@@ -35,8 +35,8 @@ import {
   buildEvaluationProgress,
   formatEvaluationDate,
   formatScore,
+  sequenceLabel,
   sortEvaluations,
-  termLabel,
 } from "../../utils/notes";
 import { getViewType } from "../navigation/nav-config";
 import { ModuleHeader } from "../navigation/ModuleHeader";
@@ -81,7 +81,8 @@ function createEmptyEvaluationForm(): UpsertEvaluationPayload {
     description: "",
     coefficient: 1,
     maxScore: 20,
-    term: "TERM_1",
+    sequence: "SEQ_1",
+    isFinalExam: false,
     scheduledAt: "",
     status: "DRAFT",
     attachments: [],
@@ -296,7 +297,8 @@ export function ClassNotesManagerScreen({
       description: entry.description ?? "",
       coefficient: entry.coefficient,
       maxScore: entry.maxScore,
-      term: entry.term,
+      sequence: entry.sequence,
+      isFinalExam: entry.isFinalExam,
       scheduledAt: entry.scheduledAt ?? "",
       status: entry.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
       attachments: entry.attachments ?? [],
@@ -485,7 +487,7 @@ export function ClassNotesManagerScreen({
                       : ""}
                   </Text>
                   <Text style={styles.evaluationMeta}>
-                    {termLabel(item.term, t)} •{" "}
+                    {sequenceLabel(item.sequence, t)} •{" "}
                     {formatEvaluationDate(item.scheduledAt, t)}
                   </Text>
                   {teacherContext ? (
@@ -742,7 +744,7 @@ export function ClassNotesManagerScreen({
                     {t("notes.manager.detail.labelPeriod")}
                   </Text>
                   <Text style={styles.detailValue}>
-                    {termLabel(selectedEvalRow.term, t)}
+                    {sequenceLabel(selectedEvalRow.sequence, t)}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>

@@ -75,6 +75,9 @@ export type TimetableOccurrence = {
   slotId?: string;
   exceptionId?: string;
   oneOffSlotId?: string;
+  classId?: string;
+  className?: string;
+  schoolYearId?: string;
 };
 
 export type TimetableCalendarEvent = {
@@ -109,6 +112,23 @@ export type MyTimetableResponse = {
   oneOffSlots: TimetableOneOffSlot[];
   slotExceptions: TimetableSlotException[];
   occurrences: TimetableOccurrence[];
+  calendarEvents: TimetableCalendarEvent[];
+  subjectStyles: TimetableSubjectStyle[];
+};
+
+export type TeacherMyTimetableResponse = {
+  teacher: TimetableTeacherRef;
+  classes: TimetableClassSummary[];
+  slots: TimetableRecurringSlot[];
+  oneOffSlots: TimetableOneOffSlot[];
+  slotExceptions: TimetableSlotException[];
+  occurrences: TimetableOccurrence[];
+  occurrenceContexts: Array<{
+    occurrenceId: string;
+    classId: string;
+    className: string;
+    schoolYearId: string;
+  }>;
   calendarEvents: TimetableCalendarEvent[];
   subjectStyles: TimetableSubjectStyle[];
 };

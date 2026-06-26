@@ -901,7 +901,13 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "timetable.oneOffPanel.title": "Nouveau créneau",
     "timetable.oneOffPanel.fields.class": "Classe",
+    "timetable.oneOffPanel.slotType.oneoff": "Ponctuel",
+    "timetable.oneOffPanel.slotType.recurring": "Récurrent",
+    "timetable.oneOffPanel.fields.activeFrom": "À partir du",
+    "timetable.oneOffPanel.fields.activeTo": "Jusqu'au (optionnel)",
+    "timetable.oneOffPanel.fields.weekdayLabel": "Jour",
     "timetable.oneOffPanel.addButton": "Ajouter ce créneau",
+    "timetable.oneOffPanel.addRecurringButton": "Ajouter ce créneau récurrent",
     "timetable.oneOffPanel.contextError":
       "Impossible de charger le contexte de la classe.",
     "timetable.oneOffPanel.validation.chooseClass": "Choisissez une classe.",
@@ -912,9 +918,17 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.oneOffPanel.validation.roomRequired": "Renseignez une salle.",
     "timetable.oneOffPanel.validation.endAfterStart":
       "La fin doit être après le début.",
+    "timetable.oneOffPanel.validation.activeFromRequired":
+      "Renseignez la date de début.",
+    "timetable.oneOffPanel.validation.activeToAfterFrom":
+      "La date de fin doit être après la date de début.",
     "timetable.oneOffPanel.toasts.createdTitle": "Séance ajoutée",
     "timetable.oneOffPanel.toasts.createdMessage":
       "Le créneau apparaît maintenant dans l'agenda.",
+    "timetable.oneOffPanel.toasts.recurringCreatedTitle":
+      "Créneau récurrent ajouté",
+    "timetable.oneOffPanel.toasts.recurringCreatedMessage":
+      "Le créneau récurrent a été créé dans l'emploi du temps.",
     "timetable.oneOffPanel.toasts.createErrorTitle": "Création impossible",
 
     "timetable.slotEditPanel.title": "MODIFIER CE CRÉNEAU",
@@ -1567,6 +1581,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.terms.term1": "Trimestre 1",
     "notes.terms.term2": "Trimestre 2",
     "notes.terms.term3": "Trimestre 3",
+    "notes.sequences.seq1": "T1 — Séquence 1",
+    "notes.sequences.seq2": "T1 — Séquence 2 (examen)",
+    "notes.sequences.seq3": "T2 — Séquence 3",
+    "notes.sequences.seq4": "T2 — Séquence 4 (examen)",
+    "notes.sequences.seq5": "T3 — Séquence 5",
+    "notes.sequences.seq6": "T3 — Séquence 6 (examen)",
 
     "notes.scoreStatus.absent": "Abs",
     "notes.scoreStatus.excused": "Disp",
@@ -1598,7 +1618,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.form.fields.timeTitle": "Heure de l'évaluation",
     "notes.form.fields.coefficient": "Coefficient",
     "notes.form.fields.maxScore": "Barème",
+    "notes.form.fields.sequence": "Séquence",
+    "notes.form.fields.sequencePlaceholder": "Sélectionner une séquence",
+    "notes.form.fields.isFinalExam": "Examen de séquence",
+    "notes.form.fields.isFinalExamHint":
+      "Cochez si c'est l'examen final de la séquence (obligatoire pour compter dans la moyenne)",
     "notes.form.termAutoSuffix": "calculé automatiquement d'après la date",
+    "notes.form.sequenceTermBadge": "Trimestre détecté",
+    "notes.form.validation.sequenceRequired": "Séquence requise",
     "notes.form.descriptionPlaceholder":
       "Consignes, compétences visées, modalités…",
     "notes.form.addAttachment": "Ajouter un fichier",
@@ -1793,6 +1820,7 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Le tracé bleu représente l'élève. Le gris correspond à la classe.",
     "notes.charts.student": "Élève",
     "notes.charts.class": "Classe",
+    "notes.charts.yearBadge": "ANNÉE SCOLAIRE",
     "notes.detail.evalTitle": "Détail de l'évaluation",
     "notes.detail.avgTitle": "Détail de la moyenne",
     "notes.detail.statNote": "Note",
@@ -2769,7 +2797,13 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "timetable.oneOffPanel.title": "New slot",
     "timetable.oneOffPanel.fields.class": "Class",
+    "timetable.oneOffPanel.slotType.oneoff": "One-time",
+    "timetable.oneOffPanel.slotType.recurring": "Recurring",
+    "timetable.oneOffPanel.fields.activeFrom": "From",
+    "timetable.oneOffPanel.fields.activeTo": "Until (optional)",
+    "timetable.oneOffPanel.fields.weekdayLabel": "Day",
     "timetable.oneOffPanel.addButton": "Add this slot",
+    "timetable.oneOffPanel.addRecurringButton": "Add recurring slot",
     "timetable.oneOffPanel.contextError": "Unable to load the class context.",
     "timetable.oneOffPanel.validation.chooseClass": "Choose a class.",
     "timetable.oneOffPanel.validation.startRequired": "Enter the start time.",
@@ -2777,9 +2811,17 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.oneOffPanel.validation.roomRequired": "Enter a room.",
     "timetable.oneOffPanel.validation.endAfterStart":
       "The end time must be after the start time.",
+    "timetable.oneOffPanel.validation.activeFromRequired":
+      "Enter a start date.",
+    "timetable.oneOffPanel.validation.activeToAfterFrom":
+      "End date must be after start date.",
     "timetable.oneOffPanel.toasts.createdTitle": "Class added",
     "timetable.oneOffPanel.toasts.createdMessage":
       "The slot now appears in the schedule.",
+    "timetable.oneOffPanel.toasts.recurringCreatedTitle":
+      "Recurring slot added",
+    "timetable.oneOffPanel.toasts.recurringCreatedMessage":
+      "The recurring slot has been added to the timetable.",
     "timetable.oneOffPanel.toasts.createErrorTitle": "Creation failed",
 
     "timetable.slotEditPanel.title": "EDIT THIS SLOT",
@@ -3412,6 +3454,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.terms.term1": "Term 1",
     "notes.terms.term2": "Term 2",
     "notes.terms.term3": "Term 3",
+    "notes.sequences.seq1": "T1 — Sequence 1",
+    "notes.sequences.seq2": "T1 — Sequence 2 (exam)",
+    "notes.sequences.seq3": "T2 — Sequence 3",
+    "notes.sequences.seq4": "T2 — Sequence 4 (exam)",
+    "notes.sequences.seq5": "T3 — Sequence 5",
+    "notes.sequences.seq6": "T3 — Sequence 6 (exam)",
 
     "notes.scoreStatus.absent": "Abs",
     "notes.scoreStatus.excused": "Exc",
@@ -3443,7 +3491,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.form.fields.timeTitle": "Evaluation time",
     "notes.form.fields.coefficient": "Coefficient",
     "notes.form.fields.maxScore": "Max score",
+    "notes.form.fields.sequence": "Sequence",
+    "notes.form.fields.sequencePlaceholder": "Select a sequence",
+    "notes.form.fields.isFinalExam": "Sequence exam",
+    "notes.form.fields.isFinalExamHint":
+      "Check if this is the final exam of the sequence (required to count in the average)",
     "notes.form.termAutoSuffix": "automatically computed from the date",
+    "notes.form.sequenceTermBadge": "Detected term",
+    "notes.form.validation.sequenceRequired": "Sequence required",
     "notes.form.descriptionPlaceholder":
       "Instructions, targeted skills, modalities…",
     "notes.form.addAttachment": "Add a file",
@@ -3635,6 +3690,7 @@ export const translations: Record<Locale, Record<string, string>> = {
       "The blue trace represents the student. The grey corresponds to the class.",
     "notes.charts.student": "Student",
     "notes.charts.class": "Class",
+    "notes.charts.yearBadge": "SCHOOL YEAR",
     "notes.detail.evalTitle": "Evaluation detail",
     "notes.detail.avgTitle": "Average detail",
     "notes.detail.statNote": "Grade",
