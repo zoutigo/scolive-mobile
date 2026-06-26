@@ -386,7 +386,7 @@ describe("TeacherSlotEditPanel — sauvegarde", () => {
   it("propage le message d'erreur traduit quand l'API rejette", async () => {
     mockApi.createOneOffSlot.mockRejectedValueOnce(
       new Error(
-        "Only class referent teacher can manage timetable for this class",
+        "Teacher can only manage recurring slot series they are assigned to",
       ),
     );
     renderPanel(RECURRING_OCC);
@@ -394,7 +394,7 @@ describe("TeacherSlotEditPanel — sauvegarde", () => {
     await waitFor(() => expect(mockShowError).toHaveBeenCalled());
     expect(mockShowError).toHaveBeenCalledWith(
       expect.objectContaining({
-        message: expect.stringContaining("référent"),
+        message: expect.stringContaining("séries"),
       }),
     );
     expect(mockOnSuccess).not.toHaveBeenCalled();

@@ -12,6 +12,8 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
     "Vous n'avez pas les droits nécessaires pour effectuer cette action.",
   "Only class referent teacher can manage timetable for this class":
     "Seul l'enseignant référent de cette classe peut modifier les séries de créneaux.",
+  "Teacher can only manage recurring slot series they are assigned to":
+    "Vous pouvez uniquement modifier les séries de créneaux dont vous êtes l'enseignant affecté.",
   "Teacher can only manage one-off slots they are assigned to":
     "Vous pouvez uniquement modifier les créneaux isolés dont vous êtes l'enseignant.",
   "Selected user is not a teacher in this school":

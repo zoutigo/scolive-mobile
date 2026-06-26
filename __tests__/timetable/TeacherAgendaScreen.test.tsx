@@ -246,16 +246,36 @@ beforeEach(() => {
     scale: 2,
     fontScale: 1,
   });
-  // "Mon agenda" tab: loadClassOptions (store) + getClassTimetable (direct API)
+  // "Mon agenda" tab: dedicated teacher endpoint + class options for actions
   mockLoadClassOptions.mockResolvedValue(CLASS_OPTIONS);
-  // Retourne les créneaux enseignant pour 6eC, vide pour les autres classes
-  api.getClassTimetable.mockImplementation((_slug, classId) =>
-    Promise.resolve(
-      classId === "class-6eC"
-        ? makeClassTimetable(TEACHER_OCCS, [STYLE_ANG])
-        : makeClassTimetable([], []),
-    ),
-  );
+  api.getTeacherMyTimetable.mockResolvedValue({
+    teacher: { id: "u1", firstName: "Albert", lastName: "Mvondo" },
+    classes: [
+      {
+        id: "class-6eC",
+        name: "6eC",
+        schoolYearId: "sy1",
+        academicLevelId: null,
+      },
+    ],
+    slots: [SLOT_STUB],
+    oneOffSlots: [],
+    slotExceptions: [],
+    occurrences: TEACHER_OCCS.map((occurrence) => ({
+      ...occurrence,
+      classId: "class-6eC",
+      className: "6eC",
+      schoolYearId: "sy1",
+    })),
+    occurrenceContexts: TEACHER_OCCS.map((occurrence) => ({
+      occurrenceId: occurrence.id,
+      classId: "class-6eC",
+      className: "6eC",
+      schoolYearId: "sy1",
+    })),
+    calendarEvents: [],
+    subjectStyles: [STYLE_ANG],
+  });
   // "Mes classes" tab
   mockLoadClassTimetable.mockResolvedValue(makeClassTimetable());
   // Contexte de classe pour TeacherOneOffCreatePanel
@@ -330,16 +350,18 @@ describe("TeacherAgendaScreen — header et structure", () => {
 // ── Tests — Onglet "Mon agenda" ────────────────────────────────────────────
 
 describe("TeacherAgendaScreen — onglet Mon agenda", () => {
-  it("appelle loadClassOptions + getClassTimetable pour agréger l'agenda", async () => {
+  it("appelle loadClassOptions + getTeacherMyTimetable pour charger l'agenda", async () => {
     render(<TeacherAgendaScreen />);
     await waitFor(() =>
       expect(mockLoadClassOptions).toHaveBeenCalledWith("college-vogt"),
     );
     await waitFor(() =>
-      expect(api.getClassTimetable).toHaveBeenCalledWith(
+      expect(api.getTeacherMyTimetable).toHaveBeenCalledWith(
         "college-vogt",
-        expect.any(String),
-        expect.any(Object),
+        expect.objectContaining({
+          fromDate: expect.any(String),
+          toDate: expect.any(String),
+        }),
       ),
     );
   });
@@ -356,23 +378,23 @@ describe("TeacherAgendaScreen — onglet Mon agenda", () => {
     expect(screen.getByText(/Aujourd'hui/)).toBeTruthy();
   });
 
-  it("n'affiche pas les créneaux d'un autre enseignant", async () => {
-    // Occurrence avec un autre teacherUser — ne doit pas apparaître
-    const otherTeacherOcc = {
-      ...TEACHER_OCCS[0]!,
-      id: "occ-other",
-      teacherUser: { id: "other-teacher", firstName: "Guy", lastName: "Ndem" },
-    };
-    api.getClassTimetable.mockImplementation(() =>
-      Promise.resolve(makeClassTimetable([otherTeacherOcc], [STYLE_ANG])),
-    );
+  it("affiche un état vide si l'endpoint enseignant ne retourne aucun créneau", async () => {
+    api.getTeacherMyTimetable.mockResolvedValue({
+      teacher: { id: "u1", firstName: "Albert", lastName: "Mvondo" },
+      classes: [],
+      slots: [SLOT_STUB],
+      oneOffSlots: [],
+      slotExceptions: [],
+      occurrences: [],
+      occurrenceContexts: [],
+      calendarEvents: [],
+      subjectStyles: [STYLE_ANG],
+    });
     render(<TeacherAgendaScreen />);
     await waitFor(() =>
       expect(screen.getByTestId("teacher-agenda-mine-day-list")).toBeTruthy(),
     );
-    expect(
-      screen.queryByTestId("teacher-agenda-mine-day-card-occ-other"),
-    ).toBeNull();
+    expect(screen.getByText("Aucun cours")).toBeTruthy();
   });
 
   it("n'affiche pas les créneaux d'un autre jour en vue Jour", async () => {
@@ -388,9 +410,17 @@ describe("TeacherAgendaScreen — onglet Mon agenda", () => {
 
   it("affiche un empty state si aucun cours le jour courant", async () => {
     // Seul occ-ang-15 (demain) → aucun créneau aujourd'hui
-    api.getClassTimetable.mockImplementation(() =>
-      Promise.resolve(makeClassTimetable([TEACHER_OCCS[1]!], [STYLE_ANG])),
-    );
+    api.getTeacherMyTimetable.mockResolvedValue({
+      teacher: { id: "u1", firstName: "Albert", lastName: "Mvondo" },
+      classes: [],
+      slots: [SLOT_STUB],
+      oneOffSlots: [],
+      slotExceptions: [],
+      occurrences: [TEACHER_OCCS[1]!],
+      occurrenceContexts: [],
+      calendarEvents: [],
+      subjectStyles: [STYLE_ANG],
+    });
     render(<TeacherAgendaScreen />);
     await waitFor(() => expect(screen.getByText("Aucun cours")).toBeTruthy());
   });
@@ -449,18 +479,26 @@ describe("TeacherAgendaScreen — onglet Mon agenda", () => {
 
   it("recharge le planning au pull-to-refresh", async () => {
     render(<TeacherAgendaScreen />);
-    await waitFor(() => expect(api.getClassTimetable).toHaveBeenCalled());
+    await waitFor(() => expect(api.getTeacherMyTimetable).toHaveBeenCalled());
     jest.clearAllMocks();
-    api.getClassTimetable.mockResolvedValue(
-      makeClassTimetable(TEACHER_OCCS, [STYLE_ANG]),
-    );
+    api.getTeacherMyTimetable.mockResolvedValue({
+      teacher: { id: "u1", firstName: "Albert", lastName: "Mvondo" },
+      classes: [],
+      slots: [SLOT_STUB],
+      oneOffSlots: [],
+      slotExceptions: [],
+      occurrences: TEACHER_OCCS,
+      occurrenceContexts: [],
+      calendarEvents: [],
+      subjectStyles: [STYLE_ANG],
+    });
     fireEvent(screen.getByTestId("teacher-agenda-mine-pane"), "onRefresh");
     await waitFor(() => expect(mockLoadClassOptions).toHaveBeenCalledTimes(1));
   });
 
   it("affiche un bloc de chargement pendant le chargement initial", async () => {
     // Simule un délai infini pour voir le loading block
-    api.getClassTimetable.mockImplementation(
+    api.getTeacherMyTimetable.mockImplementation(
       () => new Promise(() => {}), // never resolves
     );
     render(<TeacherAgendaScreen />);

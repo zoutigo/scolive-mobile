@@ -58,6 +58,36 @@ describe("timetableApi.getMyTimetable()", () => {
   });
 });
 
+describe("timetableApi.getTeacherMyTimetable()", () => {
+  it("appelle l'endpoint enseignant avec teacherUserId et plage", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okJson({
+        teacher: { id: "teacher-1", firstName: "Albert", lastName: "Mvondo" },
+        classes: [],
+        slots: [],
+        oneOffSlots: [],
+        slotExceptions: [],
+        occurrences: [],
+        occurrenceContexts: [],
+        calendarEvents: [],
+        subjectStyles: [],
+      }),
+    );
+
+    await timetableApi.getTeacherMyTimetable("college-vogt", {
+      teacherUserId: "teacher-1",
+      fromDate: "2026-04-13",
+      toDate: "2026-04-20",
+    });
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/schools/college-vogt/timetable/me/teacher?");
+    expect(url).toContain("teacherUserId=teacher-1");
+    expect(url).toContain("fromDate=2026-04-13");
+    expect(options.headers.Authorization).toBe("Bearer token");
+  });
+});
+
 describe("timetableApi.getClassOptions()", () => {
   it("transforme le contexte notes en options de classes", async () => {
     mockFetch.mockResolvedValueOnce(

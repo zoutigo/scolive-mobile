@@ -317,9 +317,6 @@ export function TeacherAgendaScreenInner({
 
 // ─── Tab 1 : teacher's own agenda ────────────────────────────────────────────
 //
-// /timetable/me ne supporte pas le rôle TEACHER : on charge tous les agendas
-// de classes accessibles et on filtre les créneaux par teacherUser.id.
-
 type TeacherScheduleData = {
   occurrences: TimetableOccurrence[];
   subjectStyles: TimetableSubjectStyle[];
@@ -362,55 +359,30 @@ function TeacherMyAgendaPane({
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const options = await loadClassOptions(schoolSlug);
-      setAllClasses(options.classes);
-      if (!options.classes.length) {
-        setSchedule({
-          occurrences: [],
-          subjectStyles: [],
-          slots: [],
-          contextByOccId: new Map(),
-        });
-        return;
-      }
-      const timetables = await Promise.all(
-        options.classes.map((cls) =>
-          timetableApi.getClassTimetable(schoolSlug, cls.classId, {
-            fromDate: range.fromDate,
-            toDate: range.toDate,
-          }),
-        ),
-      );
+      const [schedulePayload, classOptionsResult] = await Promise.all([
+        timetableApi.getTeacherMyTimetable(schoolSlug, {
+          teacherUserId:
+            viewAsTeacherId && viewAsTeacherId !== user?.id
+              ? viewAsTeacherId
+              : undefined,
+          fromDate: range.fromDate,
+          toDate: range.toDate,
+        }),
+        loadClassOptions(schoolSlug).catch(() => null),
+      ]);
+      setAllClasses(classOptionsResult?.classes ?? []);
       const contextByOccId = new Map<string, OccurrenceContext>();
-      const allOccurrences: TimetableOccurrence[] = [];
-      for (let i = 0; i < timetables.length; i++) {
-        const t = timetables[i]!;
-        const cls = options.classes[i]!;
-        const ctx: OccurrenceContext = {
-          classId: cls.classId,
-          className: cls.className,
-          schoolYearId: cls.schoolYearId,
-        };
-        for (const o of t.occurrences) {
-          if (o.teacherUser.id === effectiveTeacherId) {
-            allOccurrences.push(o);
-            contextByOccId.set(o.id, ctx);
-          }
-        }
-      }
-      const allSlots = timetables
-        .flatMap((t) => t.slots)
-        .filter((s) => s.teacherUser.id === effectiveTeacherId);
-      const styleMap = new Map<string, TimetableSubjectStyle>();
-      for (const t of timetables) {
-        for (const style of t.subjectStyles) {
-          styleMap.set(style.subjectId, style);
-        }
-      }
+      schedulePayload.occurrenceContexts.forEach((ctx) => {
+        contextByOccId.set(ctx.occurrenceId, {
+          classId: ctx.classId,
+          className: ctx.className,
+          schoolYearId: ctx.schoolYearId,
+        });
+      });
       setSchedule({
-        occurrences: allOccurrences,
-        subjectStyles: Array.from(styleMap.values()),
-        slots: allSlots,
+        occurrences: schedulePayload.occurrences,
+        subjectStyles: schedulePayload.subjectStyles,
+        slots: schedulePayload.slots,
         contextByOccId,
       });
     } catch {
@@ -425,6 +397,8 @@ function TeacherMyAgendaPane({
     range.toDate,
     schoolSlug,
     locale,
+    user?.id,
+    viewAsTeacherId,
   ]);
 
   useEffect(() => {
