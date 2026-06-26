@@ -838,7 +838,7 @@ describe("EvaluationForm — soumission", () => {
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith(
-        expect.objectContaining({ term: "TERM_1" }),
+        expect.objectContaining({ sequence: "SEQ_1" }),
       );
     });
   });
@@ -901,7 +901,8 @@ describe("EvaluationForm — mode édition avec valeurs initiales", () => {
     subjectId: "sub-1",
     subjectBranchId: "branch-1",
     evaluationTypeId: "type-2",
-    term: "TERM_2" as const,
+    sequence: "SEQ_3" as const,
+    isFinalExam: false,
     status: "PUBLISHED" as const,
     scheduledAt: "2026-01-20T10:00:00.000Z",
     coefficient: 2,
@@ -1111,7 +1112,7 @@ describe("EvaluationForm — intégration cycle complet", () => {
           subjectId: "sub-1",
           subjectBranchId: "branch-2",
           evaluationTypeId: "type-2",
-          term: "TERM_1",
+          sequence: "SEQ_1",
           scheduledAt: expect.stringContaining("2026-10-15"),
           coefficient: 3,
           maxScore: 10,

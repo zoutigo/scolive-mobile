@@ -74,6 +74,7 @@ const NOTES_FIXTURE = [
     councilLabel: "6e C • Conseil du 15 avril",
     generatedAtLabel: "Données publiées le 15/04/2026",
     generalAverage: { student: 13.4, class: 12.1, min: 8.5, max: 17.8 },
+    sequences: [],
     subjects: [
       {
         id: "math",

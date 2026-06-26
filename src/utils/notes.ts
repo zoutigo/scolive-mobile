@@ -6,6 +6,7 @@ import type {
   EvaluationRow,
   StudentEvaluation,
   StudentNotesTerm,
+  StudentNotesSequence,
   StudentNotesTermSnapshot,
   StudentSubjectNotes,
 } from "../types/notes.types";
@@ -69,6 +70,43 @@ export function termLabel(term: StudentNotesTerm, t: TranslateFn = tFr) {
       return t("notes.terms.term3");
   }
 }
+
+const SEQUENCE_KEY_MAP: Record<StudentNotesSequence, string> = {
+  SEQ_1: "notes.sequences.seq1",
+  SEQ_2: "notes.sequences.seq2",
+  SEQ_3: "notes.sequences.seq3",
+  SEQ_4: "notes.sequences.seq4",
+  SEQ_5: "notes.sequences.seq5",
+  SEQ_6: "notes.sequences.seq6",
+};
+
+export function sequenceLabel(
+  sequence: StudentNotesSequence,
+  t: TranslateFn = tFr,
+) {
+  return t(SEQUENCE_KEY_MAP[sequence]);
+}
+
+export function sequenceToTerm(
+  sequence: StudentNotesSequence,
+): StudentNotesTerm {
+  if (sequence === "SEQ_1" || sequence === "SEQ_2") return "TERM_1";
+  if (sequence === "SEQ_3" || sequence === "SEQ_4") return "TERM_2";
+  return "TERM_3";
+}
+
+export function isEvenSequence(sequence: StudentNotesSequence): boolean {
+  return sequence === "SEQ_2" || sequence === "SEQ_4" || sequence === "SEQ_6";
+}
+
+export const ALL_SEQUENCES: StudentNotesSequence[] = [
+  "SEQ_1",
+  "SEQ_2",
+  "SEQ_3",
+  "SEQ_4",
+  "SEQ_5",
+  "SEQ_6",
+];
 
 export function getCurrentTerm(date = new Date()): StudentNotesTerm {
   const month = date.getMonth() + 1;

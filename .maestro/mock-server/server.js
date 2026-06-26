@@ -490,6 +490,7 @@ const MOCK_STUDENT_NOTES = {
         min: 9.5,
         max: 18.6,
       },
+      sequences: [],
       subjects: [
         {
           id: "subject-anglais",
@@ -577,6 +578,7 @@ const MOCK_STUDENT_NOTES = {
         min: 8.5,
         max: 18.9,
       },
+      sequences: [],
       subjects: [
         {
           id: "subject-math",
@@ -681,6 +683,9 @@ function createInitialNotesState() {
     description: "Evaluation initiale de reference",
     coefficient: 2,
     maxScore: 20,
+    sequence: "SEQ_1",
+    isFinalExam: false,
+    countsForAverage: true,
     term: "TERM_1",
     status: "PUBLISHED",
     scheduledAt: "2026-01-15T08:00:00.000Z",
@@ -2003,6 +2008,9 @@ function handleRequest(req, res) {
         description: payload.description || "",
         coefficient: Number(payload.coefficient ?? 1),
         maxScore: Number(payload.maxScore ?? 20),
+        sequence: payload.sequence || "SEQ_1",
+        isFinalExam: !!payload.isFinalExam,
+        countsForAverage: true,
         term: payload.term || "TERM_1",
         status: payload.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
         scheduledAt: payload.scheduledAt || now,
@@ -2083,6 +2091,9 @@ function handleRequest(req, res) {
         description: payload.description ?? current.description,
         coefficient: Number(payload.coefficient ?? current.coefficient),
         maxScore: Number(payload.maxScore ?? current.maxScore),
+        sequence: payload.sequence ?? current.sequence,
+        isFinalExam: payload.isFinalExam ?? current.isFinalExam,
+        countsForAverage: payload.countsForAverage ?? current.countsForAverage,
         term: payload.term ?? current.term,
         status: payload.status ?? current.status,
         scheduledAt: payload.scheduledAt ?? current.scheduledAt,

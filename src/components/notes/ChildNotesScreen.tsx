@@ -279,6 +279,7 @@ function buildDefaultSnapshots(t: TranslateFn): StudentNotesTermSnapshot[] {
     councilLabel: "",
     generatedAtLabel: "",
     generalAverage: { student: null, class: null, min: null, max: null },
+    sequences: [],
     subjects: [],
   }));
 }

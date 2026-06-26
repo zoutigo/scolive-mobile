@@ -76,7 +76,7 @@ describe("useNotesStore", () => {
       description: "",
       coefficient: 2,
       maxScore: 20,
-      term: "TERM_1",
+      sequence: "SEQ_1",
       scheduledAt: "2026-04-12T08:00:00.000Z",
       status: "DRAFT",
       attachments: [],
