@@ -119,8 +119,64 @@ export function getCurrentTerm(date = new Date()): StudentNotesTerm {
   return "TERM_3";
 }
 
-export function buildRadarData(snapshot: StudentNotesTermSnapshot) {
-  const eligibleSubjects = snapshot.subjects.filter(
+export function buildYearSubjects(
+  snapshots: StudentNotesTermSnapshot[],
+): StudentSubjectNotes[] {
+  const map = new Map<
+    string,
+    {
+      ref: StudentSubjectNotes;
+      studentScores: number[];
+      classScores: number[];
+      classMins: number[];
+      classMaxes: number[];
+    }
+  >();
+
+  for (const snapshot of snapshots) {
+    for (const subject of snapshot.subjects) {
+      const entry = map.get(subject.id);
+      if (!entry) {
+        map.set(subject.id, {
+          ref: subject,
+          studentScores:
+            subject.studentAverage !== null ? [subject.studentAverage] : [],
+          classScores:
+            subject.classAverage !== null ? [subject.classAverage] : [],
+          classMins: subject.classMin !== null ? [subject.classMin] : [],
+          classMaxes: subject.classMax !== null ? [subject.classMax] : [],
+        });
+      } else {
+        if (subject.studentAverage !== null)
+          entry.studentScores.push(subject.studentAverage);
+        if (subject.classAverage !== null)
+          entry.classScores.push(subject.classAverage);
+        if (subject.classMin !== null) entry.classMins.push(subject.classMin);
+        if (subject.classMax !== null) entry.classMaxes.push(subject.classMax);
+      }
+    }
+  }
+
+  return Array.from(map.values()).map(
+    ({ ref, studentScores, classScores, classMins, classMaxes }) => ({
+      ...ref,
+      studentAverage:
+        studentScores.length > 0
+          ? studentScores.reduce((a, b) => a + b, 0) / studentScores.length
+          : null,
+      classAverage:
+        classScores.length > 0
+          ? classScores.reduce((a, b) => a + b, 0) / classScores.length
+          : null,
+      classMin: classMins.length > 0 ? Math.min(...classMins) : null,
+      classMax: classMaxes.length > 0 ? Math.max(...classMaxes) : null,
+      evaluations: [],
+    }),
+  );
+}
+
+export function buildRadarData(subjects: StudentSubjectNotes[]) {
+  const eligibleSubjects = subjects.filter(
     (subject) =>
       subject.studentAverage !== null && subject.classAverage !== null,
   );
@@ -132,8 +188,8 @@ export function buildRadarData(snapshot: StudentNotesTermSnapshot) {
   }));
 }
 
-export function buildRadarChart(snapshot: StudentNotesTermSnapshot) {
-  const data = buildRadarData(snapshot);
+export function buildRadarChart(subjects: StudentSubjectNotes[]) {
+  const data = buildRadarData(subjects);
   const center = 110;
   const radius = 78;
   const angleStep = (Math.PI * 2) / Math.max(data.length, 1);

@@ -22,6 +22,7 @@ import { useNotesStore } from "../../store/notes.store";
 import type {
   StudentEvaluation,
   StudentNotesTerm,
+  StudentNotesSequence,
   StudentNotesTermSnapshot,
   StudentNotesView,
   StudentSubjectNotes,
@@ -29,6 +30,7 @@ import type {
 import {
   buildRadarChart,
   buildRadarData,
+  buildYearSubjects,
   formatDelta,
   formatPlainEvaluationScore,
   formatScore,
@@ -195,9 +197,7 @@ export function StudentNotesPanel({
                 onOpenDetail={setDetail}
               />
             ) : null}
-            {view === "charts" && filteredSnapshot ? (
-              <ChartsView snapshot={filteredSnapshot} />
-            ) : null}
+            {view === "charts" ? <ChartsView allSnapshots={snapshots} /> : null}
             {filteredSnapshot ? (
               <PeriodHero snapshot={filteredSnapshot} />
             ) : null}
@@ -326,10 +326,44 @@ function EvaluationsView(props: {
   onOpenDetail: (value: DetailState) => void;
 }) {
   const { t } = useTranslation();
+  const [activeSequence, setActiveSequence] =
+    useState<StudentNotesSequence | null>(
+      props.snapshot.sequences[0]?.sequence ?? null,
+    );
+
+  useEffect(() => {
+    setActiveSequence(props.snapshot.sequences[0]?.sequence ?? null);
+  }, [props.snapshot.term]);
+
+  const hasSequences = props.snapshot.sequences.length > 0;
+
+  const activeSeq = hasSequences
+    ? (props.snapshot.sequences.find((s) => s.sequence === activeSequence) ??
+      props.snapshot.sequences[0] ??
+      null)
+    : null;
+
+  const displaySubjects = activeSeq?.subjects ?? props.snapshot.subjects;
+  const displayGeneralAverage =
+    activeSeq?.generalAverage ?? props.snapshot.generalAverage;
+
   return (
     <>
+      {props.snapshot.sequences.length > 1 ? (
+        <CompactSelector
+          value={activeSequence ?? ""}
+          options={props.snapshot.sequences.map((seq) => ({
+            value: seq.sequence,
+            label: seq.sequenceLabel,
+          }))}
+          onChange={(value) => setActiveSequence(value as StudentNotesSequence)}
+          testIDPrefix="child-notes-sequence"
+          compact
+        />
+      ) : null}
+
       <View style={styles.notesBoard}>
-        {props.snapshot.subjects.length === 0 ? (
+        {displaySubjects.length === 0 ? (
           <EmptyState
             icon="document-text-outline"
             title={t("notes.evals.emptyTitle")}
@@ -337,13 +371,13 @@ function EvaluationsView(props: {
           />
         ) : (
           <View style={styles.subjectList}>
-            {props.snapshot.subjects.map((subject, index) => (
+            {displaySubjects.map((subject, index) => (
               <View
                 key={subject.id}
                 style={[
                   styles.subjectRow,
                   index % 2 === 1 && styles.subjectRowAlt,
-                  index < props.snapshot.subjects.length - 1 &&
+                  index < displaySubjects.length - 1 &&
                     styles.subjectRowDivider,
                 ]}
                 testID={`child-notes-subject-row-${subject.id}`}
@@ -399,7 +433,7 @@ function EvaluationsView(props: {
               </Text>
               <Text style={styles.generalAverageDash}>-</Text>
               <Text style={styles.generalAverageValue}>
-                {formatScore(props.snapshot.generalAverage.student)}
+                {formatScore(displayGeneralAverage.student)}
               </Text>
               <Text style={styles.generalAverageHint}>
                 {t("notes.evals.generalHint")}
@@ -644,10 +678,18 @@ function AveragesView(props: {
   );
 }
 
-function ChartsView({ snapshot }: { snapshot: StudentNotesTermSnapshot }) {
+function ChartsView({
+  allSnapshots,
+}: {
+  allSnapshots: StudentNotesTermSnapshot[];
+}) {
   const { t } = useTranslation();
-  const radarData = buildRadarData(snapshot);
-  const radarChart = buildRadarChart(snapshot);
+  const yearSubjects = useMemo(
+    () => buildYearSubjects(allSnapshots),
+    [allSnapshots],
+  );
+  const radarData = buildRadarData(yearSubjects);
+  const radarChart = buildRadarChart(yearSubjects);
 
   if (radarData.length === 0) {
     return (
@@ -663,6 +705,15 @@ function ChartsView({ snapshot }: { snapshot: StudentNotesTermSnapshot }) {
 
   return (
     <View style={styles.chartPanels}>
+      <View style={styles.yearBadgeRow}>
+        <View style={styles.yearBadge}>
+          <Ionicons name="calendar-outline" size={12} color={colors.primary} />
+          <Text style={styles.yearBadgeText}>
+            {t("notes.charts.yearBadge")}
+          </Text>
+        </View>
+      </View>
+
       <View style={styles.chartPanelCard}>
         <Text style={styles.chartPanelTitle}>
           {t("notes.charts.comparisonTitle")}
@@ -672,7 +723,7 @@ function ChartsView({ snapshot }: { snapshot: StudentNotesTermSnapshot }) {
         </Text>
 
         <View style={styles.chartList}>
-          {snapshot.subjects.map((subject) => (
+          {yearSubjects.map((subject) => (
             <ComparisonBand key={subject.id} subject={subject} />
           ))}
         </View>
@@ -1595,6 +1646,24 @@ const styles = StyleSheet.create({
   metricLabel: { color: colors.textSecondary, fontSize: 11, fontWeight: "600" },
   metricValue: { color: colors.textPrimary, fontSize: 11, fontWeight: "800" },
   chartPanels: { gap: 14 },
+  yearBadgeRow: { alignItems: "flex-start" },
+  yearBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderRadius: 999,
+    backgroundColor: "#eef5fd",
+    borderWidth: 1,
+    borderColor: "#bed5ea",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  yearBadgeText: {
+    color: colors.primary,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+  },
   chartPanelCard: {
     borderRadius: 22,
     borderWidth: 1,

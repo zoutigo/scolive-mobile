@@ -126,6 +126,7 @@ const STUDENT_NOTES_TERM2 = [
     councilLabel: "6e A • Trimestre 2",
     generatedAtLabel: "Données au 15/02/2026",
     generalAverage: { student: 17, class: 14, min: 10, max: 19 },
+    sequences: [],
     subjects: [
       {
         id: "sub-math",
@@ -511,6 +512,7 @@ describe("Flux complet : saisie note → onglet Notes au bon trimestre", () => {
       councilLabel: "",
       generatedAtLabel: "",
       generalAverage: { student: null, class: null, min: null, max: null },
+      sequences: [],
       subjects: [],
     };
     const notesWithTwoTerms = [term1Empty, ...STUDENT_NOTES_TERM2];
