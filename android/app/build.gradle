@@ -81,7 +81,7 @@ def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBu
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 def versionCodeProp = (findProperty("SCOLIVE_VERSION_CODE") ?: "1").toString()
-def versionNameProp = (findProperty("SCOLIVE_VERSION_NAME") ?: "1.0.0").toString()
+def versionNameProp = (findProperty("SCOLIVE_VERSION_NAME") ?: "1.1.0").toString()
 def releaseStoreFileProp = (findProperty("SCOLIVE_RELEASE_STORE_FILE") ?: "").toString()
 def releaseStorePasswordProp = (findProperty("SCOLIVE_RELEASE_STORE_PASSWORD") ?: "").toString()
 def releaseKeyAliasProp = (findProperty("SCOLIVE_RELEASE_KEY_ALIAS") ?: "").toString()
