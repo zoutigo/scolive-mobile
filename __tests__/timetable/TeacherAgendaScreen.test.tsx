@@ -931,10 +931,6 @@ describe("TeacherAgendaScreen — modal de création", () => {
       screen.getByTestId("teacher-oneoff-date-input"),
       "2026-04-28",
     );
-    fireEvent.changeText(
-      screen.getByTestId("teacher-oneoff-room-input"),
-      "B45",
-    );
     await pickTime("teacher-oneoff-start-input", "09", "10");
     await pickTime("teacher-oneoff-end-input", "10", "00");
     jest.clearAllMocks();
