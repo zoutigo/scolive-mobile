@@ -259,11 +259,20 @@ export function ChildTimetableScreen() {
 
   const { showSaturday, showSunday } = useMemo(() => {
     const recurringSlots = myTimetable?.slots ?? [];
+    const occs = myTimetable?.occurrences ?? [];
+    const occHasSat = occs.some((o) => {
+      const d = parseOccurrenceDate(o.occurrenceDate);
+      return d !== null && toWeekdayMondayFirst(d) === 6;
+    });
+    const occHasSun = occs.some((o) => {
+      const d = parseOccurrenceDate(o.occurrenceDate);
+      return d !== null && toWeekdayMondayFirst(d) === 7;
+    });
     return {
-      showSaturday: recurringSlots.some((s) => s.weekday === 6),
-      showSunday: recurringSlots.some((s) => s.weekday === 7),
+      showSaturday: recurringSlots.some((s) => s.weekday === 6) || occHasSat,
+      showSunday: recurringSlots.some((s) => s.weekday === 7) || occHasSun,
     };
-  }, [myTimetable?.slots]);
+  }, [myTimetable?.slots, myTimetable?.occurrences]);
 
   const subjectColorById = useMemo(
     () =>
@@ -356,15 +365,7 @@ export function ChildTimetableScreen() {
 
   function moveCursor(direction: -1 | 1) {
     if (viewMode === "day") {
-      const hiddenWeekdays = [
-        ...(showSaturday ? [] : [6]),
-        ...(showSunday ? [] : [7]),
-      ];
-      let next = addDays(cursorDate, direction);
-      while (hiddenWeekdays.includes(toWeekdayMondayFirst(next))) {
-        next = addDays(next, direction);
-      }
-      setCursorDate(next);
+      setCursorDate(addDays(cursorDate, direction));
       return;
     }
 
@@ -377,18 +378,6 @@ export function ChildTimetableScreen() {
   }
 
   function resetToCurrentPeriod() {
-    const hiddenWeekdays = [
-      ...(showSaturday ? [] : [6]),
-      ...(showSunday ? [] : [7]),
-    ];
-    if (viewMode === "day" && hiddenWeekdays.length > 0) {
-      let next = today;
-      while (hiddenWeekdays.includes(toWeekdayMondayFirst(next))) {
-        next = addDays(next, 1);
-      }
-      setCursorDate(next);
-      return;
-    }
     setCursorDate(today);
   }
 

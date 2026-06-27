@@ -303,6 +303,40 @@ describe("WeekGrid responsive — intégration écran complet", () => {
       });
     });
 
+    it("affiche la colonne Samedi même si le samedi vient d'une occurrence one-off (aucun slot récurrent)", () => {
+      const state = useTimetableStore.getState();
+      if (!state.myTimetable) return;
+      useTimetableStore.setState({
+        myTimetable: {
+          ...state.myTimetable,
+          slots: [], // aucun slot récurrent le samedi
+          occurrences: [
+            ...BASE_OCCURRENCES,
+            {
+              id: "occ-oneoff-sat",
+              source: "ONE_OFF" as const,
+              status: "PLANNED" as const,
+              occurrenceDate: "2026-04-18",
+              weekday: 6,
+              startMinute: 600,
+              endMinute: 660,
+              room: "Gymnase",
+              reason: null,
+              subject: { id: "sport", name: "Sport" },
+              teacherUser: { id: "t6", firstName: "Paul", lastName: "Biya" },
+            },
+          ],
+        },
+      });
+
+      mockUseWindowDimensions.mockReturnValue(screen$(360, 800));
+      render(<ChildTimetableScreen />);
+      goToWeekView();
+
+      expect(screen.getByTestId("child-timetable-week-col-6")).toBeTruthy();
+      expect(screen.queryByTestId("child-timetable-week-col-7")).toBeNull();
+    });
+
     it("sur tablette 768px / 6 jours, la grille tient dans l'espace disponible", () => {
       const nDays = 6;
       const dayColWidth = computeWeekDayColumnWidth(768, nDays);

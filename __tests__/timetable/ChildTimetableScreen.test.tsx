@@ -493,3 +493,74 @@ describe("WeekGrid — responsive (largeur colonnes)", () => {
     expect(widthLandscape).toBeGreaterThan(56);
   });
 });
+
+describe("ChildTimetableScreen — samedi via occurrence one-off", () => {
+  function addSaturdayOneOff() {
+    const state = useTimetableStore.getState();
+    if (!state.myTimetable) throw new Error("Missing myTimetable fixture");
+    useTimetableStore.setState({
+      myTimetable: {
+        ...state.myTimetable,
+        slots: [], // aucun slot récurrent le samedi
+        occurrences: [
+          ...state.myTimetable.occurrences,
+          {
+            id: "occ-oneoff-sat",
+            source: "ONE_OFF" as const,
+            status: "PLANNED" as const,
+            occurrenceDate: "2026-04-18", // samedi de la semaine courante
+            weekday: 6,
+            startMinute: 600,
+            endMinute: 660,
+            room: "Gymnase",
+            reason: null,
+            subject: { id: "sport", name: "Sport" },
+            teacherUser: { id: "t5", firstName: "Coach", lastName: "Martin" },
+          },
+        ],
+      },
+    });
+  }
+
+  it("vue Semaine : affiche la colonne Samedi si une occurrence one-off tombe le samedi", () => {
+    addSaturdayOneOff();
+    render(<ChildTimetableScreen />);
+    fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
+
+    expect(screen.getByTestId("child-timetable-week-col-6")).toBeTruthy();
+    expect(screen.queryByTestId("child-timetable-week-col-7")).toBeNull();
+  });
+
+  it("vue Mois : affiche la colonne Samedi si une occurrence one-off tombe un samedi du mois", () => {
+    addSaturdayOneOff();
+    render(<ChildTimetableScreen />);
+    fireEvent.press(screen.getByTestId("child-timetable-mode-month"));
+
+    expect(
+      screen.getByTestId("child-timetable-month-day-2026-04-18"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("child-timetable-month-day-2026-04-19"),
+    ).toBeNull();
+  });
+
+  it("vue Jour : nav-next ne saute plus le samedi", () => {
+    render(<ChildTimetableScreen />);
+    // Depuis mardi 14 avril, 4 presses = samedi 18 avril
+    const navNext = screen.getByTestId("child-timetable-nav-next");
+    fireEvent.press(navNext); // mer 15
+    fireEvent.press(navNext); // jeu 16
+    fireEvent.press(navNext); // ven 17
+    fireEvent.press(navNext); // sam 18 (nouveau comportement)
+    expect(screen.getByText(/18 avr/)).toBeTruthy();
+  });
+
+  it("vue Jour : nav-prev depuis lundi ne saute plus le dimanche/samedi", () => {
+    render(<ChildTimetableScreen />);
+    // Depuis mardi 14, revenir à lundi 13 puis encore dimanche 12
+    const navPrev = screen.getByTestId("child-timetable-nav-prev");
+    fireEvent.press(navPrev); // lun 13
+    fireEvent.press(navPrev); // dim 12
+    expect(screen.getByText(/12 avr/)).toBeTruthy();
+  });
+});
