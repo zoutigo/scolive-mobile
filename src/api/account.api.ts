@@ -7,6 +7,8 @@ import type {
   ChangePasswordPayload,
   ChangePinPayload,
   CreatePasswordPayload,
+  LinkSsoPayload,
+  RequestEmailChangePayload,
   SetActiveRolePayload,
   SetActiveRoleResponse,
   UpdateAccountProfilePayload,
@@ -109,6 +111,32 @@ export const accountApi = {
   changePin(payload: ChangePinPayload): Promise<void> {
     return apiFetch(
       "/auth/change-pin",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      true,
+    );
+  },
+
+  requestEmailChange(
+    payload: RequestEmailChangePayload,
+  ): Promise<{ success: boolean; message: string }> {
+    return apiFetch(
+      "/me/request-email-change",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      true,
+    );
+  },
+
+  linkSsoAccount(
+    payload: LinkSsoPayload,
+  ): Promise<{ success: boolean }> {
+    return apiFetch(
+      "/me/link-sso",
       {
         method: "POST",
         body: JSON.stringify(payload),

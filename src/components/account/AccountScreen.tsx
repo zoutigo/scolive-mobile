@@ -38,6 +38,7 @@ import {
 import {
   accountAddEmailSchema,
   accountAddPhoneCredentialSchema,
+  accountChangeEmailSchema,
   accountChangePasswordSchema,
   accountChangePinSchema,
   accountCreatePasswordSchema,
@@ -76,6 +77,7 @@ type CreatePasswordValues = z.infer<typeof accountCreatePasswordSchema>;
 type PinValues = z.infer<typeof accountChangePinSchema>;
 type AddPhoneValues = z.infer<typeof accountAddPhoneCredentialSchema>;
 type AddEmailValues = z.infer<typeof accountAddEmailSchema>;
+type ChangeEmailValues = z.infer<typeof accountChangeEmailSchema>;
 type RecoveryValues = z.infer<typeof accountRecoverySchema>;
 
 const TAB_ITEMS: Array<{ key: AccountTab; label: string }> = [
@@ -488,6 +490,95 @@ function AddEmailSection({ onSuccess }: { onSuccess: () => void }) {
         loading={isSubmitting}
         testID="account-submit-add-email"
       />
+    </View>
+  );
+}
+
+function ChangeEmailSection({ currentEmail, onSuccess }: { currentEmail: string; onSuccess: () => void }) {
+  const { t } = useTranslation();
+  const showSuccess = useSuccessToastStore((state) => state.showSuccess);
+  const showError = useSuccessToastStore((state) => state.showError);
+  const [open, setOpen] = React.useState(false);
+
+  const { control, handleSubmit, formState, reset } = useForm<ChangeEmailValues>({
+    mode: "onChange",
+    reValidateMode: "onChange",
+    resolver: zodResolver(accountChangeEmailSchema),
+    defaultValues: { email: "" },
+  });
+
+  const { isSubmitting, submitCount } = formState;
+
+  async function onValid(data: ChangeEmailValues) {
+    try {
+      await accountApi.requestEmailChange({ email: data.email });
+      reset();
+      setOpen(false);
+      showSuccess({
+        title: t("account.email.changeTitle"),
+        message: t("account.email.successMessage"),
+      });
+      onSuccess();
+    } catch (error) {
+      showError({
+        title: t("account.email.changeTitle"),
+        message: getErrorMessage(error, t("account.email.errors.sendFailed")),
+      });
+    }
+  }
+
+  return (
+    <View style={styles.addEmailBlock}>
+      <Text style={styles.infoLabel}>{t("account.email.current").toUpperCase()}</Text>
+      <Text style={styles.infoValue} testID="account-current-email">{currentEmail}</Text>
+      {!open ? (
+        <TouchableOpacity
+          onPress={() => setOpen(true)}
+          testID="account-change-email-button"
+        >
+          <Text style={[styles.infoLabel, { color: colors.primary, textDecorationLine: "underline" }]}>
+            {t("account.email.changeButton")}
+          </Text>
+        </TouchableOpacity>
+      ) : (
+        <>
+          <Controller
+            control={control}
+            name="email"
+            render={({ field, fieldState }) => {
+              const err = fieldErr(fieldState, submitCount);
+              return (
+                <>
+                  <TextInput
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    placeholder={t("account.email.newPlaceholder")}
+                    placeholderTextColor={colors.textSecondary}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    style={[styles.textAreaInput, err ? styles.inputError : null]}
+                    testID="account-change-email-input"
+                  />
+                  {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+                </>
+              );
+            }}
+          />
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <ActionButton
+              label={isSubmitting ? t("account.email.sending") : t("account.email.sendLink")}
+              onPress={() => { void handleSubmit(onValid)(); }}
+              loading={isSubmitting}
+              testID="account-submit-change-email"
+            />
+            <ActionButton
+              label={t("account.email.cancel")}
+              onPress={() => { setOpen(false); reset(); }}
+              testID="account-cancel-change-email"
+            />
+          </View>
+        </>
+      )}
     </View>
   );
 }
@@ -1717,7 +1808,10 @@ function AccountScreenContent() {
                   }
                 />
                 {profile?.email ? (
-                  <InfoRow label="Email" value={profile.email} />
+                  <ChangeEmailSection
+                    currentEmail={profile.email}
+                    onSuccess={() => { void loadProfile(); }}
+                  />
                 ) : (
                   <AddEmailSection
                     onSuccess={() => {
