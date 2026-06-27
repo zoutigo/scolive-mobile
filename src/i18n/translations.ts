@@ -1939,7 +1939,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "account.email.successMessage":
       "Un lien de confirmation a ete envoye a la nouvelle adresse. Verifiez votre boite mail.",
     "account.email.errors.invalid": "Adresse email invalide.",
-    "account.email.errors.sameEmail": "Le nouvel email est identique a l'actuel.",
+    "account.email.errors.sameEmail":
+      "Le nouvel email est identique a l'actuel.",
     "account.email.errors.sendFailed":
       "Impossible d'envoyer le lien. Reessayez.",
     "nav.tabs.menu": "Menu",
@@ -3822,8 +3823,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "account.email.successMessage":
       "A confirmation link has been sent to the new address. Check your inbox.",
     "account.email.errors.invalid": "Invalid email address.",
-    "account.email.errors.sameEmail": "The new email is the same as the current one.",
-    "account.email.errors.sendFailed": "Unable to send the link. Please try again.",
+    "account.email.errors.sameEmail":
+      "The new email is the same as the current one.",
+    "account.email.errors.sendFailed":
+      "Unable to send the link. Please try again.",
     "nav.tabs.menu": "Menu",
     "nav.tabs.tests": "Tests",
 

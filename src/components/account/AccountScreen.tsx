@@ -494,18 +494,25 @@ function AddEmailSection({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-function ChangeEmailSection({ currentEmail, onSuccess }: { currentEmail: string; onSuccess: () => void }) {
+function ChangeEmailSection({
+  currentEmail,
+  onSuccess,
+}: {
+  currentEmail: string;
+  onSuccess: () => void;
+}) {
   const { t } = useTranslation();
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
   const [open, setOpen] = React.useState(false);
 
-  const { control, handleSubmit, formState, reset } = useForm<ChangeEmailValues>({
-    mode: "onChange",
-    reValidateMode: "onChange",
-    resolver: zodResolver(accountChangeEmailSchema),
-    defaultValues: { email: "" },
-  });
+  const { control, handleSubmit, formState, reset } =
+    useForm<ChangeEmailValues>({
+      mode: "onChange",
+      reValidateMode: "onChange",
+      resolver: zodResolver(accountChangeEmailSchema),
+      defaultValues: { email: "" },
+    });
 
   const { isSubmitting, submitCount } = formState;
 
@@ -529,14 +536,23 @@ function ChangeEmailSection({ currentEmail, onSuccess }: { currentEmail: string;
 
   return (
     <View style={styles.addEmailBlock}>
-      <Text style={styles.infoLabel}>{t("account.email.current").toUpperCase()}</Text>
-      <Text style={styles.infoValue} testID="account-current-email">{currentEmail}</Text>
+      <Text style={styles.infoLabel}>
+        {t("account.email.current").toUpperCase()}
+      </Text>
+      <Text style={styles.infoValue} testID="account-current-email">
+        {currentEmail}
+      </Text>
       {!open ? (
         <TouchableOpacity
           onPress={() => setOpen(true)}
           testID="account-change-email-button"
         >
-          <Text style={[styles.infoLabel, { color: colors.primary, textDecorationLine: "underline" }]}>
+          <Text
+            style={[
+              styles.infoLabel,
+              { color: colors.primary, textDecorationLine: "underline" },
+            ]}
+          >
             {t("account.email.changeButton")}
           </Text>
         </TouchableOpacity>
@@ -556,7 +572,10 @@ function ChangeEmailSection({ currentEmail, onSuccess }: { currentEmail: string;
                     placeholderTextColor={colors.textSecondary}
                     keyboardType="email-address"
                     autoCapitalize="none"
-                    style={[styles.textAreaInput, err ? styles.inputError : null]}
+                    style={[
+                      styles.textAreaInput,
+                      err ? styles.inputError : null,
+                    ]}
                     testID="account-change-email-input"
                   />
                   {err ? <Text style={styles.fieldError}>{err}</Text> : null}
@@ -566,14 +585,23 @@ function ChangeEmailSection({ currentEmail, onSuccess }: { currentEmail: string;
           />
           <View style={{ flexDirection: "row", gap: 8 }}>
             <ActionButton
-              label={isSubmitting ? t("account.email.sending") : t("account.email.sendLink")}
-              onPress={() => { void handleSubmit(onValid)(); }}
+              label={
+                isSubmitting
+                  ? t("account.email.sending")
+                  : t("account.email.sendLink")
+              }
+              onPress={() => {
+                void handleSubmit(onValid)();
+              }}
               loading={isSubmitting}
               testID="account-submit-change-email"
             />
             <ActionButton
               label={t("account.email.cancel")}
-              onPress={() => { setOpen(false); reset(); }}
+              onPress={() => {
+                setOpen(false);
+                reset();
+              }}
               testID="account-cancel-change-email"
             />
           </View>
@@ -1810,7 +1838,9 @@ function AccountScreenContent() {
                 {profile?.email ? (
                   <ChangeEmailSection
                     currentEmail={profile.email}
-                    onSuccess={() => { void loadProfile(); }}
+                    onSuccess={() => {
+                      void loadProfile();
+                    }}
                   />
                 ) : (
                   <AddEmailSection

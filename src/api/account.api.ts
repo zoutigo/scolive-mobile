@@ -132,9 +132,7 @@ export const accountApi = {
     );
   },
 
-  linkSsoAccount(
-    payload: LinkSsoPayload,
-  ): Promise<{ success: boolean }> {
+  linkSsoAccount(payload: LinkSsoPayload): Promise<{ success: boolean }> {
     return apiFetch(
       "/me/link-sso",
       {

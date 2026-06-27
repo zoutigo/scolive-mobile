@@ -2,7 +2,12 @@
  * Tests — AccountScreen : section changement d'email + accountApi (requestEmailChange, linkSsoAccount)
  */
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import { AccountScreen } from "../../src/components/account/AccountScreen";
 import { SuccessToastHost } from "../../src/components/feedback/SuccessToastHost";
 import { accountApi } from "../../src/api/account.api";
