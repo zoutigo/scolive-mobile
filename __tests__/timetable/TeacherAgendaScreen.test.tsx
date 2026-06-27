@@ -13,6 +13,7 @@ import {
 import { useAuthStore } from "../../src/store/auth.store";
 import { useTimetableStore } from "../../src/store/timetable.store";
 import { timetableApi } from "../../src/api/timetable.api";
+import type { TimetableOccurrence } from "../../src/types/timetable.types";
 
 jest.mock("../../src/api/timetable.api");
 jest.mock("../../src/store/success-toast.store", () => ({
@@ -193,7 +194,7 @@ const SLOT_STUB = {
 };
 
 function makeClassTimetable(
-  occs = CLASS_OCCS,
+  occs: TimetableOccurrence[] = CLASS_OCCS,
   styles = [STYLE_MATH],
   slots = [SLOT_STUB],
 ) {
@@ -456,7 +457,7 @@ describe("TeacherAgendaScreen — onglet Mon agenda", () => {
     expect(screen.getByText(/15 avr/)).toBeTruthy();
   });
 
-  it("passe au jour précédent via nav-prev (skip weekend)", async () => {
+  it("passe au jour précédent via nav-prev", async () => {
     render(<TeacherAgendaScreen />);
     await waitFor(() =>
       expect(screen.getByTestId("teacher-agenda-mine-nav-prev")).toBeTruthy(),
@@ -1014,5 +1015,97 @@ describe("TeacherAgendaScreen — modal d'édition", () => {
       ).toBeTruthy(),
     );
     expect(screen.getByTestId("teacher-slot-edit-panel")).toBeTruthy();
+  });
+});
+
+// ── Tests — Samedi via occurrence one-off ──────────────────────────────────
+
+describe("TeacherAgendaScreen — samedi via occurrence one-off", () => {
+  const SAT_OCC = {
+    id: "occ-oneoff-sat",
+    source: "ONE_OFF" as const,
+    status: "PLANNED" as const,
+    occurrenceDate: "2026-04-18", // samedi de la semaine du 14 avril
+    weekday: 6,
+    startMinute: 600,
+    endMinute: 660,
+    room: "Gymnase",
+    reason: null,
+    subject: { id: "sport", name: "Sport" },
+    teacherUser: { id: "u1", firstName: "Albert", lastName: "Mvondo" },
+  };
+
+  it("onglet Mine — vue Semaine : affiche la colonne Samedi si une occurrence one-off tombe le samedi", async () => {
+    api.getTeacherMyTimetable.mockResolvedValue({
+      teacher: { id: "u1", firstName: "Albert", lastName: "Mvondo" },
+      classes: [],
+      slots: [], // pas de slot récurrent le samedi
+      oneOffSlots: [],
+      slotExceptions: [],
+      occurrences: [
+        {
+          ...SAT_OCC,
+          classId: "class-6eC",
+          className: "6eC",
+          schoolYearId: "sy1",
+        },
+      ],
+      occurrenceContexts: [
+        {
+          occurrenceId: SAT_OCC.id,
+          classId: "class-6eC",
+          className: "6eC",
+          schoolYearId: "sy1",
+        },
+      ],
+      calendarEvents: [],
+      subjectStyles: [STYLE_ANG],
+    });
+
+    render(<TeacherAgendaScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-agenda-mine-mode-week")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-mine-mode-week"));
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-agenda-mine-week-grid")).toBeTruthy(),
+    );
+    expect(screen.getByTestId("teacher-agenda-mine-week-col-6")).toBeTruthy();
+    expect(screen.queryByTestId("teacher-agenda-mine-week-col-7")).toBeNull();
+  });
+
+  it("onglet Mine — vue Jour : nav-next ne saute plus le samedi", async () => {
+    render(<TeacherAgendaScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-agenda-mine-nav-next")).toBeTruthy(),
+    );
+    // Depuis mardi 14 avril, 4 presses = samedi 18 avril
+    const navNext = screen.getByTestId("teacher-agenda-mine-nav-next");
+    fireEvent.press(navNext); // mer 15
+    fireEvent.press(navNext); // jeu 16
+    fireEvent.press(navNext); // ven 17
+    fireEvent.press(navNext); // sam 18 (nouveau comportement)
+    expect(screen.getByText(/18 avr/)).toBeTruthy();
+  });
+
+  it("onglet Mes classes — vue Semaine : affiche la colonne Samedi si une occurrence one-off de la classe tombe le samedi", async () => {
+    setupStores({
+      classTimetable: makeClassTimetable(
+        [{ ...SAT_OCC, id: "occ-cls-sat" }],
+        [STYLE_MATH],
+        [], // pas de slot récurrent le samedi
+      ),
+    });
+
+    render(<TeacherAgendaScreen />);
+    fireEvent.press(screen.getByTestId("teacher-agenda-tab-classes"));
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-agenda-class-mode-week")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-class-mode-week"));
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-agenda-class-week-grid")).toBeTruthy(),
+    );
+    expect(screen.getByTestId("teacher-agenda-class-week-col-6")).toBeTruthy();
   });
 });

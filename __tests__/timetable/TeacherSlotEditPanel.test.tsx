@@ -1,12 +1,14 @@
 /**
- * Tests unitaires pour TeacherSlotEditPanel
+ * Tests pour TeacherSlotEditPanel
  *
  * Couvre :
- * - rendu du formulaire (champs heure début/fin, salle, scope toggle)
+ * - rendu du formulaire (champs heure début/fin, dropdown salle, scope toggle)
+ * - chargement et présélection des salles disponibles
  * - validation zod (format HH:MM, fin > début)
- * - sauvegarde selon scope × source
+ * - sauvegarde selon scope × source (roomId transmis)
  * - suppression (occurrence seule vs série entière)
  * - gestion des erreurs API
+ * - mode admin (picker enseignant)
  */
 import React from "react";
 import { Alert } from "react-native";
@@ -18,8 +20,10 @@ import {
 } from "@testing-library/react-native";
 import { TeacherSlotEditPanel } from "../../src/components/timetable/TeacherSlotEditPanel";
 import { timetableApi } from "../../src/api/timetable.api";
+import { roomsApi } from "../../src/api/rooms.api";
 import { useSuccessToastStore } from "../../src/store/success-toast.store";
 import type { TimetableOccurrence } from "../../src/types/timetable.types";
+import type { RoomAvailability } from "../../src/types/room.types";
 import { translate } from "../../src/i18n/useTranslation";
 import { DEFAULT_LOCALE } from "../../src/i18n/translations";
 import { timeLabelToMinute } from "../../src/utils/timetable";
@@ -43,10 +47,7 @@ const teacherSlotEditSchema = z
       .regex(/^\d{1,2}:\d{2}$/, {
         message: t("timetable.classManager.validation.timeFormat"),
       }),
-    room: z
-      .string()
-      .trim()
-      .min(1, t("timetable.slotEditPanel.validation.roomRequired")),
+    roomId: z.string().optional(),
     scope: z.enum(["occurrence", "series"]),
     teacherUserId: z.string().optional(),
   })
@@ -74,6 +75,9 @@ jest.mock("../../src/api/timetable.api", () => ({
     getClassContext: jest.fn(),
   },
 }));
+jest.mock("../../src/api/rooms.api", () => ({
+  roomsApi: { listAvailableRooms: jest.fn() },
+}));
 jest.mock("../../src/store/success-toast.store", () => ({
   useSuccessToastStore: jest.fn(),
 }));
@@ -84,6 +88,7 @@ const mockOnClose = jest.fn();
 const mockOnSuccess = jest.fn();
 
 const mockApi = timetableApi as jest.Mocked<typeof timetableApi>;
+const mockRooms = roomsApi as jest.Mocked<typeof roomsApi>;
 const mockUseSuccessToastStore = useSuccessToastStore as jest.MockedFunction<
   typeof useSuccessToastStore
 >;
@@ -122,6 +127,39 @@ const ONE_OFF_OCC: TimetableOccurrence = {
   teacherUser: { id: "t1", firstName: "Alice", lastName: "Dupont" },
 };
 
+const ROOMS: RoomAvailability[] = [
+  {
+    id: "r-a01",
+    name: "A01",
+    description: null,
+    capacity: 30,
+    maxConcurrentSlots: 1,
+    status: "AVAILABLE",
+    occupiedSlots: 0,
+    isAvailable: true,
+  },
+  {
+    id: "r-b02",
+    name: "B02",
+    description: null,
+    capacity: 25,
+    maxConcurrentSlots: 1,
+    status: "AVAILABLE",
+    occupiedSlots: 0,
+    isAvailable: true,
+  },
+  {
+    id: "r-c99",
+    name: "C99",
+    description: null,
+    capacity: 20,
+    maxConcurrentSlots: 1,
+    status: "AVAILABLE",
+    occupiedSlots: 0,
+    isAvailable: true,
+  },
+];
+
 function renderPanel(
   occurrence: TimetableOccurrence = RECURRING_OCC,
   overrides: Partial<{
@@ -157,6 +195,23 @@ async function pickTime(testID: string, hour: string, minute: string) {
   );
 }
 
+async function openRoomDropdown() {
+  fireEvent.press(screen.getByTestId("teacher-slot-room"));
+  await waitFor(() =>
+    expect(screen.getByTestId("teacher-slot-room-modal")).toBeTruthy(),
+  );
+}
+
+async function selectRoom(roomId: string) {
+  await openRoomDropdown();
+  fireEvent.press(
+    screen.getByTestId(`teacher-slot-room-option-${roomId || "none"}`),
+  );
+  await waitFor(() =>
+    expect(screen.queryByTestId("teacher-slot-room-modal")).toBeNull(),
+  );
+}
+
 // ─── Setup ───────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
@@ -170,6 +225,7 @@ beforeEach(() => {
   mockApi.updateRecurringSlot.mockResolvedValue(undefined as never);
   mockApi.deleteOneOffSlot.mockResolvedValue(undefined as never);
   mockApi.deleteRecurringSlot.mockResolvedValue(undefined as never);
+  mockRooms.listAvailableRooms.mockResolvedValue(ROOMS);
 });
 
 // ─── Rendu ───────────────────────────────────────────────────────────────────
@@ -188,13 +244,15 @@ describe("TeacherSlotEditPanel — rendu", () => {
     expect(screen.getByText(/Dupont Alice/)).toBeTruthy();
   });
 
-  it("pré-remplit les champs avec les valeurs de l'occurrence", () => {
+  it("pré-remplit les heures avec les valeurs de l'occurrence", () => {
     renderPanel();
     expect(screen.getByText("08:00")).toBeTruthy();
     expect(screen.getByText("09:30")).toBeTruthy();
-    expect(screen.getByTestId("teacher-slot-room-input").props.value).toBe(
-      "A01",
-    );
+  });
+
+  it("affiche le dropdown de salle", () => {
+    renderPanel();
+    expect(screen.getByTestId("teacher-slot-room")).toBeTruthy();
   });
 
   it("affiche le toggle de scope pour un créneau récurrent", () => {
@@ -252,6 +310,110 @@ describe("TeacherSlotEditPanel — scope toggle", () => {
   });
 });
 
+// ─── Dropdown de salle ────────────────────────────────────────────────────────
+
+describe("TeacherSlotEditPanel — dropdown de salle", () => {
+  it("charge listAvailableRooms au montage", async () => {
+    renderPanel();
+    await waitFor(() =>
+      expect(mockRooms.listAvailableRooms).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({
+          weekday: 2,
+          startMinute: 480,
+          endMinute: 570,
+          occurrenceDate: "2026-04-14",
+          excludeSlotId: "slot-1",
+        }),
+      ),
+    );
+  });
+
+  it("exclut le oneOffSlotId pour un créneau ponctuel", async () => {
+    renderPanel(ONE_OFF_OCC);
+    await waitFor(() =>
+      expect(mockRooms.listAvailableRooms).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({
+          excludeOneOffSlotId: "oneoff-1",
+        }),
+      ),
+    );
+  });
+
+  it("présélectionne la salle courante par son nom", async () => {
+    renderPanel(RECURRING_OCC);
+    await waitFor(() =>
+      expect(mockRooms.listAvailableRooms).toHaveBeenCalled(),
+    );
+    // Le dropdown doit afficher "A01" (salle de RECURRING_OCC)
+    await waitFor(() => expect(screen.getByText("A01")).toBeTruthy());
+  });
+
+  it("affiche les salles disponibles dans le modal", async () => {
+    renderPanel();
+    await waitFor(() =>
+      expect(mockRooms.listAvailableRooms).toHaveBeenCalled(),
+    );
+    await openRoomDropdown();
+    expect(screen.getByTestId("teacher-slot-room-option-r-a01")).toBeTruthy();
+    expect(screen.getByTestId("teacher-slot-room-option-r-b02")).toBeTruthy();
+    expect(screen.getByTestId("teacher-slot-room-option-r-c99")).toBeTruthy();
+  });
+
+  it("affiche l'option 'Aucune' en premier", async () => {
+    renderPanel();
+    await openRoomDropdown();
+    expect(screen.getByTestId("teacher-slot-room-option-none")).toBeTruthy();
+  });
+
+  it("n'affiche pas les salles indisponibles", async () => {
+    const roomsWithUnavailable: RoomAvailability[] = [
+      ...ROOMS,
+      {
+        id: "r-lab",
+        name: "LAB",
+        description: null,
+        capacity: 20,
+        maxConcurrentSlots: 1,
+        status: "AVAILABLE",
+        occupiedSlots: 1,
+        isAvailable: false,
+      },
+    ];
+    mockRooms.listAvailableRooms.mockResolvedValueOnce(roomsWithUnavailable);
+    renderPanel();
+    await waitFor(() =>
+      expect(mockRooms.listAvailableRooms).toHaveBeenCalled(),
+    );
+    await openRoomDropdown();
+    expect(screen.queryByTestId("teacher-slot-room-option-r-lab")).toBeNull();
+  });
+
+  it("gère silencieusement l'échec de listAvailableRooms", async () => {
+    mockRooms.listAvailableRooms.mockRejectedValueOnce(new Error("Network"));
+    renderPanel();
+    await waitFor(() =>
+      expect(mockRooms.listAvailableRooms).toHaveBeenCalled(),
+    );
+    expect(screen.getByTestId("teacher-slot-room")).toBeTruthy();
+  });
+
+  it("recharge les salles quand les heures changent", async () => {
+    renderPanel();
+    await waitFor(() =>
+      expect(mockRooms.listAvailableRooms).toHaveBeenCalledTimes(1),
+    );
+    await pickTime("teacher-slot-start-input", "10", "00");
+    await waitFor(() =>
+      expect(mockRooms.listAvailableRooms).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({ startMinute: 600 }),
+      ),
+    );
+  });
+});
+
 // ─── Validation ──────────────────────────────────────────────────────────────
 
 describe("TeacherSlotEditPanel — validation", () => {
@@ -259,7 +421,6 @@ describe("TeacherSlotEditPanel — validation", () => {
     const result = teacherSlotEditSchema.safeParse({
       start: "",
       end: "09:30",
-      room: "A01",
       scope: "occurrence",
     });
     expect(result.success).toBe(false);
@@ -269,20 +430,18 @@ describe("TeacherSlotEditPanel — validation", () => {
     const result = teacherSlotEditSchema.safeParse({
       start: "08:00",
       end: "",
-      room: "A01",
       scope: "occurrence",
     });
     expect(result.success).toBe(false);
   });
 
-  it("rejette une salle vide au niveau du schéma", () => {
+  it("accepte roomId absent (salle optionnelle)", () => {
     const result = teacherSlotEditSchema.safeParse({
       start: "08:00",
       end: "09:30",
-      room: " ",
       scope: "occurrence",
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   it("affiche une erreur si la fin est avant le début", async () => {
@@ -292,16 +451,6 @@ describe("TeacherSlotEditPanel — validation", () => {
     fireEvent.press(screen.getByTestId("teacher-slot-save"));
     await waitFor(() =>
       expect(screen.getByTestId("teacher-slot-end-error")).toBeTruthy(),
-    );
-    expect(mockApi.createOneOffSlot).not.toHaveBeenCalled();
-  });
-
-  it("affiche une erreur si la salle est vide", async () => {
-    renderPanel();
-    fireEvent.changeText(screen.getByTestId("teacher-slot-room-input"), "");
-    fireEvent.press(screen.getByTestId("teacher-slot-save"));
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-slot-room-error")).toBeTruthy(),
     );
     expect(mockApi.createOneOffSlot).not.toHaveBeenCalled();
   });
@@ -377,6 +526,68 @@ describe("TeacherSlotEditPanel — sauvegarde", () => {
     expect(mockOnSuccess).toHaveBeenCalled();
   });
 
+  it("transmet roomId null quand aucune salle n'est sélectionnée", async () => {
+    renderPanel(RECURRING_OCC);
+    // Sélectionner "Aucune" explicitement
+    await waitFor(() =>
+      expect(mockRooms.listAvailableRooms).toHaveBeenCalled(),
+    );
+    await selectRoom("");
+    fireEvent.press(screen.getByTestId("teacher-slot-save"));
+    await waitFor(() => expect(mockApi.createOneOffSlot).toHaveBeenCalled());
+    expect(mockApi.createOneOffSlot).toHaveBeenCalledWith(
+      "college-vogt",
+      "class-1",
+      expect.objectContaining({ roomId: null }),
+    );
+  });
+
+  it("transmet le roomId de la salle sélectionnée", async () => {
+    renderPanel(RECURRING_OCC);
+    await waitFor(() =>
+      expect(mockRooms.listAvailableRooms).toHaveBeenCalled(),
+    );
+    await selectRoom("r-c99");
+    fireEvent.press(screen.getByTestId("teacher-slot-save"));
+    await waitFor(() => expect(mockApi.createOneOffSlot).toHaveBeenCalled());
+    expect(mockApi.createOneOffSlot).toHaveBeenCalledWith(
+      "college-vogt",
+      "class-1",
+      expect.objectContaining({ roomId: "r-c99" }),
+    );
+  });
+
+  it("transmet roomId via updateRecurringSlot (scope=series)", async () => {
+    renderPanel(RECURRING_OCC);
+    await waitFor(() =>
+      expect(mockRooms.listAvailableRooms).toHaveBeenCalled(),
+    );
+    await selectRoom("r-b02");
+    fireEvent.press(screen.getByTestId("teacher-slot-scope-series"));
+    fireEvent.press(screen.getByTestId("teacher-slot-save"));
+    await waitFor(() => expect(mockApi.updateRecurringSlot).toHaveBeenCalled());
+    expect(mockApi.updateRecurringSlot).toHaveBeenCalledWith(
+      "college-vogt",
+      "slot-1",
+      expect.objectContaining({ roomId: "r-b02" }),
+    );
+  });
+
+  it("transmet roomId via updateOneOffSlot", async () => {
+    renderPanel(ONE_OFF_OCC);
+    await waitFor(() =>
+      expect(mockRooms.listAvailableRooms).toHaveBeenCalled(),
+    );
+    await selectRoom("r-c99");
+    fireEvent.press(screen.getByTestId("teacher-slot-save"));
+    await waitFor(() => expect(mockApi.updateOneOffSlot).toHaveBeenCalled());
+    expect(mockApi.updateOneOffSlot).toHaveBeenCalledWith(
+      "college-vogt",
+      "oneoff-1",
+      expect.objectContaining({ roomId: "r-c99" }),
+    );
+  });
+
   it("appelle showSuccess après une sauvegarde réussie", async () => {
     renderPanel(RECURRING_OCC);
     fireEvent.press(screen.getByTestId("teacher-slot-save"));
@@ -439,18 +650,6 @@ describe("TeacherSlotEditPanel — sauvegarde", () => {
       expect.objectContaining({
         message: "Some unexpected backend error",
       }),
-    );
-  });
-
-  it("modification de la salle est transmise à l'API", async () => {
-    renderPanel(RECURRING_OCC);
-    fireEvent.changeText(screen.getByTestId("teacher-slot-room-input"), "C99");
-    fireEvent.press(screen.getByTestId("teacher-slot-save"));
-    await waitFor(() => expect(mockApi.createOneOffSlot).toHaveBeenCalled());
-    expect(mockApi.createOneOffSlot).toHaveBeenCalledWith(
-      "college-vogt",
-      "class-1",
-      expect.objectContaining({ room: "C99" }),
     );
   });
 });

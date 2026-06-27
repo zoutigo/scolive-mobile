@@ -45,6 +45,7 @@ import {
   formatMonthLabel,
   formatWeekRangeLabel,
   fullTeacherName,
+  parseOccurrenceDate,
   sameDate,
   startOfWeek,
   stripTime,
@@ -419,11 +420,20 @@ function TeacherMyAgendaPane({
 
   const { showSaturday, showSunday } = useMemo(() => {
     const slots = schedule?.slots ?? [];
+    const occs = schedule?.occurrences ?? [];
+    const occHasSat = occs.some((o) => {
+      const d = parseOccurrenceDate(o.occurrenceDate);
+      return d !== null && toWeekdayMondayFirst(d) === 6;
+    });
+    const occHasSun = occs.some((o) => {
+      const d = parseOccurrenceDate(o.occurrenceDate);
+      return d !== null && toWeekdayMondayFirst(d) === 7;
+    });
     return {
-      showSaturday: slots.some((s) => s.weekday === 6),
-      showSunday: slots.some((s) => s.weekday === 7),
+      showSaturday: slots.some((s) => s.weekday === 6) || occHasSat,
+      showSunday: slots.some((s) => s.weekday === 7) || occHasSun,
     };
-  }, [schedule?.slots]);
+  }, [schedule?.slots, schedule?.occurrences]);
 
   const subjectColorById = useMemo(
     () =>
@@ -633,11 +643,20 @@ function AdminUserAgendaPane({ insetBottom }: { insetBottom: number }) {
 
   const { showSaturday, showSunday } = useMemo(() => {
     const slots = schedule?.slots ?? [];
+    const occs = schedule?.occurrences ?? [];
+    const occHasSat = occs.some((o) => {
+      const d = parseOccurrenceDate(o.occurrenceDate);
+      return d !== null && toWeekdayMondayFirst(d) === 6;
+    });
+    const occHasSun = occs.some((o) => {
+      const d = parseOccurrenceDate(o.occurrenceDate);
+      return d !== null && toWeekdayMondayFirst(d) === 7;
+    });
     return {
-      showSaturday: slots.some((s) => s.weekday === 6),
-      showSunday: slots.some((s) => s.weekday === 7),
+      showSaturday: slots.some((s) => s.weekday === 6) || occHasSat,
+      showSunday: slots.some((s) => s.weekday === 7) || occHasSun,
     };
-  }, [schedule?.slots]);
+  }, [schedule?.slots, schedule?.occurrences]);
 
   const subjectColorById = useMemo(
     () =>
@@ -884,11 +903,20 @@ function TeacherClassAgendaPane({
 
   const { showSaturday, showSunday } = useMemo(() => {
     const slots = classTimetable?.slots ?? [];
+    const occs = classTimetable?.occurrences ?? [];
+    const occHasSat = occs.some((o) => {
+      const d = parseOccurrenceDate(o.occurrenceDate);
+      return d !== null && toWeekdayMondayFirst(d) === 6;
+    });
+    const occHasSun = occs.some((o) => {
+      const d = parseOccurrenceDate(o.occurrenceDate);
+      return d !== null && toWeekdayMondayFirst(d) === 7;
+    });
     return {
-      showSaturday: slots.some((s) => s.weekday === 6),
-      showSunday: slots.some((s) => s.weekday === 7),
+      showSaturday: slots.some((s) => s.weekday === 6) || occHasSat,
+      showSunday: slots.some((s) => s.weekday === 7) || occHasSun,
     };
-  }, [classTimetable?.slots]);
+  }, [classTimetable?.slots, classTimetable?.occurrences]);
 
   const subjectColorById = useMemo(
     () =>
@@ -1314,12 +1342,7 @@ function TimetablePane({
 
   function moveCursor(direction: -1 | 1) {
     if (viewMode === "day") {
-      const hidden = [...(showSaturday ? [] : [6]), ...(showSunday ? [] : [7])];
-      let next = addDays(cursorDate, direction);
-      while (hidden.includes(toWeekdayMondayFirst(next))) {
-        next = addDays(next, direction);
-      }
-      setCursorDate(next);
+      setCursorDate(addDays(cursorDate, direction));
       return;
     }
     if (viewMode === "week") {
@@ -1330,15 +1353,6 @@ function TimetablePane({
   }
 
   function resetToToday() {
-    const hidden = [...(showSaturday ? [] : [6]), ...(showSunday ? [] : [7])];
-    if (viewMode === "day" && hidden.length > 0) {
-      let next = today;
-      while (hidden.includes(toWeekdayMondayFirst(next))) {
-        next = addDays(next, 1);
-      }
-      setCursorDate(next);
-      return;
-    }
     setCursorDate(today);
   }
 

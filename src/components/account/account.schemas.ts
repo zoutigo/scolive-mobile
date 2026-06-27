@@ -19,6 +19,10 @@ export const accountAddEmailSchema = z.object({
   email: z.string().email("Adresse email invalide."),
 });
 
+export const accountChangeEmailSchema = z.object({
+  email: z.string().email("Adresse email invalide."),
+});
+
 export const accountCreatePasswordSchema = z
   .object({
     newPassword: z

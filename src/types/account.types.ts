@@ -103,3 +103,13 @@ export interface SetActiveRolePayload {
 export interface SetActiveRoleResponse {
   activeRole: AppRole;
 }
+
+export interface RequestEmailChangePayload {
+  email: string;
+}
+
+export interface LinkSsoPayload {
+  provider: "GOOGLE" | "APPLE";
+  providerAccountId: string;
+  email: string;
+}

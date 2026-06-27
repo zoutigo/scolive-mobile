@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SelectDropdown } from "../SelectDropdown";
 import { Ionicons } from "@expo/vector-icons";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -788,32 +789,13 @@ export function TeacherOneOffCreatePanel({
                 control={control}
                 name="roomId"
                 render={({ field: { value, onChange } }) => (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.pillsRow}
-                  >
-                    {availableRoomOptions.map((opt) => (
-                      <TouchableOpacity
-                        key={opt.value}
-                        style={[
-                          styles.pill,
-                          value === opt.value && styles.pillActive,
-                        ]}
-                        onPress={() => onChange(opt.value)}
-                        testID={`teacher-oneoff-room-${opt.value || "none"}`}
-                      >
-                        <Text
-                          style={[
-                            styles.pillText,
-                            value === opt.value && styles.pillTextActive,
-                          ]}
-                        >
-                          {opt.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                  <SelectDropdown
+                    options={availableRoomOptions}
+                    value={value ?? ""}
+                    onChange={onChange}
+                    placeholder={t("timetable.classManager.fields.roomNone")}
+                    testID="teacher-oneoff-room"
+                  />
                 )}
               />
             </View>

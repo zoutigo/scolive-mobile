@@ -67,6 +67,9 @@
   },
   "jest": {
     "preset": "jest-expo",
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.ts"
+    ],
     "moduleNameMapper": {
       "^expo/src/winter/ImportMetaRegistry$": "<rootDir>/__mocks__/expoImportMetaRegistry.js",
       "^(.*)/app/\\(home\\)/(.*)$": "<rootDir>/app/(home)/$2",

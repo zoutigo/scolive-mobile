@@ -1927,6 +1927,22 @@ export const translations: Record<Locale, Record<string, string>> = {
     "nav.tabs.home": "Accueil",
     "nav.tabs.account": "Mon compte",
     "nav.tabs.assistance": "Assistance",
+
+    // Changement d'email
+    "account.email.current": "Email actuel",
+    "account.email.changeButton": "Modifier l'email",
+    "account.email.changeTitle": "Changer d'adresse email",
+    "account.email.newPlaceholder": "nouvelle@adresse.com",
+    "account.email.sendLink": "Envoyer le lien",
+    "account.email.sending": "Envoi...",
+    "account.email.cancel": "Annuler",
+    "account.email.successMessage":
+      "Un lien de confirmation a ete envoye a la nouvelle adresse. Verifiez votre boite mail.",
+    "account.email.errors.invalid": "Adresse email invalide.",
+    "account.email.errors.sameEmail":
+      "Le nouvel email est identique a l'actuel.",
+    "account.email.errors.sendFailed":
+      "Impossible d'envoyer le lien. Reessayez.",
     "nav.tabs.menu": "Menu",
     "nav.tabs.tests": "Tests",
 
@@ -3795,6 +3811,22 @@ export const translations: Record<Locale, Record<string, string>> = {
     "nav.tabs.home": "Home",
     "nav.tabs.account": "My account",
     "nav.tabs.assistance": "Support",
+
+    // Email change
+    "account.email.current": "Current email",
+    "account.email.changeButton": "Change email",
+    "account.email.changeTitle": "Change email address",
+    "account.email.newPlaceholder": "new@address.com",
+    "account.email.sendLink": "Send link",
+    "account.email.sending": "Sending...",
+    "account.email.cancel": "Cancel",
+    "account.email.successMessage":
+      "A confirmation link has been sent to the new address. Check your inbox.",
+    "account.email.errors.invalid": "Invalid email address.",
+    "account.email.errors.sameEmail":
+      "The new email is the same as the current one.",
+    "account.email.errors.sendFailed":
+      "Unable to send the link. Please try again.",
     "nav.tabs.menu": "Menu",
     "nav.tabs.tests": "Tests",
 
