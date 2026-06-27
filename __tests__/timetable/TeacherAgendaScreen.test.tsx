@@ -1043,10 +1043,20 @@ describe("TeacherAgendaScreen — samedi via occurrence one-off", () => {
       oneOffSlots: [],
       slotExceptions: [],
       occurrences: [
-        { ...SAT_OCC, classId: "class-6eC", className: "6eC", schoolYearId: "sy1" },
+        {
+          ...SAT_OCC,
+          classId: "class-6eC",
+          className: "6eC",
+          schoolYearId: "sy1",
+        },
       ],
       occurrenceContexts: [
-        { occurrenceId: SAT_OCC.id, classId: "class-6eC", className: "6eC", schoolYearId: "sy1" },
+        {
+          occurrenceId: SAT_OCC.id,
+          classId: "class-6eC",
+          className: "6eC",
+          schoolYearId: "sy1",
+        },
       ],
       calendarEvents: [],
       subjectStyles: [STYLE_ANG],
