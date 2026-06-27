@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -15,8 +14,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { colors } from "../../theme";
 import { timetableApi } from "../../api/timetable.api";
+import { roomsApi } from "../../api/rooms.api";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { TimePickerField } from "../TimePickerField";
+import { SelectDropdown } from "../SelectDropdown";
+import type { RoomAvailability } from "../../types/room.types";
 import type {
   ClassTimetableContextResponse,
   TimetableOccurrence,
@@ -48,10 +50,7 @@ function createTeacherSlotEditSchema(t: TranslateFn) {
         .regex(/^\d{1,2}:\d{2}$/, {
           message: t("timetable.classManager.validation.timeFormat"),
         }),
-      room: z
-        .string()
-        .trim()
-        .min(1, t("timetable.slotEditPanel.validation.roomRequired")),
+      roomId: z.string().optional(),
       scope: z.enum(["occurrence", "series"]),
       teacherUserId: z.string().optional(),
     })
@@ -104,6 +103,9 @@ export function TeacherSlotEditPanel({
   const [isSaving, setIsSaving] = useState(false);
   const [classCtx, setClassCtx] =
     useState<ClassTimetableContextResponse | null>(null);
+  const [roomAvailability, setRoomAvailability] = useState<RoomAvailability[]>(
+    [],
+  );
   const isRecurring = occurrence.source === "RECURRING";
 
   // Load class context in admin mode to populate teacher picker
@@ -127,12 +129,13 @@ export function TeacherSlotEditPanel({
     handleSubmit,
     formState: { errors },
     watch,
+    setValue,
   } = useForm<FormValues>({
     resolver: zodResolver(teacherSlotEditSchema),
     defaultValues: {
       start: minuteToTimeLabel(occurrence.startMinute),
       end: minuteToTimeLabel(occurrence.endMinute),
-      room: occurrence.room ?? "",
+      roomId: "",
       scope: "occurrence",
       teacherUserId: occurrence.teacherUser.id,
     },
@@ -153,8 +156,56 @@ export function TeacherSlotEditPanel({
     }));
   }, [adminMode, classCtx]);
 
+  const start = watch("start");
+  const end = watch("end");
   const scope = watch("scope");
   const targetsSeries = isRecurring && scope === "series";
+
+  // Load available rooms whenever start/end changes
+  useEffect(() => {
+    if (!schoolSlug) return;
+    const startMinute = timeLabelToMinute(start);
+    const endMinute = timeLabelToMinute(end);
+    if (startMinute === null || endMinute === null) return;
+
+    let cancelled = false;
+    roomsApi
+      .listAvailableRooms(schoolSlug, {
+        weekday: occurrence.weekday,
+        startMinute,
+        endMinute,
+        occurrenceDate: occurrence.occurrenceDate,
+        excludeSlotId: occurrence.slotId,
+        excludeOneOffSlotId: occurrence.oneOffSlotId,
+      })
+      .then((result) => {
+        if (!cancelled) setRoomAvailability(result);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolSlug, occurrence, start, end]);
+
+  // Pre-select the current room by name once rooms are loaded
+  useEffect(() => {
+    if (!occurrence.room || roomAvailability.length === 0) return;
+    const match = roomAvailability.find(
+      (r) =>
+        r.name === occurrence.room && r.isAvailable && r.status === "AVAILABLE",
+    );
+    if (match) setValue("roomId", match.id);
+  }, [roomAvailability, occurrence.room, setValue]);
+
+  const roomOptions = useMemo(
+    () => [
+      { value: "", label: t("timetable.classManager.fields.roomNone") },
+      ...roomAvailability
+        .filter((r) => r.isAvailable && r.status === "AVAILABLE")
+        .map((r) => ({ value: r.id, label: r.name })),
+    ],
+    [roomAvailability, t],
+  );
   const headerTeacherLabel =
     teacherDisplayName ??
     [occurrence.teacherUser.lastName, occurrence.teacherUser.firstName]
@@ -173,7 +224,7 @@ export function TeacherSlotEditPanel({
   const onSave = handleSubmit(async (values) => {
     const startMinute = timeLabelToMinute(values.start)!;
     const endMinute = timeLabelToMinute(values.end)!;
-    const room = values.room.trim();
+    const roomId = values.roomId || null;
     const teacherUserId =
       adminMode && values.teacherUserId
         ? values.teacherUserId
@@ -185,7 +236,7 @@ export function TeacherSlotEditPanel({
         await timetableApi.updateRecurringSlot(schoolSlug, occurrence.slotId, {
           startMinute,
           endMinute,
-          room,
+          roomId,
           ...(adminMode ? { teacherUserId } : {}),
         });
         showSuccess({
@@ -199,7 +250,7 @@ export function TeacherSlotEditPanel({
           {
             startMinute,
             endMinute,
-            room,
+            roomId,
             ...(adminMode ? { teacherUserId } : {}),
           },
         );
@@ -215,7 +266,7 @@ export function TeacherSlotEditPanel({
           endMinute,
           subjectId: occurrence.subject.id,
           teacherUserId,
-          room,
+          roomId,
           status: "PLANNED",
           sourceSlotId: occurrence.slotId ?? null,
         });
@@ -476,25 +527,17 @@ export function TeacherSlotEditPanel({
               </Text>
               <Controller
                 control={control}
-                name="room"
-                render={({ field: { value, onChange, onBlur } }) => (
-                  <TextInput
-                    style={[styles.input, errors.room && styles.inputError]}
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    placeholder="A01"
-                    placeholderTextColor={colors.textSecondary}
-                    autoCapitalize="characters"
-                    testID="teacher-slot-room-input"
+                name="roomId"
+                render={({ field: { value, onChange } }) => (
+                  <SelectDropdown
+                    options={roomOptions}
+                    value={value ?? ""}
+                    onChange={onChange}
+                    placeholder={t("timetable.classManager.fields.roomNone")}
+                    testID="teacher-slot-room"
                   />
                 )}
               />
-              {errors.room ? (
-                <Text style={styles.errorText} testID="teacher-slot-room-error">
-                  {errors.room.message}
-                </Text>
-              ) : null}
             </View>
           </View>
         </View>
@@ -690,19 +733,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.6,
     marginBottom: 6,
-  },
-  input: {
-    height: 48,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: "#E0D0BA",
-    backgroundColor: colors.white,
-    paddingHorizontal: 14,
-    fontSize: 16,
-    color: colors.textPrimary,
-  },
-  inputError: {
-    borderColor: colors.notification,
   },
   errorText: {
     fontSize: 10,

@@ -518,19 +518,32 @@ describe("Filtrage matières par enseignant", () => {
 // ─── Salles disponibles ───────────────────────────────────────────────────────
 
 describe("Sélecteur de salles (disponibles uniquement)", () => {
+  async function openRoomDropdown() {
+    fireEvent.press(screen.getByTestId("teacher-oneoff-room"));
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-oneoff-room-modal")).toBeTruthy(),
+    );
+  }
+
   it("affiche seulement les salles isAvailable+AVAILABLE (B45), pas LAB2 ni A08", async () => {
     await waitForForm();
     await waitFor(() => expect(rooms.listAvailableRooms).toHaveBeenCalled());
-    expect(screen.getByTestId("teacher-oneoff-room-r-b45")).toBeTruthy();
+    await openRoomDropdown();
+    expect(screen.getByTestId("teacher-oneoff-room-option-r-b45")).toBeTruthy();
     // LAB2 (full) et A08 (maintenance) ne doivent PAS apparaître
-    expect(screen.queryByTestId("teacher-oneoff-room-r-lab2")).toBeNull();
-    expect(screen.queryByTestId("teacher-oneoff-room-r-a08")).toBeNull();
+    expect(
+      screen.queryByTestId("teacher-oneoff-room-option-r-lab2"),
+    ).toBeNull();
+    expect(screen.queryByTestId("teacher-oneoff-room-option-r-a08")).toBeNull();
   });
 
   it("affiche toujours l'option 'Aucune'", async () => {
     await waitForForm();
+    await openRoomDropdown();
     await waitFor(() =>
-      expect(screen.getByTestId("teacher-oneoff-room-none")).toBeTruthy(),
+      expect(
+        screen.getByTestId("teacher-oneoff-room-option-none"),
+      ).toBeTruthy(),
     );
   });
 
@@ -602,9 +615,17 @@ describe("Mode ponctuel", () => {
       prefilledDate: "2026-04-28",
     });
     await waitFor(() =>
-      expect(screen.getByTestId("teacher-oneoff-room-r-b45")).toBeTruthy(),
+      expect(screen.getByTestId("teacher-oneoff-room")).toBeTruthy(),
     );
-    fireEvent.press(screen.getByTestId("teacher-oneoff-room-r-b45"));
+    await waitFor(() => expect(rooms.listAvailableRooms).toHaveBeenCalled());
+    // Ouvrir le dropdown et sélectionner B45
+    fireEvent.press(screen.getByTestId("teacher-oneoff-room"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-oneoff-room-option-r-b45"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("teacher-oneoff-room-option-r-b45"));
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() => expect(api.createOneOffSlot).toHaveBeenCalled());
     expect(api.createOneOffSlot).toHaveBeenCalledWith(
