@@ -4,7 +4,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -18,6 +17,7 @@ import { timetableApi } from "../../api/timetable.api";
 import { roomsApi } from "../../api/rooms.api";
 import { useAuthStore } from "../../store/auth.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
+import { DatePickerField } from "../DatePickerField";
 import { TimePickerField } from "../TimePickerField";
 import type { RoomAvailability } from "../../types/room.types";
 import type {
@@ -552,17 +552,12 @@ export function TeacherOneOffCreatePanel({
                     control={control}
                     name="occurrenceDate"
                     render={({ field: { value, onChange, onBlur } }) => (
-                      <TextInput
-                        style={[
-                          styles.dateInput,
-                          errors.occurrenceDate && styles.inputError,
-                        ]}
-                        value={value}
-                        onChangeText={onChange}
+                      <DatePickerField
+                        value={value ?? ""}
+                        onChange={onChange}
                         onBlur={onBlur}
-                        placeholder="2026-04-28"
-                        placeholderTextColor={colors.textSecondary}
-                        keyboardType="numbers-and-punctuation"
+                        title={t("timetable.classManager.fields.date")}
+                        hasError={!!errors.occurrenceDate}
                         testID="teacher-oneoff-date-input"
                       />
                     )}
@@ -664,17 +659,12 @@ export function TeacherOneOffCreatePanel({
                       control={control}
                       name="activeFromDate"
                       render={({ field: { value, onChange, onBlur } }) => (
-                        <TextInput
-                          style={[
-                            styles.dateInput,
-                            errors.activeFromDate && styles.inputError,
-                          ]}
-                          value={value}
-                          onChangeText={onChange}
+                        <DatePickerField
+                          value={value ?? ""}
+                          onChange={onChange}
                           onBlur={onBlur}
-                          placeholder="2026-09-01"
-                          placeholderTextColor={colors.textSecondary}
-                          keyboardType="numbers-and-punctuation"
+                          title={t("timetable.oneOffPanel.fields.activeFrom")}
+                          hasError={!!errors.activeFromDate}
                           testID="teacher-oneoff-activefrom-input"
                         />
                       )}
@@ -693,17 +683,12 @@ export function TeacherOneOffCreatePanel({
                       control={control}
                       name="activeToDate"
                       render={({ field: { value, onChange, onBlur } }) => (
-                        <TextInput
-                          style={[
-                            styles.dateInput,
-                            errors.activeToDate && styles.inputError,
-                          ]}
-                          value={value}
-                          onChangeText={onChange}
+                        <DatePickerField
+                          value={value ?? ""}
+                          onChange={onChange}
                           onBlur={onBlur}
-                          placeholder="2027-06-30"
-                          placeholderTextColor={colors.textSecondary}
-                          keyboardType="numbers-and-punctuation"
+                          title={t("timetable.oneOffPanel.fields.activeTo")}
+                          hasError={!!errors.activeToDate}
                           testID="teacher-oneoff-activeto-input"
                         />
                       )}
@@ -1008,21 +993,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 6,
   },
-  dateInput: {
-    height: 44,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.white,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  inputError: {
-    borderColor: colors.notification,
-  },
-
   /* Misc */
   loaderRow: {
     alignItems: "center",

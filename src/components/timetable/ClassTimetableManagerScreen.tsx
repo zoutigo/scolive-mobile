@@ -19,6 +19,7 @@ import { colors } from "../../theme";
 import { useAuthStore } from "../../store/auth.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { useTimetableStore } from "../../store/timetable.store";
+import { DatePickerField } from "../DatePickerField";
 import { TimePickerField } from "../TimePickerField";
 import { roomsApi } from "../../api/rooms.api";
 import type { RoomAvailability } from "../../types/room.types";
@@ -1356,54 +1357,62 @@ export function ClassTimetableManagerScreen() {
                   )}
                 />
                 <View style={styles.row}>
-                  <Controller
-                    control={holidayRhf.control}
-                    name="startDate"
-                    render={({ field, fieldState }) => (
-                      <View style={{ flex: 1 }}>
-                        <TextField
-                          label={t(
-                            "timetable.classManager.validation.startLabel",
-                          )}
-                          value={field.value}
-                          onChangeText={field.onChange}
-                          placeholder={t(
-                            "timetable.classManager.placeholders.isoDate",
-                          )}
-                          hasError={!!fieldState.error}
-                        />
-                        {fieldState.error ? (
-                          <Text style={styles.fieldError}>
-                            {fieldState.error.message}
-                          </Text>
-                        ) : null}
-                      </View>
-                    )}
-                  />
-                  <Controller
-                    control={holidayRhf.control}
-                    name="endDate"
-                    render={({ field, fieldState }) => (
-                      <View style={{ flex: 1 }}>
-                        <TextField
-                          label={t(
-                            "timetable.classManager.validation.endLabel",
-                          )}
-                          value={field.value}
-                          onChangeText={field.onChange}
-                          placeholder={t(
-                            "timetable.classManager.placeholders.isoDate",
-                          )}
-                          hasError={!!fieldState.error}
-                        />
-                        {fieldState.error ? (
-                          <Text style={styles.fieldError}>
-                            {fieldState.error.message}
-                          </Text>
-                        ) : null}
-                      </View>
-                    )}
-                  />
+                  <View style={styles.rowField}>
+                    <Text style={styles.rowFieldLabel}>
+                      {t("timetable.classManager.validation.startLabel")}
+                    </Text>
+                    <Controller
+                      control={holidayRhf.control}
+                      name="startDate"
+                      render={({ field, fieldState }) => (
+                        <>
+                          <DatePickerField
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            title={t(
+                              "timetable.classManager.validation.startLabel",
+                            )}
+                            hasError={!!fieldState.error}
+                            testID="holiday-form-startDate"
+                          />
+                          {fieldState.error ? (
+                            <Text style={styles.fieldError}>
+                              {fieldState.error.message}
+                            </Text>
+                          ) : null}
+                        </>
+                      )}
+                    />
+                  </View>
+                  <View style={styles.rowField}>
+                    <Text style={styles.rowFieldLabel}>
+                      {t("timetable.classManager.validation.endLabel")}
+                    </Text>
+                    <Controller
+                      control={holidayRhf.control}
+                      name="endDate"
+                      render={({ field, fieldState }) => (
+                        <>
+                          <DatePickerField
+                            value={field.value}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            title={t(
+                              "timetable.classManager.validation.endLabel",
+                            )}
+                            hasError={!!fieldState.error}
+                            testID="holiday-form-endDate"
+                          />
+                          {fieldState.error ? (
+                            <Text style={styles.fieldError}>
+                              {fieldState.error.message}
+                            </Text>
+                          ) : null}
+                        </>
+                      )}
+                    />
+                  </View>
                 </View>
                 <View style={styles.actionsRow}>
                   <TouchableOpacity
