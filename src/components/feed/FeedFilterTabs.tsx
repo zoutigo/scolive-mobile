@@ -42,7 +42,11 @@ type Props = {
   onSelect: (filter: FeedFilter) => void;
 };
 
-export function FeedFilterTabs({ activeFilter, unreadCounts, onSelect }: Props) {
+export function FeedFilterTabs({
+  activeFilter,
+  unreadCounts,
+  onSelect,
+}: Props) {
   const { t } = useTranslation();
 
   return (
@@ -73,7 +77,10 @@ export function FeedFilterTabs({ activeFilter, unreadCounts, onSelect }: Props) 
                 {t(tab.labelKey)}
               </Text>
               {count > 0 ? (
-                <View style={styles.badge} testID={`feed-filter-badge-${tab.key}`}>
+                <View
+                  style={styles.badge}
+                  testID={`feed-filter-badge-${tab.key}`}
+                >
                   <Text style={styles.badgeText}>
                     {count > 99 ? "99+" : String(count)}
                   </Text>

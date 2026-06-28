@@ -386,9 +386,7 @@ export function FeedComposerCard({
             >
               <Ionicons
                 name={
-                  value === "POST"
-                    ? "newspaper-outline"
-                    : "stats-chart-outline"
+                  value === "POST" ? "newspaper-outline" : "stats-chart-outline"
                 }
                 size={14}
                 color={type === value ? colors.white : colors.primary}
@@ -419,7 +417,10 @@ export function FeedComposerCard({
                 <>
                   <TextInput
                     ref={titleRef}
-                    style={[styles.fieldInput, err ? styles.fieldInputError : null]}
+                    style={[
+                      styles.fieldInput,
+                      err ? styles.fieldInputError : null,
+                    ]}
                     value={field.value}
                     onChangeText={field.onChange}
                     placeholder={t("feed.composer.titlePlaceholder")}
@@ -501,9 +502,7 @@ export function FeedComposerCard({
                       placeholderTextColor={colors.textSecondary}
                       testID="feed-composer-poll-question"
                     />
-                    {err ? (
-                      <Text style={styles.fieldError}>{err}</Text>
-                    ) : null}
+                    {err ? <Text style={styles.fieldError}>{err}</Text> : null}
                   </>
                 );
               }}

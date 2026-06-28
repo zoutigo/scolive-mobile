@@ -118,7 +118,9 @@ describe("FeedPostCard", () => {
       />,
     );
     fireEvent.press(screen.getByTestId("feed-post-delete-post-1"));
-    expect(onDelete).toHaveBeenCalledWith(expect.objectContaining({ id: "post-1" }));
+    expect(onDelete).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "post-1" }),
+    );
   });
 
   it("la card entière déclenche onPress quand fourni", () => {
@@ -273,7 +275,9 @@ describe("FeedPostCard", () => {
         onVote={onVote}
       />,
     );
-    fireEvent.press(screen.getByTestId("feed-post-poll-option-poll-1-option-1"));
+    fireEvent.press(
+      screen.getByTestId("feed-post-poll-option-poll-1-option-1"),
+    );
     expect(onVote).toHaveBeenCalledWith("poll-1", "option-1");
     expect(screen.getByLabelText("Mercredi matin, 4 votes")).toBeTruthy();
     expect(screen.getByLabelText("Vendredi après-midi, 2 votes")).toBeTruthy();

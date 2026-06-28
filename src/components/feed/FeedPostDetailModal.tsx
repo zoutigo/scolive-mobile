@@ -106,9 +106,7 @@ export function FeedPostDetailModal({
 
   const onScrollEnd = useCallback(
     (e: { nativeEvent: { contentOffset: { x: number } } }) => {
-      const newIndex = Math.round(
-        e.nativeEvent.contentOffset.x / SCREEN_WIDTH,
-      );
+      const newIndex = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
       currentIndexRef.current = newIndex;
     },
     [],
@@ -121,12 +119,8 @@ export function FeedPostDetailModal({
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <View
-        style={[styles.root, { backgroundColor: colors.background }]}
-      >
-        <View
-          style={[styles.header, { paddingTop: insets.top + 8 }]}
-        >
+      <View style={[styles.root, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity
             style={styles.closeBtn}
             onPress={onClose}

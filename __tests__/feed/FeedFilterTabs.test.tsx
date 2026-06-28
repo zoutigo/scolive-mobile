@@ -164,7 +164,8 @@ describe("FeedFilterTabs", () => {
         onSelect={onSelect}
       />,
     );
-    const container = screen.getByTestId("feed-filter-tab-all").parent?.parent?.parent;
+    const container = screen.getByTestId("feed-filter-tab-all").parent?.parent
+      ?.parent;
     expect(container).toBeTruthy();
   });
 });

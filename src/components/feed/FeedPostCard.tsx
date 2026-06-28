@@ -221,7 +221,9 @@ export function FeedPostCard({
               <Ionicons
                 name={post.likedByViewer ? "heart" : "heart-outline"}
                 size={18}
-                color={post.likedByViewer ? colors.notification : colors.primary}
+                color={
+                  post.likedByViewer ? colors.notification : colors.primary
+                }
               />
               <Text
                 style={[
