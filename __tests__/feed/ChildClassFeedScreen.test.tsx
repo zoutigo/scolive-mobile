@@ -163,38 +163,11 @@ describe("ChildClassFeedScreen", () => {
     expect(screen.getByText("CONSEIL DE CLASSE")).toBeTruthy();
     expect(screen.getByText("INFORMATION PARENTS")).toBeTruthy();
     expect(headerStyle.backgroundColor).toBe(colors.primary);
-    expect(screen.queryByTestId("child-class-feed-search-btn")).toBeNull();
-    expect(screen.getByTestId("child-class-feed-hero-card")).toHaveStyle({
-      borderRadius: 12,
-      backgroundColor: "rgba(12,95,168,0.1)",
-      borderColor: "rgba(12,95,168,0.2)",
-    });
-    expect(
-      screen.getByTestId("child-class-feed-hero-controls-row"),
-    ).toHaveStyle({
-      flexDirection: "row",
-    });
-    expect(screen.getByTestId("child-class-feed-hero-search-btn")).toBeTruthy();
-    expect(
-      screen.getByTestId("child-class-feed-open-composer-post"),
-    ).toBeTruthy();
-    expect(
-      screen.getByTestId("child-class-feed-open-composer-poll"),
-    ).toBeTruthy();
-    expect(screen.getByText("Info")).toBeTruthy();
-    expect(screen.getByText("Sondage")).toBeTruthy();
-    expect(
-      screen.getByTestId("child-class-feed-open-composer-post"),
-    ).toHaveStyle({
-      backgroundColor: "#FFF8F0",
-      borderColor: "#E8CCAE",
-    });
-    expect(
-      screen.getByTestId("child-class-feed-open-composer-poll"),
-    ).toHaveStyle({
-      backgroundColor: "#FFF8F0",
-      borderColor: "#E8CCAE",
-    });
+    expect(screen.getByTestId("feed-filter-tab-all")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-tab-featured")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-tab-polls")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-tab-mine")).toBeTruthy();
+    expect(screen.getByTestId("child-class-feed-compose-fab")).toBeTruthy();
   });
 
   it("change le filtre du fil de classe", async () => {
@@ -204,7 +177,7 @@ describe("ChildClassFeedScreen", () => {
       expect(api.list).toHaveBeenCalled();
     });
 
-    fireEvent.press(screen.getByTestId("child-class-feed-filter-featured"));
+    fireEvent.press(screen.getByTestId("feed-filter-tab-featured"));
 
     await waitFor(() => {
       expect(api.list).toHaveBeenLastCalledWith(
@@ -226,7 +199,7 @@ describe("ChildClassFeedScreen", () => {
       expect(screen.getByText("INFORMATION PARENTS")).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId("child-class-feed-filter-mine"));
+    fireEvent.press(screen.getByTestId("feed-filter-tab-mine"));
 
     await waitFor(() => {
       expect(screen.getByText("CONSEIL DE CLASSE")).toBeTruthy();
@@ -247,7 +220,7 @@ describe("ChildClassFeedScreen", () => {
     render(<ChildClassFeedScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("child-class-feed-filter-all")).toBeTruthy();
+      expect(screen.getByTestId("feed-post-react-post-1")).toBeTruthy();
     });
 
     fireEvent.press(screen.getByTestId("feed-post-react-post-1"));
@@ -266,56 +239,26 @@ describe("ChildClassFeedScreen", () => {
     });
   });
 
-  it("ouvre la recherche depuis le bloc Fil de la classe", async () => {
+  it("ouvre le composeur depuis le FAB", async () => {
     render(<ChildClassFeedScreen />);
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("child-class-feed-hero-search-btn"),
-      ).toBeTruthy();
+      expect(screen.getByTestId("child-class-feed-compose-fab")).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId("child-class-feed-hero-search-btn"));
-    expect(screen.getByTestId("child-class-feed-search-input")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("child-class-feed-compose-fab"));
+    expect(screen.getByTestId("feed-composer-card")).toBeTruthy();
   });
 
-  it("recherche un post depuis le bloc Fil de la classe", async () => {
+  it("ouvre le composeur en mode sondage depuis le FAB", async () => {
     render(<ChildClassFeedScreen />);
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("child-class-feed-hero-search-btn"),
-      ).toBeTruthy();
+      expect(screen.getByTestId("child-class-feed-compose-fab")).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId("child-class-feed-hero-search-btn"));
-    fireEvent.changeText(
-      screen.getByTestId("child-class-feed-search-input"),
-      "parents",
-    );
-
-    await waitFor(() => {
-      expect(api.list).toHaveBeenLastCalledWith(
-        "college-vogt",
-        expect.objectContaining({
-          viewScope: "CLASS",
-          classId: "class-1",
-          q: "parents",
-        }),
-      );
-    });
-  });
-
-  it("ouvre le composeur en mode sondage depuis le bloc Fil de la classe", async () => {
-    render(<ChildClassFeedScreen />);
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("child-class-feed-open-composer-poll"),
-      ).toBeTruthy();
-    });
-
-    fireEvent.press(screen.getByTestId("child-class-feed-open-composer-poll"));
+    fireEvent.press(screen.getByTestId("child-class-feed-compose-fab"));
+    fireEvent.press(screen.getByTestId("feed-composer-type-poll"));
     expect(screen.getByTestId("feed-composer-card")).toBeTruthy();
     expect(screen.getByTestId("feed-composer-type-poll")).toHaveStyle({
       backgroundColor: "#08467D",

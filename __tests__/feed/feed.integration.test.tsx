@@ -113,18 +113,54 @@ beforeEach(() => {
   });
 });
 
-describe("Feed integration", () => {
-  it("garde la barre basse des filtres visible hors composition", async () => {
-    render(
-      <>
-        <FeedScreen />
-        <SuccessToastHost />
-      </>,
-    );
+describe("Feed integration — top tabs", () => {
+  it("affiche les 4 onglets filtres en haut (plus de barre basse)", async () => {
+    render(<FeedScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("feed-filter-bottom-bar")).toBeTruthy();
+      expect(screen.getByTestId("feed-filter-tab-all")).toBeTruthy();
     });
+    expect(screen.getByTestId("feed-filter-tab-featured")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-tab-polls")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-tab-mine")).toBeTruthy();
+    expect(screen.queryByTestId("feed-filter-bottom-bar")).toBeNull();
+  });
+
+  it("change de filtre au press d'un onglet et recharge la liste", async () => {
+    render(<FeedScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-filter-tab-featured")).toBeTruthy();
+    });
+    fireEvent.press(screen.getByTestId("feed-filter-tab-featured"));
+
+    await waitFor(() => {
+      expect(api.list).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({ filter: "featured" }),
+      );
+    });
+  });
+});
+
+describe("Feed integration — composer", () => {
+  it("ouvre le composer via le FAB", async () => {
+    render(<FeedScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-compose-fab")).toBeTruthy();
+    });
+    fireEvent.press(screen.getByTestId("feed-compose-fab"));
+    expect(screen.getByTestId("feed-composer-card")).toBeTruthy();
+  });
+
+  it("le FAB disparaît quand le composer est ouvert", async () => {
+    render(<FeedScreen />);
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-compose-fab")).toBeTruthy();
+    });
+    fireEvent.press(screen.getByTestId("feed-compose-fab"));
+    expect(screen.queryByTestId("feed-compose-fab")).toBeNull();
   });
 
   it("publie une actualité et affiche le toast global", async () => {
@@ -136,11 +172,9 @@ describe("Feed integration", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("feed-open-composer")).toBeTruthy();
+      expect(screen.getByTestId("feed-compose-fab")).toBeTruthy();
     });
-
-    fireEvent.press(screen.getByTestId("feed-open-composer"));
-    expect(screen.queryByTestId("feed-filter-bottom-bar")).toBeNull();
+    fireEvent.press(screen.getByTestId("feed-compose-fab"));
     fireEvent.changeText(
       screen.getByTestId("feed-composer-title"),
       "Conseil de classe",
@@ -171,10 +205,9 @@ describe("Feed integration", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("feed-open-composer")).toBeTruthy();
+      expect(screen.getByTestId("feed-compose-fab")).toBeTruthy();
     });
-
-    fireEvent.press(screen.getByTestId("feed-open-composer"));
+    fireEvent.press(screen.getByTestId("feed-compose-fab"));
     fireEvent.changeText(
       screen.getByTestId("feed-composer-title"),
       "Conseil bloqué",
@@ -207,10 +240,9 @@ describe("Feed integration", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("feed-open-composer")).toBeTruthy();
+      expect(screen.getByTestId("feed-compose-fab")).toBeTruthy();
     });
-
-    fireEvent.press(screen.getByTestId("feed-open-composer"));
+    fireEvent.press(screen.getByTestId("feed-compose-fab"));
     fireEvent.changeText(
       screen.getByTestId("feed-composer-title"),
       "Conseil pédagogique",
@@ -230,7 +262,9 @@ describe("Feed integration", () => {
       expect(screen.getByTestId("success-toast-card")).toBeTruthy();
     });
   });
+});
 
+describe("Feed integration — delete", () => {
   it("supprime une publication et la retire du store", async () => {
     render(
       <>
@@ -242,20 +276,47 @@ describe("Feed integration", () => {
     await waitFor(() => {
       expect(screen.getByTestId("feed-post-delete-post-1")).toBeTruthy();
     });
-
     fireEvent.press(screen.getByTestId("feed-post-delete-post-1"));
     fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
 
     await waitFor(() => {
       expect(api.remove).toHaveBeenCalledWith("college-vogt", "post-1");
     });
-
     expect(useFeedStore.getState().posts).toHaveLength(0);
     expect(screen.getByTestId("success-toast-title")).toHaveTextContent(
       "Publication supprimée",
     );
   });
 
+  it("affiche un toast d'erreur si la suppression échoue", async () => {
+    api.remove.mockRejectedValueOnce(new Error("Suppression refusée"));
+
+    render(
+      <>
+        <FeedScreen />
+        <SuccessToastHost />
+      </>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-post-delete-post-1")).toBeTruthy();
+    });
+    fireEvent.press(screen.getByTestId("feed-post-delete-post-1"));
+    fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("success-toast-card")).toBeTruthy();
+    });
+    expect(screen.getByTestId("success-toast-title")).toHaveTextContent(
+      "Suppression impossible",
+    );
+    expect(screen.getByTestId("success-toast-message")).toHaveTextContent(
+      "Suppression refusée",
+    );
+  });
+});
+
+describe("Feed integration — like", () => {
   it("affiche un toast d'erreur si le like échoue", async () => {
     api.toggleLike.mockRejectedValueOnce(new Error("Like indisponible"));
 
@@ -269,7 +330,6 @@ describe("Feed integration", () => {
     await waitFor(() => {
       expect(screen.getByTestId("feed-post-like-post-1")).toBeTruthy();
     });
-
     fireEvent.press(screen.getByTestId("feed-post-like-post-1"));
 
     await waitFor(() => {
@@ -282,8 +342,10 @@ describe("Feed integration", () => {
       "Like indisponible",
     );
   });
+});
 
-  it("ouvre le formulaire inline de reaction et ajoute le commentaire au post", async () => {
+describe("Feed integration — commentaire", () => {
+  it("ouvre le formulaire inline et ajoute le commentaire au post", async () => {
     render(
       <>
         <FeedScreen />
@@ -294,7 +356,6 @@ describe("Feed integration", () => {
     await waitFor(() => {
       expect(screen.getByTestId("feed-post-react-post-1")).toBeTruthy();
     });
-
     fireEvent.press(screen.getByTestId("feed-post-react-post-1"));
     fireEvent.changeText(
       screen.getByTestId("feed-comment-input-post-1"),
@@ -327,7 +388,6 @@ describe("Feed integration", () => {
     await waitFor(() => {
       expect(screen.getByTestId("feed-post-react-post-1")).toBeTruthy();
     });
-
     fireEvent.press(screen.getByTestId("feed-post-react-post-1"));
     fireEvent.changeText(
       screen.getByTestId("feed-comment-input-post-1"),
@@ -345,7 +405,9 @@ describe("Feed integration", () => {
       "Commentaire fermé",
     );
   });
+});
 
+describe("Feed integration — sondage", () => {
   it("persiste un vote de sondage dans le store", async () => {
     api.list.mockResolvedValueOnce({
       items: [samplePollPost],
@@ -362,7 +424,6 @@ describe("Feed integration", () => {
     await waitFor(() => {
       expect(screen.getByText("08:00")).toBeTruthy();
     });
-
     fireEvent.press(screen.getByText("08:00"));
 
     await waitFor(() => {
@@ -393,7 +454,6 @@ describe("Feed integration", () => {
     await waitFor(() => {
       expect(screen.getByText("08:00")).toBeTruthy();
     });
-
     fireEvent.press(screen.getByText("08:00"));
 
     await waitFor(() => {
@@ -406,32 +466,126 @@ describe("Feed integration", () => {
       "Vote déjà enregistré",
     );
   });
+});
 
-  it("affiche un toast d'erreur si la suppression échoue", async () => {
-    api.remove.mockRejectedValueOnce(new Error("Suppression refusée"));
-
-    render(
-      <>
-        <FeedScreen />
-        <SuccessToastHost />
-      </>,
-    );
+describe("Feed integration — non-lus et pager de détail", () => {
+  it("ouvre le pager de détail en cliquant sur la card", async () => {
+    render(<FeedScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("feed-post-delete-post-1")).toBeTruthy();
+      expect(screen.getByTestId("feed-post-post-1")).toBeTruthy();
     });
-
-    fireEvent.press(screen.getByTestId("feed-post-delete-post-1"));
-    fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
+    fireEvent.press(screen.getByTestId("feed-post-post-1"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("success-toast-card")).toBeTruthy();
+      expect(screen.getByTestId("feed-detail-back")).toBeTruthy();
     });
-    expect(screen.getByTestId("success-toast-title")).toHaveTextContent(
-      "Suppression impossible",
+  });
+
+  it("revient à la liste depuis le pager de détail", async () => {
+    render(<FeedScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-post-post-1")).toBeTruthy();
+    });
+    fireEvent.press(screen.getByTestId("feed-post-post-1"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-detail-back")).toBeTruthy();
+    });
+    fireEvent.press(screen.getByTestId("feed-detail-back"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("feed-detail-back")).toBeNull();
+    });
+  });
+
+  it("initialise le badge non-lus après chargement", async () => {
+    render(<FeedScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-filter-badge-all")).toBeTruthy();
+    });
+    expect(screen.getByText("1")).toBeTruthy();
+  });
+
+  it("n'affiche pas de badge si count = 0 (pas de posts)", async () => {
+    api.list.mockResolvedValueOnce({
+      items: [],
+      meta: { page: 1, limit: 12, total: 0, totalPages: 0 },
+    });
+
+    render(<FeedScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-filter-tab-all")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("feed-filter-badge-all")).toBeNull();
+  });
+
+  it("le FAB disparaît en mode pager", async () => {
+    render(<FeedScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-compose-fab")).toBeTruthy();
+    });
+    fireEvent.press(screen.getByTestId("feed-post-post-1"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-detail-back")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("feed-compose-fab")).toBeNull();
+  });
+
+  it("les filter tabs restent visibles en mode pager", async () => {
+    render(<FeedScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-post-post-1")).toBeTruthy();
+    });
+    fireEvent.press(screen.getByTestId("feed-post-post-1"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-detail-back")).toBeTruthy();
+    });
+    expect(screen.getByTestId("feed-filter-tab-all")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-tab-featured")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-tab-polls")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-tab-mine")).toBeTruthy();
+  });
+
+  it("le compteur de pagination affiche '1 / 1' pour un seul post", async () => {
+    render(<FeedScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-post-post-1")).toBeTruthy();
+    });
+    fireEvent.press(screen.getByTestId("feed-post-post-1"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-detail-pager-count")).toBeTruthy();
+    });
+    expect(screen.getByTestId("feed-detail-pager-count")).toHaveTextContent(
+      "1 / 1",
     );
-    expect(screen.getByTestId("success-toast-message")).toHaveTextContent(
-      "Suppression refusée",
-    );
+  });
+
+  it("changer de filtre ferme le pager et revient à la liste", async () => {
+    render(<FeedScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-post-post-1")).toBeTruthy();
+    });
+    fireEvent.press(screen.getByTestId("feed-post-post-1"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-detail-back")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("feed-filter-tab-featured"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("feed-detail-back")).toBeNull();
+    });
   });
 });

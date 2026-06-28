@@ -213,7 +213,7 @@ describe("Child class feed integration", () => {
     });
   });
 
-  it("crée une info depuis le bouton hero Info", async () => {
+  it("crée une info depuis le FAB", async () => {
     render(
       <>
         <ChildClassFeedScreen />
@@ -222,12 +222,10 @@ describe("Child class feed integration", () => {
     );
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("child-class-feed-open-composer-post"),
-      ).toBeTruthy();
+      expect(screen.getByTestId("child-class-feed-compose-fab")).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId("child-class-feed-open-composer-post"));
+    fireEvent.press(screen.getByTestId("child-class-feed-compose-fab"));
     fireEvent.changeText(
       screen.getByTestId("feed-composer-title"),
       "Info familles",
@@ -251,7 +249,7 @@ describe("Child class feed integration", () => {
     });
   });
 
-  it("crée un sondage depuis le bouton hero Sondage", async () => {
+  it("crée un sondage depuis le FAB", async () => {
     render(
       <>
         <ChildClassFeedScreen />
@@ -260,12 +258,11 @@ describe("Child class feed integration", () => {
     );
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("child-class-feed-open-composer-poll"),
-      ).toBeTruthy();
+      expect(screen.getByTestId("child-class-feed-compose-fab")).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId("child-class-feed-open-composer-poll"));
+    fireEvent.press(screen.getByTestId("child-class-feed-compose-fab"));
+    fireEvent.press(screen.getByTestId("feed-composer-type-poll"));
     fireEvent.changeText(
       screen.getByTestId("feed-composer-title"),
       "Sondage sortie",

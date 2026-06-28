@@ -160,16 +160,16 @@ describe("Fil d'actualité — traduction selon la locale du compte (mobile)", (
     expect(screen.getByTestId("module-header-title")).toHaveTextContent(
       translate("fr", "feed.page.title"),
     );
-    expect(screen.getByTestId("feed-filter-all")).toHaveTextContent(
+    expect(screen.getByTestId("feed-filter-tab-all")).toHaveTextContent(
       translate("fr", "feed.filters.all"),
     );
-    expect(screen.getByTestId("feed-filter-featured")).toHaveTextContent(
+    expect(screen.getByTestId("feed-filter-tab-featured")).toHaveTextContent(
       translate("fr", "feed.filters.featured"),
     );
-    expect(screen.getByTestId("feed-filter-polls")).toHaveTextContent(
+    expect(screen.getByTestId("feed-filter-tab-polls")).toHaveTextContent(
       translate("fr", "feed.filters.polls"),
     );
-    expect(screen.getByTestId("feed-filter-mine")).toHaveTextContent(
+    expect(screen.getByTestId("feed-filter-tab-mine")).toHaveTextContent(
       translate("fr", "feed.filters.mine"),
     );
     expect(
@@ -189,16 +189,16 @@ describe("Fil d'actualité — traduction selon la locale du compte (mobile)", (
     expect(screen.getByTestId("module-header-title")).toHaveTextContent(
       translate("en", "feed.page.title"),
     );
-    expect(screen.getByTestId("feed-filter-all")).toHaveTextContent(
+    expect(screen.getByTestId("feed-filter-tab-all")).toHaveTextContent(
       translate("en", "feed.filters.all"),
     );
-    expect(screen.getByTestId("feed-filter-featured")).toHaveTextContent(
+    expect(screen.getByTestId("feed-filter-tab-featured")).toHaveTextContent(
       translate("en", "feed.filters.featured"),
     );
-    expect(screen.getByTestId("feed-filter-polls")).toHaveTextContent(
+    expect(screen.getByTestId("feed-filter-tab-polls")).toHaveTextContent(
       translate("en", "feed.filters.polls"),
     );
-    expect(screen.getByTestId("feed-filter-mine")).toHaveTextContent(
+    expect(screen.getByTestId("feed-filter-tab-mine")).toHaveTextContent(
       translate("en", "feed.filters.mine"),
     );
     expect(
@@ -214,7 +214,7 @@ describe("Fil d'actualité — traduction selon la locale du compte (mobile)", (
 
     await renderFeedScreen();
 
-    fireEvent.press(screen.getByTestId("feed-open-composer"));
+    fireEvent.press(screen.getByTestId("feed-compose-fab"));
 
     expect(screen.getByTestId("feed-composer-card")).toBeTruthy();
     expect(
@@ -239,7 +239,7 @@ describe("Fil d'actualité — traduction selon la locale du compte (mobile)", (
 
     await renderFeedScreen();
 
-    fireEvent.press(screen.getByTestId("feed-open-composer"));
+    fireEvent.press(screen.getByTestId("feed-compose-fab"));
     fireEvent.press(screen.getByTestId("feed-composer-submit"));
 
     await waitFor(() => {

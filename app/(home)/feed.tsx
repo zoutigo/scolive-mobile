@@ -107,8 +107,6 @@ function FeedScreen() {
       deleteSuccessMessage={t("feed.page.deleteSuccess")}
       deleteContextLabel={t("feed.page.context")}
       canCompose
-      heroTitle={t("feed.page.heroTitle")}
-      heroSubtitle={t("feed.page.heroSubtitle")}
       onCreatePost={handleCreatePost}
       onUploadInlineImage={handleUploadInlineImage}
       onPostsChange={(posts) => {

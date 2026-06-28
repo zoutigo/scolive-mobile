@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -9,6 +11,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  type ViewToken,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,10 +22,10 @@ import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { FeedComposerCard } from "./FeedComposerCard";
+import { FeedFilterTabs } from "./FeedFilterTabs";
 import { FeedPostCard } from "./FeedPostCard";
 import { orderFeedPosts } from "./feed.helpers";
 import { useTranslation } from "../../i18n/useTranslation";
-import type { TranslateFn } from "../../i18n/useTranslation";
 import type {
   CreateFeedPayload,
   FeedFilter,
@@ -32,26 +35,7 @@ import type {
   FeedViewerRole,
 } from "../../types/feed.types";
 
-function getFilters(t: TranslateFn): Array<{
-  key: FeedFilter;
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}> {
-  return [
-    { key: "all", label: t("feed.filters.all"), icon: "albums-outline" },
-    {
-      key: "featured",
-      label: t("feed.filters.featured"),
-      icon: "sparkles-outline",
-    },
-    {
-      key: "polls",
-      label: t("feed.filters.polls"),
-      icon: "stats-chart-outline",
-    },
-    { key: "mine", label: t("feed.filters.mine"), icon: "person-outline" },
-  ];
-}
+const SCREEN_WIDTH = Dimensions.get("window").width;
 
 type FeedPagePayload = {
   items: FeedPost[];
@@ -79,10 +63,6 @@ type Props = {
   deleteContextLabel: string;
   searchPlaceholder?: string;
   canCompose?: boolean;
-  heroTitle?: string;
-  heroSubtitle?: string;
-  heroSearchEnabled?: boolean;
-  heroComposerActionsEnabled?: boolean;
   onCreatePost?: (payload: CreateFeedPayload) => Promise<FeedPost>;
   onUploadInlineImage?: (file: {
     uri: string;
@@ -108,10 +88,6 @@ export function FeedModuleScreen({
   deleteContextLabel,
   searchPlaceholder,
   canCompose = false,
-  heroTitle,
-  heroSubtitle,
-  heroSearchEnabled = false,
-  heroComposerActionsEnabled = false,
   onCreatePost,
   onUploadInlineImage,
   unavailableTitle,
@@ -119,15 +95,14 @@ export function FeedModuleScreen({
   onPostsChange,
 }: Props) {
   const { t } = useTranslation();
-  const FILTERS = getFilters(t);
+  const tRef = useRef(t);
+  tRef.current = t;
   const effectiveSearchPlaceholder =
     searchPlaceholder ?? t("feed.search.placeholder");
   const effectiveUnavailableTitle =
     unavailableTitle ?? t("feed.unavailable.title");
   const effectiveUnavailableMessage =
     unavailableMessage ?? t("feed.unavailable.message");
-  const tRef = useRef(t);
-  tRef.current = t;
   const insets = useSafeAreaInsets();
   const showToast = useSuccessToastStore((state) => state.show);
   const [posts, setPosts] = useState<FeedPost[]>([]);
@@ -136,12 +111,50 @@ export function FeedModuleScreen({
   const [search, setSearch] = useState("");
   const [searchVisible, setSearchVisible] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
-  const [composerType, setComposerType] = useState<FeedPostType>("POST");
+  const [composerType] = useState<FeedPostType>("POST");
   const [deleteCandidate, setDeleteCandidate] = useState<FeedPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [detailIndex, setDetailIndex] = useState<number | null>(null);
+
+  const seenPostIdsRef = useRef<Set<string>>(new Set());
+  const [unreadCounts, setUnreadCounts] = useState<
+    Partial<Record<FeedFilter, number>>
+  >({});
+  const filterRef = useRef(filter);
+  filterRef.current = filter;
+
+  const markRead = useCallback((postId: string) => {
+    if (seenPostIdsRef.current.has(postId)) return;
+    seenPostIdsRef.current.add(postId);
+    setUnreadCounts((prev) => {
+      const current = prev[filterRef.current] ?? 0;
+      if (current <= 0) return prev;
+      return { ...prev, [filterRef.current]: current - 1 };
+    });
+  }, []);
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 70 });
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      viewableItems.forEach((token) => {
+        if (token.isViewable && token.item) {
+          const post = token.item as FeedPost;
+          if (!seenPostIdsRef.current.has(post.id)) {
+            seenPostIdsRef.current.add(post.id);
+            setUnreadCounts((prev) => {
+              const current = prev[filterRef.current] ?? 0;
+              if (current <= 0) return prev;
+              return { ...prev, [filterRef.current]: current - 1 };
+            });
+          }
+        }
+      });
+    },
+  );
+
   const commitPosts = useCallback(
     (updater: FeedPost[] | ((current: FeedPost[]) => FeedPost[])) => {
       setPosts((current) => {
@@ -158,9 +171,7 @@ export function FeedModuleScreen({
 
   const load = useCallback(
     async (mode: "load" | "refresh" | "more" = "load") => {
-      if (!schoolSlug) {
-        return;
-      }
+      if (!schoolSlug) return;
 
       if (mode === "load") setIsLoading(true);
       if (mode === "refresh") setIsRefreshing(true);
@@ -186,6 +197,16 @@ export function FeedModuleScreen({
             : response.items,
         );
         setMeta(response.meta);
+
+        if (mode !== "more") {
+          const unseenCount = response.items.filter(
+            (p) => !seenPostIdsRef.current.has(p.id),
+          ).length;
+          setUnreadCounts((prev) => ({
+            ...prev,
+            [filter]: unseenCount,
+          }));
+        }
       } catch (error) {
         setErrorMessage(
           error instanceof Error
@@ -206,9 +227,7 @@ export function FeedModuleScreen({
   }, [load]);
 
   async function handleCreatePost(payload: CreateFeedPayload) {
-    if (!canCompose || !onCreatePost) {
-      return;
-    }
+    if (!canCompose || !onCreatePost) return;
 
     try {
       const created = await onCreatePost(payload);
@@ -324,9 +343,7 @@ export function FeedModuleScreen({
   }
 
   async function handleDeletePost() {
-    if (!schoolSlug || !deleteCandidate) {
-      return;
-    }
+    if (!schoolSlug || !deleteCandidate) return;
 
     const target = deleteCandidate;
     try {
@@ -378,19 +395,76 @@ export function FeedModuleScreen({
       ? orderFeedPosts(posts.filter((post) => post.authoredByViewer))
       : orderFeedPosts(posts);
 
-  const showHeroSearch = heroSearchEnabled;
-  const showHeroComposerActions =
-    heroComposerActionsEnabled &&
-    canCompose &&
-    Boolean(onCreatePost) &&
-    Boolean(onUploadInlineImage);
-  const showCompactHeroControls =
-    !heroTitle && !heroSubtitle && (showHeroSearch || showHeroComposerActions);
   const listBottomPadding =
-    Math.max(insets.bottom, 18) +
-    BOTTOM_TAB_BAR_HEIGHT +
-    (canCompose && !showHeroComposerActions ? 90 : 72);
-  const showHeroControls = showHeroSearch || showHeroComposerActions;
+    Math.max(insets.bottom, 18) + BOTTOM_TAB_BAR_HEIGHT + 72;
+
+  function renderDetailPager() {
+    const safeIndex = Math.min(detailIndex ?? 0, visiblePosts.length - 1);
+    return (
+      <View style={styles.pagerRoot}>
+        <View style={styles.pagerNav}>
+          <TouchableOpacity
+            style={styles.pagerBackBtn}
+            onPress={() => setDetailIndex(null)}
+            testID="feed-detail-back"
+          >
+            <Ionicons name="arrow-back" size={15} color={colors.primary} />
+            <Text style={styles.pagerBackText}>
+              {t("feed.detail.backToList")}
+            </Text>
+          </TouchableOpacity>
+          <Text style={styles.pagerCount} testID="feed-detail-pager-count">
+            {safeIndex + 1} / {visiblePosts.length}
+          </Text>
+        </View>
+
+        <FlatList
+          data={visiblePosts}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          initialScrollIndex={safeIndex}
+          getItemLayout={(_, index) => ({
+            length: SCREEN_WIDTH,
+            offset: SCREEN_WIDTH * index,
+            index,
+          })}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.pagerPage}>
+              <ScrollView
+                contentContainerStyle={[
+                  styles.pagerScrollContent,
+                  { paddingBottom: listBottomPadding },
+                ]}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                <FeedPostCard
+                  post={item}
+                  onToggleLike={handleToggleLike}
+                  onAddComment={handleAddComment}
+                  onVote={handleVote}
+                  onDelete={item.canManage ? setDeleteCandidate : undefined}
+                />
+              </ScrollView>
+            </View>
+          )}
+          onMomentumScrollEnd={(e) => {
+            const newIndex = Math.round(
+              e.nativeEvent.contentOffset.x / SCREEN_WIDTH,
+            );
+            setDetailIndex(newIndex);
+            const post = visiblePosts[newIndex];
+            if (post) markRead(post.id);
+          }}
+          onViewableItemsChanged={onViewableItemsChanged.current}
+          viewabilityConfig={viewabilityConfig.current}
+          decelerationRate="fast"
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
@@ -399,7 +473,16 @@ export function FeedModuleScreen({
         searchVisible,
       })}
 
-      {searchVisible && !showHeroSearch ? (
+      <FeedFilterTabs
+        activeFilter={filter}
+        unreadCounts={unreadCounts}
+        onSelect={(f) => {
+          setFilter(f);
+          setDetailIndex(null);
+        }}
+      />
+
+      {searchVisible ? (
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           style={styles.searchWrap}
@@ -440,299 +523,88 @@ export function FeedModuleScreen({
         <ScrollView
           style={styles.composerScroll}
           contentContainerStyle={[
-            styles.composerScrollContent,
+            styles.composerWrap,
             { paddingBottom: Math.max(insets.bottom, 20) + 28 },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.composerWrap}>
-            <FeedComposerCard
-              key={`feed-composer-${composerType}`}
-              viewerRole={viewerRole}
-              initialType={composerType}
-              onSubmit={handleCreatePost}
-              onUploadInlineImage={onUploadInlineImage}
-              onCancel={() => setComposerOpen(false)}
-            />
-          </View>
+          <FeedComposerCard
+            key={`feed-composer-${composerType}`}
+            viewerRole={viewerRole}
+            initialType={composerType}
+            onSubmit={handleCreatePost}
+            onUploadInlineImage={onUploadInlineImage}
+            onCancel={() => setComposerOpen(false)}
+          />
         </ScrollView>
       ) : isLoading && posts.length === 0 ? (
         <View style={styles.center} testID={`${testIDPrefix}-loading`}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
+      ) : detailIndex !== null ? (
+        renderDetailPager()
       ) : (
-        <>
-          {heroTitle || heroSubtitle || showHeroControls ? (
-            <View style={styles.heroCard} testID={`${testIDPrefix}-hero-card`}>
-              {showCompactHeroControls ? (
-                <View
-                  style={styles.heroControlsRow}
-                  testID={`${testIDPrefix}-hero-controls-row`}
-                >
-                  {showHeroSearch ? (
-                    <TouchableOpacity
-                      style={styles.heroActionIcon}
-                      onPress={() => setSearchVisible((value) => !value)}
-                      testID={`${testIDPrefix}-hero-search-btn`}
-                    >
-                      <Ionicons
-                        name="search-outline"
-                        size={18}
-                        color={colors.primary}
-                      />
-                    </TouchableOpacity>
-                  ) : null}
-                  {showHeroComposerActions ? (
-                    <>
-                      <TouchableOpacity
-                        style={styles.heroPrimaryAction}
-                        onPress={() => {
-                          setComposerType("POST");
-                          setComposerOpen(true);
-                        }}
-                        testID={`${testIDPrefix}-open-composer-post`}
-                      >
-                        <Ionicons
-                          name="add"
-                          size={16}
-                          color={colors.warmAccent}
-                        />
-                        <Text style={styles.heroPrimaryActionText}>
-                          {t("feed.composer.infoLabel")}
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.heroPrimaryAction}
-                        onPress={() => {
-                          setComposerType("POLL");
-                          setComposerOpen(true);
-                        }}
-                        testID={`${testIDPrefix}-open-composer-poll`}
-                      >
-                        <Ionicons
-                          name="add"
-                          size={16}
-                          color={colors.warmAccent}
-                        />
-                        <Text style={styles.heroPrimaryActionText}>
-                          {t("feed.composer.pollLabel")}
-                        </Text>
-                      </TouchableOpacity>
-                    </>
-                  ) : null}
-                </View>
-              ) : (
-                <View style={styles.heroTopRow}>
-                  {heroTitle || heroSubtitle ? (
-                    <>
-                      <View style={styles.heroIcon}>
-                        <Ionicons
-                          name="newspaper-outline"
-                          size={22}
-                          color={colors.primary}
-                        />
-                      </View>
-                      <View style={styles.heroCopy}>
-                        {heroTitle ? (
-                          <Text style={styles.heroTitle}>{heroTitle}</Text>
-                        ) : null}
-                        {heroSubtitle ? (
-                          <Text style={styles.heroSub}>{heroSubtitle}</Text>
-                        ) : null}
-                      </View>
-                    </>
-                  ) : (
-                    <View style={styles.heroTopSpacer} />
-                  )}
-                  {showHeroSearch ? (
-                    <TouchableOpacity
-                      style={styles.heroActionIcon}
-                      onPress={() => setSearchVisible((value) => !value)}
-                      testID={`${testIDPrefix}-hero-search-btn`}
-                    >
-                      <Ionicons
-                        name="search-outline"
-                        size={18}
-                        color={colors.primary}
-                      />
-                    </TouchableOpacity>
-                  ) : null}
-                  {!showHeroSearch && !showHeroComposerActions && canCompose ? (
-                    <TouchableOpacity
-                      style={styles.heroAction}
-                      onPress={() => {
-                        setComposerType("POST");
-                        setComposerOpen(true);
-                      }}
-                      testID={`${testIDPrefix}-open-composer`}
-                    >
-                      <Ionicons name="add" size={18} color={colors.white} />
-                    </TouchableOpacity>
-                  ) : null}
-                </View>
-              )}
-
-              {showHeroSearch && searchVisible ? (
-                <View style={styles.heroSearchWrap}>
-                  <TextInput
-                    style={styles.heroSearchInput}
-                    value={search}
-                    onChangeText={setSearch}
-                    placeholder={effectiveSearchPlaceholder}
-                    placeholderTextColor={colors.textSecondary}
-                    testID={`${testIDPrefix}-search-input`}
-                  />
-                  <TouchableOpacity
-                    style={styles.heroSearchClose}
-                    onPress={() => {
-                      setSearch("");
-                      setSearchVisible(false);
-                    }}
-                    testID={`${testIDPrefix}-search-close`}
-                  >
-                    <Ionicons
-                      name="close"
-                      size={18}
-                      color={colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                </View>
-              ) : null}
-
-              {showHeroComposerActions && !showCompactHeroControls ? (
-                <View style={styles.heroActionsRow}>
-                  <TouchableOpacity
-                    style={styles.heroPrimaryAction}
-                    onPress={() => {
-                      setComposerType("POST");
-                      setComposerOpen(true);
-                    }}
-                    testID={`${testIDPrefix}-open-composer-post`}
-                  >
-                    <Ionicons name="add" size={16} color={colors.warmAccent} />
-                    <Text style={styles.heroPrimaryActionText}>
-                      {t("feed.composer.infoLabel")}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.heroPrimaryAction}
-                    onPress={() => {
-                      setComposerType("POLL");
-                      setComposerOpen(true);
-                    }}
-                    testID={`${testIDPrefix}-open-composer-poll`}
-                  >
-                    <Ionicons name="add" size={16} color={colors.warmAccent} />
-                    <Text style={styles.heroPrimaryActionText}>
-                      {t("feed.composer.pollLabel")}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : null}
-            </View>
-          ) : null}
-
-          <InfiniteScrollList
-            data={visiblePosts}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <FeedPostCard
-                post={item}
-                onToggleLike={handleToggleLike}
-                onAddComment={handleAddComment}
-                onVote={handleVote}
-                onDelete={item.canManage ? setDeleteCandidate : undefined}
+        <InfiniteScrollList
+          data={visiblePosts}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item, index }) => (
+            <FeedPostCard
+              post={item}
+              onToggleLike={handleToggleLike}
+              onAddComment={handleAddComment}
+              onVote={handleVote}
+              onDelete={item.canManage ? setDeleteCandidate : undefined}
+              onPress={() => setDetailIndex(index)}
+            />
+          )}
+          refreshing={isRefreshing}
+          onRefresh={() => {
+            void load("refresh");
+          }}
+          emptyComponent={
+            <View style={styles.empty}>
+              <Ionicons
+                name="newspaper-outline"
+                size={46}
+                color={colors.warmBorder}
               />
-            )}
-            refreshing={isRefreshing}
-            onRefresh={() => {
-              void load("refresh");
-            }}
-            emptyComponent={
-              <View style={styles.empty}>
-                <Ionicons
-                  name="newspaper-outline"
-                  size={46}
-                  color={colors.warmBorder}
-                />
-                <Text style={styles.emptyTitle}>
-                  {search ? t("feed.empty.noResultsTitle") : emptyTitle}
-                </Text>
-                <Text style={styles.emptySub}>
-                  {search ? t("feed.empty.noResultsMessage") : emptyMessage}
-                </Text>
-              </View>
+              <Text style={styles.emptyTitle}>
+                {search ? t("feed.empty.noResultsTitle") : emptyTitle}
+              </Text>
+              <Text style={styles.emptySub}>
+                {search ? t("feed.empty.noResultsMessage") : emptyMessage}
+              </Text>
+            </View>
+          }
+          hasMore={
+            filter === "mine" ? false : meta ? posts.length < meta.total : false
+          }
+          isLoadingMore={isLoadingMore}
+          onLoadMore={() => {
+            if (
+              filter === "mine" ||
+              !meta ||
+              posts.length >= meta.total ||
+              isLoadingMore
+            ) {
+              return;
             }
-            hasMore={
-              filter === "mine"
-                ? false
-                : meta
-                  ? posts.length < meta.total
-                  : false
-            }
-            isLoadingMore={isLoadingMore}
-            onLoadMore={() => {
-              if (
-                filter === "mine" ||
-                !meta ||
-                posts.length >= meta.total ||
-                isLoadingMore
-              ) {
-                return;
-              }
-              void load("more");
-            }}
-            endOfListLabel={endOfListLabel}
-            contentContainerStyle={
-              visiblePosts.length === 0
-                ? [styles.emptyContainer, { paddingBottom: listBottomPadding }]
-                : [styles.listContent, { paddingBottom: listBottomPadding }]
-            }
-            testID={listTestID}
-          />
-        </>
+            void load("more");
+          }}
+          endOfListLabel={endOfListLabel}
+          contentContainerStyle={
+            visiblePosts.length === 0
+              ? [styles.emptyContainer, { paddingBottom: listBottomPadding }]
+              : [styles.listContent, { paddingBottom: listBottomPadding }]
+          }
+          onViewableItemsChanged={onViewableItemsChanged.current}
+          viewabilityConfig={viewabilityConfig.current}
+          testID={listTestID}
+        />
       )}
 
-      {!composerOpen ? (
-        <View
-          style={[
-            styles.bottomFilterBar,
-            { paddingBottom: Math.max(insets.bottom, 10) },
-          ]}
-          testID={`${testIDPrefix}-filter-bottom-bar`}
-        >
-          {FILTERS.map((entry) => (
-            <TouchableOpacity
-              key={entry.key}
-              style={[
-                styles.bottomFilterItem,
-                filter === entry.key && styles.bottomFilterItemActive,
-              ]}
-              onPress={() => setFilter(entry.key)}
-              testID={`${testIDPrefix}-filter-${entry.key}`}
-            >
-              <Ionicons
-                name={entry.icon}
-                size={18}
-                color={
-                  filter === entry.key ? colors.primary : colors.textSecondary
-                }
-              />
-              <Text
-                style={[
-                  styles.bottomFilterLabel,
-                  filter === entry.key && styles.bottomFilterLabelActive,
-                ]}
-              >
-                {entry.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ) : null}
-
-      {!composerOpen && canCompose && !showHeroComposerActions ? (
+      {!composerOpen && detailIndex === null && canCompose ? (
         <TouchableOpacity
           style={[styles.fab, { bottom: listBottomPadding - 4 }]}
           onPress={() => setComposerOpen(true)}
@@ -814,124 +686,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.notification,
   },
-  heroCard: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(12,95,168,0.2)",
-    backgroundColor: "rgba(12,95,168,0.1)",
-    padding: 18,
-    gap: 12,
-  },
-  heroTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  heroIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#D7E7F5",
-  },
-  heroCopy: {
+  composerScroll: {
     flex: 1,
-    gap: 4,
-  },
-  heroTopSpacer: {
-    flex: 1,
-  },
-  heroControlsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  heroTitle: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  heroSub: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  heroAction: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroActionIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(12,95,168,0.2)",
-    backgroundColor: colors.background,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroSearchWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  heroSearchInput: {
-    flex: 1,
-    minHeight: 44,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    backgroundColor: colors.background,
-    paddingHorizontal: 14,
-    color: colors.textPrimary,
-  },
-  heroSearchClose: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: colors.warmSurface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroActionsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  heroPrimaryAction: {
-    flex: 1,
-    minHeight: 42,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    backgroundColor: colors.warmSurface,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingHorizontal: 10,
-  },
-  heroPrimaryActionText: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: "800",
   },
   composerWrap: {
     paddingHorizontal: 16,
     paddingTop: 16,
-  },
-  composerScroll: {
-    flex: 1,
-  },
-  composerScrollContent: {
-    paddingTop: 8,
+    gap: 0,
   },
   listContent: {
     paddingHorizontal: 16,
@@ -982,47 +743,42 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
   },
-  bottomFilterBar: {
-    position: "absolute",
-    left: 12,
-    right: 12,
-    bottom: 0,
+  pagerRoot: {
+    flex: 1,
+  },
+  pagerNav: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 8,
-    paddingTop: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    borderColor: colors.warmBorder,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.warmBorder,
   },
-  bottomFilterItem: {
-    flex: 1,
+  pagerBackBtn: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-    minHeight: 52,
-    paddingHorizontal: 8,
-    borderRadius: 16,
+    gap: 6,
+    paddingVertical: 4,
+    paddingRight: 8,
   },
-  bottomFilterItemActive: {
-    backgroundColor: "#D7E7F5",
-  },
-  bottomFilterLabel: {
-    color: colors.textSecondary,
-    fontSize: 12,
+  pagerBackText: {
+    fontSize: 13,
     fontWeight: "700",
-  },
-  bottomFilterLabelActive: {
     color: colors.primary,
+  },
+  pagerCount: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
+  pagerPage: {
+    width: SCREEN_WIDTH,
+    flex: 1,
+  },
+  pagerScrollContent: {
+    padding: 16,
+    gap: 12,
   },
 });

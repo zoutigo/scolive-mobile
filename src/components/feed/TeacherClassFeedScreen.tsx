@@ -140,8 +140,6 @@ export function TeacherClassFeedScreen({
       emptyMessage={t("feed.classLife.emptyMessageTeacher")}
       deleteSuccessMessage={t("feed.classLife.deleteSuccess")}
       deleteContextLabel={t("feed.classLife.context")}
-      heroSearchEnabled
-      heroComposerActionsEnabled
       canCompose
       onCreatePost={handleCreatePost}
       onUploadInlineImage={handleUploadInlineImage}
