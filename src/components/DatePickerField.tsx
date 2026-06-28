@@ -184,8 +184,8 @@ export function DatePickerField({
             </View>
 
             <View style={styles.weekdayRow}>
-              {WEEKDAY_LABELS.map((label) => (
-                <Text key={label} style={styles.weekdayText}>
+              {WEEKDAY_LABELS.map((label, index) => (
+                <Text key={index} style={styles.weekdayText}>
                   {label}
                 </Text>
               ))}
