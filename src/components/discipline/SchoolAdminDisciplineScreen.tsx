@@ -818,9 +818,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  headerWrap: {
-    paddingHorizontal: 16,
-  },
+  headerWrap: {},
   body: {
     flex: 1,
   },

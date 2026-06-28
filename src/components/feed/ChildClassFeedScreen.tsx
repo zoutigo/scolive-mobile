@@ -172,7 +172,5 @@ export function ChildClassFeedScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerWrap: {
-    paddingHorizontal: 16,
-  },
+  headerWrap: {},
 });

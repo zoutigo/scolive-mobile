@@ -1,15 +1,22 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Animated,
+  Modal,
   Platform,
   StatusBar,
   StyleSheet,
   Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
 import { HeaderBackButton } from "./HeaderBackButton";
 import { useHeaderScroll, HEADER_HIDE_DISTANCE } from "./header-scroll-context";
+import { useAuthStore } from "../../store/auth.store";
+import { ConfirmDialog } from "../ConfirmDialog";
+import { useTranslation } from "../../i18n/useTranslation";
 
 interface ModuleHeaderProps {
   title: string;
@@ -40,68 +47,132 @@ export function ModuleHeader({
   titleUppercase = true,
 }: ModuleHeaderProps) {
   const { translateY } = useHeaderScroll();
+  const { logout } = useAuthStore();
+  const { t } = useTranslation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false);
+
   const androidStatusInset =
     Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0;
   const resolvedTopInset = Math.max(topInset, androidStatusInset);
 
   return (
-    <Animated.View
-      style={{
-        transform: [
-          {
-            translateY: translateY.interpolate({
-              inputRange: [0, HEADER_HIDE_DISTANCE],
-              outputRange: [0, -HEADER_HIDE_DISTANCE],
-              extrapolate: "clamp",
-            }),
-          },
-        ],
-      }}
-    >
-      <View
-        style={[
-          styles.headerCard,
-          { paddingTop: resolvedTopInset + 10, backgroundColor },
-        ]}
-        testID={testID}
+    <>
+      <Animated.View
+        style={{
+          transform: [
+            {
+              translateY: translateY.interpolate({
+                inputRange: [0, HEADER_HIDE_DISTANCE],
+                outputRange: [0, -HEADER_HIDE_DISTANCE],
+                extrapolate: "clamp",
+              }),
+            },
+          ],
+        }}
       >
-        {/* Blobs décoratifs */}
-        <View style={styles.blobTopRight} pointerEvents="none" />
-        <View style={styles.blobBottomLeft} pointerEvents="none" />
-        <View style={styles.blobMid} pointerEvents="none" />
+        <View
+          style={[
+            styles.headerCard,
+            { paddingTop: resolvedTopInset + 10, backgroundColor },
+          ]}
+          testID={testID}
+        >
+          {/* Blobs décoratifs */}
+          <View style={styles.blobTopRight} pointerEvents="none" />
+          <View style={styles.blobBottomLeft} pointerEvents="none" />
+          <View style={styles.blobMid} pointerEvents="none" />
 
-        <HeaderBackButton onPress={onBack} testID={backTestID} />
-        <View style={styles.headerText}>
-          <Text
-            style={[styles.title, !titleUppercase && styles.titleNormalCase]}
-            numberOfLines={1}
-            testID={titleTestID}
-          >
-            {title}
-            {titleHighlight ? (
-              <Text style={styles.titleHighlight}>{titleHighlight}</Text>
-            ) : null}
-          </Text>
-          {subtitle ? (
+          <HeaderBackButton onPress={onBack} testID={backTestID} />
+          <View style={styles.headerText}>
             <Text
-              style={styles.subtitle}
+              style={[styles.title, !titleUppercase && styles.titleNormalCase]}
               numberOfLines={1}
-              testID={subtitleTestID}
+              testID={titleTestID}
             >
-              {subtitle}
+              {title}
+              {titleHighlight ? (
+                <Text style={styles.titleHighlight}>{titleHighlight}</Text>
+              ) : null}
             </Text>
-          ) : null}
+            {subtitle ? (
+              <Text
+                style={styles.subtitle}
+                numberOfLines={1}
+                testID={subtitleTestID}
+              >
+                {subtitle}
+              </Text>
+            ) : null}
+          </View>
+
+          <TouchableOpacity
+            onPress={() => setMenuOpen(true)}
+            style={styles.kebabBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel="Menu"
+            accessibilityRole="button"
+            testID="module-header-menu"
+          >
+            <Ionicons name="ellipsis-vertical" size={20} color={colors.white} />
+          </TouchableOpacity>
         </View>
-        <View style={styles.rightSpacer} />
-      </View>
-    </Animated.View>
+      </Animated.View>
+
+      {/* Dropdown menu — Modal transparent pour fermeture au tap extérieur */}
+      <Modal
+        transparent
+        visible={menuOpen}
+        animationType="fade"
+        onRequestClose={() => setMenuOpen(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setMenuOpen(false)}>
+          <View style={styles.menuBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={styles.menuPanel}>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => {
+                    setMenuOpen(false);
+                    setConfirmLogoutVisible(true);
+                  }}
+                >
+                  <Ionicons
+                    name="log-out-outline"
+                    size={18}
+                    color={colors.notification}
+                  />
+                  <Text style={styles.menuItemLogout}>
+                    {t("header.home.logoutAction")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      <ConfirmDialog
+        visible={confirmLogoutVisible}
+        variant="danger"
+        icon="log-out-outline"
+        title={t("header.home.logoutConfirmTitle")}
+        message={t("header.home.logoutConfirmMessage")}
+        confirmLabel={t("header.home.logoutConfirmConfirm")}
+        cancelLabel={t("header.home.logoutConfirmCancel")}
+        onConfirm={() => {
+          setConfirmLogoutVisible(false);
+          logout();
+        }}
+        onCancel={() => setConfirmLogoutVisible(false)}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   headerCard: {
-    marginHorizontal: -16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 10,
     marginBottom: 0,
     flexDirection: "row",
@@ -139,9 +210,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     opacity: 0.05,
   },
-  rightSpacer: {
+  kebabBtn: {
     width: 38,
     height: 38,
+    borderRadius: 12,
+    backgroundColor: "rgba(216,155,91,0.12)",
+    borderWidth: 1.5,
+    borderColor: "rgba(216,155,91,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerText: {
     flex: 1,
@@ -168,5 +245,37 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 15,
     textAlign: "center",
+  },
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.18)",
+  },
+  menuPanel: {
+    position: "absolute",
+    top: 72,
+    right: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    paddingVertical: 6,
+    minWidth: 180,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  menuItemLogout: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.notification,
   },
 });

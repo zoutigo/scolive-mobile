@@ -91,7 +91,10 @@ export const accountRecoverySchema = z
   .object({
     birthDate: z
       .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, "Veuillez sélectionner une date de naissance."),
+      .regex(
+        /^\d{4}-\d{2}-\d{2}$/,
+        "Veuillez sélectionner une date de naissance.",
+      ),
     selectedQuestions: z
       .array(z.string())
       .length(3, "Choisissez exactement 3 questions.")

@@ -145,7 +145,6 @@ function extractAvailableRoles(
   return Array.from(roles);
 }
 
-
 function fieldErr(
   fieldState: {
     error?: { message?: string };
@@ -1209,7 +1208,6 @@ function RecoveryForm({
 }) {
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
-
 
   const isParent =
     recoveryOptions.schoolRoles.includes("PARENT") ??
