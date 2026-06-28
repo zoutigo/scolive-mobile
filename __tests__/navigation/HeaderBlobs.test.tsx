@@ -70,6 +70,7 @@ beforeEach(() => {
   mockUseAuthStore.mockReturnValue({
     user: teacher,
     schoolSlug: "college-vogt",
+    logout: jest.fn(),
   } as ReturnType<typeof useAuthStore>);
 });
 
@@ -184,9 +185,9 @@ describe("ModuleHeader — contenu fonctionnel non affecté par les blobs", () =
     expect(screen.getByTestId("module-header-subtitle")).toBeTruthy();
   });
 
-  it("n'a plus de bouton menu (déplacé vers la bottom tab bar)", () => {
+  it("affiche le bouton kebab menu à droite", () => {
     render(<ModuleHeader title="Notes" onBack={jest.fn()} />);
-    expect(screen.queryByTestId("module-header-right")).toBeNull();
+    expect(screen.getByTestId("module-header-menu")).toBeTruthy();
   });
 });
 

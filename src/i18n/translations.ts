@@ -1545,6 +1545,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.page.heroTitle": "Partager une annonce utile",
     "feed.page.heroSubtitle":
       "Informations d'école, rappels, sondages et vie quotidienne.",
+    "feed.detail.headerTitle": "Publication",
+    "feed.detail.backToList": "Retour à la liste",
+    "feed.composer.titleLabel": "Titre",
+    "feed.composer.contentLabel": "Contenu",
     "feed.comments.summaryNone": "Soyez le premier à réagir",
     "feed.comments.summaryOne": "1 commentaire",
     "feed.comments.summaryMany": "{count} commentaires",
@@ -3435,6 +3439,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.page.heroTitle": "Share a useful announcement",
     "feed.page.heroSubtitle":
       "School information, reminders, polls and everyday life.",
+    "feed.detail.headerTitle": "Post",
+    "feed.detail.backToList": "Back to list",
+    "feed.composer.titleLabel": "Title",
+    "feed.composer.contentLabel": "Content",
     "feed.comments.summaryNone": "Be the first to react",
     "feed.comments.summaryOne": "1 comment",
     "feed.comments.summaryMany": "{count} comments",

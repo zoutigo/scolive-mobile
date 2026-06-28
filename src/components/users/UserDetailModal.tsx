@@ -1591,9 +1591,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  headerWrap: {
-    paddingHorizontal: 16,
-  },
+  headerWrap: {},
 
   // Profile card
   profileCard: {

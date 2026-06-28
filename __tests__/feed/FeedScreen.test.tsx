@@ -199,21 +199,25 @@ describe("FeedScreen", () => {
     );
   });
 
-  it("affiche les filtres dans une barre basse avec 'Tout' actif par défaut", async () => {
+  it("affiche les filtres dans des onglets en haut avec 'Tout' actif par défaut", async () => {
     await renderFeedScreen();
 
-    expect(screen.getByTestId("feed-filter-all")).toBeTruthy();
-    expect(screen.getByTestId("feed-filter-featured")).toBeTruthy();
-    expect(screen.getByTestId("feed-filter-polls")).toBeTruthy();
-    expect(screen.getByTestId("feed-filter-all")).toHaveStyle({
-      flex: 1,
+    expect(screen.getByTestId("feed-filter-tab-all")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-tab-featured")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-tab-polls")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-tab-mine")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-tab-all")).toHaveStyle({
+      borderBottomColor: "#08467D",
+    });
+    expect(screen.getByTestId("feed-filter-tab-featured")).toHaveStyle({
+      borderBottomColor: "transparent",
     });
   });
 
-  it("ouvre le composeur depuis le CTA", async () => {
+  it("ouvre le composeur depuis le FAB", async () => {
     await renderFeedScreen();
 
-    fireEvent.press(screen.getByTestId("feed-open-composer"));
+    fireEvent.press(screen.getByTestId("feed-compose-fab"));
 
     expect(screen.getByTestId("feed-composer-card")).toBeTruthy();
   });
@@ -221,7 +225,7 @@ describe("FeedScreen", () => {
   it("change le filtre du feed", async () => {
     await renderFeedScreen();
 
-    fireEvent.press(screen.getByTestId("feed-filter-featured"));
+    fireEvent.press(screen.getByTestId("feed-filter-tab-featured"));
 
     await waitFor(() => {
       expect(api.list).toHaveBeenLastCalledWith(

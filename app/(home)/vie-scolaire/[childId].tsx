@@ -269,7 +269,7 @@ function SyntheseTab({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  headerWrap: { paddingHorizontal: 16 },
+  headerWrap: {},
 
   tabs: {
     flexDirection: "row",

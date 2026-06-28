@@ -26,6 +26,7 @@ import { ModuleHeader } from "../navigation/ModuleHeader";
 import { AppShell } from "../navigation/AppShell";
 import { useHeaderScroll } from "../navigation/header-scroll-context";
 import { SecureTextField } from "../SecureTextField";
+import { DatePickerField } from "../DatePickerField";
 import { colors } from "../../theme";
 import {
   EmptyState,
@@ -44,9 +45,7 @@ import {
   accountCreatePasswordSchema,
   accountPersonalProfileSchema,
   accountRecoverySchema,
-  formatDateInput,
   normalizePhoneInput,
-  parseDateToISO,
   toLocalPhoneDisplay,
 } from "./account.schemas";
 import type {
@@ -144,12 +143,6 @@ function extractAvailableRoles(
   if (profile.role) roles.add(profile.role);
   if (profile.activeRole) roles.add(profile.activeRole);
   return Array.from(roles);
-}
-
-function formatBirthDate(value: string) {
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return "";
-  return `${match[3]}/${match[2]}/${match[1]}`;
 }
 
 function fieldErr(
@@ -1215,7 +1208,6 @@ function RecoveryForm({
 }) {
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
-  const birthDateRef = useRef<TextInput>(null);
 
   const isParent =
     recoveryOptions.schoolRoles.includes("PARENT") ??
@@ -1231,7 +1223,7 @@ function RecoveryForm({
       reValidateMode: "onChange",
       resolver: zodResolver(accountRecoverySchema),
       defaultValues: {
-        birthDate: formatBirthDate(recoveryOptions.birthDate ?? ""),
+        birthDate: recoveryOptions.birthDate ?? "",
         selectedQuestions: initialQuestions,
         answers: initialAnswers,
         isParent,
@@ -1259,11 +1251,9 @@ function RecoveryForm({
   const questionOptions = recoveryOptions.questions ?? [];
 
   async function onValid(data: RecoveryValues) {
-    const birthDate = parseDateToISO(data.birthDate);
-    if (!birthDate) return;
     try {
       await accountApi.updateRecovery({
-        birthDate,
+        birthDate: data.birthDate,
         answers: data.selectedQuestions.map((questionKey) => ({
           questionKey,
           answer: data.answers[questionKey]?.trim() ?? "",
@@ -1291,33 +1281,33 @@ function RecoveryForm({
     }
   }
 
-  function onInvalid() {
-    birthDateRef.current?.focus();
-  }
+  function onInvalid() {}
 
   return (
     <View style={styles.formStack}>
-      <Controller
-        control={control}
-        name="birthDate"
-        render={({ field, fieldState }) => {
-          const err = fieldErr(fieldState, submitCount);
-          return (
-            <>
-              <TextField
-                ref={birthDateRef}
-                label="Date de naissance"
-                value={field.value}
-                onChangeText={(value) => field.onChange(formatDateInput(value))}
-                placeholder="JJ/MM/AAAA"
-                hasError={!!err}
-                testID="account-birth-date-input"
-              />
-              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
-            </>
-          );
-        }}
-      />
+      <View style={styles.fieldBlock}>
+        <Text style={styles.fieldLabel}>Date de naissance</Text>
+        <Controller
+          control={control}
+          name="birthDate"
+          render={({ field, fieldState }) => {
+            const err = fieldErr(fieldState, submitCount);
+            return (
+              <>
+                <DatePickerField
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  title="Date de naissance"
+                  hasError={!!err}
+                  testID="account-birth-date-input"
+                />
+                {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+              </>
+            );
+          }}
+        />
+      </View>
 
       {[0, 1, 2].map((index) => {
         const selected = selectedQuestions[index] ?? "";

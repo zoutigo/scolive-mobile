@@ -278,7 +278,7 @@ function MessagesScreenContent() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  headerWrap: { paddingHorizontal: 16 },
+  headerWrap: {},
   searchEntryRow: {
     paddingHorizontal: 16,
     paddingTop: 8,

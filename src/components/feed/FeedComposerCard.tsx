@@ -129,15 +129,12 @@ export function FeedComposerCard({
   const [selectedAudienceScope, setSelectedAudienceScope] =
     useState<FeedAudienceScope>(audienceOptions[0]?.scope ?? "SCHOOL_ALL");
 
-  // typeRef lets the stable schema closure read the current type at validation time
   const typeRef = useRef<FeedPostType>(type);
   typeRef.current = type;
 
-  // tRef lets the stable schema closure read the current translation at validation time
   const tRef = useRef<TranslateFn>(t);
   tRef.current = t;
 
-  // Schema initialized once via ref; superRefine reads typeRef.current/tRef.current at each call
   const schemaRef = useRef(
     z
       .object({
@@ -350,289 +347,349 @@ export function FeedComposerCard({
 
   return (
     <View style={styles.card} testID="feed-composer-card">
-      <View style={styles.topRow}>
-        <View>
-          <Text style={styles.eyebrow}>{t("feed.composer.eyebrow")}</Text>
-          <Text style={styles.heading}>{t("feed.composer.heading")}</Text>
+      {/* ── Header band ── */}
+      <View style={styles.cardHeader}>
+        <View style={styles.cardHeaderIcon}>
+          <Ionicons name="create-outline" size={20} color={colors.white} />
+        </View>
+        <View style={styles.cardHeaderText}>
+          <Text style={styles.cardHeaderEyebrow} testID="feed-composer-eyebrow">
+            {type === "POLL"
+              ? t("feed.composer.modePoll")
+              : t("feed.composer.modePost")}
+          </Text>
+          <Text style={styles.cardHeaderTitle}>
+            {t("feed.composer.heading")}
+          </Text>
         </View>
         {onCancel ? (
-          <TouchableOpacity onPress={onCancel} testID="feed-composer-close">
-            <Ionicons name="close" size={20} color={colors.textSecondary} />
+          <TouchableOpacity
+            style={styles.cardHeaderClose}
+            onPress={onCancel}
+            testID="feed-composer-close"
+          >
+            <Ionicons name="close" size={18} color="rgba(255,255,255,0.75)" />
           </TouchableOpacity>
         ) : null}
       </View>
 
-      <View style={styles.modeRow}>
-        {(["POST", "POLL"] as const).map((value) => (
-          <TouchableOpacity
-            key={value}
-            style={[styles.modeChip, type === value && styles.modeChipActive]}
-            onPress={() => setType(value)}
-            testID={`feed-composer-type-${value.toLowerCase()}`}
-          >
-            <Text
-              style={[
-                styles.modeChipText,
-                type === value && styles.modeChipTextActive,
-              ]}
+      {/* ── Body ── */}
+      <View style={styles.cardBody}>
+        {/* Mode selector */}
+        <View style={styles.modeRow}>
+          {(["POST", "POLL"] as const).map((value) => (
+            <TouchableOpacity
+              key={value}
+              style={[styles.modeChip, type === value && styles.modeChipActive]}
+              onPress={() => setType(value)}
+              testID={`feed-composer-type-${value.toLowerCase()}`}
             >
-              {value === "POST"
-                ? t("feed.composer.modePost")
-                : t("feed.composer.modePoll")}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <Controller
-        control={control}
-        name="title"
-        render={({ field, fieldState }) => {
-          const err = showFieldErr(fieldState);
-          return (
-            <>
-              <TextInput
-                ref={titleRef}
-                style={[styles.titleInput, err ? styles.inputError : null]}
-                value={field.value}
-                onChangeText={field.onChange}
-                placeholder={t("feed.composer.titlePlaceholder")}
-                placeholderTextColor={colors.textSecondary}
-                testID="feed-composer-title"
+              <Ionicons
+                name={
+                  value === "POST" ? "newspaper-outline" : "stats-chart-outline"
+                }
+                size={14}
+                color={type === value ? colors.white : colors.primary}
               />
-              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
-            </>
-          );
-        }}
-      />
+              <Text
+                style={[
+                  styles.modeChipText,
+                  type === value && styles.modeChipTextActive,
+                ]}
+              >
+                {value === "POST"
+                  ? t("feed.composer.modePost")
+                  : t("feed.composer.modePoll")}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      <View style={styles.editorShell}>
-        <RichTextToolbar
-          editorRef={editorRef}
-          onPressAddImage={() => {
-            void insertInlineImageFromGallery();
-          }}
-          onPressColor={openTextColorMenu}
-          onPressHeading={applyHeading}
-          onPressQuote={applyQuote}
-        />
-        <RichEditor
-          ref={editorRef}
-          style={styles.editor}
-          initialHeight={Platform.OS === "ios" ? 180 : 200}
-          placeholder={t("feed.composer.editorPlaceholder")}
-          editorStyle={{
-            backgroundColor: colors.surface,
-            color: colors.textPrimary,
-            placeholderColor: colors.textSecondary,
-            contentCSSText:
-              "font-size: 15px; line-height: 1.6; color: #1F2933; padding: 12px 0;",
-          }}
-          onChange={(html) => {
-            setBodyHtml(html);
-            if (bodyError) setBodyError(null);
-          }}
-          testID="feed-rich-editor"
-        />
-      </View>
-      {bodyError ? (
-        <Text style={styles.fieldError} testID="feed-composer-body-error">
-          {bodyError}
-        </Text>
-      ) : null}
-
-      {type === "POLL" ? (
-        <View style={styles.pollCard}>
+        {/* Title */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>{t("feed.composer.titleLabel")}</Text>
           <Controller
             control={control}
-            name="pollQuestion"
+            name="title"
             render={({ field, fieldState }) => {
               const err = showFieldErr(fieldState);
               return (
                 <>
                   <TextInput
-                    ref={pollQuestionRef}
-                    style={[styles.titleInput, err ? styles.inputError : null]}
+                    ref={titleRef}
+                    style={[
+                      styles.fieldInput,
+                      err ? styles.fieldInputError : null,
+                    ]}
                     value={field.value}
                     onChangeText={field.onChange}
-                    placeholder={t("feed.composer.pollQuestionPlaceholder")}
+                    placeholder={t("feed.composer.titlePlaceholder")}
                     placeholderTextColor={colors.textSecondary}
-                    testID="feed-composer-poll-question"
+                    testID="feed-composer-title"
                   />
                   {err ? <Text style={styles.fieldError}>{err}</Text> : null}
                 </>
               );
             }}
           />
-          {fields.map((fieldItem, index) => (
-            <Controller
-              key={fieldItem.id}
-              control={control}
-              name={`pollOptions.${index}.value`}
-              render={({ field }) => (
-                <TextInput
-                  style={styles.titleInput}
-                  value={field.value}
-                  onChangeText={field.onChange}
-                  placeholder={t("feed.composer.pollOptionPlaceholder").replace(
-                    "{number}",
-                    String(index + 1),
-                  )}
-                  placeholderTextColor={colors.textSecondary}
-                  testID={`feed-composer-poll-option-${index + 1}`}
-                />
-              )}
+        </View>
+
+        {/* Content */}
+        <View style={styles.fieldGroup}>
+          <View style={styles.fieldLabelRow}>
+            <Text style={styles.fieldLabel}>
+              {t("feed.composer.contentLabel")}
+            </Text>
+            <RichTextToolbar
+              editorRef={editorRef}
+              onPressAddImage={() => {
+                void insertInlineImageFromGallery();
+              }}
+              onPressColor={openTextColorMenu}
+              onPressHeading={applyHeading}
+              onPressQuote={applyQuote}
             />
-          ))}
-          {fields.length < 5 ? (
+          </View>
+          <View style={styles.editorArea}>
+            <RichEditor
+              ref={editorRef}
+              style={styles.editor}
+              initialHeight={Platform.OS === "ios" ? 180 : 200}
+              placeholder={t("feed.composer.editorPlaceholder")}
+              editorStyle={{
+                backgroundColor: colors.surface,
+                color: colors.textPrimary,
+                placeholderColor: colors.textSecondary,
+                contentCSSText:
+                  "font-size: 15px; line-height: 1.6; color: #1F2933; padding: 12px 0;",
+              }}
+              onChange={(html) => {
+                setBodyHtml(html);
+                if (bodyError) setBodyError(null);
+              }}
+              testID="feed-rich-editor"
+            />
+          </View>
+          {bodyError ? (
+            <Text style={styles.fieldError} testID="feed-composer-body-error">
+              {bodyError}
+            </Text>
+          ) : null}
+        </View>
+
+        {/* Poll fields */}
+        {type === "POLL" ? (
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>
+              {t("feed.composer.pollLabel")}
+            </Text>
+            <Controller
+              control={control}
+              name="pollQuestion"
+              render={({ field, fieldState }) => {
+                const err = showFieldErr(fieldState);
+                return (
+                  <>
+                    <TextInput
+                      ref={pollQuestionRef}
+                      style={[
+                        styles.fieldInput,
+                        err ? styles.fieldInputError : null,
+                      ]}
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      placeholder={t("feed.composer.pollQuestionPlaceholder")}
+                      placeholderTextColor={colors.textSecondary}
+                      testID="feed-composer-poll-question"
+                    />
+                    {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+                  </>
+                );
+              }}
+            />
+            {fields.map((fieldItem, index) => (
+              <Controller
+                key={fieldItem.id}
+                control={control}
+                name={`pollOptions.${index}.value`}
+                render={({ field }) => (
+                  <TextInput
+                    style={styles.fieldInput}
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    placeholder={t(
+                      "feed.composer.pollOptionPlaceholder",
+                    ).replace("{number}", String(index + 1))}
+                    placeholderTextColor={colors.textSecondary}
+                    testID={`feed-composer-poll-option-${index + 1}`}
+                  />
+                )}
+              />
+            ))}
+            {fields.length < 5 ? (
+              <TouchableOpacity
+                style={styles.secondaryAction}
+                onPress={() => append({ value: "" })}
+                testID="feed-composer-add-poll-option"
+              >
+                <Ionicons name="add" size={16} color={colors.primary} />
+                <Text style={styles.secondaryActionText}>
+                  {t("feed.composer.addOption")}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* Audience + featured */}
+        <View style={styles.metaSection}>
+          <View style={styles.metaRow}>
+            {audienceOptions.map((option) => (
+              <TouchableOpacity
+                key={option.scope}
+                style={[
+                  styles.pill,
+                  selectedAudienceScope === option.scope && styles.pillActive,
+                ]}
+                onPress={() => setSelectedAudienceScope(option.scope)}
+                testID={`feed-audience-${option.scope.toLowerCase()}`}
+              >
+                <Text
+                  style={[
+                    styles.pillText,
+                    selectedAudienceScope === option.scope &&
+                      styles.pillTextActive,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {isStaffRole(viewerRole) ? (
+            <View style={styles.metaRow}>
+              {[
+                { label: t("feed.composer.featuredStandard"), value: "0" },
+                { label: t("feed.composer.featured3Days"), value: "3" },
+                { label: t("feed.composer.featured7Days"), value: "7" },
+              ].map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.pill,
+                    featuredDays === option.value && styles.pillActive,
+                  ]}
+                  onPress={() => setFeaturedDays(option.value)}
+                  testID={`feed-featured-${option.value}`}
+                >
+                  <Text
+                    style={[
+                      styles.pillText,
+                      featuredDays === option.value && styles.pillTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
+        </View>
+
+        {/* Attachments */}
+        <View style={styles.attachmentsSection}>
+          <View style={styles.attachmentsHeader}>
+            <Ionicons
+              name="attach-outline"
+              size={15}
+              color={colors.textSecondary}
+            />
+            <Text style={styles.attachmentsSectionLabel}>
+              {t("feed.attachments.title")}
+            </Text>
             <TouchableOpacity
               style={styles.secondaryAction}
-              onPress={() => append({ value: "" })}
-              testID="feed-composer-add-poll-option"
+              onPress={() => {
+                void addAttachment();
+              }}
+              testID="feed-add-attachment"
             >
-              <Ionicons name="add" size={16} color={colors.primary} />
               <Text style={styles.secondaryActionText}>
-                {t("feed.composer.addOption")}
+                {t("feed.attachments.add")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {attachments.length > 0
+            ? attachments.map((attachment) => (
+                <View key={attachment.id} style={styles.attachmentRow}>
+                  <Ionicons
+                    name="document-outline"
+                    size={15}
+                    color={colors.primary}
+                  />
+                  <View style={styles.attachmentMeta}>
+                    <Text style={styles.attachmentName}>
+                      {attachment.fileName}
+                    </Text>
+                    <Text style={styles.attachmentSize}>
+                      {attachment.sizeLabel}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => removeAttachment(attachment.id)}
+                    testID={`feed-remove-attachment-${attachment.id}`}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  >
+                    <Ionicons
+                      name="close-circle"
+                      size={18}
+                      color={colors.notification}
+                    />
+                  </TouchableOpacity>
+                </View>
+              ))
+            : null}
+        </View>
+      </View>
+
+      {/* ── Footer actions ── */}
+      <View style={styles.cardFooter}>
+        <View style={styles.footerActions}>
+          {onCancel ? (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.actionBtnNeutral]}
+              onPress={onCancel}
+              testID="feed-composer-cancel"
+            >
+              <Text style={styles.actionBtnNeutralText}>
+                {t("feed.composer.cancel")}
               </Text>
             </TouchableOpacity>
           ) : null}
-        </View>
-      ) : null}
-
-      <View style={styles.audienceRow}>
-        {audienceOptions.map((option) => (
           <TouchableOpacity
-            key={option.scope}
             style={[
-              styles.audienceChip,
-              selectedAudienceScope === option.scope &&
-                styles.audienceChipActive,
+              styles.actionBtn,
+              styles.actionBtnPrimary,
+              isSubmitting && styles.actionBtnDisabled,
             ]}
-            onPress={() => setSelectedAudienceScope(option.scope)}
-            testID={`feed-audience-${option.scope.toLowerCase()}`}
-          >
-            <Text
-              style={[
-                styles.audienceChipText,
-                selectedAudienceScope === option.scope &&
-                  styles.audienceChipTextActive,
-              ]}
-            >
-              {option.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {isStaffRole(viewerRole) ? (
-        <View style={styles.featuredRow}>
-          {[
-            { label: t("feed.composer.featuredStandard"), value: "0" },
-            { label: t("feed.composer.featured3Days"), value: "3" },
-            { label: t("feed.composer.featured7Days"), value: "7" },
-          ].map((option) => (
-            <TouchableOpacity
-              key={option.value}
-              style={[
-                styles.audienceChip,
-                featuredDays === option.value && styles.audienceChipActive,
-              ]}
-              onPress={() => setFeaturedDays(option.value)}
-              testID={`feed-featured-${option.value}`}
-            >
-              <Text
-                style={[
-                  styles.audienceChipText,
-                  featuredDays === option.value &&
-                    styles.audienceChipTextActive,
-                ]}
-              >
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ) : null}
-
-      <View style={styles.attachmentsBox}>
-        <View style={styles.attachmentsHeader}>
-          <Text style={styles.attachmentsHeading}>
-            {t("feed.attachments.title")}
-          </Text>
-          <TouchableOpacity
-            style={styles.secondaryAction}
+            disabled={isSubmitting}
             onPress={() => {
-              void addAttachment();
+              void handleSubmit(onValid, onInvalid)();
             }}
-            testID="feed-add-attachment"
+            testID="feed-composer-submit"
           >
-            <Ionicons name="attach-outline" size={16} color={colors.primary} />
-            <Text style={styles.secondaryActionText}>
-              {t("feed.attachments.add")}
+            <Ionicons name="send-outline" size={15} color={colors.white} />
+            <Text style={styles.actionBtnPrimaryText}>
+              {isSubmitting
+                ? t("feed.composer.publishing")
+                : type === "POLL"
+                  ? t("feed.composer.publishPoll")
+                  : t("feed.composer.publish")}
             </Text>
           </TouchableOpacity>
         </View>
-
-        {attachments.length === 0 ? (
-          <Text style={styles.attachmentsEmpty}>
-            {t("feed.attachments.empty")}
-          </Text>
-        ) : (
-          attachments.map((attachment) => (
-            <View key={attachment.id} style={styles.attachmentRow}>
-              <View style={styles.attachmentMeta}>
-                <Text style={styles.attachmentName}>{attachment.fileName}</Text>
-                <Text style={styles.attachmentSize}>
-                  {attachment.sizeLabel}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => removeAttachment(attachment.id)}
-                testID={`feed-remove-attachment-${attachment.id}`}
-              >
-                <Ionicons
-                  name="close-circle"
-                  size={18}
-                  color={colors.notification}
-                />
-              </TouchableOpacity>
-            </View>
-          ))
-        )}
-      </View>
-
-      <View style={styles.bottomBar}>
-        {onCancel ? (
-          <TouchableOpacity
-            style={styles.bottomSecondary}
-            onPress={onCancel}
-            testID="feed-composer-cancel"
-          >
-            <Text style={styles.bottomSecondaryText}>
-              {t("feed.composer.cancel")}
-            </Text>
-          </TouchableOpacity>
-        ) : null}
-        <TouchableOpacity
-          style={[
-            styles.bottomPrimary,
-            isSubmitting && styles.bottomPrimaryDisabled,
-          ]}
-          disabled={isSubmitting}
-          onPress={() => {
-            void handleSubmit(onValid, onInvalid)();
-          }}
-          testID="feed-composer-submit"
-        >
-          <Ionicons name="send-outline" size={16} color={colors.white} />
-          <Text style={styles.bottomPrimaryText}>
-            {isSubmitting
-              ? t("feed.composer.publishing")
-              : type === "POLL"
-                ? t("feed.composer.publishPoll")
-                : t("feed.composer.publish")}
-          </Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -640,42 +697,70 @@ export function FeedComposerCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    padding: 18,
-    gap: 14,
+    overflow: "hidden",
+    backgroundColor: "#FFF8EE",
   },
-  topRow: {
+  // ── Header band ──
+  cardHeader: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
     flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
   },
-  eyebrow: {
-    color: colors.warmAccent,
-    fontSize: 12,
+  cardHeaderIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "rgba(243,179,77,0.28)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardHeaderText: {
+    flex: 1,
+  },
+  cardHeaderEyebrow: {
+    fontSize: 11,
     fontWeight: "800",
+    color: "rgba(255,244,227,0.8)",
     textTransform: "uppercase",
     letterSpacing: 0.7,
   },
-  heading: {
-    color: colors.textPrimary,
-    fontSize: 20,
+  cardHeaderTitle: {
+    fontSize: 16,
     fontWeight: "800",
-    marginTop: 4,
+    color: colors.white,
+  },
+  cardHeaderClose: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  // ── Body ──
+  cardBody: {
+    backgroundColor: "#FFF9F1",
+    padding: 18,
+    gap: 18,
   },
   modeRow: {
     flexDirection: "row",
-    gap: 10,
+    gap: 8,
   },
   modeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.warmBorder,
-    backgroundColor: colors.warmSurface,
+    borderColor: "#E0D0BA",
+    backgroundColor: colors.white,
   },
   modeChipActive: {
     backgroundColor: colors.primary,
@@ -684,160 +769,173 @@ const styles = StyleSheet.create({
   modeChipText: {
     color: colors.primary,
     fontWeight: "700",
+    fontSize: 13,
   },
   modeChipTextActive: {
     color: colors.white,
   },
-  titleInput: {
-    minHeight: 48,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    backgroundColor: colors.background,
-    paddingHorizontal: 14,
-    color: colors.textPrimary,
+  fieldGroup: {
+    gap: 8,
   },
-  inputError: {
-    borderColor: "#FCA5A5",
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#5F5A52",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  fieldLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  fieldInput: {
+    minHeight: 48,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0D0BA",
+    backgroundColor: "transparent",
+    paddingHorizontal: 0,
+    paddingVertical: 10,
+    color: colors.textPrimary,
+    fontSize: 15,
+  },
+  fieldInputError: {
+    borderBottomColor: "#FCA5A5",
   },
   fieldError: {
     fontSize: 12,
     color: colors.notification,
-    marginTop: -8,
   },
-  editorShell: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    backgroundColor: colors.background,
-    padding: 10,
-    gap: 10,
+  editorArea: {
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    overflow: "hidden",
   },
   editor: {
     minHeight: 190,
     backgroundColor: colors.surface,
-    borderRadius: 14,
-  },
-  pollCard: {
-    gap: 10,
   },
   secondaryAction: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    alignSelf: "flex-start",
   },
   secondaryActionText: {
     color: colors.primary,
     fontWeight: "700",
+    fontSize: 13,
   },
-  audienceRow: {
+  metaSection: {
+    gap: 10,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: "#EAD8BF",
+  },
+  metaRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
   },
-  featuredRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  audienceChip: {
+  pill: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 14,
-    backgroundColor: colors.warmSurface,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.warmBorder,
+    borderColor: "#E0D0BA",
   },
-  audienceChipActive: {
+  pillActive: {
     backgroundColor: "#D7E7F5",
     borderColor: colors.primary,
   },
-  audienceChipText: {
+  pillText: {
     color: colors.textSecondary,
     fontSize: 12,
+    fontWeight: "600",
+  },
+  pillTextActive: {
+    color: colors.primaryDark,
     fontWeight: "700",
   },
-  audienceChipTextActive: {
-    color: colors.primaryDark,
-  },
-  attachmentsBox: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    backgroundColor: colors.warmSurface,
-    padding: 12,
+  attachmentsSection: {
     gap: 10,
   },
   attachmentsHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
+    gap: 6,
   },
-  attachmentsHeading: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "800",
-  },
-  attachmentsEmpty: {
-    color: colors.textSecondary,
-    fontSize: 13,
+  attachmentsSectionLabel: {
+    flex: 1,
+    color: "#5F5A52",
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   attachmentRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EAD8BF",
   },
   attachmentMeta: {
     flex: 1,
-    gap: 2,
+    gap: 1,
   },
   attachmentName: {
     color: colors.textPrimary,
-    fontWeight: "700",
+    fontWeight: "600",
     fontSize: 13,
   },
   attachmentSize: {
     color: colors.textSecondary,
-    fontSize: 12,
+    fontSize: 11,
   },
-  bottomBar: {
+  // ── Footer ──
+  cardFooter: {
+    backgroundColor: "#F8ECDC",
+    borderTopWidth: 1,
+    borderTopColor: "#EAD8BF",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  footerActions: {
     flexDirection: "row",
-    justifyContent: "flex-end",
     gap: 10,
   },
-  bottomSecondary: {
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+  actionBtn: {
+    flex: 1,
+    minHeight: 48,
     borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    backgroundColor: colors.warmSurface,
-  },
-  bottomSecondaryText: {
-    color: colors.primary,
-    fontWeight: "700",
-  },
-  bottomPrimary: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-    borderRadius: 14,
+    paddingHorizontal: 10,
+  },
+  actionBtnNeutral: {
+    backgroundColor: colors.white,
+    borderWidth: 1.5,
+    borderColor: "#E8D8C2",
+  },
+  actionBtnPrimary: {
     backgroundColor: colors.primary,
   },
-  bottomPrimaryDisabled: {
-    backgroundColor: colors.textSecondary,
-    opacity: 0.6,
+  actionBtnDisabled: {
+    opacity: 0.7,
   },
-  bottomPrimaryText: {
+  actionBtnNeutralText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  actionBtnPrimaryText: {
     color: colors.white,
+    fontSize: 13,
     fontWeight: "800",
   },
 });

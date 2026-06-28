@@ -235,7 +235,7 @@ describe("ChildNotesScreen", () => {
     const subtitleStyle = StyleSheet.flatten(subtitle.props.style);
 
     expect(headerStyle.backgroundColor).toBe(colors.primary);
-    expect(headerStyle.marginHorizontal).toBe(-16);
+    expect(headerStyle.paddingHorizontal).toBe(20);
     expect(headerStyle.paddingVertical).toBe(10);
     expect(titleStyle.fontWeight).toBe("600");
     expect(titleStyle.fontSize).toBe(19);

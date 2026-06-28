@@ -20,6 +20,22 @@ jest.mock("@expo/vector-icons", () => ({
   },
 }));
 
+jest.mock("../../src/store/auth.store", () => ({
+  useAuthStore: jest.fn(),
+}));
+
+import { useAuthStore } from "../../src/store/auth.store";
+const mockUseAuthStore = useAuthStore as jest.MockedFunction<
+  typeof useAuthStore
+>;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  mockUseAuthStore.mockReturnValue({
+    logout: jest.fn(),
+  } as ReturnType<typeof useAuthStore>);
+});
+
 // ── HeaderBackButton — rendu ──────────────────────────────────────────────────
 
 describe("HeaderBackButton — rendu", () => {
@@ -317,15 +333,16 @@ describe("Intégration — ModuleHeader utilise les deux composants", () => {
     expect(flat.backgroundColor).toBe("rgba(255,255,255,0.14)");
   });
 
-  it("n'affiche plus de bouton menu (déplacé vers la bottom tab bar)", () => {
+  it("affiche le bouton kebab menu à droite", () => {
     render(<ModuleHeader title="Test" onBack={jest.fn()} />);
-    expect(screen.queryByTestId("module-header-right")).toBeNull();
+    expect(screen.getByTestId("module-header-menu")).toBeTruthy();
   });
 
-  it("le bouton retour fonctionne seul, sans bouton menu", () => {
+  it("le bouton retour et le kebab fonctionnent indépendamment", () => {
     const onBack = jest.fn();
     render(<ModuleHeader title="Test" onBack={onBack} backTestID="mh-back" />);
     fireEvent.press(screen.getByTestId("mh-back"));
     expect(onBack).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("module-header-menu")).toBeTruthy();
   });
 });

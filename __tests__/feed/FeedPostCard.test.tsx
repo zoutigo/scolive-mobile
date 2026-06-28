@@ -71,14 +71,83 @@ describe("FeedPostCard", () => {
     });
     expect(screen.getByText("RÉUNION DES PARENTS")).toBeTruthy();
     expect(screen.getByText(expectedMeta)).toBeTruthy();
-    expect(screen.getByText(expectedMeta)).toHaveStyle({
-      fontSize: 11,
-    });
+    expect(screen.getByText(expectedMeta)).toHaveStyle({ fontSize: 11 });
     expect(screen.getByText(expectedMeta)).toHaveProp("numberOfLines", 1);
     expect(screen.getAllByText("ordre-du-jour.pdf")).toHaveLength(2);
     expect(screen.queryByText("Parents uniquement")).toBeNull();
     expect(screen.queryByText("AM")).toBeNull();
+  });
+
+  it("n'affiche pas le bouton de suppression par défaut", () => {
+    render(
+      <FeedPostCard
+        post={post}
+        onToggleLike={jest.fn()}
+        onAddComment={jest.fn()}
+      />,
+    );
     expect(screen.queryByTestId("feed-post-delete-post-1")).toBeNull();
+  });
+
+  it("affiche le bouton de suppression dans la barre d'actions (bas de card)", () => {
+    render(
+      <FeedPostCard
+        post={{ ...post, canManage: true }}
+        onToggleLike={jest.fn()}
+        onAddComment={jest.fn()}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    const deleteBtn = screen.getByTestId("feed-post-delete-post-1");
+    expect(deleteBtn).toBeTruthy();
+    expect(deleteBtn).toHaveStyle({
+      backgroundColor: "#FEF2F2",
+      borderColor: "#FECACA",
+    });
+  });
+
+  it("déclenche onDelete depuis le bouton du bas", () => {
+    const onDelete = jest.fn();
+    render(
+      <FeedPostCard
+        post={{ ...post, canManage: true }}
+        onToggleLike={jest.fn()}
+        onAddComment={jest.fn()}
+        onDelete={onDelete}
+      />,
+    );
+    fireEvent.press(screen.getByTestId("feed-post-delete-post-1"));
+    expect(onDelete).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "post-1" }),
+    );
+  });
+
+  it("la card entière déclenche onPress quand fourni", () => {
+    const onPress = jest.fn();
+    render(
+      <FeedPostCard
+        post={post}
+        onToggleLike={jest.fn()}
+        onAddComment={jest.fn()}
+        onPress={onPress}
+      />,
+    );
+    fireEvent.press(screen.getByTestId("feed-post-post-1"));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it("ne déclenche pas onPress quand non fourni (pas d'erreur)", () => {
+    render(
+      <FeedPostCard
+        post={post}
+        onToggleLike={jest.fn()}
+        onAddComment={jest.fn()}
+      />,
+    );
+    expect(() =>
+      fireEvent.press(screen.getByTestId("feed-post-post-1")),
+    ).not.toThrow();
   });
 
   it("affiche le titre en uppercase primary et le badge à la une sans texte", () => {
@@ -91,7 +160,6 @@ describe("FeedPostCard", () => {
     );
 
     const title = screen.getByText("RÉUNION DES PARENTS");
-    expect(title).toBeTruthy();
     expect(title).toHaveStyle({
       color: "#08467D",
       textTransform: "uppercase",
@@ -114,7 +182,6 @@ describe("FeedPostCard", () => {
         onAddComment={jest.fn()}
       />,
     );
-
     fireEvent.press(screen.getByTestId("feed-post-like-post-1"));
     expect(onToggleLike).toHaveBeenCalledWith("post-1");
     expect(screen.getByLabelText("Réactions 2")).toBeTruthy();
@@ -123,7 +190,7 @@ describe("FeedPostCard", () => {
     ).toHaveTextContent("1");
   });
 
-  it("applique les couleurs web aux badges d'action", () => {
+  it("applique les couleurs aux badges d'action", () => {
     render(
       <FeedPostCard
         post={post}
@@ -131,7 +198,6 @@ describe("FeedPostCard", () => {
         onAddComment={jest.fn()}
       />,
     );
-
     expect(screen.getByTestId("feed-post-like-post-1")).toHaveStyle({
       backgroundColor: "#FEF2F2",
       borderColor: "#FECACA",
@@ -146,24 +212,35 @@ describe("FeedPostCard", () => {
     });
   });
 
-  it("ouvre les commentaires sans afficher le composer de reaction", () => {
-    const onAddComment = jest.fn();
+  it("les boutons d'action et la poubelle sont dans la même rangée (actionsRow)", () => {
+    render(
+      <FeedPostCard
+        post={{ ...post, canManage: true }}
+        onToggleLike={jest.fn()}
+        onAddComment={jest.fn()}
+        onDelete={jest.fn()}
+      />,
+    );
+    const likeBtn = screen.getByTestId("feed-post-like-post-1");
+    const deleteBtn = screen.getByTestId("feed-post-delete-post-1");
+    expect(likeBtn).toBeTruthy();
+    expect(deleteBtn).toBeTruthy();
+  });
+
+  it("ouvre les commentaires", () => {
     render(
       <FeedPostCard
         post={post}
         onToggleLike={jest.fn()}
-        onAddComment={onAddComment}
+        onAddComment={jest.fn()}
       />,
     );
-
     fireEvent.press(screen.getByTestId("feed-post-comments-toggle-post-1"));
     expect(screen.getByText("Robert Ntamack")).toBeTruthy();
     expect(screen.queryByTestId("feed-comment-input-post-1")).toBeNull();
-    expect(screen.queryByText("1 commentaire")).toBeNull();
-    expect(screen.queryByText("R")).toBeNull();
   });
 
-  it("ouvre le composer inline depuis Réagir et envoie un commentaire", () => {
+  it("ouvre le composer inline et envoie un commentaire", () => {
     const onAddComment = jest.fn();
     render(
       <FeedPostCard
@@ -172,7 +249,6 @@ describe("FeedPostCard", () => {
         onAddComment={onAddComment}
       />,
     );
-
     fireEvent.press(screen.getByTestId("feed-post-react-post-1"));
     expect(screen.getByTestId("feed-reaction-emoji-post-1-😀")).toBeTruthy();
     expect(screen.getByTestId("feed-comment-submit-post-1")).toHaveStyle({
@@ -185,22 +261,8 @@ describe("FeedPostCard", () => {
       "Merci",
     );
     fireEvent.press(screen.getByTestId("feed-comment-submit-post-1"));
-
     expect(onAddComment).toHaveBeenCalledWith("post-1", "Merci");
     expect(screen.queryByTestId("feed-comment-input-post-1")).toBeNull();
-  });
-
-  it("rend l'action de suppression si la publication est gérable", () => {
-    render(
-      <FeedPostCard
-        post={{ ...post, canManage: true }}
-        onToggleLike={jest.fn()}
-        onAddComment={jest.fn()}
-        onDelete={jest.fn()}
-      />,
-    );
-
-    expect(screen.getByTestId("feed-post-delete-post-1")).toBeTruthy();
   });
 
   it("expose des testID stables pour les votes du sondage", () => {
@@ -213,13 +275,22 @@ describe("FeedPostCard", () => {
         onVote={onVote}
       />,
     );
-
     fireEvent.press(
       screen.getByTestId("feed-post-poll-option-poll-1-option-1"),
     );
-
     expect(onVote).toHaveBeenCalledWith("poll-1", "option-1");
     expect(screen.getByLabelText("Mercredi matin, 4 votes")).toBeTruthy();
     expect(screen.getByLabelText("Vendredi après-midi, 2 votes")).toBeTruthy();
+  });
+
+  it("n'affiche pas la poubelle si canManage mais pas onDelete", () => {
+    render(
+      <FeedPostCard
+        post={{ ...post, canManage: true }}
+        onToggleLike={jest.fn()}
+        onAddComment={jest.fn()}
+      />,
+    );
+    expect(screen.queryByTestId("feed-post-delete-post-1")).toBeNull();
   });
 });

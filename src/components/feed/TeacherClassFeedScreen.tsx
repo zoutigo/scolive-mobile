@@ -140,8 +140,6 @@ export function TeacherClassFeedScreen({
       emptyMessage={t("feed.classLife.emptyMessageTeacher")}
       deleteSuccessMessage={t("feed.classLife.deleteSuccess")}
       deleteContextLabel={t("feed.classLife.context")}
-      heroSearchEnabled
-      heroComposerActionsEnabled
       canCompose
       onCreatePost={handleCreatePost}
       onUploadInlineImage={handleUploadInlineImage}
@@ -150,7 +148,5 @@ export function TeacherClassFeedScreen({
 }
 
 const styles = StyleSheet.create({
-  headerWrap: {
-    paddingHorizontal: 16,
-  },
+  headerWrap: {},
 });

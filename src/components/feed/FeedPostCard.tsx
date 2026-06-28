@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -23,6 +24,7 @@ type Props = {
   onAddComment: (postId: string, text: string) => void;
   onVote?: (postId: string, optionId: string) => void;
   onDelete?: (post: FeedPost) => void;
+  onPress?: () => void;
 };
 
 const COMMENT_EMOJIS = ["😀", "👍", "❤️", "🎉", "👏"];
@@ -106,6 +108,7 @@ export function FeedPostCard({
   onAddComment,
   onVote,
   onDelete,
+  onPress,
 }: Props) {
   const { t, locale } = useTranslation();
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -130,23 +133,11 @@ export function FeedPostCard({
   }
 
   return (
-    <View style={styles.card} testID={`feed-post-${post.id}`}>
-      {post.canManage && onDelete ? (
-        <View style={styles.headerRow}>
-          <TouchableOpacity
-            onPress={() => onDelete(post)}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            testID={`feed-post-delete-${post.id}`}
-          >
-            <Ionicons
-              name="trash-outline"
-              size={18}
-              color={colors.notification}
-            />
-          </TouchableOpacity>
-        </View>
-      ) : null}
-
+    <Pressable
+      style={styles.card}
+      onPress={onPress}
+      testID={`feed-post-${post.id}`}
+    >
       <View style={styles.headerBlock}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>{post.title.toUpperCase()}</Text>
@@ -212,87 +203,108 @@ export function FeedPostCard({
       ) : null}
 
       <View style={styles.actionsRow}>
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            styles.actionButtonLike,
-            post.likedByViewer && styles.actionButtonLiked,
-          ]}
-          onPress={() => onToggleLike(post.id)}
-          testID={`feed-post-like-${post.id}`}
-          accessibilityLabel={`${t("feed.post.likesAria").replace("{count}", String(post.likesCount))}${post.likedByViewer ? t("feed.post.likedSuffix") : ""}`}
-        >
-          <View
-            style={styles.actionState}
-            testID={`feed-post-like-state-${post.id}-${post.likedByViewer ? "liked" : "idle"}-${post.likesCount}`}
+        <View style={styles.actionsLeft}>
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.actionButtonLike,
+              post.likedByViewer && styles.actionButtonLiked,
+            ]}
+            onPress={() => onToggleLike(post.id)}
+            testID={`feed-post-like-${post.id}`}
+            accessibilityLabel={`${t("feed.post.likesAria").replace("{count}", String(post.likesCount))}${post.likedByViewer ? t("feed.post.likedSuffix") : ""}`}
+          >
+            <View
+              style={styles.actionState}
+              testID={`feed-post-like-state-${post.id}-${post.likedByViewer ? "liked" : "idle"}-${post.likesCount}`}
+            >
+              <Ionicons
+                name={post.likedByViewer ? "heart" : "heart-outline"}
+                size={18}
+                color={
+                  post.likedByViewer ? colors.notification : colors.primary
+                }
+              />
+              <Text
+                style={[
+                  styles.actionLabel,
+                  post.likedByViewer && styles.actionLabelActive,
+                ]}
+              >
+                {post.likesCount}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.actionButtonComment,
+              commentsOpen && styles.actionButtonCommentActive,
+            ]}
+            onPress={() => setCommentsOpen((value) => !value)}
+            testID={`feed-post-comments-toggle-${post.id}`}
+            accessibilityLabel={t("feed.post.commentsAria").replace(
+              "{count}",
+              String(post.comments.length),
+            )}
           >
             <Ionicons
-              name={post.likedByViewer ? "heart" : "heart-outline"}
+              name="chatbubble-ellipses-outline"
               size={18}
-              color={post.likedByViewer ? colors.notification : colors.primary}
+              color={colors.primary}
             />
             <Text
               style={[
                 styles.actionLabel,
-                post.likedByViewer && styles.actionLabelActive,
+                commentsOpen && styles.actionLabelActive,
+              ]}
+              testID={`feed-post-comments-count-${post.id}-${post.comments.length}`}
+            >
+              {post.comments.length}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.actionButtonReact,
+              reactionOpen && styles.actionButtonReactActive,
+            ]}
+            onPress={() => setReactionOpen((value) => !value)}
+            testID={`feed-post-react-${post.id}`}
+            accessibilityLabel={
+              reactionOpen ? t("feed.post.hideReaction") : t("feed.post.react")
+            }
+          >
+            <Ionicons name="send-outline" size={18} color={colors.accentTeal} />
+            <Text
+              style={[
+                styles.actionLabel,
+                reactionOpen && styles.actionLabelReactActive,
               ]}
             >
-              {post.likesCount}
+              {reactionOpen
+                ? t("feed.post.hideReaction")
+                : t("feed.post.react")}
             </Text>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            styles.actionButtonComment,
-            commentsOpen && styles.actionButtonCommentActive,
-          ]}
-          onPress={() => setCommentsOpen((value) => !value)}
-          testID={`feed-post-comments-toggle-${post.id}`}
-          accessibilityLabel={t("feed.post.commentsAria").replace(
-            "{count}",
-            String(post.comments.length),
-          )}
-        >
-          <Ionicons
-            name="chatbubble-ellipses-outline"
-            size={18}
-            color={colors.primary}
-          />
-          <Text
-            style={[
-              styles.actionLabel,
-              commentsOpen && styles.actionLabelActive,
-            ]}
-            testID={`feed-post-comments-count-${post.id}-${post.comments.length}`}
+        {post.canManage && onDelete ? (
+          <TouchableOpacity
+            style={[styles.actionButton, styles.actionButtonDelete]}
+            onPress={() => onDelete(post)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            testID={`feed-post-delete-${post.id}`}
           >
-            {post.comments.length}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.actionButton,
-            styles.actionButtonReact,
-            reactionOpen && styles.actionButtonReactActive,
-          ]}
-          onPress={() => setReactionOpen((value) => !value)}
-          testID={`feed-post-react-${post.id}`}
-          accessibilityLabel={
-            reactionOpen ? t("feed.post.hideReaction") : t("feed.post.react")
-          }
-        >
-          <Ionicons name="send-outline" size={18} color={colors.accentTeal} />
-          <Text
-            style={[
-              styles.actionLabel,
-              reactionOpen && styles.actionLabelReactActive,
-            ]}
-          >
-            {reactionOpen ? t("feed.post.hideReaction") : t("feed.post.react")}
-          </Text>
-        </TouchableOpacity>
+            <Ionicons
+              name="trash-outline"
+              size={18}
+              color={colors.notification}
+            />
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {reactionOpen ? (
@@ -349,7 +361,7 @@ export function FeedPostCard({
           ))}
         </View>
       ) : null}
-    </View>
+    </Pressable>
   );
 }
 
@@ -363,11 +375,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
     gap: 12,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-end",
   },
   titleRow: {
     flexDirection: "row",
@@ -498,7 +505,13 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "space-between",
+  },
+  actionsLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 1,
   },
   actionButton: {
     flexDirection: "row",
@@ -532,6 +545,10 @@ const styles = StyleSheet.create({
   actionButtonReactActive: {
     backgroundColor: "#ECFDF5",
     borderColor: "#A7F3D0",
+  },
+  actionButtonDelete: {
+    backgroundColor: "#FEF2F2",
+    borderColor: "#FECACA",
   },
   actionState: {
     flexDirection: "row",

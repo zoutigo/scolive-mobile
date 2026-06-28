@@ -162,8 +162,6 @@ export function ChildClassFeedScreen() {
       emptyMessage={t("feed.classLife.emptyMessageChild")}
       deleteSuccessMessage={t("feed.classLife.deleteSuccess")}
       deleteContextLabel={t("feed.classLife.context")}
-      heroSearchEnabled
-      heroComposerActionsEnabled
       canCompose
       onCreatePost={handleCreatePost}
       onUploadInlineImage={handleUploadInlineImage}
@@ -172,7 +170,5 @@ export function ChildClassFeedScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerWrap: {
-    paddingHorizontal: 16,
-  },
+  headerWrap: {},
 });

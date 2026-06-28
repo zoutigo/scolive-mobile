@@ -123,7 +123,7 @@ describe("VieScolaireScreen", () => {
 
     expect(screen.getByTestId("vie-scolaire-header")).toHaveStyle({
       backgroundColor: "#08467D",
-      marginHorizontal: -16,
+      paddingHorizontal: 20,
     });
     expect(screen.getByTestId("btn-back")).toHaveStyle({
       backgroundColor: "rgba(255,255,255,0.14)",

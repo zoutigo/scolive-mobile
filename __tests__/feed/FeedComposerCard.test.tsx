@@ -293,3 +293,158 @@ describe("FeedComposerCard", () => {
     });
   });
 });
+
+describe("FeedComposerCard — design header-band et footer", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(Alert, "alert").mockImplementation(jest.fn());
+    __setMockEditorContentHtml("");
+  });
+
+  it("affiche le heading dans le header band", () => {
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+    expect(screen.getByText("Partager une actualité")).toBeTruthy();
+  });
+
+  it("l'eyebrow affiche 'Post' par défaut (type POST)", () => {
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+    expect(screen.getByTestId("feed-composer-eyebrow")).toHaveTextContent(
+      "Post",
+    );
+  });
+
+  it("l'eyebrow passe à 'Sondage' quand on sélectionne POLL", () => {
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+    fireEvent.press(screen.getByTestId("feed-composer-type-poll"));
+    expect(screen.getByTestId("feed-composer-eyebrow")).toHaveTextContent(
+      "Sondage",
+    );
+  });
+
+  it("le header contient le bouton fermer quand onCancel est fourni", () => {
+    const onCancel = jest.fn();
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+        onCancel={onCancel}
+      />,
+    );
+    expect(screen.getByTestId("feed-composer-close")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("feed-composer-close"));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("n'affiche pas le bouton fermer quand onCancel est absent", () => {
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+    expect(screen.queryByTestId("feed-composer-close")).toBeNull();
+  });
+
+  it("le footer affiche le bouton Annuler quand onCancel est fourni", () => {
+    const onCancel = jest.fn();
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+        onCancel={onCancel}
+      />,
+    );
+    expect(screen.getByTestId("feed-composer-cancel")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("feed-composer-cancel"));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("le footer n'affiche pas Annuler si onCancel est absent", () => {
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+    expect(screen.queryByTestId("feed-composer-cancel")).toBeNull();
+  });
+
+  it("le bouton Publier du footer a le style primaire", () => {
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+    expect(screen.getByTestId("feed-composer-submit")).toHaveStyle({
+      backgroundColor: "#08467D",
+    });
+  });
+
+  it("le bouton Annuler du footer a le style neutre (fond blanc)", () => {
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+        onCancel={jest.fn()}
+      />,
+    );
+    expect(screen.getByTestId("feed-composer-cancel")).toHaveStyle({
+      backgroundColor: "#FFFFFF",
+    });
+  });
+
+  it("la card a le fond crème du nouveau design", () => {
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+    expect(screen.getByTestId("feed-composer-card")).toHaveStyle({
+      backgroundColor: "#FFF8EE",
+    });
+  });
+
+  it("le chip POLL actif a le fond primaire", () => {
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+    fireEvent.press(screen.getByTestId("feed-composer-type-poll"));
+    expect(screen.getByTestId("feed-composer-type-poll")).toHaveStyle({
+      backgroundColor: "#08467D",
+    });
+    expect(screen.getByTestId("feed-composer-type-post")).toHaveStyle({
+      backgroundColor: "#FFFFFF",
+    });
+  });
+});

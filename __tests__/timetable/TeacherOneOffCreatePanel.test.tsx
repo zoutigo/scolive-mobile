@@ -288,6 +288,23 @@ async function pickTime(testID: string, hour: string, minute: string) {
   );
 }
 
+async function pickDate(testID: string, isoDate: string) {
+  fireEvent.press(screen.getByTestId(testID));
+  await waitFor(() =>
+    expect(screen.getByTestId(`${testID}-modal`)).toBeTruthy(),
+  );
+  // Navigate forward/backward until the target day cell appears
+  for (let attempt = 0; attempt < 24; attempt++) {
+    if (screen.queryByTestId(`${testID}-day-${isoDate}`)) break;
+    fireEvent.press(screen.getByTestId(`${testID}-next-month`));
+  }
+  fireEvent.press(screen.getByTestId(`${testID}-day-${isoDate}`));
+  fireEvent.press(screen.getByTestId(`${testID}-confirm`));
+  await waitFor(() =>
+    expect(screen.queryByTestId(`${testID}-modal`)).toBeNull(),
+  );
+}
+
 // ─── Schema pur ──────────────────────────────────────────────────────────────
 
 describe("Schema Zod — oneoff", () => {
@@ -651,11 +668,14 @@ describe("Mode ponctuel", () => {
     );
   });
 
-  it("bloque la soumission si format date invalide", async () => {
-    await waitForForm();
-    fireEvent.changeText(
-      screen.getByTestId("teacher-oneoff-date-input"),
-      "28/04/2026",
+  it("bloque si occurrenceDate vide (aucune date sélectionnée)", async () => {
+    renderPanel({
+      prefilledClassId: "class-6eC",
+      prefilledTeacherId: "u1",
+      prefilledDate: "",
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-oneoff-start-input")).toBeTruthy(),
     );
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() => expect(api.createOneOffSlot).not.toHaveBeenCalled());
@@ -728,14 +748,8 @@ describe("Mode récurrent", () => {
 
   it("soumet avec le bon payload récurrent", async () => {
     await switchToRecurring("2026-09-01"); // Mardi
-    fireEvent.changeText(
-      screen.getByTestId("teacher-oneoff-activefrom-input"),
-      "2026-09-01",
-    );
-    fireEvent.changeText(
-      screen.getByTestId("teacher-oneoff-activeto-input"),
-      "2027-06-30",
-    );
+    await pickDate("teacher-oneoff-activefrom-input", "2026-09-01");
+    await pickDate("teacher-oneoff-activeto-input", "2027-06-30");
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() => expect(api.createRecurringSlot).toHaveBeenCalled());
     expect(api.createRecurringSlot).toHaveBeenCalledWith(
@@ -758,10 +772,6 @@ describe("Mode récurrent", () => {
 
   it("soumet sans activeToDate quand vide", async () => {
     await switchToRecurring("2026-09-01");
-    fireEvent.changeText(
-      screen.getByTestId("teacher-oneoff-activefrom-input"),
-      "2026-09-01",
-    );
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() => expect(api.createRecurringSlot).toHaveBeenCalled());
     expect(api.createRecurringSlot).toHaveBeenCalledWith(
@@ -771,11 +781,20 @@ describe("Mode récurrent", () => {
     );
   });
 
-  it("bloque si activeFromDate absente", async () => {
-    await switchToRecurring();
-    fireEvent.changeText(
-      screen.getByTestId("teacher-oneoff-activefrom-input"),
-      "",
+  it("bloque si activeFromDate absente (date non sélectionnée)", async () => {
+    renderPanel({
+      prefilledClassId: "class-6eC",
+      prefilledTeacherId: "u1",
+      prefilledDate: "",
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-oneoff-type-recurring")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("teacher-oneoff-type-recurring"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-oneoff-activefrom-input"),
+      ).toBeTruthy(),
     );
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() => expect(api.createRecurringSlot).not.toHaveBeenCalled());
@@ -783,24 +802,13 @@ describe("Mode récurrent", () => {
 
   it("bloque si activeToDate <= activeFromDate", async () => {
     await switchToRecurring("2026-09-01");
-    fireEvent.changeText(
-      screen.getByTestId("teacher-oneoff-activefrom-input"),
-      "2026-09-01",
-    );
-    fireEvent.changeText(
-      screen.getByTestId("teacher-oneoff-activeto-input"),
-      "2026-08-01",
-    );
+    await pickDate("teacher-oneoff-activeto-input", "2026-08-01");
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() => expect(api.createRecurringSlot).not.toHaveBeenCalled());
   });
 
   it("affiche le toast 'Créneau récurrent ajouté' après succès", async () => {
     await switchToRecurring("2026-09-01");
-    fireEvent.changeText(
-      screen.getByTestId("teacher-oneoff-activefrom-input"),
-      "2026-09-01",
-    );
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() => expect(mockOnSuccess).toHaveBeenCalled());
     expect(mockShowSuccess).toHaveBeenCalledWith(
@@ -929,14 +937,10 @@ describe("Flux via picker de classe", () => {
   });
 
   it("soumet avec la classe sélectionnée dans le picker", async () => {
-    renderPanel({ prefilledTeacherId: "u1" });
+    renderPanel({ prefilledTeacherId: "u1", prefilledDate: "2026-04-28" });
     fireEvent.press(screen.getByTestId("teacher-oneoff-class-class-6eC"));
     await waitFor(() =>
       expect(screen.getByTestId("teacher-oneoff-start-input")).toBeTruthy(),
-    );
-    fireEvent.changeText(
-      screen.getByTestId("teacher-oneoff-date-input"),
-      "2026-04-28",
     );
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() => expect(api.createOneOffSlot).toHaveBeenCalled());

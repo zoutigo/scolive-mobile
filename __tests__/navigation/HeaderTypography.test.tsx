@@ -58,6 +58,9 @@ const teacher: AuthUser = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockUseAuthStore.mockReturnValue({
+    logout: jest.fn(),
+  } as ReturnType<typeof useAuthStore>);
   mockUseDrawer.mockReturnValue({
     openDrawer: jest.fn(),
     closeDrawer: jest.fn(),
