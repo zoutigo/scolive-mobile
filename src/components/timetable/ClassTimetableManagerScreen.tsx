@@ -43,6 +43,7 @@ import {
   ErrorBanner,
   LoadingBlock,
   MiniIdentityCard,
+  MultiPillSelector,
   OccurrencesAgenda,
   PillSelector,
   SectionCard,
@@ -63,7 +64,10 @@ function createSlotSchema(t: TranslateFn) {
     teacherUserId: z
       .string()
       .min(1, t("timetable.classManager.validation.chooseTeacher")),
-    weekday: z.string(),
+    // En création : tableau de jours (multi-sélection). En édition : un seul jour.
+    weekdays: z
+      .array(z.string())
+      .min(1, t("timetable.classManager.validation.chooseDays")),
     start: z
       .string()
       .regex(TIME_REGEX, t("timetable.classManager.validation.timeFormat")),
@@ -200,7 +204,7 @@ export function ClassTimetableManagerScreen() {
     defaultValues: {
       subjectId: "",
       teacherUserId: "",
-      weekday: "1",
+      weekdays: ["1"],
       start: "07:30",
       end: "08:20",
       roomId: "",
@@ -236,7 +240,8 @@ export function ClassTimetableManagerScreen() {
   });
 
   const slotSubjectId = slotRhf.watch("subjectId");
-  const slotWeekday = slotRhf.watch("weekday");
+  const slotWeekdays = slotRhf.watch("weekdays");
+  const slotWeekday = slotWeekdays[0] ?? "1";
   const slotStart = slotRhf.watch("start");
   const slotEnd = slotRhf.watch("end");
   const oneOffOccurrenceDate = oneOffRhf.watch("occurrenceDate");
@@ -420,7 +425,7 @@ export function ClassTimetableManagerScreen() {
     slotRhf.reset({
       subjectId: assignment?.subjectId ?? "",
       teacherUserId: assignment?.teacherUserId ?? "",
-      weekday: "1",
+      weekdays: ["1"],
       start: "07:30",
       end: "08:20",
       roomId: "",
@@ -456,11 +461,10 @@ export function ClassTimetableManagerScreen() {
     async (data: SlotValues) => {
       if (!schoolSlug || !classId || !classContext) return;
       try {
-        const payload = {
+        const basePayload = {
           schoolYearId:
             classContext.selectedSchoolYearId ??
             classContext.class.schoolYearId,
-          weekday: Number(data.weekday),
           startMinute: parseMinuteOrThrow(
             data.start,
             t("timetable.classManager.validation.startLabel"),
@@ -478,18 +482,31 @@ export function ClassTimetableManagerScreen() {
           activeToDate: data.activeToDate,
         };
         if (slotEditId) {
-          await updateRecurringSlot(schoolSlug, slotEditId, payload);
+          await updateRecurringSlot(schoolSlug, slotEditId, {
+            ...basePayload,
+            weekday: Number(data.weekdays[0]),
+          });
           showToast({
             variant: "success",
             title: t("timetable.classManager.toast.slotUpdatedTitle"),
             message: t("timetable.classManager.toast.slotUpdatedMessage"),
           });
         } else {
-          await createRecurringSlot(schoolSlug, classId, payload);
+          await Promise.all(
+            data.weekdays.map((wd) =>
+              createRecurringSlot(schoolSlug, classId, {
+                ...basePayload,
+                weekday: Number(wd),
+              }),
+            ),
+          );
           showToast({
             variant: "success",
             title: t("timetable.classManager.toast.slotCreatedTitle"),
-            message: t("timetable.classManager.toast.slotCreatedMessage"),
+            message:
+              data.weekdays.length > 1
+                ? t("timetable.classManager.toast.slotsCreatedMultiMessage")
+                : t("timetable.classManager.toast.slotCreatedMessage"),
           });
         }
         resetSlotForm();
@@ -676,7 +693,7 @@ export function ClassTimetableManagerScreen() {
     slotRhf.reset({
       subjectId: slot.subject.id,
       teacherUserId: slot.teacherUser.id,
-      weekday: String(slot.weekday),
+      weekdays: [String(slot.weekday)],
       start: minuteToTimeLabel(slot.startMinute),
       end: minuteToTimeLabel(slot.endMinute),
       roomId: slot.roomId ?? "",
@@ -859,44 +876,56 @@ export function ClassTimetableManagerScreen() {
                 />
                 <Controller
                   control={slotRhf.control}
-                  name="weekday"
-                  render={({ field }) => (
-                    <PillSelector
-                      label={t("timetable.classManager.fields.day")}
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={[
-                        {
-                          value: "1",
-                          label: t("timetable.classManager.weekdays.mon"),
-                        },
-                        {
-                          value: "2",
-                          label: t("timetable.classManager.weekdays.tue"),
-                        },
-                        {
-                          value: "3",
-                          label: t("timetable.classManager.weekdays.wed"),
-                        },
-                        {
-                          value: "4",
-                          label: t("timetable.classManager.weekdays.thu"),
-                        },
-                        {
-                          value: "5",
-                          label: t("timetable.classManager.weekdays.fri"),
-                        },
-                        {
-                          value: "6",
-                          label: t("timetable.classManager.weekdays.sat"),
-                        },
-                        {
-                          value: "7",
-                          label: t("timetable.classManager.weekdays.sun"),
-                        },
-                      ]}
-                    />
-                  )}
+                  name="weekdays"
+                  render={({ field }) => {
+                    const weekdayOptions = [
+                      {
+                        value: "1",
+                        label: t("timetable.classManager.weekdays.mon"),
+                      },
+                      {
+                        value: "2",
+                        label: t("timetable.classManager.weekdays.tue"),
+                      },
+                      {
+                        value: "3",
+                        label: t("timetable.classManager.weekdays.wed"),
+                      },
+                      {
+                        value: "4",
+                        label: t("timetable.classManager.weekdays.thu"),
+                      },
+                      {
+                        value: "5",
+                        label: t("timetable.classManager.weekdays.fri"),
+                      },
+                      {
+                        value: "6",
+                        label: t("timetable.classManager.weekdays.sat"),
+                      },
+                      {
+                        value: "7",
+                        label: t("timetable.classManager.weekdays.sun"),
+                      },
+                    ];
+                    return slotEditId ? (
+                      <PillSelector
+                        label={t("timetable.classManager.fields.day")}
+                        value={field.value[0] ?? "1"}
+                        onChange={(v) => field.onChange([v])}
+                        options={weekdayOptions}
+                        testIDPrefix="slot-form-weekday"
+                      />
+                    ) : (
+                      <MultiPillSelector
+                        label={t("timetable.classManager.fields.days")}
+                        values={field.value}
+                        onChange={field.onChange}
+                        options={weekdayOptions}
+                        testIDPrefix="slot-form-weekday"
+                      />
+                    );
+                  }}
                 />
                 <View style={styles.row}>
                   <View style={styles.rowField}>
