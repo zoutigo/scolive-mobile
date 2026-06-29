@@ -14,6 +14,7 @@ import {
 } from "@testing-library/react-native";
 import { UserDetailModal } from "../../src/components/users/UserDetailModal";
 import { usersApi } from "../../src/api/users.api";
+import { familyApi } from "../../src/api/family.api";
 import {
   TEACHER_USER,
   PARENT_USER,
@@ -47,10 +48,15 @@ jest.mock("../../src/store/auth.store", () => ({
   useAuthStore: () => ({ schoolSlug: "college-vogt", user: null }),
 }));
 jest.mock("../../src/store/success-toast.store", () => ({
-  useSuccessToastStore: () => ({
-    showSuccess: jest.fn(),
-    showError: jest.fn(),
-  }),
+  useSuccessToastStore: (
+    selector?: (state: {
+      showSuccess: jest.Mock;
+      showError: jest.Mock;
+    }) => unknown,
+  ) => {
+    const state = { showSuccess: jest.fn(), showError: jest.fn() };
+    return typeof selector === "function" ? selector(state) : state;
+  },
 }));
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
@@ -60,6 +66,7 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 
 const mockUsersApi = usersApi as jest.Mocked<typeof usersApi>;
+const mockFamilyApi = familyApi as jest.Mocked<typeof familyApi>;
 const SLUG = "college-vogt";
 
 describe("UserDetailModal", () => {
@@ -1039,6 +1046,196 @@ describe("UserDetailModal", () => {
         expect(screen.getByTestId("action-student-devoirs")).toBeOnTheScreen(),
       );
       expect(screen.getByTestId("action-student-devoirs")).toBeDisabled();
+    });
+
+    it("le bouton Associer un parent est visible dans la section élève", async () => {
+      const detail = makeSchoolUserDetail({ ...STUDENT_USER, enrollments: [] });
+      mockUsersApi.get.mockResolvedValueOnce(detail);
+      render(
+        <UserDetailModal
+          user={STUDENT_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("student-actions")).toBeOnTheScreen(),
+      );
+      expect(screen.getByTestId("action-assign-parent")).toBeOnTheScreen();
+    });
+
+    it("le clic sur Associer un parent ouvre le sheet de recherche", async () => {
+      const detail = makeSchoolUserDetail({ ...STUDENT_USER, enrollments: [] });
+      mockUsersApi.get.mockResolvedValueOnce(detail);
+      mockUsersApi.list.mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        hasMore: false,
+      });
+      render(
+        <UserDetailModal
+          user={STUDENT_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-assign-parent")).toBeOnTheScreen(),
+      );
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("action-assign-parent"));
+      });
+      await waitFor(() =>
+        expect(screen.getByTestId("assign-parent-sheet")).toBeOnTheScreen(),
+      );
+      expect(screen.getByTestId("assign-parent-search")).toBeOnTheScreen();
+    });
+
+    it("le sheet affiche les parents trouvés par la recherche", async () => {
+      const detail = makeSchoolUserDetail({ ...STUDENT_USER, enrollments: [] });
+      mockUsersApi.get.mockResolvedValueOnce(detail);
+      const parentRow = {
+        type: "user" as const,
+        id: "parent-search-1",
+        studentId: null,
+        hasAccount: true as const,
+        firstName: "Claire",
+        lastName: "Nkolo",
+        email: "c.nkolo@gmail.com",
+        phone: "+237 677 111 222",
+        gender: null,
+        avatarUrl: null,
+        roles: ["PARENT" as const],
+        activationStatus: "ACTIVE" as const,
+        profileCompleted: true,
+        createdAt: "2025-01-01T00:00:00Z",
+      };
+      mockUsersApi.list.mockResolvedValue({
+        data: [parentRow],
+        total: 1,
+        page: 1,
+        limit: 20,
+        hasMore: false,
+      });
+      render(
+        <UserDetailModal
+          user={STUDENT_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-assign-parent")).toBeOnTheScreen(),
+      );
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("action-assign-parent"));
+      });
+      await waitFor(() =>
+        expect(
+          screen.getByTestId("assign-parent-user-parent-search-1"),
+        ).toBeOnTheScreen(),
+      );
+      expect(screen.getByText("Nkolo Claire")).toBeOnTheScreen();
+      expect(screen.getByText("+237 677 111 222")).toBeOnTheScreen();
+    });
+
+    it("l'affectation appelle linkExistingParent avec le bon studentId", async () => {
+      const detail = makeSchoolUserDetail({ ...STUDENT_USER, enrollments: [] });
+      mockUsersApi.get.mockResolvedValue(detail);
+      const parentRow = {
+        type: "user" as const,
+        id: "par-link-1",
+        studentId: null,
+        hasAccount: true as const,
+        firstName: "Alain",
+        lastName: "Bello",
+        email: "a.bello@gmail.com",
+        phone: null,
+        gender: null,
+        avatarUrl: null,
+        roles: ["PARENT" as const],
+        activationStatus: "ACTIVE" as const,
+        profileCompleted: true,
+        createdAt: "2025-01-01T00:00:00Z",
+      };
+      mockUsersApi.list.mockResolvedValue({
+        data: [parentRow],
+        total: 1,
+        page: 1,
+        limit: 20,
+        hasMore: false,
+      });
+      mockFamilyApi.linkExistingParent.mockResolvedValue(undefined);
+
+      render(
+        <UserDetailModal
+          user={STUDENT_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-assign-parent")).toBeOnTheScreen(),
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("action-assign-parent"));
+      });
+      await waitFor(() =>
+        expect(
+          screen.getByTestId("assign-parent-user-par-link-1"),
+        ).toBeOnTheScreen(),
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("assign-parent-user-par-link-1"));
+      });
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("assign-parent-submit"));
+      });
+
+      await waitFor(() => {
+        expect(mockFamilyApi.linkExistingParent).toHaveBeenCalledWith(
+          SLUG,
+          expect.objectContaining({
+            parentUserId: "par-link-1",
+            studentId: STUDENT_USER.id,
+          }),
+        );
+      });
+    });
+
+    it("les parents existants de l'élève sont affichés dans la section élève", async () => {
+      const detail = makeSchoolUserDetail({
+        ...STUDENT_USER,
+        studentParents: [
+          {
+            id: "par-exist-1",
+            firstName: "Marie",
+            lastName: "Tchalla",
+            phone: "+237 699 000 111",
+          },
+        ],
+      });
+      mockUsersApi.get.mockResolvedValueOnce(detail);
+      render(
+        <UserDetailModal
+          user={STUDENT_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("student-parents")).toBeOnTheScreen(),
+      );
+      expect(
+        screen.getByTestId("student-parent-par-exist-1"),
+      ).toBeOnTheScreen();
+      expect(screen.getByText("Tchalla Marie")).toBeOnTheScreen();
+      expect(screen.getByText("+237 699 000 111")).toBeOnTheScreen();
     });
   });
 });

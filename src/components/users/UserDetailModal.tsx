@@ -38,6 +38,7 @@ import type {
   SchoolUserParent,
   SchoolUserStaffFunction,
   ResetStudentPasswordResponse,
+  UserItem,
 } from "../../types/users.types";
 import type {
   TeacherRow,
@@ -438,6 +439,7 @@ function StudentSection({
   onDevoirsPress,
   onCreateAccessPress,
   onResetPasswordPress,
+  onAssignParentPress,
 }: {
   enrollments: {
     id: string;
@@ -455,6 +457,7 @@ function StudentSection({
   onDevoirsPress: () => void;
   onCreateAccessPress: () => void;
   onResetPasswordPress: () => void;
+  onAssignParentPress: () => void;
 }) {
   const theme = ROLE_SECTION_COLORS.STUDENT!;
   const safeParents = parents ?? [];
@@ -558,6 +561,13 @@ function StudentSection({
             testID="action-reset-password"
           />
         ) : null}
+        <ActionButton
+          icon="people-circle-outline"
+          label="Associer un parent"
+          color="#D89B5B"
+          onPress={onAssignParentPress}
+          testID="action-assign-parent"
+        />
       </View>
     </View>
   );
@@ -899,6 +909,144 @@ function AssignChildToParentSheet({
   );
 }
 
+// ── AssignParentToStudentSheet ────────────────────────────────────────────────
+
+function AssignParentToStudentSheet({
+  visible,
+  schoolSlug,
+  isSubmitting,
+  onClose,
+  onSubmit,
+}: {
+  visible: boolean;
+  schoolSlug: string;
+  isSubmitting: boolean;
+  onClose: () => void;
+  onSubmit: (parentUserId: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [parents, setParents] = useState<UserItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selected, setSelected] = useState<UserItem | null>(null);
+
+  const loadParents = useCallback(
+    async (search: string) => {
+      if (!schoolSlug) return;
+      setIsLoading(true);
+      try {
+        const res = await usersApi.list(schoolSlug, {
+          search,
+          role: "PARENT",
+          page: 1,
+        });
+        setParents(res.data.filter((u): u is UserItem => u.hasAccount));
+      } catch {
+        setParents([]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [schoolSlug],
+  );
+
+  useEffect(() => {
+    if (!visible) {
+      setQuery("");
+      setSelected(null);
+      setParents([]);
+      return;
+    }
+    void loadParents("");
+  }, [visible, loadParents]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadParents(query);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, loadParents]);
+
+  return (
+    <ModalFrame
+      visible={visible}
+      eyebrow="Gestion de la famille"
+      title="Associer un parent"
+      subtitle="Recherchez le parent à rattacher à cet élève."
+      onClose={onClose}
+      testID="assign-parent-sheet"
+      footer={
+        <FormActions
+          submitLabel="Associer le parent"
+          isSubmitting={isSubmitting}
+          submitDisabled={!selected}
+          onCancel={onClose}
+          onSubmit={() => {
+            if (selected) onSubmit(selected.id);
+          }}
+          testIDPrefix="assign-parent"
+        />
+      }
+    >
+      <TextInput
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Nom ou prénom du parent..."
+        placeholderTextColor={colors.textSecondary}
+        style={styles.searchInput}
+        testID="assign-parent-search"
+      />
+      {isLoading ? (
+        <ActivityIndicator
+          color={colors.primary}
+          size="small"
+          style={{ marginTop: 12 }}
+        />
+      ) : (
+        <View style={styles.studentList}>
+          {parents.map((parent) => {
+            const isSelected = selected?.id === parent.id;
+            return (
+              <TouchableOpacity
+                key={parent.id}
+                style={[
+                  styles.studentRow,
+                  isSelected && styles.studentRowSelected,
+                ]}
+                onPress={() => setSelected(isSelected ? null : parent)}
+                testID={`assign-parent-user-${parent.id}`}
+              >
+                <View style={styles.studentRowText}>
+                  <Text
+                    style={[
+                      styles.studentName,
+                      isSelected && styles.studentNameSelected,
+                    ]}
+                  >
+                    {parent.lastName} {parent.firstName}
+                  </Text>
+                  {parent.phone ? (
+                    <Text style={styles.studentClass}>{parent.phone}</Text>
+                  ) : null}
+                </View>
+                {isSelected ? (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={20}
+                    color={colors.primary}
+                  />
+                ) : null}
+              </TouchableOpacity>
+            );
+          })}
+          {!isLoading && parents.length === 0 ? (
+            <Text style={styles.noStudents}>Aucun parent trouvé.</Text>
+          ) : null}
+        </View>
+      )}
+    </ModalFrame>
+  );
+}
+
 // ── UserDetailModal ───────────────────────────────────────────────────────────
 
 interface UserDetailModalProps {
@@ -938,6 +1086,9 @@ export function UserDetailModal({
 
   const [assignChildVisible, setAssignChildVisible] = useState(false);
   const [isSubmittingChild, setIsSubmittingChild] = useState(false);
+
+  const [assignParentVisible, setAssignParentVisible] = useState(false);
+  const [isSubmittingParent, setIsSubmittingParent] = useState(false);
 
   const [promoteVisible, setPromoteVisible] = useState(false);
   const [resetPwdCredentials, setResetPwdCredentials] =
@@ -1100,6 +1251,35 @@ export function UserDetailModal({
     [user, schoolSlug, loadDetail, showSuccess, showError],
   );
 
+  const handleOpenAssignParent = useCallback(() => {
+    setAssignParentVisible(true);
+  }, []);
+
+  const handleSubmitAssignParent = useCallback(
+    async (parentUserId: string) => {
+      if (!user) return;
+      const studentId = user.type === "student-only" ? user.studentId : user.id;
+      setIsSubmittingParent(true);
+      try {
+        await familyApi.linkExistingParent(schoolSlug, {
+          studentId,
+          parentUserId,
+        });
+        setAssignParentVisible(false);
+        await loadDetail();
+        showSuccess({
+          title: "Parent associé",
+          message: "Le lien parent-élève a été créé avec succès.",
+        });
+      } catch (err) {
+        showError({ title: "Erreur", message: extractApiError(err) });
+      } finally {
+        setIsSubmittingParent(false);
+      }
+    },
+    [user, schoolSlug, loadDetail, showSuccess, showError],
+  );
+
   const handleTeacherAgenda = useCallback(() => {
     if (!user) return;
     const fullName = `${user.lastName} ${user.firstName}`.trim();
@@ -1231,6 +1411,7 @@ export function UserDetailModal({
           onDevoirsPress={handleStudentDevoirs}
           onCreateAccessPress={handleCreateAccess}
           onResetPasswordPress={() => void handleResetPassword()}
+          onAssignParentPress={handleOpenAssignParent}
         />
       );
     }
@@ -1274,6 +1455,7 @@ export function UserDetailModal({
             onDevoirsPress={handleStudentDevoirs}
             onCreateAccessPress={handleCreateAccess}
             onResetPasswordPress={() => void handleResetPassword()}
+            onAssignParentPress={handleOpenAssignParent}
           />
         );
       }
@@ -1552,6 +1734,19 @@ export function UserDetailModal({
           isSubmitting={isSubmittingChild}
           onClose={() => setAssignChildVisible(false)}
           onSubmit={(studentId) => void handleSubmitAssignChild(studentId)}
+        />
+      )}
+
+      {/* Modale association parent à l'élève */}
+      {user && (
+        <AssignParentToStudentSheet
+          visible={assignParentVisible}
+          schoolSlug={schoolSlug}
+          isSubmitting={isSubmittingParent}
+          onClose={() => setAssignParentVisible(false)}
+          onSubmit={(parentUserId) =>
+            void handleSubmitAssignParent(parentUserId)
+          }
         />
       )}
 
