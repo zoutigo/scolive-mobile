@@ -1,5 +1,5 @@
 /**
- * Tests pour TeacherOneOffCreatePanel (v2)
+ * Tests pour TeacherOneOffCreatePanel
  *
  * Couvre :
  * - picker de classe : visible seulement quand aucune classe connue, caché après sélection
@@ -7,7 +7,7 @@
  * - filtrage des matières par teacher
  * - toggle ponctuel / récurrent
  * - ponctuel : validation date, heures, soumission payload correct
- * - récurrent : validation activeFromDate, activeToDate, weekday dérivé, soumission
+ * - récurrent : sélecteur de jours (MultiPillSelector), validation, soumission mono/multi-jours
  * - salles : seulement les rooms isAvailable + AVAILABLE
  * - erreur API : bandeau inline (visible dans le Modal)
  * - erreur inline effacée au submit suivant
@@ -31,7 +31,7 @@ import { z } from "zod";
 
 const t = (key: string) => translate(DEFAULT_LOCALE, key);
 
-// Mirror schema for pure validation tests
+// Mirror schema — doit refléter exactement la logique de createSchema()
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{1,2}:\d{2}$/;
 
@@ -53,6 +53,7 @@ const schema = z
       .regex(TIME_RE, t("timetable.classManager.validation.timeFormat")),
     roomId: z.string().optional(),
     occurrenceDate: z.string().optional(),
+    weekdays: z.array(z.string()).optional(),
     activeFromDate: z.string().optional(),
     activeToDate: z.string().optional(),
   })
@@ -66,6 +67,13 @@ const schema = z
         });
       }
     } else {
+      if (!d.weekdays || d.weekdays.length === 0) {
+        ctx.addIssue({
+          path: ["weekdays"],
+          code: z.ZodIssueCode.custom,
+          message: t("timetable.classManager.validation.chooseDays"),
+        });
+      }
       if (!d.activeFromDate || !ISO_DATE.test(d.activeFromDate)) {
         ctx.addIssue({
           path: ["activeFromDate"],
@@ -206,7 +214,7 @@ const ROOMS: RoomAvailability[] = [
     maxConcurrentSlots: 1,
     status: "AVAILABLE",
     occupiedSlots: 1,
-    isAvailable: false, // full
+    isAvailable: false,
   },
   {
     id: "r-a08",
@@ -216,7 +224,7 @@ const ROOMS: RoomAvailability[] = [
     maxConcurrentSlots: 1,
     status: "MAINTENANCE",
     occupiedSlots: 0,
-    isAvailable: false, // maintenance
+    isAvailable: false,
   },
 ];
 
@@ -275,6 +283,21 @@ async function waitForForm(prefilledClassId = "class-6eC") {
   );
 }
 
+async function switchToRecurring(prefilledDate = "2026-04-28") {
+  renderPanel({
+    prefilledClassId: "class-6eC",
+    prefilledTeacherId: "u1",
+    prefilledDate,
+  });
+  await waitFor(() =>
+    expect(screen.getByTestId("teacher-oneoff-type-recurring")).toBeTruthy(),
+  );
+  fireEvent.press(screen.getByTestId("teacher-oneoff-type-recurring"));
+  await waitFor(() =>
+    expect(screen.getByTestId("teacher-oneoff-activefrom-input")).toBeTruthy(),
+  );
+}
+
 async function pickTime(testID: string, hour: string, minute: string) {
   fireEvent.press(screen.getByTestId(testID));
   await waitFor(() =>
@@ -293,7 +316,6 @@ async function pickDate(testID: string, isoDate: string) {
   await waitFor(() =>
     expect(screen.getByTestId(`${testID}-modal`)).toBeTruthy(),
   );
-  // Navigate forward/backward until the target day cell appears
   for (let attempt = 0; attempt < 24; attempt++) {
     if (screen.queryByTestId(`${testID}-day-${isoDate}`)) break;
     fireEvent.press(screen.getByTestId(`${testID}-next-month`));
@@ -305,7 +327,7 @@ async function pickDate(testID: string, isoDate: string) {
   );
 }
 
-// ─── Schema pur ──────────────────────────────────────────────────────────────
+// ─── Schema Zod — oneoff ──────────────────────────────────────────────────────
 
 describe("Schema Zod — oneoff", () => {
   it("valide un ponctuel correct sans salle", () => {
@@ -371,30 +393,63 @@ describe("Schema Zod — oneoff", () => {
   });
 });
 
+// ─── Schema Zod — récurrent ───────────────────────────────────────────────────
+
 describe("Schema Zod — récurrent", () => {
-  it("valide un récurrent correct sans activeToDate", () => {
+  it("valide un récurrent avec jours sélectionnés et sans activeToDate", () => {
     expect(
       schema.safeParse({
         slotType: "recurring",
         subjectId: "ang",
         start: "08:00",
         end: "09:00",
+        weekdays: ["1"],
         activeFromDate: "2026-09-01",
       }).success,
     ).toBe(true);
   });
 
-  it("valide un récurrent correct avec activeToDate", () => {
+  it("valide un récurrent multi-jours avec activeToDate", () => {
     expect(
       schema.safeParse({
         slotType: "recurring",
         subjectId: "ang",
         start: "08:00",
         end: "09:00",
+        weekdays: ["1", "3", "5"],
         activeFromDate: "2026-09-01",
         activeToDate: "2027-06-30",
       }).success,
     ).toBe(true);
+  });
+
+  it("rejette si weekdays est un tableau vide", () => {
+    const r = schema.safeParse({
+      slotType: "recurring",
+      subjectId: "ang",
+      start: "08:00",
+      end: "09:00",
+      weekdays: [],
+      activeFromDate: "2026-09-01",
+    });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      expect(r.error.issues.some((i) => i.path[0] === "weekdays")).toBe(true);
+    }
+  });
+
+  it("rejette si weekdays est absent", () => {
+    const r = schema.safeParse({
+      slotType: "recurring",
+      subjectId: "ang",
+      start: "08:00",
+      end: "09:00",
+      activeFromDate: "2026-09-01",
+    });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      expect(r.error.issues.some((i) => i.path[0] === "weekdays")).toBe(true);
+    }
   });
 
   it("rejette activeFromDate absente", () => {
@@ -404,6 +459,7 @@ describe("Schema Zod — récurrent", () => {
         subjectId: "ang",
         start: "08:00",
         end: "09:00",
+        weekdays: ["1"],
       }).success,
     ).toBe(false);
   });
@@ -414,6 +470,7 @@ describe("Schema Zod — récurrent", () => {
       subjectId: "ang",
       start: "08:00",
       end: "09:00",
+      weekdays: ["1"],
       activeFromDate: "2026-09-01",
       activeToDate: "2026-08-01",
     });
@@ -432,6 +489,7 @@ describe("Schema Zod — récurrent", () => {
         subjectId: "ang",
         start: "08:00",
         end: "09:00",
+        weekdays: ["1"],
         activeFromDate: "2026-09-01",
         activeToDate: "",
       }).success,
@@ -476,7 +534,6 @@ describe("Rendu", () => {
     await waitFor(() =>
       expect(screen.getByTestId("teacher-oneoff-start-input")).toBeTruthy(),
     );
-    // le picker de classe doit disparaître une fois la classe choisie
     expect(screen.queryByTestId("teacher-oneoff-class-class-5eB")).toBeNull();
   });
 
@@ -547,7 +604,6 @@ describe("Sélecteur de salles (disponibles uniquement)", () => {
     await waitFor(() => expect(rooms.listAvailableRooms).toHaveBeenCalled());
     await openRoomDropdown();
     expect(screen.getByTestId("teacher-oneoff-room-option-r-b45")).toBeTruthy();
-    // LAB2 (full) et A08 (maintenance) ne doivent PAS apparaître
     expect(
       screen.queryByTestId("teacher-oneoff-room-option-r-lab2"),
     ).toBeNull();
@@ -635,7 +691,6 @@ describe("Mode ponctuel", () => {
       expect(screen.getByTestId("teacher-oneoff-room")).toBeTruthy(),
     );
     await waitFor(() => expect(rooms.listAvailableRooms).toHaveBeenCalled());
-    // Ouvrir le dropdown et sélectionner B45
     fireEvent.press(screen.getByTestId("teacher-oneoff-room"));
     await waitFor(() =>
       expect(
@@ -692,6 +747,13 @@ describe("Mode ponctuel", () => {
     expect(api.createOneOffSlot).not.toHaveBeenCalled();
   });
 
+  it("n'affiche PAS le sélecteur de jours en mode ponctuel", async () => {
+    await waitForForm();
+    expect(
+      screen.queryByTestId("teacher-oneoff-weekday-1"),
+    ).toBeNull();
+  });
+
   it("n'appelle PAS createRecurringSlot en mode ponctuel", async () => {
     renderPanel({
       prefilledClassId: "class-6eC",
@@ -707,47 +769,118 @@ describe("Mode ponctuel", () => {
   });
 });
 
-// ─── Mode récurrent ───────────────────────────────────────────────────────────
+// ─── Mode récurrent — sélecteur de jours ─────────────────────────────────────
 
-describe("Mode récurrent", () => {
-  async function switchToRecurring(prefilledDate = "2026-04-28") {
-    renderPanel({
-      prefilledClassId: "class-6eC",
-      prefilledTeacherId: "u1",
-      prefilledDate,
-    });
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-oneoff-type-recurring")).toBeTruthy(),
-    );
-    fireEvent.press(screen.getByTestId("teacher-oneoff-type-recurring"));
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-oneoff-activefrom-input"),
-      ).toBeTruthy(),
-    );
-  }
-
-  it("affiche les champs activeFrom et activeTo en mode récurrent", async () => {
+describe("Mode récurrent — sélecteur de jours", () => {
+  it("affiche le sélecteur de jours (7 pills) en mode récurrent", async () => {
     await switchToRecurring();
-    expect(screen.getByTestId("teacher-oneoff-activefrom-input")).toBeTruthy();
-    expect(screen.getByTestId("teacher-oneoff-activeto-input")).toBeTruthy();
+    for (const day of ["1", "2", "3", "4", "5", "6", "7"]) {
+      expect(
+        screen.getByTestId(`teacher-oneoff-weekday-${day}`),
+      ).toBeTruthy();
+    }
   });
 
-  it("affiche le badge du jour de la semaine dérivé de activeFromDate", async () => {
+  it("n'affiche PAS le badge auto-calculé du jour (supprimé)", async () => {
     await switchToRecurring("2026-04-27"); // lundi
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-oneoff-weekday-label")).toBeTruthy(),
-    );
-    expect(screen.getByText(/Lundi/)).toBeTruthy();
+    expect(
+      screen.queryByTestId("teacher-oneoff-weekday-label"),
+    ).toBeNull();
   });
 
-  it("cache le champ occurrenceDate en mode récurrent", async () => {
+  it("Lundi (1) est sélectionné par défaut", async () => {
+    await switchToRecurring();
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-oneoff-weekday-1")).toBeTruthy(),
+    );
+    // Lundi sélectionné = soumet sans erreur de validation jours
+    fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
+    await waitFor(() =>
+      expect(api.createRecurringSlot).toHaveBeenCalledWith(
+        "college-vogt",
+        "class-6eC",
+        expect.objectContaining({ weekday: 1 }),
+      ),
+    );
+  });
+
+  it("sélectionner Mercredi seul soumet un slot avec weekday:3", async () => {
+    await switchToRecurring();
+    // Ajouter Mercredi d'abord, puis désélectionner Lundi (MultiPillSelector interdit de vider la liste)
+    fireEvent.press(screen.getByTestId("teacher-oneoff-weekday-3")); // ["1","3"]
+    fireEvent.press(screen.getByTestId("teacher-oneoff-weekday-1")); // ["3"]
+    fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
+    await waitFor(() => expect(api.createRecurringSlot).toHaveBeenCalledTimes(1));
+    expect(api.createRecurringSlot).toHaveBeenCalledWith(
+      "college-vogt",
+      "class-6eC",
+      expect.objectContaining({ weekday: 3 }),
+    );
+  });
+
+  it("sélectionner Lun+Mer+Ven → 3 appels createRecurringSlot", async () => {
+    await switchToRecurring();
+    // Lundi déjà sélectionné, ajouter Mercredi et Vendredi
+    fireEvent.press(screen.getByTestId("teacher-oneoff-weekday-3"));
+    fireEvent.press(screen.getByTestId("teacher-oneoff-weekday-5"));
+    fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
+    await waitFor(() =>
+      expect(api.createRecurringSlot).toHaveBeenCalledTimes(3),
+    );
+    const calledWeekdays = api.createRecurringSlot.mock.calls.map(
+      (call) => (call[2] as { weekday: number }).weekday,
+    );
+    expect(calledWeekdays.sort()).toEqual([1, 3, 5]);
+  });
+
+  it("tous les appels multi-jours partagent le même payload (sauf weekday)", async () => {
+    await switchToRecurring();
+    fireEvent.press(screen.getByTestId("teacher-oneoff-weekday-2")); // ajouter Mardi
+    fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
+    await waitFor(() =>
+      expect(api.createRecurringSlot).toHaveBeenCalledTimes(2),
+    );
+    for (const call of api.createRecurringSlot.mock.calls) {
+      expect(call[2]).toMatchObject({
+        schoolYearId: "sy1",
+        startMinute: 480,
+        endMinute: 540,
+        subjectId: "ang",
+        teacherUserId: "u1",
+        roomId: null,
+      });
+    }
+  });
+
+  it("ne descend pas en dessous d'un jour (dernier jour non décoché)", async () => {
+    await switchToRecurring();
+    // Essayer de désélectionner le seul jour actif (Lundi)
+    fireEvent.press(screen.getByTestId("teacher-oneoff-weekday-1"));
+    // MultiPillSelector empêche de vider la liste — Lundi reste sélectionné
+    fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
+    await waitFor(() => expect(api.createRecurringSlot).toHaveBeenCalledTimes(1));
+  });
+
+  it("masque le champ occurrenceDate en mode récurrent", async () => {
     await switchToRecurring();
     expect(screen.queryByTestId("teacher-oneoff-date-input")).toBeNull();
   });
 
-  it("soumet avec le bon payload récurrent", async () => {
-    await switchToRecurring("2026-09-01"); // Mardi
+  it("affiche les champs activeFrom et activeTo", async () => {
+    await switchToRecurring();
+    expect(screen.getByTestId("teacher-oneoff-activefrom-input")).toBeTruthy();
+    expect(screen.getByTestId("teacher-oneoff-activeto-input")).toBeTruthy();
+  });
+});
+
+// ─── Mode récurrent — soumission payload ─────────────────────────────────────
+
+describe("Mode récurrent — soumission", () => {
+  it("soumet avec le bon payload complet (activeToDate renseigné)", async () => {
+    await switchToRecurring();
+    // Sélectionner Mardi (désélectionner Lundi, prendre Mardi)
+    fireEvent.press(screen.getByTestId("teacher-oneoff-weekday-1"));
+    fireEvent.press(screen.getByTestId("teacher-oneoff-weekday-2"));
     await pickDate("teacher-oneoff-activefrom-input", "2026-09-01");
     await pickDate("teacher-oneoff-activeto-input", "2027-06-30");
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
@@ -757,7 +890,7 @@ describe("Mode récurrent", () => {
       "class-6eC",
       expect.objectContaining({
         schoolYearId: "sy1",
-        weekday: 2, // Mardi = 2
+        weekday: 2,
         startMinute: 480,
         endMinute: 540,
         subjectId: "ang",
@@ -770,7 +903,7 @@ describe("Mode récurrent", () => {
     expect(api.createOneOffSlot).not.toHaveBeenCalled();
   });
 
-  it("soumet sans activeToDate quand vide", async () => {
+  it("soumet sans activeToDate quand vide (activeToDate: null)", async () => {
     await switchToRecurring("2026-09-01");
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() => expect(api.createRecurringSlot).toHaveBeenCalled());
@@ -781,7 +914,7 @@ describe("Mode récurrent", () => {
     );
   });
 
-  it("bloque si activeFromDate absente (date non sélectionnée)", async () => {
+  it("bloque si activeFromDate absente", async () => {
     renderPanel({
       prefilledClassId: "class-6eC",
       prefilledTeacherId: "u1",
@@ -792,19 +925,21 @@ describe("Mode récurrent", () => {
     );
     fireEvent.press(screen.getByTestId("teacher-oneoff-type-recurring"));
     await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-oneoff-activefrom-input"),
-      ).toBeTruthy(),
+      expect(screen.getByTestId("teacher-oneoff-activefrom-input")).toBeTruthy(),
     );
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
-    await waitFor(() => expect(api.createRecurringSlot).not.toHaveBeenCalled());
+    await waitFor(() =>
+      expect(api.createRecurringSlot).not.toHaveBeenCalled(),
+    );
   });
 
   it("bloque si activeToDate <= activeFromDate", async () => {
     await switchToRecurring("2026-09-01");
     await pickDate("teacher-oneoff-activeto-input", "2026-08-01");
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
-    await waitFor(() => expect(api.createRecurringSlot).not.toHaveBeenCalled());
+    await waitFor(() =>
+      expect(api.createRecurringSlot).not.toHaveBeenCalled(),
+    );
   });
 
   it("affiche le toast 'Créneau récurrent ajouté' après succès", async () => {
@@ -814,18 +949,6 @@ describe("Mode récurrent", () => {
     expect(mockShowSuccess).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Créneau récurrent ajouté" }),
     );
-  });
-
-  it("calcule le bon weekday selon activeFromDate (Lundi=1, Mardi=2, Vendredi=5)", () => {
-    const cases = [
-      { date: "2026-09-07", weekday: 1 }, // Lundi
-      { date: "2026-09-08", weekday: 2 }, // Mardi
-      { date: "2026-09-11", weekday: 5 }, // Vendredi
-    ];
-    for (const { date, weekday } of cases) {
-      const jsDay = new Date(`${date}T00:00:00`).getDay() || 7;
-      expect(jsDay).toBe(weekday);
-    }
   });
 });
 
@@ -858,20 +981,7 @@ describe("Gestion des erreurs API", () => {
     api.createRecurringSlot.mockRejectedValueOnce(
       new Error("Conflict with existing slot"),
     );
-    renderPanel({
-      prefilledClassId: "class-6eC",
-      prefilledTeacherId: "u1",
-      prefilledDate: "2026-09-01",
-    });
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-oneoff-type-recurring")).toBeTruthy(),
-    );
-    fireEvent.press(screen.getByTestId("teacher-oneoff-type-recurring"));
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-oneoff-activefrom-input"),
-      ).toBeTruthy(),
-    );
+    await switchToRecurring("2026-09-01");
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
     await waitFor(() =>
       expect(screen.getByTestId("teacher-oneoff-api-error")).toBeTruthy(),
@@ -932,7 +1042,6 @@ describe("Flux via picker de classe", () => {
     await waitFor(() =>
       expect(screen.getByTestId("teacher-oneoff-start-input")).toBeTruthy(),
     );
-    // Picker caché après sélection
     expect(screen.queryByTestId("teacher-oneoff-class-class-5eB")).toBeNull();
   });
 
