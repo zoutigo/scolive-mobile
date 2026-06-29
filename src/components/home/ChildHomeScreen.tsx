@@ -182,7 +182,7 @@ export function ChildHomeScreen() {
         feedRes.status === "fulfilled"
           ? feedRes.value.items
           : INITIAL_STATE.feedPosts;
-      const homework =
+      let homework =
         hwRes.status === "fulfilled" ? hwRes.value : INITIAL_STATE.homework;
 
       const hasAnySuccess = [notesRes, timetableRes, unreadRes, inboxRes].some(
@@ -199,6 +199,20 @@ export function ChildHomeScreen() {
           classId: timetable.class.id,
           className: timetable.class.name,
         });
+      }
+
+      // Si classId était inconnu au départ (family store pas encore chargé),
+      // l'emploi du temps vient de le fournir : on re-fetche les devoirs maintenant.
+      if (classIdForHw === null && timetable?.class?.id) {
+        try {
+          homework = await homeworkApi.listClassHomework(
+            schoolSlug,
+            timetable.class.id,
+            { studentId: childId },
+          );
+        } catch {
+          homework = INITIAL_STATE.homework;
+        }
       }
 
       setState({

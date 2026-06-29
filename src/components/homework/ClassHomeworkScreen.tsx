@@ -1231,8 +1231,12 @@ export function ClassHomeworkScreen({
   const refreshHomework = useCallback(async () => {
     if (!schoolSlug || !classId) return;
     if (tab === "list") {
+      // On envoie fromDate = hier pour compenser le décalage UTC/heure locale :
+      // le serveur interprète fromDate comme minuit UTC, mais un devoir posé
+      // pour "aujourd'hui" à minuit local (UTC+1) a un timestamp UTC qui tombe
+      // la veille. Le filtre client (`>= today heure locale`) reste le seul juge.
       await loadHomework(schoolSlug, classId, {
-        fromDate: toIsoDateString(today),
+        fromDate: toIsoDateString(addDays(today, -1)),
         studentId: studentIdForContext,
       });
       return;
