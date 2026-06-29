@@ -349,6 +349,7 @@ function TeacherMyAgendaPane({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [allClasses, setAllClasses] = useState<TimetableClassOption[]>([]);
+  const loadKeyRef = useRef(0);
 
   const range = useMemo(
     () => buildTimetableRangeForView(viewMode, cursorDate),
@@ -357,6 +358,7 @@ function TeacherMyAgendaPane({
 
   const load = useCallback(async () => {
     if (!schoolSlug || !effectiveTeacherId) return;
+    const key = ++loadKeyRef.current;
     setIsLoading(true);
     setErrorMessage(null);
     try {
@@ -371,6 +373,7 @@ function TeacherMyAgendaPane({
         }),
         loadClassOptions(schoolSlug).catch(() => null),
       ]);
+      if (key !== loadKeyRef.current) return;
       setAllClasses(classOptionsResult?.classes ?? []);
       const contextByOccId = new Map<string, OccurrenceContext>();
       schedulePayload.occurrenceContexts.forEach((ctx) => {
@@ -387,10 +390,13 @@ function TeacherMyAgendaPane({
         contextByOccId,
       });
     } catch {
+      if (key !== loadKeyRef.current) return;
       setErrorMessage(t("timetable.teacherAgenda.errors.loadMyAgenda"));
-    } finally {
       setIsLoading(false);
+      return;
     }
+    if (key !== loadKeyRef.current) return;
+    setIsLoading(false);
   }, [
     effectiveTeacherId,
     loadClassOptions,
@@ -518,6 +524,7 @@ function AdminUserAgendaPane({ insetBottom }: { insetBottom: number }) {
   const [schedule, setSchedule] = useState<TeacherScheduleData | null>(null);
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const loadTeacherScheduleKeyRef = useRef(0);
 
   const range = useMemo(
     () => buildTimetableRangeForView(viewMode, cursorDate),
@@ -559,6 +566,7 @@ function AdminUserAgendaPane({ insetBottom }: { insetBottom: number }) {
   // Load agenda for selected teacher
   const loadTeacherSchedule = useCallback(async () => {
     if (!schoolSlug || !selectedTeacherId || !allClasses.length) return;
+    const key = ++loadTeacherScheduleKeyRef.current;
     setIsLoadingSchedule(true);
     setScheduleError(null);
     try {
@@ -570,6 +578,7 @@ function AdminUserAgendaPane({ insetBottom }: { insetBottom: number }) {
           }),
         ),
       );
+      if (key !== loadTeacherScheduleKeyRef.current) return;
       const contextByOccId = new Map<string, OccurrenceContext>();
       const allOccurrences: TimetableOccurrence[] = [];
       for (let i = 0; i < timetables.length; i++) {
@@ -603,10 +612,13 @@ function AdminUserAgendaPane({ insetBottom }: { insetBottom: number }) {
         contextByOccId,
       });
     } catch {
+      if (key !== loadTeacherScheduleKeyRef.current) return;
       setScheduleError(t("timetable.teacherAgenda.errors.loadTeacherAgenda"));
-    } finally {
       setIsLoadingSchedule(false);
+      return;
     }
+    if (key !== loadTeacherScheduleKeyRef.current) return;
+    setIsLoadingSchedule(false);
   }, [
     schoolSlug,
     selectedTeacherId,
