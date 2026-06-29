@@ -168,6 +168,52 @@ export function PillSelector(props: {
   );
 }
 
+export function MultiPillSelector(props: {
+  label: string;
+  values: string[];
+  options: Array<{ value: string; label: string }>;
+  onChange: (values: string[]) => void;
+  testIDPrefix?: string;
+}) {
+  function toggle(value: string) {
+    if (props.values.includes(value)) {
+      const next = props.values.filter((v) => v !== value);
+      if (next.length > 0) props.onChange(next);
+    } else {
+      props.onChange([...props.values, value]);
+    }
+  }
+
+  return (
+    <View style={styles.fieldBlock}>
+      <Text style={styles.fieldLabel}>{props.label}</Text>
+      <View style={styles.pillsRow}>
+        {props.options.map((option) => {
+          const selected = props.values.includes(option.value);
+          return (
+            <TouchableOpacity
+              key={option.value}
+              style={[styles.pill, selected && styles.pillSelected]}
+              onPress={() => toggle(option.value)}
+              testID={
+                props.testIDPrefix
+                  ? `${props.testIDPrefix}-${option.value}`
+                  : undefined
+              }
+            >
+              <Text
+                style={[styles.pillText, selected && styles.pillTextSelected]}
+              >
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 export function OccurrencesAgenda(props: {
   occurrences: TimetableOccurrence[];
   subjectStyles: TimetableSubjectStyle[];

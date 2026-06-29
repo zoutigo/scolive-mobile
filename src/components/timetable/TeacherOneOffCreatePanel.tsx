@@ -33,17 +33,6 @@ import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_REGEX = /^\d{1,2}:\d{2}$/;
 
-const WEEKDAY_KEYS: Record<number, string> = {
-  0: "timetable.weekdays.sunFull",
-  1: "timetable.weekdays.monFull",
-  2: "timetable.weekdays.tueFull",
-  3: "timetable.weekdays.wedFull",
-  4: "timetable.weekdays.thuFull",
-  5: "timetable.weekdays.friFull",
-  6: "timetable.weekdays.satFull",
-  7: "timetable.weekdays.sunFull",
-};
-
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 function createSchema(t: TranslateFn) {
@@ -67,6 +56,7 @@ function createSchema(t: TranslateFn) {
       // One-off only
       occurrenceDate: z.string().optional(),
       // Recurring only
+      weekdays: z.array(z.string()).optional(),
       activeFromDate: z.string().optional(),
       activeToDate: z.string().optional(),
     })
@@ -80,6 +70,13 @@ function createSchema(t: TranslateFn) {
           });
         }
       } else {
+        if (!d.weekdays || d.weekdays.length === 0) {
+          ctx.addIssue({
+            path: ["weekdays"],
+            code: z.ZodIssueCode.custom,
+            message: t("timetable.classManager.validation.chooseDays"),
+          });
+        }
         if (!d.activeFromDate || !ISO_DATE_REGEX.test(d.activeFromDate)) {
           ctx.addIssue({
             path: ["activeFromDate"],
@@ -182,6 +179,7 @@ export function TeacherOneOffCreatePanel({
       end: "09:00",
       roomId: "",
       occurrenceDate: prefilledDate ?? toIsoDateString(new Date()),
+      weekdays: ["1"],
       activeFromDate: prefilledDate ?? toIsoDateString(new Date()),
       activeToDate: "",
     },
@@ -224,20 +222,11 @@ export function TeacherOneOffCreatePanel({
   // Date used for room availability: from occurrenceDate (oneoff) or activeFromDate (recurring)
   const dateForRooms = slotType === "oneoff" ? occurrenceDate : activeFromDate;
 
-  // Weekday derived from the reference date
+  // Weekday derived from the reference date (for room availability only)
   const weekdayForRooms = useMemo(() => {
     if (!dateForRooms || !ISO_DATE_REGEX.test(dateForRooms)) return null;
     return new Date(`${dateForRooms}T00:00:00`).getDay() || 7;
   }, [dateForRooms]);
-
-  // Weekday label (e.g. "Lundi")
-  const weekdayLabel = useMemo(() => {
-    if (weekdayForRooms === null) return null;
-    const key =
-      (WEEKDAY_KEYS[weekdayForRooms] as Parameters<typeof t>[0]) ??
-      "timetable.weekdays.monFull";
-    return t(key);
-  }, [weekdayForRooms, t]);
 
   // Fetch available rooms whenever date/time changes
   useEffect(() => {
@@ -332,18 +321,22 @@ export function TeacherOneOffCreatePanel({
         });
       } else {
         const fromDate = values.activeFromDate!;
-        const weekday = new Date(`${fromDate}T00:00:00`).getDay() || 7;
-        await timetableApi.createRecurringSlot(schoolSlug, resolvedClassId, {
-          schoolYearId,
-          weekday,
-          startMinute,
-          endMinute,
-          subjectId: values.subjectId,
-          teacherUserId,
-          roomId: values.roomId || null,
-          activeFromDate: fromDate,
-          activeToDate: values.activeToDate?.trim() || null,
-        });
+        const selectedWeekdays = values.weekdays ?? ["1"];
+        await Promise.all(
+          selectedWeekdays.map((wd) =>
+            timetableApi.createRecurringSlot(schoolSlug, resolvedClassId, {
+              schoolYearId,
+              weekday: Number(wd),
+              startMinute,
+              endMinute,
+              subjectId: values.subjectId,
+              teacherUserId,
+              roomId: values.roomId || null,
+              activeFromDate: fromDate,
+              activeToDate: values.activeToDate?.trim() || null,
+            }),
+          ),
+        );
         onSuccess();
         showSuccess({
           title: t("timetable.oneOffPanel.toasts.recurringCreatedTitle"),
@@ -628,27 +621,90 @@ export function TeacherOneOffCreatePanel({
                 </View>
               </View>
             ) : (
-              /* ── Récurrent : dates de récurrence + heures ── */
+              /* ── Récurrent : jours + dates + heures ── */
               <>
-                {/* Weekday badge */}
-                {weekdayLabel ? (
-                  <View
-                    style={styles.weekdayBadge}
-                    testID="teacher-oneoff-weekday-label"
-                  >
-                    <Ionicons
-                      name="repeat-outline"
-                      size={13}
-                      color={colors.primary}
-                    />
-                    <Text style={styles.weekdayBadgeText}>
-                      {t("timetable.oneOffPanel.fields.weekdayLabel")} :{" "}
-                      <Text style={styles.weekdayBadgeEmphasis}>
-                        {weekdayLabel}
-                      </Text>
-                    </Text>
-                  </View>
-                ) : null}
+                {/* Weekday selector — inline, ligne unique, style cohérent avec le panel */}
+                <Controller
+                  control={control}
+                  name="weekdays"
+                  render={({ field }) => {
+                    const weekdayOptions = [
+                      {
+                        value: "1",
+                        label: t("timetable.classManager.weekdays.mon"),
+                      },
+                      {
+                        value: "2",
+                        label: t("timetable.classManager.weekdays.tue"),
+                      },
+                      {
+                        value: "3",
+                        label: t("timetable.classManager.weekdays.wed"),
+                      },
+                      {
+                        value: "4",
+                        label: t("timetable.classManager.weekdays.thu"),
+                      },
+                      {
+                        value: "5",
+                        label: t("timetable.classManager.weekdays.fri"),
+                      },
+                      {
+                        value: "6",
+                        label: t("timetable.classManager.weekdays.sat"),
+                      },
+                      {
+                        value: "7",
+                        label: t("timetable.classManager.weekdays.sun"),
+                      },
+                    ];
+                    const values = field.value ?? [];
+                    function toggle(v: string) {
+                      if (values.includes(v)) {
+                        const next = values.filter((d) => d !== v);
+                        if (next.length > 0) field.onChange(next);
+                      } else {
+                        field.onChange([...values, v]);
+                      }
+                    }
+                    return (
+                      <View style={styles.section}>
+                        <Text style={styles.label}>
+                          {t("timetable.classManager.fields.days")}
+                        </Text>
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          contentContainerStyle={styles.weekdayRow}
+                        >
+                          {weekdayOptions.map((opt) => {
+                            const active = values.includes(opt.value);
+                            return (
+                              <TouchableOpacity
+                                key={opt.value}
+                                style={[
+                                  styles.weekdayBtn,
+                                  active && styles.weekdayBtnActive,
+                                ]}
+                                onPress={() => toggle(opt.value)}
+                                testID={`teacher-oneoff-weekday-${opt.value}`}
+                              >
+                                <Text
+                                  style={[
+                                    styles.weekdayBtnText,
+                                    active && styles.weekdayBtnTextActive,
+                                  ]}
+                                >
+                                  {opt.label}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </ScrollView>
+                      </View>
+                    );
+                  }}
+                />
 
                 <View style={styles.dateTimeRow}>
                   <View style={styles.dateField}>
@@ -959,24 +1015,30 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
 
-  /* Weekday badge */
-  weekdayBadge: {
+  /* Weekday selector */
+  weekdayRow: {
     flexDirection: "row",
-    alignItems: "center",
     gap: 6,
-    backgroundColor: "rgba(8,70,125,0.07)",
+  },
+  weekdayBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    alignSelf: "flex-start",
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
   },
-  weekdayBadgeText: {
+  weekdayBtnActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  weekdayBtnText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    fontWeight: "600",
+    color: colors.textPrimary,
   },
-  weekdayBadgeEmphasis: {
-    fontWeight: "700",
-    color: colors.primary,
+  weekdayBtnTextActive: {
+    color: colors.white,
   },
 
   /* Date + time row */

@@ -313,4 +313,121 @@ describe("ClassTimetableManagerScreen", () => {
       );
     });
   });
+
+  describe("Sélection multi-jours des créneaux récurrents", () => {
+    it("sélectionne plusieurs jours et crée un slot par jour", async () => {
+      render(<ClassTimetableManagerScreen />);
+      await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
+      fireEvent.press(screen.getByTestId("class-timetable-tab-slots"));
+
+      // Lundi déjà sélectionné par défaut, on ajoute Mercredi et Vendredi
+      fireEvent.press(screen.getByTestId("slot-form-weekday-3")); // Mer
+      fireEvent.press(screen.getByTestId("slot-form-weekday-5")); // Ven
+      fireEvent.press(screen.getByTestId("slot-form-submit"));
+
+      await waitFor(() => {
+        expect(mockCreateRecurringSlot).toHaveBeenCalledTimes(3);
+        expect(mockCreateRecurringSlot).toHaveBeenCalledWith(
+          "college-vogt",
+          "class-1",
+          expect.objectContaining({ weekday: 1 }),
+        );
+        expect(mockCreateRecurringSlot).toHaveBeenCalledWith(
+          "college-vogt",
+          "class-1",
+          expect.objectContaining({ weekday: 3 }),
+        );
+        expect(mockCreateRecurringSlot).toHaveBeenCalledWith(
+          "college-vogt",
+          "class-1",
+          expect.objectContaining({ weekday: 5 }),
+        );
+      });
+    });
+
+    it("désélectionner le seul jour sélectionné ne décoche pas (1 minimum)", async () => {
+      render(<ClassTimetableManagerScreen />);
+      await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
+      fireEvent.press(screen.getByTestId("class-timetable-tab-slots"));
+
+      // Lundi seul sélectionné : essai de décocher ne doit pas vider la liste
+      fireEvent.press(screen.getByTestId("slot-form-weekday-1"));
+      fireEvent.press(screen.getByTestId("slot-form-submit"));
+
+      await waitFor(() => {
+        // Le submit crée toujours au moins 1 slot (lundi reste sélectionné)
+        expect(mockCreateRecurringSlot).toHaveBeenCalledWith(
+          "college-vogt",
+          "class-1",
+          expect.objectContaining({ weekday: 1 }),
+        );
+      });
+    });
+
+    it("en édition (slotEditId), affiche un PillSelector mono-sélection", async () => {
+      const mockUpdateRecurringSlot = jest.fn().mockResolvedValue(undefined);
+      useTimetableStore.setState(
+        (s) =>
+          ({
+            ...s,
+            updateRecurringSlot: mockUpdateRecurringSlot,
+            classTimetable: {
+              class: {
+                id: "class-1",
+                schoolYearId: "sy1",
+                academicLevelId: null,
+              },
+              slots: [
+                {
+                  id: "slot-edit-1",
+                  weekday: 3,
+                  startMinute: 480,
+                  endMinute: 570,
+                  room: null,
+                  roomId: null,
+                  activeFromDate: "2025-09-01",
+                  activeToDate: "2026-06-30",
+                  subject: { id: "math", name: "Maths" },
+                  teacherUser: {
+                    id: "t1",
+                    firstName: "Paul",
+                    lastName: "Manga",
+                    email: null,
+                  },
+                },
+              ],
+              oneOffSlots: [],
+              slotExceptions: [],
+              occurrences: [],
+              calendarEvents: [],
+              subjectStyles: [],
+            },
+          }) as never,
+      );
+
+      render(<ClassTimetableManagerScreen />);
+      await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
+
+      // On bascule sur l'onglet slots
+      fireEvent.press(screen.getByTestId("class-timetable-tab-slots"));
+
+      // On clique sur "edit" du slot existant
+      fireEvent.press(screen.getByTestId("slot-edit-slot-edit-1"));
+
+      // Le formulaire est maintenant en mode édition (slotEditId défini)
+      // On change le jour (Mercredi vers Jeudi)
+      fireEvent.press(screen.getByTestId("slot-form-weekday-4")); // Jeu
+      fireEvent.press(screen.getByTestId("slot-form-submit"));
+
+      await waitFor(() => {
+        expect(mockUpdateRecurringSlot).toHaveBeenCalledWith(
+          "college-vogt",
+          "slot-edit-1",
+          expect.objectContaining({ weekday: 4 }),
+        );
+        // En édition, create ne doit pas avoir été appelé
+        expect(mockCreateRecurringSlot).not.toHaveBeenCalled();
+      });
+    });
+  });
 });

@@ -27,7 +27,7 @@ type Props = {
   testID?: string;
 };
 
-function buildMonthCells(cursorDate: Date) {
+function buildMonthRows(cursorDate: Date): Array<Array<Date | null>> {
   const year = cursorDate.getFullYear();
   const month = cursorDate.getMonth();
   const firstDay = new Date(year, month, 1);
@@ -44,7 +44,12 @@ function buildMonthCells(cursorDate: Date) {
   while (cells.length % 7 !== 0) {
     cells.push(null);
   }
-  return cells;
+
+  const rows: Array<Array<Date | null>> = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    rows.push(cells.slice(i, i + 7));
+  }
+  return rows;
 }
 
 function formatDisplayDate(value: string) {
@@ -75,7 +80,7 @@ export function DatePickerField({
   const [cursorDate, setCursorDate] = useState(parsedValue ?? new Date());
   const [draftDate, setDraftDate] = useState<Date | null>(parsedValue);
 
-  const monthCells = useMemo(() => buildMonthCells(cursorDate), [cursorDate]);
+  const monthRows = useMemo(() => buildMonthRows(cursorDate), [cursorDate]);
 
   function openPicker() {
     const nextValue = parseDateInput(value);
@@ -192,29 +197,44 @@ export function DatePickerField({
             </View>
 
             <View style={styles.grid}>
-              {monthCells.map((cell, index) => {
-                const iso = cell ? toIsoDateString(cell) : null;
-                const selected =
-                  iso && draftDate ? iso === toIsoDateString(draftDate) : false;
-                return (
-                  <TouchableOpacity
-                    key={iso ?? `empty-${index}`}
-                    style={[styles.dayCell, selected && styles.dayCellSelected]}
-                    onPress={() => cell && setDraftDate(cell)}
-                    disabled={!cell}
-                    testID={iso && testID ? `${testID}-day-${iso}` : undefined}
-                  >
-                    <Text
-                      style={[
-                        styles.dayText,
-                        selected && styles.dayTextSelected,
-                      ]}
-                    >
-                      {cell ? String(cell.getDate()) : ""}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+              {monthRows.map((row, rowIndex) => (
+                <View
+                  key={rowIndex}
+                  style={styles.gridRow}
+                  testID={testID ? `${testID}-row-${rowIndex}` : undefined}
+                >
+                  {row.map((cell, colIndex) => {
+                    const iso = cell ? toIsoDateString(cell) : null;
+                    const selected =
+                      iso && draftDate
+                        ? iso === toIsoDateString(draftDate)
+                        : false;
+                    return (
+                      <TouchableOpacity
+                        key={iso ?? `empty-${rowIndex}-${colIndex}`}
+                        style={[
+                          styles.dayCell,
+                          selected && styles.dayCellSelected,
+                        ]}
+                        onPress={() => cell && setDraftDate(cell)}
+                        disabled={!cell}
+                        testID={
+                          iso && testID ? `${testID}-day-${iso}` : undefined
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.dayText,
+                            selected && styles.dayTextSelected,
+                          ]}
+                        >
+                          {cell ? String(cell.getDate()) : ""}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ))}
             </View>
 
             <View style={styles.actions}>
@@ -332,16 +352,17 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   grid: {
+    gap: 4,
+  },
+  gridRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    rowGap: 8,
   },
   dayCell: {
-    width: `${100 / 7}%`,
+    flex: 1,
     aspectRatio: 1,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 12,
+    borderRadius: 999,
   },
   dayCellSelected: {
     backgroundColor: colors.primary,

@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -13,7 +14,10 @@ import {
 import { useAuthStore } from "../../src/store/auth.store";
 import { useTimetableStore } from "../../src/store/timetable.store";
 import { timetableApi } from "../../src/api/timetable.api";
-import type { TimetableOccurrence } from "../../src/types/timetable.types";
+import type {
+  TeacherMyTimetableResponse,
+  TimetableOccurrence,
+} from "../../src/types/timetable.types";
 
 jest.mock("../../src/api/timetable.api");
 jest.mock("../../src/store/success-toast.store", () => ({
@@ -1107,5 +1111,208 @@ describe("TeacherAgendaScreen — samedi via occurrence one-off", () => {
       expect(screen.getByTestId("teacher-agenda-class-week-grid")).toBeTruthy(),
     );
     expect(screen.getByTestId("teacher-agenda-class-week-col-6")).toBeTruthy();
+  });
+});
+
+// ── Tests — Prévention de la race condition (loadKeyRef) ───────────────────
+// Vérifie que le résultat d'un chargement obsolète (stale) est bien ignoré
+// quand un chargement plus récent a déjà répondu.
+//
+// onRefresh et onAfterMutation ont le même code path : setSchedule(null) + load().
+// On utilise onRefresh car c'est le seul callback attaché directement sur le
+// ScrollView testable via fireEvent.
+
+describe("TeacherAgendaScreen — race condition stale-load prevention", () => {
+  function makeMyTimetablePayload(
+    occs: typeof TEACHER_OCCS,
+  ): TeacherMyTimetableResponse {
+    return {
+      teacher: { id: "u1", firstName: "Albert", lastName: "Mvondo" },
+      classes: [
+        {
+          id: "class-6eC",
+          name: "6eC",
+          schoolYearId: "sy1",
+          academicLevelId: null,
+        },
+      ],
+      slots: [SLOT_STUB],
+      oneOffSlots: [],
+      slotExceptions: [],
+      occurrences: occs.map((o) => ({
+        ...o,
+        classId: "class-6eC",
+        className: "6eC",
+        schoolYearId: "sy1",
+      })),
+      occurrenceContexts: occs.map((o) => ({
+        occurrenceId: o.id,
+        classId: "class-6eC",
+        className: "6eC",
+        schoolYearId: "sy1",
+      })),
+      calendarEvents: [],
+      subjectStyles: [STYLE_ANG],
+    };
+  }
+
+  it("nav-next puis nav-prev : la navigation retour efface le chargement de la navigation aller", async () => {
+    // Scénario :
+    //   Load A : montage initial (rapide)        → occ-ang-14 (14 avril)
+    //   Load B : nav-next → 15 avril (lent)      → occ-ang-15 pour le 15 avril
+    //   Load C : nav-prev → 14 avril (rapide)    → occ-ang-14 pour le 14 avril
+    //
+    // Curseur final : 14 avril.
+    // Sans le fix : Load B (occ-ang-15, pas de 14-avril) écrase Load C
+    //               → le 14 avril semble vide (bug).
+    // Avec le fix  : Load B ignoré → occ-ang-14 reste visible.
+    //
+    // NOTE : nav-next est accessible ici car la navigation ne vide pas le planning
+    //        (setSchedule(null) est réservé à onRefresh/onAfterMutation).
+
+    let resolveLoadB!: (v: TeacherMyTimetableResponse) => void;
+    const loadBPromise = new Promise<TeacherMyTimetableResponse>((resolve) => {
+      resolveLoadB = resolve;
+    });
+
+    api.getTeacherMyTimetable
+      .mockResolvedValueOnce(makeMyTimetablePayload([TEACHER_OCCS[0]!])) // Load A
+      .mockImplementationOnce(() => loadBPromise) // Load B (lent)
+      .mockResolvedValueOnce(makeMyTimetablePayload([TEACHER_OCCS[0]!])); // Load C (rapide)
+
+    render(<TeacherAgendaScreen />);
+
+    // Load A → occ-ang-14 visible
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-mine-day-card-occ-ang-14"),
+      ).toBeTruthy(),
+    );
+
+    // nav-next → 15 avril → Load B démarre (lent)
+    // Le planning reste non-null pendant la navigation → nav-prev reste cliquable
+    fireEvent.press(screen.getByTestId("teacher-agenda-mine-nav-next"));
+
+    // nav-prev → retour 14 avril → Load C démarre (rapide, occ-ang-14)
+    fireEvent.press(screen.getByTestId("teacher-agenda-mine-nav-prev"));
+
+    // Load C se termine → occ-ang-14 re-visible
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-mine-day-card-occ-ang-14"),
+      ).toBeTruthy(),
+    );
+
+    // Load B se termine tardivement : occ-ang-15 (14 avril absent dans ce payload)
+    await act(async () => {
+      resolveLoadB(makeMyTimetablePayload([TEACHER_OCCS[1]!]));
+    });
+
+    // Avec le fix : Load B ignoré → occ-ang-14 toujours visible
+    expect(
+      screen.getByTestId("teacher-agenda-mine-day-card-occ-ang-14"),
+    ).toBeTruthy();
+  });
+
+  it("double refresh : le second refresh (récent) efface les données du premier (obsolète)", async () => {
+    // Scénario :
+    //   Load A : montage initial (rapide) → occ-ang-14
+    //   Load B : 1er refresh  (lent)     → occ-ang-14 (données avant suppression)
+    //   Load C : 2ème refresh (rapide)   → vide (après suppression)
+    //
+    // Sans le fix : Load B écrase Load C → occ-ang-14 réapparaît (bug).
+    // Avec le fix  : Load B ignoré → agenda reste vide.
+
+    let resolveLoadB!: (v: TeacherMyTimetableResponse) => void;
+    const loadBPromise = new Promise<TeacherMyTimetableResponse>((resolve) => {
+      resolveLoadB = resolve;
+    });
+
+    api.getTeacherMyTimetable
+      .mockResolvedValueOnce(makeMyTimetablePayload([TEACHER_OCCS[0]!])) // Load A
+      .mockImplementationOnce(() => loadBPromise) // Load B (lent)
+      .mockResolvedValueOnce(makeMyTimetablePayload([])); // Load C (rapide, vide)
+
+    render(<TeacherAgendaScreen />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-mine-day-card-occ-ang-14"),
+      ).toBeTruthy(),
+    );
+
+    // 1er refresh → Load B en vol (lent)
+    fireEvent(screen.getByTestId("teacher-agenda-mine-pane"), "onRefresh");
+    // 2ème refresh immédiat → Load C démarre (rapide, vide)
+    fireEvent(screen.getByTestId("teacher-agenda-mine-pane"), "onRefresh");
+
+    // Load C se termine → agenda vide, occ-ang-14 absent
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId("teacher-agenda-mine-day-card-occ-ang-14"),
+      ).toBeNull(),
+    );
+
+    // Load B se termine tardivement avec occ-ang-14 (stale)
+    await act(async () => {
+      resolveLoadB(makeMyTimetablePayload([TEACHER_OCCS[0]!]));
+    });
+
+    // Avec le fix : Load B ignoré → occ-ang-14 ne réapparaît pas
+    expect(
+      screen.queryByTestId("teacher-agenda-mine-day-card-occ-ang-14"),
+    ).toBeNull();
+  });
+
+  it("navigation rapide successive : seul le chargement de la destination finale s'applique", async () => {
+    // Scénario :
+    //   Load A : montage initial (rapide) → occ-ang-14
+    //   Load B : nav avril 15    (lent)   → occ-ang-15
+    //   Load C : nav avril 16    (rapide) → vide
+    //
+    // L'utilisateur navigue rapidement : Load B est encore en vol quand Load C démarre.
+    // Sans le fix : Load B écrase Load C → occ-ang-15 sur le 16 avril (bug).
+    // Avec le fix  : Load B ignoré → agenda vide sur le 16 avril.
+
+    let resolveLoadB!: (v: TeacherMyTimetableResponse) => void;
+    const loadBPromise = new Promise<TeacherMyTimetableResponse>((resolve) => {
+      resolveLoadB = resolve;
+    });
+
+    api.getTeacherMyTimetable
+      .mockResolvedValueOnce(makeMyTimetablePayload([TEACHER_OCCS[0]!])) // Load A
+      .mockImplementationOnce(() => loadBPromise) // Load B (lent)
+      .mockResolvedValueOnce(makeMyTimetablePayload([])); // Load C (rapide, vide)
+
+    render(<TeacherAgendaScreen />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-mine-day-card-occ-ang-14"),
+      ).toBeTruthy(),
+    );
+
+    // Deux navigations rapides : nav-next → 15 avril (Load B), puis 16 avril (Load C)
+    const navNext = screen.getByTestId("teacher-agenda-mine-nav-next");
+    fireEvent.press(navNext); // Load B démarre (lent)
+    fireEvent.press(navNext); // Load C démarre (rapide)
+
+    // Load C se termine → jour vide
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-agenda-mine-day-list")).toBeTruthy(),
+    );
+    expect(
+      screen.queryByTestId("teacher-agenda-mine-day-card-occ-ang-15"),
+    ).toBeNull();
+
+    // Load B se termine tardivement avec occ-ang-15 (pour le 15 avril)
+    await act(async () => {
+      resolveLoadB(makeMyTimetablePayload([TEACHER_OCCS[1]!]));
+    });
+
+    // Avec le fix : Load B ignoré → le jour 16 reste vide
+    expect(
+      screen.queryByTestId("teacher-agenda-mine-day-card-occ-ang-15"),
+    ).toBeNull();
   });
 });

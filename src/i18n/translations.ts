@@ -777,6 +777,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.classManager.toast.slotCreatedTitle": "Créneau ajouté",
     "timetable.classManager.toast.slotCreatedMessage":
       "Le nouveau cours apparaît maintenant dans l'agenda.",
+    "timetable.classManager.toast.slotsCreatedMultiMessage":
+      "Les créneaux ont été ajoutés à l'agenda.",
     "timetable.classManager.toast.slotRejectedTitle": "Créneau refusé",
     "timetable.classManager.toast.slotRejectedMessage":
       "Impossible d'enregistrer ce créneau.",
@@ -844,6 +846,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.classManager.fields.subject": "Matière",
     "timetable.classManager.fields.teacher": "Enseignant",
     "timetable.classManager.fields.day": "Jour",
+    "timetable.classManager.fields.days": "Jours de la semaine",
+    "timetable.classManager.validation.chooseDays":
+      "Sélectionnez au moins un jour.",
     "timetable.classManager.fields.start": "Début",
     "timetable.classManager.fields.end": "Fin",
     "timetable.classManager.fields.room": "Salle",
@@ -2696,6 +2701,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.classManager.toast.slotCreatedTitle": "Slot added",
     "timetable.classManager.toast.slotCreatedMessage":
       "The new class now appears in the schedule.",
+    "timetable.classManager.toast.slotsCreatedMultiMessage":
+      "The slots have been added to the schedule.",
     "timetable.classManager.toast.slotRejectedTitle": "Slot rejected",
     "timetable.classManager.toast.slotRejectedMessage":
       "Unable to save this slot.",
@@ -2759,6 +2766,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.classManager.slots.subtitle":
       "The form stays scrollable to leave room for the keyboard and ensure reliable E2E input.",
     "timetable.classManager.fields.subject": "Subject",
+    "timetable.classManager.fields.days": "Days of the week",
+    "timetable.classManager.validation.chooseDays": "Select at least one day.",
     "timetable.classManager.fields.teacher": "Teacher",
     "timetable.classManager.fields.day": "Day",
     "timetable.classManager.fields.start": "Start",
