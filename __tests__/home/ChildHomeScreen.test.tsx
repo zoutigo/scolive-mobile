@@ -775,7 +775,7 @@ describe("ChildHomeScreen — chargement et erreurs", () => {
     ).toBeTruthy();
   });
 
-  it("n'appelle pas homeworkApi si classId inconnu", async () => {
+  it("n'appelle pas homeworkApi si classId inconnu et timetable en erreur", async () => {
     useFamilyStore.setState({
       children: [{ id: "child-1", firstName: "Remi", lastName: "Ntamack" }],
       activeChildId: null,
@@ -786,6 +786,23 @@ describe("ChildHomeScreen — chargement et erreurs", () => {
     render(<ChildHomeScreen />);
     await waitForContent();
     expect(mockHomeworkApi.listClassHomework).not.toHaveBeenCalled();
+  });
+
+  it("re-fetche les devoirs depuis le classId fourni par l'emploi du temps si inconnu au démarrage", async () => {
+    useFamilyStore.setState({
+      children: [{ id: "child-1", firstName: "Remi", lastName: "Ntamack" }],
+      activeChildId: null,
+      isLoading: false,
+    });
+
+    render(<ChildHomeScreen />);
+    await waitForContent();
+
+    expect(mockHomeworkApi.listClassHomework).toHaveBeenCalledWith(
+      "college-vogt",
+      "class-1",
+      { studentId: "child-1" },
+    );
   });
 
   it("appelle homeworkApi avec le bon classId et studentId", async () => {
