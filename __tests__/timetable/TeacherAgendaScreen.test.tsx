@@ -1171,11 +1171,9 @@ describe("TeacherAgendaScreen — race condition stale-load prevention", () => {
     //        (setSchedule(null) est réservé à onRefresh/onAfterMutation).
 
     let resolveLoadB!: (v: TeacherMyTimetableResponse) => void;
-    const loadBPromise = new Promise<TeacherMyTimetableResponse>(
-      (resolve) => {
-        resolveLoadB = resolve;
-      },
-    );
+    const loadBPromise = new Promise<TeacherMyTimetableResponse>((resolve) => {
+      resolveLoadB = resolve;
+    });
 
     api.getTeacherMyTimetable
       .mockResolvedValueOnce(makeMyTimetablePayload([TEACHER_OCCS[0]!])) // Load A
@@ -1226,11 +1224,9 @@ describe("TeacherAgendaScreen — race condition stale-load prevention", () => {
     // Avec le fix  : Load B ignoré → agenda reste vide.
 
     let resolveLoadB!: (v: TeacherMyTimetableResponse) => void;
-    const loadBPromise = new Promise<TeacherMyTimetableResponse>(
-      (resolve) => {
-        resolveLoadB = resolve;
-      },
-    );
+    const loadBPromise = new Promise<TeacherMyTimetableResponse>((resolve) => {
+      resolveLoadB = resolve;
+    });
 
     api.getTeacherMyTimetable
       .mockResolvedValueOnce(makeMyTimetablePayload([TEACHER_OCCS[0]!])) // Load A
@@ -1279,11 +1275,9 @@ describe("TeacherAgendaScreen — race condition stale-load prevention", () => {
     // Avec le fix  : Load B ignoré → agenda vide sur le 16 avril.
 
     let resolveLoadB!: (v: TeacherMyTimetableResponse) => void;
-    const loadBPromise = new Promise<TeacherMyTimetableResponse>(
-      (resolve) => {
-        resolveLoadB = resolve;
-      },
-    );
+    const loadBPromise = new Promise<TeacherMyTimetableResponse>((resolve) => {
+      resolveLoadB = resolve;
+    });
 
     api.getTeacherMyTimetable
       .mockResolvedValueOnce(makeMyTimetablePayload([TEACHER_OCCS[0]!])) // Load A

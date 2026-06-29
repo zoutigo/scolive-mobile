@@ -749,9 +749,7 @@ describe("Mode ponctuel", () => {
 
   it("n'affiche PAS le sélecteur de jours en mode ponctuel", async () => {
     await waitForForm();
-    expect(
-      screen.queryByTestId("teacher-oneoff-weekday-1"),
-    ).toBeNull();
+    expect(screen.queryByTestId("teacher-oneoff-weekday-1")).toBeNull();
   });
 
   it("n'appelle PAS createRecurringSlot en mode ponctuel", async () => {
@@ -775,17 +773,13 @@ describe("Mode récurrent — sélecteur de jours", () => {
   it("affiche le sélecteur de jours (7 pills) en mode récurrent", async () => {
     await switchToRecurring();
     for (const day of ["1", "2", "3", "4", "5", "6", "7"]) {
-      expect(
-        screen.getByTestId(`teacher-oneoff-weekday-${day}`),
-      ).toBeTruthy();
+      expect(screen.getByTestId(`teacher-oneoff-weekday-${day}`)).toBeTruthy();
     }
   });
 
   it("n'affiche PAS le badge auto-calculé du jour (supprimé)", async () => {
     await switchToRecurring("2026-04-27"); // lundi
-    expect(
-      screen.queryByTestId("teacher-oneoff-weekday-label"),
-    ).toBeNull();
+    expect(screen.queryByTestId("teacher-oneoff-weekday-label")).toBeNull();
   });
 
   it("Lundi (1) est sélectionné par défaut", async () => {
@@ -810,7 +804,9 @@ describe("Mode récurrent — sélecteur de jours", () => {
     fireEvent.press(screen.getByTestId("teacher-oneoff-weekday-3")); // ["1","3"]
     fireEvent.press(screen.getByTestId("teacher-oneoff-weekday-1")); // ["3"]
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
-    await waitFor(() => expect(api.createRecurringSlot).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(api.createRecurringSlot).toHaveBeenCalledTimes(1),
+    );
     expect(api.createRecurringSlot).toHaveBeenCalledWith(
       "college-vogt",
       "class-6eC",
@@ -858,7 +854,9 @@ describe("Mode récurrent — sélecteur de jours", () => {
     fireEvent.press(screen.getByTestId("teacher-oneoff-weekday-1"));
     // MultiPillSelector empêche de vider la liste — Lundi reste sélectionné
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
-    await waitFor(() => expect(api.createRecurringSlot).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(api.createRecurringSlot).toHaveBeenCalledTimes(1),
+    );
   });
 
   it("masque le champ occurrenceDate en mode récurrent", async () => {
@@ -925,21 +923,19 @@ describe("Mode récurrent — soumission", () => {
     );
     fireEvent.press(screen.getByTestId("teacher-oneoff-type-recurring"));
     await waitFor(() =>
-      expect(screen.getByTestId("teacher-oneoff-activefrom-input")).toBeTruthy(),
+      expect(
+        screen.getByTestId("teacher-oneoff-activefrom-input"),
+      ).toBeTruthy(),
     );
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
-    await waitFor(() =>
-      expect(api.createRecurringSlot).not.toHaveBeenCalled(),
-    );
+    await waitFor(() => expect(api.createRecurringSlot).not.toHaveBeenCalled());
   });
 
   it("bloque si activeToDate <= activeFromDate", async () => {
     await switchToRecurring("2026-09-01");
     await pickDate("teacher-oneoff-activeto-input", "2026-08-01");
     fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
-    await waitFor(() =>
-      expect(api.createRecurringSlot).not.toHaveBeenCalled(),
-    );
+    await waitFor(() => expect(api.createRecurringSlot).not.toHaveBeenCalled());
   });
 
   it("affiche le toast 'Créneau récurrent ajouté' après succès", async () => {

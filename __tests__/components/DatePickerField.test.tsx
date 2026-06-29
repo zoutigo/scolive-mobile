@@ -29,12 +29,7 @@ function renderPicker(
 ) {
   const onChange = jest.fn();
   render(
-    <DatePickerField
-      value=""
-      onChange={onChange}
-      testID="dp"
-      {...overrides}
-    />,
+    <DatePickerField value="" onChange={onChange} testID="dp" {...overrides} />,
   );
   return { onChange };
 }
@@ -190,9 +185,7 @@ describe("DatePickerField — sélection et confirmation", () => {
     const { onChange } = await openPicker({ value: "2026-06-29" });
     fireEvent.press(screen.getByTestId("dp-day-2026-06-15"));
     fireEvent.press(screen.getByTestId("dp-cancel"));
-    await waitFor(() =>
-      expect(screen.queryByTestId("dp-modal")).toBeNull(),
-    );
+    await waitFor(() => expect(screen.queryByTestId("dp-modal")).toBeNull());
     expect(onChange).not.toHaveBeenCalled();
   });
 
