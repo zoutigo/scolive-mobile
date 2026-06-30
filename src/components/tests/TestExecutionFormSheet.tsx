@@ -1,9 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
+  Keyboard,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -85,8 +84,20 @@ export function TestExecutionFormSheet({
 }: Props) {
   const { t } = useTranslation();
   const [attachments, setAttachments] = useState<LocalAttachment[]>([]);
+  const [kbHeight, setKbHeight] = useState(0);
   const resultInputRef = useRef<TextInput>(null);
   const schema = buildSchema(t, evidenceRequired);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) =>
+      setKbHeight(e.endCoordinates.height),
+    );
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKbHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   const {
     control,
@@ -220,10 +231,7 @@ export function TestExecutionFormSheet({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        style={styles.overlay}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <View style={[styles.overlay, { paddingBottom: kbHeight }]}>
         <TouchableOpacity
           style={styles.backdrop}
           activeOpacity={1}
@@ -371,7 +379,7 @@ export function TestExecutionFormSheet({
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -401,12 +409,12 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     borderBottomWidth: 0,
-    minHeight: "65%",
+    minHeight: "75%",
     maxHeight: "92%",
   },
   header: {

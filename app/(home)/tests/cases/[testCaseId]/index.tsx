@@ -9,24 +9,20 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import * as Application from "expo-application";
-import { Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AppShell } from "../../../../src/components/navigation/AppShell";
-import { ModuleHeader } from "../../../../src/components/navigation/ModuleHeader";
-import { BOTTOM_TAB_BAR_HEIGHT } from "../../../../src/components/navigation/BottomTabBar";
-import { TestExecutionFormSheet } from "../../../../src/components/tests/TestExecutionFormSheet";
-import { testsApi } from "../../../../src/api/tests.api";
-import { useAuthStore } from "../../../../src/store/auth.store";
-import { useSuccessToastStore } from "../../../../src/store/success-toast.store";
-import { useTranslation } from "../../../../src/i18n/useTranslation";
-import { colors } from "../../../../src/theme";
+import { AppShell } from "../../../../../src/components/navigation/AppShell";
+import { ModuleHeader } from "../../../../../src/components/navigation/ModuleHeader";
+import { BOTTOM_TAB_BAR_HEIGHT } from "../../../../../src/components/navigation/BottomTabBar";
+import { testsApi } from "../../../../../src/api/tests.api";
+import { useAuthStore } from "../../../../../src/store/auth.store";
+import { useTranslation } from "../../../../../src/i18n/useTranslation";
+import { colors } from "../../../../../src/theme";
 import type {
   TestCaseDetail,
   TestExecutionStatus,
-} from "../../../../src/types/tests.types";
+} from "../../../../../src/types/tests.types";
 
 export default function TestCaseRoute() {
   return (
@@ -42,14 +38,11 @@ function TestCaseScreen() {
   const router = useRouter();
   const { testCaseId } = useLocalSearchParams<{ testCaseId: string }>();
   const { user } = useAuthStore();
-  const showSuccess = useSuccessToastStore((state) => state.showSuccess);
-  const showError = useSuccessToastStore((state) => state.showError);
   const [detail, setDetail] = useState<TestCaseDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isFormVisible, setIsFormVisible] = useState(false);
+  const isInitialLoad = useRef(true);
 
   const scrollRef = useRef<ScrollView>(null);
   const historyY = useRef(0);
@@ -81,44 +74,15 @@ function TestCaseScreen() {
     void load();
   }, [load]);
 
-  async function handleSubmit(values: {
-    status: TestExecutionStatus;
-    resultText: string;
-    comment: string;
-    attachments: Array<{ uri: string; name: string; mimeType: string }>;
-  }) {
-    if (!testCaseId) return;
-    setIsSubmitting(true);
-    try {
-      await testsApi.createExecution(testCaseId, {
-        status: values.status,
-        resultText: values.resultText,
-        comment: values.comment || undefined,
-        deviceInfo: `${Platform.OS}`,
-        appVersion:
-          Application.nativeApplicationVersion ??
-          Application.nativeBuildVersion ??
-          undefined,
-        attachments: values.attachments,
-      });
-      setIsFormVisible(false);
-      showSuccess({
-        title: t("tests.detail.toastSuccessTitle"),
-        message: t("tests.detail.toastSuccessMessage"),
-      });
-      await load(true);
-    } catch (error) {
-      showError({
-        title: t("tests.common.errors.submitTitle"),
-        message:
-          error instanceof Error
-            ? error.message
-            : t("tests.common.errors.submitGeneric"),
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
+  useFocusEffect(
+    useCallback(() => {
+      if (isInitialLoad.current) {
+        isInitialLoad.current = false;
+        return;
+      }
+      void load(true);
+    }, [load]),
+  );
 
   function scrollToResults() {
     scrollRef.current?.scrollTo({ y: historyY.current, animated: true });
@@ -283,19 +247,19 @@ function TestCaseScreen() {
 
           <TouchableOpacity
             style={styles.fab}
-            onPress={() => setIsFormVisible(true)}
+            onPress={() =>
+              router.push({
+                pathname: "/(home)/tests/cases/[testCaseId]/submit" as never,
+                params: {
+                  testCaseId,
+                  evidenceRequired: detail.evidenceRequired ? "1" : "0",
+                },
+              })
+            }
             testID="tests-fab-add"
           >
             <Ionicons name="add" size={28} color={colors.white} />
           </TouchableOpacity>
-
-          <TestExecutionFormSheet
-            visible={isFormVisible}
-            evidenceRequired={detail.evidenceRequired}
-            isSubmitting={isSubmitting}
-            onClose={() => setIsFormVisible(false)}
-            onSubmit={handleSubmit}
-          />
         </>
       )}
     </View>
