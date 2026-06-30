@@ -132,7 +132,7 @@ function SubmitResultScreen() {
     setValue("attachmentsCount", attachments.length, { shouldValidate: true });
   }, [attachments.length, setValue]);
 
-  async function pickImage() {
+  async function pickFromGallery() {
     const { status: permission } =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permission !== "granted") {
@@ -161,6 +161,35 @@ function SubmitResultScreen() {
     }
   }
 
+  async function takePhoto() {
+    const { status: permission } =
+      await ImagePicker.requestCameraPermissionsAsync();
+    if (permission !== "granted") {
+      Alert.alert(
+        t("tests.detail.permissions.title"),
+        t("tests.detail.permissions.camera"),
+      );
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      quality: 0.85,
+      exif: false,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      setAttachments((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-${Math.random()}`,
+          uri: asset.uri,
+          name: asset.fileName ?? `capture_${Date.now()}.jpg`,
+          mimeType: asset.mimeType ?? "image/jpeg",
+        },
+      ]);
+    }
+  }
+
   async function pickDocument() {
     const result = await DocumentPicker.getDocumentAsync({
       copyToCacheDirectory: true,
@@ -177,6 +206,28 @@ function SubmitResultScreen() {
         })),
       ]);
     }
+  }
+
+  function openAttachmentMenu() {
+    Alert.alert(
+      t("tests.detail.attachments.title"),
+      undefined,
+      [
+        {
+          text: t("tests.detail.attachments.camera"),
+          onPress: () => void takePhoto(),
+        },
+        {
+          text: t("tests.detail.attachments.gallery"),
+          onPress: () => void pickFromGallery(),
+        },
+        {
+          text: t("tests.detail.attachments.file"),
+          onPress: () => void pickDocument(),
+        },
+        { text: t("tests.common.cancel"), style: "cancel" },
+      ],
+    );
   }
 
   const onValid = handleSubmit(
@@ -227,13 +278,13 @@ function SubmitResultScreen() {
         topInset={insets.top}
       />
 
-      {/* Hero compact */}
+      {/* Hero compact — fond clair, pas de répétition du header */}
       <View style={styles.hero}>
         <View style={styles.heroIconWrap}>
           <Ionicons
             name="clipboard-outline"
             size={20}
-            color={colors.white}
+            color={colors.primary}
           />
         </View>
         <Text style={styles.heroText} numberOfLines={1}>
@@ -327,33 +378,16 @@ function SubmitResultScreen() {
             )}
           />
 
-          {/* Attachments — same pattern as CreateTicketScreen */}
-          <View style={styles.attachActions}>
-            <TouchableOpacity
-              style={styles.attachBtn}
-              onPress={() => void pickImage()}
-              testID="tests-attach-image-btn"
-            >
-              <Ionicons name="image-outline" size={16} color={colors.primary} />
-              <Text style={styles.attachBtnText}>
-                {t("tests.detail.attachments.image")}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.attachBtn}
-              onPress={() => void pickDocument()}
-              testID="tests-attach-file-btn"
-            >
-              <Ionicons
-                name="document-outline"
-                size={16}
-                color={colors.primary}
-              />
-              <Text style={styles.attachBtnText}>
-                {t("tests.detail.attachments.file")}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.attachBtn}
+            onPress={openAttachmentMenu}
+            testID="tests-attach-btn"
+          >
+            <Ionicons name="attach-outline" size={16} color={colors.primary} />
+            <Text style={styles.attachBtnText}>
+              {t("tests.detail.attachments.add")}
+            </Text>
+          </TouchableOpacity>
           {errors.attachmentsCount ? (
             <Text style={styles.fieldError}>
               {errors.attachmentsCount.message}
@@ -413,24 +447,26 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   hero: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.surface,
     paddingHorizontal: 18,
     paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8DCCD",
   },
   heroIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: "rgba(243,179,77,0.28)",
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: "rgba(8,70,125,0.10)",
     alignItems: "center",
     justifyContent: "center",
   },
   heroText: {
     flex: 1,
-    color: "rgba(255,244,227,0.9)",
+    color: colors.textSecondary,
     fontSize: 13,
     fontWeight: "500",
   },
@@ -477,18 +513,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
-  attachActions: { flexDirection: "row", gap: 10 },
   attachBtn: {
+    alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     borderWidth: 1,
     borderColor: colors.primary,
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
-  attachBtnText: { fontSize: 13, color: colors.primary, fontWeight: "500" },
+  attachBtnText: { fontSize: 13, color: colors.primary, fontWeight: "600" },
   attachmentRow: {
     flexDirection: "row",
     alignItems: "center",
