@@ -442,11 +442,13 @@ export default function ComposeScreen() {
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>(() =>
     parseForwardAttachments(forwardAttachments),
   );
+  const [editorHeight, setEditorHeight] = useState(200);
   const [isInsertingImage, setIsInsertingImage] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
-  const [selectedImageSize, setSelectedImageSize] =
-    useState<ImageSize | null>(null);
+  const [selectedImageSize, setSelectedImageSize] = useState<ImageSize | null>(
+    null,
+  );
   const [selectedImageAlign, setSelectedImageAlign] =
     useState<ImageAlign | null>(null);
 
@@ -652,7 +654,10 @@ export default function ComposeScreen() {
     `);
   }
 
-  function handleEditorMessage(message: { type: string; [key: string]: unknown }) {
+  function handleEditorMessage(message: {
+    type: string;
+    [key: string]: unknown;
+  }) {
     if (message.type === "IMAGE_TAPPED") {
       const id = message.id as string | undefined;
       const size = message.size as ImageSize | null | undefined;
@@ -1069,10 +1074,10 @@ export default function ComposeScreen() {
             />
           ) : null}
 
-          {/* Rich text editor */}
+          {/* Rich text editor — useContainer + onHeightChange pour auto-expansion */}
           <RichEditor
             ref={editorRef}
-            style={styles.richEditor}
+            style={[styles.richEditor, { height: editorHeight }]}
             editorStyle={{
               backgroundColor: colors.surface,
               color: colors.textPrimary,
@@ -1089,6 +1094,7 @@ export default function ComposeScreen() {
             }}
             placeholder={t("messaging.compose.bodyPlaceholder")}
             onChange={handleEditorChange}
+            onHeightChange={(h) => setEditorHeight(Math.max(200, h))}
             initialContentHTML={initialBodyHtml}
             useContainer
             initialFocus={false}
@@ -1346,7 +1352,6 @@ const styles = StyleSheet.create({
     borderColor: colors.warmBorder,
   },
   richEditor: {
-    minHeight: 200,
     backgroundColor: colors.surface,
   },
 

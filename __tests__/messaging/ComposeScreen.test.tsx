@@ -1086,6 +1086,26 @@ describe("formatFileSize()", () => {
   });
 });
 
+// ── Hauteur dynamique de l'éditeur ────────────────────────────────────────────
+
+describe("Éditeur — expansion de hauteur", () => {
+  it("ne plante pas quand onHeightChange est déclenché depuis la WebView", async () => {
+    renderCompose();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("rich-editor-simulate-height-change"));
+    });
+    expect(screen.getByTestId("rich-editor")).toBeTruthy();
+  });
+
+  it("ne plante pas quand du contenu est ajouté et que la hauteur grandit", async () => {
+    renderCompose();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("rich-editor-set-content"));
+    });
+    expect(screen.getByTestId("rich-editor")).toBeTruthy();
+  });
+});
+
 // ── Image inline : affichage et édition ───────────────────────────────────────
 
 describe("Image inline — insertion avec style corrigé", () => {

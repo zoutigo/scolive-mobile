@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -122,6 +121,7 @@ export function FeedComposerCard({
   );
 
   const [type, setType] = useState<FeedPostType>(initialType);
+  const [editorHeight, setEditorHeight] = useState(200);
   const [bodyHtml, setBodyHtml] = useState("");
   const [bodyError, setBodyError] = useState<string | null>(null);
   const [featuredDays, setFeaturedDays] = useState("0");
@@ -257,7 +257,10 @@ export function FeedComposerCard({
         name: asset.fileName ?? `feed-inline-${Date.now()}.jpg`,
         mimeType: asset.mimeType ?? "image/jpeg",
       });
-      editorRef.current?.insertImage(response.url);
+      editorRef.current?.insertImage(
+        response.url,
+        "width:100%;max-width:100%;height:auto;display:block;border-radius:8px;margin:8px 0;",
+      );
     } catch (error) {
       Alert.alert(
         t("feed.toast.imageErrorTitle"),
@@ -453,8 +456,7 @@ export function FeedComposerCard({
           <View style={styles.editorArea}>
             <RichEditor
               ref={editorRef}
-              style={styles.editor}
-              initialHeight={Platform.OS === "ios" ? 180 : 200}
+              style={[styles.editor, { height: editorHeight }]}
               placeholder={t("feed.composer.editorPlaceholder")}
               editorStyle={{
                 backgroundColor: colors.surface,
@@ -462,11 +464,15 @@ export function FeedComposerCard({
                 placeholderColor: colors.textSecondary,
                 contentCSSText:
                   "font-size: 15px; line-height: 1.6; color: #1F2933; padding: 12px 0;",
+                cssText:
+                  "img { max-width: 100%; height: auto; display: block; margin: 8px 0; }",
               }}
               onChange={(html) => {
                 setBodyHtml(html);
                 if (bodyError) setBodyError(null);
               }}
+              onHeightChange={(h) => setEditorHeight(Math.max(200, h))}
+              useContainer
               testID="feed-rich-editor"
             />
           </View>
@@ -812,7 +818,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   editor: {
-    minHeight: 190,
     backgroundColor: colors.surface,
   },
   secondaryAction: {

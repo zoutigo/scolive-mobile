@@ -71,9 +71,25 @@ class RichEditor extends React.Component {
             if (this.props.onChange) {
               this.props.onChange(mockContentHtml);
             }
+            // Simulate the WebView reporting a taller content area after text is added
+            if (this.props.onHeightChange) {
+              this.props.onHeightChange(320);
+            }
           },
         },
         React.createElement(Text, null, "set-content"),
+      ),
+      React.createElement(
+        TouchableOpacity,
+        {
+          testID: "rich-editor-simulate-height-change",
+          onPress: () => {
+            if (this.props.onHeightChange) {
+              this.props.onHeightChange(480);
+            }
+          },
+        },
+        React.createElement(Text, null, "height-change"),
       ),
       React.createElement(
         TouchableOpacity,
