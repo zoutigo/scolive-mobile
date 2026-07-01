@@ -209,25 +209,21 @@ function SubmitResultScreen() {
   }
 
   function openAttachmentMenu() {
-    Alert.alert(
-      t("tests.detail.attachments.title"),
-      undefined,
-      [
-        {
-          text: t("tests.detail.attachments.camera"),
-          onPress: () => void takePhoto(),
-        },
-        {
-          text: t("tests.detail.attachments.gallery"),
-          onPress: () => void pickFromGallery(),
-        },
-        {
-          text: t("tests.detail.attachments.file"),
-          onPress: () => void pickDocument(),
-        },
-        { text: t("tests.common.cancel"), style: "cancel" },
-      ],
-    );
+    Alert.alert(t("tests.detail.attachments.title"), undefined, [
+      {
+        text: t("tests.detail.attachments.camera"),
+        onPress: () => void takePhoto(),
+      },
+      {
+        text: t("tests.detail.attachments.gallery"),
+        onPress: () => void pickFromGallery(),
+      },
+      {
+        text: t("tests.detail.attachments.file"),
+        onPress: () => void pickDocument(),
+      },
+      { text: t("tests.common.cancel"), style: "cancel" },
+    ]);
   }
 
   const onValid = handleSubmit(
@@ -281,11 +277,7 @@ function SubmitResultScreen() {
       {/* Hero compact — fond clair, pas de répétition du header */}
       <View style={styles.hero}>
         <View style={styles.heroIconWrap}>
-          <Ionicons
-            name="clipboard-outline"
-            size={20}
-            color={colors.primary}
-          />
+          <Ionicons name="clipboard-outline" size={20} color={colors.primary} />
         </View>
         <Text style={styles.heroText} numberOfLines={1}>
           {t("tests.detail.heroSubtitle")}

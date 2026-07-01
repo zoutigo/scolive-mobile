@@ -1,5 +1,10 @@
 import React from "react";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react-native";
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+} from "@testing-library/react-native";
 import TestCaseScreen from "../../app/(home)/tests/cases/[testCaseId]";
 import { useAuthStore } from "../../src/store/auth.store";
 import { testsApi } from "../../src/api/tests.api";
@@ -43,7 +48,12 @@ const DETAIL = {
   priority: "MEDIUM",
   evidenceRequired: false,
   dueAt: null,
-  campaign: { id: "camp-1", title: "Campagne v1", dueAt: null, targetVersion: null },
+  campaign: {
+    id: "camp-1",
+    title: "Campagne v1",
+    dueAt: null,
+    targetVersion: null,
+  },
   audienceRoles: [],
   latestOwnExecution: null,
   executionSummary: { totalExecutions: 0, passed: 0, failed: 0, blocked: 0 },

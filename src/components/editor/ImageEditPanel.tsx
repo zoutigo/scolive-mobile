@@ -152,7 +152,11 @@ export function ImageEditPanel({
           onPress={onDelete}
           testID="image-delete-btn"
         >
-          <Ionicons name="trash-outline" size={18} color={colors.notification} />
+          <Ionicons
+            name="trash-outline"
+            size={18}
+            color={colors.notification}
+          />
           <Text style={styles.deleteBtnLabel}>
             {t("messaging.compose.imageEdit.delete")}
           </Text>

@@ -35,6 +35,8 @@ Repo GitHub : `git@github.com:zoutigo/scolive-mobile.git`
 
 - Toute UI de liste avec chargement progressif passe par `src/components/lists/InfiniteScrollList.tsx`
 - Tout `POST` utilise le toast global centré pour ses retours `success/error`, affiché 7 secondes et fermable manuellement à tout moment
+- **Arrondis** : ne jamais utiliser de pills très arrondis (`borderRadius` élevé type 50/999). Préférer un arrondi très faible (ex. `borderRadius: 4` ou `6` au maximum).
+- **Formulaires — screen vs modale** : toujours créer les formulaires dans un écran dédié (screen), pas dans une modale. Raison : quand le clavier s'ouvre dans une modale, il peut masquer la totalité du formulaire sans recours. Dans un screen avec `adjustPan`, le champ actif reste toujours visible.
 
 ## Internationalisation (i18n) — règle obligatoire
 

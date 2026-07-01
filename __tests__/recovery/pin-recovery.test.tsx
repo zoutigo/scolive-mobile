@@ -1,5 +1,5 @@
 import React from "react";
-import { render, fireEvent } from "@testing-library/react-native";
+import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import PinRecoveryScreen, {
   pinRecoveryStep1PhoneSchema,
   pinRecoveryStep3Schema,
@@ -44,6 +44,18 @@ const mockVerify = recoveryApi.forgotPinVerify as jest.MockedFunction<
 const mockComplete = recoveryApi.forgotPinComplete as jest.MockedFunction<
   typeof recoveryApi.forgotPinComplete
 >;
+
+async function fillValidStep2Form(
+  getByTestId: ReturnType<typeof render>["getByTestId"],
+) {
+  fireEvent.changeText(getByTestId("input-birthdate"), "15011990");
+  await waitFor(() => {
+    expect(getByTestId("input-birthdate").props.value).toBe("15/01/1990");
+  });
+  fireEvent.changeText(getByTestId("input-answer-0"), "dupont");
+  fireEvent.changeText(getByTestId("input-answer-1"), "yaoundé");
+  fireEvent.changeText(getByTestId("input-answer-2"), "football");
+}
 
 const MOCK_OPTIONS_RESPONSE = {
   success: true,
@@ -408,10 +420,7 @@ describe("PinRecoveryScreen", () => {
         statusCode: 400,
       });
       const { getByTestId, findByTestId } = await goToStep2();
-      fireEvent.changeText(getByTestId("input-birthdate"), "15011990");
-      fireEvent.changeText(getByTestId("input-answer-0"), "dupont");
-      fireEvent.changeText(getByTestId("input-answer-1"), "yaoundé");
-      fireEvent.changeText(getByTestId("input-answer-2"), "football");
+      await fillValidStep2Form(getByTestId);
       fireEvent.press(getByTestId("btn-step2"));
       const err = await findByTestId("error-message");
       expect(err.props.children).toBe(
@@ -422,10 +431,7 @@ describe("PinRecoveryScreen", () => {
     it("passe à l'étape 3 après vérification réussie", async () => {
       mockVerify.mockResolvedValueOnce(MOCK_VERIFY_RESPONSE);
       const { getByTestId, findByTestId } = await goToStep2();
-      fireEvent.changeText(getByTestId("input-birthdate"), "15011990");
-      fireEvent.changeText(getByTestId("input-answer-0"), "dupont");
-      fireEvent.changeText(getByTestId("input-answer-1"), "yaoundé");
-      fireEvent.changeText(getByTestId("input-answer-2"), "football");
+      await fillValidStep2Form(getByTestId);
       fireEvent.press(getByTestId("btn-step2"));
       await findByTestId("step-3");
       expect(mockVerify).toHaveBeenCalledWith(
@@ -459,10 +465,7 @@ describe("PinRecoveryScreen", () => {
       fireEvent.changeText(utils.getByTestId("input-phone"), "650000001");
       fireEvent.press(utils.getByTestId("btn-step1"));
       await utils.findByTestId("step-2");
-      fireEvent.changeText(utils.getByTestId("input-birthdate"), "15011990");
-      fireEvent.changeText(utils.getByTestId("input-answer-0"), "dupont");
-      fireEvent.changeText(utils.getByTestId("input-answer-1"), "yaoundé");
-      fireEvent.changeText(utils.getByTestId("input-answer-2"), "football");
+      await fillValidStep2Form(utils.getByTestId);
       fireEvent.press(utils.getByTestId("btn-step2"));
       await utils.findByTestId("step-3");
       return utils;
@@ -565,10 +568,7 @@ describe("PinRecoveryScreen", () => {
       fireEvent.changeText(utils.getByTestId("input-phone"), "650000001");
       fireEvent.press(utils.getByTestId("btn-step1"));
       await utils.findByTestId("step-2");
-      fireEvent.changeText(utils.getByTestId("input-birthdate"), "15011990");
-      fireEvent.changeText(utils.getByTestId("input-answer-0"), "dupont");
-      fireEvent.changeText(utils.getByTestId("input-answer-1"), "yaoundé");
-      fireEvent.changeText(utils.getByTestId("input-answer-2"), "football");
+      await fillValidStep2Form(utils.getByTestId);
       fireEvent.press(utils.getByTestId("btn-step2"));
       await utils.findByTestId("step-3");
       fireEvent.changeText(utils.getByTestId("input-new-pin"), "654321");
