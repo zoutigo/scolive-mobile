@@ -108,6 +108,7 @@ beforeEach(() => {
   mockEditorMethods.insertImage.mockClear();
   mockEditorMethods.setForeColor.mockClear();
   mockEditorMethods.command.mockClear();
+  mockEditorMethods.commandDOM?.mockClear();
   mockRouteParams = {};
   useSuccessToastStore.setState({ show: showFeedbackToast });
   (useAuthStore as unknown as jest.Mock).mockReturnValue({
@@ -1082,5 +1083,192 @@ describe("formatFileSize()", () => {
 
   it("affiche en Mo si >= 1Mo", () => {
     expect(formatFileSize(2 * 1024 * 1024)).toBe("2.0 Mo");
+  });
+});
+
+// ── Hauteur dynamique de l'éditeur ────────────────────────────────────────────
+
+describe("Éditeur — expansion de hauteur", () => {
+  it("ne plante pas quand onHeightChange est déclenché depuis la WebView", async () => {
+    renderCompose();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("rich-editor-simulate-height-change"));
+    });
+    expect(screen.getByTestId("rich-editor")).toBeTruthy();
+  });
+
+  it("ne plante pas quand du contenu est ajouté et que la hauteur grandit", async () => {
+    renderCompose();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("rich-editor-set-content"));
+    });
+    expect(screen.getByTestId("rich-editor")).toBeTruthy();
+  });
+});
+
+// ── Image inline : affichage et édition ───────────────────────────────────────
+
+describe("Image inline — insertion avec style corrigé", () => {
+  it("insère une image depuis la caméra avec width:100%, height:auto et display:block", async () => {
+    mockLaunchCamera.mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          uri: "file:///tmp/photo.jpg",
+          mimeType: "image/jpeg",
+          fileName: "photo.jpg",
+        },
+      ],
+    });
+
+    renderCompose();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("toolbar-insert-image"));
+      pressAlertAction("Appareil photo");
+    });
+
+    await waitFor(() => {
+      expect(mockEditorMethods.insertImage).toHaveBeenCalledWith(
+        "http://10.0.2.2:9000/img.jpg",
+        expect.stringContaining("height:auto"),
+      );
+    });
+
+    const style = mockEditorMethods.insertImage.mock.calls[0]?.[1] as string;
+    expect(style).toContain("width:100%");
+    expect(style).toContain("max-width:100%");
+    expect(style).toContain("display:block");
+  });
+
+  it("insère une image depuis la galerie avec width:100%, height:auto et display:block", async () => {
+    mockLaunchLibrary.mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          uri: "file:///tmp/photo-gallery.jpg",
+          mimeType: "image/jpeg",
+          fileName: "photo-gallery.jpg",
+        },
+      ],
+    });
+
+    renderCompose();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("toolbar-insert-image"));
+      pressAlertAction("Galerie");
+    });
+
+    await waitFor(() => {
+      expect(mockEditorMethods.insertImage).toHaveBeenCalledWith(
+        "http://10.0.2.2:9000/img.jpg",
+        expect.stringContaining("height:auto"),
+      );
+    });
+
+    const style = mockEditorMethods.insertImage.mock.calls[0]?.[1] as string;
+    expect(style).toContain("width:100%");
+    expect(style).toContain("display:block");
+  });
+});
+
+describe("Image inline — panel d'édition", () => {
+  it("n'affiche pas le panel d'édition par défaut", () => {
+    renderCompose();
+    expect(screen.queryByTestId("image-edit-panel")).toBeNull();
+  });
+
+  it("affiche le panel d'édition quand IMAGE_TAPPED est reçu", async () => {
+    renderCompose();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("rich-editor-simulate-image-tap"));
+    });
+    expect(screen.getByTestId("image-edit-panel")).toBeTruthy();
+  });
+
+  it("ferme le panel quand CLICK_OUTSIDE_IMAGE est reçu", async () => {
+    renderCompose();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("rich-editor-simulate-image-tap"));
+    });
+    expect(screen.getByTestId("image-edit-panel")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("rich-editor-simulate-click-outside"));
+    });
+    expect(screen.queryByTestId("image-edit-panel")).toBeNull();
+  });
+
+  it("ferme le panel via le bouton Fermer", async () => {
+    renderCompose();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("rich-editor-simulate-image-tap"));
+    });
+    expect(screen.getByTestId("image-edit-panel")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("image-edit-close"));
+    });
+    expect(screen.queryByTestId("image-edit-panel")).toBeNull();
+  });
+
+  it("appelle commandDOM avec JS de redimensionnement à 50%", async () => {
+    renderCompose();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("rich-editor-simulate-image-tap"));
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("image-size-50"));
+    });
+
+    expect(mockEditorMethods.commandDOM).toHaveBeenCalledWith(
+      expect.stringContaining("50%"),
+    );
+  });
+
+  it("appelle commandDOM avec JS d'alignement centre", async () => {
+    renderCompose();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("rich-editor-simulate-image-tap"));
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("image-align-center"));
+    });
+
+    expect(mockEditorMethods.commandDOM).toHaveBeenCalledWith(
+      expect.stringContaining("marginLeft"),
+    );
+    const js = mockEditorMethods.commandDOM.mock.calls.at(-1)?.[0] as string;
+    expect(js).toContain("auto");
+  });
+
+  it("appelle commandDOM avec JS de suppression et ferme le panel", async () => {
+    renderCompose();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("rich-editor-simulate-image-tap"));
+    });
+    expect(screen.getByTestId("image-edit-panel")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("image-delete-btn"));
+    });
+
+    expect(mockEditorMethods.commandDOM).toHaveBeenCalledWith(
+      expect.stringContaining("removeChild"),
+    );
+    expect(screen.queryByTestId("image-edit-panel")).toBeNull();
+  });
+
+  it("injecte le gestionnaire de clic au démarrage via commandDOM", async () => {
+    renderCompose();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    expect(mockEditorMethods.commandDOM).toHaveBeenCalledWith(
+      expect.stringContaining("IMAGE_TAPPED"),
+    );
   });
 });

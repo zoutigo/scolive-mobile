@@ -35,6 +35,11 @@ import { useAuthStore } from "../../../src/store/auth.store";
 import { useMessagingStore } from "../../../src/store/messaging.store";
 import { useSuccessToastStore } from "../../../src/store/success-toast.store";
 import { RichTextToolbar } from "../../../src/components/editor/RichTextToolbar";
+import {
+  ImageEditPanel,
+  type ImageSize,
+  type ImageAlign,
+} from "../../../src/components/editor/ImageEditPanel";
 import { RecipientPickerModal } from "../../../src/components/messaging/RecipientPickerModal";
 import { AppShell } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
@@ -437,8 +442,15 @@ export default function ComposeScreen() {
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>(() =>
     parseForwardAttachments(forwardAttachments),
   );
+  const [editorHeight, setEditorHeight] = useState(200);
   const [isInsertingImage, setIsInsertingImage] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const [selectedImageSize, setSelectedImageSize] = useState<ImageSize | null>(
+    null,
+  );
+  const [selectedImageAlign, setSelectedImageAlign] =
+    useState<ImageAlign | null>(null);
 
   // ── Load recipients ─────────────────────────────────────────────────────────
 
@@ -606,6 +618,122 @@ export default function ComposeScreen() {
     editorRef.current?.command(buildFormatBlockCommand("blockquote"));
   }
 
+  function injectImageClickHandler() {
+    editorRef.current?.commandDOM(`
+      (function() {
+        if (document.__rnImgListenerAdded) return;
+        document.__rnImgListenerAdded = true;
+        var imgCounter = 0;
+        document.addEventListener('click', function(e) {
+          var el = e.target;
+          if (el && el.tagName === 'IMG') {
+            if (!el.dataset.rnId) {
+              el.dataset.rnId = 'img_' + (++imgCounter);
+            }
+            var widthStr = el.style.width || '';
+            var size = null;
+            var match = widthStr.match(/^(\\d+)%$/);
+            if (match) size = parseInt(match[1], 10);
+            var align = el.style.float || el.style.marginLeft === 'auto' ? 'center' : null;
+            if (el.style.float === 'left') align = 'left';
+            else if (el.style.float === 'right') align = 'right';
+            else if (el.style.marginLeft === 'auto' && el.style.marginRight === 'auto') align = 'center';
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'IMAGE_TAPPED',
+              id: el.dataset.rnId,
+              size: size,
+              align: align
+            }));
+          } else {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'CLICK_OUTSIDE_IMAGE'
+            }));
+          }
+        }, true);
+      })();
+    `);
+  }
+
+  function handleEditorMessage(message: {
+    type: string;
+    [key: string]: unknown;
+  }) {
+    if (message.type === "IMAGE_TAPPED") {
+      const id = message.id as string | undefined;
+      const size = message.size as ImageSize | null | undefined;
+      const align = message.align as ImageAlign | null | undefined;
+      setSelectedImageId(id ?? null);
+      setSelectedImageSize(size ?? null);
+      setSelectedImageAlign(align ?? null);
+    } else if (message.type === "CLICK_OUTSIDE_IMAGE") {
+      setSelectedImageId(null);
+      setSelectedImageSize(null);
+      setSelectedImageAlign(null);
+    }
+  }
+
+  function applyImageSize(size: ImageSize) {
+    if (!selectedImageId) return;
+    setSelectedImageSize(size);
+    editorRef.current?.commandDOM(`
+      (function($) {
+        var img = $('[data-rn-id="${selectedImageId}"]');
+        if (img) {
+          img.style.width = '${size}%';
+          img.style.maxWidth = '${size}%';
+          img.style.height = 'auto';
+          img.style.display = 'block';
+          if (!img.style.marginLeft) img.style.marginLeft = '0';
+        }
+      })($);
+    `);
+  }
+
+  function applyImageAlign(align: ImageAlign) {
+    if (!selectedImageId) return;
+    setSelectedImageAlign(align);
+    editorRef.current?.commandDOM(`
+      (function($) {
+        var img = $('[data-rn-id="${selectedImageId}"]');
+        if (img) {
+          img.style.display = 'block';
+          if ('${align}' === 'left') {
+            img.style.float = 'left';
+            img.style.marginLeft = '0';
+            img.style.marginRight = '12px';
+          } else if ('${align}' === 'right') {
+            img.style.float = 'right';
+            img.style.marginRight = '0';
+            img.style.marginLeft = '12px';
+          } else {
+            img.style.float = 'none';
+            img.style.marginLeft = 'auto';
+            img.style.marginRight = 'auto';
+          }
+        }
+      })($);
+    `);
+  }
+
+  function deleteSelectedImage() {
+    if (!selectedImageId) return;
+    editorRef.current?.commandDOM(`
+      (function($) {
+        var img = $('[data-rn-id="${selectedImageId}"]');
+        if (img) img.parentNode.removeChild(img);
+      })($);
+    `);
+    setSelectedImageId(null);
+    setSelectedImageSize(null);
+    setSelectedImageAlign(null);
+  }
+
+  function dismissImageEdit() {
+    setSelectedImageId(null);
+    setSelectedImageSize(null);
+    setSelectedImageAlign(null);
+  }
+
   async function insertImageAsset(asset: ImagePicker.ImagePickerAsset) {
     if (!schoolSlug) return;
     setIsInsertingImage(true);
@@ -618,7 +746,7 @@ export default function ComposeScreen() {
       );
       editorRef.current?.insertImage(
         url,
-        "max-width:100%;border-radius:8px;margin:8px 0;",
+        "width:100%;max-width:100%;height:auto;display:block;border-radius:8px;margin:8px 0;",
       );
     } catch {
       Alert.alert(
@@ -934,10 +1062,22 @@ export default function ComposeScreen() {
             onPressQuote={applyQuote}
           />
 
-          {/* Rich text editor */}
+          {/* Image edit panel — shown when an image is tapped in editor */}
+          {selectedImageId ? (
+            <ImageEditPanel
+              onSizePress={applyImageSize}
+              onAlignPress={applyImageAlign}
+              onDelete={deleteSelectedImage}
+              onClose={dismissImageEdit}
+              currentSize={selectedImageSize}
+              currentAlign={selectedImageAlign}
+            />
+          ) : null}
+
+          {/* Rich text editor — useContainer + onHeightChange pour auto-expansion */}
           <RichEditor
             ref={editorRef}
-            style={styles.richEditor}
+            style={[styles.richEditor, { height: editorHeight }]}
             editorStyle={{
               backgroundColor: colors.surface,
               color: colors.textPrimary,
@@ -949,12 +1089,17 @@ export default function ComposeScreen() {
                 padding: 16px;
                 min-height: 200px;
               `,
+              cssText:
+                "img { max-width: 100%; height: auto; display: block; margin: 8px 0; }",
             }}
             placeholder={t("messaging.compose.bodyPlaceholder")}
             onChange={handleEditorChange}
+            onHeightChange={(h) => setEditorHeight(Math.max(200, h))}
             initialContentHTML={initialBodyHtml}
             useContainer
             initialFocus={false}
+            editorInitializedCallback={injectImageClickHandler}
+            onMessage={handleEditorMessage}
             testID="rich-editor"
           />
 
@@ -1207,7 +1352,6 @@ const styles = StyleSheet.create({
     borderColor: colors.warmBorder,
   },
   richEditor: {
-    minHeight: 200,
     backgroundColor: colors.surface,
   },
 

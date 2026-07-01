@@ -97,6 +97,7 @@ const storeState = {
   markLocalRead: jest.fn(),
   markLocalUnread: jest.fn(),
   removeLocal: jest.fn(),
+  setFolder: jest.fn(),
 };
 const showFeedbackToast = jest.fn();
 
@@ -336,8 +337,8 @@ describe("Pièces jointes", () => {
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
-describe("Action archiver", () => {
-  it("appelle archive() et removeLocal() puis revient", async () => {
+describe("Action archiver (depuis inbox/sent)", () => {
+  it("appelle archive(true), removeLocal() et revient sans changer de dossier", async () => {
     await renderDetailAndWait();
     await act(async () => {
       fireEvent.press(screen.getByTestId("archive-btn-m1"));
@@ -349,6 +350,8 @@ describe("Action archiver", () => {
       message: "Le message a été déplacé dans les archives.",
     });
     expect(storeState.removeLocal).toHaveBeenCalledWith("m1");
+    // Pas de changement de dossier lors d'un archivage
+    expect(storeState.setFolder).not.toHaveBeenCalled();
     expect(mockBack).toHaveBeenCalled();
   });
 
@@ -367,6 +370,131 @@ describe("Action archiver", () => {
         message: "Impossible d'archiver ce message.",
       });
     });
+    expect(storeState.setFolder).not.toHaveBeenCalled();
+  });
+});
+
+describe("Action désarchiver (depuis le dossier archive)", () => {
+  const archivedMessage = {
+    ...messageDetail,
+    isSender: false,
+    recipientState: {
+      readAt: "2024-01-15T10:00:00Z",
+      archivedAt: "2024-01-16T08:00:00Z",
+      deletedAt: null,
+    },
+  };
+
+  const archivedSentMessage = {
+    ...messageDetail,
+    isSender: true,
+    senderArchivedAt: "2024-01-16T08:00:00Z",
+    recipientState: null,
+    sender: null,
+  };
+
+  beforeEach(() => {
+    storeState.folder = "archive";
+  });
+
+  it("appelle archive(false) et bascule sur inbox pour un message reçu", async () => {
+    api.get.mockResolvedValueOnce(archivedMessage);
+    await renderDetailAndWait();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("archive-btn-m1"));
+    });
+
+    expect(api.archive).toHaveBeenCalledWith("college-vogt", "m1", false);
+    expect(storeState.removeLocal).toHaveBeenCalledWith("m1");
+    expect(storeState.setFolder).toHaveBeenCalledWith("inbox");
+    expect(mockBack).toHaveBeenCalled();
+  });
+
+  it("bascule sur sent pour un message envoyé désarchivé", async () => {
+    api.get.mockResolvedValueOnce(archivedSentMessage);
+    await renderDetailAndWait();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("archive-btn-m1"));
+    });
+
+    expect(api.archive).toHaveBeenCalledWith("college-vogt", "m1", false);
+    expect(storeState.setFolder).toHaveBeenCalledWith("sent");
+    expect(mockBack).toHaveBeenCalled();
+  });
+
+  it("affiche le toast de désarchivage avec le bon libellé", async () => {
+    api.get.mockResolvedValueOnce(archivedMessage);
+    await renderDetailAndWait();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("archive-btn-m1"));
+    });
+
+    expect(showFeedbackToast).toHaveBeenCalledWith({
+      variant: "success",
+      title: "Message restauré",
+      message: "Le message a été retiré des archives.",
+    });
+  });
+
+  it("n'appelle pas setFolder si le désarchivage échoue (API erreur)", async () => {
+    api.get.mockResolvedValueOnce(archivedMessage);
+    api.archive.mockRejectedValueOnce(new Error("UNARCHIVE_FAILED"));
+
+    await renderDetailAndWait();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("archive-btn-m1"));
+    });
+
+    await waitFor(() => {
+      expect(showFeedbackToast).toHaveBeenCalledWith({
+        variant: "error",
+        title: "Archivage impossible",
+        message: "Impossible d'archiver ce message.",
+      });
+    });
+    expect(storeState.setFolder).not.toHaveBeenCalled();
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it("un PARENT peut désarchiver un message reçu", async () => {
+    api.get.mockResolvedValueOnce(archivedMessage);
+    await renderDetailAndWait();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("archive-btn-m1"));
+    });
+
+    expect(api.archive).toHaveBeenCalledWith("college-vogt", "m1", false);
+    expect(storeState.setFolder).toHaveBeenCalledWith("inbox");
+  });
+
+  it("un enseignant (sender) peut désarchiver un message envoyé", async () => {
+    (useAuthStore as unknown as jest.Mock).mockReturnValue({
+      schoolSlug: "college-vogt",
+      user: {
+        id: "teacher-1",
+        firstName: "Jean",
+        lastName: "Dupont",
+        platformRoles: [],
+        memberships: [{ schoolId: "school-1", role: "TEACHER" }],
+        profileCompleted: true,
+        role: "TEACHER",
+        activeRole: "TEACHER",
+      },
+    });
+    api.get.mockResolvedValueOnce(archivedSentMessage);
+    await renderDetailAndWait();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("archive-btn-m1"));
+    });
+
+    expect(api.archive).toHaveBeenCalledWith("college-vogt", "m1", false);
+    expect(storeState.setFolder).toHaveBeenCalledWith("sent");
   });
 });
 

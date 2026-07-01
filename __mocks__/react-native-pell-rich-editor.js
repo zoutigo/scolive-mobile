@@ -6,6 +6,7 @@ const mockEditorMethods = {
   insertImage: jestGlobals.fn(),
   setForeColor: jestGlobals.fn(),
   command: jestGlobals.fn(),
+  commandDOM: jestGlobals.fn(),
 };
 
 let mockContentHtml = "";
@@ -21,9 +22,9 @@ const actions = {
 };
 
 class RichEditor extends React.Component {
-  insertImage(url) {
-    mockEditorMethods.insertImage(url);
-    mockContentHtml = `<p><img src="${url}"></p>`;
+  insertImage(url, style) {
+    mockEditorMethods.insertImage(url, style);
+    mockContentHtml = `<p><img src="${url}" style="${style ?? ""}"></p>`;
     if (this.props.onChange) {
       this.props.onChange(mockContentHtml);
     }
@@ -33,18 +34,95 @@ class RichEditor extends React.Component {
     mockEditorMethods.setForeColor(color);
   }
 
-  command(command) {
-    mockEditorMethods.command(command);
+  command(js) {
+    mockEditorMethods.command(js);
+  }
+
+  commandDOM(js) {
+    mockEditorMethods.commandDOM(js);
   }
 
   getContentHtml() {
     return Promise.resolve(mockContentHtml);
   }
 
+  /** Simulate an incoming message from the WebView (for testing onMessage) */
+  static simulateMessage(instance, message) {
+    if (instance && instance.props.onMessage) {
+      instance.props.onMessage(message);
+    }
+  }
+
   render() {
-    return React.createElement(View, {
-      testID: this.props.testID ?? "rich-editor",
-    });
+    // call editorInitializedCallback synchronously to simulate editor ready
+    if (this.props.editorInitializedCallback && !this.__initCalled) {
+      this.__initCalled = true;
+      setTimeout(() => this.props.editorInitializedCallback?.(), 0);
+    }
+    return React.createElement(
+      View,
+      { testID: this.props.testID ?? "rich-editor" },
+      React.createElement(
+        TouchableOpacity,
+        {
+          testID: "rich-editor-set-content",
+          onPress: () => {
+            mockContentHtml = "<p>Bonjour</p>";
+            if (this.props.onChange) {
+              this.props.onChange(mockContentHtml);
+            }
+            // Simulate the WebView reporting a taller content area after text is added
+            if (this.props.onHeightChange) {
+              this.props.onHeightChange(320);
+            }
+          },
+        },
+        React.createElement(Text, null, "set-content"),
+      ),
+      React.createElement(
+        TouchableOpacity,
+        {
+          testID: "rich-editor-simulate-height-change",
+          onPress: () => {
+            if (this.props.onHeightChange) {
+              this.props.onHeightChange(480);
+            }
+          },
+        },
+        React.createElement(Text, null, "height-change"),
+      ),
+      React.createElement(
+        TouchableOpacity,
+        {
+          testID: "rich-editor-simulate-image-tap",
+          onPress: () => {
+            if (this.props.onMessage) {
+              this.props.onMessage({
+                type: "IMAGE_TAPPED",
+                id: "img_1",
+                size: null,
+                align: null,
+              });
+            }
+          },
+        },
+        React.createElement(Text, null, "tap-image"),
+      ),
+      React.createElement(
+        TouchableOpacity,
+        {
+          testID: "rich-editor-simulate-click-outside",
+          onPress: () => {
+            if (this.props.onMessage) {
+              this.props.onMessage({
+                type: "CLICK_OUTSIDE_IMAGE",
+              });
+            }
+          },
+        },
+        React.createElement(Text, null, "click-outside"),
+      ),
+    );
   }
 }
 
@@ -59,26 +137,6 @@ function RichToolbar({ onPressAddImage, testID }) {
     ),
   );
 }
-
-RichEditor.prototype.render = function render() {
-  return React.createElement(
-    View,
-    { testID: this.props.testID ?? "rich-editor" },
-    React.createElement(
-      TouchableOpacity,
-      {
-        testID: "rich-editor-set-content",
-        onPress: () => {
-          mockContentHtml = "<p>Bonjour</p>";
-          if (this.props.onChange) {
-            this.props.onChange(mockContentHtml);
-          }
-        },
-      },
-      React.createElement(Text, null, "set-content"),
-    ),
-  );
-};
 
 module.exports = {
   RichEditor,

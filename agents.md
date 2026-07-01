@@ -35,6 +35,8 @@ Pour tout nouveau développement ou correction :
 - Les placeholders doivent aider réellement à la saisie.
 - Configuration UX attendue : `mode: "onChange"` et `reValidateMode: "onChange"`.
 - En cas de submit invalide, focus sur le premier champ invalide.
+- **Arrondis** : ne jamais utiliser de pills très arrondis (`borderRadius` élevé type 50/999). Préférer un arrondi très faible (ex. `borderRadius: 4` ou `6` au maximum).
+- **Formulaires dans un screen, pas une modale** : tout formulaire de saisie doit être dans un screen dédié. Une modale ne permet pas de garantir que le champ actif reste visible quand le clavier s'ouvre — le clavier peut masquer tout le formulaire. Un screen avec `adjustPan` garantit nativement la visibilité du champ focalisé.
 
 ## Clavier Android
 

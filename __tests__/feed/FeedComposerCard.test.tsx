@@ -294,6 +294,118 @@ describe("FeedComposerCard", () => {
   });
 });
 
+describe("FeedComposerCard — image inline", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(Alert, "alert").mockImplementation(jest.fn());
+    __setMockEditorContentHtml("");
+  });
+
+  it("insère une image avec width:100%, max-width:100%, height:auto et display:block", async () => {
+    const { __mockEditorMethods: mockEditorMethods } = jest.requireMock(
+      "react-native-pell-rich-editor",
+    );
+    const onUploadInlineImage = jest
+      .fn()
+      .mockResolvedValue({ url: "http://10.0.2.2:3001/mock/media/feed.png" });
+    mockLaunchLibrary.mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          uri: "file:///tmp/feed.png",
+          fileName: "feed.png",
+          mimeType: "image/png",
+        },
+      ],
+    });
+
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn().mockResolvedValue(undefined)}
+        onUploadInlineImage={onUploadInlineImage}
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId("toolbar-insert-image"));
+
+    await waitFor(() => {
+      expect(mockEditorMethods.insertImage).toHaveBeenCalledWith(
+        "http://10.0.2.2:3001/mock/media/feed.png",
+        expect.stringContaining("height:auto"),
+      );
+    });
+
+    const style = mockEditorMethods.insertImage.mock.calls[0]?.[1] as string;
+    expect(style).toContain("width:100%");
+    expect(style).toContain("max-width:100%");
+    expect(style).toContain("display:block");
+  });
+
+  it("ne plante pas quand onHeightChange est déclenché depuis la WebView", async () => {
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("rich-editor-simulate-height-change"));
+    });
+    expect(screen.getByTestId("feed-rich-editor")).toBeTruthy();
+  });
+
+  it("ne plante pas quand du contenu est ajouté et que la hauteur grandit", async () => {
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("rich-editor-set-content"));
+    });
+    expect(screen.getByTestId("feed-rich-editor")).toBeTruthy();
+  });
+
+  it("affiche une erreur si l'upload d'image inline échoue", async () => {
+    const onUploadInlineImage = jest
+      .fn()
+      .mockRejectedValue(new Error("UPLOAD_FAILED"));
+    mockLaunchLibrary.mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          uri: "file:///tmp/feed-err.png",
+          fileName: "feed-err.png",
+          mimeType: "image/png",
+        },
+      ],
+    });
+
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn()}
+        onUploadInlineImage={onUploadInlineImage}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("toolbar-insert-image"));
+    });
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith(
+        expect.any(String),
+        "UPLOAD_FAILED",
+      );
+    });
+  });
+});
+
 describe("FeedComposerCard — design header-band et footer", () => {
   beforeEach(() => {
     jest.clearAllMocks();

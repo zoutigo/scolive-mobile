@@ -233,8 +233,13 @@ function MessageDetailPage({
   const { t } = useTranslation();
   const router = useRouter();
   const { schoolSlug } = useAuthStore();
-  const { markLocalRead, markLocalUnread, removeLocal, keepUnreadIds } =
-    useMessagingStore();
+  const {
+    markLocalRead,
+    markLocalUnread,
+    removeLocal,
+    keepUnreadIds,
+    setFolder,
+  } = useMessagingStore();
   const showFeedbackToast = useSuccessToastStore((state) => state.show);
 
   const [message, setMessage] = useState<MessageDetail | null>(null);
@@ -311,6 +316,11 @@ function MessageDetailPage({
       });
       removeLocal(message.id);
       void useBadgesStore.getState().loadSummary(schoolSlug);
+      // Après un désarchivage, bascule sur le dossier d'origine pour que
+      // l'écran de liste recharge inbox/sent et montre le message restauré.
+      if (isArchived) {
+        setFolder(message.isSender ? "sent" : "inbox");
+      }
       onExit();
     } catch {
       showFeedbackToast({
