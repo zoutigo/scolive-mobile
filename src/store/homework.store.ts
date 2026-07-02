@@ -71,7 +71,8 @@ function patchRowFromDetail(
   return {
     ...row,
     commentsCount: detail.comments.length,
-    myDoneAt: detail.myDoneAt ?? row.myDoneAt ?? null,
+    myDoneAt:
+      detail.myDoneAt !== undefined ? detail.myDoneAt : (row.myDoneAt ?? null),
     summary: detail.summary ?? row.summary ?? null,
     attachments: detail.attachments,
     contentHtml: detail.contentHtml,
