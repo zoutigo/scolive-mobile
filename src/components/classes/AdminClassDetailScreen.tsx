@@ -16,6 +16,7 @@ import { ClassNotesManagerScreen } from "../notes/ClassNotesManagerScreen";
 import { TeacherClassFeedScreen } from "../feed/TeacherClassFeedScreen";
 import { ClassSelectModal } from "./ClassSelectModal";
 import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
+import { moduleBack } from "../../utils/moduleBack";
 
 type TabKey = "discipline" | "agenda" | "devoirs" | "notes" | "fil";
 
@@ -69,7 +70,7 @@ export function AdminClassDetailScreen() {
       <ModuleHeader
         title="Classes"
         subtitle={className}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         testID="admin-class-detail-header"
         backTestID="admin-class-detail-back"
         titleTestID="admin-class-detail-title"

@@ -50,6 +50,7 @@ import {
   TextField,
 } from "./TimetableCommon";
 import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
+import { moduleBack } from "../../utils/moduleBack";
 
 type TabKey = "agenda" | "slots" | "oneoff" | "holidays";
 
@@ -733,7 +734,7 @@ export function ClassTimetableManagerScreen() {
           classContext?.class.name ?? t("timetable.classManager.defaultTitle")
         }
         subtitle={t("timetable.classManager.headerSubtitle")}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         topInset={insets.top}
         testID="class-timetable-header"
         backTestID="class-timetable-back-btn"

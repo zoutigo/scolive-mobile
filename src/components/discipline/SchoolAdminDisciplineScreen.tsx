@@ -46,6 +46,7 @@ import type {
   CreateLifeEventPayload,
   StudentLifeEvent,
 } from "../../types/discipline.types";
+import { moduleBack } from "../../utils/moduleBack";
 
 type StudentForDisplay = {
   id: string;
@@ -562,7 +563,7 @@ export function SchoolAdminDisciplineScreen() {
         <ModuleHeader
           title={t("discipline.header.discipline")}
           subtitle={subtitle}
-          onBack={() => router.back()}
+          onBack={() => moduleBack(router)}
           testID="admin-discipline-header"
           backTestID="admin-discipline-back"
           titleTestID="admin-discipline-title"

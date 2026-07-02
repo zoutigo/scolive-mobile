@@ -11,6 +11,7 @@ import { useTranslation } from "../../../../src/i18n/useTranslation";
 import { colors } from "../../../../src/theme";
 import type { TestExecutionStatus } from "../../../../src/types/tests.types";
 import type { AdminTesterRow } from "../../../../src/types/tests-admin.types";
+import { moduleBack } from "../../../../src/utils/moduleBack";
 
 export default function AdminTestExecutionRoute() {
   return (
@@ -78,7 +79,7 @@ function AdminTestExecutionScreen() {
       <ModuleHeader
         title={t("testsAdmin.executions.detail.subtitle")}
         subtitle={t("testsAdmin.executions.detail.swipeHint")}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         topInset={insets.top}
         testID="admin-test-execution-detail-header"
       />

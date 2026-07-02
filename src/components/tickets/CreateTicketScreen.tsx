@@ -26,6 +26,7 @@ import { useAuthStore } from "../../store/auth.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import type { TicketType } from "../../types/tickets.types";
+import { moduleBack } from "../../utils/moduleBack";
 
 const schema = z.object({
   type: z.enum(["BUG", "FEATURE_REQUEST"]),
@@ -186,7 +187,7 @@ export function CreateTicketScreen() {
         <ModuleHeader
           title="Nouveau ticket"
           subtitle="Bug ou suggestion"
-          onBack={() => router.back()}
+          onBack={() => moduleBack(router)}
           topInset={androidStatusInset}
           testID="create-ticket-header"
         />

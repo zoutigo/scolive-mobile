@@ -10,6 +10,7 @@ import { testsApi } from "../../../../src/api/tests.api";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 import { colors } from "../../../../src/theme";
 import type { TestExecutionStatus } from "../../../../src/types/tests.types";
+import { moduleBack } from "../../../../src/utils/moduleBack";
 
 export default function TestExecutionRoute() {
   return (
@@ -65,7 +66,7 @@ function TestExecutionScreen() {
       <ModuleHeader
         title={t("tests.executions.detail.subtitle")}
         subtitle={t("tests.executions.detail.swipeHint")}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         topInset={insets.top}
         testID="test-execution-detail-header"
       />

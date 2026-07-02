@@ -5,7 +5,7 @@ import PlaceholderScreen from "../../app/(home)/placeholder";
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
 const mockBack = jest.fn();
-const mockRouter = { back: mockBack };
+const mockRouter = { back: mockBack, canGoBack: jest.fn().mockReturnValue(true), navigate: jest.fn() };
 jest.mock("expo-router", () => ({
   useRouter: () => mockRouter,
   useLocalSearchParams: () => ({ title: "Mon module" }),

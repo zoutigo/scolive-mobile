@@ -25,6 +25,7 @@ import { useAuthStore } from "../../../src/store/auth.store";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import { colors } from "../../../src/theme";
 import type { TestCampaignSummary } from "../../../src/types/tests.types";
+import { moduleBack } from "../../../src/utils/moduleBack";
 
 type TabKey = "summary" | "campaigns" | "executions";
 
@@ -93,7 +94,7 @@ function TestsHomeScreen() {
       <ModuleHeader
         title={t("tests.title")}
         subtitle={t("tests.campaigns.subtitle")}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         topInset={insets.top}
         testID="tests-header"
       />

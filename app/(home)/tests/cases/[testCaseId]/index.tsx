@@ -23,6 +23,7 @@ import type {
   TestCaseDetail,
   TestExecutionStatus,
 } from "../../../../../src/types/tests.types";
+import { moduleBack } from "../../../../../src/utils/moduleBack";
 
 export default function TestCaseRoute() {
   return (
@@ -93,7 +94,7 @@ function TestCaseScreen() {
       <ModuleHeader
         title={detail?.title ?? t("tests.title")}
         subtitle={detail?.campaign.title ?? t("tests.detail.subtitle")}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         topInset={insets.top}
       />
 

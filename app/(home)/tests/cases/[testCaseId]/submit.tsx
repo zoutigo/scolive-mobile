@@ -26,6 +26,7 @@ import { useSuccessToastStore } from "../../../../../src/store/success-toast.sto
 import { useTranslation } from "../../../../../src/i18n/useTranslation";
 import { colors } from "../../../../../src/theme";
 import type { TestExecutionStatus } from "../../../../../src/types/tests.types";
+import { moduleBack } from "../../../../../src/utils/moduleBack";
 
 type LocalAttachment = {
   id: string;
@@ -270,7 +271,7 @@ function SubmitResultScreen() {
     <View style={styles.root}>
       <ModuleHeader
         title={t("tests.detail.formModalTitle")}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         topInset={insets.top}
       />
 

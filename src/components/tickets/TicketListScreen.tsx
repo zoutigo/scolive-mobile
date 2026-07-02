@@ -28,6 +28,7 @@ import type {
   TicketStatus,
   TicketType,
 } from "../../types/tickets.types";
+import { moduleBack } from "../../utils/moduleBack";
 
 type AssistanceTabKey = "manual" | "faq" | "tickets" | "chat";
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -202,7 +203,7 @@ export function TicketListScreen() {
         <ModuleHeader
           title="Assistance"
           subtitle="Bugs &amp; suggestions"
-          onBack={() => router.back()}
+          onBack={() => moduleBack(router)}
           topInset={androidStatusInset}
         />
         <ActivityIndicator
@@ -222,7 +223,7 @@ export function TicketListScreen() {
       <ModuleHeader
         title="Assistance"
         subtitle={subtitle}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         topInset={androidStatusInset}
         testID="ticket-list-header"
       />

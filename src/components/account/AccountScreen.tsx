@@ -60,6 +60,7 @@ import { useAuthStore } from "../../store/auth.store";
 import { useTranslation } from "../../i18n/useTranslation";
 import { SUPPORTED_LOCALES, type Locale } from "../../i18n/translations";
 import type { ApiClientError } from "../../api/client";
+import { moduleBack } from "../../utils/moduleBack";
 
 type AccountTab = "personal" | "security" | "help" | "settings";
 type SecuritySection =
@@ -1755,7 +1756,7 @@ function AccountScreenContent() {
         <ModuleHeader
           title="Mon compte"
           subtitle="Chargement du profil"
-          onBack={() => router.back()}
+          onBack={() => moduleBack(router)}
           backgroundColor={colors.primaryDark}
         />
         <TopTabs tab={tab} onChange={setTab} />
@@ -1773,7 +1774,7 @@ function AccountScreenContent() {
             ? `${profile.firstName} ${profile.lastName} • ${toReadableRole(profile.role)}`
             : "Mon espace personnel"
         }
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         backgroundColor={colors.primaryDark}
         testID="account-header"
       />

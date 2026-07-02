@@ -25,6 +25,7 @@ import {
   SectionCard,
 } from "./TimetableCommon";
 import { useTranslation } from "../../i18n/useTranslation";
+import { moduleBack } from "../../utils/moduleBack";
 
 export function TimetableClassesScreen() {
   const { t } = useTranslation();
@@ -77,7 +78,7 @@ export function TimetableClassesScreen() {
       <ModuleHeader
         title={t("timetable.classesScreen.headerTitle")}
         subtitle={subtitle}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         testID="timetable-classes-header"
         backTestID="timetable-classes-back"
       />

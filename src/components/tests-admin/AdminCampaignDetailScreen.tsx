@@ -29,6 +29,7 @@ import {
 } from "./CampaignFormSheet";
 import { TestCaseFormSheet } from "./TestCaseFormSheet";
 import { QuickMessageSheet } from "./QuickMessageSheet";
+import { moduleBack } from "../../utils/moduleBack";
 
 export function AdminCampaignDetailScreen() {
   const { t } = useTranslation();
@@ -254,7 +255,7 @@ export function AdminCampaignDetailScreen() {
       <ModuleHeader
         title={campaign?.title ?? t("testsAdmin.title")}
         subtitle={t("testsAdmin.detail.back")}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         topInset={insets.top}
         testID="admin-campaign-detail-header"
       />

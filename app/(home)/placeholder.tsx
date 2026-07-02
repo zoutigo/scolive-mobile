@@ -7,6 +7,7 @@ import { AppShell } from "../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../src/components/navigation/ModuleHeader";
 import { colors } from "../../src/theme";
 import { useTranslation } from "../../src/i18n/useTranslation";
+import { moduleBack } from "../../src/utils/moduleBack";
 
 export default function PlaceholderScreen() {
   const { title } = useLocalSearchParams<{ title?: string }>();
@@ -19,7 +20,7 @@ export default function PlaceholderScreen() {
     <AppShell showHeader={false}>
       <ModuleHeader
         title={label}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         testID="placeholder-header"
         backTestID="placeholder-back-btn"
         topInset={insets.top}

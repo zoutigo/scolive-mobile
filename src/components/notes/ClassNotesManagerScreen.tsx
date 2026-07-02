@@ -55,6 +55,7 @@ import {
   SectionCard,
   TextField,
 } from "../timetable/TimetableCommon";
+import { moduleBack } from "../../utils/moduleBack";
 
 const DANGER_COLOR = "#DC3545";
 
@@ -412,7 +413,7 @@ export function ClassNotesManagerScreen({
               ? `${t("notes.manager.header.classPrefix")} ${classId}`
               : undefined)
           }
-          onBack={() => router.back()}
+          onBack={() => moduleBack(router)}
           testID="class-notes-header"
           backTestID="class-notes-back"
           titleTestID="class-notes-title"

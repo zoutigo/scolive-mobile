@@ -22,6 +22,7 @@ import { UserCard } from "./UserCard";
 import { RoleFilterBar } from "./RoleFilterBar";
 import { UserDetailModal } from "./UserDetailModal";
 import type { SchoolUser, SchoolUserRoleFilter } from "../../types/users.types";
+import { moduleBack } from "../../utils/moduleBack";
 
 const DEBOUNCE_MS = 400;
 
@@ -202,7 +203,7 @@ export function SchoolAdminUsersScreen() {
         <ModuleHeader
           title="Utilisateurs"
           subtitle={user?.schoolName}
-          onBack={() => router.back()}
+          onBack={() => moduleBack(router)}
           testID="users-header"
           backTestID="users-back"
           titleTestID="users-title"

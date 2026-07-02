@@ -68,6 +68,7 @@ import {
 import { EmptyState, ErrorBanner, LoadingBlock } from "./TimetableCommon";
 import { TeacherSlotEditPanel } from "./TeacherSlotEditPanel";
 import { useTranslation } from "../../i18n/useTranslation";
+import { moduleBack } from "../../utils/moduleBack";
 
 const P = "teacher-agenda";
 
@@ -170,7 +171,7 @@ export function TeacherAgendaScreenInner({
         <ModuleHeader
           title={headerTitle ?? t("timetable.teacherAgenda.headerTitle")}
           subtitle={subtitle}
-          onBack={() => router.back()}
+          onBack={() => moduleBack(router)}
           testID={`${P}-header`}
           backTestID={`${P}-back`}
           topInset={insets.top}

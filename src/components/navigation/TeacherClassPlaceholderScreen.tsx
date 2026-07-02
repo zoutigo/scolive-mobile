@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ModuleHeader } from "./ModuleHeader";
 import { colors } from "../../theme";
+import { moduleBack } from "../../utils/moduleBack";
 
 type Props = {
   moduleTitle: string;
@@ -29,7 +30,7 @@ export function TeacherClassPlaceholderScreen({
       <ModuleHeader
         title={moduleTitle}
         subtitle={subtitle}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         testID={`${testIDPrefix}-header`}
         backTestID={`${testIDPrefix}-back`}
         titleTestID={`${testIDPrefix}-title`}

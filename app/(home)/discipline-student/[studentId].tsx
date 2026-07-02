@@ -38,6 +38,7 @@ import type {
   CreateLifeEventPayload,
   StudentLifeEvent,
 } from "../../../src/types/discipline.types";
+import { moduleBack } from "../../../src/utils/moduleBack";
 
 // ── Onglets ───────────────────────────────────────────────────────────────────
 
@@ -253,7 +254,7 @@ export default function DisciplineStudentScreen() {
       <ModuleHeader
         title={t("discipline.header.discipline")}
         subtitle={headerSubtitle}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         topInset={insets.top}
         testID="module-header"
         backTestID="btn-back"

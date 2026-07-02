@@ -13,6 +13,7 @@ import type {
   FeedFilter,
   FeedViewerRole,
 } from "../../types/feed.types";
+import { moduleBack } from "../../utils/moduleBack";
 
 const FEED_ROLES: FeedViewerRole[] = [
   "SCHOOL_ADMIN",
@@ -122,7 +123,7 @@ export function TeacherClassFeedScreen({
             <ModuleHeader
               title={t("feed.classLife.title")}
               subtitle={subtitle}
-              onBack={() => router.back()}
+              onBack={() => moduleBack(router)}
               testID="teacher-class-feed-header"
               backTestID="teacher-class-feed-back"
               titleTestID="teacher-class-feed-title"

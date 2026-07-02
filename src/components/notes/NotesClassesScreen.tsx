@@ -25,6 +25,7 @@ import {
   PillSelector,
   SectionCard,
 } from "../timetable/TimetableCommon";
+import { moduleBack } from "../../utils/moduleBack";
 
 export function NotesClassesScreen() {
   const { t } = useTranslation();
@@ -75,7 +76,7 @@ export function NotesClassesScreen() {
       <ModuleHeader
         title={t("notes.classes.title")}
         subtitle={subtitle}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         testID="notes-classes-header"
         backTestID="notes-classes-back"
       />

@@ -20,6 +20,7 @@ import type {
   Invoice,
   PaymentChannel,
 } from "../../types/finance.types";
+import { moduleBack } from "../../utils/moduleBack";
 
 // ─── Données dummy ────────────────────────────────────────────────────────────
 
@@ -203,7 +204,7 @@ function FinanceScreenContent() {
       <View style={styles.headerWrap}>
         <ModuleHeader
           title="Situation financière"
-          onBack={() => router.back()}
+          onBack={() => moduleBack(router)}
           topInset={insets.top}
           testID="finance-header"
         />

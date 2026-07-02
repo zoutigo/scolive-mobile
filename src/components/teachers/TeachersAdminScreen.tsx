@@ -52,6 +52,7 @@ import type {
   TeacherSchoolYearOption,
   TeacherSubjectOption,
 } from "../../types/teachers.types";
+import { moduleBack } from "../../utils/moduleBack";
 
 type TabKey = "teachers" | "assignments" | "help";
 type TeacherSheetState = {
@@ -1173,7 +1174,7 @@ export function TeachersAdminScreen() {
         <ModuleHeader
           title="Enseignants"
           subtitle={getPortalLabel(getViewType(user))}
-          onBack={() => router.back()}
+          onBack={() => moduleBack(router)}
           topInset={insets.top}
           testID="teachers-admin-header"
           backTestID="teachers-admin-back-btn"
@@ -1194,7 +1195,7 @@ export function TeachersAdminScreen() {
       <ModuleHeader
         title="Enseignants"
         subtitle={subtitle}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         topInset={insets.top}
         testID="teachers-admin-header"
         backTestID="teachers-admin-back-btn"
