@@ -1135,29 +1135,31 @@ export function TeachersAdminScreen() {
       {/* ── Tab forms : hero + formulaire inline ──────────────────────────── */}
       {tab === "forms" && formContext && !isLoading ? (
         <View style={styles.formsTabContent} testID="teachers-admin-forms-tab">
-          <FormHero
-            icon={
-              formContext.type === "create-teacher"
-                ? "person-add-outline"
-                : formContext.type === "edit-assignment"
-                  ? "create-outline"
-                  : "link-outline"
-            }
-            title={
-              formContext.type === "create-teacher"
-                ? "Créer un enseignant"
-                : formContext.type === "edit-assignment"
-                  ? "Modifier l'affectation"
-                  : "Nouvelle affectation"
-            }
-            subtitle={
-              formContext.type === "create-teacher"
-                ? "Téléphone + PIN ou email + mot de passe initial."
-                : "Associez un enseignant, une classe, une matière et une année scolaire."
-            }
-            palette={formContext.type === "create-teacher" ? "teal" : "warm"}
-            testID="teachers-admin-form-hero"
-          />
+          <View style={styles.heroWrapper}>
+            <FormHero
+              icon={
+                formContext.type === "create-teacher"
+                  ? "person-add-outline"
+                  : formContext.type === "edit-assignment"
+                    ? "create-outline"
+                    : "link-outline"
+              }
+              title={
+                formContext.type === "create-teacher"
+                  ? "Créer un enseignant"
+                  : formContext.type === "edit-assignment"
+                    ? "Modifier l'affectation"
+                    : "Nouvelle affectation"
+              }
+              subtitle={
+                formContext.type === "create-teacher"
+                  ? "Téléphone + PIN ou email + mot de passe initial."
+                  : "Associez un enseignant, une classe, une matière et une année scolaire."
+              }
+              palette={formContext.type === "create-teacher" ? "teal" : "warm"}
+              testID="teachers-admin-form-hero"
+            />
+          </View>
           {formContext.type === "create-teacher" ? (
             <TeacherCreateFormContent
               isSubmitting={isSubmittingTeacher}
@@ -1813,30 +1815,28 @@ const styles = StyleSheet.create({
   },
   // ── FormHero ────────────────────────────────────────────────────────────
   heroContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 22,
+    borderRadius: 20,
+    padding: 20,
     overflow: "hidden",
+    position: "relative",
   },
   heroDecor1: {
     position: "absolute",
-    width: 100,
-    height: 100,
-    borderRadius: 22,
-    bottom: -40,
-    right: -20,
-    transform: [{ rotate: "30deg" }],
-    opacity: 0.18,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    top: -40,
+    right: -30,
+    opacity: 0.3,
   },
   heroDecor2: {
     position: "absolute",
-    width: 60,
-    height: 60,
-    borderRadius: 14,
-    top: -18,
-    right: 60,
-    transform: [{ rotate: "20deg" }],
-    opacity: 0.12,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    bottom: -20,
+    left: 40,
+    opacity: 0.2,
   },
   heroRow: {
     flexDirection: "row",
@@ -1844,33 +1844,33 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   heroIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center" as const,
     justifyContent: "center" as const,
-    flexShrink: 0,
   },
   heroTextWrap: {
     flex: 1,
-    gap: 3,
   },
   heroTitle: {
     color: "#FFFFFF",
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: "800",
-    lineHeight: 26,
+    letterSpacing: 0.3,
   },
   heroSubtitle: {
-    color: "rgba(255,255,255,0.70)",
+    color: "rgba(255,255,255,0.78)",
     fontSize: 12,
-    lineHeight: 18,
-    marginTop: 4,
+    marginTop: 3,
   },
   // ── Inline form layout ──────────────────────────────────────────────────
   formsTabContent: {
     flex: 1,
+  },
+  heroWrapper: {
+    padding: 16,
   },
   formsKeyboardArea: {
     flex: 1,

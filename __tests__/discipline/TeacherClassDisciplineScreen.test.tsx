@@ -15,6 +15,38 @@ import { useTeacherClassDisciplineDraftStore } from "../../src/store/teacher-cla
 import { makeLifeEvent } from "../../test-utils/discipline.fixtures";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
+jest.mock("../../src/components/DatePickerField", () => ({
+  DatePickerField: (props: {
+    value: string;
+    onChange: (v: string) => void;
+    testID?: string;
+  }) => {
+    const { TextInput } = require("react-native");
+    return (
+      <TextInput
+        testID={props.testID ?? "date-picker"}
+        value={props.value}
+        onChangeText={props.onChange}
+      />
+    );
+  },
+}));
+jest.mock("../../src/components/TimePickerField", () => ({
+  TimePickerField: (props: {
+    value: string;
+    onChange: (v: string) => void;
+    testID?: string;
+  }) => {
+    const { TextInput } = require("react-native");
+    return (
+      <TextInput
+        testID={props.testID ?? "time-picker"}
+        value={props.value}
+        onChangeText={props.onChange}
+      />
+    );
+  },
+}));
 jest.mock("../../src/api/notes.api");
 jest.mock("../../src/api/timetable.api");
 jest.mock("../../src/api/discipline.api");
@@ -294,8 +326,12 @@ describe("TeacherClassDisciplineScreen — création d'événement", () => {
       "Retard portail",
     );
     fireEvent.changeText(
-      screen.getByTestId("discipline-form-occurred-at"),
-      "2026-05-02T07:10",
+      screen.getByTestId("discipline-form-date-picker"),
+      "2026-05-02",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("discipline-form-time-picker"),
+      "07:10",
     );
 
     expect(

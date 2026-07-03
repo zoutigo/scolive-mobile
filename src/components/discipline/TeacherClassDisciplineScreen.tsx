@@ -41,6 +41,8 @@ import {
   StudentSelectField,
   type StudentSelectOption,
 } from "./StudentSelectField";
+import { DatePickerField } from "../DatePickerField";
+import { TimePickerField } from "../TimePickerField";
 import {
   buildLifeEventPayload,
   createDisciplineFormSchema,
@@ -479,18 +481,51 @@ function DisciplineEventFormContent(props: {
         <Controller
           control={control}
           name="occurredAt"
-          render={({ field: { value, onChange, onBlur, ref } }) => (
-            <FieldTextInput
-              ref={ref}
-              label={t("discipline.form.fields.dateTime")}
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              placeholder={t("discipline.form.fields.dateTimePlaceholderIso")}
-              error={errors.occurredAt?.message}
-              testID="discipline-form-occurred-at"
-            />
-          )}
+          render={({ field: { value, onChange } }) => {
+            const datePart = value ? value.split("T")[0] ?? "" : "";
+            const timePart = value
+              ? (value.split("T")[1] ?? "08:00")
+              : "08:00";
+            return (
+              <View style={styles.formField}>
+                <View style={styles.dateTimeRow}>
+                  <View style={styles.dateTimeCol}>
+                    <Text style={styles.formLabel}>
+                      {t("discipline.form.fields.date")}
+                    </Text>
+                    <DatePickerField
+                      value={datePart}
+                      onChange={(newDate) =>
+                        onChange(`${newDate}T${timePart}`)
+                      }
+                      title={t("discipline.form.fields.date")}
+                      hasError={!!errors.occurredAt}
+                      testID="discipline-form-date-picker"
+                    />
+                  </View>
+                  <View style={styles.dateTimeCol}>
+                    <Text style={styles.formLabel}>
+                      {t("discipline.form.fields.time")}
+                    </Text>
+                    <TimePickerField
+                      value={timePart}
+                      onChange={(newTime) =>
+                        onChange(`${datePart}T${newTime}`)
+                      }
+                      title={t("discipline.form.fields.time")}
+                      hasError={!!errors.occurredAt}
+                      testID="discipline-form-time-picker"
+                    />
+                  </View>
+                </View>
+                {errors.occurredAt ? (
+                  <Text style={styles.formError}>
+                    {errors.occurredAt.message}
+                  </Text>
+                ) : null}
+              </View>
+            );
+          }}
         />
 
         <Controller
@@ -910,25 +945,27 @@ export function TeacherClassDisciplineScreen({
           style={styles.formsTabContent}
           testID="teacher-class-discipline-forms-tab"
         >
-          <FormHero
-            icon={
-              formContext.type === "edit-event"
-                ? "create-outline"
-                : "add-circle-outline"
-            }
-            title={
-              formContext.type === "edit-event"
-                ? t("discipline.form.hero.editTitle")
-                : t("discipline.form.hero.createTitle")
-            }
-            subtitle={
-              formContext.type === "edit-event"
-                ? t("discipline.form.hero.editSubtitle")
-                : t("discipline.form.hero.createSubtitle")
-            }
-            palette={formContext.type === "edit-event" ? "warm" : "teal"}
-            testID="teacher-class-discipline-form-hero"
-          />
+          <View style={styles.heroWrapper}>
+            <FormHero
+              icon={
+                formContext.type === "edit-event"
+                  ? "create-outline"
+                  : "add-circle-outline"
+              }
+              title={
+                formContext.type === "edit-event"
+                  ? t("discipline.form.hero.editTitle")
+                  : t("discipline.form.hero.createTitle")
+              }
+              subtitle={
+                formContext.type === "edit-event"
+                  ? t("discipline.form.hero.editSubtitle")
+                  : t("discipline.form.hero.createSubtitle")
+              }
+              palette={formContext.type === "edit-event" ? "warm" : "teal"}
+              testID="teacher-class-discipline-form-hero"
+            />
+          </View>
           <DisciplineEventFormContent
             t={t}
             classId={classId}
@@ -1105,30 +1142,28 @@ const styles = StyleSheet.create({
   },
   // ── FormHero ──────────────────────────────────────────────────────────
   heroContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 22,
+    borderRadius: 20,
+    padding: 20,
     overflow: "hidden",
+    position: "relative",
   },
   heroDecor1: {
     position: "absolute",
-    width: 100,
-    height: 100,
-    borderRadius: 22,
-    bottom: -40,
-    right: -20,
-    transform: [{ rotate: "30deg" }],
-    opacity: 0.18,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    top: -40,
+    right: -30,
+    opacity: 0.3,
   },
   heroDecor2: {
     position: "absolute",
-    width: 60,
-    height: 60,
-    borderRadius: 14,
-    top: -18,
-    right: 60,
-    transform: [{ rotate: "20deg" }],
-    opacity: 0.12,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    bottom: -20,
+    left: 40,
+    opacity: 0.2,
   },
   heroRow: {
     flexDirection: "row",
@@ -1136,33 +1171,33 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   heroIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center",
     justifyContent: "center",
-    flexShrink: 0,
   },
   heroTextWrap: {
     flex: 1,
-    gap: 3,
   },
   heroTitle: {
     color: "#FFFFFF",
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: "800",
-    lineHeight: 26,
+    letterSpacing: 0.3,
   },
   heroSubtitle: {
-    color: "rgba(255,255,255,0.70)",
+    color: "rgba(255,255,255,0.78)",
     fontSize: 12,
-    lineHeight: 18,
-    marginTop: 4,
+    marginTop: 3,
   },
   // ── Inline form layout ────────────────────────────────────────────────
   formsTabContent: {
     flex: 1,
+  },
+  heroWrapper: {
+    padding: 16,
   },
   formsKeyboardArea: {
     flex: 1,
@@ -1188,6 +1223,14 @@ const styles = StyleSheet.create({
   // ── Form fields ───────────────────────────────────────────────────────
   formField: {
     gap: 8,
+  },
+  dateTimeRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  dateTimeCol: {
+    flex: 1,
+    gap: 6,
   },
   formLabel: {
     fontSize: 12,

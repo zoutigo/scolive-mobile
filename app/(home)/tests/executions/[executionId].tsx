@@ -288,7 +288,9 @@ function EditForm({
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.formArea}
     >
-      <FormHero t={t} />
+      <View style={styles.heroWrapper}>
+        <FormHero t={t} />
+      </View>
       <ScrollView
         style={styles.formScroll}
         contentContainerStyle={styles.formScrollContent}
@@ -590,54 +592,51 @@ const styles = StyleSheet.create({
   textInputError: { borderColor: colors.notification },
 
   // Hero
+  heroWrapper: { padding: 16 },
   heroContainer: {
     backgroundColor: "#C0681A",
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 22,
+    borderRadius: 20,
+    padding: 20,
     overflow: "hidden",
+    position: "relative",
   },
   heroDecor1: {
     position: "absolute",
-    width: 100,
-    height: 100,
-    borderRadius: 22,
-    bottom: -40,
-    right: -20,
-    transform: [{ rotate: "30deg" }],
-    opacity: 0.18,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    top: -40,
+    right: -30,
+    opacity: 0.3,
   },
   heroDecor2: {
     position: "absolute",
-    width: 60,
-    height: 60,
-    borderRadius: 14,
-    top: -18,
-    right: 60,
-    transform: [{ rotate: "20deg" }],
-    opacity: 0.12,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    bottom: -20,
+    left: 40,
+    opacity: 0.2,
   },
   heroRow: { flexDirection: "row", alignItems: "center", gap: 14 },
   heroIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center",
     justifyContent: "center",
-    flexShrink: 0,
   },
-  heroTextWrap: { flex: 1, gap: 3 },
+  heroTextWrap: { flex: 1 },
   heroTitle: {
     color: "#FFFFFF",
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: "800",
-    lineHeight: 26,
+    letterSpacing: 0.3,
   },
   heroSubtitle: {
-    color: "rgba(255,255,255,0.70)",
+    color: "rgba(255,255,255,0.78)",
     fontSize: 12,
-    lineHeight: 18,
-    marginTop: 4,
+    marginTop: 3,
   },
 });

@@ -307,6 +307,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.form.fields.dateTimeRequired": "Date et heure *",
     "discipline.form.fields.dateTimePlaceholder": "2026-04-09T08:30",
     "discipline.form.fields.dateTimePlaceholderIso": "AAAA-MM-JJTHH:mm",
+    "discipline.form.fields.date": "Date",
+    "discipline.form.fields.time": "Heure",
     "discipline.form.fields.reason": "Motif",
     "discipline.form.fields.reasonRequired": "Motif *",
     "discipline.form.fields.reasonPlaceholder":
@@ -2291,6 +2293,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.form.fields.dateTimeRequired": "Date and time *",
     "discipline.form.fields.dateTimePlaceholder": "2026-04-09T08:30",
     "discipline.form.fields.dateTimePlaceholderIso": "YYYY-MM-DDTHH:mm",
+    "discipline.form.fields.date": "Date",
+    "discipline.form.fields.time": "Time",
     "discipline.form.fields.reason": "Reason",
     "discipline.form.fields.reasonRequired": "Reason *",
     "discipline.form.fields.reasonPlaceholder":

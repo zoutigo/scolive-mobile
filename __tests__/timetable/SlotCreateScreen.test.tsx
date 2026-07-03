@@ -219,7 +219,15 @@ const defaultProps = {
   onSuccess: mockOnSuccess,
 };
 
-function renderCreate(props?: Partial<typeof defaultProps & { prefilledClassId?: string; prefilledDate?: string; prefilledTeacherId?: string }>) {
+function renderCreate(
+  props?: Partial<
+    typeof defaultProps & {
+      prefilledClassId?: string;
+      prefilledDate?: string;
+      prefilledTeacherId?: string;
+    }
+  >,
+) {
   return render(<SlotCreateScreen {...defaultProps} {...props} />);
 }
 
