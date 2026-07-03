@@ -39,6 +39,14 @@ export default function HomeLayout() {
         options={{ animation: "slide_from_right" }}
       />
       <Stack.Screen
+        name="agenda/slot-create"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="agenda/slot-edit"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
         name="timetable/index"
         options={{ animation: "slide_from_right" }}
       />

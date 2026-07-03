@@ -5,10 +5,19 @@ import type {
   ClassTimetableResponse,
   MyTimetableResponse,
   TimetableClassOptionsResponse,
+  TimetableOccurrence,
   UpsertCalendarEventInput,
   UpsertOneOffSlotInput,
   UpsertRecurringSlotInput,
 } from "../types/timetable.types";
+
+export type SlotEditContext = {
+  occurrence: TimetableOccurrence;
+  className: string;
+  classId: string;
+  schoolYearId: string;
+  adminMode?: boolean;
+};
 
 type TimetableState = {
   myTimetable: MyTimetableResponse | null;
@@ -80,6 +89,9 @@ type TimetableState = {
     payload: Partial<UpsertCalendarEventInput>,
   ) => Promise<void>;
   deleteCalendarEvent: (schoolSlug: string, eventId: string) => Promise<void>;
+  pendingSlotEdit: SlotEditContext | null;
+  setPendingSlotEdit: (ctx: SlotEditContext) => void;
+  clearPendingSlotEdit: () => void;
   clearError: () => void;
   reset: () => void;
 };
@@ -95,6 +107,7 @@ export const useTimetableStore = create<TimetableState>((set) => ({
   isLoadingClassTimetable: false,
   isSubmitting: false,
   errorMessage: null,
+  pendingSlotEdit: null,
 
   async loadMyTimetable(schoolSlug, input) {
     set({ isLoadingMyTimetable: true, errorMessage: null });
@@ -318,6 +331,14 @@ export const useTimetableStore = create<TimetableState>((set) => ({
     }
   },
 
+  setPendingSlotEdit(ctx) {
+    set({ pendingSlotEdit: ctx });
+  },
+
+  clearPendingSlotEdit() {
+    set({ pendingSlotEdit: null });
+  },
+
   clearError() {
     set({ errorMessage: null });
   },
@@ -334,6 +355,7 @@ export const useTimetableStore = create<TimetableState>((set) => ({
       isLoadingClassTimetable: false,
       isSubmitting: false,
       errorMessage: null,
+      pendingSlotEdit: null,
     });
   },
 }));

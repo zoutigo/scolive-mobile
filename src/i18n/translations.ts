@@ -936,6 +936,11 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Le créneau récurrent a été créé dans l'emploi du temps.",
     "timetable.oneOffPanel.toasts.createErrorTitle": "Création impossible",
 
+    "timetable.slotScreen.headerTitle": "Schedule",
+    "timetable.slotScreen.create.heroTitle": "Créer un créneau",
+    "timetable.slotScreen.edit.heroTitle": "Modifier un créneau",
+    "timetable.slotScreen.heroSubtitle": "Définir la date, l'heure et la salle",
+
     "timetable.slotEditPanel.title": "MODIFIER CE CRÉNEAU",
     "timetable.slotEditPanel.scope.occurrence": "Ce créneau",
     "timetable.slotEditPanel.scope.series": "Toute la série",
@@ -2880,6 +2885,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.oneOffPanel.toasts.recurringCreatedMessage":
       "The recurring slot has been added to the timetable.",
     "timetable.oneOffPanel.toasts.createErrorTitle": "Creation failed",
+
+    "timetable.slotScreen.headerTitle": "Schedule",
+    "timetable.slotScreen.create.heroTitle": "Create a slot",
+    "timetable.slotScreen.edit.heroTitle": "Edit a slot",
+    "timetable.slotScreen.heroSubtitle": "Set the date, time and room",
 
     "timetable.slotEditPanel.title": "EDIT THIS SLOT",
     "timetable.slotEditPanel.scope.occurrence": "This slot",

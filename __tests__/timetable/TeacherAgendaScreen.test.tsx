@@ -41,10 +41,11 @@ const mockUseWindowDimensions = useWindowDimensions as jest.MockedFunction<
 >;
 
 const mockBack = jest.fn();
+const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({
     back: mockBack,
-    push: jest.fn(),
+    push: mockPush,
     canGoBack: jest.fn().mockReturnValue(true),
     navigate: jest.fn(),
   }),
@@ -854,117 +855,43 @@ describe("TeacherAgendaScreen — FAB de création", () => {
 
 // ── Tests — Modal de création ──────────────────────────────────────────────
 
-describe("TeacherAgendaScreen — modal de création", () => {
-  async function openCreateModal() {
+describe("TeacherAgendaScreen — navigation vers slot-create", () => {
+  it("FAB 'Mon agenda' navigue vers slot-create (sans classId)", async () => {
     render(<TeacherAgendaScreen />);
     await waitFor(() =>
       expect(screen.getByTestId("teacher-agenda-mine-fab-create")).toBeTruthy(),
     );
     fireEvent.press(screen.getByTestId("teacher-agenda-mine-fab-create"));
-  }
-
-  async function pickTime(testID: string, hour: string, minute: string) {
-    fireEvent.press(screen.getByTestId(testID));
-    await waitFor(() =>
-      expect(screen.getByTestId(`${testID}-modal`)).toBeTruthy(),
+    expect(mockPush).toHaveBeenCalledWith(
+      expect.stringContaining("/(home)/agenda/slot-create"),
     );
-    fireEvent.press(screen.getByTestId(`${testID}-hour-${hour}`));
-    fireEvent.press(screen.getByTestId(`${testID}-minute-${minute}`));
-    fireEvent.press(screen.getByTestId(`${testID}-confirm`));
-    await waitFor(() =>
-      expect(screen.queryByTestId(`${testID}-modal`)).toBeNull(),
-    );
-  }
-
-  it("ouvrir le FAB affiche le panneau de création", async () => {
-    await openCreateModal();
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-oneoff-create-panel")).toBeTruthy(),
-    );
-    expect(screen.getByText("Nouveau créneau")).toBeTruthy();
+    expect(mockPush.mock.calls[0][0]).not.toContain("classId=");
   });
 
-  it("le bouton fermer dans le panneau ferme la modal", async () => {
-    await openCreateModal();
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-oneoff-create-close")).toBeTruthy(),
-    );
-    fireEvent.press(screen.getByTestId("teacher-oneoff-create-close"));
-    await waitFor(() =>
-      expect(screen.queryByTestId("teacher-oneoff-create-panel")).toBeNull(),
-    );
-  });
-
-  it("dans 'Mon agenda' : le picker de classe est affiché (pas de classe pré-remplie)", async () => {
-    await openCreateModal();
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-oneoff-create-panel")).toBeTruthy(),
-    );
-    expect(screen.getByTestId("teacher-oneoff-class-class-6eC")).toBeTruthy();
-    expect(screen.getByTestId("teacher-oneoff-class-class-5eB")).toBeTruthy();
-  });
-
-  it("dans 'Mes classes' : la classe sélectionnée est pré-remplie (pas de picker)", async () => {
+  it("FAB 'Mes classes' navigue vers slot-create avec classId de la classe sélectionnée", async () => {
     render(<TeacherAgendaScreen />);
     fireEvent.press(screen.getByTestId("teacher-agenda-tab-classes"));
+    // Sélectionner la classe 6eC via le picker
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-agenda-class-picker")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-class-btn-class-6eC"));
     await waitFor(() =>
       expect(
         screen.getByTestId("teacher-agenda-class-fab-create"),
       ).toBeTruthy(),
     );
     fireEvent.press(screen.getByTestId("teacher-agenda-class-fab-create"));
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-oneoff-create-panel")).toBeTruthy(),
-    );
-    // Pas de picker de classe (prefilledClassId fourni → masqué)
-    expect(screen.queryByTestId("teacher-oneoff-class-class-6eC")).toBeNull();
-    // Le contexte est chargé automatiquement
-    await waitFor(() =>
-      expect(api.getClassContext).toHaveBeenCalledWith(
-        "college-vogt",
-        "class-6eC",
-      ),
+    expect(mockPush).toHaveBeenCalledWith(
+      expect.stringContaining("classId=class-6eC"),
     );
   });
-
-  it("après une création réussie : la modal se ferme et le planning recharge", async () => {
-    await openCreateModal();
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-oneoff-class-class-6eC")).toBeTruthy(),
-    );
-    // Sélectionner la classe → charger le contexte
-    fireEvent.press(screen.getByTestId("teacher-oneoff-class-class-6eC"));
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-oneoff-date-input")).toBeTruthy(),
-    );
-    fireEvent.changeText(
-      screen.getByTestId("teacher-oneoff-date-input"),
-      "2026-04-28",
-    );
-    await pickTime("teacher-oneoff-start-input", "09", "10");
-    await pickTime("teacher-oneoff-end-input", "10", "00");
-    jest.clearAllMocks();
-    mockLoadClassOptions.mockResolvedValue(CLASS_OPTIONS);
-    api.getClassTimetable.mockResolvedValue(
-      makeClassTimetable(TEACHER_OCCS, [STYLE_ANG]),
-    );
-    api.createOneOffSlot.mockResolvedValue(undefined as never);
-
-    fireEvent.press(screen.getByTestId("teacher-oneoff-create-save"));
-
-    await waitFor(() => expect(api.createOneOffSlot).toHaveBeenCalled());
-    await waitFor(() =>
-      expect(screen.queryByTestId("teacher-oneoff-create-panel")).toBeNull(),
-    );
-    // Le planning est rechargé (loadClassOptions + getClassTimetable appelés)
-    await waitFor(() => expect(mockLoadClassOptions).toHaveBeenCalled());
-  }, 15000);
 });
 
-// ── Tests — Modal d'édition ───────────────────────────────────────────────
+// ── Tests — Navigation vers slot-edit ────────────────────────────────────
 
-describe("TeacherAgendaScreen — modal d'édition", () => {
-  it("dans 'Mon agenda' : ouvrir puis fermer la modale d'édition depuis une card jour", async () => {
+describe("TeacherAgendaScreen — navigation vers slot-edit", () => {
+  it("'Mon agenda' : crayon navigue vers slot-edit et stocke pendingSlotEdit", async () => {
     render(<TeacherAgendaScreen />);
     await waitFor(() =>
       expect(
@@ -976,19 +903,14 @@ describe("TeacherAgendaScreen — modal d'édition", () => {
       screen.getByTestId("teacher-agenda-mine-day-card-edit-occ-ang-14"),
     );
 
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-agenda-mine-edit-modal")).toBeTruthy(),
-    );
-    expect(screen.getByTestId("teacher-slot-edit-panel")).toBeTruthy();
-
-    fireEvent.press(screen.getByTestId("teacher-slot-edit-close"));
-
-    await waitFor(() =>
-      expect(screen.queryByTestId("teacher-slot-edit-panel")).toBeNull(),
+    expect(mockPush).toHaveBeenCalledWith("/(home)/agenda/slot-edit");
+    expect(useTimetableStore.getState().pendingSlotEdit).not.toBeNull();
+    expect(useTimetableStore.getState().pendingSlotEdit?.occurrence.id).toBe(
+      "occ-ang-14",
     );
   });
 
-  it("dans 'Mes classes' : ouvrir la modale d'édition depuis une card jour", async () => {
+  it("'Mes classes' : crayon navigue vers slot-edit et stocke pendingSlotEdit", async () => {
     setupStores({
       classTimetable: makeClassTimetable(
         [
@@ -1018,12 +940,11 @@ describe("TeacherAgendaScreen — modal d'édition", () => {
       screen.getByTestId("teacher-agenda-class-day-card-edit-occ-class-edit"),
     );
 
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-agenda-class-edit-modal-content"),
-      ).toBeTruthy(),
+    expect(mockPush).toHaveBeenCalledWith("/(home)/agenda/slot-edit");
+    expect(useTimetableStore.getState().pendingSlotEdit).not.toBeNull();
+    expect(useTimetableStore.getState().pendingSlotEdit?.occurrence.id).toBe(
+      "occ-class-edit",
     );
-    expect(screen.getByTestId("teacher-slot-edit-panel")).toBeTruthy();
   });
 });
 
