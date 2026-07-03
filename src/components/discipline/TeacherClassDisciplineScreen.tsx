@@ -1,10 +1,24 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
+import type { TranslateFn } from "../../i18n/useTranslation";
 import { useAuthStore } from "../../store/auth.store";
 import { useDisciplineStore } from "../../store/discipline.store";
 import { notesApi } from "../../api/notes.api";
@@ -27,21 +41,56 @@ import {
   StudentSelectField,
   type StudentSelectOption,
 } from "./StudentSelectField";
-import { TeacherClassDisciplineFormSheet } from "./TeacherClassDisciplineFormSheet";
+import {
+  buildLifeEventPayload,
+  createDisciplineFormSchema,
+  DISCIPLINE_TYPE_CONFIG,
+  getDisciplineTypeLabel,
+  typeHasJustified,
+  type DisciplineFormSchema,
+  type StudentLifeEvent,
+  type StudentLifeEventType,
+} from "../../types/discipline.types";
+import {
+  getDefaultTeacherClassDisciplineDraft,
+  useTeacherClassDisciplineDraftStore,
+} from "../../store/teacher-class-discipline-draft.store";
 import type { NotesTeacherContext } from "../../types/notes.types";
 import type { ClassTimetableContextResponse } from "../../types/timetable.types";
-import type {
-  CreateLifeEventPayload,
-  StudentLifeEvent,
-} from "../../types/discipline.types";
+import type { CreateLifeEventPayload } from "../../types/discipline.types";
 import { moduleBack } from "../../utils/moduleBack";
 
-type TabKey = "events" | "carnets";
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
-const TAB_KEYS = [
+type TabKey = "events" | "carnets" | "forms";
+type ListTabKey = "events" | "carnets";
+
+type FormContext = {
+  type: "create-event" | "edit-event";
+  originTab: ListTabKey;
+  item: StudentLifeEvent | null;
+};
+
+type HeroPalette = "teal" | "warm";
+
+const PALETTE_COLORS: Record<HeroPalette, { bg: string; dark: string }> = {
+  teal: { bg: "#247C72", dark: "#195E56" },
+  warm: { bg: "#C0681A", dark: "#A05010" },
+};
+
+const LIST_TAB_KEYS = [
   { key: "events", labelKey: "discipline.tabs.events" },
   { key: "carnets", labelKey: "discipline.tabs.booklets" },
 ] as const;
+
+const TYPES: StudentLifeEventType[] = [
+  "ABSENCE",
+  "RETARD",
+  "SANCTION",
+  "PUNITION",
+];
 
 const POWER_ROLES = new Set([
   "SUPER_ADMIN",
@@ -50,6 +99,27 @@ const POWER_ROLES = new Set([
   "SCHOOL_MANAGER",
   "SUPERVISOR",
 ]);
+
+// ---------------------------------------------------------------------------
+// Form schema / values
+// ---------------------------------------------------------------------------
+
+function createTeacherClassDisciplineFormSchema(
+  baseSchema: DisciplineFormSchema,
+  studentRequiredMessage: string,
+) {
+  return baseSchema.extend({
+    studentId: z.string().min(1, studentRequiredMessage),
+  });
+}
+
+type FormValues = z.infer<
+  ReturnType<typeof createTeacherClassDisciplineFormSchema>
+>;
+
+// ---------------------------------------------------------------------------
+// Utility functions
+// ---------------------------------------------------------------------------
 
 function fullStudentName(student: {
   firstName: string;
@@ -78,6 +148,464 @@ function canManageEvent(params: {
   return params.isReferent || params.event.authorUserId === params.userId;
 }
 
+function eventToFormValues(event: StudentLifeEvent): FormValues {
+  const date = new Date(event.occurredAt);
+  const pad = (value: number) => String(value).padStart(2, "0");
+
+  return {
+    studentId: event.studentId,
+    type: event.type,
+    occurredAt: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+      date.getDate(),
+    )}T${pad(date.getHours())}:${pad(date.getMinutes())}`,
+    reason: event.reason,
+    durationMinutes:
+      event.durationMinutes != null ? String(event.durationMinutes) : "",
+    justified: event.justified ?? false,
+    comment: event.comment ?? "",
+  };
+}
+
+function buildCreateDefaults(classId: string): FormValues {
+  const draft =
+    useTeacherClassDisciplineDraftStore.getState().getDraft(classId) ??
+    getDefaultTeacherClassDisciplineDraft();
+
+  return {
+    studentId: draft.studentId,
+    type: draft.type,
+    occurredAt: draft.occurredAt,
+    reason: draft.reason,
+    durationMinutes: draft.durationMinutes,
+    justified: draft.justified,
+    comment: draft.comment,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// FormHero — hero visuel du tab forms (différent du ModuleHeader bleu)
+// ---------------------------------------------------------------------------
+
+function FormHero(props: {
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  title: string;
+  subtitle?: string;
+  palette: HeroPalette;
+  testID?: string;
+}) {
+  const { bg, dark } = PALETTE_COLORS[props.palette];
+
+  return (
+    <View
+      style={[styles.heroContainer, { backgroundColor: bg }]}
+      testID={props.testID}
+    >
+      <View style={[styles.heroDecor1, { backgroundColor: dark }]} />
+      <View style={[styles.heroDecor2, { backgroundColor: dark }]} />
+      <View style={styles.heroRow}>
+        <View style={styles.heroIconWrap}>
+          <Ionicons
+            name={props.icon}
+            size={28}
+            color="rgba(255,255,255,0.92)"
+          />
+        </View>
+        <View style={styles.heroTextWrap}>
+          <Text style={styles.heroTitle}>{props.title}</Text>
+          {props.subtitle ? (
+            <Text style={styles.heroSubtitle}>{props.subtitle}</Text>
+          ) : null}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// FieldTextInput — champ texte inline avec forward de ref pour RHF setFocus
+// ---------------------------------------------------------------------------
+
+type FieldTextInputProps = {
+  label: string;
+  value: string;
+  onChangeText: (value: string) => void;
+  onBlur: () => void;
+  placeholder: string;
+  error?: string;
+  testID: string;
+  keyboardType?: "default" | "numeric";
+  multiline?: boolean;
+};
+
+const FieldTextInput = React.forwardRef<TextInput, FieldTextInputProps>(
+  function FieldTextInput(props, ref) {
+    const [focused, setFocused] = useState(false);
+
+    return (
+      <View style={styles.formField}>
+        <Text style={styles.formLabel}>{props.label}</Text>
+        <TextInput
+          ref={ref}
+          value={props.value}
+          onChangeText={props.onChangeText}
+          onBlur={() => {
+            setFocused(false);
+            props.onBlur();
+          }}
+          onFocus={() => setFocused(true)}
+          placeholder={props.placeholder}
+          placeholderTextColor={colors.textSecondary}
+          keyboardType={props.keyboardType}
+          multiline={props.multiline}
+          numberOfLines={props.multiline ? 4 : 1}
+          textAlignVertical={props.multiline ? "top" : "center"}
+          style={[
+            styles.formInput,
+            props.multiline && styles.formInputMultiline,
+            focused && styles.formInputFocused,
+            props.error ? styles.formInputError : null,
+          ]}
+          testID={props.testID}
+        />
+        {props.error ? (
+          <Text style={styles.formError} testID={`${props.testID}-error`}>
+            {props.error}
+          </Text>
+        ) : null}
+      </View>
+    );
+  },
+);
+
+// ---------------------------------------------------------------------------
+// DisciplineEventFormContent — formulaire inline de création / édition
+// ---------------------------------------------------------------------------
+
+function DisciplineEventFormContent(props: {
+  t: TranslateFn;
+  classId: string;
+  studentOptions: StudentSelectOption[];
+  editing: StudentLifeEvent | null;
+  isSubmitting: boolean;
+  onCancel: () => void;
+  onSubmit: (input: {
+    studentId: string;
+    payload: CreateLifeEventPayload;
+  }) => Promise<void> | void;
+}) {
+  const { t, classId, editing } = props;
+  const baseSchema = useMemo(() => createDisciplineFormSchema(t), [t]);
+  const schema = useMemo(
+    () =>
+      createTeacherClassDisciplineFormSchema(
+        baseSchema,
+        t("discipline.validation.studentRequired"),
+      ),
+    [baseSchema, t],
+  );
+
+  const saveDraft = useTeacherClassDisciplineDraftStore(
+    (state) => state.saveDraft,
+  );
+  const clearDraft = useTeacherClassDisciplineDraftStore(
+    (state) => state.clearDraft,
+  );
+
+  const defaultValues = useMemo(
+    () => (editing ? eventToFormValues(editing) : buildCreateDefaults(classId)),
+    [classId, editing],
+  );
+
+  const {
+    control,
+    handleSubmit,
+    watch,
+    reset,
+    setValue,
+    setFocus,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues,
+  });
+
+  useEffect(() => {
+    reset(defaultValues);
+  }, [defaultValues, reset]);
+
+  const watchedValues = watch();
+  const selectedType = watch("type");
+
+  useEffect(() => {
+    if (editing) return;
+    saveDraft(classId, {
+      studentId: watchedValues.studentId ?? "",
+      type: watchedValues.type ?? "ABSENCE",
+      occurredAt: watchedValues.occurredAt ?? "",
+      reason: watchedValues.reason ?? "",
+      durationMinutes: watchedValues.durationMinutes ?? "",
+      justified: watchedValues.justified ?? false,
+      comment: watchedValues.comment ?? "",
+    });
+  }, [
+    classId,
+    editing,
+    saveDraft,
+    watchedValues.comment,
+    watchedValues.durationMinutes,
+    watchedValues.justified,
+    watchedValues.occurredAt,
+    watchedValues.reason,
+    watchedValues.studentId,
+    watchedValues.type,
+  ]);
+
+  useEffect(() => {
+    if (typeHasJustified(selectedType)) return;
+    setValue("justified", false);
+  }, [selectedType, setValue]);
+
+  const submitLabel = editing
+    ? t("discipline.form.buttons.edit")
+    : t("discipline.form.buttons.create");
+
+  const onValid = handleSubmit(
+    async (values) => {
+      await props.onSubmit({
+        studentId: values.studentId,
+        payload: {
+          ...buildLifeEventPayload(values, baseSchema),
+          classId,
+        },
+      });
+      if (!editing) {
+        clearDraft(classId);
+        reset(buildCreateDefaults(classId));
+      }
+    },
+    (formErrors) => {
+      const first = Object.keys(formErrors)[0];
+      if (first) setFocus(first as Parameters<typeof setFocus>[0]);
+    },
+  );
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="teacher-class-discipline-form-content"
+    >
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Controller
+          control={control}
+          name="studentId"
+          render={({ field: { value, onChange } }) => (
+            <View style={styles.formField}>
+              <StudentSelectField
+                label={t("discipline.form.fields.student")}
+                value={value}
+                options={props.studentOptions}
+                onChange={onChange}
+                allowEmpty={false}
+                placeholder={t("discipline.form.fields.studentPlaceholder")}
+                testIDPrefix="discipline-form-student"
+              />
+              {errors.studentId ? (
+                <Text
+                  style={styles.formError}
+                  testID="discipline-form-student-error"
+                >
+                  {errors.studentId.message}
+                </Text>
+              ) : null}
+            </View>
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="type"
+          render={({ field: { value, onChange } }) => (
+            <View style={styles.formField}>
+              <Text style={styles.formLabel}>
+                {t("discipline.form.fields.type")}
+              </Text>
+              <View style={styles.typeRow}>
+                {TYPES.map((type) => {
+                  const cfg = DISCIPLINE_TYPE_CONFIG[type];
+                  const typeLabel = getDisciplineTypeLabel(t, type);
+                  const active = value === type;
+                  return (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.typeChip,
+                        active && {
+                          backgroundColor: cfg.bg,
+                          borderColor: cfg.accent,
+                        },
+                      ]}
+                      onPress={() => onChange(type)}
+                      testID={`discipline-form-type-${type}`}
+                    >
+                      <Ionicons
+                        name={cfg.icon as "time-outline"}
+                        size={14}
+                        color={active ? cfg.accent : colors.textSecondary}
+                      />
+                      <Text
+                        style={[
+                          styles.typeChipLabel,
+                          active && { color: cfg.accent, fontWeight: "700" },
+                        ]}
+                      >
+                        {typeLabel}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="occurredAt"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <FieldTextInput
+              ref={ref}
+              label={t("discipline.form.fields.dateTime")}
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder={t("discipline.form.fields.dateTimePlaceholderIso")}
+              error={errors.occurredAt?.message}
+              testID="discipline-form-occurred-at"
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="reason"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <FieldTextInput
+              ref={ref}
+              label={t("discipline.form.fields.description")}
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder={t("discipline.form.fields.reasonPlaceholderShort")}
+              error={errors.reason?.message}
+              multiline
+              testID="discipline-form-reason"
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="durationMinutes"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <FieldTextInput
+              ref={ref}
+              label={t("discipline.form.fields.duration")}
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder={t("discipline.form.fields.durationPlaceholderAlt")}
+              error={errors.durationMinutes?.message}
+              keyboardType="numeric"
+              testID="discipline-form-duration"
+            />
+          )}
+        />
+
+        {typeHasJustified(selectedType) ? (
+          <Controller
+            control={control}
+            name="justified"
+            render={({ field: { value, onChange } }) => (
+              <View style={styles.switchRow}>
+                <View style={styles.switchTextBlock}>
+                  <Text style={styles.formLabel}>
+                    {t("discipline.form.fields.justified")}
+                  </Text>
+                  <Text style={styles.switchSub}>
+                    {t("discipline.form.fields.justifiedHintAlt")}
+                  </Text>
+                </View>
+                <Switch
+                  value={value}
+                  onValueChange={onChange}
+                  thumbColor={value ? colors.accentTeal : colors.warmBorder}
+                  trackColor={{
+                    false: colors.border,
+                    true: `${colors.accentTeal}66`,
+                  }}
+                  testID="discipline-form-justified"
+                />
+              </View>
+            )}
+          />
+        ) : null}
+
+        <Controller
+          control={control}
+          name="comment"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <FieldTextInput
+              ref={ref}
+              label={t("discipline.form.fields.comment")}
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder={t("discipline.form.fields.commentPlaceholderAlt")}
+              multiline
+              testID="discipline-form-comment"
+            />
+          )}
+        />
+      </ScrollView>
+
+      <View style={styles.formActionsBar}>
+        <TouchableOpacity
+          style={styles.secondaryAction}
+          onPress={props.onCancel}
+          testID="discipline-form-cancel"
+        >
+          <Text style={styles.secondaryActionLabel}>
+            {t("discipline.form.buttons.cancel")}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.primaryAction,
+            props.isSubmitting && styles.primaryActionDisabled,
+          ]}
+          disabled={props.isSubmitting}
+          onPress={() => void onValid()}
+          testID="discipline-form-submit"
+        >
+          <Text style={styles.primaryActionLabel}>{submitLabel}</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TeacherClassDisciplineScreen
+// ---------------------------------------------------------------------------
+
 export function TeacherClassDisciplineScreen({
   showHeader = true,
 }: {
@@ -102,6 +630,7 @@ export function TeacherClassDisciplineScreen({
   const showError = useSuccessToastStore((state) => state.showError);
 
   const [tab, setTab] = useState<TabKey>("events");
+  const [formContext, setFormContext] = useState<FormContext | null>(null);
   const [teacherContext, setTeacherContext] =
     useState<NotesTeacherContext | null>(null);
   const [classContext, setClassContext] =
@@ -111,15 +640,10 @@ export function TeacherClassDisciplineScreen({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [eventStudentId, setEventStudentId] = useState("");
   const [carnetStudentId, setCarnetStudentId] = useState("");
-  const [formVisible, setFormVisible] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<StudentLifeEvent | null>(
-    null,
-  );
   const [deleteTarget, setDeleteTarget] = useState<StudentLifeEvent | null>(
     null,
   );
   const [isDeleting, setIsDeleting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
   const [isSavingForm, setIsSavingForm] = useState(false);
 
   const students = useMemo(
@@ -247,13 +771,30 @@ export function TeacherClassDisciplineScreen({
     await loadEvents(true);
   }, [loadEvents]);
 
+  function exitForms() {
+    const origin = formContext?.originTab ?? "events";
+    setFormContext(null);
+    setTab(origin);
+  }
+
+  function openCreateForm() {
+    setFormContext({ type: "create-event", originTab: "events", item: null });
+    setTab("forms");
+  }
+
+  function openEditForm(event: StudentLifeEvent) {
+    setFormContext({ type: "edit-event", originTab: "events", item: event });
+    setTab("forms");
+  }
+
   async function handleSubmitForm(input: {
     studentId: string;
     payload: CreateLifeEventPayload;
   }) {
-    if (!schoolSlug) return;
+    if (!schoolSlug || !formContext) return;
+    const editingEvent = formContext.item;
+    const originTab = formContext.originTab;
     setIsSavingForm(true);
-    setFormError(null);
     try {
       if (editingEvent) {
         const updated = await disciplineApi.update(
@@ -274,23 +815,22 @@ export function TeacherClassDisciplineScreen({
           input.payload,
         );
         addEvent(input.studentId, created);
-        setEventStudentId((current) => current);
         showSuccess({
           title: t("discipline.toasts.eventCreatedTitle"),
           message: t("discipline.toasts.eventCreatedMessageClass"),
         });
       }
-      setFormVisible(false);
-      setEditingEvent(null);
+      setTimeout(() => {
+        setTab(originTab);
+        setFormContext(null);
+      }, 2000);
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : t("discipline.errors.saveGeneric");
-      setFormError(message);
       showError({
         title: t("discipline.errors.saveTitle"),
-        message,
+        message:
+          error instanceof Error
+            ? error.message
+            : t("discipline.errors.saveGeneric"),
       });
     } finally {
       setIsSavingForm(false);
@@ -336,7 +876,7 @@ export function TeacherClassDisciplineScreen({
           <ModuleHeader
             title={t("discipline.header.discipline")}
             subtitle={subtitle}
-            onBack={() => moduleBack(router)}
+            onBack={() => (tab === "forms" ? exitForms() : moduleBack(router))}
             testID="teacher-class-discipline-header"
             backTestID="teacher-class-discipline-back"
             topInset={insets.top}
@@ -344,163 +884,182 @@ export function TeacherClassDisciplineScreen({
         </View>
       ) : null}
 
-      <UnderlineTabs
-        items={TAB_KEYS.map((item) => ({
-          key: item.key,
-          label: t(item.labelKey),
-          badge:
-            item.key === "events"
-              ? classEvents.length
-              : carnetStudentId
-                ? carnetEvents.length
-                : 0,
-        }))}
-        activeKey={tab}
-        onSelect={setTab}
-        testIDPrefix="teacher-class-discipline-tab"
-      />
+      {tab !== "forms" ? (
+        <UnderlineTabs
+          items={LIST_TAB_KEYS.map((item) => ({
+            key: item.key,
+            label: t(item.labelKey),
+            badge:
+              item.key === "events"
+                ? classEvents.length
+                : carnetStudentId
+                  ? carnetEvents.length
+                  : 0,
+          }))}
+          activeKey={tab as ListTabKey}
+          onSelect={(key) => setTab(key as TabKey)}
+          testIDPrefix="teacher-class-discipline-tab"
+        />
+      ) : null}
 
       {loadError ? <ErrorBanner message={loadError} /> : null}
 
-      {isLoadingContext && !teacherContext ? (
-        <View style={styles.centered}>
-          <LoadingBlock label={t("discipline.loading.generic")} />
-        </View>
-      ) : !teacherContext ? (
-        <View style={styles.centered}>
-          <EmptyState
-            icon="shield-outline"
-            title={t("discipline.empty.discipline.title")}
-            message={t("discipline.empty.discipline.message")}
+      {/* ── Tab forms : hero + formulaire inline ──────────────────────────── */}
+      {tab === "forms" && formContext ? (
+        <View
+          style={styles.formsTabContent}
+          testID="teacher-class-discipline-forms-tab"
+        >
+          <FormHero
+            icon={
+              formContext.type === "edit-event"
+                ? "create-outline"
+                : "add-circle-outline"
+            }
+            title={
+              formContext.type === "edit-event"
+                ? t("discipline.form.hero.editTitle")
+                : t("discipline.form.hero.createTitle")
+            }
+            subtitle={
+              formContext.type === "edit-event"
+                ? t("discipline.form.hero.editSubtitle")
+                : t("discipline.form.hero.createSubtitle")
+            }
+            palette={formContext.type === "edit-event" ? "warm" : "teal"}
+            testID="teacher-class-discipline-form-hero"
+          />
+          <DisciplineEventFormContent
+            t={t}
+            classId={classId}
+            studentOptions={studentOptions}
+            editing={formContext.item}
+            isSubmitting={isSavingForm}
+            onCancel={exitForms}
+            onSubmit={handleSubmitForm}
           />
         </View>
-      ) : tab === "events" ? (
-        <View style={styles.body}>
-          <SectionCard
-            title={t("discipline.sections.classEvents.title")}
-            subtitle={t("discipline.sections.classEvents.subtitle")}
-            testID="teacher-class-discipline-events-card"
-          >
-            <StudentSelectField
-              label={t("discipline.filters.student")}
-              value={eventStudentId}
-              options={studentOptions}
-              onChange={setEventStudentId}
-              allowEmpty
-              emptyOptionLabel={t("discipline.filters.allStudents")}
-              testIDPrefix="teacher-class-discipline-events-student"
+      ) : null}
+
+      {tab !== "forms" ? (
+        isLoadingContext && !teacherContext ? (
+          <View style={styles.centered}>
+            <LoadingBlock label={t("discipline.loading.generic")} />
+          </View>
+        ) : !teacherContext ? (
+          <View style={styles.centered}>
+            <EmptyState
+              icon="shield-outline"
+              title={t("discipline.empty.discipline.title")}
+              message={t("discipline.empty.discipline.message")}
             />
-          </SectionCard>
+          </View>
+        ) : tab === "events" ? (
+          <View style={styles.body}>
+            <SectionCard
+              title={t("discipline.sections.classEvents.title")}
+              subtitle={t("discipline.sections.classEvents.subtitle")}
+              testID="teacher-class-discipline-events-card"
+            >
+              <StudentSelectField
+                label={t("discipline.filters.student")}
+                value={eventStudentId}
+                options={studentOptions}
+                onChange={setEventStudentId}
+                allowEmpty
+                emptyOptionLabel={t("discipline.filters.allStudents")}
+                testIDPrefix="teacher-class-discipline-events-student"
+              />
+            </SectionCard>
 
-          <DisciplineList
-            events={classEvents}
-            isLoading={isLoadingEvents}
-            isRefreshing={isRefreshing}
-            onRefresh={() => {
-              void refreshAll();
-            }}
-            emptyTitle={t("discipline.empty.noClassEvents.title")}
-            emptySub={t("discipline.empty.noClassEvents.message")}
-            showActions
-            getHeadline={(event) =>
-              studentNameById[event.studentId] ?? t("discipline.header.student")
-            }
-            canEdit={(event) =>
-              canManageEvent({
-                event,
-                userId: user?.id,
-                role: user?.activeRole ?? user?.role,
-                isReferent: Boolean(isReferentTeacher),
-              })
-            }
-            canDelete={(event) =>
-              canManageEvent({
-                event,
-                userId: user?.id,
-                role: user?.activeRole ?? user?.role,
-                isReferent: Boolean(isReferentTeacher),
-              })
-            }
-            onEdit={(event) => {
-              setEditingEvent(event);
-              setFormError(null);
-              setFormVisible(true);
-            }}
-            onDelete={(event) => setDeleteTarget(event)}
-            testID="teacher-class-discipline-events-list"
-          />
-
-          <TouchableOpacity
-            style={[
-              styles.fab,
-              { bottom: insets.bottom + 18 + BOTTOM_TAB_BAR_HEIGHT },
-            ]}
-            onPress={() => {
-              setEditingEvent(null);
-              setFormError(null);
-              setFormVisible(true);
-            }}
-            testID="teacher-class-discipline-fab"
-            accessibilityLabel={t("discipline.fab.addEvent")}
-          >
-            <Ionicons name="add" size={28} color={colors.white} />
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={styles.body}>
-          <SectionCard
-            title={t("discipline.sections.booklets.title")}
-            subtitle={t("discipline.sections.booklets.subtitle")}
-            testID="teacher-class-discipline-carnets-card"
-          >
-            <StudentSelectField
-              label={t("discipline.filters.searchByStudent")}
-              value={carnetStudentId}
-              options={studentOptions}
-              onChange={setCarnetStudentId}
-              allowEmpty
-              emptyOptionLabel={t("discipline.studentSelect.placeholder")}
-              testIDPrefix="teacher-class-discipline-carnets-student"
-            />
-          </SectionCard>
-
-          {carnetStudentId ? (
-            <DisciplineSummaryOverview
-              summary={carnetSummary}
-              events={carnetEvents}
+            <DisciplineList
+              events={classEvents}
               isLoading={isLoadingEvents}
               isRefreshing={isRefreshing}
               onRefresh={() => {
                 void refreshAll();
               }}
-              testID="teacher-class-discipline-carnet-summary"
+              emptyTitle={t("discipline.empty.noClassEvents.title")}
+              emptySub={t("discipline.empty.noClassEvents.message")}
+              showActions
+              getHeadline={(event) =>
+                studentNameById[event.studentId] ??
+                t("discipline.header.student")
+              }
+              canEdit={(event) =>
+                canManageEvent({
+                  event,
+                  userId: user?.id,
+                  role: user?.activeRole ?? user?.role,
+                  isReferent: Boolean(isReferentTeacher),
+                })
+              }
+              canDelete={(event) =>
+                canManageEvent({
+                  event,
+                  userId: user?.id,
+                  role: user?.activeRole ?? user?.role,
+                  isReferent: Boolean(isReferentTeacher),
+                })
+              }
+              onEdit={openEditForm}
+              onDelete={(event) => setDeleteTarget(event)}
+              testID="teacher-class-discipline-events-list"
             />
-          ) : (
-            <View style={styles.centered}>
-              <EmptyState
-                icon="people-outline"
-                title={t("discipline.empty.chooseStudent.title")}
-                message={t("discipline.empty.chooseStudentClass.message")}
-              />
-            </View>
-          )}
-        </View>
-      )}
 
-      <TeacherClassDisciplineFormSheet
-        visible={formVisible}
-        classId={classId}
-        studentOptions={studentOptions}
-        editing={editingEvent}
-        isSaving={isSavingForm}
-        error={formError}
-        onClose={() => {
-          setFormVisible(false);
-          setEditingEvent(null);
-          setFormError(null);
-        }}
-        onSubmit={handleSubmitForm}
-      />
+            <TouchableOpacity
+              style={[
+                styles.fab,
+                { bottom: insets.bottom + 18 + BOTTOM_TAB_BAR_HEIGHT },
+              ]}
+              onPress={openCreateForm}
+              testID="teacher-class-discipline-fab"
+              accessibilityLabel={t("discipline.fab.addEvent")}
+            >
+              <Ionicons name="add" size={28} color={colors.white} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.body}>
+            <SectionCard
+              title={t("discipline.sections.booklets.title")}
+              subtitle={t("discipline.sections.booklets.subtitle")}
+              testID="teacher-class-discipline-carnets-card"
+            >
+              <StudentSelectField
+                label={t("discipline.filters.searchByStudent")}
+                value={carnetStudentId}
+                options={studentOptions}
+                onChange={setCarnetStudentId}
+                allowEmpty
+                emptyOptionLabel={t("discipline.studentSelect.placeholder")}
+                testIDPrefix="teacher-class-discipline-carnets-student"
+              />
+            </SectionCard>
+
+            {carnetStudentId ? (
+              <DisciplineSummaryOverview
+                summary={carnetSummary}
+                events={carnetEvents}
+                isLoading={isLoadingEvents}
+                isRefreshing={isRefreshing}
+                onRefresh={() => {
+                  void refreshAll();
+                }}
+                testID="teacher-class-discipline-carnet-summary"
+              />
+            ) : (
+              <View style={styles.centered}>
+                <EmptyState
+                  icon="people-outline"
+                  title={t("discipline.empty.chooseStudent.title")}
+                  message={t("discipline.empty.chooseStudentClass.message")}
+                />
+              </View>
+            )}
+          </View>
+        )
+      ) : null}
 
       <DisciplineDeleteDialog
         event={deleteTarget}
@@ -543,5 +1102,195 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 5,
+  },
+  // ── FormHero ──────────────────────────────────────────────────────────
+  heroContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 22,
+    overflow: "hidden",
+  },
+  heroDecor1: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    borderRadius: 22,
+    bottom: -40,
+    right: -20,
+    transform: [{ rotate: "30deg" }],
+    opacity: 0.18,
+  },
+  heroDecor2: {
+    position: "absolute",
+    width: 60,
+    height: 60,
+    borderRadius: 14,
+    top: -18,
+    right: 60,
+    transform: [{ rotate: "20deg" }],
+    opacity: 0.12,
+  },
+  heroRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  heroIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  heroTextWrap: {
+    flex: 1,
+    gap: 3,
+  },
+  heroTitle: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontWeight: "800",
+    lineHeight: 26,
+  },
+  heroSubtitle: {
+    color: "rgba(255,255,255,0.70)",
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  // ── Inline form layout ────────────────────────────────────────────────
+  formsTabContent: {
+    flex: 1,
+  },
+  formsKeyboardArea: {
+    flex: 1,
+  },
+  formScroll: {
+    flex: 1,
+  },
+  formScrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    gap: 16,
+  },
+  formActionsBar: {
+    backgroundColor: colors.warmSurface,
+    borderTopWidth: 1,
+    borderTopColor: colors.warmBorder,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    flexDirection: "row",
+    gap: 10,
+  },
+  // ── Form fields ───────────────────────────────────────────────────────
+  formField: {
+    gap: 8,
+  },
+  formLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  formInput: {
+    minHeight: 46,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    borderRadius: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: colors.textPrimary,
+    fontSize: 14,
+  },
+  formInputMultiline: {
+    minHeight: 104,
+  },
+  formInputFocused: {
+    borderColor: colors.primary,
+  },
+  formInputError: {
+    borderColor: "#B84A3B",
+  },
+  formError: {
+    color: "#B84A3B",
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: "600",
+  },
+  typeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  typeChip: {
+    minHeight: 38,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  typeChipLabel: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  switchRow: {
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.surface,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  switchTextBlock: {
+    flex: 1,
+    gap: 4,
+  },
+  switchSub: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.textSecondary,
+  },
+  secondaryAction: {
+    flex: 1,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.warmSurface,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 13,
+  },
+  secondaryActionLabel: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  primaryAction: {
+    flex: 1.2,
+    borderRadius: 6,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 13,
+  },
+  primaryActionDisabled: {
+    opacity: 0.5,
+  },
+  primaryActionLabel: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: "700",
   },
 });

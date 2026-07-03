@@ -332,6 +332,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.form.buttons.cancel": "Annuler",
     "discipline.form.buttons.create": "Créer l'événement",
     "discipline.form.buttons.edit": "Enregistrer les modifications",
+    "discipline.form.hero.createTitle": "Nouvel événement de discipline",
+    "discipline.form.hero.editTitle": "Modifier l'événement",
+    "discipline.form.hero.createSubtitle":
+      "Renseignez l'élève, le type et le motif de l'événement.",
+    "discipline.form.hero.editSubtitle":
+      "Mettez à jour les informations de cet événement de discipline.",
 
     "discipline.studentSelect.placeholder": "Choisir un élève",
     "discipline.studentSelect.allStudents": "Tous les élèves",
@@ -2307,6 +2313,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.form.buttons.cancel": "Cancel",
     "discipline.form.buttons.create": "Create event",
     "discipline.form.buttons.edit": "Save changes",
+    "discipline.form.hero.createTitle": "New discipline event",
+    "discipline.form.hero.editTitle": "Edit event",
+    "discipline.form.hero.createSubtitle":
+      "Fill in the student, type and reason for the event.",
+    "discipline.form.hero.editSubtitle":
+      "Update the details of this discipline event.",
 
     "discipline.studentSelect.placeholder": "Choose a student",
     "discipline.studentSelect.allStudents": "All students",
