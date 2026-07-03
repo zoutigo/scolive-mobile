@@ -30,7 +30,8 @@ export function formatHeaderUserName(user: AuthUser): string {
   return `${user.firstName.toLowerCase()} ${user.lastName.toUpperCase()}`;
 }
 
-function isHomePath(pathname: string): boolean {
+function isHomePath(pathname: string | undefined): boolean {
+  if (!pathname) return true;
   const normalized = pathname.replace("/(home)", "");
   return normalized === "" || normalized === "/" || normalized === "/index";
 }

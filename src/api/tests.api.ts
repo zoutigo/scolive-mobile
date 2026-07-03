@@ -16,7 +16,8 @@ export type ListExecutionsParams = {
   limit?: number;
 };
 
-function normalizeMediaUrl(url: string) {
+function normalizeMediaUrl(url: string | undefined | null): string {
+  if (!url) return url ?? "";
   const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? "";
   const match = apiUrl.match(/^https?:\/\/([^:/]+)/);
   const apiHost = match?.[1] ?? "";

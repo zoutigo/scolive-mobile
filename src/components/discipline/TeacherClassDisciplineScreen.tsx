@@ -482,10 +482,8 @@ function DisciplineEventFormContent(props: {
           control={control}
           name="occurredAt"
           render={({ field: { value, onChange } }) => {
-            const datePart = value ? value.split("T")[0] ?? "" : "";
-            const timePart = value
-              ? (value.split("T")[1] ?? "08:00")
-              : "08:00";
+            const datePart = value ? (value.split("T")[0] ?? "") : "";
+            const timePart = value ? (value.split("T")[1] ?? "08:00") : "08:00";
             return (
               <View style={styles.formField}>
                 <View style={styles.dateTimeRow}>
@@ -495,9 +493,7 @@ function DisciplineEventFormContent(props: {
                     </Text>
                     <DatePickerField
                       value={datePart}
-                      onChange={(newDate) =>
-                        onChange(`${newDate}T${timePart}`)
-                      }
+                      onChange={(newDate) => onChange(`${newDate}T${timePart}`)}
                       title={t("discipline.form.fields.date")}
                       hasError={!!errors.occurredAt}
                       testID="discipline-form-date-picker"
@@ -509,9 +505,7 @@ function DisciplineEventFormContent(props: {
                     </Text>
                     <TimePickerField
                       value={timePart}
-                      onChange={(newTime) =>
-                        onChange(`${datePart}T${newTime}`)
-                      }
+                      onChange={(newTime) => onChange(`${datePart}T${newTime}`)}
                       title={t("discipline.form.fields.time")}
                       hasError={!!errors.occurredAt}
                       testID="discipline-form-time-picker"
