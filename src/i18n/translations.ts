@@ -1247,13 +1247,16 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.executions.detail.swipeHint": "Glissez pour passer au suivant",
     "tests.executions.detail.editFab": "Modifier le résultat",
     "tests.executions.edit.heroTitle": "Modifier le résultat",
-    "tests.executions.edit.heroSubtitle": "Mettez à jour le statut et les détails",
+    "tests.executions.edit.heroSubtitle":
+      "Mettez à jour le statut et les détails",
     "tests.executions.edit.submit": "Enregistrer les modifications",
     "tests.executions.edit.submitting": "Enregistrement…",
     "tests.executions.edit.cancel": "Annuler",
     "tests.executions.edit.toastSuccessTitle": "Résultat mis à jour",
-    "tests.executions.edit.toastSuccessMessage": "La modification a bien été enregistrée.",
-    "tests.executions.edit.validation.resultRequired": "Le résultat est obligatoire.",
+    "tests.executions.edit.toastSuccessMessage":
+      "La modification a bien été enregistrée.",
+    "tests.executions.edit.validation.resultRequired":
+      "Le résultat est obligatoire.",
 
     "tests.summary.subtitle": "Vue d'ensemble",
     "tests.summary.kpi.totalCampaigns": "Campagnes",

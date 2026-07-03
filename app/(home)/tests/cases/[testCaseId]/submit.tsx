@@ -491,7 +491,12 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   heroTextWrap: { flex: 1, gap: 3 },
-  heroTitle: { color: "#FFFFFF", fontSize: 20, fontWeight: "800", lineHeight: 26 },
+  heroTitle: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontWeight: "800",
+    lineHeight: 26,
+  },
   heroSubtitleText: {
     color: "rgba(255,255,255,0.70)",
     fontSize: 12,

@@ -16,7 +16,11 @@ import { useSuccessToastStore } from "../../src/store/success-toast.store";
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ back: jest.fn(), navigate: jest.fn(), canGoBack: () => true }),
+  useRouter: () => ({
+    back: jest.fn(),
+    navigate: jest.fn(),
+    canGoBack: () => true,
+  }),
   useLocalSearchParams: () => ({
     executionId: "exec-1",
     status: undefined,
@@ -71,10 +75,7 @@ jest.mock("../../src/components/tests/ExecutionDetailCard", () => ({
 
 // ─── Données de test ──────────────────────────────────────────────────────────
 
-const makeUser = (
-  isTester: boolean,
-  platformRoles: string[] = [],
-) => ({
+const makeUser = (isTester: boolean, platformRoles: string[] = []) => ({
   id: "user-1",
   firstName: "Valery",
   lastName: "MBELE",
@@ -203,7 +204,11 @@ describe("TestExecutionRoute — FAB modifier & formulaire inline", () => {
   it("flèche header depuis le formulaire ramène au détail sans router.back()", async () => {
     const mockBack = jest.fn();
     jest.mock("expo-router", () => ({
-      useRouter: () => ({ back: mockBack, navigate: jest.fn(), canGoBack: () => true }),
+      useRouter: () => ({
+        back: mockBack,
+        navigate: jest.fn(),
+        canGoBack: () => true,
+      }),
       useLocalSearchParams: () => ({
         executionId: "exec-1",
         status: undefined,
@@ -240,10 +245,7 @@ describe("TestExecutionRoute — FAB modifier & formulaire inline", () => {
     );
 
     // Effacer le resultText pré-rempli
-    fireEvent.changeText(
-      screen.getByTestId("edit-execution-result-input"),
-      "",
-    );
+    fireEvent.changeText(screen.getByTestId("edit-execution-result-input"), "");
     fireEvent.press(screen.getByTestId("edit-execution-submit-btn"));
 
     await waitFor(() => {
