@@ -524,6 +524,44 @@ describe("TeacherClassDisciplineScreen — édition d'événement", () => {
   });
 });
 
+describe("TeacherClassDisciplineScreen — héros section carnets", () => {
+  it("affiche le héros Carnets quand on bascule sur l'onglet carnets", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-tab-carnets"));
+
+    expect(
+      screen.getByTestId("teacher-class-discipline-carnets-hero"),
+    ).toBeTruthy();
+  });
+
+  it("affiche le titre 'Carnets' dans le héros (subtitle visible)", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-tab-carnets"));
+
+    expect(
+      screen.getByText("Sélectionnez un élève pour afficher sa synthèse vie scolaire."),
+    ).toBeTruthy();
+  });
+
+  it("n'affiche pas le héros carnets quand on est sur le tab events", async () => {
+    await renderLoaded();
+
+    expect(
+      screen.queryByTestId("teacher-class-discipline-carnets-hero"),
+    ).toBeNull();
+  });
+
+  it("la section filtre carnets n'affiche pas de label élève", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-tab-carnets"));
+
+    expect(screen.queryByText("Recherche par élève")).toBeNull();
+  });
+});
+
 describe("TeacherClassDisciplineScreen — carnets", () => {
   it("affiche l'onglet Carnets et réutilise la synthèse vie scolaire", async () => {
     await renderLoaded();

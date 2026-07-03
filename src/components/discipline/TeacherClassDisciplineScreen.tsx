@@ -32,7 +32,6 @@ import {
   EmptyState,
   ErrorBanner,
   LoadingBlock,
-  SectionCard,
 } from "../timetable/TimetableCommon";
 import { DisciplineList } from "./DisciplineList";
 import { DisciplineDeleteDialog } from "./DisciplineDeleteDialog";
@@ -1060,13 +1059,20 @@ export function TeacherClassDisciplineScreen({
           </View>
         ) : (
           <View style={styles.body}>
-            <SectionCard
-              title={t("discipline.sections.booklets.title")}
-              subtitle={t("discipline.sections.booklets.subtitle")}
+            <View style={styles.heroWrapper}>
+              <FormHero
+                icon="book-outline"
+                title={t("discipline.sections.booklets.title")}
+                subtitle={t("discipline.sections.booklets.subtitle")}
+                palette="primary"
+                testID="teacher-class-discipline-carnets-hero"
+              />
+            </View>
+            <View
+              style={styles.filterCardWrapper}
               testID="teacher-class-discipline-carnets-card"
             >
               <StudentSelectField
-                label={t("discipline.filters.searchByStudent")}
                 value={carnetStudentId}
                 options={studentOptions}
                 onChange={setCarnetStudentId}
@@ -1074,7 +1080,7 @@ export function TeacherClassDisciplineScreen({
                 emptyOptionLabel={t("discipline.studentSelect.placeholder")}
                 testIDPrefix="teacher-class-discipline-carnets-student"
               />
-            </SectionCard>
+            </View>
 
             {carnetStudentId ? (
               <DisciplineSummaryOverview
