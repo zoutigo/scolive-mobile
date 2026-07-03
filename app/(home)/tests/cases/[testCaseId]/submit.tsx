@@ -275,14 +275,26 @@ function SubmitResultScreen() {
         topInset={insets.top}
       />
 
-      {/* Hero compact — fond clair, pas de répétition du header */}
-      <View style={styles.hero}>
-        <View style={styles.heroIconWrap}>
-          <Ionicons name="clipboard-outline" size={20} color={colors.primary} />
+      <View style={styles.heroContainer} testID="tests-submit-hero">
+        <View style={styles.heroDecor1} />
+        <View style={styles.heroDecor2} />
+        <View style={styles.heroRow}>
+          <View style={styles.heroIconWrap}>
+            <Ionicons
+              name="clipboard-outline"
+              size={28}
+              color="rgba(255,255,255,0.92)"
+            />
+          </View>
+          <View style={styles.heroTextWrap}>
+            <Text style={styles.heroTitle}>
+              {t("tests.detail.formModalTitle")}
+            </Text>
+            <Text style={styles.heroSubtitleText}>
+              {t("tests.detail.heroSubtitle")}
+            </Text>
+          </View>
         </View>
-        <Text style={styles.heroText} numberOfLines={1}>
-          {t("tests.detail.heroSubtitle")}
-        </Text>
       </View>
 
       <KeyboardAvoidingView
@@ -439,29 +451,52 @@ function SubmitResultScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
-  hero: {
-    backgroundColor: colors.surface,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E8DCCD",
+  heroContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 22,
+    overflow: "hidden",
+    backgroundColor: "#247C72",
   },
+  heroDecor1: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    borderRadius: 22,
+    bottom: -40,
+    right: -20,
+    transform: [{ rotate: "30deg" }],
+    opacity: 0.18,
+    backgroundColor: "#195E56",
+  },
+  heroDecor2: {
+    position: "absolute",
+    width: 60,
+    height: 60,
+    borderRadius: 14,
+    top: -18,
+    right: 60,
+    transform: [{ rotate: "20deg" }],
+    opacity: 0.12,
+    backgroundColor: "#195E56",
+  },
+  heroRow: { flexDirection: "row", alignItems: "center", gap: 14 },
   heroIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
-    backgroundColor: "rgba(8,70,125,0.10)",
-    alignItems: "center",
-    justifyContent: "center",
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    flexShrink: 0,
   },
-  heroText: {
-    flex: 1,
-    color: colors.textSecondary,
-    fontSize: 13,
-    fontWeight: "500",
+  heroTextWrap: { flex: 1, gap: 3 },
+  heroTitle: { color: "#FFFFFF", fontSize: 20, fontWeight: "800", lineHeight: 26 },
+  heroSubtitleText: {
+    color: "rgba(255,255,255,0.70)",
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 4,
   },
   content: {
     paddingHorizontal: 18,
@@ -471,7 +506,7 @@ const styles = StyleSheet.create({
   },
   statusWrap: { flexDirection: "row", gap: 8, paddingVertical: 2 },
   statusChip: {
-    borderRadius: 999,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: "#D9CBBF",
     paddingHorizontal: 14,
@@ -488,7 +523,7 @@ const styles = StyleSheet.create({
   },
   statusChipTextSelected: { color: colors.white },
   input: {
-    borderRadius: 14,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: "#D9CBBF",
     paddingHorizontal: 12,
@@ -538,7 +573,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   submitButton: {
-    borderRadius: 14,
+    borderRadius: 6,
     backgroundColor: colors.primary,
     paddingVertical: 14,
     alignItems: "center",
