@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
-  Modal,
   Platform,
   RefreshControl,
   ScrollView,
@@ -9,7 +8,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,6 +20,8 @@ import { teachersApi } from "../../api/teachers.api";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { SecureTextField } from "../SecureTextField";
+import { SelectDropdown } from "../SelectDropdown";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { useAuthStore } from "../../store/auth.store";
@@ -52,25 +52,43 @@ import type {
   TeacherSchoolYearOption,
   TeacherSubjectOption,
 } from "../../types/teachers.types";
+import { moduleBack } from "../../utils/moduleBack";
 
-type TabKey = "teachers" | "assignments" | "help";
-type TeacherSheetState = {
-  visible: boolean;
-};
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
-type AssignmentSheetState = {
-  visible: boolean;
-  mode: "create" | "edit";
+type TabKey = "teachers" | "assignments" | "help" | "forms";
+type ListTabKey = "teachers" | "assignments" | "help";
+
+type FormContext = {
+  type: "create-teacher" | "create-assignment" | "edit-assignment";
+  originTab: ListTabKey;
   item: TeacherAssignmentRow | null;
 };
 
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
 const PAGE_SIZE = 20;
 
-const TAB_ITEMS = [
+const BASE_TAB_ITEMS: Array<{ key: ListTabKey; label: string }> = [
   { key: "teachers", label: "Enseignants" },
   { key: "assignments", label: "Affectations" },
   { key: "help", label: "Aide" },
-] as const;
+];
+
+type HeroPalette = "teal" | "warm";
+
+const PALETTE_COLORS: Record<HeroPalette, { bg: string; dark: string }> = {
+  teal: { bg: "#247C72", dark: "#195E56" },
+  warm: { bg: "#C0681A", dark: "#A05010" },
+};
+
+// ---------------------------------------------------------------------------
+// Schemas (exported for tests)
+// ---------------------------------------------------------------------------
 
 export const teacherCreateFormSchema = z
   .object({
@@ -144,6 +162,10 @@ export const teacherAssignmentFormSchema = z.object({
   classId: z.string().trim().min(1, "La classe est obligatoire."),
   subjectId: z.string().trim().min(1, "La matière est obligatoire."),
 });
+
+// ---------------------------------------------------------------------------
+// Utility functions
+// ---------------------------------------------------------------------------
 
 function fullTeacherName(teacher: {
   firstName: string;
@@ -224,82 +246,48 @@ function buildTeacherPayload(values: z.infer<typeof teacherCreateFormSchema>) {
   };
 }
 
-function ModalFrame(props: {
-  visible: boolean;
+// ---------------------------------------------------------------------------
+// FormHero — hero visuel du tab forms (différent du ModuleHeader bleu)
+// ---------------------------------------------------------------------------
+
+function FormHero(props: {
+  icon: React.ComponentProps<typeof Ionicons>["name"];
   title: string;
-  eyebrow: string;
   subtitle?: string;
-  onClose: () => void;
-  children: React.ReactNode;
-  footer: React.ReactNode;
-  testID: string;
+  palette: HeroPalette;
+  testID?: string;
 }) {
-  const { height: windowHeight } = useWindowDimensions();
+  const { bg, dark } = PALETTE_COLORS[props.palette];
 
   return (
-    <Modal
-      visible={props.visible}
-      transparent
-      animationType="slide"
-      onRequestClose={props.onClose}
+    <View
+      style={[styles.heroContainer, { backgroundColor: bg }]}
+      testID={props.testID}
     >
-      <View style={styles.sheetOverlay}>
-        {/* Backdrop absolu plein écran — évite le collapse flex:1 sur Android Fabric */}
-        <TouchableOpacity
-          style={styles.sheetBackdrop}
-          activeOpacity={1}
-          onPress={props.onClose}
-        />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.sheetKeyboard}
-        >
-          <View style={styles.sheetCard} testID={props.testID}>
-            <View style={styles.sheetHeader}>
-              <View style={styles.sheetHandle} />
-              <View style={styles.sheetHeaderRow}>
-                <View style={styles.sheetHeaderText}>
-                  <Text style={styles.sheetEyebrow}>{props.eyebrow}</Text>
-                  <Text style={styles.sheetTitle} numberOfLines={2}>
-                    {props.title}
-                  </Text>
-                  {props.subtitle ? (
-                    <Text style={styles.sheetSubtitle} numberOfLines={2}>
-                      {props.subtitle}
-                    </Text>
-                  ) : null}
-                </View>
-                <TouchableOpacity
-                  style={styles.sheetClose}
-                  onPress={props.onClose}
-                  testID={`${props.testID}-close`}
-                >
-                  <Ionicons
-                    name="close"
-                    size={18}
-                    color="rgba(255,255,255,0.9)"
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-            <ScrollView
-              style={[
-                styles.sheetScrollArea,
-                { maxHeight: windowHeight * 0.55 },
-              ]}
-              contentContainerStyle={styles.sheetBody}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              {props.children}
-            </ScrollView>
-            <View style={styles.sheetFooter}>{props.footer}</View>
-          </View>
-        </KeyboardAvoidingView>
+      <View style={[styles.heroDecor1, { backgroundColor: dark }]} />
+      <View style={[styles.heroDecor2, { backgroundColor: dark }]} />
+      <View style={styles.heroRow}>
+        <View style={styles.heroIconWrap}>
+          <Ionicons
+            name={props.icon}
+            size={28}
+            color="rgba(255,255,255,0.92)"
+          />
+        </View>
+        <View style={styles.heroTextWrap}>
+          <Text style={styles.heroTitle}>{props.title}</Text>
+          {props.subtitle ? (
+            <Text style={styles.heroSubtitle}>{props.subtitle}</Text>
+          ) : null}
+        </View>
       </View>
-    </Modal>
+    </View>
   );
 }
+
+// ---------------------------------------------------------------------------
+// TextFormField
+// ---------------------------------------------------------------------------
 
 type TextFormFieldProps = {
   label: string;
@@ -352,122 +340,9 @@ const TextFormField = React.forwardRef<TextInput, TextFormFieldProps>(
   },
 );
 
-function CompactSelectField(props: {
-  label: string;
-  value: string;
-  options: Array<{ value: string; label: string; meta?: string }>;
-  placeholder: string;
-  onChange: (value: string) => void;
-  testID: string;
-  error?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const selected =
-    props.options.find((option) => option.value === props.value) ?? null;
-
-  return (
-    <View style={styles.formField}>
-      <Text style={styles.formLabel}>{props.label}</Text>
-      <TouchableOpacity
-        style={[
-          styles.compactSelectTrigger,
-          props.error ? styles.compactSelectTriggerError : null,
-        ]}
-        onPress={() => setOpen(true)}
-        testID={props.testID}
-      >
-        <View style={styles.compactSelectTextWrap}>
-          <Text style={styles.compactSelectValue} numberOfLines={1}>
-            {selected?.label ?? props.placeholder}
-          </Text>
-          {selected?.meta ? (
-            <Text style={styles.compactSelectMeta} numberOfLines={1}>
-              {selected.meta}
-            </Text>
-          ) : null}
-        </View>
-        <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
-      </TouchableOpacity>
-      {props.error ? (
-        <Text style={styles.formError} testID={`${props.testID}-error`}>
-          {props.error}
-        </Text>
-      ) : null}
-      <Modal
-        transparent
-        visible={open}
-        animationType="fade"
-        onRequestClose={() => setOpen(false)}
-      >
-        <TouchableOpacity
-          style={styles.selectOverlay}
-          activeOpacity={1}
-          onPress={() => setOpen(false)}
-          testID={`${props.testID}-overlay`}
-        >
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={(event) => event.stopPropagation()}
-            style={styles.selectSheet}
-            testID={`${props.testID}-sheet`}
-          >
-            <Text style={styles.selectSheetTitle}>{props.label}</Text>
-            <ScrollView
-              contentContainerStyle={styles.selectSheetOptions}
-              showsVerticalScrollIndicator={false}
-            >
-              {props.options.map((option) => {
-                const active = option.value === props.value;
-                return (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.selectOptionRow,
-                      active && styles.selectOptionRowActive,
-                    ]}
-                    onPress={() => {
-                      props.onChange(option.value);
-                      setOpen(false);
-                    }}
-                    testID={`${props.testID}-option-${option.value}`}
-                  >
-                    <View style={styles.selectOptionTextWrap}>
-                      <Text
-                        style={[
-                          styles.selectOptionLabel,
-                          active && styles.selectOptionLabelActive,
-                        ]}
-                      >
-                        {option.label}
-                      </Text>
-                      {option.meta ? (
-                        <Text
-                          style={[
-                            styles.selectOptionMeta,
-                            active && styles.selectOptionMetaActive,
-                          ]}
-                        >
-                          {option.meta}
-                        </Text>
-                      ) : null}
-                    </View>
-                    {active ? (
-                      <Ionicons
-                        name="checkmark"
-                        size={18}
-                        color={colors.warmAccent}
-                      />
-                    ) : null}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-    </View>
-  );
-}
+// ---------------------------------------------------------------------------
+// FormActions
+// ---------------------------------------------------------------------------
 
 function FormActions(props: {
   submitLabel: string;
@@ -504,10 +379,13 @@ function FormActions(props: {
   );
 }
 
-function TeacherCreateFormSheet(props: {
-  visible: boolean;
+// ---------------------------------------------------------------------------
+// TeacherCreateFormContent — formulaire inline de création (sans Modal)
+// ---------------------------------------------------------------------------
+
+function TeacherCreateFormContent(props: {
   isSubmitting?: boolean;
-  onClose: () => void;
+  onCancel: () => void;
   onSubmit: (
     values: z.infer<typeof teacherCreateFormSchema>,
   ) => Promise<void> | void;
@@ -516,7 +394,6 @@ function TeacherCreateFormSheet(props: {
     control,
     handleSubmit,
     watch,
-    reset,
     setFocus: focusField,
     formState: { errors },
   } = useForm<z.infer<typeof teacherCreateFormSchema>>({
@@ -533,170 +410,189 @@ function TeacherCreateFormSheet(props: {
 
   const mode = watch("mode");
 
-  useEffect(() => {
-    if (!props.visible) return;
-    reset({
-      mode: "phone",
-      phone: "",
-      pin: "",
-      email: "",
-      password: "",
-    });
-  }, [props.visible, reset]);
-
   return (
-    <ModalFrame
-      visible={props.visible}
-      title="Créer un enseignant"
-      eyebrow="Compte établissement"
-      subtitle="Téléphone + PIN ou email + mot de passe initial."
-      onClose={props.onClose}
-      testID="teachers-admin-create-sheet"
-      footer={
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="teachers-admin-create-form-content"
+    >
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Controller
+          control={control}
+          name="mode"
+          render={({ field: { value, onChange } }) => (
+            <View style={styles.formField}>
+              <Text style={styles.formLabel}>Mode de création</Text>
+              <View style={styles.modeRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.modeChip,
+                    value === "phone" && styles.modeChipActive,
+                  ]}
+                  onPress={() => onChange("phone")}
+                  testID="teachers-admin-create-mode-phone"
+                >
+                  <Text
+                    style={[
+                      styles.modeChipLabel,
+                      value === "phone" && styles.modeChipLabelActive,
+                    ]}
+                  >
+                    Téléphone + PIN
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.modeChip,
+                    value === "email" && styles.modeChipActive,
+                  ]}
+                  onPress={() => onChange("email")}
+                  testID="teachers-admin-create-mode-email"
+                >
+                  <Text
+                    style={[
+                      styles.modeChipLabel,
+                      value === "email" && styles.modeChipLabelActive,
+                    ]}
+                  >
+                    Email + mot de passe
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        />
+
+        {mode === "phone" ? (
+          <>
+            <Controller
+              control={control}
+              name="phone"
+              render={({ field: { value, onChange, onBlur, ref } }) => (
+                <TextFormField
+                  ref={ref}
+                  label="Téléphone"
+                  value={value ?? ""}
+                  onChangeText={(next) => onChange(normalizePhoneInput(next))}
+                  onBlur={onBlur}
+                  placeholder="699001122"
+                  error={errors.phone?.message}
+                  testID="teachers-admin-create-phone"
+                  keyboardType="numeric"
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="pin"
+              render={({ field: { value, onChange, onBlur, ref } }) => (
+                <View style={styles.formField}>
+                  <Text style={styles.formLabel}>PIN initial</Text>
+                  <SecureTextField
+                    ref={ref}
+                    value={value ?? ""}
+                    onChangeText={(next) =>
+                      onChange(next.replace(/\D/g, "").slice(0, 6))
+                    }
+                    onBlur={onBlur}
+                    placeholder="123456"
+                    hasError={!!errors.pin}
+                    testID="teachers-admin-create-pin"
+                    variant="pin"
+                    keyboardType="numeric"
+                    containerStyle={{ borderRadius: 6 }}
+                  />
+                  {errors.pin ? (
+                    <Text
+                      style={styles.formError}
+                      testID="teachers-admin-create-pin-error"
+                    >
+                      {errors.pin.message}
+                    </Text>
+                  ) : null}
+                </View>
+              )}
+            />
+          </>
+        ) : (
+          <>
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { value, onChange, onBlur, ref } }) => (
+                <TextFormField
+                  ref={ref}
+                  label="Email"
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  placeholder="enseignant@ecole.com"
+                  error={errors.email?.message}
+                  testID="teachers-admin-create-email"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { value, onChange, onBlur, ref } }) => (
+                <View style={styles.formField}>
+                  <Text style={styles.formLabel}>Mot de passe initial</Text>
+                  <SecureTextField
+                    ref={ref}
+                    value={value ?? ""}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder="MotDePasse123"
+                    hasError={!!errors.password}
+                    testID="teachers-admin-create-password"
+                    variant="password"
+                    autoCapitalize="none"
+                    containerStyle={{ borderRadius: 6 }}
+                  />
+                  {errors.password ? (
+                    <Text
+                      style={styles.formError}
+                      testID="teachers-admin-create-password-error"
+                    >
+                      {errors.password.message}
+                    </Text>
+                  ) : null}
+                </View>
+              )}
+            />
+          </>
+        )}
+      </ScrollView>
+
+      <View style={styles.formActionsBar}>
         <FormActions
           submitLabel="Ajouter l'enseignant"
           isSubmitting={props.isSubmitting}
-          onCancel={props.onClose}
+          onCancel={props.onCancel}
           onSubmit={handleSubmit(props.onSubmit, (errs) => {
             const first = Object.keys(errs)[0];
             if (first) focusField(first as Parameters<typeof focusField>[0]);
           })}
           testIDPrefix="teachers-admin-create"
         />
-      }
-    >
-      <Controller
-        control={control}
-        name="mode"
-        render={({ field: { value, onChange } }) => (
-          <View style={styles.formField}>
-            <Text style={styles.formLabel}>Mode de création</Text>
-            <View style={styles.modeRow}>
-              <TouchableOpacity
-                style={[
-                  styles.modeChip,
-                  value === "phone" && styles.modeChipActive,
-                ]}
-                onPress={() => onChange("phone")}
-                testID="teachers-admin-create-mode-phone"
-              >
-                <Text
-                  style={[
-                    styles.modeChipLabel,
-                    value === "phone" && styles.modeChipLabelActive,
-                  ]}
-                >
-                  Téléphone + PIN
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.modeChip,
-                  value === "email" && styles.modeChipActive,
-                ]}
-                onPress={() => onChange("email")}
-                testID="teachers-admin-create-mode-email"
-              >
-                <Text
-                  style={[
-                    styles.modeChipLabel,
-                    value === "email" && styles.modeChipLabelActive,
-                  ]}
-                >
-                  Email + mot de passe
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-      />
-
-      {mode === "phone" ? (
-        <>
-          <Controller
-            control={control}
-            name="phone"
-            render={({ field: { value, onChange, onBlur, ref } }) => (
-              <TextFormField
-                ref={ref}
-                label="Téléphone"
-                value={value ?? ""}
-                onChangeText={(next) => onChange(normalizePhoneInput(next))}
-                onBlur={onBlur}
-                placeholder="699001122"
-                error={errors.phone?.message}
-                testID="teachers-admin-create-phone"
-                keyboardType="numeric"
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="pin"
-            render={({ field: { value, onChange, onBlur, ref } }) => (
-              <TextFormField
-                ref={ref}
-                label="PIN initial"
-                value={value ?? ""}
-                onChangeText={(next) =>
-                  onChange(next.replace(/\D/g, "").slice(0, 6))
-                }
-                onBlur={onBlur}
-                placeholder="123456"
-                error={errors.pin?.message}
-                testID="teachers-admin-create-pin"
-                keyboardType="numeric"
-                secureTextEntry
-              />
-            )}
-          />
-        </>
-      ) : (
-        <>
-          <Controller
-            control={control}
-            name="email"
-            render={({ field: { value, onChange, onBlur, ref } }) => (
-              <TextFormField
-                ref={ref}
-                label="Email"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                placeholder="enseignant@ecole.com"
-                error={errors.email?.message}
-                testID="teachers-admin-create-email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="password"
-            render={({ field: { value, onChange, onBlur, ref } }) => (
-              <TextFormField
-                ref={ref}
-                label="Mot de passe initial"
-                value={value ?? ""}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                placeholder="MotDePasse123"
-                error={errors.password?.message}
-                testID="teachers-admin-create-password"
-                autoCapitalize="none"
-                secureTextEntry
-              />
-            )}
-          />
-        </>
-      )}
-    </ModalFrame>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
-function AssignmentFormSheet(props: {
-  visible: boolean;
+// ---------------------------------------------------------------------------
+// AssignmentFormContent — formulaire inline d'affectation (sans Modal)
+// ---------------------------------------------------------------------------
+
+function AssignmentFormContent(props: {
   mode: "create" | "edit";
   item: TeacherAssignmentRow | null;
   isSubmitting?: boolean;
@@ -704,57 +600,39 @@ function AssignmentFormSheet(props: {
   schoolYears: TeacherSchoolYearOption[];
   classrooms: TeacherClassroomOption[];
   subjects: TeacherSubjectOption[];
-  onClose: () => void;
+  onCancel: () => void;
   onSubmit: (
     values: z.infer<typeof teacherAssignmentFormSchema>,
   ) => Promise<void> | void;
 }) {
+  const activeSchoolYear =
+    props.schoolYears.find((sy) => sy.isActive) ?? props.schoolYears[0];
+
   const {
     control,
     handleSubmit,
     watch,
-    reset,
     setFocus: focusField,
     formState: { errors },
   } = useForm<z.infer<typeof teacherAssignmentFormSchema>>({
     resolver: zodResolver(teacherAssignmentFormSchema),
     mode: "onChange",
     defaultValues: {
-      schoolYearId: "",
-      teacherUserId: "",
-      classId: "",
-      subjectId: "",
-    },
-  });
-
-  const schoolYearId = watch("schoolYearId");
-
-  useEffect(() => {
-    if (!props.visible) return;
-    const activeSchoolYear =
-      props.schoolYears.find((entry) => entry.isActive) ?? props.schoolYears[0];
-    reset({
       schoolYearId: props.item?.schoolYearId ?? activeSchoolYear?.id ?? "",
       teacherUserId:
         props.item?.teacherUserId ?? props.teacherOptions[0]?.userId ?? "",
       classId: props.item?.classId ?? "",
       subjectId: props.item?.subjectId ?? props.subjects[0]?.id ?? "",
-    });
-  }, [
-    props.item,
-    props.schoolYears,
-    props.subjects,
-    props.teacherOptions,
-    props.visible,
-    reset,
-  ]);
+    },
+  });
 
-  const teacherOptions = useMemo(
+  const schoolYearId = watch("schoolYearId");
+
+  const teacherSelectOptions = useMemo(
     () =>
       props.teacherOptions.map((entry) => ({
         value: entry.userId,
         label: fullTeacherName(entry),
-        meta: entry.email ?? (toLocalPhoneDisplay(entry.phone) || undefined),
       })),
     [props.teacherOptions],
   );
@@ -763,8 +641,7 @@ function AssignmentFormSheet(props: {
     () =>
       props.schoolYears.map((entry) => ({
         value: entry.id,
-        label: entry.label,
-        meta: entry.isActive ? "Année active" : undefined,
+        label: entry.isActive ? `${entry.label} ✓` : entry.label,
       })),
     [props.schoolYears],
   );
@@ -778,7 +655,6 @@ function AssignmentFormSheet(props: {
         .map((entry) => ({
           value: entry.id,
           label: entry.name,
-          meta: entry.schoolYear.label,
         })),
     [props.classrooms, schoolYearId],
   );
@@ -793,97 +669,140 @@ function AssignmentFormSheet(props: {
   );
 
   return (
-    <ModalFrame
-      visible={props.visible}
-      title={
-        props.mode === "create"
-          ? "Nouvelle affectation"
-          : "Modifier l'affectation"
-      }
-      eyebrow={
-        props.mode === "create" ? "Organisation pédagogique" : "Mise à jour"
-      }
-      subtitle="Associez un enseignant, une classe, une matière et une année scolaire."
-      onClose={props.onClose}
-      testID="teachers-admin-assignment-sheet"
-      footer={
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="teachers-admin-assignment-form-content"
+    >
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Controller
+          control={control}
+          name="schoolYearId"
+          render={({ field: { value, onChange } }) => (
+            <View style={styles.formField}>
+              <Text style={styles.formLabel}>Année scolaire</Text>
+              <SelectDropdown
+                options={schoolYearOptions}
+                value={value}
+                onChange={onChange}
+                placeholder="Choisir une année"
+                hasError={!!errors.schoolYearId}
+                testID="teachers-admin-assignment-school-year"
+              />
+              {errors.schoolYearId ? (
+                <Text
+                  style={styles.formError}
+                  testID="teachers-admin-assignment-school-year-error"
+                >
+                  {errors.schoolYearId.message}
+                </Text>
+              ) : null}
+            </View>
+          )}
+        />
+        <Controller
+          control={control}
+          name="teacherUserId"
+          render={({ field: { value, onChange } }) => (
+            <View style={styles.formField}>
+              <Text style={styles.formLabel}>Enseignant</Text>
+              <SelectDropdown
+                options={teacherSelectOptions}
+                value={value}
+                onChange={onChange}
+                placeholder="Choisir un enseignant"
+                hasError={!!errors.teacherUserId}
+                testID="teachers-admin-assignment-teacher"
+              />
+              {errors.teacherUserId ? (
+                <Text
+                  style={styles.formError}
+                  testID="teachers-admin-assignment-teacher-error"
+                >
+                  {errors.teacherUserId.message}
+                </Text>
+              ) : null}
+            </View>
+          )}
+        />
+        <Controller
+          control={control}
+          name="classId"
+          render={({ field: { value, onChange } }) => (
+            <View style={styles.formField}>
+              <Text style={styles.formLabel}>Classe</Text>
+              <SelectDropdown
+                options={classOptions}
+                value={value}
+                onChange={onChange}
+                placeholder="Choisir une classe"
+                hasError={!!errors.classId}
+                testID="teachers-admin-assignment-class"
+              />
+              {errors.classId ? (
+                <Text
+                  style={styles.formError}
+                  testID="teachers-admin-assignment-class-error"
+                >
+                  {errors.classId.message}
+                </Text>
+              ) : null}
+            </View>
+          )}
+        />
+        <Controller
+          control={control}
+          name="subjectId"
+          render={({ field: { value, onChange } }) => (
+            <View style={styles.formField}>
+              <Text style={styles.formLabel}>Matière</Text>
+              <SelectDropdown
+                options={subjectOptions}
+                value={value}
+                onChange={onChange}
+                placeholder="Choisir une matière"
+                hasError={!!errors.subjectId}
+                testID="teachers-admin-assignment-subject"
+              />
+              {errors.subjectId ? (
+                <Text
+                  style={styles.formError}
+                  testID="teachers-admin-assignment-subject-error"
+                >
+                  {errors.subjectId.message}
+                </Text>
+              ) : null}
+            </View>
+          )}
+        />
+      </ScrollView>
+
+      <View style={styles.formActionsBar}>
         <FormActions
           submitLabel={
             props.mode === "create" ? "Créer l'affectation" : "Enregistrer"
           }
           isSubmitting={props.isSubmitting}
-          onCancel={props.onClose}
+          onCancel={props.onCancel}
           onSubmit={handleSubmit(props.onSubmit, (errs) => {
             const first = Object.keys(errs)[0];
             if (first) focusField(first as Parameters<typeof focusField>[0]);
           })}
           testIDPrefix="teachers-admin-assignment"
         />
-      }
-    >
-      <Controller
-        control={control}
-        name="schoolYearId"
-        render={({ field: { value, onChange } }) => (
-          <CompactSelectField
-            label="Année scolaire"
-            value={value}
-            options={schoolYearOptions}
-            placeholder="Choisir une année"
-            onChange={onChange}
-            error={errors.schoolYearId?.message}
-            testID="teachers-admin-assignment-school-year"
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="teacherUserId"
-        render={({ field: { value, onChange } }) => (
-          <CompactSelectField
-            label="Enseignant"
-            value={value}
-            options={teacherOptions}
-            placeholder="Choisir un enseignant"
-            onChange={onChange}
-            error={errors.teacherUserId?.message}
-            testID="teachers-admin-assignment-teacher"
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="classId"
-        render={({ field: { value, onChange } }) => (
-          <CompactSelectField
-            label="Classe"
-            value={value}
-            options={classOptions}
-            placeholder="Choisir une classe"
-            onChange={onChange}
-            error={errors.classId?.message}
-            testID="teachers-admin-assignment-class"
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="subjectId"
-        render={({ field: { value, onChange } }) => (
-          <CompactSelectField
-            label="Matière"
-            value={value}
-            options={subjectOptions}
-            placeholder="Choisir une matière"
-            onChange={onChange}
-            error={errors.subjectId?.message}
-            testID="teachers-admin-assignment-subject"
-          />
-        )}
-      />
-    </ModalFrame>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
+
+// ---------------------------------------------------------------------------
+// TeachersAdminScreen
+// ---------------------------------------------------------------------------
 
 export function TeachersAdminScreen() {
   const router = useRouter();
@@ -893,6 +812,7 @@ export function TeachersAdminScreen() {
   const showError = useSuccessToastStore((state) => state.showError);
 
   const [tab, setTab] = useState<TabKey>("teachers");
+  const [formContext, setFormContext] = useState<FormContext | null>(null);
   const [teachers, setTeachers] = useState<TeacherRow[]>([]);
   const [schoolYears, setSchoolYears] = useState<TeacherSchoolYearOption[]>([]);
   const [classrooms, setClassrooms] = useState<TeacherClassroomOption[]>([]);
@@ -907,14 +827,6 @@ export function TeachersAdminScreen() {
   const [assignmentVisibleCount, setAssignmentVisibleCount] =
     useState(PAGE_SIZE);
   const [expandedTeacherIds, setExpandedTeacherIds] = useState<string[]>([]);
-  const [teacherSheet, setTeacherSheet] = useState<TeacherSheetState>({
-    visible: false,
-  });
-  const [assignmentSheet, setAssignmentSheet] = useState<AssignmentSheetState>({
-    visible: false,
-    mode: "create",
-    item: null,
-  });
   const [deleteTarget, setDeleteTarget] = useState<TeacherAssignmentRow | null>(
     null,
   );
@@ -1042,6 +954,32 @@ export function TeachersAdminScreen() {
     await loadModuleData(true);
   }, [loadModuleData]);
 
+  function exitForms() {
+    const origin = formContext?.originTab ?? "teachers";
+    setFormContext(null);
+    setTab(origin);
+  }
+
+  function openFab() {
+    if (tab === "teachers") {
+      setFormContext({
+        type: "create-teacher",
+        originTab: "teachers",
+        item: null,
+      });
+      setTab("forms");
+      return;
+    }
+    if (tab === "assignments") {
+      setFormContext({
+        type: "create-assignment",
+        originTab: "assignments",
+        item: null,
+      });
+      setTab("forms");
+    }
+  }
+
   async function handleCreateTeacher(
     values: z.infer<typeof teacherCreateFormSchema>,
   ) {
@@ -1049,7 +987,6 @@ export function TeachersAdminScreen() {
     setIsSubmittingTeacher(true);
     try {
       await teachersApi.createTeacher(schoolSlug, buildTeacherPayload(values));
-      setTeacherSheet({ visible: false });
       await loadModuleData(true);
       showSuccess({
         title: "Enseignant ajouté",
@@ -1058,11 +995,14 @@ export function TeachersAdminScreen() {
             ? "Le compte enseignant est prêt avec activation par PIN."
             : "Le compte enseignant a été créé avec un mot de passe initial.",
       });
+      setTimeout(() => {
+        setTab("teachers");
+        setFormContext(null);
+      }, 2000);
     } catch (error) {
-      const message = extractApiError(error);
       showError({
         title: "Création impossible",
-        message,
+        message: extractApiError(error),
       });
     } finally {
       setIsSubmittingTeacher(false);
@@ -1072,7 +1012,8 @@ export function TeachersAdminScreen() {
   async function handleSubmitAssignment(
     values: z.infer<typeof teacherAssignmentFormSchema>,
   ) {
-    if (!schoolSlug) return;
+    if (!schoolSlug || !formContext) return;
+    const isEdit = formContext.type === "edit-assignment";
     const payload: TeacherAssignmentPayload = {
       schoolYearId: values.schoolYearId,
       teacherUserId: values.teacherUserId,
@@ -1081,31 +1022,27 @@ export function TeachersAdminScreen() {
     };
     setIsSubmittingAssignment(true);
     try {
-      if (assignmentSheet.mode === "create") {
+      if (!isEdit) {
         await teachersApi.createAssignment(schoolSlug, payload);
-      } else if (assignmentSheet.item?.id) {
+      } else if (formContext.item?.id) {
         await teachersApi.updateAssignment(
           schoolSlug,
-          assignmentSheet.item.id,
+          formContext.item.id,
           payload,
         );
       }
-      setAssignmentSheet({
-        visible: false,
-        mode: "create",
-        item: null,
-      });
       await loadModuleData(true);
+      const originTab = formContext.originTab;
       showSuccess({
-        title:
-          assignmentSheet.mode === "create"
-            ? "Affectation créée"
-            : "Affectation mise à jour",
-        message:
-          assignmentSheet.mode === "create"
-            ? "La liaison enseignant, classe et matière a été enregistrée."
-            : "Les changements sur l'affectation ont été enregistrés.",
+        title: isEdit ? "Affectation mise à jour" : "Affectation créée",
+        message: isEdit
+          ? "Les changements sur l'affectation ont été enregistrés."
+          : "La liaison enseignant, classe et matière a été enregistrée.",
       });
+      setTimeout(() => {
+        setTab(originTab);
+        setFormContext(null);
+      }, 2000);
     } catch (error) {
       showError({
         title: "Opération impossible",
@@ -1137,20 +1074,6 @@ export function TeachersAdminScreen() {
     }
   }
 
-  function openFab() {
-    if (tab === "teachers") {
-      setTeacherSheet({ visible: true });
-      return;
-    }
-    if (tab === "assignments") {
-      setAssignmentSheet({
-        visible: true,
-        mode: "create",
-        item: null,
-      });
-    }
-  }
-
   function toggleTeacherExpansion(teacherUserId: string) {
     setExpandedTeacherIds((current) =>
       current.includes(teacherUserId)
@@ -1173,7 +1096,7 @@ export function TeachersAdminScreen() {
         <ModuleHeader
           title="Enseignants"
           subtitle={getPortalLabel(getViewType(user))}
-          onBack={() => router.back()}
+          onBack={() => moduleBack(router)}
           topInset={insets.top}
           testID="teachers-admin-header"
           backTestID="teachers-admin-back-btn"
@@ -1194,401 +1117,464 @@ export function TeachersAdminScreen() {
       <ModuleHeader
         title="Enseignants"
         subtitle={subtitle}
-        onBack={() => router.back()}
+        onBack={() => (tab === "forms" ? exitForms() : moduleBack(router))}
         topInset={insets.top}
         testID="teachers-admin-header"
         backTestID="teachers-admin-back-btn"
       />
 
-      <UnderlineTabs
-        items={[...TAB_ITEMS]}
-        activeKey={tab}
-        onSelect={setTab}
-        testIDPrefix="teachers-admin-tab"
-      />
+      {tab !== "forms" ? (
+        <UnderlineTabs<ListTabKey>
+          items={BASE_TAB_ITEMS}
+          activeKey={tab as ListTabKey}
+          onSelect={(key) => setTab(key)}
+          testIDPrefix="teachers-admin-tab"
+        />
+      ) : null}
 
-      {isLoading ? (
-        <View style={styles.loadingWrap}>
-          <LoadingBlock label="Chargement du module enseignants..." />
-        </View>
-      ) : (
-        <View style={styles.content}>
-          {errorMessage ? (
-            <ErrorBanner
-              message={errorMessage}
-              onDismiss={() => setErrorMessage(null)}
-              testID="teachers-admin-error-banner"
+      {/* ── Tab forms : hero + formulaire inline ──────────────────────────── */}
+      {tab === "forms" && formContext && !isLoading ? (
+        <View style={styles.formsTabContent} testID="teachers-admin-forms-tab">
+          <FormHero
+            icon={
+              formContext.type === "create-teacher"
+                ? "person-add-outline"
+                : formContext.type === "edit-assignment"
+                  ? "create-outline"
+                  : "link-outline"
+            }
+            title={
+              formContext.type === "create-teacher"
+                ? "Créer un enseignant"
+                : formContext.type === "edit-assignment"
+                  ? "Modifier l'affectation"
+                  : "Nouvelle affectation"
+            }
+            subtitle={
+              formContext.type === "create-teacher"
+                ? "Téléphone + PIN ou email + mot de passe initial."
+                : "Associez un enseignant, une classe, une matière et une année scolaire."
+            }
+            palette={formContext.type === "create-teacher" ? "teal" : "warm"}
+            testID="teachers-admin-form-hero"
+          />
+          {formContext.type === "create-teacher" ? (
+            <TeacherCreateFormContent
+              isSubmitting={isSubmittingTeacher}
+              onCancel={exitForms}
+              onSubmit={handleCreateTeacher}
             />
-          ) : null}
+          ) : (
+            <AssignmentFormContent
+              mode={formContext.type === "edit-assignment" ? "edit" : "create"}
+              item={formContext.item}
+              isSubmitting={isSubmittingAssignment}
+              teacherOptions={teachers}
+              schoolYears={schoolYears}
+              classrooms={classrooms}
+              subjects={subjects}
+              onCancel={exitForms}
+              onSubmit={handleSubmitAssignment}
+            />
+          )}
+        </View>
+      ) : null}
 
-          <View
-            style={styles.summaryStrip}
-            testID="teachers-admin-summary-card"
-          >
-            <View style={styles.summaryStatChip}>
-              <Ionicons
-                name="people-outline"
-                size={14}
-                color={colors.accentTeal}
-              />
-              <Text
-                style={styles.summaryStatText}
-                testID="teachers-admin-summary-text"
-              >
-                {teacherCountLabel}
-              </Text>
-            </View>
-            <View style={styles.summaryStatChip}>
-              <Ionicons
-                name="layers-outline"
-                size={14}
-                color={colors.accentTeal}
-              />
-              <Text style={styles.summaryStatText}>{assignmentCountLabel}</Text>
-            </View>
+      {/* ── Tabs liste (teachers / assignments / help) ─────────────────────── */}
+      {tab !== "forms" ? (
+        isLoading ? (
+          <View style={styles.loadingWrap}>
+            <LoadingBlock label="Chargement du module enseignants..." />
           </View>
+        ) : (
+          <View style={styles.content}>
+            {errorMessage ? (
+              <ErrorBanner
+                message={errorMessage}
+                onDismiss={() => setErrorMessage(null)}
+                testID="teachers-admin-error-banner"
+              />
+            ) : null}
 
-          {tab === "teachers" ? (
-            <InfiniteScrollList
-              data={visibleTeachers}
-              keyExtractor={(item) => item.userId}
-              renderItem={({ item, index }) => {
-                const teacherAssignments =
-                  assignmentsByTeacher.get(item.userId) ?? [];
-                const hasAssignments = teacherAssignments.length > 0;
-                const isExpanded = expandedTeacherIds.includes(item.userId);
-                return (
+            <View
+              style={styles.summaryStrip}
+              testID="teachers-admin-summary-card"
+            >
+              <View style={styles.summaryStatChip}>
+                <Ionicons
+                  name="people-outline"
+                  size={14}
+                  color={colors.accentTeal}
+                />
+                <Text
+                  style={styles.summaryStatText}
+                  testID="teachers-admin-summary-text"
+                >
+                  {teacherCountLabel}
+                </Text>
+              </View>
+              <View style={styles.summaryStatChip}>
+                <Ionicons
+                  name="layers-outline"
+                  size={14}
+                  color={colors.accentTeal}
+                />
+                <Text style={styles.summaryStatText}>
+                  {assignmentCountLabel}
+                </Text>
+              </View>
+            </View>
+
+            {tab === "teachers" ? (
+              <InfiniteScrollList
+                data={visibleTeachers}
+                keyExtractor={(item) => item.userId}
+                renderItem={({ item, index }) => {
+                  const teacherAssignments =
+                    assignmentsByTeacher.get(item.userId) ?? [];
+                  const hasAssignments = teacherAssignments.length > 0;
+                  const isExpanded = expandedTeacherIds.includes(item.userId);
+                  return (
+                    <View
+                      style={[
+                        styles.entityRow,
+                        {
+                          backgroundColor:
+                            index % 2 === 0 ? "#FFF9F3" : "#FFF2E4",
+                        },
+                      ]}
+                      testID={`teachers-admin-teacher-row-${item.userId}`}
+                    >
+                      <View
+                        style={[
+                          styles.entityAccent,
+                          { backgroundColor: "#D89B5B" },
+                        ]}
+                      />
+                      <View style={styles.entityMain}>
+                        <View
+                          style={styles.entityTextWrap}
+                          testID={`teachers-admin-teacher-identity-${item.userId}`}
+                        >
+                          <View style={styles.teacherNameRow}>
+                            <Text style={styles.entityTitle}>
+                              {fullTeacherName(item)}
+                            </Text>
+                            <Text
+                              style={styles.teacherContactInline}
+                              testID={`teachers-admin-teacher-contact-${item.userId}`}
+                              numberOfLines={1}
+                            >
+                              {formatTeacherContact(item)}
+                            </Text>
+                          </View>
+                          {hasAssignments ? (
+                            <Text
+                              style={styles.teacherClassesSummary}
+                              testID={`teachers-admin-teacher-classes-summary-${item.userId}`}
+                            >
+                              {summarizeTeacherClasses(teacherAssignments)}
+                            </Text>
+                          ) : (
+                            <Text
+                              style={styles.noAssignmentText}
+                              testID={`teachers-admin-teacher-classes-summary-${item.userId}`}
+                            >
+                              Non affecté
+                            </Text>
+                          )}
+                        </View>
+                        {isExpanded ? (
+                          <View
+                            style={styles.teacherAssignmentsInline}
+                            testID={`teachers-admin-teacher-assignments-${item.userId}`}
+                          >
+                            {teacherAssignments.length === 0 ? (
+                              <Text
+                                style={styles.teacherAssignmentsEmpty}
+                                testID={`teachers-admin-teacher-assignments-empty-${item.userId}`}
+                              >
+                                Aucun créneau pédagogique.
+                              </Text>
+                            ) : (
+                              teacherAssignments.map((assignment) => (
+                                <View
+                                  key={assignment.id}
+                                  style={styles.teacherAssignmentInlineRow}
+                                  testID={`teachers-admin-teacher-inline-assignment-${assignment.id}`}
+                                >
+                                  <View
+                                    style={styles.teacherAssignmentInlineText}
+                                  >
+                                    <Text
+                                      style={
+                                        styles.teacherAssignmentInlineTitle
+                                      }
+                                    >
+                                      {assignment.schoolYear.label}
+                                    </Text>
+                                    <Text
+                                      style={styles.teacherAssignmentInlineMeta}
+                                    >
+                                      {assignment.class.name} ·{" "}
+                                      {assignment.subject.name}
+                                    </Text>
+                                  </View>
+                                  <View style={styles.iconActions}>
+                                    <TouchableOpacity
+                                      style={styles.iconButton}
+                                      onPress={() => {
+                                        setFormContext({
+                                          type: "edit-assignment",
+                                          originTab: "teachers",
+                                          item: assignment,
+                                        });
+                                        setTab("forms");
+                                      }}
+                                      testID={`teachers-admin-assignment-edit-${assignment.id}`}
+                                    >
+                                      <Ionicons
+                                        name="create-outline"
+                                        size={18}
+                                        color={colors.primary}
+                                      />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                      style={styles.iconButton}
+                                      onPress={() =>
+                                        setDeleteTarget(assignment)
+                                      }
+                                      testID={`teachers-admin-assignment-delete-${assignment.id}`}
+                                    >
+                                      <Ionicons
+                                        name="trash-outline"
+                                        size={18}
+                                        color={colors.notification}
+                                      />
+                                    </TouchableOpacity>
+                                  </View>
+                                </View>
+                              ))
+                            )}
+                          </View>
+                        ) : null}
+                      </View>
+                      <TouchableOpacity
+                        style={styles.iconButton}
+                        onPress={() => toggleTeacherExpansion(item.userId)}
+                        testID={`teachers-admin-teacher-open-assignments-${item.userId}`}
+                      >
+                        <Ionicons
+                          name={isExpanded ? "eye-off-outline" : "eye-outline"}
+                          size={16}
+                          color={colors.primary}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                }}
+                onRefresh={handleRefresh}
+                refreshing={isRefreshing}
+                onLoadMore={() =>
+                  setTeacherVisibleCount((current) => current + PAGE_SIZE)
+                }
+                hasMore={visibleTeachers.length < filteredTeachers.length}
+                isLoadingMore={false}
+                testID="teachers-admin-teachers-list"
+                contentContainerStyle={styles.listContent}
+                ListHeaderComponent={
+                  <View style={styles.listHeader}>
+                    <TextInput
+                      value={teacherQuery}
+                      onChangeText={setTeacherQuery}
+                      placeholder="Rechercher un enseignant"
+                      placeholderTextColor={colors.textSecondary}
+                      style={styles.searchInput}
+                      testID="teachers-admin-teachers-search"
+                    />
+                  </View>
+                }
+                emptyComponent={
+                  <View style={styles.emptyListWrap}>
+                    <EmptyState
+                      icon="school-outline"
+                      title={
+                        teacherQuery.trim()
+                          ? "Aucun enseignant trouvé"
+                          : "Aucun enseignant"
+                      }
+                      message={
+                        teacherQuery.trim()
+                          ? "Ajustez votre recherche pour retrouver un enseignant."
+                          : "Ajoutez un premier enseignant depuis le bouton flottant."
+                      }
+                    />
+                  </View>
+                }
+              />
+            ) : null}
+
+            {tab === "assignments" ? (
+              <InfiniteScrollList
+                data={visibleAssignments}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item, index }) => (
                   <View
                     style={[
                       styles.entityRow,
                       {
                         backgroundColor:
-                          index % 2 === 0 ? "#FFF9F3" : "#FFF2E4",
+                          index % 2 === 0 ? "#F4FCFA" : "#EAF7F4",
                       },
                     ]}
-                    testID={`teachers-admin-teacher-row-${item.userId}`}
+                    testID={`teachers-admin-assignment-row-${item.id}`}
                   >
                     <View
                       style={[
                         styles.entityAccent,
-                        { backgroundColor: "#D89B5B" },
+                        { backgroundColor: "#247C72" },
                       ]}
                     />
                     <View style={styles.entityMain}>
-                      <View
-                        style={styles.entityTextWrap}
-                        testID={`teachers-admin-teacher-identity-${item.userId}`}
-                      >
-                        <View style={styles.teacherNameRow}>
-                          <Text style={styles.entityTitle}>
-                            {fullTeacherName(item)}
-                          </Text>
-                          <Text
-                            style={styles.teacherContactInline}
-                            testID={`teachers-admin-teacher-contact-${item.userId}`}
-                            numberOfLines={1}
-                          >
-                            {formatTeacherContact(item)}
-                          </Text>
-                        </View>
-                        {hasAssignments ? (
-                          <Text
-                            style={styles.teacherClassesSummary}
-                            testID={`teachers-admin-teacher-classes-summary-${item.userId}`}
-                          >
-                            {summarizeTeacherClasses(teacherAssignments)}
-                          </Text>
-                        ) : (
-                          <Text
-                            style={styles.noAssignmentText}
-                            testID={`teachers-admin-teacher-classes-summary-${item.userId}`}
-                          >
-                            Non affecté
-                          </Text>
-                        )}
+                      <View style={styles.entityTextWrap}>
+                        <Text style={styles.entityTitle}>
+                          {assignmentLabel(item)}
+                        </Text>
+                        <Text style={styles.entityMeta}>
+                          {fullTeacherName(item.teacherUser)} ·{" "}
+                          {item.schoolYear.label}
+                        </Text>
+                        <Text style={styles.entityMeta}>
+                          Créée {formatDateTime(item.createdAt)}
+                        </Text>
                       </View>
-                      {isExpanded ? (
-                        <View
-                          style={styles.teacherAssignmentsInline}
-                          testID={`teachers-admin-teacher-assignments-${item.userId}`}
-                        >
-                          {teacherAssignments.length === 0 ? (
-                            <Text
-                              style={styles.teacherAssignmentsEmpty}
-                              testID={`teachers-admin-teacher-assignments-empty-${item.userId}`}
-                            >
-                              Aucun créneau pédagogique.
-                            </Text>
-                          ) : (
-                            teacherAssignments.map((assignment) => (
-                              <View
-                                key={assignment.id}
-                                style={styles.teacherAssignmentInlineRow}
-                                testID={`teachers-admin-teacher-inline-assignment-${assignment.id}`}
-                              >
-                                <View
-                                  style={styles.teacherAssignmentInlineText}
-                                >
-                                  <Text
-                                    style={styles.teacherAssignmentInlineTitle}
-                                  >
-                                    {assignment.schoolYear.label}
-                                  </Text>
-                                  <Text
-                                    style={styles.teacherAssignmentInlineMeta}
-                                  >
-                                    {assignment.class.name} ·{" "}
-                                    {assignment.subject.name}
-                                  </Text>
-                                </View>
-                                <View style={styles.iconActions}>
-                                  <TouchableOpacity
-                                    style={styles.iconButton}
-                                    onPress={() =>
-                                      setAssignmentSheet({
-                                        visible: true,
-                                        mode: "edit",
-                                        item: assignment,
-                                      })
-                                    }
-                                    testID={`teachers-admin-assignment-edit-${assignment.id}`}
-                                  >
-                                    <Ionicons
-                                      name="create-outline"
-                                      size={18}
-                                      color={colors.primary}
-                                    />
-                                  </TouchableOpacity>
-                                  <TouchableOpacity
-                                    style={styles.iconButton}
-                                    onPress={() => setDeleteTarget(assignment)}
-                                    testID={`teachers-admin-assignment-delete-${assignment.id}`}
-                                  >
-                                    <Ionicons
-                                      name="trash-outline"
-                                      size={18}
-                                      color={colors.notification}
-                                    />
-                                  </TouchableOpacity>
-                                </View>
-                              </View>
-                            ))
-                          )}
-                        </View>
-                      ) : null}
                     </View>
-                    <TouchableOpacity
-                      style={styles.iconButton}
-                      onPress={() => toggleTeacherExpansion(item.userId)}
-                      testID={`teachers-admin-teacher-open-assignments-${item.userId}`}
-                    >
-                      <Ionicons
-                        name={isExpanded ? "eye-off-outline" : "eye-outline"}
-                        size={16}
-                        color={colors.primary}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                );
-              }}
-              onRefresh={handleRefresh}
-              refreshing={isRefreshing}
-              onLoadMore={() =>
-                setTeacherVisibleCount((current) => current + PAGE_SIZE)
-              }
-              hasMore={visibleTeachers.length < filteredTeachers.length}
-              isLoadingMore={false}
-              testID="teachers-admin-teachers-list"
-              contentContainerStyle={styles.listContent}
-              ListHeaderComponent={
-                <View style={styles.listHeader}>
-                  <TextInput
-                    value={teacherQuery}
-                    onChangeText={setTeacherQuery}
-                    placeholder="Rechercher un enseignant"
-                    placeholderTextColor={colors.textSecondary}
-                    style={styles.searchInput}
-                    testID="teachers-admin-teachers-search"
-                  />
-                </View>
-              }
-              emptyComponent={
-                <View style={styles.emptyListWrap}>
-                  <EmptyState
-                    icon="school-outline"
-                    title={
-                      teacherQuery.trim()
-                        ? "Aucun enseignant trouvé"
-                        : "Aucun enseignant"
-                    }
-                    message={
-                      teacherQuery.trim()
-                        ? "Ajustez votre recherche pour retrouver un enseignant."
-                        : "Ajoutez un premier enseignant depuis le bouton flottant."
-                    }
-                  />
-                </View>
-              }
-            />
-          ) : null}
-
-          {tab === "assignments" ? (
-            <InfiniteScrollList
-              data={visibleAssignments}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item, index }) => (
-                <View
-                  style={[
-                    styles.entityRow,
-                    {
-                      backgroundColor: index % 2 === 0 ? "#F4FCFA" : "#EAF7F4",
-                    },
-                  ]}
-                  testID={`teachers-admin-assignment-row-${item.id}`}
-                >
-                  <View
-                    style={[
-                      styles.entityAccent,
-                      { backgroundColor: "#247C72" },
-                    ]}
-                  />
-                  <View style={styles.entityMain}>
-                    <View style={styles.entityTextWrap}>
-                      <Text style={styles.entityTitle}>
-                        {assignmentLabel(item)}
-                      </Text>
-                      <Text style={styles.entityMeta}>
-                        {fullTeacherName(item.teacherUser)} ·{" "}
-                        {item.schoolYear.label}
-                      </Text>
-                      <Text style={styles.entityMeta}>
-                        Créée {formatDateTime(item.createdAt)}
-                      </Text>
+                    <View style={styles.iconActions}>
+                      <TouchableOpacity
+                        style={styles.iconButton}
+                        onPress={() => {
+                          setFormContext({
+                            type: "edit-assignment",
+                            originTab: "assignments",
+                            item,
+                          });
+                          setTab("forms");
+                        }}
+                        testID={`teachers-admin-assignment-edit-${item.id}`}
+                      >
+                        <Ionicons
+                          name="create-outline"
+                          size={18}
+                          color={colors.primary}
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.iconButton}
+                        onPress={() => setDeleteTarget(item)}
+                        testID={`teachers-admin-assignment-delete-${item.id}`}
+                      >
+                        <Ionicons
+                          name="trash-outline"
+                          size={18}
+                          color={colors.notification}
+                        />
+                      </TouchableOpacity>
                     </View>
                   </View>
-                  <View style={styles.iconActions}>
-                    <TouchableOpacity
-                      style={styles.iconButton}
-                      onPress={() =>
-                        setAssignmentSheet({
-                          visible: true,
-                          mode: "edit",
-                          item,
-                        })
+                )}
+                onRefresh={handleRefresh}
+                refreshing={isRefreshing}
+                onLoadMore={() =>
+                  setAssignmentVisibleCount((current) => current + PAGE_SIZE)
+                }
+                hasMore={visibleAssignments.length < filteredAssignments.length}
+                isLoadingMore={false}
+                testID="teachers-admin-assignments-list"
+                contentContainerStyle={styles.listContent}
+                ListHeaderComponent={
+                  <View style={styles.listHeader}>
+                    <TextInput
+                      value={assignmentQuery}
+                      onChangeText={setAssignmentQuery}
+                      placeholder="Rechercher une affectation"
+                      placeholderTextColor={colors.textSecondary}
+                      style={styles.searchInput}
+                      testID="teachers-admin-assignments-search"
+                    />
+                  </View>
+                }
+                emptyComponent={
+                  <View style={styles.emptyListWrap}>
+                    <EmptyState
+                      icon="layers-outline"
+                      title={
+                        assignmentQuery.trim()
+                          ? "Aucune affectation trouvée"
+                          : "Aucune affectation"
                       }
-                      testID={`teachers-admin-assignment-edit-${item.id}`}
-                    >
-                      <Ionicons
-                        name="create-outline"
-                        size={18}
-                        color={colors.primary}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.iconButton}
-                      onPress={() => setDeleteTarget(item)}
-                      testID={`teachers-admin-assignment-delete-${item.id}`}
-                    >
-                      <Ionicons
-                        name="trash-outline"
-                        size={18}
-                        color={colors.notification}
-                      />
-                    </TouchableOpacity>
+                      message={
+                        assignmentQuery.trim()
+                          ? "Ajustez votre recherche pour retrouver une affectation."
+                          : "Créez une première affectation depuis le bouton flottant."
+                      }
+                    />
                   </View>
-                </View>
-              )}
-              onRefresh={handleRefresh}
-              refreshing={isRefreshing}
-              onLoadMore={() =>
-                setAssignmentVisibleCount((current) => current + PAGE_SIZE)
-              }
-              hasMore={visibleAssignments.length < filteredAssignments.length}
-              isLoadingMore={false}
-              testID="teachers-admin-assignments-list"
-              contentContainerStyle={styles.listContent}
-              ListHeaderComponent={
-                <View style={styles.listHeader}>
-                  <TextInput
-                    value={assignmentQuery}
-                    onChangeText={setAssignmentQuery}
-                    placeholder="Rechercher une affectation"
-                    placeholderTextColor={colors.textSecondary}
-                    style={styles.searchInput}
-                    testID="teachers-admin-assignments-search"
-                  />
-                </View>
-              }
-              emptyComponent={
-                <View style={styles.emptyListWrap}>
-                  <EmptyState
-                    icon="layers-outline"
-                    title={
-                      assignmentQuery.trim()
-                        ? "Aucune affectation trouvée"
-                        : "Aucune affectation"
-                    }
-                    message={
-                      assignmentQuery.trim()
-                        ? "Ajustez votre recherche pour retrouver une affectation."
-                        : "Créez une première affectation depuis le bouton flottant."
-                    }
-                  />
-                </View>
-              }
-            />
-          ) : null}
+                }
+              />
+            ) : null}
 
-          {tab === "help" ? (
-            <ScrollView
-              style={styles.helpScroll}
-              contentContainerStyle={styles.helpContent}
-              refreshControl={
-                <RefreshControl
-                  refreshing={isRefreshing}
-                  onRefresh={() => {
-                    void handleRefresh();
-                  }}
-                />
-              }
-              showsVerticalScrollIndicator={false}
-              testID="teachers-admin-help-scroll"
-            >
-              <SectionCard
-                title="Parcours recommandé"
-                testID="teachers-admin-help-card"
+            {tab === "help" ? (
+              <ScrollView
+                style={styles.helpScroll}
+                contentContainerStyle={styles.helpContent}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={isRefreshing}
+                    onRefresh={() => {
+                      void handleRefresh();
+                    }}
+                  />
+                }
+                showsVerticalScrollIndicator={false}
+                testID="teachers-admin-help-scroll"
               >
-                <Text style={styles.helpLine}>
-                  1. Créez ou rattachez d'abord les comptes enseignants.
-                </Text>
-                <Text style={styles.helpLine}>
-                  2. Ajoutez ensuite les affectations classe / matière / année.
-                </Text>
-                <Text style={styles.helpLine}>
-                  3. Utilisez la recherche pour retrouver rapidement un profil
-                  ou une affectation.
-                </Text>
-              </SectionCard>
-              <SectionCard title="Rappels métier">
-                <Text style={styles.helpLine}>
-                  Un enseignant peut être créé par téléphone + PIN ou par email
-                  + mot de passe initial.
-                </Text>
-                <Text style={styles.helpLine}>
-                  Les affectations doivent respecter l'année scolaire et la
-                  classe associée.
-                </Text>
-                <Text style={styles.helpLine}>
-                  Toute erreur backend ou validation zod remonte dans les toasts
-                  et les formulaires.
-                </Text>
-              </SectionCard>
-            </ScrollView>
-          ) : null}
-        </View>
-      )}
+                <SectionCard
+                  title="Parcours recommandé"
+                  testID="teachers-admin-help-card"
+                >
+                  <Text style={styles.helpLine}>
+                    1. Créez ou rattachez d'abord les comptes enseignants.
+                  </Text>
+                  <Text style={styles.helpLine}>
+                    2. Ajoutez ensuite les affectations classe / matière /
+                    année.
+                  </Text>
+                  <Text style={styles.helpLine}>
+                    3. Utilisez la recherche pour retrouver rapidement un profil
+                    ou une affectation.
+                  </Text>
+                </SectionCard>
+                <SectionCard title="Rappels métier">
+                  <Text style={styles.helpLine}>
+                    Un enseignant peut être créé par téléphone + PIN ou par
+                    email + mot de passe initial.
+                  </Text>
+                  <Text style={styles.helpLine}>
+                    Les affectations doivent respecter l'année scolaire et la
+                    classe associée.
+                  </Text>
+                  <Text style={styles.helpLine}>
+                    Toute erreur backend ou validation zod remonte dans les
+                    toasts et les formulaires.
+                  </Text>
+                </SectionCard>
+              </ScrollView>
+            ) : null}
+          </View>
+        )
+      ) : null}
 
-      {tab !== "help" ? (
+      {tab !== "help" && tab !== "forms" ? (
         <TouchableOpacity
           style={styles.fab}
           onPress={openFab}
@@ -1597,32 +1583,6 @@ export function TeachersAdminScreen() {
           <Ionicons name="add" size={26} color={colors.white} />
         </TouchableOpacity>
       ) : null}
-
-      <TeacherCreateFormSheet
-        visible={teacherSheet.visible}
-        isSubmitting={isSubmittingTeacher}
-        onClose={() => setTeacherSheet({ visible: false })}
-        onSubmit={handleCreateTeacher}
-      />
-
-      <AssignmentFormSheet
-        visible={assignmentSheet.visible}
-        mode={assignmentSheet.mode}
-        item={assignmentSheet.item}
-        isSubmitting={isSubmittingAssignment}
-        teacherOptions={teachers}
-        schoolYears={schoolYears}
-        classrooms={classrooms}
-        subjects={subjects}
-        onClose={() =>
-          setAssignmentSheet({
-            visible: false,
-            mode: "create",
-            item: null,
-          })
-        }
-        onSubmit={handleSubmitAssignment}
-      />
 
       <ConfirmDialog
         visible={deleteTarget != null}
@@ -1645,6 +1605,10 @@ export function TeachersAdminScreen() {
     </View>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
   screen: {
@@ -1847,98 +1811,89 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
-  sheetOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(5, 20, 34, 0.28)",
-    justifyContent: "flex-end",
-  },
-  sheetBackdrop: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-  },
-  sheetKeyboard: {
-    // Auto-dimensionné au contenu — ScrollView borné par maxHeight dynamique.
-  },
-  sheetCard: {
-    // Pas de flex:1 — hauteur déterminée par le contenu (header + scroll + footer).
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+  // ── FormHero ────────────────────────────────────────────────────────────
+  heroContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 22,
     overflow: "hidden",
   },
-  sheetHeader: {
-    backgroundColor: colors.primary,
-    paddingTop: 10,
-    paddingHorizontal: 18,
-    paddingBottom: 16,
+  heroDecor1: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    borderRadius: 22,
+    bottom: -40,
+    right: -20,
+    transform: [{ rotate: "30deg" }],
+    opacity: 0.18,
   },
-  sheetHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.25)",
-    alignSelf: "center",
-    marginBottom: 12,
+  heroDecor2: {
+    position: "absolute",
+    width: 60,
+    height: 60,
+    borderRadius: 14,
+    top: -18,
+    right: 60,
+    transform: [{ rotate: "20deg" }],
+    opacity: 0.12,
   },
-  sheetHeaderRow: {
+  heroRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
+    alignItems: "center",
+    gap: 14,
   },
-  sheetHeaderText: {
+  heroIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    flexShrink: 0,
+  },
+  heroTextWrap: {
     flex: 1,
     gap: 3,
   },
-  sheetEyebrow: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 10,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  sheetTitle: {
-    color: colors.white,
-    fontSize: 17,
+  heroTitle: {
+    color: "#FFFFFF",
+    fontSize: 20,
     fontWeight: "800",
-    lineHeight: 22,
+    lineHeight: 26,
   },
-  sheetSubtitle: {
-    color: "rgba(255,255,255,0.62)",
+  heroSubtitle: {
+    color: "rgba(255,255,255,0.70)",
     fontSize: 12,
-    lineHeight: 17,
-    marginTop: 2,
+    lineHeight: 18,
+    marginTop: 4,
   },
-  sheetClose: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 14,
+  // ── Inline form layout ──────────────────────────────────────────────────
+  formsTabContent: {
+    flex: 1,
   },
-  sheetScrollArea: {
-    // maxHeight posé inline dans ModalFrame via useWindowDimensions.
+  formsKeyboardArea: {
+    flex: 1,
   },
-  sheetBody: {
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 12,
-    gap: 14,
+  formScroll: {
+    flex: 1,
   },
-  sheetFooter: {
+  formScrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    gap: 16,
+  },
+  formActionsBar: {
     backgroundColor: colors.warmSurface,
     borderTopWidth: 1,
     borderTopColor: colors.warmBorder,
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    paddingBottom: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     flexDirection: "row",
     gap: 10,
   },
+  // ── Form fields ─────────────────────────────────────────────────────────
   formField: {
     gap: 8,
   },
@@ -1952,7 +1907,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.white,
-    borderRadius: 16,
+    borderRadius: 6,
     paddingHorizontal: 14,
     paddingVertical: 12,
     color: colors.textPrimary,
@@ -1975,7 +1930,7 @@ const styles = StyleSheet.create({
   },
   modeChip: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     backgroundColor: colors.warmSurface,
@@ -1996,91 +1951,6 @@ const styles = StyleSheet.create({
   modeChipLabelActive: {
     color: colors.primary,
   },
-  compactSelectTrigger: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: colors.white,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  compactSelectTriggerError: {
-    borderColor: "#B84A3B",
-  },
-  compactSelectTextWrap: {
-    flex: 1,
-    gap: 3,
-  },
-  compactSelectValue: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  compactSelectMeta: {
-    color: colors.textSecondary,
-    fontSize: 11,
-  },
-  selectOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(5, 20, 34, 0.28)",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-  },
-  selectSheet: {
-    backgroundColor: colors.surface,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    maxHeight: "72%",
-  },
-  selectSheetTitle: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 12,
-  },
-  selectSheetOptions: {
-    gap: 8,
-  },
-  selectOptionRow: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.white,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  selectOptionRowActive: {
-    borderColor: colors.primary,
-    backgroundColor: "#F1F7FC",
-  },
-  selectOptionTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  selectOptionLabel: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  selectOptionLabelActive: {
-    color: colors.primary,
-  },
-  selectOptionMeta: {
-    color: colors.textSecondary,
-    fontSize: 11,
-  },
-  selectOptionMetaActive: {
-    color: colors.primary,
-  },
   formActions: {
     flex: 1,
     flexDirection: "row",
@@ -2088,7 +1958,7 @@ const styles = StyleSheet.create({
   },
   secondaryAction: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     backgroundColor: colors.warmSurface,
@@ -2103,7 +1973,7 @@ const styles = StyleSheet.create({
   },
   primaryAction: {
     flex: 1.2,
-    borderRadius: 16,
+    borderRadius: 6,
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",

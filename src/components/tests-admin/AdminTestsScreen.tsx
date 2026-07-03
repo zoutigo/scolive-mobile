@@ -27,6 +27,7 @@ import {
   EMPTY_EXECUTIONS_FILTER,
   type AdminExecutionsFilter,
 } from "./AdminTestsExecutionsTab";
+import { moduleBack } from "../../utils/moduleBack";
 
 type TabKey = "summary" | "campaigns" | "testers" | "executions";
 
@@ -87,7 +88,7 @@ export function AdminTestsScreen() {
       <ModuleHeader
         title={t("testsAdmin.title")}
         subtitle={t("testsAdmin.subtitle")}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         topInset={insets.top}
         testID="admin-tests-header"
       />

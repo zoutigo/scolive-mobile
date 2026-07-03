@@ -29,6 +29,7 @@ import type {
   TeacherClassroomOption,
   TeacherSchoolYearOption,
 } from "../../types/teachers.types";
+import { moduleBack } from "../../utils/moduleBack";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -200,7 +201,7 @@ export function SchoolAdminNotesScreen() {
     >
       <ModuleHeader
         title={t("notes.admin.title")}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         testID="school-admin-notes-header"
         backTestID="school-admin-notes-back"
         titleTestID="school-admin-notes-title"

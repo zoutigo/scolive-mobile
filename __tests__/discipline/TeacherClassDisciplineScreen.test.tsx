@@ -31,7 +31,11 @@ jest.mock("../../src/store/auth.store", () => ({
   }),
 }));
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ back: jest.fn() }),
+  useRouter: () => ({
+    back: jest.fn(),
+    canGoBack: jest.fn().mockReturnValue(true),
+    navigate: jest.fn(),
+  }),
   useLocalSearchParams: () => ({ classId: "class-1" }),
 }));
 jest.mock("react-native-safe-area-context", () => ({
@@ -138,8 +142,10 @@ describe("TeacherClassDisciplineScreen", () => {
     expect(
       screen.getByTestId("teacher-class-discipline-events-list"),
     ).toBeTruthy();
-    expect(screen.getByText("MBELE Lisa")).toBeTruthy();
-    expect(screen.getByText("NTAMACK Remi")).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByText("MBELE Lisa")).toBeTruthy();
+      expect(screen.getByText("NTAMACK Remi")).toBeTruthy();
+    });
   });
 
   it("filtre les événements par élève via la liste déroulante", async () => {

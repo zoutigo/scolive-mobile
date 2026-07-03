@@ -26,6 +26,7 @@ import type {
   TestCasePriority,
   TestExecutionStatus,
 } from "../../../src/types/tests.types";
+import { moduleBack } from "../../../src/utils/moduleBack";
 
 const HERO_PALETTE: Record<CampaignDisplayStatus, string> = {
   IN_PROGRESS: colors.accentTeal,
@@ -91,7 +92,7 @@ function TestCampaignScreen() {
               )
             : t("tests.cases.subtitle")
         }
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         topInset={insets.top}
       />
 

@@ -93,6 +93,7 @@ import type {
   ClassTimetableContextResponse,
   MyTimetableResponse,
 } from "../../types/timetable.types";
+import { moduleBack } from "../../utils/moduleBack";
 
 type TeacherSubjectOption = {
   value: string;
@@ -1543,7 +1544,7 @@ export function ClassHomeworkScreen({
           <ModuleHeader
             title={t("homework.header.title")}
             subtitle={subtitle}
-            onBack={() => router.back()}
+            onBack={() => moduleBack(router)}
             testID="class-homework-header"
             backTestID="class-homework-back"
             titleTestID="class-homework-header-title"

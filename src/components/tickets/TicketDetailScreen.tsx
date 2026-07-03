@@ -25,6 +25,7 @@ import { TicketStatusBadge } from "./TicketStatusBadge";
 import { TicketTypeChip } from "./TicketTypeChip";
 import type { TicketDetail, TicketStatus } from "../../types/tickets.types";
 import { TICKET_STATUS_LABELS } from "../../types/tickets.types";
+import { moduleBack } from "../../utils/moduleBack";
 
 const STATUS_TRANSITIONS: TicketStatus[] = [
   "OPEN",
@@ -195,7 +196,7 @@ export function TicketDetailScreen() {
         <ModuleHeader
           title="Ticket"
           subtitle={`#${ticket.id.slice(-6).toUpperCase()}`}
-          onBack={() => router.back()}
+          onBack={() => moduleBack(router)}
           topInset={androidStatusInset}
           testID="ticket-detail-header"
         />

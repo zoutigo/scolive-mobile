@@ -34,6 +34,7 @@ import type {
   CreateLifeEventPayload,
   StudentLifeEvent,
 } from "../../types/discipline.types";
+import { moduleBack } from "../../utils/moduleBack";
 
 type TabKey = "events" | "carnets";
 
@@ -335,7 +336,7 @@ export function TeacherClassDisciplineScreen({
           <ModuleHeader
             title={t("discipline.header.discipline")}
             subtitle={subtitle}
-            onBack={() => router.back()}
+            onBack={() => moduleBack(router)}
             testID="teacher-class-discipline-header"
             backTestID="teacher-class-discipline-back"
             topInset={insets.top}

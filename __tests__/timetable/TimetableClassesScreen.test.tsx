@@ -16,7 +16,12 @@ const mockBack = jest.fn();
 const mockLoadClassOptions = jest.fn();
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush, back: mockBack }),
+  useRouter: () => ({
+    push: mockPush,
+    back: mockBack,
+    canGoBack: jest.fn().mockReturnValue(true),
+    navigate: jest.fn(),
+  }),
 }));
 
 jest.mock("react-native-safe-area-context", () => ({

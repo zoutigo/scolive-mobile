@@ -22,9 +22,10 @@ jest.mock("expo-application", () => ({
 }));
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 let mockPathname = "/";
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
   usePathname: () => mockPathname,
 }));
 
@@ -1588,5 +1589,217 @@ describe("Badges sur les items de navigation", () => {
 
     expect(screen.getByTestId("child-c1-grades-badge")).toHaveTextContent("7");
     expect(screen.queryByTestId("child-c1-life-badge")).toBeNull();
+  });
+});
+
+// ── Stratégie push vs replace — logique anti-empilement de modules ────────────
+//
+// Règle :
+//  - Depuis l'accueil (/)           → push  (home reste la base de la stack)
+//  - Même section (même module)     → push  (historique des onglets préservé)
+//  - Section différente (cross-module) → replace (évite d'empiler un ancien module)
+
+describe("Stratégie push/replace — depuis l'accueil", () => {
+  it("utilise push quand la route courante est /", () => {
+    mockPathname = "/";
+    renderDrawer(getNavItems(parentUser));
+    fireEvent.press(screen.getByTestId("nav-item-feed"));
+    act(() => jest.runAllTimers());
+    expect(mockPush).toHaveBeenCalledWith("/feed");
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it("utilise push pour l'item home depuis /", () => {
+    mockPathname = "/";
+    renderDrawer(getNavItems(parentUser));
+    fireEvent.press(screen.getByTestId("nav-item-home"));
+    act(() => jest.runAllTimers());
+    expect(mockPush).toHaveBeenCalledWith("/");
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it("utilise push quand la route courante est /index (alias home)", () => {
+    mockPathname = "/index";
+    renderDrawer(getNavItems(parentUser));
+    fireEvent.press(screen.getByTestId("nav-item-feed"));
+    act(() => jest.runAllTimers());
+    expect(mockPush).toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+});
+
+describe("Stratégie push/replace — navigation dans le même module (push)", () => {
+  it("onglets enseignant même classe → push (historique des onglets préservé)", () => {
+    // On est déjà sur l'onglet feed de la classe (route active)
+    mockPathname = "/classes/class-1/feed";
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    // L'accordéon de la classe est auto-ouvert (route active)
+    fireEvent.press(screen.getByTestId("nav-item-teacher-class-class-1-notes"));
+    act(() => jest.runAllTimers());
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/classes/[classId]/notes",
+      params: { classId: "class-1" },
+    });
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it("onglets enseignant même classe : discipline depuis notes → push", () => {
+    mockPathname = "/classes/class-1/notes";
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    fireEvent.press(
+      screen.getByTestId("nav-item-teacher-class-class-1-discipline"),
+    );
+    act(() => jest.runAllTimers());
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/classes/[classId]/discipline",
+      params: { classId: "class-1" },
+    });
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it("items de la section générale entre eux → push (même section générale)", () => {
+    // Sur /feed, on clique sur /agenda → même section "general" → push
+    mockPathname = "/feed";
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    fireEvent.press(screen.getByTestId("nav-item-agenda"));
+    act(() => jest.runAllTimers());
+    expect(mockPush).toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+});
+
+describe("Stratégie push/replace — changement de module (replace)", () => {
+  it("depuis un module général vers une classe enseignant → replace", () => {
+    // On est sur la route notes (section générale)
+    mockPathname = "/notes";
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    // Ouvrir la section classe
+    fireEvent.press(screen.getByTestId("drawer-section-teacher-class-class-1"));
+    // Cliquer sur l'onglet feed de la classe
+    fireEvent.press(screen.getByTestId("nav-item-teacher-class-class-1-feed"));
+    act(() => jest.runAllTimers());
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: "/(home)/classes/[classId]/feed",
+      params: { classId: "class-1" },
+    });
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("depuis un onglet de classe vers la section générale → replace", () => {
+    mockPathname = "/classes/class-1/discipline";
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+    // Ouvrir la section générale enseignant
+    fireEvent.press(screen.getByTestId("drawer-section-teacher-general"));
+    fireEvent.press(screen.getByTestId("nav-item-timetable"));
+    act(() => jest.runAllTimers());
+    expect(mockReplace).toHaveBeenCalledWith("/timetable");
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("depuis un onglet enfant vers la section générale parent → replace", () => {
+    const childSecs = buildChildSections([child1]);
+    useFamilyStore.setState({ activeChildId: "c1", children: [] });
+    mockPathname = "/notes/child/c1";
+    render(
+      <AppDrawer
+        {...baseProps}
+        navItems={getNavItems(parentUser)}
+        childSections={childSecs}
+      />,
+    );
+    // La section de l'enfant c1 est ouverte (route active) → ouvrir "Mon espace famille"
+    fireEvent.press(screen.getByTestId("drawer-section-general"));
+    fireEvent.press(screen.getByTestId("nav-item-feed"));
+    act(() => jest.runAllTimers());
+    expect(mockReplace).toHaveBeenCalledWith("/feed");
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("depuis la section générale parent vers un onglet enfant → replace", () => {
+    const childSecs = buildChildSections([child1]);
+    useFamilyStore.setState({ activeChildId: null, children: [] });
+    mockPathname = "/feed";
+    render(
+      <AppDrawer
+        {...baseProps}
+        navItems={getNavItems(parentUser)}
+        childSections={childSecs}
+      />,
+    );
+    // Section générale ouverte, on clique sur la section enfant
+    fireEvent.press(screen.getByTestId("drawer-section-child-c1"));
+    fireEvent.press(screen.getByTestId("nav-item-child-c1-grades"));
+    act(() => jest.runAllTimers());
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: "/(home)/notes/child/[childId]",
+      params: { childId: "c1" },
+    });
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+});
+
+describe("Stratégie push/replace — navigation onglets enfant (même section)", () => {
+  it("onglets du même enfant entre eux → push", () => {
+    const childSecs = buildChildSections([child1]);
+    useFamilyStore.setState({ activeChildId: "c1", children: [] });
+    mockPathname = "/notes/child/c1";
+    render(
+      <AppDrawer
+        {...baseProps}
+        navItems={getNavItems(parentUser)}
+        childSections={childSecs}
+      />,
+    );
+    // Naviguer vers vie-scolaire du même enfant
+    fireEvent.press(screen.getByTestId("nav-item-child-c1-life"));
+    act(() => jest.runAllTimers());
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/vie-scolaire/[childId]",
+      params: { childId: "c1" },
+    });
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+});
+
+describe("Stratégie push/replace — cas limites", () => {
+  it("route vide ('') traitée comme home → push", () => {
+    mockPathname = "";
+    renderDrawer(getNavItems(parentUser));
+    fireEvent.press(screen.getByTestId("nav-item-feed"));
+    act(() => jest.runAllTimers());
+    expect(mockPush).toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it("plusieurs onglets successifs de la même classe → push à chaque fois", () => {
+    mockPathname = "/classes/class-1/feed";
+    renderDrawer(getNavItems(teacherUser), {
+      teacherClassSections,
+      isTeacherClassNavEnabled: true,
+    });
+
+    fireEvent.press(screen.getByTestId("nav-item-teacher-class-class-1-notes"));
+    fireEvent.press(
+      screen.getByTestId("nav-item-teacher-class-class-1-homework"),
+    );
+    act(() => jest.runAllTimers());
+
+    expect(mockPush).toHaveBeenCalledTimes(2);
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 });

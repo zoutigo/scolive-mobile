@@ -8,6 +8,7 @@ import { useTranslation } from "../../i18n/useTranslation";
 import { testsAdminApi } from "../../api/tests-admin.api";
 import { ExecutionsPager } from "../tests/ExecutionsPager";
 import { AdminCaseDetailCard } from "./AdminCaseDetailCard";
+import { moduleBack } from "../../utils/moduleBack";
 
 export function AdminCaseDetailScreen() {
   const { t } = useTranslation();
@@ -53,7 +54,7 @@ export function AdminCaseDetailScreen() {
       <ModuleHeader
         title={t("testsAdmin.caseDetail.title")}
         subtitle={t("testsAdmin.caseDetail.swipeHint")}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         topInset={insets.top}
         testID="admin-case-detail-header"
       />

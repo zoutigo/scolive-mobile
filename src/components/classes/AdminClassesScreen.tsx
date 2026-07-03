@@ -10,6 +10,7 @@ import { ModuleHeader } from "../navigation/ModuleHeader";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { LoadingBlock, ErrorBanner } from "../timetable/TimetableCommon";
 import { ClassSelectModal } from "./ClassSelectModal";
+import { moduleBack } from "../../utils/moduleBack";
 
 export function AdminClassesScreen() {
   const insets = useSafeAreaInsets();
@@ -57,7 +58,7 @@ export function AdminClassesScreen() {
     <View style={styles.root} testID="admin-classes-screen">
       <ModuleHeader
         title="Classes"
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         testID="admin-classes-header"
         backTestID="admin-classes-back"
         titleTestID="admin-classes-title"

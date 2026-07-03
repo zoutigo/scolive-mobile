@@ -174,20 +174,76 @@ export function AppDrawer({
     }
   }, [isOpen, forcedSection]);
 
+  /**
+   * Retourne la clé de section pour un item de navigation.
+   * - "home"                 : route racine
+   * - "teacher-class-<id>"  : onglet d'une classe enseignant
+   * - "child-<id>"          : onglet d'un enfant (parent)
+   * - "general"             : item du menu principal
+   */
+  const getItemSection = (item: NavItem): string => {
+    for (const section of teacherClassSections ?? []) {
+      if (section.navItems.some((ni) => ni.key === item.key)) {
+        return `teacher-class-${section.classId}`;
+      }
+    }
+    for (const section of childSections ?? []) {
+      if (section.navItems.some((ni) => ni.key === item.key)) {
+        return `child-${section.id}`;
+      }
+    }
+    return "general";
+  };
+
+  /** Retourne la clé de section correspondant à la route courante. */
+  const getActiveSection = (): string => {
+    if (pathname === "/" || pathname === "/index" || pathname === "") {
+      return "home";
+    }
+    for (const section of teacherClassSections ?? []) {
+      if (section.navItems.some((item) => isItemActive(item))) {
+        return `teacher-class-${section.classId}`;
+      }
+    }
+    for (const section of childSections ?? []) {
+      if (section.navItems.some((item) => isItemActive(item))) {
+        return `child-${section.id}`;
+      }
+    }
+    return "general";
+  };
+
   const handleNavPress = (item: NavItem) => {
     const childItemMatch = item.key.match(/^child-([^-]+)-/);
     if (childItemMatch?.[1]) {
       setActiveChild(childItemMatch[1]);
     }
     onClose();
+
+    const activeSection = getActiveSection();
+    const targetSection = getItemSection(item);
+    const isOnHome = activeSection === "home";
+    const isSameSection = activeSection === targetSection;
+    // Depuis l'accueil ou au sein du même module → push (on empile, le retour revient à l'onglet précédent).
+    // Changement de module (cross-section) → replace (on remplace sans empiler l'ancien module).
+    const shouldPush = isOnHome || isSameSection;
+
     setTimeout(() => {
       if (item.params) {
-        router.push({
-          pathname: item.route as never,
-          params: item.params,
-        });
+        if (shouldPush) {
+          router.push({ pathname: item.route as never, params: item.params });
+        } else {
+          router.replace({
+            pathname: item.route as never,
+            params: item.params,
+          });
+        }
       } else {
-        router.push(item.route as never);
+        if (shouldPush) {
+          router.push(item.route as never);
+        } else {
+          router.replace(item.route as never);
+        }
       }
     }, 120);
   };

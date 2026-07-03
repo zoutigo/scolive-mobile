@@ -53,6 +53,7 @@ import type {
   UpdateTrackPayload,
   UpsertCurriculumSubjectPayload,
 } from "../../types/curriculums.types";
+import { moduleBack } from "../../utils/moduleBack";
 
 type TabKey = "levels" | "tracks" | "curriculums" | "subjects" | "help";
 
@@ -1359,7 +1360,7 @@ export function CurriculumsAdminScreen() {
         <ModuleHeader
           title="Curriculums"
           subtitle={subtitle}
-          onBack={() => router.back()}
+          onBack={() => moduleBack(router)}
           testID="curriculums-header"
           backTestID="curriculums-back-btn"
           topInset={insets.top}
@@ -1381,7 +1382,7 @@ export function CurriculumsAdminScreen() {
         <ModuleHeader
           title="Curriculums"
           subtitle={subtitle ?? getPortalLabel(getViewType(user!))}
-          onBack={() => router.back()}
+          onBack={() => moduleBack(router)}
           testID="curriculums-header"
           backTestID="curriculums-back-btn"
           topInset={insets.top}
@@ -1402,7 +1403,7 @@ export function CurriculumsAdminScreen() {
       <ModuleHeader
         title="Curriculums"
         subtitle={subtitle}
-        onBack={() => router.back()}
+        onBack={() => moduleBack(router)}
         testID="curriculums-header"
         backTestID="curriculums-back-btn"
         topInset={insets.top}

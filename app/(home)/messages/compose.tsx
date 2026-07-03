@@ -51,6 +51,7 @@ import type {
   RecipientOption,
   MessagingRecipients,
 } from "../../../src/types/messaging.types";
+import { moduleBack } from "../../../src/utils/moduleBack";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -948,7 +949,7 @@ export default function ComposeScreen() {
                 ? t("messaging.compose.titleReply")
                 : t("messaging.compose.titleNew")
           }
-          onBack={() => router.back()}
+          onBack={() => moduleBack(router)}
           topInset={insets.top}
           testID="compose-header"
           backTestID="compose-back"
