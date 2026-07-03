@@ -112,7 +112,7 @@ describe("TestCaseScreen", () => {
     render(<TestCaseScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("tests-fab-add")).toBeTruthy();
+      expect(screen.getByTestId("test-case-hero")).toBeTruthy();
     });
 
     expect(screen.queryByTestId("tests-view-results-btn")).toBeNull();

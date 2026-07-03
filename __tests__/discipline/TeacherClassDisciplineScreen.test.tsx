@@ -142,8 +142,10 @@ describe("TeacherClassDisciplineScreen", () => {
     expect(
       screen.getByTestId("teacher-class-discipline-events-list"),
     ).toBeTruthy();
-    expect(screen.getByText("MBELE Lisa")).toBeTruthy();
-    expect(screen.getByText("NTAMACK Remi")).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByText("MBELE Lisa")).toBeTruthy();
+      expect(screen.getByText("NTAMACK Remi")).toBeTruthy();
+    });
   });
 
   it("filtre les événements par élève via la liste déroulante", async () => {
