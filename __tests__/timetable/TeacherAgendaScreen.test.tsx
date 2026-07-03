@@ -42,7 +42,12 @@ const mockUseWindowDimensions = useWindowDimensions as jest.MockedFunction<
 
 const mockBack = jest.fn();
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ back: mockBack, push: jest.fn(), canGoBack: jest.fn().mockReturnValue(true), navigate: jest.fn() }),
+  useRouter: () => ({
+    back: mockBack,
+    push: jest.fn(),
+    canGoBack: jest.fn().mockReturnValue(true),
+    navigate: jest.fn(),
+  }),
   useLocalSearchParams: () => ({}),
 }));
 

@@ -19,7 +19,11 @@ let mockSearchParams: Record<string, string> = {
   schoolYearId: "y1",
 };
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ back: mockBack, canGoBack: jest.fn().mockReturnValue(true), navigate: jest.fn() }),
+  useRouter: () => ({
+    back: mockBack,
+    canGoBack: jest.fn().mockReturnValue(true),
+    navigate: jest.fn(),
+  }),
   useLocalSearchParams: () => mockSearchParams,
 }));
 jest.mock("react-native-safe-area-context", () => ({

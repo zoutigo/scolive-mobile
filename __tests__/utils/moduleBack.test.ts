@@ -65,10 +65,7 @@ describe("moduleBack — appels multiples", () => {
 
   it("bascule correctement si canGoBack change entre les appels", () => {
     const router = {
-      canGoBack: jest
-        .fn()
-        .mockReturnValueOnce(true)
-        .mockReturnValueOnce(false),
+      canGoBack: jest.fn().mockReturnValueOnce(true).mockReturnValueOnce(false),
       back: jest.fn(),
       navigate: jest.fn(),
     };

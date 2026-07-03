@@ -31,7 +31,11 @@ jest.mock("../../src/store/auth.store", () => ({
   }),
 }));
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ back: jest.fn(), canGoBack: jest.fn().mockReturnValue(true), navigate: jest.fn() }),
+  useRouter: () => ({
+    back: jest.fn(),
+    canGoBack: jest.fn().mockReturnValue(true),
+    navigate: jest.fn(),
+  }),
   useLocalSearchParams: () => ({ classId: "class-1" }),
 }));
 jest.mock("react-native-safe-area-context", () => ({

@@ -152,13 +152,9 @@ describe("Flux enseignant — anti-empilement cross-module", () => {
     mockPathname = "/notes";
     renderTeacherDrawer();
     // Ouvrir la section de la classe A
-    fireEvent.press(
-      screen.getByTestId("drawer-section-teacher-class-class-a"),
-    );
+    fireEvent.press(screen.getByTestId("drawer-section-teacher-class-class-a"));
     // Cliquer sur l'onglet feed de la classe A
-    fireEvent.press(
-      screen.getByTestId("nav-item-teacher-class-class-a-feed"),
-    );
+    fireEvent.press(screen.getByTestId("nav-item-teacher-class-class-a-feed"));
     act(() => jest.runAllTimers());
 
     expect(mockReplace).toHaveBeenCalledWith({
@@ -172,9 +168,7 @@ describe("Flux enseignant — anti-empilement cross-module", () => {
     mockPathname = "/classes/class-a/feed";
     renderTeacherDrawer();
     // Cliquer sur notes de la classe A
-    fireEvent.press(
-      screen.getByTestId("nav-item-teacher-class-class-a-notes"),
-    );
+    fireEvent.press(screen.getByTestId("nav-item-teacher-class-class-a-notes"));
     act(() => jest.runAllTimers());
 
     expect(mockPush).toHaveBeenCalledWith({
@@ -202,12 +196,8 @@ describe("Flux enseignant depuis l'accueil", () => {
   it("accueil → classe-A-feed → push (home reste la base de la stack)", () => {
     mockPathname = "/";
     renderTeacherDrawer();
-    fireEvent.press(
-      screen.getByTestId("drawer-section-teacher-class-class-a"),
-    );
-    fireEvent.press(
-      screen.getByTestId("nav-item-teacher-class-class-a-feed"),
-    );
+    fireEvent.press(screen.getByTestId("drawer-section-teacher-class-class-a"));
+    fireEvent.press(screen.getByTestId("nav-item-teacher-class-class-a-feed"));
     act(() => jest.runAllTimers());
 
     expect(mockPush).toHaveBeenCalledWith({
@@ -225,12 +215,8 @@ describe("Flux enseignant — navigation entre deux classes", () => {
     mockPathname = "/classes/class-a/notes";
     renderTeacherDrawer();
     // Ouvrir la section classe B
-    fireEvent.press(
-      screen.getByTestId("drawer-section-teacher-class-class-b"),
-    );
-    fireEvent.press(
-      screen.getByTestId("nav-item-teacher-class-class-b-feed"),
-    );
+    fireEvent.press(screen.getByTestId("drawer-section-teacher-class-class-b"));
+    fireEvent.press(screen.getByTestId("nav-item-teacher-class-class-b-feed"));
     act(() => jest.runAllTimers());
 
     expect(mockReplace).toHaveBeenCalledWith({
@@ -338,12 +324,8 @@ describe("Stratégie navigation — cas limites", () => {
     // Naviguer vers une classe (teacher-class) depuis "general" → replace.
     mockPathname = "/unknown-route";
     renderTeacherDrawer();
-    fireEvent.press(
-      screen.getByTestId("drawer-section-teacher-class-class-a"),
-    );
-    fireEvent.press(
-      screen.getByTestId("nav-item-teacher-class-class-a-notes"),
-    );
+    fireEvent.press(screen.getByTestId("drawer-section-teacher-class-class-a"));
+    fireEvent.press(screen.getByTestId("nav-item-teacher-class-class-a-notes"));
     act(() => jest.runAllTimers());
 
     expect(mockReplace).toHaveBeenCalledWith({
@@ -358,12 +340,8 @@ describe("Stratégie navigation — cas limites", () => {
     mockPathname = "/feed";
     renderTeacherDrawer();
 
-    fireEvent.press(
-      screen.getByTestId("drawer-section-teacher-class-class-a"),
-    );
-    fireEvent.press(
-      screen.getByTestId("nav-item-teacher-class-class-a-feed"),
-    );
+    fireEvent.press(screen.getByTestId("drawer-section-teacher-class-class-a"));
+    fireEvent.press(screen.getByTestId("nav-item-teacher-class-class-a-feed"));
     act(() => jest.runAllTimers());
 
     expect(mockReplace).toHaveBeenCalledTimes(1);

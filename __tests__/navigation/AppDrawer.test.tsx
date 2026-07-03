@@ -1637,9 +1637,7 @@ describe("Stratégie push/replace — navigation dans le même module (push)", (
       isTeacherClassNavEnabled: true,
     });
     // L'accordéon de la classe est auto-ouvert (route active)
-    fireEvent.press(
-      screen.getByTestId("nav-item-teacher-class-class-1-notes"),
-    );
+    fireEvent.press(screen.getByTestId("nav-item-teacher-class-class-1-notes"));
     act(() => jest.runAllTimers());
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/(home)/classes/[classId]/notes",
@@ -1690,9 +1688,7 @@ describe("Stratégie push/replace — changement de module (replace)", () => {
     // Ouvrir la section classe
     fireEvent.press(screen.getByTestId("drawer-section-teacher-class-class-1"));
     // Cliquer sur l'onglet feed de la classe
-    fireEvent.press(
-      screen.getByTestId("nav-item-teacher-class-class-1-feed"),
-    );
+    fireEvent.press(screen.getByTestId("nav-item-teacher-class-class-1-feed"));
     act(() => jest.runAllTimers());
     expect(mockReplace).toHaveBeenCalledWith({
       pathname: "/(home)/classes/[classId]/feed",
@@ -1797,9 +1793,7 @@ describe("Stratégie push/replace — cas limites", () => {
       isTeacherClassNavEnabled: true,
     });
 
-    fireEvent.press(
-      screen.getByTestId("nav-item-teacher-class-class-1-notes"),
-    );
+    fireEvent.press(screen.getByTestId("nav-item-teacher-class-class-1-notes"));
     fireEvent.press(
       screen.getByTestId("nav-item-teacher-class-class-1-homework"),
     );
