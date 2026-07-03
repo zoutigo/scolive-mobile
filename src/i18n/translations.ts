@@ -488,6 +488,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.sections.byClass.subtitle":
       "Sélectionnez une année et une classe.",
 
+    "discipline.filters.title": "Filtres",
     "discipline.filters.student": "Élève",
     "discipline.filters.allStudents": "Tous les élèves",
     "discipline.filters.year": "Année",
@@ -2463,6 +2464,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.sections.byClass.title": "By-class view",
     "discipline.sections.byClass.subtitle": "Select a year and a class.",
 
+    "discipline.filters.title": "Filters",
     "discipline.filters.student": "Student",
     "discipline.filters.allStudents": "All students",
     "discipline.filters.year": "Year",

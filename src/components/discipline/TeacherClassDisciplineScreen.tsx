@@ -75,11 +75,12 @@ type FormContext = {
   item: StudentLifeEvent | null;
 };
 
-type HeroPalette = "teal" | "warm";
+type HeroPalette = "teal" | "warm" | "primary";
 
 const PALETTE_COLORS: Record<HeroPalette, { bg: string; dark: string }> = {
   teal: { bg: "#247C72", dark: "#195E56" },
   warm: { bg: "#C0681A", dark: "#A05010" },
+  primary: { bg: "#08467D", dark: "#052F55" },
 };
 
 const LIST_TAB_KEYS = [
@@ -987,13 +988,20 @@ export function TeacherClassDisciplineScreen({
           </View>
         ) : tab === "events" ? (
           <View style={styles.body}>
-            <SectionCard
-              title={t("discipline.sections.classEvents.title")}
-              subtitle={t("discipline.sections.classEvents.subtitle")}
+            <View style={styles.heroWrapper}>
+              <FormHero
+                icon="shield-checkmark-outline"
+                title={t("discipline.sections.classEvents.title")}
+                subtitle={t("discipline.sections.classEvents.subtitle")}
+                palette="primary"
+                testID="teacher-class-discipline-events-hero"
+              />
+            </View>
+            <View
+              style={styles.filterCardWrapper}
               testID="teacher-class-discipline-events-card"
             >
               <StudentSelectField
-                label={t("discipline.filters.student")}
                 value={eventStudentId}
                 options={studentOptions}
                 onChange={setEventStudentId}
@@ -1001,7 +1009,7 @@ export function TeacherClassDisciplineScreen({
                 emptyOptionLabel={t("discipline.filters.allStudents")}
                 testIDPrefix="teacher-class-discipline-events-student"
               />
-            </SectionCard>
+            </View>
 
             <DisciplineList
               events={classEvents}
@@ -1192,6 +1200,9 @@ const styles = StyleSheet.create({
   },
   heroWrapper: {
     padding: 16,
+  },
+  filterCardWrapper: {
+    paddingHorizontal: 16,
   },
   formsKeyboardArea: {
     flex: 1,

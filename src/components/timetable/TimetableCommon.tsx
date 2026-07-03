@@ -25,7 +25,7 @@ import type {
 } from "../../types/timetable.types";
 
 export function SectionCard(props: {
-  title: string;
+  title?: string;
   subtitle?: string;
   children: React.ReactNode;
   action?: React.ReactNode;
@@ -33,15 +33,19 @@ export function SectionCard(props: {
 }) {
   return (
     <View style={styles.card} testID={props.testID}>
-      <View style={styles.cardHeader}>
-        <View style={styles.cardHeaderText}>
-          <Text style={styles.cardTitle}>{props.title}</Text>
-          {props.subtitle ? (
-            <Text style={styles.cardSubtitle}>{props.subtitle}</Text>
-          ) : null}
+      {props.title || props.subtitle || props.action ? (
+        <View style={styles.cardHeader}>
+          <View style={styles.cardHeaderText}>
+            {props.title ? (
+              <Text style={styles.cardTitle}>{props.title}</Text>
+            ) : null}
+            {props.subtitle ? (
+              <Text style={styles.cardSubtitle}>{props.subtitle}</Text>
+            ) : null}
+          </View>
+          {props.action}
         </View>
-        {props.action}
-      </View>
+      ) : null}
       <View style={styles.cardBody}>{props.children}</View>
     </View>
   );

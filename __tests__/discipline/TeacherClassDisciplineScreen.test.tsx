@@ -246,6 +246,49 @@ describe("TeacherClassDisciplineScreen — chargement & listes", () => {
   });
 });
 
+describe("TeacherClassDisciplineScreen — héros section events", () => {
+  it("affiche le héros avec le bon testID sur le tab events", async () => {
+    await renderLoaded();
+
+    expect(
+      screen.getByTestId("teacher-class-discipline-events-hero"),
+    ).toBeTruthy();
+  });
+
+  it("affiche le titre 'Événements de classe' dans le héros", async () => {
+    await renderLoaded();
+
+    expect(screen.getByText("Événements de classe")).toBeTruthy();
+  });
+
+  it("affiche le sous-titre de contexte dans le héros", async () => {
+    await renderLoaded();
+
+    expect(
+      screen.getByText(
+        "Parcourez et filtrez l'historique du plus récent au plus ancien.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("n'affiche pas le héros events quand on est sur le tab forms", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-fab"));
+
+    expect(
+      screen.queryByTestId("teacher-class-discipline-events-hero"),
+    ).toBeNull();
+  });
+
+  it("la section filtre n'affiche pas de titre ni de label élève", async () => {
+    await renderLoaded();
+
+    expect(screen.queryByText("Filtres")).toBeNull();
+    expect(screen.queryByText("Élève")).toBeNull();
+  });
+});
+
 describe("TeacherClassDisciplineScreen — navigation formulaire inline", () => {
   it("ouvre le tab forms via le FAB : hero de création, tabs et FAB masqués", async () => {
     await renderLoaded();
