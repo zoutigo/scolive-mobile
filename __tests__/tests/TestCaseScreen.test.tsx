@@ -36,7 +36,17 @@ const TESTER_USER = {
   },
 };
 
-const DETAIL = {
+const EXECUTION = {
+  id: "exec-1",
+  status: "PASSED" as const,
+  executedAt: "2024-06-01T10:00:00.000Z",
+  user: { id: "u1", fullName: "Valery MBELE" },
+  resultText: "OK",
+  comment: null,
+  attachments: [],
+};
+
+const DETAIL_NO_RESULTS = {
   id: "case-1",
   title: "Connexion email",
   module: null,
@@ -61,14 +71,28 @@ const DETAIL = {
   executions: [],
 };
 
+const DETAIL_WITH_RESULTS = {
+  ...DETAIL_NO_RESULTS,
+  executions: [EXECUTION],
+};
+
 describe("TestCaseScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useAuthStore as unknown as jest.Mock).mockReturnValue(TESTER_USER);
-    (testsApi.getTestCase as jest.Mock).mockResolvedValue(DETAIL);
+  });
+
+  it("renders the hero with campaign title and test title", async () => {
+    (testsApi.getTestCase as jest.Mock).mockResolvedValue(DETAIL_NO_RESULTS);
+    render(<TestCaseScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("test-case-hero")).toBeTruthy();
+    });
   });
 
   it("navigates to the submit screen when the FAB is pressed", async () => {
+    (testsApi.getTestCase as jest.Mock).mockResolvedValue(DETAIL_NO_RESULTS);
     render(<TestCaseScreen />);
 
     await waitFor(() => {
@@ -83,11 +107,39 @@ describe("TestCaseScreen", () => {
     });
   });
 
-  it("shows the view results button and test case content after loading", async () => {
+  it("does not show the view results button when there are no executions", async () => {
+    (testsApi.getTestCase as jest.Mock).mockResolvedValue(DETAIL_NO_RESULTS);
+    render(<TestCaseScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("tests-fab-add")).toBeTruthy();
+    });
+
+    expect(screen.queryByTestId("tests-view-results-btn")).toBeNull();
+  });
+
+  it("shows the view results button when executions exist", async () => {
+    (testsApi.getTestCase as jest.Mock).mockResolvedValue(DETAIL_WITH_RESULTS);
     render(<TestCaseScreen />);
 
     await waitFor(() => {
       expect(screen.getByTestId("tests-view-results-btn")).toBeTruthy();
+    });
+  });
+
+  it("navigates to the execution detail page when view results is pressed", async () => {
+    (testsApi.getTestCase as jest.Mock).mockResolvedValue(DETAIL_WITH_RESULTS);
+    render(<TestCaseScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("tests-view-results-btn")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("tests-view-results-btn"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/tests/executions/[executionId]",
+      params: { executionId: "exec-1", campaignId: "camp-1" },
     });
   });
 });

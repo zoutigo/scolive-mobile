@@ -45,9 +45,6 @@ function TestCaseScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const isInitialLoad = useRef(true);
 
-  const scrollRef = useRef<ScrollView>(null);
-  const historyY = useRef(0);
-
   const load = useCallback(
     async (refresh = false) => {
       if (!testCaseId) return;
@@ -85,17 +82,27 @@ function TestCaseScreen() {
     }, [load]),
   );
 
-  function scrollToResults() {
-    scrollRef.current?.scrollTo({ y: historyY.current, animated: true });
+  const hasResults = (detail?.executions.length ?? 0) > 0;
+
+  function openResults() {
+    if (!detail || detail.executions.length === 0) return;
+    router.push({
+      pathname: "/(home)/tests/executions/[executionId]" as never,
+      params: {
+        executionId: detail.executions[0].id,
+        campaignId: detail.campaign.id,
+      },
+    });
   }
 
   return (
     <View style={styles.root}>
       <ModuleHeader
-        title={detail?.title ?? t("tests.title")}
-        subtitle={detail?.campaign.title ?? t("tests.detail.subtitle")}
+        title={t("tests.title")}
+        subtitle={detail?.campaign.title ?? t("tests.campaigns.subtitle")}
         onBack={() => moduleBack(router)}
         topInset={insets.top}
+        testID="test-case-header"
       />
 
       {!user?.isTester ? (
@@ -117,8 +124,10 @@ function TestCaseScreen() {
       ) : (
         <>
           <ScrollView
-            ref={scrollRef}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              hasResults && styles.scrollContentWithButton,
+            ]}
             refreshControl={
               <RefreshControl
                 refreshing={isRefreshing}
@@ -126,22 +135,10 @@ function TestCaseScreen() {
               />
             }
           >
-            <View style={styles.actionsRow}>
-              <TouchableOpacity
-                style={styles.resultsButton}
-                onPress={scrollToResults}
-                testID="tests-view-results-btn"
-              >
-                <Ionicons
-                  name="list-outline"
-                  size={16}
-                  color={colors.primary}
-                />
-                <Text style={styles.resultsButtonText}>
-                  {t("tests.detail.viewResults")}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <TestCaseHero
+              campaignTitle={detail.campaign.title}
+              testTitle={detail.title}
+            />
 
             <SectionCard
               icon="flag-outline"
@@ -197,12 +194,7 @@ function TestCaseScreen() {
               )}
             </View>
 
-            <View
-              style={styles.card}
-              onLayout={(event) => {
-                historyY.current = event.nativeEvent.layout.y;
-              }}
-            >
+            <View style={styles.card}>
               <CardHeader
                 icon="time-outline"
                 title={t("tests.detail.historyTitle")}
@@ -246,8 +238,36 @@ function TestCaseScreen() {
             </View>
           </ScrollView>
 
+          {hasResults ? (
+            <View
+              style={[
+                styles.bottomBar,
+                { paddingBottom: insets.bottom + BOTTOM_TAB_BAR_HEIGHT + 12 },
+              ]}
+            >
+              <TouchableOpacity
+                style={styles.viewResultsButton}
+                onPress={openResults}
+                testID="tests-view-results-btn"
+              >
+                <Ionicons name="list-outline" size={18} color={colors.white} />
+                <Text style={styles.viewResultsText}>
+                  {t("tests.detail.viewResults")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
           <TouchableOpacity
-            style={styles.fab}
+            style={[
+              styles.fab,
+              {
+                bottom:
+                  insets.bottom +
+                  BOTTOM_TAB_BAR_HEIGHT +
+                  (hasResults ? 80 : 24),
+              },
+            ]}
             onPress={() =>
               router.push({
                 pathname: "/(home)/tests/cases/[testCaseId]/submit" as never,
@@ -263,6 +283,32 @@ function TestCaseScreen() {
           </TouchableOpacity>
         </>
       )}
+    </View>
+  );
+}
+
+function TestCaseHero(props: { campaignTitle: string; testTitle: string }) {
+  return (
+    <View style={styles.heroContainer} testID="test-case-hero">
+      <View style={[styles.heroDecor1, { backgroundColor: "#A05010" }]} />
+      <View style={[styles.heroDecor2, { backgroundColor: "#A05010" }]} />
+      <View style={styles.heroRow}>
+        <View style={styles.heroIconWrap}>
+          <Ionicons
+            name="flask-outline"
+            size={26}
+            color="rgba(255,255,255,0.92)"
+          />
+        </View>
+        <View style={styles.heroTextWrap}>
+          <Text style={styles.heroTitle} numberOfLines={2}>
+            {props.campaignTitle}
+          </Text>
+          <Text style={styles.heroSubtitle} numberOfLines={2}>
+            {props.testTitle}
+          </Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -361,19 +407,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   scrollContent: { padding: 16, paddingBottom: 100, gap: 12 },
-  actionsRow: { flexDirection: "row", justifyContent: "flex-end" },
-  resultsButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#D9CBBF",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: colors.white,
-  },
-  resultsButtonText: { fontSize: 12, fontWeight: "700", color: colors.primary },
+  scrollContentWithButton: { paddingBottom: 160 },
   card: {
     backgroundColor: colors.white,
     borderRadius: 18,
@@ -418,10 +452,30 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: "#EEE7DE",
   },
+  bottomBar: {
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.warmBorder,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  viewResultsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: colors.primary,
+    borderRadius: 6,
+    paddingVertical: 14,
+  },
+  viewResultsText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.white,
+  },
   fab: {
     position: "absolute",
     right: 20,
-    bottom: 24 + BOTTOM_TAB_BAR_HEIGHT,
     width: 58,
     height: 58,
     borderRadius: 29,
@@ -433,5 +487,57 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 10,
     elevation: 6,
+  },
+  // Hero
+  heroContainer: {
+    backgroundColor: "#C0681A",
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 20,
+    overflow: "hidden",
+  },
+  heroDecor1: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    borderRadius: 22,
+    bottom: -40,
+    right: -20,
+    transform: [{ rotate: "30deg" }],
+    opacity: 0.18,
+  },
+  heroDecor2: {
+    position: "absolute",
+    width: 60,
+    height: 60,
+    borderRadius: 14,
+    top: -18,
+    right: 60,
+    transform: [{ rotate: "20deg" }],
+    opacity: 0.12,
+  },
+  heroRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  heroIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  heroTextWrap: { flex: 1, gap: 3 },
+  heroTitle: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "800",
+    lineHeight: 24,
+  },
+  heroSubtitle: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 2,
   },
 });
