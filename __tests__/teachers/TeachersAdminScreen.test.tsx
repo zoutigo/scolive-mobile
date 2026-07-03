@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -266,6 +267,10 @@ beforeEach(() => {
   );
 });
 
+// ---------------------------------------------------------------------------
+// Schema unit tests
+// ---------------------------------------------------------------------------
+
 describe("teacherCreateFormSchema", () => {
   it("exige téléphone et pin en mode téléphone", () => {
     const result = teacherCreateFormSchema.safeParse({
@@ -302,6 +307,28 @@ describe("teacherCreateFormSchema", () => {
       "Le mot de passe doit contenir au moins 8 caractères avec majuscules, minuscules et chiffres.",
     );
   });
+
+  it("valide correctement un profil téléphone complet", () => {
+    const result = teacherCreateFormSchema.safeParse({
+      mode: "phone",
+      phone: "699001122",
+      pin: "123456",
+      email: "",
+      password: "",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("valide correctement un profil email complet", () => {
+    const result = teacherCreateFormSchema.safeParse({
+      mode: "email",
+      phone: "",
+      pin: "",
+      email: "prof@example.com",
+      password: "StrongPass1",
+    });
+    expect(result.success).toBe(true);
+  });
 });
 
 describe("teacherAssignmentFormSchema", () => {
@@ -327,9 +354,23 @@ describe("teacherAssignmentFormSchema", () => {
       "La matière est obligatoire.",
     );
   });
+
+  it("valide correctement une affectation complète", () => {
+    const result = teacherAssignmentFormSchema.safeParse({
+      schoolYearId: "sy-1",
+      teacherUserId: "user-1",
+      classId: "class-1",
+      subjectId: "subject-1",
+    });
+    expect(result.success).toBe(true);
+  });
 });
 
-describe("TeachersAdminScreen", () => {
+// ---------------------------------------------------------------------------
+// Chargement et liste
+// ---------------------------------------------------------------------------
+
+describe("TeachersAdminScreen — chargement et liste", () => {
   it("charge le module et affiche les enseignants", async () => {
     render(<TeachersAdminScreen />);
 
@@ -346,20 +387,62 @@ describe("TeachersAdminScreen", () => {
     ).toBeTruthy();
   });
 
-  it("ouvre les affectations inline depuis l'oeil d'un enseignant", async () => {
+  it("affiche un banner d'erreur si le chargement initial échoue", async () => {
+    mockTeachersApi.listTeachers.mockRejectedValueOnce(
+      new Error("Erreur réseau"),
+    );
+
     render(<TeachersAdminScreen />);
 
     expect(
-      await screen.findByTestId("teachers-admin-teacher-identity-teacher-1"),
+      await screen.findByTestId("teachers-admin-error-banner"),
     ).toBeTruthy();
+  });
+
+  it("affiche le fallback verrouillé hors rôle admin", async () => {
+    mockAuthState = {
+      schoolSlug: "college-vogt",
+      user: {
+        ...makeSchoolAdminUser(),
+        role: "TEACHER",
+        activeRole: "TEACHER",
+        memberships: [{ schoolId: "school-1", role: "TEACHER" }],
+      },
+    };
+
+    render(<TeachersAdminScreen />);
+
     expect(
-      screen.getByTestId("teachers-admin-teacher-contact-teacher-1"),
+      await screen.findByText("Module réservé aux comptes admin"),
     ).toBeTruthy();
+    expect(mockTeachersApi.listTeachers).not.toHaveBeenCalled();
+  });
+
+  it("les tabs Enseignants, Affectations et Aide sont affichés", async () => {
+    render(<TeachersAdminScreen />);
+    await screen.findByTestId("teachers-admin-header");
+
     expect(
-      await screen.findByTestId(
-        "teachers-admin-teacher-classes-summary-teacher-1",
-      ),
+      await screen.findByTestId("teachers-admin-tab-teachers"),
     ).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-tab-assignments")).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-tab-help")).toBeTruthy();
+  });
+
+  it("le FAB est visible sur le tab enseignants", async () => {
+    render(<TeachersAdminScreen />);
+    expect(await screen.findByTestId("teachers-admin-fab")).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Expansion inline des affectations
+// ---------------------------------------------------------------------------
+
+describe("TeachersAdminScreen — expansion inline", () => {
+  it("ouvre les affectations inline depuis l'oeil d'un enseignant", async () => {
+    render(<TeachersAdminScreen />);
+
     fireEvent.press(
       await screen.findByTestId(
         "teachers-admin-teacher-open-assignments-teacher-1",
@@ -412,15 +495,13 @@ describe("TeachersAdminScreen", () => {
     expect(emptyState.props.children).toBe("Aucun créneau pédagogique.");
   });
 
-  it("affiche la mention Non affecté en couleur destructive pour un enseignant sans affectation", async () => {
+  it("affiche la mention Non affecté pour un enseignant sans affectation", async () => {
     render(<TeachersAdminScreen />);
 
     const summary = await screen.findByTestId(
       "teachers-admin-teacher-classes-summary-teacher-2",
     );
-    expect(summary).toBeTruthy();
     expect(summary.props.children).toBe("Non affecté");
-    expect(screen.getAllByText("Non affecté").length).toBeGreaterThan(0);
   });
 
   it("affiche le contact sur la même ligne que le nom", async () => {
@@ -441,11 +522,98 @@ describe("TeachersAdminScreen", () => {
     );
     expect(summary.props.children).toBe("6eC");
   });
+});
 
-  it("affiche les erreurs de validation téléphone en création enseignant", async () => {
+// ---------------------------------------------------------------------------
+// Navigation vers le tab forms — FAB enseignants
+// ---------------------------------------------------------------------------
+
+describe("TeachersAdminScreen — tab forms / création enseignant", () => {
+  it("FAB sur tab enseignants → tab forms actif avec hero et champs de formulaire", async () => {
     render(<TeachersAdminScreen />);
 
     fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
+
+    expect(await screen.findByTestId("teachers-admin-forms-tab")).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-form-hero")).toBeTruthy();
+    expect(
+      screen.getByTestId("teachers-admin-create-form-content"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-create-phone")).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-create-pin")).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-create-submit")).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-create-cancel")).toBeTruthy();
+  });
+
+  it("hero création enseignant affiche le bon titre et la palette teal", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
+
+    await screen.findByTestId("teachers-admin-form-hero");
+    expect(screen.getByText("Créer un enseignant")).toBeTruthy();
+    expect(screen.getByText("Compte établissement")).toBeTruthy();
+  });
+
+  it("les tabs Enseignants/Affectations/Aide sont masqués sur le tab forms", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
+
+    await screen.findByTestId("teachers-admin-forms-tab");
+    expect(screen.queryByTestId("teachers-admin-tab-teachers")).toBeNull();
+    expect(screen.queryByTestId("teachers-admin-tab-assignments")).toBeNull();
+  });
+
+  it("le FAB est masqué sur le tab forms", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
+
+    await screen.findByTestId("teachers-admin-forms-tab");
+    expect(screen.queryByTestId("teachers-admin-fab")).toBeNull();
+  });
+
+  it("bouton Retour hero → retour au tab enseignants, formulaire démonte", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-forms-tab");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-form-back"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("teachers-admin-forms-tab")).toBeNull();
+    });
+    expect(
+      await screen.findByTestId("teachers-admin-teacher-row-teacher-1"),
+    ).toBeTruthy();
+    expect(mockTeachersApi.createTeacher).not.toHaveBeenCalled();
+  });
+
+  it("bouton Annuler du formulaire → retour au tab enseignants sans appel API", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-create-form-content");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-create-cancel"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("teachers-admin-forms-tab")).toBeNull();
+    });
+    expect(
+      await screen.findByTestId("teachers-admin-teacher-row-teacher-1"),
+    ).toBeTruthy();
+    expect(mockTeachersApi.createTeacher).not.toHaveBeenCalled();
+  });
+
+  it("affiche les erreurs de validation téléphone en temps réel", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-create-form-content");
+
     fireEvent.changeText(
       screen.getByTestId("teachers-admin-create-phone"),
       "12",
@@ -461,10 +629,52 @@ describe("TeachersAdminScreen", () => {
     expect(screen.getByTestId("teachers-admin-create-pin-error")).toBeTruthy();
   });
 
-  it("crée un enseignant par téléphone et affiche un toast succès", async () => {
+  it("bouton submit toujours actif même sur formulaire vide", async () => {
+    render(<TeachersAdminScreen />);
+    fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-create-form-content");
+
+    const submitBtn = screen.getByTestId("teachers-admin-create-submit");
+    expect(submitBtn.props.accessibilityState?.disabled).toBeFalsy();
+  });
+
+  it("submit sur form vide → erreurs sans appel API", async () => {
+    render(<TeachersAdminScreen />);
+    fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-create-form-content");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-create-submit"));
+
+    expect(
+      await screen.findByTestId("teachers-admin-create-phone-error"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-create-pin-error")).toBeTruthy();
+    expect(mockTeachersApi.createTeacher).not.toHaveBeenCalled();
+  });
+
+  it("submit form email vide → erreurs email et mot de passe sans appel API", async () => {
+    render(<TeachersAdminScreen />);
+    fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-create-form-content");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-create-mode-email"));
+    fireEvent.press(screen.getByTestId("teachers-admin-create-submit"));
+
+    expect(
+      await screen.findByTestId("teachers-admin-create-email-error"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("teachers-admin-create-password-error"),
+    ).toBeTruthy();
+    expect(mockTeachersApi.createTeacher).not.toHaveBeenCalled();
+  });
+
+  it("création enseignant par téléphone → API appelée + showSuccess", async () => {
     render(<TeachersAdminScreen />);
 
     fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-create-form-content");
+
     fireEvent.changeText(
       screen.getByTestId("teachers-admin-create-phone"),
       "699001122",
@@ -478,27 +688,53 @@ describe("TeachersAdminScreen", () => {
     await waitFor(() => {
       expect(mockTeachersApi.createTeacher).toHaveBeenCalledWith(
         "college-vogt",
-        {
-          phone: "699001122",
-          pin: "123456",
-        },
+        { phone: "699001122", pin: "123456" },
       );
     });
-
     expect(mockShowSuccess).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: "Enseignant ajouté",
-      }),
+      expect.objectContaining({ title: "Enseignant ajouté" }),
     );
-    expect(
-      await screen.findByTestId("teachers-admin-teacher-row-teacher-created"),
-    ).toBeTruthy();
   });
 
-  it("crée un enseignant par email et affiche un toast succès", async () => {
+  it("succès création enseignant → retour au tab enseignants après 2 secondes", async () => {
+    jest.useFakeTimers();
+
     render(<TeachersAdminScreen />);
 
     fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-create-form-content");
+    fireEvent.changeText(
+      screen.getByTestId("teachers-admin-create-phone"),
+      "699001122",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("teachers-admin-create-pin"),
+      "123456",
+    );
+    fireEvent.press(screen.getByTestId("teachers-admin-create-submit"));
+
+    await waitFor(() => expect(mockShowSuccess).toHaveBeenCalled());
+
+    // Pendant les 2 secondes, le tab forms est encore visible
+    expect(screen.getByTestId("teachers-admin-forms-tab")).toBeTruthy();
+
+    act(() => jest.advanceTimersByTime(2000));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("teachers-admin-forms-tab")).toBeNull();
+    });
+    expect(
+      await screen.findByTestId("teachers-admin-teacher-row-teacher-created"),
+    ).toBeTruthy();
+
+    jest.useRealTimers();
+  });
+
+  it("création par email → API appelée + showSuccess", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-create-form-content");
     fireEvent.press(screen.getByTestId("teachers-admin-create-mode-email"));
     fireEvent.changeText(
       screen.getByTestId("teachers-admin-create-email"),
@@ -513,16 +749,13 @@ describe("TeachersAdminScreen", () => {
     await waitFor(() => {
       expect(mockTeachersApi.createTeacher).toHaveBeenCalledWith(
         "college-vogt",
-        {
-          email: "prof@example.test",
-          password: "StrongPass1",
-        },
+        { email: "prof@example.test", password: "StrongPass1" },
       );
     });
     expect(mockShowSuccess).toHaveBeenCalled();
   });
 
-  it("remonte un toast erreur si la création enseignant échoue", async () => {
+  it("erreur création → showError + formulaire toujours visible", async () => {
     mockTeachersApi.createTeacher.mockRejectedValueOnce(
       new Error("Teacher already exists"),
     );
@@ -530,6 +763,7 @@ describe("TeachersAdminScreen", () => {
     render(<TeachersAdminScreen />);
 
     fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-create-form-content");
     fireEvent.changeText(
       screen.getByTestId("teachers-admin-create-phone"),
       "699001122",
@@ -548,6 +782,125 @@ describe("TeachersAdminScreen", () => {
         }),
       );
     });
+    // Le formulaire reste affiché après l'erreur
+    expect(screen.getByTestId("teachers-admin-forms-tab")).toBeTruthy();
+    expect(
+      screen.getByTestId("teachers-admin-create-form-content"),
+    ).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Navigation vers le tab forms — FAB affectations
+// ---------------------------------------------------------------------------
+
+describe("TeachersAdminScreen — tab forms / création affectation", () => {
+  it("FAB sur tab affectations → tab forms avec formulaire affectation", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    );
+    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
+
+    expect(await screen.findByTestId("teachers-admin-forms-tab")).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-form-hero")).toBeTruthy();
+    expect(
+      screen.getByTestId("teachers-admin-assignment-form-content"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("teachers-admin-assignment-school-year"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("teachers-admin-assignment-teacher"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-assignment-class")).toBeTruthy();
+    expect(
+      screen.getByTestId("teachers-admin-assignment-subject"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-assignment-submit")).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-assignment-cancel")).toBeTruthy();
+  });
+
+  it("hero création affectation affiche le bon titre et palette warm", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    );
+    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
+
+    await screen.findByTestId("teachers-admin-form-hero");
+    expect(screen.getByText("Nouvelle affectation")).toBeTruthy();
+    expect(screen.getByText("Organisation pédagogique")).toBeTruthy();
+  });
+
+  it("bouton Annuler affectation → retour au tab affectations sans appel API", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    );
+    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-assignment-form-content");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-assignment-cancel"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("teachers-admin-forms-tab")).toBeNull();
+    });
+    expect(mockTeachersApi.createAssignment).not.toHaveBeenCalled();
+    expect(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    ).toBeTruthy();
+  });
+
+  it("bouton Retour hero affectation → retour au tab affectations", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    );
+    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-forms-tab");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-form-back"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("teachers-admin-forms-tab")).toBeNull();
+    });
+    expect(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    ).toBeTruthy();
+    expect(mockTeachersApi.createAssignment).not.toHaveBeenCalled();
+  });
+
+  it("bouton submit affectation toujours actif même sur formulaire vide", async () => {
+    render(<TeachersAdminScreen />);
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    );
+    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-assignment-form-content");
+
+    const submitBtn = screen.getByTestId("teachers-admin-assignment-submit");
+    expect(submitBtn.props.accessibilityState?.disabled).toBeFalsy();
+  });
+
+  it("submit affectation sans classe → erreur classe sans appel API", async () => {
+    render(<TeachersAdminScreen />);
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    );
+    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-assignment-form-content");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-assignment-submit"));
+
+    expect(
+      await screen.findByTestId("teachers-admin-assignment-class-error"),
+    ).toBeTruthy();
+    expect(mockTeachersApi.createAssignment).not.toHaveBeenCalled();
   });
 
   it("crée une affectation et affiche un toast succès", async () => {
@@ -557,6 +910,8 @@ describe("TeachersAdminScreen", () => {
       await screen.findByTestId("teachers-admin-tab-assignments"),
     );
     fireEvent.press(screen.getByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-assignment-form-content");
+
     fireEvent.press(screen.getByTestId("teachers-admin-assignment-class"));
     fireEvent.press(
       await screen.findByTestId(
@@ -577,13 +932,79 @@ describe("TeachersAdminScreen", () => {
       );
     });
     expect(mockShowSuccess).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: "Affectation créée",
-      }),
+      expect.objectContaining({ title: "Affectation créée" }),
     );
   });
 
-  it("met à jour une affectation via l'icône modifier", async () => {
+  it("succès création affectation → retour au tab affectations après 2 secondes", async () => {
+    jest.useFakeTimers();
+
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    );
+    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-assignment-form-content");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-assignment-class"));
+    fireEvent.press(
+      await screen.findByTestId(
+        "teachers-admin-assignment-class-option-class-1",
+      ),
+    );
+    fireEvent.press(screen.getByTestId("teachers-admin-assignment-submit"));
+
+    await waitFor(() => expect(mockShowSuccess).toHaveBeenCalled());
+
+    act(() => jest.advanceTimersByTime(2000));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("teachers-admin-forms-tab")).toBeNull();
+    });
+    expect(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    ).toBeTruthy();
+
+    jest.useRealTimers();
+  });
+
+  it("erreur création affectation → showError + formulaire toujours visible", async () => {
+    mockTeachersApi.createAssignment.mockRejectedValueOnce(
+      new Error("Conflit affectation"),
+    );
+
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    );
+    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-assignment-form-content");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-assignment-class"));
+    fireEvent.press(
+      await screen.findByTestId(
+        "teachers-admin-assignment-class-option-class-1",
+      ),
+    );
+    fireEvent.press(screen.getByTestId("teachers-admin-assignment-submit"));
+
+    await waitFor(() => {
+      expect(mockShowError).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Opération impossible" }),
+      );
+    });
+    expect(screen.getByTestId("teachers-admin-forms-tab")).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Édition d'affectation — depuis la liste inline de l'enseignant
+// ---------------------------------------------------------------------------
+
+describe("TeachersAdminScreen — édition affectation depuis vue inline enseignant", () => {
+  it("bouton édition inline → tab forms avec formulaire pré-rempli (mode edit)", async () => {
     render(<TeachersAdminScreen />);
 
     fireEvent.press(
@@ -594,6 +1015,72 @@ describe("TeachersAdminScreen", () => {
     fireEvent.press(
       await screen.findByTestId("teachers-admin-assignment-edit-assign-1"),
     );
+
+    expect(await screen.findByTestId("teachers-admin-forms-tab")).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-form-hero")).toBeTruthy();
+    expect(
+      screen.getByTestId("teachers-admin-assignment-form-content"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("teachers-admin-assignment-school-year"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("teachers-admin-assignment-class")).toBeTruthy();
+  });
+
+  it("hero édition affectation affiche 'Modifier l'affectation'", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId(
+        "teachers-admin-teacher-open-assignments-teacher-1",
+      ),
+    );
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-assignment-edit-assign-1"),
+    );
+
+    await screen.findByTestId("teachers-admin-form-hero");
+    expect(screen.getByText("Modifier l'affectation")).toBeTruthy();
+    expect(screen.getByText("Mise à jour")).toBeTruthy();
+  });
+
+  it("annuler depuis édition inline → retour au tab enseignants", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId(
+        "teachers-admin-teacher-open-assignments-teacher-1",
+      ),
+    );
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-assignment-edit-assign-1"),
+    );
+    await screen.findByTestId("teachers-admin-assignment-form-content");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-assignment-cancel"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("teachers-admin-forms-tab")).toBeNull();
+    });
+    expect(
+      await screen.findByTestId("teachers-admin-tab-teachers"),
+    ).toBeTruthy();
+    expect(mockTeachersApi.updateAssignment).not.toHaveBeenCalled();
+  });
+
+  it("met à jour une affectation et affiche un toast succès", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId(
+        "teachers-admin-teacher-open-assignments-teacher-1",
+      ),
+    );
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-assignment-edit-assign-1"),
+    );
+    await screen.findByTestId("teachers-admin-assignment-form-content");
+
     fireEvent.press(
       screen.getByTestId("teachers-admin-assignment-school-year"),
     );
@@ -629,12 +1116,89 @@ describe("TeachersAdminScreen", () => {
       );
     });
     expect(mockShowSuccess).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: "Affectation mise à jour",
-      }),
+      expect.objectContaining({ title: "Affectation mise à jour" }),
     );
   });
 
+  it("succès mise à jour → retour au tab enseignants après 2 secondes", async () => {
+    jest.useFakeTimers();
+
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId(
+        "teachers-admin-teacher-open-assignments-teacher-1",
+      ),
+    );
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-assignment-edit-assign-1"),
+    );
+    await screen.findByTestId("teachers-admin-assignment-form-content");
+    fireEvent.press(screen.getByTestId("teachers-admin-assignment-submit"));
+
+    await waitFor(() => expect(mockShowSuccess).toHaveBeenCalled());
+
+    act(() => jest.advanceTimersByTime(2000));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("teachers-admin-forms-tab")).toBeNull();
+    });
+    expect(
+      await screen.findByTestId("teachers-admin-tab-teachers"),
+    ).toBeTruthy();
+
+    jest.useRealTimers();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Édition d'affectation — depuis la liste des affectations
+// ---------------------------------------------------------------------------
+
+describe("TeachersAdminScreen — édition affectation depuis liste affectations", () => {
+  it("bouton édition liste affectations → tab forms avec bon contexte", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    );
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-assignment-edit-assign-1"),
+    );
+
+    expect(await screen.findByTestId("teachers-admin-forms-tab")).toBeTruthy();
+    expect(
+      screen.getByTestId("teachers-admin-assignment-form-content"),
+    ).toBeTruthy();
+  });
+
+  it("annuler depuis liste affectations → retour au tab affectations", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    );
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-assignment-edit-assign-1"),
+    );
+    await screen.findByTestId("teachers-admin-assignment-form-content");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-assignment-cancel"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("teachers-admin-forms-tab")).toBeNull();
+    });
+    expect(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    ).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Suppression d'affectation
+// ---------------------------------------------------------------------------
+
+describe("TeachersAdminScreen — suppression affectation", () => {
   it("supprime une affectation et affiche un toast succès", async () => {
     render(<TeachersAdminScreen />);
 
@@ -655,229 +1219,7 @@ describe("TeachersAdminScreen", () => {
       );
     });
     expect(mockShowSuccess).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: "Affectation supprimée",
-      }),
+      expect.objectContaining({ title: "Affectation supprimée" }),
     );
-  });
-
-  it("affiche un banner d'erreur si le chargement initial échoue", async () => {
-    mockTeachersApi.listTeachers.mockRejectedValueOnce(
-      new Error("Erreur réseau"),
-    );
-
-    render(<TeachersAdminScreen />);
-
-    expect(
-      await screen.findByTestId("teachers-admin-error-banner"),
-    ).toBeTruthy();
-  });
-
-  it("affiche le fallback verrouillé hors rôle admin", async () => {
-    mockAuthState = {
-      schoolSlug: "college-vogt",
-      user: {
-        ...makeSchoolAdminUser(),
-        role: "TEACHER",
-        activeRole: "TEACHER",
-        memberships: [{ schoolId: "school-1", role: "TEACHER" }],
-      },
-    };
-
-    render(<TeachersAdminScreen />);
-
-    expect(
-      await screen.findByText("Module réservé aux comptes admin"),
-    ).toBeTruthy();
-    expect(mockTeachersApi.listTeachers).not.toHaveBeenCalled();
-  });
-
-  it("bouton submit du form enseignant toujours actif même sur form vide", async () => {
-    render(<TeachersAdminScreen />);
-    fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
-    const submitBtn = screen.getByTestId("teachers-admin-create-submit");
-    expect(submitBtn.props.accessibilityState?.disabled).toBeFalsy();
-  });
-
-  it("submit sur form enseignant vide affiche les erreurs sans appeler l'API", async () => {
-    render(<TeachersAdminScreen />);
-    fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
-    fireEvent.press(screen.getByTestId("teachers-admin-create-submit"));
-
-    expect(
-      await screen.findByTestId("teachers-admin-create-phone-error"),
-    ).toBeTruthy();
-    expect(screen.getByTestId("teachers-admin-create-pin-error")).toBeTruthy();
-    expect(mockTeachersApi.createTeacher).not.toHaveBeenCalled();
-  });
-
-  it("submit sur form enseignant email vide affiche les erreurs sans appeler l'API", async () => {
-    render(<TeachersAdminScreen />);
-    fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
-    fireEvent.press(screen.getByTestId("teachers-admin-create-mode-email"));
-    fireEvent.press(screen.getByTestId("teachers-admin-create-submit"));
-
-    expect(
-      await screen.findByTestId("teachers-admin-create-email-error"),
-    ).toBeTruthy();
-    expect(
-      screen.getByTestId("teachers-admin-create-password-error"),
-    ).toBeTruthy();
-    expect(mockTeachersApi.createTeacher).not.toHaveBeenCalled();
-  });
-
-  it("bouton submit du form affectation toujours actif même sur form vide", async () => {
-    render(<TeachersAdminScreen />);
-    fireEvent.press(
-      await screen.findByTestId("teachers-admin-tab-assignments"),
-    );
-    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
-    const submitBtn = screen.getByTestId("teachers-admin-assignment-submit");
-    expect(submitBtn.props.accessibilityState?.disabled).toBeFalsy();
-  });
-
-  it("submit sur form affectation sans classe affiche l'erreur classe sans appeler l'API", async () => {
-    render(<TeachersAdminScreen />);
-    fireEvent.press(
-      await screen.findByTestId("teachers-admin-tab-assignments"),
-    );
-    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
-    fireEvent.press(screen.getByTestId("teachers-admin-assignment-submit"));
-
-    expect(
-      await screen.findByTestId("teachers-admin-assignment-class-error"),
-    ).toBeTruthy();
-    expect(mockTeachersApi.createAssignment).not.toHaveBeenCalled();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Ouverture des feuilles de formulaire — verrouillage du bug Android Fabric
-//
-// Ces tests vérifient que le testID de la feuille ENTIÈRE est présent dans
-// l'arbre après ouverture. En JSDOM, un composant rendu avec flex:1 dans un
-// parent sans hauteur est dans l'arbre même s'il est invisible en natif.
-// Ces tests ne détectent pas le bug de hauteur en lui-même (seul Maestro le
-// ferait), mais ils protègent contre :
-//   - la feuille qui ne s'ouvre plus (bug d'état)
-//   - un crash de rendu qui masque la feuille
-//   - l'absence du testID (refactoring cassant)
-// ---------------------------------------------------------------------------
-
-describe("TeachersAdminScreen — ouverture des feuilles de formulaire (protection régression)", () => {
-  it("FAB onglet enseignants → feuille de création enseignant visible dans l'arbre", async () => {
-    render(<TeachersAdminScreen />);
-    await screen.findByTestId("teachers-admin-fab");
-
-    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
-
-    expect(
-      await screen.findByTestId("teachers-admin-create-sheet"),
-    ).toBeTruthy();
-    expect(screen.getByTestId("teachers-admin-create-phone")).toBeTruthy();
-    expect(screen.getByTestId("teachers-admin-create-pin")).toBeTruthy();
-    expect(screen.getByTestId("teachers-admin-create-submit")).toBeTruthy();
-    expect(screen.getByTestId("teachers-admin-create-cancel")).toBeTruthy();
-  });
-
-  it("bouton close sur feuille enseignant → feuille disparaît de l'arbre", async () => {
-    render(<TeachersAdminScreen />);
-    await screen.findByTestId("teachers-admin-fab");
-
-    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
-    await screen.findByTestId("teachers-admin-create-sheet");
-
-    fireEvent.press(screen.getByTestId("teachers-admin-create-sheet-close"));
-
-    await waitFor(() =>
-      expect(screen.queryByTestId("teachers-admin-create-sheet")).toBeNull(),
-    );
-    expect(mockTeachersApi.createTeacher).not.toHaveBeenCalled();
-  });
-
-  it("bouton Annuler sur feuille enseignant → feuille disparaît sans appel API", async () => {
-    render(<TeachersAdminScreen />);
-    await screen.findByTestId("teachers-admin-fab");
-
-    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
-    await screen.findByTestId("teachers-admin-create-sheet");
-
-    fireEvent.press(screen.getByTestId("teachers-admin-create-cancel"));
-
-    await waitFor(() =>
-      expect(screen.queryByTestId("teachers-admin-create-sheet")).toBeNull(),
-    );
-    expect(mockTeachersApi.createTeacher).not.toHaveBeenCalled();
-  });
-
-  it("FAB onglet affectations → feuille de création d'affectation visible dans l'arbre", async () => {
-    render(<TeachersAdminScreen />);
-    fireEvent.press(
-      await screen.findByTestId("teachers-admin-tab-assignments"),
-    );
-
-    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
-
-    expect(
-      await screen.findByTestId("teachers-admin-assignment-sheet"),
-    ).toBeTruthy();
-    expect(
-      screen.getByTestId("teachers-admin-assignment-school-year"),
-    ).toBeTruthy();
-    expect(
-      screen.getByTestId("teachers-admin-assignment-teacher"),
-    ).toBeTruthy();
-    expect(screen.getByTestId("teachers-admin-assignment-class")).toBeTruthy();
-    expect(
-      screen.getByTestId("teachers-admin-assignment-subject"),
-    ).toBeTruthy();
-    expect(screen.getByTestId("teachers-admin-assignment-submit")).toBeTruthy();
-    expect(screen.getByTestId("teachers-admin-assignment-cancel")).toBeTruthy();
-  });
-
-  it("bouton close sur feuille affectation → feuille disparaît de l'arbre", async () => {
-    render(<TeachersAdminScreen />);
-    fireEvent.press(
-      await screen.findByTestId("teachers-admin-tab-assignments"),
-    );
-    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
-    await screen.findByTestId("teachers-admin-assignment-sheet");
-
-    fireEvent.press(
-      screen.getByTestId("teachers-admin-assignment-sheet-close"),
-    );
-
-    await waitFor(() =>
-      expect(
-        screen.queryByTestId("teachers-admin-assignment-sheet"),
-      ).toBeNull(),
-    );
-    expect(mockTeachersApi.createAssignment).not.toHaveBeenCalled();
-  });
-
-  it("bouton edit d'une affectation inline → feuille d'édition visible dans l'arbre", async () => {
-    render(<TeachersAdminScreen />);
-    fireEvent.press(
-      await screen.findByTestId(
-        "teachers-admin-teacher-open-assignments-teacher-1",
-      ),
-    );
-    fireEvent.press(
-      await screen.findByTestId("teachers-admin-assignment-edit-assign-1"),
-    );
-
-    expect(
-      await screen.findByTestId("teachers-admin-assignment-sheet"),
-    ).toBeTruthy();
-    expect(
-      screen.getByTestId("teachers-admin-assignment-school-year"),
-    ).toBeTruthy();
-    expect(
-      screen.getByTestId("teachers-admin-assignment-teacher"),
-    ).toBeTruthy();
-    expect(screen.getByTestId("teachers-admin-assignment-class")).toBeTruthy();
-    expect(
-      screen.getByTestId("teachers-admin-assignment-subject"),
-    ).toBeTruthy();
   });
 });
