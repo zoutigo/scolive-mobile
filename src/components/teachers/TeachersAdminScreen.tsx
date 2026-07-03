@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
-  Modal,
   Platform,
   RefreshControl,
   ScrollView,
@@ -21,6 +20,8 @@ import { teachersApi } from "../../api/teachers.api";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { SecureTextField } from "../SecureTextField";
+import { SelectDropdown } from "../SelectDropdown";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { useAuthStore } from "../../store/auth.store";
@@ -250,10 +251,9 @@ function buildTeacherPayload(values: z.infer<typeof teacherCreateFormSchema>) {
 // ---------------------------------------------------------------------------
 
 function FormHero(props: {
-  eyebrow: string;
+  icon: React.ComponentProps<typeof Ionicons>["name"];
   title: string;
   subtitle?: string;
-  onBack: () => void;
   palette: HeroPalette;
   testID?: string;
 }) {
@@ -266,23 +266,21 @@ function FormHero(props: {
     >
       <View style={[styles.heroDecor1, { backgroundColor: dark }]} />
       <View style={[styles.heroDecor2, { backgroundColor: dark }]} />
-      <TouchableOpacity
-        style={styles.heroBackRow}
-        onPress={props.onBack}
-        testID="teachers-admin-form-back"
-      >
-        <Ionicons
-          name="chevron-back"
-          size={16}
-          color="rgba(255,255,255,0.82)"
-        />
-        <Text style={styles.heroBackLabel}>Retour</Text>
-      </TouchableOpacity>
-      <Text style={styles.heroEyebrow}>{props.eyebrow}</Text>
-      <Text style={styles.heroTitle}>{props.title}</Text>
-      {props.subtitle ? (
-        <Text style={styles.heroSubtitle}>{props.subtitle}</Text>
-      ) : null}
+      <View style={styles.heroRow}>
+        <View style={styles.heroIconWrap}>
+          <Ionicons
+            name={props.icon}
+            size={28}
+            color="rgba(255,255,255,0.92)"
+          />
+        </View>
+        <View style={styles.heroTextWrap}>
+          <Text style={styles.heroTitle}>{props.title}</Text>
+          {props.subtitle ? (
+            <Text style={styles.heroSubtitle}>{props.subtitle}</Text>
+          ) : null}
+        </View>
+      </View>
     </View>
   );
 }
@@ -341,127 +339,6 @@ const TextFormField = React.forwardRef<TextInput, TextFormFieldProps>(
     );
   },
 );
-
-// ---------------------------------------------------------------------------
-// CompactSelectField
-// ---------------------------------------------------------------------------
-
-function CompactSelectField(props: {
-  label: string;
-  value: string;
-  options: Array<{ value: string; label: string; meta?: string }>;
-  placeholder: string;
-  onChange: (value: string) => void;
-  testID: string;
-  error?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const selected =
-    props.options.find((option) => option.value === props.value) ?? null;
-
-  return (
-    <View style={styles.formField}>
-      <Text style={styles.formLabel}>{props.label}</Text>
-      <TouchableOpacity
-        style={[
-          styles.compactSelectTrigger,
-          props.error ? styles.compactSelectTriggerError : null,
-        ]}
-        onPress={() => setOpen(true)}
-        testID={props.testID}
-      >
-        <View style={styles.compactSelectTextWrap}>
-          <Text style={styles.compactSelectValue} numberOfLines={1}>
-            {selected?.label ?? props.placeholder}
-          </Text>
-          {selected?.meta ? (
-            <Text style={styles.compactSelectMeta} numberOfLines={1}>
-              {selected.meta}
-            </Text>
-          ) : null}
-        </View>
-        <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
-      </TouchableOpacity>
-      {props.error ? (
-        <Text style={styles.formError} testID={`${props.testID}-error`}>
-          {props.error}
-        </Text>
-      ) : null}
-      <Modal
-        transparent
-        visible={open}
-        animationType="fade"
-        onRequestClose={() => setOpen(false)}
-      >
-        <TouchableOpacity
-          style={styles.selectOverlay}
-          activeOpacity={1}
-          onPress={() => setOpen(false)}
-          testID={`${props.testID}-overlay`}
-        >
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={(event) => event.stopPropagation()}
-            style={styles.selectSheet}
-            testID={`${props.testID}-sheet`}
-          >
-            <Text style={styles.selectSheetTitle}>{props.label}</Text>
-            <ScrollView
-              contentContainerStyle={styles.selectSheetOptions}
-              showsVerticalScrollIndicator={false}
-            >
-              {props.options.map((option) => {
-                const active = option.value === props.value;
-                return (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.selectOptionRow,
-                      active && styles.selectOptionRowActive,
-                    ]}
-                    onPress={() => {
-                      props.onChange(option.value);
-                      setOpen(false);
-                    }}
-                    testID={`${props.testID}-option-${option.value}`}
-                  >
-                    <View style={styles.selectOptionTextWrap}>
-                      <Text
-                        style={[
-                          styles.selectOptionLabel,
-                          active && styles.selectOptionLabelActive,
-                        ]}
-                      >
-                        {option.label}
-                      </Text>
-                      {option.meta ? (
-                        <Text
-                          style={[
-                            styles.selectOptionMeta,
-                            active && styles.selectOptionMetaActive,
-                          ]}
-                        >
-                          {option.meta}
-                        </Text>
-                      ) : null}
-                    </View>
-                    {active ? (
-                      <Ionicons
-                        name="checkmark"
-                        size={18}
-                        color={colors.warmAccent}
-                      />
-                    ) : null}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-    </View>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // FormActions
@@ -614,20 +491,31 @@ function TeacherCreateFormContent(props: {
               control={control}
               name="pin"
               render={({ field: { value, onChange, onBlur, ref } }) => (
-                <TextFormField
-                  ref={ref}
-                  label="PIN initial"
-                  value={value ?? ""}
-                  onChangeText={(next) =>
-                    onChange(next.replace(/\D/g, "").slice(0, 6))
-                  }
-                  onBlur={onBlur}
-                  placeholder="123456"
-                  error={errors.pin?.message}
-                  testID="teachers-admin-create-pin"
-                  keyboardType="numeric"
-                  secureTextEntry
-                />
+                <View style={styles.formField}>
+                  <Text style={styles.formLabel}>PIN initial</Text>
+                  <SecureTextField
+                    ref={ref}
+                    value={value ?? ""}
+                    onChangeText={(next) =>
+                      onChange(next.replace(/\D/g, "").slice(0, 6))
+                    }
+                    onBlur={onBlur}
+                    placeholder="123456"
+                    hasError={!!errors.pin}
+                    testID="teachers-admin-create-pin"
+                    variant="pin"
+                    keyboardType="numeric"
+                    containerStyle={{ borderRadius: 6 }}
+                  />
+                  {errors.pin ? (
+                    <Text
+                      style={styles.formError}
+                      testID="teachers-admin-create-pin-error"
+                    >
+                      {errors.pin.message}
+                    </Text>
+                  ) : null}
+                </View>
               )}
             />
           </>
@@ -655,18 +543,29 @@ function TeacherCreateFormContent(props: {
               control={control}
               name="password"
               render={({ field: { value, onChange, onBlur, ref } }) => (
-                <TextFormField
-                  ref={ref}
-                  label="Mot de passe initial"
-                  value={value ?? ""}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  placeholder="MotDePasse123"
-                  error={errors.password?.message}
-                  testID="teachers-admin-create-password"
-                  autoCapitalize="none"
-                  secureTextEntry
-                />
+                <View style={styles.formField}>
+                  <Text style={styles.formLabel}>Mot de passe initial</Text>
+                  <SecureTextField
+                    ref={ref}
+                    value={value ?? ""}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder="MotDePasse123"
+                    hasError={!!errors.password}
+                    testID="teachers-admin-create-password"
+                    variant="password"
+                    autoCapitalize="none"
+                    containerStyle={{ borderRadius: 6 }}
+                  />
+                  {errors.password ? (
+                    <Text
+                      style={styles.formError}
+                      testID="teachers-admin-create-password-error"
+                    >
+                      {errors.password.message}
+                    </Text>
+                  ) : null}
+                </View>
               )}
             />
           </>
@@ -734,7 +633,6 @@ function AssignmentFormContent(props: {
       props.teacherOptions.map((entry) => ({
         value: entry.userId,
         label: fullTeacherName(entry),
-        meta: entry.email ?? (toLocalPhoneDisplay(entry.phone) || undefined),
       })),
     [props.teacherOptions],
   );
@@ -743,8 +641,7 @@ function AssignmentFormContent(props: {
     () =>
       props.schoolYears.map((entry) => ({
         value: entry.id,
-        label: entry.label,
-        meta: entry.isActive ? "Année active" : undefined,
+        label: entry.isActive ? `${entry.label} ✓` : entry.label,
       })),
     [props.schoolYears],
   );
@@ -758,7 +655,6 @@ function AssignmentFormContent(props: {
         .map((entry) => ({
           value: entry.id,
           label: entry.name,
-          meta: entry.schoolYear.label,
         })),
     [props.classrooms, schoolYearId],
   );
@@ -788,60 +684,100 @@ function AssignmentFormContent(props: {
           control={control}
           name="schoolYearId"
           render={({ field: { value, onChange } }) => (
-            <CompactSelectField
-              label="Année scolaire"
-              value={value}
-              options={schoolYearOptions}
-              placeholder="Choisir une année"
-              onChange={onChange}
-              error={errors.schoolYearId?.message}
-              testID="teachers-admin-assignment-school-year"
-            />
+            <View style={styles.formField}>
+              <Text style={styles.formLabel}>Année scolaire</Text>
+              <SelectDropdown
+                options={schoolYearOptions}
+                value={value}
+                onChange={onChange}
+                placeholder="Choisir une année"
+                hasError={!!errors.schoolYearId}
+                testID="teachers-admin-assignment-school-year"
+              />
+              {errors.schoolYearId ? (
+                <Text
+                  style={styles.formError}
+                  testID="teachers-admin-assignment-school-year-error"
+                >
+                  {errors.schoolYearId.message}
+                </Text>
+              ) : null}
+            </View>
           )}
         />
         <Controller
           control={control}
           name="teacherUserId"
           render={({ field: { value, onChange } }) => (
-            <CompactSelectField
-              label="Enseignant"
-              value={value}
-              options={teacherSelectOptions}
-              placeholder="Choisir un enseignant"
-              onChange={onChange}
-              error={errors.teacherUserId?.message}
-              testID="teachers-admin-assignment-teacher"
-            />
+            <View style={styles.formField}>
+              <Text style={styles.formLabel}>Enseignant</Text>
+              <SelectDropdown
+                options={teacherSelectOptions}
+                value={value}
+                onChange={onChange}
+                placeholder="Choisir un enseignant"
+                hasError={!!errors.teacherUserId}
+                testID="teachers-admin-assignment-teacher"
+              />
+              {errors.teacherUserId ? (
+                <Text
+                  style={styles.formError}
+                  testID="teachers-admin-assignment-teacher-error"
+                >
+                  {errors.teacherUserId.message}
+                </Text>
+              ) : null}
+            </View>
           )}
         />
         <Controller
           control={control}
           name="classId"
           render={({ field: { value, onChange } }) => (
-            <CompactSelectField
-              label="Classe"
-              value={value}
-              options={classOptions}
-              placeholder="Choisir une classe"
-              onChange={onChange}
-              error={errors.classId?.message}
-              testID="teachers-admin-assignment-class"
-            />
+            <View style={styles.formField}>
+              <Text style={styles.formLabel}>Classe</Text>
+              <SelectDropdown
+                options={classOptions}
+                value={value}
+                onChange={onChange}
+                placeholder="Choisir une classe"
+                hasError={!!errors.classId}
+                testID="teachers-admin-assignment-class"
+              />
+              {errors.classId ? (
+                <Text
+                  style={styles.formError}
+                  testID="teachers-admin-assignment-class-error"
+                >
+                  {errors.classId.message}
+                </Text>
+              ) : null}
+            </View>
           )}
         />
         <Controller
           control={control}
           name="subjectId"
           render={({ field: { value, onChange } }) => (
-            <CompactSelectField
-              label="Matière"
-              value={value}
-              options={subjectOptions}
-              placeholder="Choisir une matière"
-              onChange={onChange}
-              error={errors.subjectId?.message}
-              testID="teachers-admin-assignment-subject"
-            />
+            <View style={styles.formField}>
+              <Text style={styles.formLabel}>Matière</Text>
+              <SelectDropdown
+                options={subjectOptions}
+                value={value}
+                onChange={onChange}
+                placeholder="Choisir une matière"
+                hasError={!!errors.subjectId}
+                testID="teachers-admin-assignment-subject"
+              />
+              {errors.subjectId ? (
+                <Text
+                  style={styles.formError}
+                  testID="teachers-admin-assignment-subject-error"
+                >
+                  {errors.subjectId.message}
+                </Text>
+              ) : null}
+            </View>
           )}
         />
       </ScrollView>
@@ -1181,7 +1117,7 @@ export function TeachersAdminScreen() {
       <ModuleHeader
         title="Enseignants"
         subtitle={subtitle}
-        onBack={() => moduleBack(router)}
+        onBack={() => (tab === "forms" ? exitForms() : moduleBack(router))}
         topInset={insets.top}
         testID="teachers-admin-header"
         backTestID="teachers-admin-back-btn"
@@ -1200,12 +1136,12 @@ export function TeachersAdminScreen() {
       {tab === "forms" && formContext && !isLoading ? (
         <View style={styles.formsTabContent} testID="teachers-admin-forms-tab">
           <FormHero
-            eyebrow={
+            icon={
               formContext.type === "create-teacher"
-                ? "Compte établissement"
+                ? "person-add-outline"
                 : formContext.type === "edit-assignment"
-                  ? "Mise à jour"
-                  : "Organisation pédagogique"
+                  ? "create-outline"
+                  : "link-outline"
             }
             title={
               formContext.type === "create-teacher"
@@ -1219,7 +1155,6 @@ export function TeachersAdminScreen() {
                 ? "Téléphone + PIN ou email + mot de passe initial."
                 : "Associez un enseignant, une classe, une matière et une année scolaire."
             }
-            onBack={exitForms}
             palette={formContext.type === "create-teacher" ? "teal" : "warm"}
             testID="teachers-admin-form-hero"
           />
@@ -1903,30 +1838,29 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "20deg" }],
     opacity: 0.12,
   },
-  heroBackRow: {
+  heroRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    marginBottom: 14,
+    gap: 14,
   },
-  heroBackLabel: {
-    color: "rgba(255,255,255,0.82)",
-    fontSize: 13,
-    fontWeight: "600",
+  heroIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    flexShrink: 0,
   },
-  heroEyebrow: {
-    color: "rgba(255,255,255,0.65)",
-    fontSize: 10,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 4,
+  heroTextWrap: {
+    flex: 1,
+    gap: 3,
   },
   heroTitle: {
     color: "#FFFFFF",
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "800",
-    lineHeight: 28,
+    lineHeight: 26,
   },
   heroSubtitle: {
     color: "rgba(255,255,255,0.70)",
@@ -1973,7 +1907,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.white,
-    borderRadius: 16,
+    borderRadius: 6,
     paddingHorizontal: 14,
     paddingVertical: 12,
     color: colors.textPrimary,
@@ -1996,7 +1930,7 @@ const styles = StyleSheet.create({
   },
   modeChip: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     backgroundColor: colors.warmSurface,
@@ -2017,91 +1951,6 @@ const styles = StyleSheet.create({
   modeChipLabelActive: {
     color: colors.primary,
   },
-  compactSelectTrigger: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: colors.white,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  compactSelectTriggerError: {
-    borderColor: "#B84A3B",
-  },
-  compactSelectTextWrap: {
-    flex: 1,
-    gap: 3,
-  },
-  compactSelectValue: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  compactSelectMeta: {
-    color: colors.textSecondary,
-    fontSize: 11,
-  },
-  selectOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(5, 20, 34, 0.28)",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-  },
-  selectSheet: {
-    backgroundColor: colors.surface,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    maxHeight: "72%",
-  },
-  selectSheetTitle: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 12,
-  },
-  selectSheetOptions: {
-    gap: 8,
-  },
-  selectOptionRow: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.white,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  selectOptionRowActive: {
-    borderColor: colors.primary,
-    backgroundColor: "#F1F7FC",
-  },
-  selectOptionTextWrap: {
-    flex: 1,
-    gap: 2,
-  },
-  selectOptionLabel: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  selectOptionLabelActive: {
-    color: colors.primary,
-  },
-  selectOptionMeta: {
-    color: colors.textSecondary,
-    fontSize: 11,
-  },
-  selectOptionMetaActive: {
-    color: colors.primary,
-  },
   formActions: {
     flex: 1,
     flexDirection: "row",
@@ -2109,7 +1958,7 @@ const styles = StyleSheet.create({
   },
   secondaryAction: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     backgroundColor: colors.warmSurface,
@@ -2124,7 +1973,7 @@ const styles = StyleSheet.create({
   },
   primaryAction: {
     flex: 1.2,
-    borderRadius: 16,
+    borderRadius: 6,
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",

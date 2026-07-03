@@ -25,8 +25,14 @@ jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/teachers.api");
 
 const mockBack = jest.fn();
+const mockNavigate = jest.fn();
+const mockCanGoBack = jest.fn().mockReturnValue(true);
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ back: mockBack }),
+  useRouter: () => ({
+    back: mockBack,
+    navigate: mockNavigate,
+    canGoBack: mockCanGoBack,
+  }),
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -545,14 +551,16 @@ describe("TeachersAdminScreen — tab forms / création enseignant", () => {
     expect(screen.getByTestId("teachers-admin-create-cancel")).toBeTruthy();
   });
 
-  it("hero création enseignant affiche le bon titre et la palette teal", async () => {
+  it("hero création enseignant affiche le bon titre et le sous-titre", async () => {
     render(<TeachersAdminScreen />);
 
     fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
 
     await screen.findByTestId("teachers-admin-form-hero");
     expect(screen.getByText("Créer un enseignant")).toBeTruthy();
-    expect(screen.getByText("Compte établissement")).toBeTruthy();
+    expect(
+      screen.getByText("Téléphone + PIN ou email + mot de passe initial."),
+    ).toBeTruthy();
   });
 
   it("les tabs Enseignants/Affectations/Aide sont masqués sur le tab forms", async () => {
@@ -574,13 +582,13 @@ describe("TeachersAdminScreen — tab forms / création enseignant", () => {
     expect(screen.queryByTestId("teachers-admin-fab")).toBeNull();
   });
 
-  it("bouton Retour hero → retour au tab enseignants, formulaire démonte", async () => {
+  it("flèche header depuis tab forms enseignant → retour au tab enseignants, formulaire démonte", async () => {
     render(<TeachersAdminScreen />);
 
     fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
     await screen.findByTestId("teachers-admin-forms-tab");
 
-    fireEvent.press(screen.getByTestId("teachers-admin-form-back"));
+    fireEvent.press(screen.getByTestId("teachers-admin-back-btn"));
 
     await waitFor(() => {
       expect(screen.queryByTestId("teachers-admin-forms-tab")).toBeNull();
@@ -589,6 +597,23 @@ describe("TeachersAdminScreen — tab forms / création enseignant", () => {
       await screen.findByTestId("teachers-admin-teacher-row-teacher-1"),
     ).toBeTruthy();
     expect(mockTeachersApi.createTeacher).not.toHaveBeenCalled();
+  });
+
+  it("flèche header (ModuleHeader) sur tab forms → exitForms, retour au tab enseignants", async () => {
+    render(<TeachersAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-forms-tab");
+
+    fireEvent.press(screen.getByTestId("teachers-admin-back-btn"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("teachers-admin-forms-tab")).toBeNull();
+    });
+    expect(
+      await screen.findByTestId("teachers-admin-teacher-row-teacher-1"),
+    ).toBeTruthy();
+    expect(mockBack).not.toHaveBeenCalled();
   });
 
   it("bouton Annuler du formulaire → retour au tab enseignants sans appel API", async () => {
@@ -822,7 +847,7 @@ describe("TeachersAdminScreen — tab forms / création affectation", () => {
     expect(screen.getByTestId("teachers-admin-assignment-cancel")).toBeTruthy();
   });
 
-  it("hero création affectation affiche le bon titre et palette warm", async () => {
+  it("hero création affectation affiche le bon titre et le sous-titre", async () => {
     render(<TeachersAdminScreen />);
 
     fireEvent.press(
@@ -832,7 +857,11 @@ describe("TeachersAdminScreen — tab forms / création affectation", () => {
 
     await screen.findByTestId("teachers-admin-form-hero");
     expect(screen.getByText("Nouvelle affectation")).toBeTruthy();
-    expect(screen.getByText("Organisation pédagogique")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Associez un enseignant, une classe, une matière et une année scolaire.",
+      ),
+    ).toBeTruthy();
   });
 
   it("bouton Annuler affectation → retour au tab affectations sans appel API", async () => {
@@ -855,7 +884,7 @@ describe("TeachersAdminScreen — tab forms / création affectation", () => {
     ).toBeTruthy();
   });
 
-  it("bouton Retour hero affectation → retour au tab affectations", async () => {
+  it("flèche header depuis tab forms affectation → retour au tab affectations", async () => {
     render(<TeachersAdminScreen />);
 
     fireEvent.press(
@@ -864,7 +893,7 @@ describe("TeachersAdminScreen — tab forms / création affectation", () => {
     fireEvent.press(screen.getByTestId("teachers-admin-fab"));
     await screen.findByTestId("teachers-admin-forms-tab");
 
-    fireEvent.press(screen.getByTestId("teachers-admin-form-back"));
+    fireEvent.press(screen.getByTestId("teachers-admin-back-btn"));
 
     await waitFor(() => {
       expect(screen.queryByTestId("teachers-admin-forms-tab")).toBeNull();
@@ -1041,7 +1070,11 @@ describe("TeachersAdminScreen — édition affectation depuis vue inline enseign
 
     await screen.findByTestId("teachers-admin-form-hero");
     expect(screen.getByText("Modifier l'affectation")).toBeTruthy();
-    expect(screen.getByText("Mise à jour")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Associez un enseignant, une classe, une matière et une année scolaire.",
+      ),
+    ).toBeTruthy();
   });
 
   it("annuler depuis édition inline → retour au tab enseignants", async () => {
