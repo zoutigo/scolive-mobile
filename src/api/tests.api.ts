@@ -254,4 +254,28 @@ export const testsApi = {
     );
     return normalizeAttachments(response);
   },
+
+  async updateExecution(
+    executionId: string,
+    payload: {
+      status: TestExecutionStatus;
+      resultText: string;
+      comment?: string;
+    },
+  ): Promise<TestExecutionDetail> {
+    const response = await apiFetch<TestExecutionDetail>(
+      `/tests/executions/${executionId}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: payload.status,
+          resultText: payload.resultText,
+          comment: payload.comment ?? "",
+        }),
+      },
+      true,
+    );
+    return normalizeAttachments(response);
+  },
 };
