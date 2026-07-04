@@ -575,6 +575,7 @@ function HomeworkFormModal(props: {
   isSubmitting: boolean;
 }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const editorFieldRef = useRef<RichEditorFieldRef>(null);
   const [attachments, setAttachments] = useState<HomeworkAttachment[]>([]);
   const [descriptionHtml, setDescriptionHtml] = useState("");
@@ -647,18 +648,26 @@ function HomeworkFormModal(props: {
 
   const handleSave = handleSubmit(async (values) => {
     setErrorMessage(null);
-    const contentHtml = await editorFieldRef.current?.getContentHtml();
-    const payload: UpsertHomeworkPayload = {
-      title: values.title.trim(),
-      subjectId: values.subjectId,
-      expectedAt: localInputToIso(
-        `${values.expectedDate.trim()}T${values.expectedTime.trim()}`,
-      ),
-      contentHtml: contentHtml?.trim() ? contentHtml : undefined,
-      attachments,
-    };
+    try {
+      const contentHtml = await editorFieldRef.current?.getContentHtml();
+      const payload: UpsertHomeworkPayload = {
+        title: values.title.trim(),
+        subjectId: values.subjectId,
+        expectedAt: localInputToIso(
+          `${values.expectedDate.trim()}T${values.expectedTime.trim()}`,
+        ),
+        contentHtml: contentHtml?.trim() ? contentHtml : undefined,
+        attachments,
+      };
 
-    await props.onSubmit(payload);
+      await props.onSubmit(payload);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : t("homework.toast.saveErrorMessage"),
+      );
+    }
   });
 
   return (
@@ -673,7 +682,12 @@ function HomeworkFormModal(props: {
       >
         <ScrollView
           style={styles.modalRoot}
-          contentContainerStyle={styles.modalContent}
+          contentContainerStyle={[
+            styles.modalContent,
+            {
+              paddingBottom: styles.modalContent.paddingBottom + insets.bottom,
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >

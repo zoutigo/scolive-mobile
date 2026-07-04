@@ -86,6 +86,14 @@ export type RichEditorFieldProps = {
  * colorPresets a caller passes in, so every RichEditorField instance gets a
  * richer palette without each screen having to list dozens of colors itself.
  */
+/**
+ * The underlying WebView bridge call can hang forever (message lost, WebView
+ * not fully initialized yet) with no rejection — this bounds getContentHtml()
+ * so a stuck submit falls back to the last known htmlState instead of hanging
+ * the caller's form submission indefinitely with no feedback to the user.
+ */
+const GET_CONTENT_HTML_TIMEOUT_MS = 4000;
+
 const EXTENDED_COLOR_PALETTE: readonly RichEditorColorPreset[] = [
   { label: "Noir", value: "#111827" },
   { label: "Gris ardoise", value: "#374151" },
@@ -278,7 +286,16 @@ export const RichEditorField = forwardRef<
       setSelectedImageAlign(null);
     },
     getContentHtml: async () => {
-      const html = await editorRef.current?.getContentHtml?.();
+      const getter = editorRef.current?.getContentHtml?.bind(editorRef.current);
+      if (!getter) {
+        return htmlState;
+      }
+      const html = await Promise.race([
+        getter().catch(() => undefined),
+        new Promise<undefined>((resolve) =>
+          setTimeout(() => resolve(undefined), GET_CONTENT_HTML_TIMEOUT_MS),
+        ),
+      ]);
       if (typeof html === "string" && html.trim().length > 0) {
         return html;
       }

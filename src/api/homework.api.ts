@@ -229,15 +229,23 @@ export const homeworkApi = {
       await parseMultipartError(response, "HOMEWORK_ATTACHMENT_UPLOAD_FAILED");
     }
 
-    const payload = (await response.json()) as HomeworkAttachment & {
+    const payload = (await response.json()) as {
       url?: string | null;
       fileUrl?: string | null;
+      fileName?: string | null;
+      mimeType?: string | null;
+      sizeLabel?: string | null;
     };
-    return normalizeAttachment({
-      ...payload,
+    // Build a clean object here rather than spreading `payload`: the media
+    // upload response also carries `size`/`width`/`height`, and the create/
+    // update homework endpoint rejects unknown attachment properties
+    // (ValidationPipe forbidNonWhitelisted) — which silently fails the save.
+    return {
       fileName: payload.fileName ?? file.fileName,
+      fileUrl: payload.fileUrl ?? payload.url ?? null,
       mimeType: payload.mimeType ?? file.mimeType,
-    });
+      sizeLabel: payload.sizeLabel ?? null,
+    };
   },
 
   async uploadInlineImage(

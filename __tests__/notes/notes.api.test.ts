@@ -106,4 +106,45 @@ describe("notesApi", () => {
       sizeLabel: "12 Ko",
     });
   });
+
+  it.each([
+    { ext: "jpg", mimeType: "image/jpeg" },
+    { ext: "png", mimeType: "image/png" },
+    { ext: "webp", mimeType: "image/webp" },
+    { ext: "gif", mimeType: "image/gif" },
+    { ext: "heic", mimeType: "image/heic" },
+  ])(
+    "ne relaie jamais les champs bruts du service média pour une image .$ext (régression 400 forbidNonWhitelisted)",
+    async ({ ext, mimeType }) => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: async () => ({
+          url: `https://cdn.example.com/evaluations/photo.${ext}`,
+          size: 45231,
+          width: 800,
+          height: 600,
+          mimeType,
+        }),
+        text: async () => "",
+      });
+
+      const result = await notesApi.uploadAttachment("college-vogt", {
+        uri: `file:///tmp/photo.${ext}`,
+        mimeType,
+        fileName: `photo.${ext}`,
+      });
+
+      expect(result).toEqual({
+        fileName: `photo.${ext}`,
+        fileUrl: `https://cdn.example.com/evaluations/photo.${ext}`,
+        mimeType,
+        sizeLabel: null,
+      });
+      expect(result).not.toHaveProperty("size");
+      expect(result).not.toHaveProperty("width");
+      expect(result).not.toHaveProperty("height");
+      expect(result).not.toHaveProperty("url");
+    },
+  );
 });

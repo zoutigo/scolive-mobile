@@ -369,6 +369,53 @@ describe("homeworkApi", () => {
       expect(result.fileUrl).toBe("https://cdn.example.com/homework/image.png");
     });
 
+    it.each([
+      { ext: "jpg", mimeType: "image/jpeg" },
+      { ext: "png", mimeType: "image/png" },
+      { ext: "webp", mimeType: "image/webp" },
+      { ext: "gif", mimeType: "image/gif" },
+      { ext: "heic", mimeType: "image/heic" },
+    ])(
+      "ne relaie jamais les champs bruts du service média pour une image .$ext (régression 400 forbidNonWhitelisted)",
+      async ({ ext, mimeType }) => {
+        // Le service média répond avec { url, size, width, height, mimeType } —
+        // si ces champs finissent dans le payload envoyé à createHomework/
+        // updateHomework, l'API les rejette (ValidationPipe forbidNonWhitelisted)
+        // et le submit échoue silencieusement (le toast d'erreur reste caché
+        // derrière la Modal du formulaire). uploadAttachment doit donc renvoyer
+        // uniquement les 4 champs attendus par HomeworkAttachmentDto, quel que
+        // soit le format d'image envoyé.
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+          ok: true,
+          status: 201,
+          json: async () => ({
+            url: `https://cdn.example.com/homework/photo.${ext}`,
+            size: 45231,
+            width: 800,
+            height: 600,
+            mimeType,
+          }),
+        });
+
+        const result = await homeworkApi.uploadAttachment("college-vogt", {
+          uri: `file:///tmp/photo.${ext}`,
+          mimeType,
+          fileName: `photo.${ext}`,
+        });
+
+        expect(result).toEqual({
+          fileName: `photo.${ext}`,
+          fileUrl: `https://cdn.example.com/homework/photo.${ext}`,
+          mimeType,
+          sizeLabel: null,
+        });
+        expect(result).not.toHaveProperty("size");
+        expect(result).not.toHaveProperty("width");
+        expect(result).not.toHaveProperty("height");
+        expect(result).not.toHaveProperty("url");
+      },
+    );
+
     it("lève une erreur si le serveur renvoie 413", async () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,

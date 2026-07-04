@@ -263,6 +263,22 @@ Règles d'implémentation :
 - les composants d'input réutilisables doivent accepter l'état d'erreur
 - les composants texte sécurisés doivent forward leur `ref` pour que RHF puisse focus automatiquement les champs invalides
 
+### RichEditorField + attachments — pièges connus
+
+Tout formulaire combinant `RichEditorField` et/ou des attachments doit
+respecter les règles détaillées dans le skill `improve-mobile-form` (section
+"RichEditorField + attachments — pièges connus") :
+
+- chaque module expose une route dédiée `/uploads/inline-image` pour les
+  images insérées dans l'éditeur, distincte de `/uploads/attachment`
+- la fonction `uploadAttachment` du module doit reconstruire un objet propre
+  (`fileName`/`fileUrl`/`mimeType`/`sizeLabel`) à partir de la réponse brute
+  du service média — jamais un spread de cette réponse — sous peine de
+  déclencher un rejet 400 silencieux côté API (le toast d'erreur reste caché
+  derrière la `<Modal>` du formulaire, donc "rien ne se passe" visuellement)
+- un contenu composé uniquement d'une image (sans texte) doit rester
+  persisté, jamais nullifié silencieusement au save
+
 ## Lancer sur l'émulateur
 
 Émulateur de référence pour le dev quotidien : **`Scolive_GooglePlay_API33`**.
