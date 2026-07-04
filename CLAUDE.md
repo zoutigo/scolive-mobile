@@ -7,8 +7,13 @@ Faire tout le travail soi-même, étape par étape si nécessaire.
 
 ## Git — règle absolue
 
-**Ne jamais créer de commit ni pousser sur le remote sans instruction explicite de l'utilisateur.**
-Terminer le travail, vérifier (format, lint, typecheck, tests), puis attendre qu'on demande le commit/push.
+**Après toute modification du code (correction de bug, nouvelle fonctionnalité, correctif), terminer systématiquement par :**
+
+1. Des tests approfondis unitaires, fonctionnels et d'intégration, front ET back, y compris la gestion des erreurs.
+2. Les vérifications précommit (format, lint, typecheck, build).
+3. Un commit.
+
+**Le push sur le remote reste soumis à une instruction explicite de l'utilisateur** (voir `/release-ci` pour le cycle complet push → PR → CI → merge).
 
 **Sauf indication explicite contraire de l'utilisateur, tout le développement se fait sur la branche `dev`.**
 Si la branche courante n'est pas `dev`, basculer dessus avant toute modification ou signaler clairement le blocage.
