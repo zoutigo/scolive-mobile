@@ -29,6 +29,7 @@ import {
 } from "../navigation/nav-config";
 import { useAuthStore } from "../../store/auth.store";
 import { useTimetableStore } from "../../store/timetable.store";
+import type { SlotEditContext } from "../../store/timetable.store";
 import { timetableApi } from "../../api/timetable.api";
 import type {
   TimetableClassOption,
@@ -36,7 +37,6 @@ import type {
   TimetableSubjectStyle,
 } from "../../types/timetable.types";
 import type { AuthUser } from "../../types/auth.types";
-import { TeacherOneOffCreatePanel } from "./TeacherOneOffCreatePanel";
 import {
   addDays,
   addMonths,
@@ -66,7 +66,6 @@ import {
   WeekSelection,
 } from "./ChildTimetableScreen";
 import { EmptyState, ErrorBanner, LoadingBlock } from "./TimetableCommon";
-import { TeacherSlotEditPanel } from "./TeacherSlotEditPanel";
 import { useTranslation } from "../../i18n/useTranslation";
 import { moduleBack } from "../../utils/moduleBack";
 
@@ -484,12 +483,7 @@ function TeacherMyAgendaPane({
       teacherUserId={user?.id}
       getOccurrenceContext={getOccurrenceContext}
       schoolSlug={schoolSlug ?? ""}
-      onAfterMutation={() => {
-        setSchedule(null);
-        void load().catch(() => {});
-      }}
       canCreate={allClasses.length > 0}
-      allClasses={allClasses}
     />
   );
 }
@@ -784,12 +778,7 @@ function AdminUserAgendaPane({ insetBottom }: { insetBottom: number }) {
             teacherUserId={selectedTeacherId}
             getOccurrenceContext={getOccurrenceContext}
             schoolSlug={schoolSlug ?? ""}
-            onAfterMutation={() => {
-              setSchedule(null);
-              void loadTeacherSchedule().catch(() => {});
-            }}
             canCreate={allClasses.length > 0}
-            allClasses={allClasses}
             prefilledTeacherId={selectedTeacherId}
           />
         </View>
@@ -1138,12 +1127,7 @@ function TeacherClassAgendaPane({
                 };
               }}
               schoolSlug={schoolSlug ?? ""}
-              onAfterMutation={() => {
-                clearError();
-                void loadClass().catch(() => {});
-              }}
               canCreate={classes.length > 0}
-              allClasses={classes}
               prefilledClassId={selectedClassId ?? undefined}
             />
           </View>
@@ -1183,10 +1167,7 @@ interface TimetablePaneProps {
   isAdminMode?: boolean;
   getOccurrenceContext?: (occId: string) => OccurrenceContext | undefined;
   schoolSlug?: string;
-  onAfterMutation?: () => void;
-  // Creation panel props
   canCreate?: boolean;
-  allClasses?: TimetableClassOption[];
   prefilledClassId?: string;
   /** En mode admin user pane : pré-sélectionne cet enseignant dans le formulaire de création */
   prefilledTeacherId?: string;
@@ -1218,16 +1199,13 @@ function TimetablePane({
   isAdminMode,
   getOccurrenceContext,
   schoolSlug,
-  onAfterMutation,
   canCreate,
-  allClasses,
   prefilledClassId,
   prefilledTeacherId,
 }: TimetablePaneProps) {
   const { t, locale } = useTranslation();
-  const [editingOccurrence, setEditingOccurrence] =
-    useState<TimetableOccurrence | null>(null);
-  const [creating, setCreating] = useState(false);
+  const router = useRouter();
+  const { setPendingSlotEdit } = useTimetableStore();
 
   // Refs pour le scroll automatique vers le détail semaine / agenda mois
   const scrollRef = useRef<import("react-native").ScrollView>(null);
@@ -1257,13 +1235,6 @@ function TimetablePane({
     });
     return () => cancelAnimationFrame(id);
   }, [selectedMonthDate, viewMode]);
-  const editingContext =
-    editingOccurrence && getOccurrenceContext
-      ? getOccurrenceContext(editingOccurrence.id)
-      : undefined;
-  const canRenderEditModal =
-    !!editingOccurrence && !!schoolSlug && !!editingContext;
-
   const isTeacherOcc = useCallback(
     (occ: TimetableOccurrence) => {
       if (isAdminMode) return true;
@@ -1272,11 +1243,34 @@ function TimetablePane({
     [isAdminMode, teacherUserId],
   );
 
-  const openEdit = useCallback((occ: TimetableOccurrence) => {
-    setEditingOccurrence(occ);
-  }, []);
+  const openEdit = useCallback(
+    (occ: TimetableOccurrence) => {
+      const occCtx = getOccurrenceContext?.(occ.id);
+      if (!occCtx || !schoolSlug) return;
+      const editCtx: SlotEditContext = {
+        occurrence: occ,
+        className: occCtx.className,
+        classId: occCtx.classId,
+        schoolYearId: occCtx.schoolYearId,
+        adminMode: isAdminMode,
+      };
+      setPendingSlotEdit(editCtx);
+      router.push("/(home)/agenda/slot-edit");
+    },
+    [getOccurrenceContext, schoolSlug, isAdminMode, setPendingSlotEdit, router],
+  );
 
-  const closeEdit = useCallback(() => setEditingOccurrence(null), []);
+  const openCreate = useCallback(() => {
+    const params = new URLSearchParams();
+    if (prefilledClassId) params.set("classId", prefilledClassId);
+    if (prefilledTeacherId) params.set("teacherId", prefilledTeacherId);
+    params.set("date", toIsoDateString(cursorDate));
+    const href =
+      `/(home)/agenda/slot-create?${params.toString()}` as Parameters<
+        typeof router.push
+      >[0];
+    router.push(href);
+  }, [prefilledClassId, prefilledTeacherId, cursorDate, router]);
   const modeOptions = useMemo(() => getModeOptions(t), [t]);
   const weekDays = useMemo(
     () => buildWeekDays(cursorDate, t),
@@ -1567,104 +1561,18 @@ function TimetablePane({
       </ScrollView>
 
       {/* FAB — création d'un nouveau créneau */}
-      {canCreate && !editingOccurrence && !creating ? (
+      {canCreate ? (
         <TouchableOpacity
           style={[
             styles.fab,
             { bottom: insetBottom + 20 + BOTTOM_TAB_BAR_HEIGHT },
           ]}
-          onPress={() => setCreating(true)}
+          onPress={openCreate}
           testID={`${testIDPrefix}-fab-create`}
         >
           <Ionicons name="add" size={26} color={colors.white} />
         </TouchableOpacity>
       ) : null}
-
-      {/* Modal centrée de création */}
-      <Modal
-        visible={creating}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setCreating(false)}
-      >
-        <View style={styles.modalCenterOverlay}>
-          <TouchableOpacity
-            style={styles.modalBackdrop}
-            activeOpacity={1}
-            onPress={() => setCreating(false)}
-            testID={`${testIDPrefix}-create-modal-backdrop`}
-          />
-          <View
-            style={styles.modalCard}
-            testID={`${testIDPrefix}-create-modal-content`}
-          >
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
-              {schoolSlug && allClasses ? (
-                <TeacherOneOffCreatePanel
-                  schoolSlug={schoolSlug}
-                  prefilledClassId={prefilledClassId}
-                  prefilledDate={toIsoDateString(cursorDate)}
-                  allClasses={allClasses}
-                  prefilledTeacherId={prefilledTeacherId}
-                  onClose={() => setCreating(false)}
-                  onSuccess={() => {
-                    setCreating(false);
-                    onAfterMutation?.();
-                  }}
-                />
-              ) : null}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal centrée de modification */}
-      <Modal
-        visible={canRenderEditModal}
-        transparent
-        animationType="fade"
-        onRequestClose={closeEdit}
-      >
-        <View
-          style={styles.modalCenterOverlay}
-          testID={`${testIDPrefix}-edit-modal`}
-        >
-          <TouchableOpacity
-            style={styles.modalBackdrop}
-            activeOpacity={1}
-            onPress={closeEdit}
-            testID={`${testIDPrefix}-edit-modal-backdrop`}
-          />
-          <View
-            style={styles.editModalCard}
-            testID={`${testIDPrefix}-edit-modal-content`}
-          >
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
-              {canRenderEditModal ? (
-                <TeacherSlotEditPanel
-                  occurrence={editingOccurrence}
-                  className={editingContext.className}
-                  classId={editingContext.classId}
-                  schoolYearId={editingContext.schoolYearId}
-                  schoolSlug={schoolSlug}
-                  adminMode={isAdminMode}
-                  onClose={closeEdit}
-                  onSuccess={() => {
-                    closeEdit();
-                    onAfterMutation?.();
-                  }}
-                />
-              ) : null}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }

@@ -7,8 +7,13 @@ Faire tout le travail soi-même, étape par étape si nécessaire.
 
 ## Git — règle absolue
 
-**Ne jamais créer de commit ni pousser sur le remote sans instruction explicite de l'utilisateur.**
-Terminer le travail, vérifier (format, lint, typecheck, tests), puis attendre qu'on demande le commit/push.
+**Après toute modification du code (correction de bug, nouvelle fonctionnalité, correctif), terminer systématiquement par :**
+
+1. Des tests approfondis unitaires, fonctionnels et d'intégration, front ET back, y compris la gestion des erreurs.
+2. Les vérifications précommit (format, lint, typecheck, build).
+3. Un commit.
+
+**Le push sur le remote reste soumis à une instruction explicite de l'utilisateur** (voir `/release-ci` pour le cycle complet push → PR → CI → merge).
 
 **Sauf indication explicite contraire de l'utilisateur, tout le développement se fait sur la branche `dev`.**
 Si la branche courante n'est pas `dev`, basculer dessus avant toute modification ou signaler clairement le blocage.
@@ -257,6 +262,22 @@ Règles d'implémentation :
 - préférer des wrappers communs pour éviter de répéter la plomberie RHF
 - les composants d'input réutilisables doivent accepter l'état d'erreur
 - les composants texte sécurisés doivent forward leur `ref` pour que RHF puisse focus automatiquement les champs invalides
+
+### RichEditorField + attachments — pièges connus
+
+Tout formulaire combinant `RichEditorField` et/ou des attachments doit
+respecter les règles détaillées dans le skill `improve-mobile-form` (section
+"RichEditorField + attachments — pièges connus") :
+
+- chaque module expose une route dédiée `/uploads/inline-image` pour les
+  images insérées dans l'éditeur, distincte de `/uploads/attachment`
+- la fonction `uploadAttachment` du module doit reconstruire un objet propre
+  (`fileName`/`fileUrl`/`mimeType`/`sizeLabel`) à partir de la réponse brute
+  du service média — jamais un spread de cette réponse — sous peine de
+  déclencher un rejet 400 silencieux côté API (le toast d'erreur reste caché
+  derrière la `<Modal>` du formulaire, donc "rien ne se passe" visuellement)
+- un contenu composé uniquement d'une image (sans texte) doit rester
+  persisté, jamais nullifié silencieusement au save
 
 ## Lancer sur l'émulateur
 

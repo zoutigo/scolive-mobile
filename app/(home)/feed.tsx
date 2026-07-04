@@ -86,6 +86,16 @@ function FeedScreen() {
     [schoolSlug],
   );
 
+  const handleUploadAttachment = useCallback(
+    async (file: { uri: string; mimeType: string; fileName: string }) => {
+      if (!schoolSlug) {
+        throw new Error(tRef.current("feed.errors.schoolMissing"));
+      }
+      return feedApi.uploadAttachment(schoolSlug, file);
+    },
+    [schoolSlug],
+  );
+
   return (
     <FeedModuleScreen
       schoolSlug={schoolSlug}
@@ -110,6 +120,7 @@ function FeedScreen() {
       canCompose
       onCreatePost={handleCreatePost}
       onUploadInlineImage={handleUploadInlineImage}
+      onUploadAttachment={handleUploadAttachment}
       onPostsChange={(posts) => {
         useFeedStore.setState((state) => ({ ...state, posts }));
       }}

@@ -3,6 +3,7 @@ import type {
   TestCampaignDetail,
   TestCampaignSummary,
   TestCaseDetail,
+  TestCaseToRedo,
   TestExecutionAttachment,
   TestExecutionDetail,
   TestExecutionRow,
@@ -16,7 +17,8 @@ export type ListExecutionsParams = {
   limit?: number;
 };
 
-function normalizeMediaUrl(url: string) {
+function normalizeMediaUrl(url: string | undefined | null): string {
+  if (!url) return url ?? "";
   const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? "";
   const match = apiUrl.match(/^https?:\/\/([^:/]+)/);
   const apiHost = match?.[1] ?? "";
@@ -157,6 +159,10 @@ function normalizeAttachments<
 export const testsApi = {
   listCampaigns(): Promise<TestCampaignSummary[]> {
     return apiFetch(`/tests/campaigns`, {}, true);
+  },
+
+  listToRedo(): Promise<TestCaseToRedo[]> {
+    return apiFetch(`/tests/to-redo`, {}, true);
   },
 
   getCampaign(campaignId: string): Promise<TestCampaignDetail> {

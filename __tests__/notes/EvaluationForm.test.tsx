@@ -39,29 +39,14 @@ jest.mock("expo-document-picker", () => ({
   getDocumentAsync: jest.fn(),
 }));
 
-jest.mock("react-native-pell-rich-editor", () => {
-  const React = require("react");
-  const { TextInput } = require("react-native");
-  const FakeRichEditor = React.forwardRef((props: any, ref: any) => {
-    React.useImperativeHandle(ref, () => ({
-      setForeColor: jest.fn(),
-      command: jest.fn(),
-      getContentHtml: jest.fn().mockResolvedValue("<p>description test</p>"),
-    }));
-    return (
-      <TextInput
-        testID={props.testID ?? "rich-editor"}
-        onChangeText={props.onChange}
-      />
-    );
-  });
-  FakeRichEditor.displayName = "FakeRichEditor";
-  return { RichEditor: FakeRichEditor };
-});
-
-jest.mock("../../src/components/editor/RichTextToolbar", () => ({
-  RichTextToolbar: () => null,
+jest.mock("expo-image-picker", () => ({
+  requestMediaLibraryPermissionsAsync: jest.fn(),
+  launchImageLibraryAsync: jest.fn(),
 }));
+
+// react-native-pell-rich-editor est auto-mocké via __mocks__/react-native-pell-rich-editor.js
+// (mock manuel Jest partagé par tous les écrans utilisant RichEditorField).
+import { __setMockEditorContentHtml } from "../../__mocks__/react-native-pell-rich-editor";
 
 // DatePickerField : pressing calls onChange with a test date (octobre → TERM_1)
 jest.mock("../../src/components/DatePickerField", () => {
@@ -1066,6 +1051,87 @@ describe("EvaluationForm — pièces jointes", () => {
 
     expect(onUploadAttachment).not.toHaveBeenCalled();
     expect(screen.queryByTestId("eval-form-attachment-0")).toBeNull();
+  });
+});
+
+describe("EvaluationForm — image inline dans la description (éditeur centralisé)", () => {
+  beforeEach(() => {
+    __setMockEditorContentHtml("");
+    (
+      require("expo-image-picker")
+        .requestMediaLibraryPermissionsAsync as jest.Mock
+    ).mockResolvedValue({ status: "granted" });
+    (
+      require("expo-image-picker").launchImageLibraryAsync as jest.Mock
+    ).mockResolvedValue({
+      canceled: false,
+      assets: [
+        {
+          uri: "file:///photo.jpg",
+          fileName: "photo.jpg",
+          mimeType: "image/jpeg",
+        },
+      ],
+    });
+  });
+
+  it("n'affiche pas le bouton d'insertion d'image si onUploadInlineImage n'est pas fourni", () => {
+    render(<EvaluationForm {...buildProps()} />);
+
+    const {
+      requestMediaLibraryPermissionsAsync,
+    } = require("expo-image-picker");
+    fireEvent.press(screen.getByTestId("toolbar-insert-image"));
+
+    expect(requestMediaLibraryPermissionsAsync).not.toHaveBeenCalled();
+  });
+
+  it("uploade et insère l'image dans l'éditeur de description quand onUploadInlineImage est fourni", async () => {
+    const onUploadInlineImage = jest
+      .fn()
+      .mockResolvedValue({ url: "https://example.com/description-img.jpg" });
+
+    render(<EvaluationForm {...buildProps({ onUploadInlineImage })} />);
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("toolbar-insert-image"));
+    });
+
+    expect(onUploadInlineImage).toHaveBeenCalledWith({
+      uri: "file:///photo.jpg",
+      name: "photo.jpg",
+      mimeType: "image/jpeg",
+    });
+
+    const {
+      __mockEditorMethods,
+    } = require("../../__mocks__/react-native-pell-rich-editor");
+    expect(__mockEditorMethods.insertImage).toHaveBeenCalledWith(
+      "https://example.com/description-img.jpg",
+      expect.any(String),
+    );
+  });
+
+  it("affiche une alerte si la permission galerie est refusée", async () => {
+    const { Alert } = require("react-native");
+    jest.spyOn(Alert, "alert").mockImplementation(jest.fn());
+    (
+      require("expo-image-picker")
+        .requestMediaLibraryPermissionsAsync as jest.Mock
+    ).mockResolvedValueOnce({ status: "denied" });
+
+    const onUploadInlineImage = jest.fn();
+    render(<EvaluationForm {...buildProps({ onUploadInlineImage })} />);
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("toolbar-insert-image"));
+    });
+
+    expect(onUploadInlineImage).not.toHaveBeenCalled();
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Permission refusée",
+      "Autorisez l'accès à la galerie.",
+    );
   });
 });
 

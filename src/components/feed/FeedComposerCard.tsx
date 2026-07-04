@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   StyleSheet,
   Text,
   TextInput,
@@ -9,13 +8,14 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
-import * as ImagePicker from "expo-image-picker";
-import { RichEditor } from "react-native-pell-rich-editor";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { colors } from "../../theme";
-import { RichTextToolbar } from "../editor/RichTextToolbar";
+import {
+  RichEditorField,
+  type RichEditorFieldRef,
+} from "../editor/RichEditorField";
 import type {
   CreateFeedPayload,
   FeedAudienceScope,
@@ -30,6 +30,7 @@ type DraftAttachment = {
   id: string;
   fileName: string;
   sizeLabel: string;
+  fileUrl: string | null;
 };
 
 type Props = {
@@ -41,6 +42,15 @@ type Props = {
     name: string;
     mimeType: string;
   }) => Promise<{ url: string }>;
+  onUploadAttachment?: (file: {
+    uri: string;
+    mimeType: string;
+    fileName: string;
+  }) => Promise<{
+    fileName: string;
+    fileUrl: string | null;
+    sizeLabel: string | null;
+  }>;
   onCancel?: () => void;
 };
 
@@ -95,10 +105,6 @@ function getAudienceOptions(role: FeedViewerRole, t: TranslateFn) {
   ];
 }
 
-function buildFormatBlockCommand(tag: "h2" | "blockquote"): string {
-  return `document.execCommand('formatBlock', false, '<${tag}>'); true;`;
-}
-
 function hasTextContent(html: string) {
   return html.replace(/<[^>]+>/g, "").replace(/\s|&nbsp;/g, "").length > 0;
 }
@@ -108,10 +114,11 @@ export function FeedComposerCard({
   initialType = "POST",
   onSubmit,
   onUploadInlineImage,
+  onUploadAttachment,
   onCancel,
 }: Props) {
   const { t, locale } = useTranslation();
-  const editorRef = useRef<RichEditor>(null);
+  const editorFieldRef = useRef<RichEditorFieldRef>(null);
   const titleRef = useRef<TextInput>(null);
   const pollQuestionRef = useRef<TextInput>(null);
 
@@ -121,11 +128,11 @@ export function FeedComposerCard({
   );
 
   const [type, setType] = useState<FeedPostType>(initialType);
-  const [editorHeight, setEditorHeight] = useState(200);
-  const [bodyHtml, setBodyHtml] = useState("");
   const [bodyError, setBodyError] = useState<string | null>(null);
   const [featuredDays, setFeaturedDays] = useState("0");
   const [attachments, setAttachments] = useState<DraftAttachment[]>([]);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [selectedAudienceScope, setSelectedAudienceScope] =
     useState<FeedAudienceScope>(audienceOptions[0]?.scope ?? "SCHOOL_ALL");
 
@@ -204,96 +211,43 @@ export function FeedComposerCard({
     return null;
   }
 
-  function openTextColorMenu() {
-    Alert.alert(
-      t("feed.composer.colorMenuTitle"),
-      t("feed.composer.colorMenuMessage"),
-      [
-        ...getColorPresets(t).map((preset) => ({
-          text: preset.label,
-          onPress: () => editorRef.current?.setForeColor(preset.value),
-        })),
-        { text: t("feed.composer.cancel"), style: "cancel" as const },
-      ],
-    );
-  }
-
-  function applyHeading() {
-    editorRef.current?.command(buildFormatBlockCommand("h2"));
-  }
-
-  function applyQuote() {
-    editorRef.current?.command(buildFormatBlockCommand("blockquote"));
-  }
-
-  async function resolveEditorHtml() {
-    const editorHtml = await editorRef.current?.getContentHtml?.();
-    if (typeof editorHtml === "string" && editorHtml.trim().length > 0) {
-      return editorHtml;
-    }
-    return bodyHtml;
-  }
-
-  async function insertInlineImageFromGallery() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permission.status !== "granted") {
-      Alert.alert(
-        t("feed.permission.galleryDeniedTitle"),
-        t("feed.permission.galleryDeniedMessage"),
-      );
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: false,
-      quality: 0.85,
-      exif: false,
-    });
-    if (result.canceled || !result.assets[0]) return;
-    const asset = result.assets[0];
-    try {
-      const response = await onUploadInlineImage({
-        uri: asset.uri,
-        name: asset.fileName ?? `feed-inline-${Date.now()}.jpg`,
-        mimeType: asset.mimeType ?? "image/jpeg",
-      });
-      editorRef.current?.insertImage(
-        response.url,
-        "width:100%;max-width:100%;height:auto;display:block;border-radius:8px;margin:8px 0;",
-      );
-    } catch (error) {
-      Alert.alert(
-        t("feed.toast.imageErrorTitle"),
-        error instanceof Error
-          ? error.message
-          : t("feed.toast.imageErrorMessage"),
-      );
-    }
-  }
-
   async function addAttachment() {
+    if (!onUploadAttachment) return;
     const result = await DocumentPicker.getDocumentAsync({
       multiple: true,
       copyToCacheDirectory: true,
       type: ["application/*", "image/*", "text/*"],
     });
     if (result.canceled) return;
-    setAttachments((current) => {
-      const next = [...current];
-      result.assets.forEach((asset) => {
-        const key = `${asset.name}:${asset.size ?? 0}`;
-        if (
-          next.some((entry) => `${entry.fileName}:${entry.sizeLabel}` === key)
-        )
-          return;
-        next.push({
-          id: `${asset.name}-${Date.now()}-${next.length}`,
-          fileName: asset.name,
-          sizeLabel: formatFileSize(asset.size ?? 0, t),
-        });
-      });
-      return next;
-    });
+
+    setAttachmentError(null);
+    setIsUploadingAttachment(true);
+    try {
+      const uploaded = await Promise.all(
+        result.assets.map(async (asset) => {
+          const response = await onUploadAttachment({
+            uri: asset.uri,
+            mimeType: asset.mimeType ?? "application/octet-stream",
+            fileName: asset.name,
+          });
+          return {
+            id: `${asset.name}-${Date.now()}-${Math.random()}`,
+            fileName: response.fileName,
+            fileUrl: response.fileUrl,
+            sizeLabel: response.sizeLabel ?? formatFileSize(asset.size ?? 0, t),
+          };
+        }),
+      );
+      setAttachments((current) => [...current, ...uploaded]);
+    } catch (error) {
+      setAttachmentError(
+        error instanceof Error
+          ? error.message
+          : t("feed.attachments.uploadError"),
+      );
+    } finally {
+      setIsUploadingAttachment(false);
+    }
   }
 
   function removeAttachment(id: string) {
@@ -301,7 +255,7 @@ export function FeedComposerCard({
   }
 
   async function onValid(data: FormValues) {
-    const resolvedHtml = await resolveEditorHtml();
+    const resolvedHtml = (await editorFieldRef.current?.getContentHtml()) ?? "";
     if (!hasTextContent(resolvedHtml)) {
       setBodyError(t("feed.validation.bodyRequired"));
       return;
@@ -325,15 +279,17 @@ export function FeedComposerCard({
       attachments: attachments.map((a) => ({
         fileName: a.fileName,
         sizeLabel: a.sizeLabel,
+        fileUrl: a.fileUrl ?? undefined,
       })),
     });
 
     reset();
     setType("POST");
-    setBodyHtml("");
+    editorFieldRef.current?.clear();
     setBodyError(null);
     setFeaturedDays("0");
     setAttachments([]);
+    setAttachmentError(null);
     setSelectedAudienceScope(audienceOptions[0]?.scope ?? "SCHOOL_ALL");
     onCancel?.();
   }
@@ -439,43 +395,32 @@ export function FeedComposerCard({
 
         {/* Content */}
         <View style={styles.fieldGroup}>
-          <View style={styles.fieldLabelRow}>
-            <Text style={styles.fieldLabel}>
-              {t("feed.composer.contentLabel")}
-            </Text>
-            <RichTextToolbar
-              editorRef={editorRef}
-              onPressAddImage={() => {
-                void insertInlineImageFromGallery();
-              }}
-              onPressColor={openTextColorMenu}
-              onPressHeading={applyHeading}
-              onPressQuote={applyQuote}
-            />
-          </View>
-          <View style={styles.editorArea}>
-            <RichEditor
-              ref={editorRef}
-              style={[styles.editor, { height: editorHeight }]}
-              placeholder={t("feed.composer.editorPlaceholder")}
-              editorStyle={{
-                backgroundColor: colors.surface,
-                color: colors.textPrimary,
-                placeholderColor: colors.textSecondary,
-                contentCSSText:
-                  "font-size: 15px; line-height: 1.6; color: #1F2933; padding: 12px 0;",
-                cssText:
-                  "img { max-width: 100%; height: auto; display: block; margin: 8px 0; }",
-              }}
-              onChange={(html) => {
-                setBodyHtml(html);
-                if (bodyError) setBodyError(null);
-              }}
-              onHeightChange={(h) => setEditorHeight(Math.max(200, h))}
-              useContainer
-              testID="feed-rich-editor"
-            />
-          </View>
+          <Text style={styles.fieldLabel}>
+            {t("feed.composer.contentLabel")}
+          </Text>
+          <RichEditorField
+            ref={editorFieldRef}
+            placeholder={t("feed.composer.editorPlaceholder")}
+            colorPresets={getColorPresets(t)}
+            labels={{
+              colorMenuTitle: t("feed.composer.colorMenuTitle"),
+              colorMenuMessage: t("feed.composer.colorMenuMessage"),
+              cancel: t("feed.composer.cancel"),
+              permissionDeniedTitle: t("feed.permission.galleryDeniedTitle"),
+              permissionDeniedMessage: t(
+                "feed.permission.galleryDeniedMessage",
+              ),
+              imageErrorTitle: t("feed.toast.imageErrorTitle"),
+              imageErrorFallbackMessage: t("feed.toast.imageErrorMessage"),
+            }}
+            onUploadInlineImage={onUploadInlineImage}
+            onChangeHtml={() => {
+              if (bodyError) setBodyError(null);
+            }}
+            containerStyle={styles.editorArea}
+            contentCSSText="font-size: 15px; line-height: 1.6; color: #1F2933; padding: 12px 0;"
+            editorTestID="feed-rich-editor"
+          />
           {bodyError ? (
             <Text style={styles.fieldError} testID="feed-composer-body-error">
               {bodyError}
@@ -619,13 +564,25 @@ export function FeedComposerCard({
               onPress={() => {
                 void addAttachment();
               }}
+              disabled={!onUploadAttachment || isUploadingAttachment}
               testID="feed-add-attachment"
             >
               <Text style={styles.secondaryActionText}>
-                {t("feed.attachments.add")}
+                {isUploadingAttachment
+                  ? t("feed.attachments.uploading")
+                  : t("feed.attachments.add")}
               </Text>
             </TouchableOpacity>
           </View>
+
+          {attachmentError ? (
+            <Text
+              style={styles.fieldError}
+              testID="feed-composer-attachment-error"
+            >
+              {attachmentError}
+            </Text>
+          ) : null}
 
           {attachments.length > 0
             ? attachments.map((attachment) => (
@@ -790,11 +747,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
-  fieldLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
   fieldInput: {
     minHeight: 48,
     borderBottomWidth: 1,
@@ -816,9 +768,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: colors.surface,
     overflow: "hidden",
-  },
-  editor: {
-    backgroundColor: colors.surface,
   },
   secondaryAction: {
     flexDirection: "row",

@@ -240,10 +240,22 @@ describe("FeedComposerCard", () => {
     });
   });
 
-  it("liste une pièce jointe sélectionnée", async () => {
+  it("uploade et liste une pièce jointe sélectionnée", async () => {
     mockGetDocument.mockResolvedValueOnce({
       canceled: false,
-      assets: [{ name: "reglement.pdf", size: 4096 }],
+      assets: [
+        {
+          name: "reglement.pdf",
+          size: 4096,
+          uri: "file:///tmp/reglement.pdf",
+          mimeType: "application/pdf",
+        },
+      ],
+    });
+    const onUploadAttachment = jest.fn().mockResolvedValue({
+      fileName: "reglement.pdf",
+      fileUrl: "https://cdn.example.com/feed/reglement.pdf",
+      sizeLabel: "4 Ko",
     });
 
     render(
@@ -251,14 +263,103 @@ describe("FeedComposerCard", () => {
         viewerRole="PARENT"
         onSubmit={jest.fn().mockResolvedValue(undefined)}
         onUploadInlineImage={jest.fn()}
+        onUploadAttachment={onUploadAttachment}
       />,
     );
 
     fireEvent.press(screen.getByTestId("feed-add-attachment"));
 
     await waitFor(() => {
+      expect(onUploadAttachment).toHaveBeenCalledWith({
+        uri: "file:///tmp/reglement.pdf",
+        mimeType: "application/pdf",
+        fileName: "reglement.pdf",
+      });
       expect(screen.getByText("reglement.pdf")).toBeTruthy();
     });
+  });
+
+  it("envoie l'attachment uploadé (avec fileUrl) au submit", async () => {
+    mockGetDocument.mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          name: "reglement.pdf",
+          size: 4096,
+          uri: "file:///tmp/reglement.pdf",
+          mimeType: "application/pdf",
+        },
+      ],
+    });
+    const onUploadAttachment = jest.fn().mockResolvedValue({
+      fileName: "reglement.pdf",
+      fileUrl: "https://cdn.example.com/feed/reglement.pdf",
+      sizeLabel: "4 Ko",
+    });
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={onSubmit}
+        onUploadInlineImage={jest.fn()}
+        onUploadAttachment={onUploadAttachment}
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId("feed-add-attachment"));
+    await waitFor(() => screen.getByText("reglement.pdf"));
+
+    fireEvent.changeText(screen.getByTestId("feed-composer-title"), "Réunion");
+    fireEvent.press(screen.getByTestId("rich-editor-set-content"));
+    fireEvent.press(screen.getByTestId("feed-composer-submit"));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attachments: [
+            {
+              fileName: "reglement.pdf",
+              sizeLabel: "4 Ko",
+              fileUrl: "https://cdn.example.com/feed/reglement.pdf",
+            },
+          ],
+        }),
+      );
+    });
+  });
+
+  it("affiche une erreur si l'upload de la pièce jointe échoue", async () => {
+    mockGetDocument.mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          name: "reglement.pdf",
+          size: 4096,
+          uri: "file:///tmp/reglement.pdf",
+          mimeType: "application/pdf",
+        },
+      ],
+    });
+    const onUploadAttachment = jest
+      .fn()
+      .mockRejectedValue(new Error("Échec de l'envoi de la pièce jointe."));
+
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        onSubmit={jest.fn().mockResolvedValue(undefined)}
+        onUploadInlineImage={jest.fn()}
+        onUploadAttachment={onUploadAttachment}
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId("feed-add-attachment"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-composer-attachment-error")).toBeTruthy();
+    });
+    expect(screen.queryByText("reglement.pdf")).toBeNull();
   });
 
   it("upload une image inline depuis la galerie", async () => {

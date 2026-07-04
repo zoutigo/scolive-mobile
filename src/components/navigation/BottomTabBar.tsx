@@ -59,7 +59,8 @@ const TESTS_TAB: TabDef = {
   inactiveIcon: "clipboard-outline",
 };
 
-function normalize(pathname: string): string {
+function normalize(pathname: string | undefined): string {
+  if (!pathname) return "/";
   const withoutGroup = pathname.replace("/(home)", "");
   return withoutGroup === "" ? "/" : withoutGroup;
 }

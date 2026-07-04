@@ -41,6 +41,9 @@ apply_dev_tuning() {
   "$ADB_BIN" -s "$serial" reverse tcp:8081 tcp:8081 >/dev/null 2>&1 || true
   "$ADB_BIN" -s "$serial" reverse tcp:3000 tcp:3000 >/dev/null 2>&1 || true
   "$ADB_BIN" -s "$serial" reverse tcp:3001 tcp:3001 >/dev/null 2>&1 || true
+  # MinIO/media (MEDIA_PUBLIC_BASE_URL=http://localhost:9000/...) : requis pour que les images
+  # uploadées (homework, messagerie, etc.) s'affichent dans les WebView/Image de l'app
+  "$ADB_BIN" -s "$serial" reverse tcp:9000 tcp:9000 >/dev/null 2>&1 || true
 
   "$ADB_BIN" -s "$serial" shell settings put global verifier_verify_adb_installs 0 >/dev/null 2>&1 || true
   "$ADB_BIN" -s "$serial" shell settings put global package_verifier_enable 0 >/dev/null 2>&1 || true

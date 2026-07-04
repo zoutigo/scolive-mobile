@@ -100,9 +100,10 @@ function SubmitResultScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { testCaseId, evidenceRequired } = useLocalSearchParams<{
+  const { testCaseId, evidenceRequired, reworkNote } = useLocalSearchParams<{
     testCaseId: string;
     evidenceRequired: string;
+    reworkNote?: string;
   }>();
   const isEvidenceRequired = evidenceRequired === "1";
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
@@ -275,24 +276,40 @@ function SubmitResultScreen() {
         topInset={insets.top}
       />
 
-      <View style={styles.heroContainer} testID="tests-submit-hero">
-        <View style={styles.heroDecor1} />
-        <View style={styles.heroDecor2} />
-        <View style={styles.heroRow}>
-          <View style={styles.heroIconWrap}>
-            <Ionicons
-              name="clipboard-outline"
-              size={28}
-              color="rgba(255,255,255,0.92)"
-            />
-          </View>
-          <View style={styles.heroTextWrap}>
-            <Text style={styles.heroTitle}>
-              {t("tests.detail.formModalTitle")}
-            </Text>
-            <Text style={styles.heroSubtitleText}>
-              {t("tests.detail.heroSubtitle")}
-            </Text>
+      {reworkNote !== undefined ? (
+        <View
+          style={styles.reworkNoteBanner}
+          testID="tests-submit-rework-banner"
+        >
+          <Text style={styles.reworkNoteBannerTitle}>
+            {t("tests.detail.reworkBanner.formNote")}
+          </Text>
+          {reworkNote.trim().length > 0 ? (
+            <Text style={styles.reworkNoteBannerBody}>{reworkNote}</Text>
+          ) : null}
+        </View>
+      ) : null}
+
+      <View style={styles.heroWrapper}>
+        <View style={styles.heroContainer} testID="tests-submit-hero">
+          <View style={styles.heroDecor1} />
+          <View style={styles.heroDecor2} />
+          <View style={styles.heroRow}>
+            <View style={styles.heroIconWrap}>
+              <Ionicons
+                name="clipboard-outline"
+                size={28}
+                color="rgba(255,255,255,0.92)"
+              />
+            </View>
+            <View style={styles.heroTextWrap}>
+              <Text style={styles.heroTitle}>
+                {t("tests.detail.formModalTitle")}
+              </Text>
+              <Text style={styles.heroSubtitleText}>
+                {t("tests.detail.heroSubtitle")}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
@@ -451,57 +468,70 @@ function SubmitResultScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
+  reworkNoteBanner: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    backgroundColor: "#FBE3E1",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#F0C9C2",
+    padding: 14,
+    gap: 4,
+  },
+  reworkNoteBannerTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#B3261E",
+  },
+  reworkNoteBannerBody: { fontSize: 13, lineHeight: 19, color: "#7A241D" },
+  heroWrapper: { padding: 16 },
   heroContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 22,
+    borderRadius: 20,
+    padding: 20,
     overflow: "hidden",
+    position: "relative",
     backgroundColor: "#247C72",
   },
   heroDecor1: {
     position: "absolute",
-    width: 100,
-    height: 100,
-    borderRadius: 22,
-    bottom: -40,
-    right: -20,
-    transform: [{ rotate: "30deg" }],
-    opacity: 0.18,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    top: -40,
+    right: -30,
+    opacity: 0.3,
     backgroundColor: "#195E56",
   },
   heroDecor2: {
     position: "absolute",
-    width: 60,
-    height: 60,
-    borderRadius: 14,
-    top: -18,
-    right: 60,
-    transform: [{ rotate: "20deg" }],
-    opacity: 0.12,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    bottom: -20,
+    left: 40,
+    opacity: 0.2,
     backgroundColor: "#195E56",
   },
   heroRow: { flexDirection: "row", alignItems: "center", gap: 14 },
   heroIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center" as const,
     justifyContent: "center" as const,
-    flexShrink: 0,
   },
-  heroTextWrap: { flex: 1, gap: 3 },
+  heroTextWrap: { flex: 1 },
   heroTitle: {
     color: "#FFFFFF",
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: "800",
-    lineHeight: 26,
+    letterSpacing: 0.3,
   },
   heroSubtitleText: {
-    color: "rgba(255,255,255,0.70)",
+    color: "rgba(255,255,255,0.78)",
     fontSize: 12,
-    lineHeight: 18,
-    marginTop: 4,
+    marginTop: 3,
   },
   content: {
     paddingHorizontal: 18,

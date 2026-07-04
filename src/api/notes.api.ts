@@ -277,4 +277,36 @@ export const notesApi = {
       sizeLabel: payload.sizeLabel ?? null,
     };
   },
+
+  async uploadInlineImage(
+    schoolSlug: string,
+    file: {
+      uri: string;
+      mimeType: string;
+      name: string;
+    },
+  ): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append("file", {
+      uri: file.uri,
+      type: file.mimeType,
+      name: file.name,
+    } as unknown as Blob);
+
+    const response = await postMultipart(
+      `/schools/${schoolSlug}/evaluations/uploads/attachment`,
+      formData,
+    );
+
+    if (!response.ok) {
+      await throwMultipartError(response, "UPLOAD_INLINE_IMAGE_FAILED");
+    }
+
+    const payload = (await response.json()) as {
+      url?: string;
+      fileUrl?: string;
+    };
+
+    return { url: payload.fileUrl ?? payload.url ?? "" };
+  },
 };

@@ -18,7 +18,7 @@ export type StudentSelectOption = {
 };
 
 type Props = {
-  label: string;
+  label?: string;
   value: string;
   options: StudentSelectOption[];
   onChange: (value: string) => void;
@@ -64,9 +64,11 @@ export function StudentSelectField({
 
   return (
     <View style={styles.block}>
-      <Text style={styles.label} numberOfLines={1}>
-        {label}
-      </Text>
+      {label ? (
+        <Text style={styles.label} numberOfLines={1}>
+          {label}
+        </Text>
+      ) : null}
       <TouchableOpacity
         style={styles.trigger}
         activeOpacity={0.8}
@@ -96,7 +98,7 @@ export function StudentSelectField({
           />
           <View style={styles.sheet}>
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>{label}</Text>
+              {label ? <Text style={styles.sheetTitle}>{label}</Text> : null}
               <TouchableOpacity
                 onPress={() => setOpen(false)}
                 testID={`${testIDPrefix}-close`}

@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -23,8 +24,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
-import * as ImagePicker from "expo-image-picker";
-import { RichEditor } from "react-native-pell-rich-editor";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -42,10 +41,14 @@ import { notesApi } from "../../api/notes.api";
 import { timetableApi } from "../../api/timetable.api";
 import { homeworkApi } from "../../api/homework.api";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { FormHero } from "../forms/FormHero";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { getViewType } from "../navigation/nav-config";
-import { RichTextToolbar } from "../editor/RichTextToolbar";
+import {
+  RichEditorField,
+  type RichEditorFieldRef,
+} from "../editor/RichEditorField";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { DatePickerField } from "../DatePickerField";
@@ -76,6 +79,7 @@ import {
   formatHomeworkDayLabel,
   formatHomeworkShortDate,
   getHomeworkWeekendVisibility,
+  homeworkAuthorInitials,
   homeworkDateKey,
   htmlToText,
   isHomeworkDone,
@@ -103,8 +107,15 @@ type TeacherSubjectOption = {
 
 type HomeworkInlinePanel = "comments" | "control";
 
-type HomeworkTabKey = "list" | "agenda";
+type HomeworkTabKey = "list" | "agenda" | "forms";
+type HomeworkListLikeTab = "list" | "agenda";
 type AgendaModeKey = "week" | "month";
+
+type HomeworkFormContext = {
+  type: "create" | "edit";
+  originTab: HomeworkListLikeTab;
+  item: HomeworkRow | null;
+};
 
 const HOMEWORK_LIST_PAGE_SIZE = 10;
 
@@ -122,9 +133,6 @@ function buildHomeworkTabs(t: TranslateFn) {
     },
   ];
 }
-
-const HOMEWORK_INLINE_IMAGE_STYLE =
-  "max-width:100%;border-radius:8px;margin:8px 0;";
 
 function buildHomeworkFormSchema(t: TranslateFn) {
   return z.object({
@@ -322,34 +330,36 @@ function HomeworkCard(props: {
       >
         <View style={styles.cardHeaderSection}>
           <View style={styles.cardHeaderLine}>
-            <View style={styles.cardSubjectRow}>
-              <Text style={[styles.cardSubject, { color: tone.text }]}>
-                {props.item.subject.name}
-              </Text>
-              {done ? (
-                <View
-                  style={[styles.donePill, { backgroundColor: tone.chip }]}
-                  testID={`${prefix}-done-${props.item.id}`}
-                >
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={14}
-                    color={colors.white}
-                  />
-                  <Text style={styles.donePillText}>
-                    {t("homework.status.done")}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-            <Text style={styles.cardAuthorInline} numberOfLines={1}>
-              {props.item.authorDisplayName}
+            <Text
+              style={[styles.cardSubject, { color: tone.text }]}
+              numberOfLines={1}
+            >
+              {props.item.subject.name}
             </Text>
+            <Text style={styles.cardMetaLabel} numberOfLines={1}>
+              {formatHomeworkShortDate(props.item.expectedAt)}
+            </Text>
+            <View
+              style={[styles.cardAuthorBadge, { borderColor: tone.border }]}
+              testID={`${prefix}-author-${props.item.id}`}
+            >
+              <Text style={[styles.cardAuthorBadgeText, { color: tone.text }]}>
+                {homeworkAuthorInitials(props.item.authorDisplayName)}
+              </Text>
+            </View>
+            {done ? (
+              <View
+                style={[styles.donePill, { backgroundColor: tone.chip }]}
+                testID={`${prefix}-done-${props.item.id}`}
+              >
+                <Ionicons
+                  name="checkmark-circle"
+                  size={14}
+                  color={colors.white}
+                />
+              </View>
+            ) : null}
           </View>
-          <Text style={styles.cardMetaLabel}>
-            {t("homework.card.expectedDatePrefix")}
-            {formatHomeworkShortDate(props.item.expectedAt)}
-          </Text>
         </View>
 
         <View style={styles.cardBodySection}>
@@ -454,13 +464,6 @@ function HomeworkCard(props: {
           ) : null}
         </View>
 
-        {props.item.attachments.length > 0 ? (
-          <Text style={[styles.cardAttachmentCount, { color: tone.text }]}>
-            {props.item.attachments.length}{" "}
-            {t("homework.card.attachmentsSuffix")}
-          </Text>
-        ) : null}
-
         {props.inlineLoading &&
         (props.commentsExpanded || props.controlExpanded) ? (
           <View style={styles.inlinePanelLoading}>
@@ -500,6 +503,14 @@ function HomeworkCard(props: {
                 multiline
                 testID={`${prefix}-inline-comment-input-${props.item.id}`}
               />
+              <TouchableOpacity
+                style={styles.commentCloseButton}
+                onPress={props.onToggleComments}
+                accessibilityLabel={t("homework.comment.close")}
+                testID={`${prefix}-inline-comment-close-${props.item.id}`}
+              >
+                <Ionicons name="close" size={16} color="#22456F" />
+              </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.commentSubmit,
@@ -556,11 +567,34 @@ function HomeworkCard(props: {
   );
 }
 
-function HomeworkFormModal(props: {
-  visible: boolean;
-  onClose: () => void;
-  headerSubtitle?: string;
+function HomeworkFormHero(props: {
+  mode: "create" | "edit";
+  item: HomeworkRow | null;
+  t: TranslateFn;
+}) {
+  const isEdit = props.mode === "edit";
+  const title = isEdit
+    ? (props.item?.title ?? props.t("homework.form.editTitle"))
+    : props.t("homework.form.createHeroTitle");
+  const subtitle = isEdit
+    ? (props.item?.subject.name ?? undefined)
+    : props.t("homework.form.createHeroSubtitle");
+
+  return (
+    <FormHero
+      icon={isEdit ? "create-outline" : "add-circle-outline"}
+      title={title}
+      subtitle={subtitle}
+      palette="teal"
+      testID="homework-form-hero"
+    />
+  );
+}
+
+function HomeworkFormContent(props: {
+  formContext: HomeworkFormContext;
   onSubmit: (payload: UpsertHomeworkPayload) => Promise<void>;
+  onCancel: () => void;
   onUploadAttachment: (file: {
     uri: string;
     mimeType: string;
@@ -572,110 +606,39 @@ function HomeworkFormModal(props: {
     fileName: string;
   }) => Promise<{ url: string }>;
   subjectOptions: TeacherSubjectOption[];
-  initialValue?: HomeworkRow | null;
   isSubmitting: boolean;
 }) {
   const { t } = useTranslation();
-  const editorRef = useRef<RichEditor>(null);
-  const [attachments, setAttachments] = useState<HomeworkAttachment[]>([]);
-  const [descriptionHtml, setDescriptionHtml] = useState("");
+  const editorFieldRef = useRef<RichEditorFieldRef>(null);
+  const initialValue = props.formContext.item;
+  const [attachments, setAttachments] = useState<HomeworkAttachment[]>(
+    initialValue?.attachments ?? [],
+  );
+  const [descriptionHtml] = useState(initialValue?.contentHtml ?? "");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isInsertingImage, setIsInsertingImage] = useState(false);
   const textColorPresets = useMemo(() => buildTextColorPresets(t), [t]);
+  const initialExpectedAt = useMemo(
+    () => isoToLocalInput(initialValue?.expectedAt ?? ""),
+    [initialValue?.expectedAt],
+  );
   const {
     control,
     handleSubmit,
-    reset,
     setValue,
     watch,
     formState: { errors },
   } = useForm<HomeworkFormValues>({
     resolver: zodResolver(buildHomeworkFormSchema(t)),
     defaultValues: {
-      subjectId: props.subjectOptions[0]?.value ?? "",
-      title: "",
-      expectedDate: "",
-      expectedTime: "",
+      subjectId:
+        initialValue?.subject.id ?? props.subjectOptions[0]?.value ?? "",
+      title: initialValue?.title ?? "",
+      expectedDate: initialExpectedAt.slice(0, 10),
+      expectedTime: initialExpectedAt.slice(11, 16),
     },
   });
 
   const watchedSubjectId = watch("subjectId");
-
-  useEffect(() => {
-    if (!props.visible) return;
-    const initialExpectedAt = isoToLocalInput(
-      props.initialValue?.expectedAt ?? "",
-    );
-    reset({
-      title: props.initialValue?.title ?? "",
-      expectedDate: initialExpectedAt.slice(0, 10),
-      expectedTime: initialExpectedAt.slice(11, 16),
-      subjectId:
-        props.initialValue?.subject.id ?? props.subjectOptions[0]?.value ?? "",
-    });
-    setAttachments(props.initialValue?.attachments ?? []);
-    setDescriptionHtml(props.initialValue?.contentHtml ?? "");
-    setErrorMessage(null);
-  }, [props.initialValue, props.subjectOptions, props.visible, reset]);
-
-  function openTextColorMenu() {
-    Alert.alert(
-      t("homework.form.colorMenu.title"),
-      t("homework.form.colorMenu.message"),
-      [
-        ...textColorPresets.map((color) => ({
-          text: color.label,
-          onPress: () => editorRef.current?.setForeColor(color.value),
-        })),
-        { text: t("homework.common.cancel"), style: "cancel" as const },
-      ],
-    );
-  }
-
-  function applyHeading() {
-    editorRef.current?.command(
-      "document.execCommand('formatBlock', false, '<h2>'); true;",
-    );
-  }
-
-  function applyQuote() {
-    editorRef.current?.command(
-      "document.execCommand('formatBlock', false, '<blockquote>'); true;",
-    );
-  }
-
-  async function handleAddInlineImage() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permission.status !== "granted") {
-      Alert.alert(
-        t("homework.form.permission.title"),
-        t("homework.form.permission.message"),
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-    });
-    if (result.canceled) return;
-    const asset = result.assets[0];
-    if (!asset) return;
-
-    setIsInsertingImage(true);
-    try {
-      const uploaded = await props.onUploadInlineImage({
-        uri: asset.uri,
-        mimeType: asset.mimeType ?? "image/jpeg",
-        fileName: asset.fileName ?? `homework_${Date.now()}.jpg`,
-      });
-      editorRef.current?.insertImage(uploaded.url, HOMEWORK_INLINE_IMAGE_STYLE);
-    } catch {
-      Alert.alert(t("homework.errors.title"), t("homework.errors.insertImage"));
-    } finally {
-      setIsInsertingImage(false);
-    }
-  }
 
   async function handleAddAttachment() {
     try {
@@ -708,89 +671,82 @@ function HomeworkFormModal(props: {
 
   const handleSave = handleSubmit(async (values) => {
     setErrorMessage(null);
-    const contentHtml = await editorRef.current?.getContentHtml?.();
-    const payload: UpsertHomeworkPayload = {
-      title: values.title.trim(),
-      subjectId: values.subjectId,
-      expectedAt: localInputToIso(
-        `${values.expectedDate.trim()}T${values.expectedTime.trim()}`,
-      ),
-      contentHtml:
-        typeof contentHtml === "string" && contentHtml.trim()
-          ? contentHtml
-          : descriptionHtml || undefined,
-      attachments,
-    };
+    try {
+      const contentHtml = await editorFieldRef.current?.getContentHtml();
+      const payload: UpsertHomeworkPayload = {
+        title: values.title.trim(),
+        subjectId: values.subjectId,
+        expectedAt: localInputToIso(
+          `${values.expectedDate.trim()}T${values.expectedTime.trim()}`,
+        ),
+        contentHtml: contentHtml?.trim() ? contentHtml : undefined,
+        attachments,
+      };
 
-    await props.onSubmit(payload);
+      await props.onSubmit(payload);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : t("homework.toast.saveErrorMessage"),
+      );
+    }
   });
 
   return (
-    <Modal
-      visible={props.visible}
-      animationType="slide"
-      onRequestClose={props.onClose}
-    >
+    <View style={styles.formsTabContent} testID="homework-form-tab">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.modalRoot}
+        style={styles.formsKeyboardArea}
       >
         <ScrollView
-          style={styles.modalRoot}
-          contentContainerStyle={styles.modalContent}
+          style={styles.formScroll}
+          contentContainerStyle={styles.formScrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <ModuleHeader
-            title={
-              props.initialValue
-                ? t("homework.form.editTitle")
-                : t("homework.form.createTitle")
-            }
-            subtitle={props.headerSubtitle}
-            onBack={props.onClose}
-            testID="homework-form-header"
-            backTestID="homework-form-close"
-            titleTestID="homework-form-header-title"
-            subtitleTestID="homework-form-header-subtitle"
-            topInset={0}
-            backgroundColor={colors.primary}
+          <HomeworkFormHero
+            mode={props.formContext.type}
+            item={initialValue}
+            t={t}
           />
 
           {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>
-              {t("homework.form.subjectLabel")}
-            </Text>
-            <View style={styles.subjectPillsRow}>
-              {props.subjectOptions.map((option) => {
-                const active = option.value === watchedSubjectId;
-                const tone = subjectVisualTone(option.colorHex ?? undefined);
-                return (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.subjectPill,
-                      {
-                        backgroundColor: active ? tone.chip : tone.background,
-                        borderColor: tone.border,
-                      },
-                    ]}
-                    onPress={() => setValue("subjectId", option.value)}
-                    testID={`homework-form-subject-${option.value}`}
-                  >
-                    <Text
+            <View style={styles.subjectFieldInlineRow}>
+              <Text style={styles.inlineFieldLabel} numberOfLines={2}>
+                {t("homework.form.subjectLabel")}
+              </Text>
+              <View style={styles.subjectPillsRow}>
+                {props.subjectOptions.map((option) => {
+                  const active = option.value === watchedSubjectId;
+                  const tone = subjectVisualTone(option.colorHex ?? undefined);
+                  return (
+                    <TouchableOpacity
+                      key={option.value}
                       style={[
-                        styles.subjectPillText,
-                        { color: active ? colors.white : tone.text },
+                        styles.subjectPill,
+                        {
+                          backgroundColor: active ? tone.chip : tone.background,
+                          borderColor: tone.border,
+                        },
                       ]}
+                      onPress={() => setValue("subjectId", option.value)}
+                      testID={`homework-form-subject-${option.value}`}
                     >
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+                      <Text
+                        style={[
+                          styles.subjectPillText,
+                          { color: active ? colors.white : tone.text },
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
             {errors.subjectId?.message ? (
               <Text style={styles.fieldError}>{errors.subjectId.message}</Text>
@@ -821,40 +777,46 @@ function HomeworkFormModal(props: {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>
-              {t("homework.form.expectedDateLabel")}
-            </Text>
-            <View style={styles.expectedAtRow}>
-              <Controller
-                control={control}
-                name="expectedDate"
-                render={({ field: { value, onChange, onBlur } }) => (
-                  <DatePickerField
-                    value={value}
-                    onChange={onChange}
-                    onBlur={onBlur}
-                    placeholder={t("homework.form.datePlaceholder")}
-                    title={t("homework.form.expectedDateLabel")}
-                    hasError={Boolean(errors.expectedDate)}
-                    testID="homework-form-expected-date"
-                  />
-                )}
-              />
-              <Controller
-                control={control}
-                name="expectedTime"
-                render={({ field: { value, onChange, onBlur } }) => (
-                  <TimePickerField
-                    value={value}
-                    onChange={onChange}
-                    onBlur={onBlur}
-                    placeholder={t("homework.form.timePlaceholder")}
-                    title={t("homework.form.expectedTimeLabel")}
-                    hasError={Boolean(errors.expectedTime)}
-                    testID="homework-form-expected-time"
-                  />
-                )}
-              />
+            <View style={styles.expectedAtInlineRow}>
+              <Text style={styles.inlineFieldLabel} numberOfLines={2}>
+                {t("homework.form.expectedDateLabel")}
+              </Text>
+              <View style={styles.expectedAtRow}>
+                <Controller
+                  control={control}
+                  name="expectedDate"
+                  render={({ field: { value, onChange, onBlur } }) => (
+                    <View style={styles.expectedDateField}>
+                      <DatePickerField
+                        value={value}
+                        onChange={onChange}
+                        onBlur={onBlur}
+                        placeholder={t("homework.form.datePlaceholder")}
+                        title={t("homework.form.expectedDateLabel")}
+                        hasError={Boolean(errors.expectedDate)}
+                        testID="homework-form-expected-date"
+                      />
+                    </View>
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="expectedTime"
+                  render={({ field: { value, onChange, onBlur } }) => (
+                    <View style={styles.expectedTimeField}>
+                      <TimePickerField
+                        value={value}
+                        onChange={onChange}
+                        onBlur={onBlur}
+                        placeholder={t("homework.form.timePlaceholder")}
+                        title={t("homework.form.expectedTimeLabel")}
+                        hasError={Boolean(errors.expectedTime)}
+                        testID="homework-form-expected-time"
+                      />
+                    </View>
+                  )}
+                />
+              </View>
             </View>
             {errors.expectedDate?.message ? (
               <Text style={styles.fieldError}>
@@ -872,27 +834,32 @@ function HomeworkFormModal(props: {
             <Text style={styles.fieldLabel}>
               {t("homework.form.contentLabel")}
             </Text>
-            <RichTextToolbar
-              editorRef={editorRef}
-              onPressAddImage={() => void handleAddInlineImage()}
-              onPressColor={openTextColorMenu}
-              onPressHeading={applyHeading}
-              onPressQuote={applyQuote}
+            <RichEditorField
+              ref={editorFieldRef}
+              initialHtml={descriptionHtml}
+              placeholder={t("homework.form.contentPlaceholder")}
+              insertingPlaceholder={t("homework.form.insertingImage")}
+              colorPresets={textColorPresets}
+              labels={{
+                colorMenuTitle: t("homework.form.colorMenu.title"),
+                colorMenuMessage: t("homework.form.colorMenu.message"),
+                cancel: t("homework.common.cancel"),
+                permissionDeniedTitle: t("homework.form.permission.title"),
+                permissionDeniedMessage: t("homework.form.permission.message"),
+                imageErrorTitle: t("homework.errors.title"),
+                imageErrorFallbackMessage: t("homework.errors.insertImage"),
+              }}
+              onUploadInlineImage={(file) =>
+                props.onUploadInlineImage({
+                  uri: file.uri,
+                  mimeType: file.mimeType,
+                  fileName: file.name,
+                })
+              }
+              minHeight={220}
               toolbarTestID="homework-form-toolbar"
+              editorTestID="homework-form-editor"
             />
-            <View style={styles.editorWrap}>
-              <RichEditor
-                ref={editorRef}
-                initialContentHTML={descriptionHtml}
-                placeholder={
-                  isInsertingImage
-                    ? t("homework.form.insertingImage")
-                    : t("homework.form.contentPlaceholder")
-                }
-                style={styles.richEditor}
-                testID="homework-form-editor"
-              />
-            </View>
           </View>
 
           <SectionCard
@@ -945,10 +912,23 @@ function HomeworkFormModal(props: {
               ))
             )}
           </SectionCard>
+        </ScrollView>
 
+        <View style={styles.formActionsBar}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={props.onCancel}
+            disabled={props.isSubmitting}
+            testID="homework-form-cancel"
+          >
+            <Text style={styles.secondaryButtonText}>
+              {t("homework.common.cancel")}
+            </Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.primaryButton,
+              { flex: 1 },
               props.isSubmitting && styles.primaryButtonDisabled,
             ]}
             onPress={() => void handleSave()}
@@ -961,9 +941,9 @@ function HomeworkFormModal(props: {
                 : t("homework.common.save")}
             </Text>
           </TouchableOpacity>
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
-    </Modal>
+    </View>
   );
 }
 
@@ -1020,13 +1000,11 @@ export function ClassHomeworkScreen({
     null,
   );
   const [detailVisible, setDetailVisible] = useState(false);
-  const [formVisible, setFormVisible] = useState(false);
-  const [editingHomework, setEditingHomework] = useState<HomeworkRow | null>(
+  const [formContext, setFormContext] = useState<HomeworkFormContext | null>(
     null,
   );
-  const [queuedFormTarget, setQueuedFormTarget] = useState<
-    HomeworkRow | "create" | null
-  >(null);
+  const [queuedFormContext, setQueuedFormContext] =
+    useState<HomeworkFormContext | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<HomeworkRow | null>(null);
   const [controlTargetId, setControlTargetId] = useState<string | null>(null);
   const [listVisibleCount, setListVisibleCount] = useState(
@@ -1288,11 +1266,11 @@ export function ClassHomeworkScreen({
   }, [cursorDate, monthCells, selectedMonthDate, tab, agendaMode]);
 
   useEffect(() => {
-    if (detailVisible || queuedFormTarget === null) return;
-    setEditingHomework(queuedFormTarget === "create" ? null : queuedFormTarget);
-    setFormVisible(true);
-    setQueuedFormTarget(null);
-  }, [detailVisible, queuedFormTarget]);
+    if (detailVisible || queuedFormContext === null) return;
+    setFormContext(queuedFormContext);
+    setTab("forms");
+    setQueuedFormContext(null);
+  }, [detailVisible, queuedFormContext]);
 
   useEffect(() => {
     const nextCount = Math.min(HOMEWORK_LIST_PAGE_SIZE, listItems.length);
@@ -1350,23 +1328,41 @@ export function ClassHomeworkScreen({
   }
 
   function openCreateForm() {
+    const originTab: HomeworkListLikeTab = tab === "forms" ? "list" : tab;
+    const next: HomeworkFormContext = {
+      type: "create",
+      originTab,
+      item: null,
+    };
     if (detailVisible) {
-      setQueuedFormTarget("create");
+      setQueuedFormContext(next);
       setDetailVisible(false);
       return;
     }
-    setEditingHomework(null);
-    setFormVisible(true);
+    setFormContext(next);
+    setTab("forms");
   }
 
   function openEditForm(item: HomeworkRow) {
+    const originTab: HomeworkListLikeTab = tab === "forms" ? "list" : tab;
+    const next: HomeworkFormContext = {
+      type: "edit",
+      originTab,
+      item,
+    };
     if (detailVisible) {
-      setQueuedFormTarget(item);
+      setQueuedFormContext(next);
       setDetailVisible(false);
       return;
     }
-    setEditingHomework(item);
-    setFormVisible(true);
+    setFormContext(next);
+    setTab("forms");
+  }
+
+  function exitForms() {
+    const origin = formContext?.originTab ?? "list";
+    setFormContext(null);
+    setTab(origin);
   }
 
   function togglePanel(item: HomeworkRow, panel: HomeworkInlinePanel) {
@@ -1384,9 +1380,11 @@ export function ClassHomeworkScreen({
 
   async function handleSaveHomework(payload: UpsertHomeworkPayload) {
     if (!schoolSlug) return;
+    const editingId =
+      formContext?.type === "edit" ? formContext.item?.id : undefined;
     try {
-      if (editingHomework) {
-        await updateHomework(schoolSlug, classId, editingHomework.id, payload);
+      if (editingId) {
+        await updateHomework(schoolSlug, classId, editingId, payload);
         showSuccess({
           title: t("homework.toast.updatedTitle"),
           message: t("homework.toast.updatedMessage"),
@@ -1398,9 +1396,10 @@ export function ClassHomeworkScreen({
           message: t("homework.toast.createdMessage"),
         });
       }
-      setFormVisible(false);
-      setEditingHomework(null);
       await refreshHomework();
+      setTimeout(() => {
+        exitForms();
+      }, 2000);
     } catch (error) {
       showError({
         title: t("homework.toast.saveErrorTitle"),
@@ -1537,14 +1536,20 @@ export function ClassHomeworkScreen({
   }, [screenError]);
   const visibleTabError = screenError && !errorDismissed ? screenError : null;
 
+  const isFormsTab = tab === "forms";
+  const moduleHeaderTitle =
+    isFormsTab && formContext?.type === "edit"
+      ? t("homework.form.editModuleTitle")
+      : t("homework.header.title");
+
   const headerComponent = useMemo(
     () => (
       <>
         {showHeader ? (
           <ModuleHeader
-            title={t("homework.header.title")}
+            title={moduleHeaderTitle}
             subtitle={subtitle}
-            onBack={() => moduleBack(router)}
+            onBack={() => (isFormsTab ? exitForms() : moduleBack(router))}
             testID="class-homework-header"
             backTestID="class-homework-back"
             titleTestID="class-homework-header-title"
@@ -1553,10 +1558,10 @@ export function ClassHomeworkScreen({
           />
         ) : null}
 
-        {isLoadingContext && !subtitle ? (
+        {isFormsTab ? null : isLoadingContext && !subtitle ? (
           <LoadingBlock label={t("homework.loading.module")} />
         ) : (
-          <View testID="class-homework-tabs-section">
+          <View style={styles.tabsSection} testID="class-homework-tabs-section">
             <UnderlineTabs
               items={buildHomeworkTabs(t).map((entry) => ({
                 key: entry.key,
@@ -1620,6 +1625,9 @@ export function ClassHomeworkScreen({
     ),
     [
       showHeader,
+      isFormsTab,
+      moduleHeaderTitle,
+      formContext,
       isLoadingContext,
       tab,
       agendaMode,
@@ -1635,7 +1643,17 @@ export function ClassHomeworkScreen({
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.root}
     >
-      {tab === "list" ? (
+      {headerComponent}
+
+      {tab === "forms" ? null : visibleTabError ? (
+        <ErrorBanner
+          message={visibleTabError}
+          onDismiss={() => setErrorDismissed(true)}
+          testID="homework-tab-error"
+        />
+      ) : null}
+
+      {tab === "forms" ? null : tab === "list" ? (
         <InfiniteScrollList
           data={visibleListItems}
           keyExtractor={(item) => item.id}
@@ -1702,18 +1720,6 @@ export function ClassHomeworkScreen({
             paddingHorizontal: 16,
             paddingBottom: insets.bottom + 120,
           }}
-          ListHeaderComponent={
-            <>
-              {headerComponent}
-              {visibleTabError ? (
-                <ErrorBanner
-                  message={visibleTabError}
-                  onDismiss={() => setErrorDismissed(true)}
-                  testID="homework-tab-error"
-                />
-              ) : null}
-            </>
-          }
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         />
       ) : (
@@ -1737,16 +1743,6 @@ export function ClassHomeworkScreen({
           }
           showsVerticalScrollIndicator={false}
         >
-          {headerComponent}
-
-          {visibleTabError ? (
-            <ErrorBanner
-              message={visibleTabError}
-              onDismiss={() => setErrorDismissed(true)}
-              testID="homework-tab-error"
-            />
-          ) : null}
-
           {agendaMode === "week" ? (
             <View style={styles.weekSection}>
               <WeekHomeworkColumns
@@ -1891,7 +1887,25 @@ export function ClassHomeworkScreen({
         </ScrollView>
       )}
 
-      {canManageAll ? (
+      {tab === "forms" && formContext ? (
+        <View style={styles.root}>
+          <HomeworkFormContent
+            formContext={formContext}
+            onSubmit={handleSaveHomework}
+            onCancel={exitForms}
+            onUploadAttachment={(file) =>
+              homeworkApi.uploadAttachment(schoolSlug!, file)
+            }
+            onUploadInlineImage={(file) =>
+              homeworkApi.uploadInlineImage(schoolSlug!, file)
+            }
+            subjectOptions={teacherSubjectOptions}
+            isSubmitting={isSubmitting}
+          />
+        </View>
+      ) : null}
+
+      {canManageAll && tab !== "forms" ? (
         <TouchableOpacity
           style={styles.fab}
           onPress={openCreateForm}
@@ -1900,25 +1914,6 @@ export function ClassHomeworkScreen({
           <Ionicons name="add" size={28} color={colors.white} />
         </TouchableOpacity>
       ) : null}
-
-      <HomeworkFormModal
-        visible={formVisible}
-        onClose={() => {
-          setFormVisible(false);
-          setEditingHomework(null);
-        }}
-        onSubmit={handleSaveHomework}
-        onUploadAttachment={(file) =>
-          homeworkApi.uploadAttachment(schoolSlug!, file)
-        }
-        onUploadInlineImage={(file) =>
-          homeworkApi.uploadInlineImage(schoolSlug!, file)
-        }
-        headerSubtitle={subtitle}
-        subjectOptions={teacherSubjectOptions}
-        initialValue={editingHomework}
-        isSubmitting={isSubmitting}
-      />
 
       <Modal
         visible={!!controlTargetId}
@@ -2075,24 +2070,29 @@ export function ClassHomeworkScreen({
                     {htmlToText(selectedDetail.contentHtml ?? "") ||
                       t("homework.detail.noInstructions")}
                   </Text>
-                  {extractImageUrls(selectedDetail.contentHtml ?? "").map(
-                    (url) => (
-                      <TouchableOpacity
-                        key={url}
-                        onPress={() => void Linking.openURL(url)}
-                        style={styles.inlineImageLink}
-                      >
-                        <Ionicons
-                          name="image-outline"
-                          size={16}
-                          color={colors.primary}
-                        />
-                        <Text style={styles.inlineImageLinkText}>
-                          {t("homework.detail.openInlineImage")}
-                        </Text>
-                      </TouchableOpacity>
-                    ),
-                  )}
+                  {extractImageUrls(selectedDetail.contentHtml ?? "").length >
+                  0 ? (
+                    <View
+                      style={[
+                        styles.inlineImages,
+                        htmlToText(selectedDetail.contentHtml ?? "") && {
+                          marginTop: 12,
+                        },
+                      ]}
+                    >
+                      {extractImageUrls(selectedDetail.contentHtml ?? "").map(
+                        (url, idx) => (
+                          <Image
+                            key={`${url}-${idx}`}
+                            source={{ uri: url }}
+                            style={styles.inlineImage}
+                            resizeMode="contain"
+                            testID={`class-homework-detail-inline-image-${idx}`}
+                          />
+                        ),
+                      )}
+                    </View>
+                  ) : null}
                 </SectionCard>
 
                 <SectionCard title={t("homework.detail.attachmentsTitle")}>
@@ -2283,6 +2283,7 @@ export function ClassHomeworkScreen({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, gap: 14 },
+  tabsSection: { marginBottom: 16 },
   periodNavRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -2398,31 +2399,32 @@ const styles = StyleSheet.create({
   cardHeaderLine: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  cardSubjectRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    flex: 1,
+    gap: 8,
   },
   cardSubject: {
     fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.6,
-  },
-  cardAuthorInline: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.textSecondary,
     flexShrink: 1,
-    marginLeft: 8,
+  },
+  cardAuthorBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: "auto",
+  },
+  cardAuthorBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
   },
   cardMetaLabel: {
     fontSize: 12,
     color: colors.textSecondary,
+    flexShrink: 0,
   },
   cardBodySection: {
     borderTopWidth: 1,
@@ -2498,11 +2500,6 @@ const styles = StyleSheet.create({
   cardActionDoneText: {
     color: "#0F766E",
   },
-  cardAttachmentCount: {
-    fontSize: 12,
-    fontWeight: "700",
-    marginLeft: "auto",
-  },
   inlinePanelLoading: {
     borderRadius: 12,
     overflow: "hidden",
@@ -2538,30 +2535,27 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     gap: 14,
   },
-  formHeroCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#DCE8F7",
-    backgroundColor: "#FBFDFF",
+  formsTabContent: {
+    flex: 1,
+  },
+  formsKeyboardArea: {
+    flex: 1,
+  },
+  formScroll: {
+    flex: 1,
+  },
+  formScrollContent: {
     padding: 16,
-    gap: 6,
+    gap: 16,
   },
-  formHeroEyebrow: {
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0.7,
-    textTransform: "uppercase",
-    color: colors.primary,
-  },
-  formHeroTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: colors.textPrimary,
-  },
-  formHeroSubtitle: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.textSecondary,
+  formActionsBar: {
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: "row",
+    gap: 10,
   },
   fieldGroup: {
     gap: 8,
@@ -2576,11 +2570,30 @@ const styles = StyleSheet.create({
     color: "#B91C1C",
     fontWeight: "600",
   },
+  expectedAtInlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  inlineFieldLabel: {
+    width: 78,
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
   expectedAtRow: {
+    flex: 1,
+    flexDirection: "row",
     gap: 10,
   },
+  expectedDateField: {
+    flex: 1.3,
+  },
+  expectedTimeField: {
+    flex: 1,
+  },
   textInput: {
-    borderRadius: 12,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     backgroundColor: colors.white,
@@ -2589,32 +2602,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textPrimary,
   },
+  subjectFieldInlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
   subjectPillsRow: {
+    flex: 1,
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
   },
   subjectPill: {
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   subjectPillText: {
     fontSize: 12,
     fontWeight: "700",
-  },
-  editorWrap: {
-    minHeight: 220,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    backgroundColor: colors.white,
-    overflow: "hidden",
-  },
-  richEditor: {
-    flex: 1,
-    minHeight: 220,
   },
   helperText: {
     fontSize: 13,
@@ -2642,7 +2649,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     minHeight: 48,
-    borderRadius: 14,
+    borderRadius: 6,
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
@@ -2688,16 +2695,15 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: colors.textPrimary,
   },
-  inlineImageLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 8,
+  inlineImages: {
+    gap: 10,
   },
-  inlineImageLinkText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: colors.primary,
+  inlineImage: {
+    width: "100%",
+    minHeight: 160,
+    maxHeight: 360,
+    borderRadius: 8,
+    backgroundColor: colors.warmBorder,
   },
   studentStatusRow: {
     flexDirection: "row",
@@ -2781,6 +2787,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  commentCloseButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#C9D8EA",
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   detailActionsRow: {
     flexDirection: "row",
     gap: 10,
@@ -2788,7 +2804,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     flex: 1,
     minHeight: 46,
-    borderRadius: 14,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.primary,
     alignItems: "center",
@@ -2803,7 +2819,7 @@ const styles = StyleSheet.create({
   dangerButton: {
     flex: 1,
     minHeight: 46,
-    borderRadius: 14,
+    borderRadius: 6,
     backgroundColor: "#B91C1C",
     alignItems: "center",
     justifyContent: "center",

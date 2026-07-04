@@ -307,6 +307,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.form.fields.dateTimeRequired": "Date et heure *",
     "discipline.form.fields.dateTimePlaceholder": "2026-04-09T08:30",
     "discipline.form.fields.dateTimePlaceholderIso": "AAAA-MM-JJTHH:mm",
+    "discipline.form.fields.date": "Date",
+    "discipline.form.fields.time": "Heure",
     "discipline.form.fields.reason": "Motif",
     "discipline.form.fields.reasonRequired": "Motif *",
     "discipline.form.fields.reasonPlaceholder":
@@ -332,6 +334,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.form.buttons.cancel": "Annuler",
     "discipline.form.buttons.create": "Créer l'événement",
     "discipline.form.buttons.edit": "Enregistrer les modifications",
+    "discipline.form.hero.createTitle": "Nouvel événement de discipline",
+    "discipline.form.hero.editTitle": "Modifier l'événement",
+    "discipline.form.hero.createSubtitle":
+      "Renseignez l'élève, le type et le motif de l'événement.",
+    "discipline.form.hero.editSubtitle":
+      "Mettez à jour les informations de cet événement de discipline.",
 
     "discipline.studentSelect.placeholder": "Choisir un élève",
     "discipline.studentSelect.allStudents": "Tous les élèves",
@@ -480,6 +488,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.sections.byClass.subtitle":
       "Sélectionnez une année et une classe.",
 
+    "discipline.filters.title": "Filtres",
     "discipline.filters.student": "Élève",
     "discipline.filters.allStudents": "Tous les élèves",
     "discipline.filters.year": "Année",
@@ -541,6 +550,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "homework.comment.empty": "Aucun commentaire pour le moment.",
     "homework.comment.placeholder": "Ajouter un commentaire",
+    "homework.comment.close": "Fermer le formulaire de commentaire",
 
     "homework.control.title": "Suivi homework",
     "homework.control.doneStudentsTitle": "Élèves ayant déjà fait le devoir",
@@ -557,6 +567,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.form.permission.message": "Autorisez l'accès aux photos.",
     "homework.form.editTitle": "Modifier homework",
     "homework.form.createTitle": "Nouveau homework",
+    "homework.form.createHeroTitle": "Création d'un devoir",
+    "homework.form.createHeroSubtitle": "Consignes",
+    "homework.form.editModuleTitle": "Mise à jour du devoir",
     "homework.form.subjectLabel": "Matière",
     "homework.form.titleLabel": "Titre",
     "homework.form.titlePlaceholder": "Ex. Exercice sur les fractions",
@@ -635,7 +648,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.detail.markDone": "Marquer comme fait",
     "homework.detail.instructionsTitle": "Consignes",
     "homework.detail.noInstructions": "Aucune consigne détaillée.",
-    "homework.detail.openInlineImage": "Ouvrir l'image insérée",
     "homework.detail.attachmentsTitle": "Pièces jointes",
     "homework.detail.noAttachments": "Aucune pièce jointe.",
     "homework.detail.studentsTitle": "Suivi des élèves",
@@ -936,6 +948,11 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Le créneau récurrent a été créé dans l'emploi du temps.",
     "timetable.oneOffPanel.toasts.createErrorTitle": "Création impossible",
 
+    "timetable.slotScreen.headerTitle": "Schedule",
+    "timetable.slotScreen.create.heroTitle": "Créer un créneau",
+    "timetable.slotScreen.edit.heroTitle": "Modifier un créneau",
+    "timetable.slotScreen.heroSubtitle": "Définir la date, l'heure et la salle",
+
     "timetable.slotEditPanel.title": "MODIFIER CE CRÉNEAU",
     "timetable.slotEditPanel.scope.occurrence": "Ce créneau",
     "timetable.slotEditPanel.scope.series": "Toute la série",
@@ -1229,6 +1246,19 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.tabs.summary": "Synthèse",
     "tests.tabs.campaigns": "Campagnes",
     "tests.tabs.executions": "Tests réalisés",
+    "tests.tabs.toRedo": "À refaire",
+
+    "tests.toRedo.emptyTitle": "Aucun test à refaire",
+    "tests.toRedo.emptyMessage":
+      "Les tests qu'un administrateur vous demande de refaire apparaîtront ici.",
+    "tests.toRedo.cardCampaign": "Campagne : {title}",
+    "tests.toRedo.requestedOn": "Reprise demandée le {date}",
+
+    "tests.detail.reworkBanner.title": "Ce test doit être refait",
+    "tests.detail.reworkBanner.noNote":
+      "Un administrateur a demandé une reprise de ce test.",
+    "tests.detail.reworkBanner.formNote":
+      "Vous saisissez un nouveau résultat suite à une demande de reprise.",
 
     "tests.executions.filters.status": "Statut",
     "tests.executions.filters.statusAll": "Tous statuts",
@@ -1338,6 +1368,16 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Ex. Corrigé dans la version 1.3",
     "testsAdmin.executions.review.submit": "Valider",
     "testsAdmin.executions.review.submitting": "Enregistrement…",
+    "testsAdmin.executions.rework.request": "Demander une reprise",
+    "testsAdmin.executions.rework.cancel": "Annuler la demande",
+    "testsAdmin.executions.rework.title": "Demander une reprise de ce test",
+    "testsAdmin.executions.rework.requestedBy":
+      "Reprise demandée par {name} le {date}",
+    "testsAdmin.executions.rework.noteLabel": "Note (optionnel)",
+    "testsAdmin.executions.rework.notePlaceholder":
+      "Ex. Merci de refaire ce test sur la version 1.4",
+    "testsAdmin.executions.rework.submit": "Valider",
+    "testsAdmin.executions.rework.submitting": "Enregistrement…",
     "testsAdmin.campaigns.searchPlaceholder": "Rechercher par numéro ou titre…",
     "testsAdmin.campaigns.filters.all": "Tous statuts",
     "testsAdmin.campaigns.filters.draft": "Brouillon",
@@ -1538,6 +1578,9 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "feed.attachments.title": "Pièces jointes",
     "feed.attachments.add": "Joindre",
+    "feed.attachments.uploading": "Envoi en cours…",
+    "feed.attachments.uploadError":
+      "Échec de l'envoi de la pièce jointe. Réessayez.",
     "feed.attachments.empty": "Aucune pièce jointe pour cette publication.",
     "feed.attachments.summaryMultiple": "{count} pièces jointes",
 
@@ -1678,6 +1721,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.form.colors.green": "Vert",
     "notes.form.colors.red": "Rouge",
     "notes.form.colors.black": "Noir",
+    "notes.form.permission.title": "Permission refusée",
+    "notes.form.permission.message": "Autorisez l'accès à la galerie.",
+    "notes.form.errors.insertImageTitle": "Image non ajoutée",
+    "notes.form.errors.insertImage": "Impossible d'ajouter l'image.",
     "notes.form.validation.titleRequired": "Titre requis (min. 3 caractères)",
     "notes.form.validation.titleTooLong": "Titre trop long",
     "notes.form.validation.subjectRequired": "Matière requise",
@@ -2280,6 +2327,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.form.fields.dateTimeRequired": "Date and time *",
     "discipline.form.fields.dateTimePlaceholder": "2026-04-09T08:30",
     "discipline.form.fields.dateTimePlaceholderIso": "YYYY-MM-DDTHH:mm",
+    "discipline.form.fields.date": "Date",
+    "discipline.form.fields.time": "Time",
     "discipline.form.fields.reason": "Reason",
     "discipline.form.fields.reasonRequired": "Reason *",
     "discipline.form.fields.reasonPlaceholder":
@@ -2302,6 +2351,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.form.buttons.cancel": "Cancel",
     "discipline.form.buttons.create": "Create event",
     "discipline.form.buttons.edit": "Save changes",
+    "discipline.form.hero.createTitle": "New discipline event",
+    "discipline.form.hero.editTitle": "Edit event",
+    "discipline.form.hero.createSubtitle":
+      "Fill in the student, type and reason for the event.",
+    "discipline.form.hero.editSubtitle":
+      "Update the details of this discipline event.",
 
     "discipline.studentSelect.placeholder": "Choose a student",
     "discipline.studentSelect.allStudents": "All students",
@@ -2442,6 +2497,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.sections.byClass.title": "By-class view",
     "discipline.sections.byClass.subtitle": "Select a year and a class.",
 
+    "discipline.filters.title": "Filters",
     "discipline.filters.student": "Student",
     "discipline.filters.allStudents": "All students",
     "discipline.filters.year": "Year",
@@ -2500,6 +2556,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "homework.comment.empty": "No comments yet.",
     "homework.comment.placeholder": "Add a comment",
+    "homework.comment.close": "Close comment form",
 
     "homework.control.title": "Homework tracking",
     "homework.control.doneStudentsTitle": "Students who already completed it",
@@ -2516,6 +2573,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.form.permission.message": "Allow access to your photos.",
     "homework.form.editTitle": "Edit homework",
     "homework.form.createTitle": "New homework",
+    "homework.form.createHeroTitle": "Creating a homework",
+    "homework.form.createHeroSubtitle": "Instructions",
+    "homework.form.editModuleTitle": "Update homework",
     "homework.form.subjectLabel": "Subject",
     "homework.form.titleLabel": "Title",
     "homework.form.titlePlaceholder": "E.g. Fractions exercise",
@@ -2591,7 +2651,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.detail.markDone": "Mark as done",
     "homework.detail.instructionsTitle": "Instructions",
     "homework.detail.noInstructions": "No detailed instructions.",
-    "homework.detail.openInlineImage": "Open inserted image",
     "homework.detail.attachmentsTitle": "Attachments",
     "homework.detail.noAttachments": "No attachments.",
     "homework.detail.studentsTitle": "Student tracking",
@@ -2881,6 +2940,11 @@ export const translations: Record<Locale, Record<string, string>> = {
       "The recurring slot has been added to the timetable.",
     "timetable.oneOffPanel.toasts.createErrorTitle": "Creation failed",
 
+    "timetable.slotScreen.headerTitle": "Schedule",
+    "timetable.slotScreen.create.heroTitle": "Create a slot",
+    "timetable.slotScreen.edit.heroTitle": "Edit a slot",
+    "timetable.slotScreen.heroSubtitle": "Set the date, time and room",
+
     "timetable.slotEditPanel.title": "EDIT THIS SLOT",
     "timetable.slotEditPanel.scope.occurrence": "This slot",
     "timetable.slotEditPanel.scope.series": "Whole series",
@@ -3164,6 +3228,19 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.tabs.summary": "Summary",
     "tests.tabs.campaigns": "Campaigns",
     "tests.tabs.executions": "Tests done",
+    "tests.tabs.toRedo": "To redo",
+
+    "tests.toRedo.emptyTitle": "No tests to redo",
+    "tests.toRedo.emptyMessage":
+      "Tests an administrator asks you to redo will appear here.",
+    "tests.toRedo.cardCampaign": "Campaign: {title}",
+    "tests.toRedo.requestedOn": "Rework requested on {date}",
+
+    "tests.detail.reworkBanner.title": "This test needs to be redone",
+    "tests.detail.reworkBanner.noNote":
+      "An administrator requested a rework of this test.",
+    "tests.detail.reworkBanner.formNote":
+      "You are submitting a new result following a rework request.",
 
     "tests.executions.filters.status": "Status",
     "tests.executions.filters.statusAll": "All statuses",
@@ -3266,6 +3343,16 @@ export const translations: Record<Locale, Record<string, string>> = {
     "testsAdmin.executions.review.notePlaceholder": "E.g. Fixed in version 1.3",
     "testsAdmin.executions.review.submit": "Confirm",
     "testsAdmin.executions.review.submitting": "Saving…",
+    "testsAdmin.executions.rework.request": "Request rework",
+    "testsAdmin.executions.rework.cancel": "Cancel request",
+    "testsAdmin.executions.rework.title": "Request a rework of this test",
+    "testsAdmin.executions.rework.requestedBy":
+      "Rework requested by {name} on {date}",
+    "testsAdmin.executions.rework.noteLabel": "Note (optional)",
+    "testsAdmin.executions.rework.notePlaceholder":
+      "E.g. Please redo this test on version 1.4",
+    "testsAdmin.executions.rework.submit": "Confirm",
+    "testsAdmin.executions.rework.submitting": "Saving…",
     "testsAdmin.campaigns.searchPlaceholder": "Search by number or title…",
     "testsAdmin.campaigns.filters.all": "All statuses",
     "testsAdmin.campaigns.filters.draft": "Draft",
@@ -3461,6 +3548,8 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "feed.attachments.title": "Attachments",
     "feed.attachments.add": "Attach",
+    "feed.attachments.uploading": "Uploading…",
+    "feed.attachments.uploadError": "Failed to upload attachment. Try again.",
     "feed.attachments.empty": "No attachments for this post.",
     "feed.attachments.summaryMultiple": "{count} attachments",
 
@@ -3600,6 +3689,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.form.colors.green": "Green",
     "notes.form.colors.red": "Red",
     "notes.form.colors.black": "Black",
+    "notes.form.permission.title": "Permission denied",
+    "notes.form.permission.message": "Allow access to the gallery.",
+    "notes.form.errors.insertImageTitle": "Image not added",
+    "notes.form.errors.insertImage": "Unable to add the image.",
     "notes.form.validation.titleRequired": "Title required (min. 3 characters)",
     "notes.form.validation.titleTooLong": "Title too long",
     "notes.form.validation.subjectRequired": "Subject required",

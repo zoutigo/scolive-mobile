@@ -201,4 +201,15 @@ export const testsAdminApi = {
       true,
     );
   },
+
+  requestRework(
+    executionId: string,
+    payload: { requested: boolean; note?: string },
+  ): Promise<AdminTestExecutionDetail> {
+    return apiFetch(
+      `/admin/tests/executions/${executionId}/rework`,
+      { method: "PATCH", body: JSON.stringify(payload) },
+      true,
+    );
+  },
 };

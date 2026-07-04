@@ -77,6 +77,9 @@ open_preferred_android_app() {
   # Ports web : localhost:3000 (web) et localhost:3001 (mock) joignables depuis l'émulateur
   "$ADB_BIN" -s "$serial" reverse tcp:3000 tcp:3000 >/dev/null 2>&1 || true
   "$ADB_BIN" -s "$serial" reverse tcp:3001 tcp:3001 >/dev/null 2>&1 || true
+  # MinIO/media (MEDIA_PUBLIC_BASE_URL=http://localhost:9000/...) : requis pour que les images
+  # uploadées (homework, messagerie, etc.) s'affichent dans les WebView/Image de l'app
+  "$ADB_BIN" -s "$serial" reverse tcp:9000 tcp:9000 >/dev/null 2>&1 || true
   # Réveiller l'écran si verrouillé (snapshot chargé écran éteint)
   "$ADB_BIN" -s "$serial" shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1 || true
   "$ADB_BIN" -s "$serial" shell input keyevent KEYCODE_MENU >/dev/null 2>&1 || true

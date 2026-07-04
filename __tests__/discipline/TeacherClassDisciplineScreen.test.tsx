@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -14,6 +15,38 @@ import { useTeacherClassDisciplineDraftStore } from "../../src/store/teacher-cla
 import { makeLifeEvent } from "../../test-utils/discipline.fixtures";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
+jest.mock("../../src/components/DatePickerField", () => ({
+  DatePickerField: (props: {
+    value: string;
+    onChange: (v: string) => void;
+    testID?: string;
+  }) => {
+    const { TextInput } = require("react-native");
+    return (
+      <TextInput
+        testID={props.testID ?? "date-picker"}
+        value={props.value}
+        onChangeText={props.onChange}
+      />
+    );
+  },
+}));
+jest.mock("../../src/components/TimePickerField", () => ({
+  TimePickerField: (props: {
+    value: string;
+    onChange: (v: string) => void;
+    testID?: string;
+  }) => {
+    const { TextInput } = require("react-native");
+    return (
+      <TextInput
+        testID={props.testID ?? "time-picker"}
+        value={props.value}
+        onChangeText={props.onChange}
+      />
+    );
+  },
+}));
 jest.mock("../../src/api/notes.api");
 jest.mock("../../src/api/timetable.api");
 jest.mock("../../src/api/discipline.api");
@@ -30,14 +63,30 @@ jest.mock("../../src/store/auth.store", () => ({
     },
   }),
 }));
-jest.mock("expo-router", () => ({
-  useRouter: () => ({
-    back: jest.fn(),
-    canGoBack: jest.fn().mockReturnValue(true),
-    navigate: jest.fn(),
-  }),
-  useLocalSearchParams: () => ({ classId: "class-1" }),
-}));
+jest.mock("expo-router", () => {
+  const back = jest.fn();
+  const navigate = jest.fn();
+  return {
+    __back: back,
+    __navigate: navigate,
+    useRouter: () => ({
+      back,
+      canGoBack: jest.fn().mockReturnValue(true),
+      navigate,
+    }),
+    useLocalSearchParams: () => ({ classId: "class-1" }),
+  };
+});
+jest.mock("../../src/store/success-toast.store", () => {
+  const showSuccess = jest.fn();
+  const showError = jest.fn();
+  return {
+    __showSuccess: showSuccess,
+    __showError: showError,
+    useSuccessToastStore: (selector: (state: unknown) => unknown) =>
+      selector({ showSuccess, showError }),
+  };
+});
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
@@ -48,6 +97,15 @@ jest.mock("../../src/components/navigation/drawer-context", () => ({
 const mockNotesApi = notesApi as jest.Mocked<typeof notesApi>;
 const mockTimetableApi = timetableApi as jest.Mocked<typeof timetableApi>;
 const mockDisciplineApi = disciplineApi as jest.Mocked<typeof disciplineApi>;
+
+const router = require("expo-router") as {
+  __back: jest.Mock;
+  __navigate: jest.Mock;
+};
+const toast = require("../../src/store/success-toast.store") as {
+  __showSuccess: jest.Mock;
+  __showError: jest.Mock;
+};
 
 const student1 = { id: "student-1", firstName: "Lisa", lastName: "MBELE" };
 const student2 = { id: "student-2", firstName: "Remi", lastName: "NTAMACK" };
@@ -118,10 +176,32 @@ beforeEach(() => {
         comment: payload.comment ?? null,
       }),
   );
+  mockDisciplineApi.update.mockImplementation(
+    async (_slug, studentId, id, payload) =>
+      makeLifeEvent({
+        id,
+        studentId,
+        classId: payload.classId ?? "class-1",
+        reason: payload.reason,
+        type: payload.type,
+        authorUserId: "teacher-2",
+        occurredAt: payload.occurredAt ?? "2026-05-01T08:00:00.000Z",
+      }),
+  );
   mockDisciplineApi.remove.mockResolvedValue(undefined);
 });
 
-describe("TeacherClassDisciplineScreen", () => {
+async function renderLoaded() {
+  render(<TeacherClassDisciplineScreen />);
+  await waitFor(() =>
+    expect(screen.getByTestId("teacher-class-discipline-fab")).toBeTruthy(),
+  );
+  await waitFor(() =>
+    expect(screen.getByText("Bus arrivé en retard")).toBeTruthy(),
+  );
+}
+
+describe("TeacherClassDisciplineScreen — chargement & listes", () => {
   it("charge le contexte de classe et l'historique agrégé des élèves", async () => {
     render(<TeacherClassDisciplineScreen />);
 
@@ -149,11 +229,7 @@ describe("TeacherClassDisciplineScreen", () => {
   });
 
   it("filtre les événements par élève via la liste déroulante", async () => {
-    render(<TeacherClassDisciplineScreen />);
-
-    await waitFor(() =>
-      expect(screen.getByText("Bus arrivé en retard")).toBeTruthy(),
-    );
+    await renderLoaded();
     expect(screen.getByText("[DEMO] Sanction signée")).toBeTruthy();
 
     fireEvent.press(
@@ -168,13 +244,120 @@ describe("TeacherClassDisciplineScreen", () => {
     expect(screen.getByText("Bus arrivé en retard")).toBeTruthy();
     expect(screen.queryByText("[DEMO] Sanction signée")).toBeNull();
   });
+});
 
-  it("ouvre le formulaire, crée un événement et persiste le brouillon pendant la saisie", async () => {
-    render(<TeacherClassDisciplineScreen />);
+describe("TeacherClassDisciplineScreen — héros section events", () => {
+  it("affiche le héros avec le bon testID sur le tab events", async () => {
+    await renderLoaded();
+
+    expect(
+      screen.getByTestId("teacher-class-discipline-events-hero"),
+    ).toBeTruthy();
+  });
+
+  it("affiche le titre 'Événements de classe' dans le héros", async () => {
+    await renderLoaded();
+
+    expect(screen.getByText("Événements de classe")).toBeTruthy();
+  });
+
+  it("affiche le sous-titre de contexte dans le héros", async () => {
+    await renderLoaded();
+
+    expect(
+      screen.getByText(
+        "Parcourez et filtrez l'historique du plus récent au plus ancien.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("n'affiche pas le héros events quand on est sur le tab forms", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-fab"));
+
+    expect(
+      screen.queryByTestId("teacher-class-discipline-events-hero"),
+    ).toBeNull();
+  });
+
+  it("la section filtre n'affiche pas de titre ni de label élève", async () => {
+    await renderLoaded();
+
+    expect(screen.queryByText("Filtres")).toBeNull();
+    expect(screen.queryByText("Élève")).toBeNull();
+  });
+});
+
+describe("TeacherClassDisciplineScreen — navigation formulaire inline", () => {
+  it("ouvre le tab forms via le FAB : hero de création, tabs et FAB masqués", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-fab"));
+
+    expect(
+      screen.getByTestId("teacher-class-discipline-forms-tab"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("teacher-class-discipline-form-hero"),
+    ).toBeTruthy();
+    expect(screen.getByText("Nouvel événement de discipline")).toBeTruthy();
+    expect(screen.getByTestId("discipline-form-submit")).toBeTruthy();
+
+    // Tabs de liste et FAB masqués sur le tab forms
+    expect(
+      screen.queryByTestId("teacher-class-discipline-tab-events"),
+    ).toBeNull();
+    expect(screen.queryByTestId("teacher-class-discipline-fab")).toBeNull();
+  });
+
+  it("le bouton Annuler revient au tab events sans appel API", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-fab"));
+    fireEvent.press(screen.getByTestId("discipline-form-cancel"));
 
     await waitFor(() =>
       expect(screen.getByTestId("teacher-class-discipline-fab")).toBeTruthy(),
     );
+    expect(
+      screen.queryByTestId("teacher-class-discipline-forms-tab"),
+    ).toBeNull();
+    expect(mockDisciplineApi.create).not.toHaveBeenCalled();
+    expect(mockDisciplineApi.update).not.toHaveBeenCalled();
+  });
+
+  it("la flèche du ModuleHeader depuis forms revient au tab events sans router.back()", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-fab"));
+    expect(
+      screen.getByTestId("teacher-class-discipline-forms-tab"),
+    ).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-back"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-class-discipline-fab")).toBeTruthy(),
+    );
+    expect(
+      screen.queryByTestId("teacher-class-discipline-forms-tab"),
+    ).toBeNull();
+    expect(router.__back).not.toHaveBeenCalled();
+  });
+
+  it("la flèche du ModuleHeader hors forms appelle router.back()", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-back"));
+
+    expect(router.__back).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("TeacherClassDisciplineScreen — création d'événement", () => {
+  it("persiste le brouillon pendant la saisie et crée l'événement", async () => {
+    await renderLoaded();
 
     fireEvent.press(screen.getByTestId("teacher-class-discipline-fab"));
     fireEvent.press(screen.getByTestId("discipline-form-student-trigger"));
@@ -186,8 +369,12 @@ describe("TeacherClassDisciplineScreen", () => {
       "Retard portail",
     );
     fireEvent.changeText(
-      screen.getByTestId("discipline-form-occurred-at"),
-      "2026-05-02T07:10",
+      screen.getByTestId("discipline-form-date-picker"),
+      "2026-05-02",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("discipline-form-time-picker"),
+      "07:10",
     );
 
     expect(
@@ -195,30 +382,192 @@ describe("TeacherClassDisciplineScreen", () => {
         ?.reason,
     ).toBe("Retard portail");
 
+    jest.useFakeTimers();
     fireEvent.press(screen.getByTestId("discipline-form-submit"));
-
-    await waitFor(() => {
-      expect(mockDisciplineApi.create).toHaveBeenCalledWith(
-        "college-vogt",
-        "student-1",
-        expect.objectContaining({
-          classId: "class-1",
-          reason: "Retard portail",
-        }),
-      );
+    await act(async () => {});
+    act(() => {
+      jest.advanceTimersByTime(2000);
     });
+    jest.useRealTimers();
 
+    expect(mockDisciplineApi.create).toHaveBeenCalledWith(
+      "college-vogt",
+      "student-1",
+      expect.objectContaining({
+        classId: "class-1",
+        reason: "Retard portail",
+      }),
+    );
+    expect(toast.__showSuccess).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Événement créé" }),
+    );
+  });
+
+  it("après succès, redirige vers le tab events après le timer de 2s", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-fab"));
+    fireEvent.press(screen.getByTestId("discipline-form-student-trigger"));
+    fireEvent.press(
+      screen.getByTestId("discipline-form-student-option-student-1"),
+    );
+    fireEvent.changeText(
+      screen.getByTestId("discipline-form-reason"),
+      "Retard portail",
+    );
+
+    jest.useFakeTimers();
+    fireEvent.press(screen.getByTestId("discipline-form-submit"));
+    // flush microtasks : create se résout et programme le setTimeout
+    await act(async () => {});
+    expect(mockDisciplineApi.create).toHaveBeenCalled();
+    expect(
+      screen.getByTestId("teacher-class-discipline-forms-tab"),
+    ).toBeTruthy();
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+    jest.useRealTimers();
+
+    expect(
+      screen.queryByTestId("teacher-class-discipline-forms-tab"),
+    ).toBeNull();
+    expect(screen.getByTestId("teacher-class-discipline-fab")).toBeTruthy();
     expect(screen.getByText("Retard portail")).toBeTruthy();
   });
 
-  it("affiche l'onglet Carnets et réutilise la synthèse vie scolaire de l'élève sélectionné", async () => {
-    render(<TeacherClassDisciplineScreen />);
+  it("validation zod : affiche les erreurs sous les champs et n'appelle pas l'API", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-fab"));
+    // studentId vide (défaut), reason vide → soumission invalide
+    fireEvent.press(screen.getByTestId("discipline-form-submit"));
 
     await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-class-discipline-tab-carnets"),
-      ).toBeTruthy(),
+      expect(screen.getByTestId("discipline-form-student-error")).toBeTruthy(),
     );
+    expect(screen.getByTestId("discipline-form-reason-error")).toBeTruthy();
+    expect(mockDisciplineApi.create).not.toHaveBeenCalled();
+    // reste sur le formulaire
+    expect(
+      screen.getByTestId("teacher-class-discipline-forms-tab"),
+    ).toBeTruthy();
+  });
+
+  it("erreur API : toast d'erreur et maintien sur le tab forms", async () => {
+    mockDisciplineApi.create.mockRejectedValueOnce(
+      new Error("Réseau indisponible"),
+    );
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-fab"));
+    fireEvent.press(screen.getByTestId("discipline-form-student-trigger"));
+    fireEvent.press(
+      screen.getByTestId("discipline-form-student-option-student-1"),
+    );
+    fireEvent.changeText(
+      screen.getByTestId("discipline-form-reason"),
+      "Retard portail",
+    );
+    fireEvent.press(screen.getByTestId("discipline-form-submit"));
+
+    await waitFor(() =>
+      expect(toast.__showError).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Réseau indisponible" }),
+      ),
+    );
+    expect(
+      screen.getByTestId("teacher-class-discipline-forms-tab"),
+    ).toBeTruthy();
+  });
+});
+
+describe("TeacherClassDisciplineScreen — édition d'événement", () => {
+  it("ouvre le formulaire pré-rempli et enregistre la mise à jour", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("edit-event-event-1"));
+
+    expect(
+      screen.getByTestId("teacher-class-discipline-form-hero"),
+    ).toBeTruthy();
+    expect(screen.getByText("Modifier l'événement")).toBeTruthy();
+    // champ pré-rempli avec le motif de l'événement
+    expect(screen.getByTestId("discipline-form-reason").props.value).toBe(
+      "Bus arrivé en retard",
+    );
+
+    fireEvent.changeText(
+      screen.getByTestId("discipline-form-reason"),
+      "Bus arrivé en retard (corrigé)",
+    );
+
+    jest.useFakeTimers();
+    fireEvent.press(screen.getByTestId("discipline-form-submit"));
+    await act(async () => {});
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+    jest.useRealTimers();
+
+    expect(mockDisciplineApi.update).toHaveBeenCalledWith(
+      "college-vogt",
+      "student-1",
+      "event-1",
+      expect.objectContaining({ reason: "Bus arrivé en retard (corrigé)" }),
+    );
+    expect(mockDisciplineApi.create).not.toHaveBeenCalled();
+    expect(toast.__showSuccess).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Événement modifié" }),
+    );
+  });
+});
+
+describe("TeacherClassDisciplineScreen — héros section carnets", () => {
+  it("affiche le héros Carnets quand on bascule sur l'onglet carnets", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-tab-carnets"));
+
+    expect(
+      screen.getByTestId("teacher-class-discipline-carnets-hero"),
+    ).toBeTruthy();
+  });
+
+  it("affiche le titre 'Carnets' dans le héros (subtitle visible)", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-tab-carnets"));
+
+    expect(
+      screen.getByText(
+        "Sélectionnez un élève pour afficher sa synthèse vie scolaire.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("n'affiche pas le héros carnets quand on est sur le tab events", async () => {
+    await renderLoaded();
+
+    expect(
+      screen.queryByTestId("teacher-class-discipline-carnets-hero"),
+    ).toBeNull();
+  });
+
+  it("la section filtre carnets n'affiche pas de label élève", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-tab-carnets"));
+
+    expect(screen.queryByText("Recherche par élève")).toBeNull();
+  });
+});
+
+describe("TeacherClassDisciplineScreen — carnets", () => {
+  it("affiche l'onglet Carnets et réutilise la synthèse vie scolaire", async () => {
+    await renderLoaded();
+
     fireEvent.press(screen.getByTestId("teacher-class-discipline-tab-carnets"));
 
     expect(screen.getByText("Choisissez un élève")).toBeTruthy();
@@ -297,7 +646,6 @@ describe("TeacherClassDisciplineScreen", () => {
     );
     expect(screen.getByText("Carnet retard S2")).toBeTruthy();
 
-    // Clic KPI SANCTIONS → seule la sanction reste visible
     fireEvent.press(screen.getByTestId("kpi-sanctions"));
     expect(screen.getByTestId("events-section-title")).toHaveTextContent(
       "Derniers événements : SANCTIONS",
@@ -305,7 +653,6 @@ describe("TeacherClassDisciplineScreen", () => {
     expect(screen.getByText("Carnet sanction S2")).toBeTruthy();
     expect(screen.queryByText("Carnet retard S2")).toBeNull();
 
-    // Tout voir → remet tous les événements
     fireEvent.press(screen.getByTestId("btn-see-all"));
     expect(screen.getByTestId("events-section-title")).toHaveTextContent(
       "Derniers événements",

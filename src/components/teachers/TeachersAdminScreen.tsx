@@ -20,6 +20,7 @@ import { teachersApi } from "../../api/teachers.api";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { FormHero } from "../forms/FormHero";
 import { SecureTextField } from "../SecureTextField";
 import { SelectDropdown } from "../SelectDropdown";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
@@ -78,13 +79,6 @@ const BASE_TAB_ITEMS: Array<{ key: ListTabKey; label: string }> = [
   { key: "assignments", label: "Affectations" },
   { key: "help", label: "Aide" },
 ];
-
-type HeroPalette = "teal" | "warm";
-
-const PALETTE_COLORS: Record<HeroPalette, { bg: string; dark: string }> = {
-  teal: { bg: "#247C72", dark: "#195E56" },
-  warm: { bg: "#C0681A", dark: "#A05010" },
-};
 
 // ---------------------------------------------------------------------------
 // Schemas (exported for tests)
@@ -244,45 +238,6 @@ function buildTeacherPayload(values: z.infer<typeof teacherCreateFormSchema>) {
     email: values.email.trim().toLowerCase(),
     password: (values.password ?? "").trim(),
   };
-}
-
-// ---------------------------------------------------------------------------
-// FormHero — hero visuel du tab forms (différent du ModuleHeader bleu)
-// ---------------------------------------------------------------------------
-
-function FormHero(props: {
-  icon: React.ComponentProps<typeof Ionicons>["name"];
-  title: string;
-  subtitle?: string;
-  palette: HeroPalette;
-  testID?: string;
-}) {
-  const { bg, dark } = PALETTE_COLORS[props.palette];
-
-  return (
-    <View
-      style={[styles.heroContainer, { backgroundColor: bg }]}
-      testID={props.testID}
-    >
-      <View style={[styles.heroDecor1, { backgroundColor: dark }]} />
-      <View style={[styles.heroDecor2, { backgroundColor: dark }]} />
-      <View style={styles.heroRow}>
-        <View style={styles.heroIconWrap}>
-          <Ionicons
-            name={props.icon}
-            size={28}
-            color="rgba(255,255,255,0.92)"
-          />
-        </View>
-        <View style={styles.heroTextWrap}>
-          <Text style={styles.heroTitle}>{props.title}</Text>
-          {props.subtitle ? (
-            <Text style={styles.heroSubtitle}>{props.subtitle}</Text>
-          ) : null}
-        </View>
-      </View>
-    </View>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -1135,29 +1090,31 @@ export function TeachersAdminScreen() {
       {/* ── Tab forms : hero + formulaire inline ──────────────────────────── */}
       {tab === "forms" && formContext && !isLoading ? (
         <View style={styles.formsTabContent} testID="teachers-admin-forms-tab">
-          <FormHero
-            icon={
-              formContext.type === "create-teacher"
-                ? "person-add-outline"
-                : formContext.type === "edit-assignment"
-                  ? "create-outline"
-                  : "link-outline"
-            }
-            title={
-              formContext.type === "create-teacher"
-                ? "Créer un enseignant"
-                : formContext.type === "edit-assignment"
-                  ? "Modifier l'affectation"
-                  : "Nouvelle affectation"
-            }
-            subtitle={
-              formContext.type === "create-teacher"
-                ? "Téléphone + PIN ou email + mot de passe initial."
-                : "Associez un enseignant, une classe, une matière et une année scolaire."
-            }
-            palette={formContext.type === "create-teacher" ? "teal" : "warm"}
-            testID="teachers-admin-form-hero"
-          />
+          <View style={styles.heroWrapper}>
+            <FormHero
+              icon={
+                formContext.type === "create-teacher"
+                  ? "person-add-outline"
+                  : formContext.type === "edit-assignment"
+                    ? "create-outline"
+                    : "link-outline"
+              }
+              title={
+                formContext.type === "create-teacher"
+                  ? "Créer un enseignant"
+                  : formContext.type === "edit-assignment"
+                    ? "Modifier l'affectation"
+                    : "Nouvelle affectation"
+              }
+              subtitle={
+                formContext.type === "create-teacher"
+                  ? "Téléphone + PIN ou email + mot de passe initial."
+                  : "Associez un enseignant, une classe, une matière et une année scolaire."
+              }
+              palette={formContext.type === "create-teacher" ? "teal" : "warm"}
+              testID="teachers-admin-form-hero"
+            />
+          </View>
           {formContext.type === "create-teacher" ? (
             <TeacherCreateFormContent
               isSubmitting={isSubmittingTeacher}
@@ -1811,66 +1768,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
-  // ── FormHero ────────────────────────────────────────────────────────────
-  heroContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 22,
-    overflow: "hidden",
-  },
-  heroDecor1: {
-    position: "absolute",
-    width: 100,
-    height: 100,
-    borderRadius: 22,
-    bottom: -40,
-    right: -20,
-    transform: [{ rotate: "30deg" }],
-    opacity: 0.18,
-  },
-  heroDecor2: {
-    position: "absolute",
-    width: 60,
-    height: 60,
-    borderRadius: 14,
-    top: -18,
-    right: 60,
-    transform: [{ rotate: "20deg" }],
-    opacity: 0.12,
-  },
-  heroRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  heroIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    flexShrink: 0,
-  },
-  heroTextWrap: {
-    flex: 1,
-    gap: 3,
-  },
-  heroTitle: {
-    color: "#FFFFFF",
-    fontSize: 20,
-    fontWeight: "800",
-    lineHeight: 26,
-  },
-  heroSubtitle: {
-    color: "rgba(255,255,255,0.70)",
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 4,
-  },
   // ── Inline form layout ──────────────────────────────────────────────────
   formsTabContent: {
     flex: 1,
+  },
+  heroWrapper: {
+    padding: 16,
   },
   formsKeyboardArea: {
     flex: 1,

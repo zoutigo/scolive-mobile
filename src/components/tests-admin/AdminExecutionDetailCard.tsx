@@ -11,6 +11,7 @@ import {
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
 import { testsAdminApi } from "../../api/tests-admin.api";
+import { RequestReworkSheet } from "./RequestReworkSheet";
 import { ReviewExecutionSheet } from "./ReviewExecutionSheet";
 import { TestCaseContentSheet } from "./TestCaseContentSheet";
 import { QuickMessageSheet } from "./QuickMessageSheet";
@@ -38,6 +39,9 @@ export function AdminExecutionDetailCard({
   const [showReviewSheet, setShowReviewSheet] = useState(false);
   const [isSavingReview, setIsSavingReview] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [showReworkSheet, setShowReworkSheet] = useState(false);
+  const [isSavingRework, setIsSavingRework] = useState(false);
+  const [reworkError, setReworkError] = useState<string | null>(null);
   const [showCaseContent, setShowCaseContent] = useState(false);
   const [showQuickMessage, setShowQuickMessage] = useState(false);
 
@@ -97,6 +101,43 @@ export function AdminExecutionDetailCard({
       );
     } finally {
       setIsSavingReview(false);
+    }
+  }
+
+  async function handleRequestRework(note: string) {
+    setIsSavingRework(true);
+    try {
+      await testsAdminApi.requestRework(executionId, {
+        requested: true,
+        note: note || undefined,
+      });
+      setShowReworkSheet(false);
+      setReworkError(null);
+      await load();
+    } catch (error) {
+      setReworkError(
+        error instanceof Error
+          ? error.message
+          : t("testsAdmin.common.errors.submitGeneric"),
+      );
+    } finally {
+      setIsSavingRework(false);
+    }
+  }
+
+  async function handleCancelRework() {
+    setIsSavingRework(true);
+    try {
+      await testsAdminApi.requestRework(executionId, { requested: false });
+      await load();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : t("testsAdmin.common.errors.submitGeneric"),
+      );
+    } finally {
+      setIsSavingRework(false);
     }
   }
 
@@ -244,6 +285,45 @@ export function AdminExecutionDetailCard({
             </TouchableOpacity>
           )}
         </View>
+
+        <View style={styles.card}>
+          {detail.reworkRequestedAt ? (
+            <>
+              <Text style={styles.reworkText}>
+                {t("testsAdmin.executions.rework.requestedBy")
+                  .replace("{name}", detail.reworkRequestedBy?.fullName ?? "")
+                  .replace(
+                    "{date}",
+                    formatDateTime(detail.reworkRequestedAt, locale),
+                  )}
+              </Text>
+              {detail.reworkNote ? (
+                <Text style={styles.body}>{detail.reworkNote}</Text>
+              ) : null}
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={() => void handleCancelRework()}
+                disabled={isSavingRework}
+                testID="admin-execution-cancel-rework-btn"
+              >
+                <Text style={styles.secondaryButtonText}>
+                  {t("testsAdmin.executions.rework.cancel")}
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => setShowReworkSheet(true)}
+              disabled={isSavingRework}
+              testID="admin-execution-request-rework-btn"
+            >
+              <Text style={styles.secondaryButtonText}>
+                {t("testsAdmin.executions.rework.request")}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </ScrollView>
 
       {showReviewSheet ? (
@@ -252,6 +332,15 @@ export function AdminExecutionDetailCard({
           error={reviewError}
           onSubmit={(note) => void handleMarkReviewed(note)}
           onCancel={() => setShowReviewSheet(false)}
+        />
+      ) : null}
+
+      {showReworkSheet ? (
+        <RequestReworkSheet
+          saving={isSavingRework}
+          error={reworkError}
+          onSubmit={(note) => void handleRequestRework(note)}
+          onCancel={() => setShowReworkSheet(false)}
         />
       ) : null}
 
@@ -381,6 +470,7 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 14, fontWeight: "700", color: colors.textPrimary },
   body: { fontSize: 14, lineHeight: 20, color: colors.textPrimary },
   reviewedText: { fontSize: 13, fontWeight: "700", color: "#20744A" },
+  reworkText: { fontSize: 13, fontWeight: "700", color: "#B3261E" },
   imageRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   previewImage: {
     width: 92,

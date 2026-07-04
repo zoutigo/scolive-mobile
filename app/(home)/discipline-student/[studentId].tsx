@@ -101,7 +101,7 @@ export default function DisciplineStudentScreen() {
     removeEvent,
     getSummary,
   } = useDisciplineStore();
-  const { showSuccess } = useSuccessToastStore();
+  const { showSuccess, showError } = useSuccessToastStore();
 
   const [tab, setTab] = useState<TabKey>("synthese");
   const [modalVisible, setModalVisible] = useState(false);
@@ -230,7 +230,10 @@ export default function DisciplineStudentScreen() {
         err instanceof Error
           ? err.message
           : t("discipline.errors.deleteGeneric");
-      setSaveError(msg);
+      showError({
+        title: t("discipline.errors.deleteTitle"),
+        message: msg,
+      });
       setDeleteTarget(null);
     } finally {
       setIsDeleting(false);

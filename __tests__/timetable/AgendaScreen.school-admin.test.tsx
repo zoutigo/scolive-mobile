@@ -48,8 +48,9 @@ const mockUseWindowDimensions = useWindowDimensions as jest.MockedFunction<
   typeof useWindowDimensions
 >;
 const mockBack = jest.fn();
+const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ back: mockBack, push: jest.fn() }),
+  useRouter: () => ({ back: mockBack, push: mockPush }),
   useLocalSearchParams: () => ({}),
 }));
 jest.mock("react-native-safe-area-context", () => ({
@@ -511,10 +512,10 @@ describe("AgendaScreen — SCHOOL_ADMIN — tab Users : sélection enseignant", 
   });
 });
 
-// ── Tests — Tab Users : modal de création ───────────────────────────────────
+// ── Tests — Tab Users : navigation vers slot-create ──────────────────────────
 
-describe("AgendaScreen — SCHOOL_ADMIN — tab Users : modal de création", () => {
-  async function openUserCreateModal() {
+describe("AgendaScreen — SCHOOL_ADMIN — tab Users : navigation vers slot-create", () => {
+  it("FAB navigue vers slot-create avec prefilledTeacherId quand un enseignant est sélectionné", async () => {
     render(<TeacherAgendaScreen />);
     await waitFor(() =>
       expect(
@@ -528,35 +529,17 @@ describe("AgendaScreen — SCHOOL_ADMIN — tab Users : modal de création", () 
       ).toBeTruthy(),
     );
     fireEvent.press(screen.getByTestId("teacher-agenda-users-fab-create"));
-  }
-
-  it("le FAB de création est présent quand un enseignant est sélectionné", async () => {
-    await openUserCreateModal();
-    expect(screen.getByTestId("teacher-oneoff-create-panel")).toBeTruthy();
-  });
-
-  it("le panneau de création charge le contexte de la classe pour pré-remplir le bon enseignant", async () => {
-    await openUserCreateModal();
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-oneoff-create-panel")).toBeTruthy(),
+    expect(mockPush).toHaveBeenCalledWith(
+      expect.stringContaining("/(home)/agenda/slot-create"),
     );
-    // Picker de classe visible (pas de classe pré-remplie dans le users pane)
-    expect(screen.getByTestId("teacher-oneoff-class-class-6eC")).toBeTruthy();
-    // Sélectionner la classe pour charger le contexte
-    fireEvent.press(screen.getByTestId("teacher-oneoff-class-class-6eC"));
-    await waitFor(() =>
-      expect(api.getClassContext).toHaveBeenCalledWith(
-        "lycee-einstein",
-        "class-6eC",
-      ),
-    );
+    expect(mockPush.mock.calls[0][0]).toContain("teacherId=u1");
   });
 });
 
-// ── Tests — Tab Users : modal d'édition ─────────────────────────────────────
+// ── Tests — Tab Users : navigation vers slot-edit ───────────────────────────
 
-describe("AgendaScreen — SCHOOL_ADMIN — tab Users : modal d'édition", () => {
-  it("un clic sur Edit d'une occurrence ouvre la modale d'édition", async () => {
+describe("AgendaScreen — SCHOOL_ADMIN — tab Users : navigation vers slot-edit", () => {
+  it("clic Edit d'une occurrence navigue vers slot-edit et stocke pendingSlotEdit", async () => {
     render(<TeacherAgendaScreen />);
     await waitFor(() =>
       expect(
@@ -572,12 +555,11 @@ describe("AgendaScreen — SCHOOL_ADMIN — tab Users : modal d'édition", () =>
     fireEvent.press(
       screen.getByTestId("teacher-agenda-users-day-card-edit-occ-albert-14"),
     );
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-agenda-users-edit-modal"),
-      ).toBeTruthy(),
+    expect(mockPush).toHaveBeenCalledWith("/(home)/agenda/slot-edit");
+    expect(useTimetableStore.getState().pendingSlotEdit).not.toBeNull();
+    expect(useTimetableStore.getState().pendingSlotEdit?.occurrence.id).toBe(
+      "occ-albert-14",
     );
-    expect(screen.getByTestId("teacher-slot-edit-panel")).toBeTruthy();
   });
 });
 
@@ -610,7 +592,7 @@ describe("AgendaScreen — SCHOOL_ADMIN — tab Classes : mode admin", () => {
     );
   });
 
-  it("ouvrir la modale d'édition d'un créneau quelconque en mode admin", async () => {
+  it("clic Edit navigue vers slot-edit et stocke pendingSlotEdit avec adminMode=true", async () => {
     await openClassesTab();
     await waitFor(() =>
       expect(
@@ -620,35 +602,12 @@ describe("AgendaScreen — SCHOOL_ADMIN — tab Classes : mode admin", () => {
     fireEvent.press(
       screen.getByTestId("teacher-agenda-class-day-card-edit-occ-guy-14"),
     );
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-agenda-class-edit-modal"),
-      ).toBeTruthy(),
+    expect(mockPush).toHaveBeenCalledWith("/(home)/agenda/slot-edit");
+    expect(useTimetableStore.getState().pendingSlotEdit).not.toBeNull();
+    expect(useTimetableStore.getState().pendingSlotEdit?.occurrence.id).toBe(
+      "occ-guy-14",
     );
-    expect(screen.getByTestId("teacher-slot-edit-panel")).toBeTruthy();
-  });
-
-  it("le panneau d'édition en mode admin charge le contexte de classe pour le picker enseignant", async () => {
-    await openClassesTab();
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-agenda-class-day-card-edit-occ-guy-14"),
-      ).toBeTruthy(),
-    );
-    fireEvent.press(
-      screen.getByTestId("teacher-agenda-class-day-card-edit-occ-guy-14"),
-    );
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-agenda-class-edit-modal"),
-      ).toBeTruthy(),
-    );
-    await waitFor(() =>
-      expect(api.getClassContext).toHaveBeenCalledWith(
-        "lycee-einstein",
-        "class-6eC",
-      ),
-    );
+    expect(useTimetableStore.getState().pendingSlotEdit?.adminMode).toBe(true);
   });
 });
 

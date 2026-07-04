@@ -31,6 +31,33 @@ describe("StudentSelectField", () => {
     expect(onChange).toHaveBeenCalledWith("s2");
   });
 
+  it("n'affiche pas de label quand la prop label est absente", () => {
+    render(
+      <StudentSelectField
+        value=""
+        options={OPTIONS}
+        onChange={jest.fn()}
+        testIDPrefix="student-select"
+      />,
+    );
+
+    expect(screen.queryByText("Élève")).toBeNull();
+  });
+
+  it("n'affiche pas de titre de sheet quand label est absent", () => {
+    render(
+      <StudentSelectField
+        value=""
+        options={OPTIONS}
+        onChange={jest.fn()}
+        testIDPrefix="student-select"
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId("student-select-trigger"));
+    expect(screen.queryByText("Élève")).toBeNull();
+  });
+
   it("filtre la liste via la recherche", () => {
     render(
       <StudentSelectField

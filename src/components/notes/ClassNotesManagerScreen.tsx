@@ -667,6 +667,9 @@ export function ClassNotesManagerScreen({
             onUploadAttachment={(file) =>
               notesApi.uploadAttachment(schoolSlug!, file)
             }
+            onUploadInlineImage={(file) =>
+              notesApi.uploadInlineImage(schoolSlug!, file)
+            }
           />
         ) : (
           <View style={styles.centered}>

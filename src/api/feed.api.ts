@@ -136,6 +136,64 @@ export const feedApi = {
     );
   },
 
+  async uploadAttachment(
+    schoolSlug: string,
+    file: {
+      uri: string;
+      mimeType: string;
+      fileName: string;
+    },
+  ): Promise<{
+    fileName: string;
+    fileUrl: string | null;
+    sizeLabel: string | null;
+  }> {
+    const formData = new FormData();
+    formData.append("file", {
+      uri: file.uri,
+      type: file.mimeType,
+      name: file.fileName,
+    } as unknown as Blob);
+
+    const response = await fetch(
+      `${BASE_URL}/schools/${schoolSlug}/feed/uploads/attachment`,
+      {
+        method: "POST",
+        headers: {
+          ...(await authHeaders()),
+        },
+        body: formData,
+      },
+    );
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as {
+        message?: string | string[];
+      } | null;
+      const message = Array.isArray(payload?.message)
+        ? payload.message.join(", ")
+        : typeof payload?.message === "string"
+          ? payload.message
+          : "FEED_UPLOAD_ATTACHMENT_FAILED";
+      throw new Error(message);
+    }
+
+    // Build a clean object here rather than spreading the raw response: the
+    // media upload response also carries `size`/`width`/`height`/`mimeType`,
+    // and the feed post DTO rejects unknown attachment properties
+    // (ValidationPipe forbidNonWhitelisted).
+    const payload = (await response.json()) as {
+      url?: string | null;
+      fileUrl?: string | null;
+      sizeLabel?: string | null;
+    };
+    return {
+      fileName: file.fileName,
+      fileUrl: payload.fileUrl ?? payload.url ?? null,
+      sizeLabel: payload.sizeLabel ?? null,
+    };
+  },
+
   async uploadInlineImage(
     schoolSlug: string,
     file: {

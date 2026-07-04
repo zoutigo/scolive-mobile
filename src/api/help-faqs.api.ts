@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, BASE_URL, tokenStorage } from "./client";
 import type {
   CurrentHelpFaqResponse,
   HelpFaq,
@@ -324,5 +324,42 @@ export const helpFaqsApi = {
       { method: "DELETE" },
       true,
     );
+  },
+
+  async uploadInlineImage(file: {
+    uri: string;
+    name: string;
+    mimeType: string;
+  }) {
+    const token = await tokenStorage.getAccessToken();
+    const formData = new FormData();
+    formData.append("file", {
+      uri: file.uri,
+      type: file.mimeType,
+      name: file.name,
+    } as unknown as Blob);
+
+    const response = await fetch(
+      `${BASE_URL}/help-faqs/admin/uploads/inline-image`,
+      {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      },
+    );
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as {
+        message?: string | string[];
+      } | null;
+      const message = Array.isArray(payload?.message)
+        ? payload.message.join(", ")
+        : typeof payload?.message === "string"
+          ? payload.message
+          : "FAQ_INLINE_UPLOAD_FAILED";
+      throw new Error(message);
+    }
+
+    return (await response.json()) as { url: string };
   },
 };
