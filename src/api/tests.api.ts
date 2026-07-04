@@ -3,6 +3,7 @@ import type {
   TestCampaignDetail,
   TestCampaignSummary,
   TestCaseDetail,
+  TestCaseToRedo,
   TestExecutionAttachment,
   TestExecutionDetail,
   TestExecutionRow,
@@ -158,6 +159,10 @@ function normalizeAttachments<
 export const testsApi = {
   listCampaigns(): Promise<TestCampaignSummary[]> {
     return apiFetch(`/tests/campaigns`, {}, true);
+  },
+
+  listToRedo(): Promise<TestCaseToRedo[]> {
+    return apiFetch(`/tests/to-redo`, {}, true);
   },
 
   getCampaign(campaignId: string): Promise<TestCampaignDetail> {

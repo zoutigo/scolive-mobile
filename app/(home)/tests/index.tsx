@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppShell } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
@@ -20,14 +20,18 @@ import {
   type TestsCampaignsFilter,
 } from "../../../src/components/tests/TestsCampaignsTab";
 import { TestsExecutionsTab } from "../../../src/components/tests/TestsExecutionsTab";
+import { TestsToRedoTab } from "../../../src/components/tests/TestsToRedoTab";
 import { testsApi } from "../../../src/api/tests.api";
 import { useAuthStore } from "../../../src/store/auth.store";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import { colors } from "../../../src/theme";
-import type { TestCampaignSummary } from "../../../src/types/tests.types";
+import type {
+  TestCampaignSummary,
+  TestCaseToRedo,
+} from "../../../src/types/tests.types";
 import { moduleBack } from "../../../src/utils/moduleBack";
 
-type TabKey = "summary" | "campaigns" | "executions";
+type TabKey = "summary" | "campaigns" | "executions" | "toRedo";
 
 export default function TestsHomeRoute() {
   return (
@@ -46,14 +50,17 @@ function TestsHomeScreen() {
   const [campaignsFilter, setCampaignsFilter] =
     useState<TestsCampaignsFilter>(ALL_CAMPAIGNS_FILTER);
   const [campaigns, setCampaigns] = useState<TestCampaignSummary[]>([]);
+  const [toRedo, setToRedo] = useState<TestCaseToRedo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const isInitialLoad = useRef(true);
 
   const load = useCallback(
     async (refresh = false) => {
       if (!user?.isTester) {
         setCampaigns([]);
+        setToRedo([]);
         setIsLoading(false);
         return;
       }
@@ -63,8 +70,12 @@ function TestsHomeScreen() {
         setIsLoading(true);
       }
       try {
-        const response = await testsApi.listCampaigns();
-        setCampaigns(response);
+        const [campaignsResponse, toRedoResponse] = await Promise.all([
+          testsApi.listCampaigns(),
+          testsApi.listToRedo(),
+        ]);
+        setCampaigns(campaignsResponse);
+        setToRedo(toRedoResponse);
         setErrorMessage(null);
       } catch (error) {
         setErrorMessage(
@@ -83,6 +94,16 @@ function TestsHomeScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (isInitialLoad.current) {
+        isInitialLoad.current = false;
+        return;
+      }
+      void load(true);
+    }, [load]),
+  );
 
   function openCampaignsWithFilter(filter: TestsCampaignsFilter) {
     setCampaignsFilter(filter);
@@ -122,6 +143,11 @@ function TestsHomeScreen() {
               { key: "summary", label: t("tests.tabs.summary") },
               { key: "campaigns", label: t("tests.tabs.campaigns") },
               { key: "executions", label: t("tests.tabs.executions") },
+              {
+                key: "toRedo",
+                label: t("tests.tabs.toRedo"),
+                badge: toRedo.length,
+              },
             ]}
             activeKey={activeTab}
             onSelect={setActiveTab}
@@ -147,8 +173,10 @@ function TestsHomeScreen() {
                 filter={campaignsFilter}
                 onFilterChange={setCampaignsFilter}
               />
-            ) : (
+            ) : activeTab === "executions" ? (
               <TestsExecutionsTab campaigns={campaigns} />
+            ) : (
+              <TestsToRedoTab items={toRedo} />
             )}
           </ScrollView>
         </>

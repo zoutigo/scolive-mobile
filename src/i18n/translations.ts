@@ -1246,6 +1246,19 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.tabs.summary": "Synthèse",
     "tests.tabs.campaigns": "Campagnes",
     "tests.tabs.executions": "Tests réalisés",
+    "tests.tabs.toRedo": "À refaire",
+
+    "tests.toRedo.emptyTitle": "Aucun test à refaire",
+    "tests.toRedo.emptyMessage":
+      "Les tests qu'un administrateur vous demande de refaire apparaîtront ici.",
+    "tests.toRedo.cardCampaign": "Campagne : {title}",
+    "tests.toRedo.requestedOn": "Reprise demandée le {date}",
+
+    "tests.detail.reworkBanner.title": "Ce test doit être refait",
+    "tests.detail.reworkBanner.noNote":
+      "Un administrateur a demandé une reprise de ce test.",
+    "tests.detail.reworkBanner.formNote":
+      "Vous saisissez un nouveau résultat suite à une demande de reprise.",
 
     "tests.executions.filters.status": "Statut",
     "tests.executions.filters.statusAll": "Tous statuts",
@@ -1355,6 +1368,16 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Ex. Corrigé dans la version 1.3",
     "testsAdmin.executions.review.submit": "Valider",
     "testsAdmin.executions.review.submitting": "Enregistrement…",
+    "testsAdmin.executions.rework.request": "Demander une reprise",
+    "testsAdmin.executions.rework.cancel": "Annuler la demande",
+    "testsAdmin.executions.rework.title": "Demander une reprise de ce test",
+    "testsAdmin.executions.rework.requestedBy":
+      "Reprise demandée par {name} le {date}",
+    "testsAdmin.executions.rework.noteLabel": "Note (optionnel)",
+    "testsAdmin.executions.rework.notePlaceholder":
+      "Ex. Merci de refaire ce test sur la version 1.4",
+    "testsAdmin.executions.rework.submit": "Valider",
+    "testsAdmin.executions.rework.submitting": "Enregistrement…",
     "testsAdmin.campaigns.searchPlaceholder": "Rechercher par numéro ou titre…",
     "testsAdmin.campaigns.filters.all": "Tous statuts",
     "testsAdmin.campaigns.filters.draft": "Brouillon",
@@ -3205,6 +3228,19 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.tabs.summary": "Summary",
     "tests.tabs.campaigns": "Campaigns",
     "tests.tabs.executions": "Tests done",
+    "tests.tabs.toRedo": "To redo",
+
+    "tests.toRedo.emptyTitle": "No tests to redo",
+    "tests.toRedo.emptyMessage":
+      "Tests an administrator asks you to redo will appear here.",
+    "tests.toRedo.cardCampaign": "Campaign: {title}",
+    "tests.toRedo.requestedOn": "Rework requested on {date}",
+
+    "tests.detail.reworkBanner.title": "This test needs to be redone",
+    "tests.detail.reworkBanner.noNote":
+      "An administrator requested a rework of this test.",
+    "tests.detail.reworkBanner.formNote":
+      "You are submitting a new result following a rework request.",
 
     "tests.executions.filters.status": "Status",
     "tests.executions.filters.statusAll": "All statuses",
@@ -3307,6 +3343,16 @@ export const translations: Record<Locale, Record<string, string>> = {
     "testsAdmin.executions.review.notePlaceholder": "E.g. Fixed in version 1.3",
     "testsAdmin.executions.review.submit": "Confirm",
     "testsAdmin.executions.review.submitting": "Saving…",
+    "testsAdmin.executions.rework.request": "Request rework",
+    "testsAdmin.executions.rework.cancel": "Cancel request",
+    "testsAdmin.executions.rework.title": "Request a rework of this test",
+    "testsAdmin.executions.rework.requestedBy":
+      "Rework requested by {name} on {date}",
+    "testsAdmin.executions.rework.noteLabel": "Note (optional)",
+    "testsAdmin.executions.rework.notePlaceholder":
+      "E.g. Please redo this test on version 1.4",
+    "testsAdmin.executions.rework.submit": "Confirm",
+    "testsAdmin.executions.rework.submitting": "Saving…",
     "testsAdmin.campaigns.searchPlaceholder": "Search by number or title…",
     "testsAdmin.campaigns.filters.all": "All statuses",
     "testsAdmin.campaigns.filters.draft": "Draft",

@@ -13,6 +13,7 @@ jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
   usePathname: () => "/tests",
+  useFocusEffect: () => {},
 }));
 jest.mock("../../src/store/auth.store");
 jest.mock("../../src/api/tests.api");
@@ -57,6 +58,7 @@ describe("Tests screen", () => {
         isTester: true,
       },
     });
+    (testsApi.listToRedo as jest.Mock).mockResolvedValue([]);
     (testsApi.listCampaigns as jest.Mock).mockResolvedValue([
       {
         id: "camp-1",
@@ -102,6 +104,7 @@ describe("Tests screen", () => {
         isTester: true,
       },
     });
+    (testsApi.listToRedo as jest.Mock).mockResolvedValue([]);
     (testsApi.listCampaigns as jest.Mock).mockResolvedValue([
       {
         id: "camp-1",

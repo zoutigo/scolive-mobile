@@ -69,10 +69,13 @@ export type TestExecutionItem = {
   appVersion: string | null;
   executedAt: string;
   createdAt: string;
+  reworkRequestedAt: string | null;
+  reworkNote: string | null;
   user: {
     id: string;
     fullName: string;
   };
+  reworkRequestedBy: { id: string; fullName: string } | null;
   attachments: TestExecutionAttachment[];
 };
 
@@ -84,10 +87,26 @@ export type TestExecutionRow = {
   executedAt: string;
   adminReviewedAt: string | null;
   adminReviewNote: string | null;
+  reworkRequestedAt: string | null;
+  reworkNote: string | null;
   user: { id: string; fullName: string };
   adminReviewedBy: { id: string; fullName: string } | null;
+  reworkRequestedBy: { id: string; fullName: string } | null;
   testCase: { id: string; title: string };
   campaign: { id: string; title: string };
+};
+
+export type TestCaseToRedo = {
+  id: string;
+  title: string;
+  module: string | null;
+  priority: TestCasePriority;
+  evidenceRequired: boolean;
+  campaign: { id: string; title: string };
+  reworkRequestedAt: string;
+  reworkNote: string | null;
+  reworkRequestedByName: string | null;
+  lastExecutedAt: string;
 };
 
 export type TestExecutionDetail = TestExecutionRow & {

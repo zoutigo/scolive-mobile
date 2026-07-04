@@ -140,6 +140,28 @@ function TestCaseScreen() {
               testTitle={detail.title}
             />
 
+            {detail.latestOwnExecution?.reworkRequestedAt ? (
+              <View
+                style={styles.reworkBanner}
+                testID="test-case-rework-banner"
+              >
+                <View style={styles.reworkBannerHeaderRow}>
+                  <Ionicons
+                    name="refresh-circle-outline"
+                    size={20}
+                    color="#B3261E"
+                  />
+                  <Text style={styles.reworkBannerTitle}>
+                    {t("tests.detail.reworkBanner.title")}
+                  </Text>
+                </View>
+                <Text style={styles.reworkBannerBody}>
+                  {detail.latestOwnExecution.reworkNote?.trim() ||
+                    t("tests.detail.reworkBanner.noNote")}
+                </Text>
+              </View>
+            ) : null}
+
             <SectionCard
               icon="flag-outline"
               title={t("tests.detail.objective")}
@@ -274,6 +296,9 @@ function TestCaseScreen() {
                 params: {
                   testCaseId,
                   evidenceRequired: detail.evidenceRequired ? "1" : "0",
+                  reworkNote: detail.latestOwnExecution?.reworkRequestedAt
+                    ? (detail.latestOwnExecution.reworkNote ?? "")
+                    : undefined,
                 },
               })
             }
@@ -406,6 +431,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
   },
+  reworkBanner: {
+    backgroundColor: "#FBE3E1",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#F0C9C2",
+    padding: 14,
+    gap: 6,
+  },
+  reworkBannerHeaderRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  reworkBannerTitle: { fontSize: 14, fontWeight: "800", color: "#B3261E" },
+  reworkBannerBody: { fontSize: 13, lineHeight: 19, color: "#7A241D" },
   scrollContent: { padding: 16, paddingBottom: 100, gap: 12 },
   scrollContentWithButton: { paddingBottom: 160 },
   card: {
