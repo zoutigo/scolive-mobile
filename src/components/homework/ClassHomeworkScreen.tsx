@@ -1643,6 +1643,16 @@ export function ClassHomeworkScreen({
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.root}
     >
+      {headerComponent}
+
+      {tab === "forms" ? null : visibleTabError ? (
+        <ErrorBanner
+          message={visibleTabError}
+          onDismiss={() => setErrorDismissed(true)}
+          testID="homework-tab-error"
+        />
+      ) : null}
+
       {tab === "forms" ? null : tab === "list" ? (
         <InfiniteScrollList
           data={visibleListItems}
@@ -1710,18 +1720,6 @@ export function ClassHomeworkScreen({
             paddingHorizontal: 16,
             paddingBottom: insets.bottom + 120,
           }}
-          ListHeaderComponent={
-            <>
-              {headerComponent}
-              {visibleTabError ? (
-                <ErrorBanner
-                  message={visibleTabError}
-                  onDismiss={() => setErrorDismissed(true)}
-                  testID="homework-tab-error"
-                />
-              ) : null}
-            </>
-          }
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         />
       ) : (
@@ -1745,16 +1743,6 @@ export function ClassHomeworkScreen({
           }
           showsVerticalScrollIndicator={false}
         >
-          {headerComponent}
-
-          {visibleTabError ? (
-            <ErrorBanner
-              message={visibleTabError}
-              onDismiss={() => setErrorDismissed(true)}
-              testID="homework-tab-error"
-            />
-          ) : null}
-
           {agendaMode === "week" ? (
             <View style={styles.weekSection}>
               <WeekHomeworkColumns
@@ -1901,7 +1889,6 @@ export function ClassHomeworkScreen({
 
       {tab === "forms" && formContext ? (
         <View style={styles.root}>
-          {headerComponent}
           <HomeworkFormContent
             formContext={formContext}
             onSubmit={handleSaveHomework}
