@@ -291,7 +291,28 @@ describe("RichEditorField", () => {
       );
     });
 
-    it("ouvre le menu de couleurs et applique la couleur choisie", () => {
+    it("ouvre le panneau de couleurs et applique la couleur choisie", () => {
+      render(
+        <RichEditorField
+          placeholder="Écrire ici…"
+          colorPresets={colorPresets}
+          labels={labels}
+          colorButtonTestID="color-btn"
+        />,
+      );
+
+      expect(screen.queryByTestId("color-picker-panel")).toBeNull();
+
+      fireEvent.press(screen.getByTestId("color-btn"));
+
+      expect(screen.getByTestId("color-picker-panel")).toBeTruthy();
+      fireEvent.press(screen.getByTestId("color-swatch-#1B1F23"));
+
+      expect(__mockEditorMethods.setForeColor).toHaveBeenCalledWith("#1B1F23");
+      expect(screen.queryByTestId("color-picker-panel")).toBeNull();
+    });
+
+    it("propose une palette de couleurs étendue au-delà des presets fournis par l'appelant", () => {
       render(
         <RichEditorField
           placeholder="Écrire ici…"
@@ -303,21 +324,27 @@ describe("RichEditorField", () => {
 
       fireEvent.press(screen.getByTestId("color-btn"));
 
-      expect(Alert.alert).toHaveBeenCalledWith(
-        labels.colorMenuTitle,
-        labels.colorMenuMessage,
-        expect.any(Array),
+      // Un preset fourni par l'appelant reste disponible…
+      expect(screen.getByTestId("color-swatch-#0C5FA8")).toBeTruthy();
+      // …et la palette globale du composant ajoute d'autres couleurs.
+      expect(screen.getByTestId("color-swatch-#DC2626")).toBeTruthy();
+    });
+
+    it("ferme le panneau de couleurs via le bouton close sans appliquer de couleur", () => {
+      render(
+        <RichEditorField
+          placeholder="Écrire ici…"
+          colorPresets={colorPresets}
+          labels={labels}
+          colorButtonTestID="color-btn"
+        />,
       );
 
-      const alertOptions = (Alert.alert as jest.Mock).mock
-        .calls[0][2] as Array<{
-        text: string;
-        onPress?: () => void;
-      }>;
-      const blackOption = alertOptions.find((option) => option.text === "Noir");
-      blackOption?.onPress?.();
+      fireEvent.press(screen.getByTestId("color-btn"));
+      fireEvent.press(screen.getByTestId("color-picker-close"));
 
-      expect(__mockEditorMethods.setForeColor).toHaveBeenCalledWith("#1B1F23");
+      expect(screen.queryByTestId("color-picker-panel")).toBeNull();
+      expect(__mockEditorMethods.setForeColor).not.toHaveBeenCalled();
     });
   });
 
@@ -400,6 +427,15 @@ describe("RichEditorField", () => {
           expect.stringContaining("__rnImgListenerAdded"),
         );
       });
+
+      // Le même script installe aussi un listener 'load' qui recalcule et
+      // renvoie la hauteur du contenu — sans ça une image chargée
+      // après coup (upload async ou HTML initial) reste clippée par le
+      // conteneur overflow:hidden car onHeightChange ne se redéclenche
+      // jamais tout seul.
+      expect(__mockEditorMethods.commandDOM).toHaveBeenCalledWith(
+        expect.stringContaining("OFFSET_HEIGHT"),
+      );
     });
 
     it("affiche le panneau au tap sur une image et applique un redimensionnement", () => {
@@ -424,6 +460,9 @@ describe("RichEditorField", () => {
       );
       expect(__mockEditorMethods.commandDOM).toHaveBeenLastCalledWith(
         expect.stringContaining("width = '50%'"),
+      );
+      expect(__mockEditorMethods.commandDOM).toHaveBeenLastCalledWith(
+        expect.stringContaining("OFFSET_HEIGHT"),
       );
     });
 

@@ -1,6 +1,7 @@
 import React, {
   forwardRef,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -9,6 +10,7 @@ import * as ImagePicker from "expo-image-picker";
 import { RichEditor } from "react-native-pell-rich-editor";
 import { colors } from "../../theme";
 import { RichTextToolbar } from "./RichTextToolbar";
+import { ColorPickerPanel } from "./ColorPickerPanel";
 import {
   ImageEditPanel,
   type ImageAlign,
@@ -78,6 +80,61 @@ export type RichEditorFieldProps = {
   quoteButtonTestID?: string;
   videoButtonTestID?: string;
 };
+
+/**
+ * Extra swatches always offered by the color picker on top of whatever
+ * colorPresets a caller passes in, so every RichEditorField instance gets a
+ * richer palette without each screen having to list dozens of colors itself.
+ */
+const EXTENDED_COLOR_PALETTE: readonly RichEditorColorPreset[] = [
+  { label: "Noir", value: "#111827" },
+  { label: "Gris ardoise", value: "#374151" },
+  { label: "Gris", value: "#6B7280" },
+  { label: "Rouge", value: "#DC2626" },
+  { label: "Rouge foncé", value: "#B91C1C" },
+  { label: "Orange", value: "#EA580C" },
+  { label: "Ambre", value: "#D97706" },
+  { label: "Jaune", value: "#CA8A04" },
+  { label: "Vert citron", value: "#65A30D" },
+  { label: "Vert", value: "#16A34A" },
+  { label: "Émeraude", value: "#0F766E" },
+  { label: "Cyan", value: "#0891B2" },
+  { label: "Bleu", value: "#2563EB" },
+  { label: "Bleu profond", value: "#08467D" },
+  { label: "Indigo", value: "#4F46E5" },
+  { label: "Violet", value: "#7C3AED" },
+  { label: "Magenta", value: "#C026D3" },
+  { label: "Rose", value: "#DB2777" },
+  { label: "Marron", value: "#92400E" },
+  { label: "Blanc", value: "#FFFFFF" },
+];
+
+function mergeColorPresets(
+  callerPresets: readonly RichEditorColorPreset[],
+): RichEditorColorPreset[] {
+  const seen = new Set(
+    callerPresets.map((preset) => preset.value.toLowerCase()),
+  );
+  const extras = EXTENDED_COLOR_PALETTE.filter(
+    (preset) => !seen.has(preset.value.toLowerCase()),
+  );
+  return [...callerPresets, ...extras];
+}
+
+/**
+ * Re-measures the WebView content height and reports it back to RN. Needed
+ * anywhere the DOM changes size without firing the input/keyup/paste events
+ * that react-native-pell-rich-editor listens to internally — e.g. an <img>
+ * finishing its async load, or a resize/align style change applied via
+ * commandDOM — otherwise the RN-side height state goes stale and taller
+ * content gets clipped by the container's overflow:hidden.
+ */
+const RECALC_HEIGHT_JS = `
+  var __rnContent = document.getElementById('content');
+  if (__rnContent && window.ReactNativeWebView) {
+    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'OFFSET_HEIGHT', data: __rnContent.scrollHeight }));
+  }
+`;
 
 function formatBlockCommand(tag: "h2" | "blockquote"): string {
   return `document.execCommand('formatBlock', false, '<${tag}>'); true;`;
@@ -149,6 +206,11 @@ const INJECT_IMAGE_CLICK_HANDLER_SCRIPT = `
         }));
       }
     }, true);
+    document.addEventListener('load', function(e) {
+      if (e.target && e.target.tagName === 'IMG') {
+        ${RECALC_HEIGHT_JS}
+      }
+    }, true);
   })();
 `;
 
@@ -192,6 +254,12 @@ export const RichEditorField = forwardRef<
   );
   const [selectedImageAlign, setSelectedImageAlign] =
     useState<ImageAlign | null>(null);
+  const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
+
+  const mergedColorPresets = useMemo(
+    () => mergeColorPresets(colorPresets),
+    [colorPresets],
+  );
 
   useImperativeHandle(ref, () => ({
     focus: () => editorRef.current?.focusContentEditor?.(),
@@ -260,6 +328,7 @@ export const RichEditorField = forwardRef<
           img.style.display = 'block';
           if (!img.style.marginLeft) img.style.marginLeft = '0';
         }
+        ${RECALC_HEIGHT_JS}
       })($);
     `);
   }
@@ -288,6 +357,7 @@ export const RichEditorField = forwardRef<
             img.style.marginRight = 'auto';
           }
         }
+        ${RECALC_HEIGHT_JS}
       })($);
     `);
   }
@@ -300,6 +370,7 @@ export const RichEditorField = forwardRef<
       (function($) {
         var img = $('[data-rn-id="${selectedImageId}"]');
         if (img) img.parentNode.removeChild(img);
+        ${RECALC_HEIGHT_JS}
       })($);
     `);
     setSelectedImageId(null);
@@ -322,13 +393,16 @@ export const RichEditorField = forwardRef<
   }
 
   function openColorMenu() {
-    Alert.alert(labels.colorMenuTitle, labels.colorMenuMessage, [
-      ...colorPresets.map((preset) => ({
-        text: preset.label,
-        onPress: () => editorRef.current?.setForeColor(preset.value),
-      })),
-      { text: labels.cancel, style: "cancel" as const },
-    ]);
+    setIsColorPickerOpen(true);
+  }
+
+  function closeColorMenu() {
+    setIsColorPickerOpen(false);
+  }
+
+  function applyColor(value: string) {
+    editorRef.current?.setForeColor(value);
+    setIsColorPickerOpen(false);
   }
 
   async function pickAndInsertImage() {
@@ -419,20 +493,32 @@ export const RichEditorField = forwardRef<
 
   return (
     <View style={containerStyle}>
-      <RichTextToolbar
-        editorRef={editorRef}
-        onPressAddImage={onUploadInlineImage ? pickAndInsertImage : undefined}
-        onPressAddVideo={onUploadInlineVideo ? pickAndInsertVideo : undefined}
-        onPressColor={openColorMenu}
-        onPressHeading={applyHeading}
-        onPressQuote={applyQuote}
-        toolbarTestID={toolbarTestID}
-        quickToolsTestID={quickToolsTestID}
-        colorButtonTestID={colorButtonTestID}
-        headingButtonTestID={headingButtonTestID}
-        quoteButtonTestID={quoteButtonTestID}
-        videoButtonTestID={videoButtonTestID}
-      />
+      <View style={styles.toolbarWrapper}>
+        <RichTextToolbar
+          editorRef={editorRef}
+          onPressAddImage={onUploadInlineImage ? pickAndInsertImage : undefined}
+          onPressAddVideo={onUploadInlineVideo ? pickAndInsertVideo : undefined}
+          onPressColor={openColorMenu}
+          onPressHeading={applyHeading}
+          onPressQuote={applyQuote}
+          toolbarTestID={toolbarTestID}
+          quickToolsTestID={quickToolsTestID}
+          colorButtonTestID={colorButtonTestID}
+          headingButtonTestID={headingButtonTestID}
+          quoteButtonTestID={quoteButtonTestID}
+          videoButtonTestID={videoButtonTestID}
+        />
+      </View>
+      {isColorPickerOpen ? (
+        <ColorPickerPanel
+          presets={mergedColorPresets}
+          onSelect={applyColor}
+          onClose={closeColorMenu}
+          title={labels.colorMenuTitle}
+          message={labels.colorMenuMessage}
+          closeAccessibilityLabel={labels.cancel}
+        />
+      ) : null}
       {selectedImageId ? (
         <ImageEditPanel
           onSizePress={applyImageSize}
@@ -477,9 +563,18 @@ export const RichEditorField = forwardRef<
 });
 
 const styles = StyleSheet.create({
+  toolbarWrapper: {
+    backgroundColor: colors.warmSurface,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
   editorArea: {
     borderRadius: 12,
     overflow: "hidden",
+    marginTop: 10,
   },
   editor: {
     backgroundColor: "transparent",
