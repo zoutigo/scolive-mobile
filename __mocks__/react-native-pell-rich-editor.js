@@ -7,6 +7,8 @@ const mockEditorMethods = {
   setForeColor: jestGlobals.fn(),
   command: jestGlobals.fn(),
   commandDOM: jestGlobals.fn(),
+  setContentHTML: jestGlobals.fn(),
+  focusContentEditor: jestGlobals.fn(),
 };
 
 let mockContentHtml = "";
@@ -40,6 +42,15 @@ class RichEditor extends React.Component {
 
   commandDOM(js) {
     mockEditorMethods.commandDOM(js);
+  }
+
+  setContentHTML(html) {
+    mockEditorMethods.setContentHTML(html);
+    mockContentHtml = html;
+  }
+
+  focusContentEditor() {
+    mockEditorMethods.focusContentEditor();
   }
 
   getContentHtml() {

@@ -9,42 +9,13 @@ import { AssistanceFaqPanel } from "../../src/components/tickets/AssistanceFaqPa
 import { helpFaqsApi } from "../../src/api/help-faqs.api";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
-jest.mock("react-native-pell-rich-editor", () => {
-  const React = require("react");
-  const { View } = require("react-native");
+// react-native-pell-rich-editor est auto-mocké via __mocks__/react-native-pell-rich-editor.js
+// (mock manuel Jest partagé par tous les écrans utilisant RichEditorField).
 
-  const RichEditor = React.forwardRef(
-    (
-      _props: unknown,
-      ref: React.Ref<{
-        setContentHTML: () => void;
-        setForeColor: () => void;
-        command: () => void;
-      }>,
-    ) => {
-      React.useImperativeHandle(ref, () => ({
-        setContentHTML: () => undefined,
-        setForeColor: () => undefined,
-        command: () => undefined,
-      }));
-      return <View testID="mock-rich-editor" />;
-    },
-  );
-
-  return {
-    RichEditor,
-    RichToolbar: () => <View testID="mock-rich-toolbar" />,
-    actions: {
-      setBold: "setBold",
-      setItalic: "setItalic",
-      setUnderline: "setUnderline",
-      setStrikethrough: "setStrikethrough",
-      insertBulletsList: "insertBulletsList",
-      insertOrderedList: "insertOrderedList",
-      insertImage: "insertImage",
-    },
-  };
-});
+jest.mock("expo-image-picker", () => ({
+  requestMediaLibraryPermissionsAsync: jest.fn(),
+  launchImageLibraryAsync: jest.fn(),
+}));
 
 jest.mock("../../src/api/help-faqs.api", () => ({
   helpFaqsApi: {
@@ -71,6 +42,7 @@ jest.mock("../../src/api/help-faqs.api", () => ({
     updateSchoolItem: jest.fn(),
     deleteGlobalItem: jest.fn(),
     deleteSchoolItem: jest.fn(),
+    uploadInlineImage: jest.fn(),
   },
 }));
 
@@ -259,5 +231,53 @@ describe("AssistanceFaqPanel", () => {
         ),
       ).toBeTruthy();
     });
+  });
+
+  it("uploade et insère une image dans l'éditeur de réponse FAQ", async () => {
+    (
+      require("expo-image-picker")
+        .requestMediaLibraryPermissionsAsync as jest.Mock
+    ).mockResolvedValue({ status: "granted" });
+    (
+      require("expo-image-picker").launchImageLibraryAsync as jest.Mock
+    ).mockResolvedValue({
+      canceled: false,
+      assets: [
+        {
+          uri: "file:///photo.jpg",
+          fileName: "photo.jpg",
+          mimeType: "image/jpeg",
+        },
+      ],
+    });
+    mockApi.uploadInlineImage.mockResolvedValue({
+      url: "https://example.com/faq-answer-img.jpg",
+    });
+
+    render(<AssistanceFaqPanel />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("assistance-faq-admin-forms-mobile"),
+      ).toBeTruthy();
+    });
+
+    await require("@testing-library/react-native").act(async () => {
+      fireEvent.press(screen.getByTestId("toolbar-insert-image"));
+    });
+
+    expect(mockApi.uploadInlineImage).toHaveBeenCalledWith({
+      uri: "file:///photo.jpg",
+      name: "photo.jpg",
+      mimeType: "image/jpeg",
+    });
+
+    const {
+      __mockEditorMethods,
+    } = require("../../__mocks__/react-native-pell-rich-editor");
+    expect(__mockEditorMethods.insertImage).toHaveBeenCalledWith(
+      "https://example.com/faq-answer-img.jpg",
+      expect.any(String),
+    );
   });
 });

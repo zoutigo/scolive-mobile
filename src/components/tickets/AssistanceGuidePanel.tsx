@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Alert,
   ActivityIndicator,
   Linking,
   ScrollView,
@@ -11,8 +10,6 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
-import { RichEditor } from "react-native-pell-rich-editor";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -26,7 +23,10 @@ import type {
   HelpGuideSourceWithPlan,
   HelpPlanNode,
 } from "../../types/help-guides.types";
-import { RichTextToolbar } from "../editor/RichTextToolbar";
+import {
+  RichEditorField,
+  type RichEditorFieldRef,
+} from "../editor/RichEditorField";
 
 const guideSchema = z.object({
   title: z.string().min(3, "Titre requis"),
@@ -89,7 +89,7 @@ type AssistanceGuidePanelProps = {
 export function AssistanceGuidePanel({
   canManageOverride = true,
 }: AssistanceGuidePanelProps) {
-  const editorRef = useRef<RichEditor>(null);
+  const editorRef = useRef<RichEditorFieldRef>(null);
   const [permissions, setPermissions] = useState({
     canManageGlobal: false,
     canManageSchool: false,
@@ -110,7 +110,6 @@ export function AssistanceGuidePanel({
   const [activeGuideId, setActiveGuideId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [isInsertingMedia, setIsInsertingMedia] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const guideForm = useForm<GuideFormValues>({
@@ -311,7 +310,7 @@ export function AssistanceGuidePanel({
         contentHtml: "",
         videoUrl: "",
       });
-      editorRef.current?.setContentHTML("");
+      editorRef.current?.clear();
       await load(activeGuideId);
     } catch (saveError) {
       setError(
@@ -319,143 +318,6 @@ export function AssistanceGuidePanel({
       );
     } finally {
       setSaving(false);
-    }
-  }
-
-  function openTextColorMenu() {
-    Alert.alert("Couleur du texte", "Choisissez une couleur", [
-      {
-        text: "Bleu profond",
-        onPress: () => editorRef.current?.setForeColor("#0C5FA8"),
-      },
-      {
-        text: "Vert école",
-        onPress: () => editorRef.current?.setForeColor("#217346"),
-      },
-      {
-        text: "Rouge alerte",
-        onPress: () => editorRef.current?.setForeColor("#B42318"),
-      },
-      {
-        text: "Noir",
-        onPress: () => editorRef.current?.setForeColor("#1B1F23"),
-      },
-      { text: "Annuler", style: "cancel" as const },
-    ]);
-  }
-
-  function applyHeading() {
-    editorRef.current?.command(
-      "document.execCommand('formatBlock', false, '<h2>'); true;",
-    );
-  }
-
-  function applyQuote() {
-    editorRef.current?.command(
-      "document.execCommand('formatBlock', false, '<blockquote>'); true;",
-    );
-  }
-
-  async function insertInlineImageFromGallery() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permission.status !== "granted") {
-      Alert.alert("Permission refusée", "Autorisez l'accès à la galerie.");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: false,
-      quality: 0.85,
-      exif: false,
-    });
-    if (result.canceled || !result.assets[0]) {
-      return;
-    }
-
-    const asset = result.assets[0];
-    setIsInsertingMedia(true);
-    try {
-      const response = await helpGuidesApi.uploadInlineImage({
-        uri: asset.uri,
-        name: asset.fileName ?? `guide-inline-${Date.now()}.jpg`,
-        mimeType: asset.mimeType ?? "image/jpeg",
-      });
-      editorRef.current?.insertImage(response.url);
-    } catch (insertError) {
-      Alert.alert(
-        "Image non ajoutée",
-        insertError instanceof Error
-          ? insertError.message
-          : "Impossible d'ajouter l'image.",
-      );
-    } finally {
-      setIsInsertingMedia(false);
-    }
-  }
-
-  function insertInlineVideoTag(videoUrl: string, title?: string) {
-    const safeUrl = videoUrl.replace(/'/g, "\\'");
-    const safeTitle = (title ?? "Vidéo").replace(/'/g, "\\'");
-    editorRef.current?.command(`
-      (function() {
-        var video = document.createElement('video');
-        video.src = '${safeUrl}';
-        video.controls = true;
-        video.style.maxWidth = '100%';
-        video.style.borderRadius = '8px';
-        video.style.margin = '8px 0';
-        video.setAttribute('title', '${safeTitle}');
-        var selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-          var range = selection.getRangeAt(0);
-          range.deleteContents();
-          range.insertNode(video);
-          range.setStartAfter(video);
-          range.collapse(true);
-          selection.removeAllRanges();
-          selection.addRange(range);
-        } else {
-          document.body.appendChild(video);
-        }
-      })();
-      true;
-    `);
-  }
-
-  async function insertInlineVideoFromGallery() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permission.status !== "granted") {
-      Alert.alert("Permission refusée", "Autorisez l'accès à la galerie.");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["videos"],
-      allowsMultipleSelection: false,
-    });
-    if (result.canceled || !result.assets[0]) {
-      return;
-    }
-
-    const asset = result.assets[0];
-    setIsInsertingMedia(true);
-    try {
-      const response = await helpGuidesApi.uploadInlineVideo({
-        uri: asset.uri,
-        name: asset.fileName ?? `guide-inline-${Date.now()}.mp4`,
-        mimeType: asset.mimeType ?? "video/mp4",
-      });
-      insertInlineVideoTag(response.url, asset.fileName ?? undefined);
-    } catch (insertError) {
-      Alert.alert(
-        "Vidéo non ajoutée",
-        insertError instanceof Error
-          ? insertError.message
-          : "Impossible d'ajouter la vidéo.",
-      );
-    } finally {
-      setIsInsertingMedia(false);
     }
   }
 
@@ -876,53 +738,42 @@ export function AssistanceGuidePanel({
               name="contentHtml"
               render={({ field: { onChange, value }, fieldState }) => (
                 <>
-                  <View style={styles.editorShell}>
-                    <RichTextToolbar
-                      editorRef={editorRef}
-                      onPressAddImage={() => {
-                        void insertInlineImageFromGallery();
-                      }}
-                      onPressAddVideo={() => {
-                        void insertInlineVideoFromGallery();
-                      }}
-                      onPressColor={openTextColorMenu}
-                      onPressHeading={applyHeading}
-                      onPressQuote={applyQuote}
-                    />
-                    {isInsertingMedia ? (
-                      <View style={styles.editorBanner}>
-                        <ActivityIndicator
-                          size="small"
-                          color={colors.primary}
-                        />
-                        <Text style={styles.editorBannerLabel}>
-                          Insertion du média…
-                        </Text>
-                      </View>
-                    ) : null}
-                    <RichEditor
-                      ref={editorRef}
-                      style={styles.richEditor}
-                      editorStyle={{
-                        backgroundColor: colors.surface,
-                        color: colors.textPrimary,
-                        placeholderColor: colors.textSecondary,
-                        contentCSSText: `
-                          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                          font-size: 14px;
-                          line-height: 1.55;
-                          padding: 12px;
-                          min-height: 180px;
-                        `,
-                      }}
-                      useContainer
-                      initialFocus={false}
-                      initialContentHTML={value ?? ""}
-                      placeholder="Contenu du chapitre…"
-                      onChange={onChange}
-                      testID="assistance-guide-rich-editor-mobile"
-                    />
-                  </View>
+                  <RichEditorField
+                    ref={editorRef}
+                    initialHtml={value ?? ""}
+                    onChangeHtml={onChange}
+                    placeholder="Contenu du chapitre…"
+                    insertingPlaceholder="Insertion du média…"
+                    colorPresets={[
+                      { label: "Bleu profond", value: "#0C5FA8" },
+                      { label: "Vert école", value: "#217346" },
+                      { label: "Rouge alerte", value: "#B42318" },
+                      { label: "Noir", value: "#1B1F23" },
+                    ]}
+                    labels={{
+                      colorMenuTitle: "Couleur du texte",
+                      colorMenuMessage: "Choisissez une couleur",
+                      cancel: "Annuler",
+                      permissionDeniedTitle: "Permission refusée",
+                      permissionDeniedMessage:
+                        "Autorisez l'accès à la galerie.",
+                      imageErrorTitle: "Image non ajoutée",
+                      imageErrorFallbackMessage:
+                        "Impossible d'ajouter l'image.",
+                      videoErrorTitle: "Vidéo non ajoutée",
+                      videoErrorFallbackMessage:
+                        "Impossible d'ajouter la vidéo.",
+                    }}
+                    onUploadInlineImage={(file) =>
+                      helpGuidesApi.uploadInlineImage(file)
+                    }
+                    onUploadInlineVideo={(file) =>
+                      helpGuidesApi.uploadInlineVideo(file)
+                    }
+                    minHeight={180}
+                    contentCSSText="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.55; padding: 12px;"
+                    editorTestID="assistance-guide-rich-editor-mobile"
+                  />
                   {fieldState.error ? (
                     <Text style={styles.error}>{fieldState.error.message}</Text>
                   ) : null}
@@ -1214,37 +1065,6 @@ const styles = StyleSheet.create({
   textArea: {
     minHeight: 90,
     textAlignVertical: "top",
-  },
-  editorShell: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    backgroundColor: colors.warmSurface,
-    padding: 8,
-    gap: 8,
-  },
-  editorBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.primary + "35",
-    backgroundColor: colors.primary + "12",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  editorBannerLabel: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  richEditor: {
-    minHeight: 220,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
   },
   inputError: {
     borderColor: colors.notification,

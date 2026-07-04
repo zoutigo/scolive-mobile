@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -15,11 +14,13 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import * as DocumentPicker from "expo-document-picker";
-import { RichEditor } from "react-native-pell-rich-editor";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
 import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
-import { RichTextToolbar } from "../editor/RichTextToolbar";
+import {
+  RichEditorField,
+  type RichEditorFieldRef,
+} from "../editor/RichEditorField";
 import { DatePickerField } from "../DatePickerField";
 import { TimePickerField } from "../TimePickerField";
 import {
@@ -237,6 +238,11 @@ type EvaluationFormProps = {
     mimeType: string;
     fileName: string;
   }) => Promise<EvaluationAttachmentDraft>;
+  onUploadInlineImage?: (file: {
+    uri: string;
+    mimeType: string;
+    name: string;
+  }) => Promise<{ url: string }>;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -249,10 +255,11 @@ export function EvaluationForm({
   onBack,
   onSubmit,
   onUploadAttachment,
+  onUploadInlineImage,
 }: EvaluationFormProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const richEditorRef = useRef<RichEditor>(null);
+  const richEditorRef = useRef<RichEditorFieldRef>(null);
   const [descriptionHtml, setDescriptionHtml] = useState(
     initialValues?.description ?? "",
   );
@@ -322,32 +329,6 @@ export function EvaluationForm({
     label: sequenceLabel(seq, t),
   }));
 
-  function openColorMenu() {
-    Alert.alert(
-      t("notes.form.colorMenu.title"),
-      t("notes.form.colorMenu.message"),
-      [
-        ...buildColorPresets(t).map((p) => ({
-          text: p.label,
-          onPress: () => richEditorRef.current?.setForeColor(p.value),
-        })),
-        { text: t("notes.form.colorMenu.cancel"), style: "cancel" as const },
-      ],
-    );
-  }
-
-  function applyHeading() {
-    richEditorRef.current?.command(
-      "document.execCommand('formatBlock', false, '<h2>'); true;",
-    );
-  }
-
-  function applyQuote() {
-    richEditorRef.current?.command(
-      "document.execCommand('formatBlock', false, '<blockquote>'); true;",
-    );
-  }
-
   async function handleAddAttachment() {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -377,11 +358,8 @@ export function EvaluationForm({
 
   function buildSubmitHandler(status: "DRAFT" | "PUBLISHED") {
     return handleSubmit(async (values) => {
-      const editorHtml = await richEditorRef.current?.getContentHtml?.();
-      const finalHtml =
-        typeof editorHtml === "string" && editorHtml.trim()
-          ? editorHtml
-          : descriptionHtml;
+      const editorHtml = await richEditorRef.current?.getContentHtml();
+      const finalHtml = editorHtml?.trim() ? editorHtml : descriptionHtml;
 
       const payload: UpsertEvaluationPayload = {
         subjectId: values.subjectId,
@@ -761,22 +739,25 @@ export function EvaluationForm({
       <SectionHeader label={t("notes.form.sections.description")} />
 
       <View style={styles.fieldGroup}>
-        <RichTextToolbar
-          editorRef={richEditorRef}
-          onPressColor={openColorMenu}
-          onPressHeading={applyHeading}
-          onPressQuote={applyQuote}
+        <RichEditorField
+          ref={richEditorRef}
+          initialHtml={initialValues?.description ?? ""}
+          onChangeHtml={setDescriptionHtml}
+          placeholder={t("notes.form.descriptionPlaceholder")}
+          colorPresets={buildColorPresets(t)}
+          labels={{
+            colorMenuTitle: t("notes.form.colorMenu.title"),
+            colorMenuMessage: t("notes.form.colorMenu.message"),
+            cancel: t("notes.form.colorMenu.cancel"),
+            permissionDeniedTitle: t("notes.form.permission.title"),
+            permissionDeniedMessage: t("notes.form.permission.message"),
+            imageErrorTitle: t("notes.form.errors.insertImageTitle"),
+            imageErrorFallbackMessage: t("notes.form.errors.insertImage"),
+          }}
+          onUploadInlineImage={onUploadInlineImage}
+          minHeight={160}
+          editorTestID="eval-form-description-editor"
         />
-        <View style={styles.editorContainer}>
-          <RichEditor
-            ref={richEditorRef}
-            initialContentHTML={initialValues?.description ?? ""}
-            onChange={setDescriptionHtml}
-            placeholder={t("notes.form.descriptionPlaceholder")}
-            style={styles.editor}
-            testID="eval-form-description-editor"
-          />
-        </View>
       </View>
 
       {/* ════ PIÈCES JOINTES ════════════════════════════════════ */}
@@ -1022,17 +1003,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   selectOptionTextActive: { color: colors.primary, fontWeight: "700" },
-
-  editorContainer: {
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    overflow: "hidden",
-    minHeight: 160,
-    backgroundColor: colors.white,
-    marginTop: 8,
-  },
-  editor: { minHeight: 160, backgroundColor: colors.white },
 
   addAttachmentBtn: {
     flexDirection: "row",

@@ -24,8 +24,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
-import * as ImagePicker from "expo-image-picker";
-import { RichEditor } from "react-native-pell-rich-editor";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -46,7 +44,10 @@ import { ModuleHeader } from "../navigation/ModuleHeader";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { getViewType } from "../navigation/nav-config";
-import { RichTextToolbar } from "../editor/RichTextToolbar";
+import {
+  RichEditorField,
+  type RichEditorFieldRef,
+} from "../editor/RichEditorField";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { DatePickerField } from "../DatePickerField";
@@ -123,9 +124,6 @@ function buildHomeworkTabs(t: TranslateFn) {
     },
   ];
 }
-
-const HOMEWORK_INLINE_IMAGE_STYLE =
-  "max-width:100%;border-radius:8px;margin:8px 0;";
 
 function buildHomeworkFormSchema(t: TranslateFn) {
   return z.object({
@@ -577,11 +575,10 @@ function HomeworkFormModal(props: {
   isSubmitting: boolean;
 }) {
   const { t } = useTranslation();
-  const editorRef = useRef<RichEditor>(null);
+  const editorFieldRef = useRef<RichEditorFieldRef>(null);
   const [attachments, setAttachments] = useState<HomeworkAttachment[]>([]);
   const [descriptionHtml, setDescriptionHtml] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isInsertingImage, setIsInsertingImage] = useState(false);
   const textColorPresets = useMemo(() => buildTextColorPresets(t), [t]);
   const {
     control,
@@ -619,65 +616,6 @@ function HomeworkFormModal(props: {
     setErrorMessage(null);
   }, [props.initialValue, props.subjectOptions, props.visible, reset]);
 
-  function openTextColorMenu() {
-    Alert.alert(
-      t("homework.form.colorMenu.title"),
-      t("homework.form.colorMenu.message"),
-      [
-        ...textColorPresets.map((color) => ({
-          text: color.label,
-          onPress: () => editorRef.current?.setForeColor(color.value),
-        })),
-        { text: t("homework.common.cancel"), style: "cancel" as const },
-      ],
-    );
-  }
-
-  function applyHeading() {
-    editorRef.current?.command(
-      "document.execCommand('formatBlock', false, '<h2>'); true;",
-    );
-  }
-
-  function applyQuote() {
-    editorRef.current?.command(
-      "document.execCommand('formatBlock', false, '<blockquote>'); true;",
-    );
-  }
-
-  async function handleAddInlineImage() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permission.status !== "granted") {
-      Alert.alert(
-        t("homework.form.permission.title"),
-        t("homework.form.permission.message"),
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.85,
-    });
-    if (result.canceled) return;
-    const asset = result.assets[0];
-    if (!asset) return;
-
-    setIsInsertingImage(true);
-    try {
-      const uploaded = await props.onUploadInlineImage({
-        uri: asset.uri,
-        mimeType: asset.mimeType ?? "image/jpeg",
-        fileName: asset.fileName ?? `homework_${Date.now()}.jpg`,
-      });
-      editorRef.current?.insertImage(uploaded.url, HOMEWORK_INLINE_IMAGE_STYLE);
-    } catch {
-      Alert.alert(t("homework.errors.title"), t("homework.errors.insertImage"));
-    } finally {
-      setIsInsertingImage(false);
-    }
-  }
-
   async function handleAddAttachment() {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -709,17 +647,14 @@ function HomeworkFormModal(props: {
 
   const handleSave = handleSubmit(async (values) => {
     setErrorMessage(null);
-    const contentHtml = await editorRef.current?.getContentHtml?.();
+    const contentHtml = await editorFieldRef.current?.getContentHtml();
     const payload: UpsertHomeworkPayload = {
       title: values.title.trim(),
       subjectId: values.subjectId,
       expectedAt: localInputToIso(
         `${values.expectedDate.trim()}T${values.expectedTime.trim()}`,
       ),
-      contentHtml:
-        typeof contentHtml === "string" && contentHtml.trim()
-          ? contentHtml
-          : descriptionHtml || undefined,
+      contentHtml: contentHtml?.trim() ? contentHtml : undefined,
       attachments,
     };
 
@@ -873,27 +808,32 @@ function HomeworkFormModal(props: {
             <Text style={styles.fieldLabel}>
               {t("homework.form.contentLabel")}
             </Text>
-            <RichTextToolbar
-              editorRef={editorRef}
-              onPressAddImage={() => void handleAddInlineImage()}
-              onPressColor={openTextColorMenu}
-              onPressHeading={applyHeading}
-              onPressQuote={applyQuote}
+            <RichEditorField
+              ref={editorFieldRef}
+              initialHtml={descriptionHtml}
+              placeholder={t("homework.form.contentPlaceholder")}
+              insertingPlaceholder={t("homework.form.insertingImage")}
+              colorPresets={textColorPresets}
+              labels={{
+                colorMenuTitle: t("homework.form.colorMenu.title"),
+                colorMenuMessage: t("homework.form.colorMenu.message"),
+                cancel: t("homework.common.cancel"),
+                permissionDeniedTitle: t("homework.form.permission.title"),
+                permissionDeniedMessage: t("homework.form.permission.message"),
+                imageErrorTitle: t("homework.errors.title"),
+                imageErrorFallbackMessage: t("homework.errors.insertImage"),
+              }}
+              onUploadInlineImage={(file) =>
+                props.onUploadInlineImage({
+                  uri: file.uri,
+                  mimeType: file.mimeType,
+                  fileName: file.name,
+                })
+              }
+              minHeight={220}
               toolbarTestID="homework-form-toolbar"
+              editorTestID="homework-form-editor"
             />
-            <View style={styles.editorWrap}>
-              <RichEditor
-                ref={editorRef}
-                initialContentHTML={descriptionHtml}
-                placeholder={
-                  isInsertingImage
-                    ? t("homework.form.insertingImage")
-                    : t("homework.form.contentPlaceholder")
-                }
-                style={styles.richEditor}
-                testID="homework-form-editor"
-              />
-            </View>
           </View>
 
           <SectionCard
@@ -2609,18 +2549,6 @@ const styles = StyleSheet.create({
   subjectPillText: {
     fontSize: 12,
     fontWeight: "700",
-  },
-  editorWrap: {
-    minHeight: 220,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    backgroundColor: colors.white,
-    overflow: "hidden",
-  },
-  richEditor: {
-    flex: 1,
-    minHeight: 220,
   },
   helperText: {
     fontSize: 13,

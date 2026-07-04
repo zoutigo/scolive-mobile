@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,7 +8,6 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { RichEditor } from "react-native-pell-rich-editor";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -24,7 +22,10 @@ import type {
   HelpFaqTheme,
   HelpPublicationStatus,
 } from "../../types/help-faqs.types";
-import { RichTextToolbar } from "../editor/RichTextToolbar";
+import {
+  RichEditorField,
+  type RichEditorFieldRef,
+} from "../editor/RichEditorField";
 
 const faqSchema = z.object({
   title: z.string().min(3, "Titre requis"),
@@ -84,7 +85,7 @@ type Props = {
 };
 
 export function AssistanceFaqPanel({ canManageOverride = true }: Props) {
-  const editorRef = useRef<RichEditor>(null);
+  const editorRef = useRef<RichEditorFieldRef>(null);
   const [permissions, setPermissions] = useState({
     canManageGlobal: false,
     canManageSchool: false,
@@ -287,7 +288,7 @@ export function AssistanceFaqPanel({ canManageOverride = true }: Props) {
         answerHtml: "",
         status: "DRAFT",
       });
-      editorRef.current?.setContentHTML("");
+      editorRef.current?.clear();
       return;
     }
     itemForm.reset({
@@ -296,7 +297,7 @@ export function AssistanceFaqPanel({ canManageOverride = true }: Props) {
       answerHtml: editableItem.answerHtml,
       status: editableItem.status,
     });
-    editorRef.current?.setContentHTML(editableItem.answerHtml);
+    editorRef.current?.setContentHtml(editableItem.answerHtml);
   }, [editableItem, editableTheme, itemForm]);
 
   function toggleItem(itemId: string) {
@@ -905,43 +906,25 @@ export function AssistanceFaqPanel({ canManageOverride = true }: Props) {
             name="answerHtml"
             render={({ field: { onChange }, fieldState }) => (
               <>
-                <View style={styles.editorShell}>
-                  <RichTextToolbar
-                    editorRef={editorRef}
-                    onPressColor={() =>
-                      Alert.alert("Couleur du texte", "Choix rapide", [
-                        {
-                          text: "Bleu",
-                          onPress: () =>
-                            editorRef.current?.setForeColor("#0C5FA8"),
-                        },
-                        { text: "Annuler", style: "cancel" },
-                      ])
-                    }
-                    onPressHeading={() =>
-                      editorRef.current?.command(
-                        "document.execCommand('formatBlock', false, '<h2>'); true;",
-                      )
-                    }
-                    onPressQuote={() =>
-                      editorRef.current?.command(
-                        "document.execCommand('formatBlock', false, '<blockquote>'); true;",
-                      )
-                    }
-                  />
-                  <RichEditor
-                    ref={editorRef}
-                    style={styles.editor}
-                    initialHeight={180}
-                    editorStyle={{
-                      backgroundColor: colors.white,
-                      color: colors.textPrimary,
-                      placeholderColor: colors.textSecondary,
-                    }}
-                    placeholder="Rédiger la réponse"
-                    onChange={onChange}
-                  />
-                </View>
+                <RichEditorField
+                  ref={editorRef}
+                  placeholder="Rédiger la réponse"
+                  onChangeHtml={onChange}
+                  colorPresets={[{ label: "Bleu", value: "#0C5FA8" }]}
+                  labels={{
+                    colorMenuTitle: "Couleur du texte",
+                    colorMenuMessage: "Choix rapide",
+                    cancel: "Annuler",
+                    permissionDeniedTitle: "Permission refusée",
+                    permissionDeniedMessage: "Autorisez l'accès à la galerie.",
+                    imageErrorTitle: "Image non ajoutée",
+                    imageErrorFallbackMessage: "Impossible d'ajouter l'image.",
+                  }}
+                  onUploadInlineImage={(file) =>
+                    helpFaqsApi.uploadInlineImage(file)
+                  }
+                  minHeight={180}
+                />
                 {fieldState.error ? (
                   <Text style={styles.fieldError}>
                     {fieldState.error.message}
@@ -1250,15 +1233,6 @@ const styles = StyleSheet.create({
   chipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
   chipLabel: { fontSize: 12, fontWeight: "600", color: colors.textSecondary },
   chipLabelActive: { color: colors.white },
-  editorShell: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-    padding: 10,
-    gap: 10,
-  },
-  editor: { minHeight: 180, backgroundColor: colors.white },
   primaryBtn: {
     alignItems: "center",
     justifyContent: "center",
