@@ -243,7 +243,7 @@ beforeEach(() => {
 // ─── Structure de la card ──────────────────────────────────────────────────────
 
 describe("HomeworkCard — structure d'affichage", () => {
-  it("affiche le titre, la matière et l'auteur sur la même ligne que la matière", async () => {
+  it("affiche le titre, la matière et les initiales de l'auteur sur la même ligne que la matière", async () => {
     render(<ClassHomeworkScreen />);
 
     await waitFor(() =>
@@ -251,7 +251,9 @@ describe("HomeworkCard — structure d'affichage", () => {
     );
 
     expect(screen.getByText("Mathématiques")).toBeTruthy();
-    expect(screen.getByText("Mme Mbele")).toBeTruthy();
+    expect(
+      within(screen.getByTestId("class-homework-author-hw-1")).getByText("MM"),
+    ).toBeTruthy();
   });
 
   it("n'affiche pas le label 'Homeworks' dans l'entête de liste", async () => {

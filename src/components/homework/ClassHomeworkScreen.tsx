@@ -79,6 +79,7 @@ import {
   formatHomeworkDayLabel,
   formatHomeworkShortDate,
   getHomeworkWeekendVisibility,
+  homeworkAuthorInitials,
   homeworkDateKey,
   htmlToText,
   isHomeworkDone,
@@ -329,34 +330,36 @@ function HomeworkCard(props: {
       >
         <View style={styles.cardHeaderSection}>
           <View style={styles.cardHeaderLine}>
-            <View style={styles.cardSubjectRow}>
-              <Text style={[styles.cardSubject, { color: tone.text }]}>
-                {props.item.subject.name}
-              </Text>
-              {done ? (
-                <View
-                  style={[styles.donePill, { backgroundColor: tone.chip }]}
-                  testID={`${prefix}-done-${props.item.id}`}
-                >
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={14}
-                    color={colors.white}
-                  />
-                  <Text style={styles.donePillText}>
-                    {t("homework.status.done")}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-            <Text style={styles.cardAuthorInline} numberOfLines={1}>
-              {props.item.authorDisplayName}
+            <Text
+              style={[styles.cardSubject, { color: tone.text }]}
+              numberOfLines={1}
+            >
+              {props.item.subject.name}
             </Text>
+            <Text style={styles.cardMetaLabel} numberOfLines={1}>
+              {formatHomeworkShortDate(props.item.expectedAt)}
+            </Text>
+            <View
+              style={[styles.cardAuthorBadge, { borderColor: tone.border }]}
+              testID={`${prefix}-author-${props.item.id}`}
+            >
+              <Text style={[styles.cardAuthorBadgeText, { color: tone.text }]}>
+                {homeworkAuthorInitials(props.item.authorDisplayName)}
+              </Text>
+            </View>
+            {done ? (
+              <View
+                style={[styles.donePill, { backgroundColor: tone.chip }]}
+                testID={`${prefix}-done-${props.item.id}`}
+              >
+                <Ionicons
+                  name="checkmark-circle"
+                  size={14}
+                  color={colors.white}
+                />
+              </View>
+            ) : null}
           </View>
-          <Text style={styles.cardMetaLabel}>
-            {t("homework.card.expectedDatePrefix")}
-            {formatHomeworkShortDate(props.item.expectedAt)}
-          </Text>
         </View>
 
         <View style={styles.cardBodySection}>
@@ -461,13 +464,6 @@ function HomeworkCard(props: {
           ) : null}
         </View>
 
-        {props.item.attachments.length > 0 ? (
-          <Text style={[styles.cardAttachmentCount, { color: tone.text }]}>
-            {props.item.attachments.length}{" "}
-            {t("homework.card.attachmentsSuffix")}
-          </Text>
-        ) : null}
-
         {props.inlineLoading &&
         (props.commentsExpanded || props.controlExpanded) ? (
           <View style={styles.inlinePanelLoading}>
@@ -507,6 +503,14 @@ function HomeworkCard(props: {
                 multiline
                 testID={`${prefix}-inline-comment-input-${props.item.id}`}
               />
+              <TouchableOpacity
+                style={styles.commentCloseButton}
+                onPress={props.onToggleComments}
+                accessibilityLabel={t("homework.comment.close")}
+                testID={`${prefix}-inline-comment-close-${props.item.id}`}
+              >
+                <Ionicons name="close" size={16} color="#22456F" />
+              </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.commentSubmit,
@@ -1557,7 +1561,7 @@ export function ClassHomeworkScreen({
         {isFormsTab ? null : isLoadingContext && !subtitle ? (
           <LoadingBlock label={t("homework.loading.module")} />
         ) : (
-          <View testID="class-homework-tabs-section">
+          <View style={styles.tabsSection} testID="class-homework-tabs-section">
             <UnderlineTabs
               items={buildHomeworkTabs(t).map((entry) => ({
                 key: entry.key,
@@ -2292,6 +2296,7 @@ export function ClassHomeworkScreen({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, gap: 14 },
+  tabsSection: { marginBottom: 16 },
   periodNavRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -2407,31 +2412,32 @@ const styles = StyleSheet.create({
   cardHeaderLine: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-  },
-  cardSubjectRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    flex: 1,
+    gap: 8,
   },
   cardSubject: {
     fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase",
     letterSpacing: 0.6,
-  },
-  cardAuthorInline: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.textSecondary,
     flexShrink: 1,
-    marginLeft: 8,
+  },
+  cardAuthorBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: "auto",
+  },
+  cardAuthorBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
   },
   cardMetaLabel: {
     fontSize: 12,
     color: colors.textSecondary,
+    flexShrink: 0,
   },
   cardBodySection: {
     borderTopWidth: 1,
@@ -2506,11 +2512,6 @@ const styles = StyleSheet.create({
   },
   cardActionDoneText: {
     color: "#0F766E",
-  },
-  cardAttachmentCount: {
-    fontSize: 12,
-    fontWeight: "700",
-    marginLeft: "auto",
   },
   inlinePanelLoading: {
     borderRadius: 12,
@@ -2796,6 +2797,16 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 21,
     backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  commentCloseButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#C9D8EA",
+    backgroundColor: colors.white,
     alignItems: "center",
     justifyContent: "center",
   },

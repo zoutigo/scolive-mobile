@@ -550,6 +550,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "homework.comment.empty": "Aucun commentaire pour le moment.",
     "homework.comment.placeholder": "Ajouter un commentaire",
+    "homework.comment.close": "Fermer le formulaire de commentaire",
 
     "homework.control.title": "Suivi homework",
     "homework.control.doneStudentsTitle": "Élèves ayant déjà fait le devoir",
@@ -2532,6 +2533,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "homework.comment.empty": "No comments yet.",
     "homework.comment.placeholder": "Add a comment",
+    "homework.comment.close": "Close comment form",
 
     "homework.control.title": "Homework tracking",
     "homework.control.doneStudentsTitle": "Students who already completed it",
