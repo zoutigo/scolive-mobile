@@ -1551,6 +1551,9 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "feed.attachments.title": "Pièces jointes",
     "feed.attachments.add": "Joindre",
+    "feed.attachments.uploading": "Envoi en cours…",
+    "feed.attachments.uploadError":
+      "Échec de l'envoi de la pièce jointe. Réessayez.",
     "feed.attachments.empty": "Aucune pièce jointe pour cette publication.",
     "feed.attachments.summaryMultiple": "{count} pièces jointes",
 
@@ -3491,6 +3494,8 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "feed.attachments.title": "Attachments",
     "feed.attachments.add": "Attach",
+    "feed.attachments.uploading": "Uploading…",
+    "feed.attachments.uploadError": "Failed to upload attachment. Try again.",
     "feed.attachments.empty": "No attachments for this post.",
     "feed.attachments.summaryMultiple": "{count} attachments",
 

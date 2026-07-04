@@ -265,3 +265,91 @@ describe("feedApi.uploadInlineImage()", () => {
     ).rejects.toThrow("Format non supporté");
   });
 });
+
+describe("feedApi.uploadAttachment()", () => {
+  it("envoie un multipart avec auth", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 201,
+      json: () =>
+        Promise.resolve({
+          url: "https://cdn.example.com/feed/sujet.pdf",
+          mimeType: "application/pdf",
+          sizeLabel: "12 Ko",
+        }),
+    });
+
+    const result = await feedApi.uploadAttachment("college-vogt", {
+      uri: "file:///tmp/sujet.pdf",
+      mimeType: "application/pdf",
+      fileName: "sujet.pdf",
+    });
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/schools/college-vogt/feed/uploads/attachment");
+    expect(options.method).toBe("POST");
+    expect(options.headers.Authorization).toBe("Bearer feed-token");
+    expect(result).toEqual({
+      fileName: "sujet.pdf",
+      fileUrl: "https://cdn.example.com/feed/sujet.pdf",
+      sizeLabel: "12 Ko",
+    });
+  });
+
+  it("remonte le message backend en cas d'échec", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ message: "Fichier trop volumineux" }),
+    });
+
+    await expect(
+      feedApi.uploadAttachment("college-vogt", {
+        uri: "file:///tmp/big.pdf",
+        mimeType: "application/pdf",
+        fileName: "big.pdf",
+      }),
+    ).rejects.toThrow("Fichier trop volumineux");
+  });
+
+  it.each([
+    { ext: "jpg", mimeType: "image/jpeg" },
+    { ext: "png", mimeType: "image/png" },
+    { ext: "webp", mimeType: "image/webp" },
+    { ext: "gif", mimeType: "image/gif" },
+    { ext: "heic", mimeType: "image/heic" },
+  ])(
+    "ne relaie jamais les champs bruts du service média pour une image .$ext (régression 400 forbidNonWhitelisted)",
+    async ({ ext, mimeType }) => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 201,
+        json: () =>
+          Promise.resolve({
+            url: `https://cdn.example.com/feed/photo.${ext}`,
+            size: 45231,
+            width: 800,
+            height: 600,
+            mimeType,
+          }),
+      });
+
+      const result = await feedApi.uploadAttachment("college-vogt", {
+        uri: `file:///tmp/photo.${ext}`,
+        mimeType,
+        fileName: `photo.${ext}`,
+      });
+
+      expect(result).toEqual({
+        fileName: `photo.${ext}`,
+        fileUrl: `https://cdn.example.com/feed/photo.${ext}`,
+        sizeLabel: null,
+      });
+      expect(result).not.toHaveProperty("size");
+      expect(result).not.toHaveProperty("width");
+      expect(result).not.toHaveProperty("height");
+      expect(result).not.toHaveProperty("url");
+      expect(result).not.toHaveProperty("mimeType");
+    },
+  );
+});

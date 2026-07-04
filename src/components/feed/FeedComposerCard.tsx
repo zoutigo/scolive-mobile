@@ -30,6 +30,7 @@ type DraftAttachment = {
   id: string;
   fileName: string;
   sizeLabel: string;
+  fileUrl: string | null;
 };
 
 type Props = {
@@ -41,6 +42,15 @@ type Props = {
     name: string;
     mimeType: string;
   }) => Promise<{ url: string }>;
+  onUploadAttachment?: (file: {
+    uri: string;
+    mimeType: string;
+    fileName: string;
+  }) => Promise<{
+    fileName: string;
+    fileUrl: string | null;
+    sizeLabel: string | null;
+  }>;
   onCancel?: () => void;
 };
 
@@ -104,6 +114,7 @@ export function FeedComposerCard({
   initialType = "POST",
   onSubmit,
   onUploadInlineImage,
+  onUploadAttachment,
   onCancel,
 }: Props) {
   const { t, locale } = useTranslation();
@@ -120,6 +131,8 @@ export function FeedComposerCard({
   const [bodyError, setBodyError] = useState<string | null>(null);
   const [featuredDays, setFeaturedDays] = useState("0");
   const [attachments, setAttachments] = useState<DraftAttachment[]>([]);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [selectedAudienceScope, setSelectedAudienceScope] =
     useState<FeedAudienceScope>(audienceOptions[0]?.scope ?? "SCHOOL_ALL");
 
@@ -199,28 +212,42 @@ export function FeedComposerCard({
   }
 
   async function addAttachment() {
+    if (!onUploadAttachment) return;
     const result = await DocumentPicker.getDocumentAsync({
       multiple: true,
       copyToCacheDirectory: true,
       type: ["application/*", "image/*", "text/*"],
     });
     if (result.canceled) return;
-    setAttachments((current) => {
-      const next = [...current];
-      result.assets.forEach((asset) => {
-        const key = `${asset.name}:${asset.size ?? 0}`;
-        if (
-          next.some((entry) => `${entry.fileName}:${entry.sizeLabel}` === key)
-        )
-          return;
-        next.push({
-          id: `${asset.name}-${Date.now()}-${next.length}`,
-          fileName: asset.name,
-          sizeLabel: formatFileSize(asset.size ?? 0, t),
-        });
-      });
-      return next;
-    });
+
+    setAttachmentError(null);
+    setIsUploadingAttachment(true);
+    try {
+      const uploaded = await Promise.all(
+        result.assets.map(async (asset) => {
+          const response = await onUploadAttachment({
+            uri: asset.uri,
+            mimeType: asset.mimeType ?? "application/octet-stream",
+            fileName: asset.name,
+          });
+          return {
+            id: `${asset.name}-${Date.now()}-${Math.random()}`,
+            fileName: response.fileName,
+            fileUrl: response.fileUrl,
+            sizeLabel: response.sizeLabel ?? formatFileSize(asset.size ?? 0, t),
+          };
+        }),
+      );
+      setAttachments((current) => [...current, ...uploaded]);
+    } catch (error) {
+      setAttachmentError(
+        error instanceof Error
+          ? error.message
+          : t("feed.attachments.uploadError"),
+      );
+    } finally {
+      setIsUploadingAttachment(false);
+    }
   }
 
   function removeAttachment(id: string) {
@@ -252,6 +279,7 @@ export function FeedComposerCard({
       attachments: attachments.map((a) => ({
         fileName: a.fileName,
         sizeLabel: a.sizeLabel,
+        fileUrl: a.fileUrl ?? undefined,
       })),
     });
 
@@ -261,6 +289,7 @@ export function FeedComposerCard({
     setBodyError(null);
     setFeaturedDays("0");
     setAttachments([]);
+    setAttachmentError(null);
     setSelectedAudienceScope(audienceOptions[0]?.scope ?? "SCHOOL_ALL");
     onCancel?.();
   }
@@ -535,13 +564,25 @@ export function FeedComposerCard({
               onPress={() => {
                 void addAttachment();
               }}
+              disabled={!onUploadAttachment || isUploadingAttachment}
               testID="feed-add-attachment"
             >
               <Text style={styles.secondaryActionText}>
-                {t("feed.attachments.add")}
+                {isUploadingAttachment
+                  ? t("feed.attachments.uploading")
+                  : t("feed.attachments.add")}
               </Text>
             </TouchableOpacity>
           </View>
+
+          {attachmentError ? (
+            <Text
+              style={styles.fieldError}
+              testID="feed-composer-attachment-error"
+            >
+              {attachmentError}
+            </Text>
+          ) : null}
 
           {attachments.length > 0
             ? attachments.map((attachment) => (

@@ -69,6 +69,15 @@ type Props = {
     name: string;
     mimeType: string;
   }) => Promise<{ url: string }>;
+  onUploadAttachment?: (file: {
+    uri: string;
+    mimeType: string;
+    fileName: string;
+  }) => Promise<{
+    fileName: string;
+    fileUrl: string | null;
+    sizeLabel: string | null;
+  }>;
   unavailableTitle?: string;
   unavailableMessage?: string;
   onPostsChange?: (posts: FeedPost[]) => void;
@@ -90,6 +99,7 @@ export function FeedModuleScreen({
   canCompose = false,
   onCreatePost,
   onUploadInlineImage,
+  onUploadAttachment,
   unavailableTitle,
   unavailableMessage,
   onPostsChange,
@@ -535,6 +545,7 @@ export function FeedModuleScreen({
             initialType={composerType}
             onSubmit={handleCreatePost}
             onUploadInlineImage={onUploadInlineImage}
+            onUploadAttachment={onUploadAttachment}
             onCancel={() => setComposerOpen(false)}
           />
         </ScrollView>
