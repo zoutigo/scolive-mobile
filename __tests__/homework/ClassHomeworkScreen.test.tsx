@@ -600,6 +600,28 @@ describe("ClassHomeworkScreen — comportements transversaux", () => {
     );
   });
 
+  it("affiche l'image insérée dans le devoir comme une image visible dans le détail", async () => {
+    mockHomeworkApi.getHomeworkDetail.mockResolvedValue({
+      ...BASE_DETAIL,
+      contentHtml:
+        '<p>Faire le travail</p><img src="https://cdn.example.com/homework/img-1.jpg" />',
+    });
+
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Exercices 1 à 3")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-card-hw-1"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-homework-detail-inline-image-0"),
+      ).toBeTruthy(),
+    );
+  });
+
   it("ferme le panel commentaires en re-appuyant sur le bouton", async () => {
     render(<ClassHomeworkScreen />);
 

@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -2075,24 +2076,29 @@ export function ClassHomeworkScreen({
                     {htmlToText(selectedDetail.contentHtml ?? "") ||
                       t("homework.detail.noInstructions")}
                   </Text>
-                  {extractImageUrls(selectedDetail.contentHtml ?? "").map(
-                    (url) => (
-                      <TouchableOpacity
-                        key={url}
-                        onPress={() => void Linking.openURL(url)}
-                        style={styles.inlineImageLink}
-                      >
-                        <Ionicons
-                          name="image-outline"
-                          size={16}
-                          color={colors.primary}
-                        />
-                        <Text style={styles.inlineImageLinkText}>
-                          {t("homework.detail.openInlineImage")}
-                        </Text>
-                      </TouchableOpacity>
-                    ),
-                  )}
+                  {extractImageUrls(selectedDetail.contentHtml ?? "").length >
+                  0 ? (
+                    <View
+                      style={[
+                        styles.inlineImages,
+                        htmlToText(selectedDetail.contentHtml ?? "") && {
+                          marginTop: 12,
+                        },
+                      ]}
+                    >
+                      {extractImageUrls(selectedDetail.contentHtml ?? "").map(
+                        (url, idx) => (
+                          <Image
+                            key={`${url}-${idx}`}
+                            source={{ uri: url }}
+                            style={styles.inlineImage}
+                            resizeMode="contain"
+                            testID={`class-homework-detail-inline-image-${idx}`}
+                          />
+                        ),
+                      )}
+                    </View>
+                  ) : null}
                 </SectionCard>
 
                 <SectionCard title={t("homework.detail.attachmentsTitle")}>
@@ -2688,16 +2694,15 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: colors.textPrimary,
   },
-  inlineImageLink: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 8,
+  inlineImages: {
+    gap: 10,
   },
-  inlineImageLinkText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: colors.primary,
+  inlineImage: {
+    width: "100%",
+    minHeight: 160,
+    maxHeight: 360,
+    borderRadius: 8,
+    backgroundColor: colors.warmBorder,
   },
   studentStatusRow: {
     flexDirection: "row",
