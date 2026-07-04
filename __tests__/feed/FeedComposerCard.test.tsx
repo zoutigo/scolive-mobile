@@ -310,10 +310,7 @@ describe("FeedComposerCard", () => {
     fireEvent.press(screen.getByTestId("feed-add-attachment"));
     await waitFor(() => screen.getByText("reglement.pdf"));
 
-    fireEvent.changeText(
-      screen.getByTestId("feed-composer-title"),
-      "Réunion",
-    );
+    fireEvent.changeText(screen.getByTestId("feed-composer-title"), "Réunion");
     fireEvent.press(screen.getByTestId("rich-editor-set-content"));
     fireEvent.press(screen.getByTestId("feed-composer-submit"));
 
@@ -360,9 +357,7 @@ describe("FeedComposerCard", () => {
     fireEvent.press(screen.getByTestId("feed-add-attachment"));
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("feed-composer-attachment-error"),
-      ).toBeTruthy();
+      expect(screen.getByTestId("feed-composer-attachment-error")).toBeTruthy();
     });
     expect(screen.queryByText("reglement.pdf")).toBeNull();
   });
