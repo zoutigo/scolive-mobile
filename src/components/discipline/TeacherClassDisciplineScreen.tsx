@@ -26,6 +26,7 @@ import { timetableApi } from "../../api/timetable.api";
 import { disciplineApi } from "../../api/discipline.api";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { FormHero } from "../forms/FormHero";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import {
@@ -72,14 +73,6 @@ type FormContext = {
   type: "create-event" | "edit-event";
   originTab: ListTabKey;
   item: StudentLifeEvent | null;
-};
-
-type HeroPalette = "teal" | "warm" | "primary";
-
-const PALETTE_COLORS: Record<HeroPalette, { bg: string; dark: string }> = {
-  teal: { bg: "#247C72", dark: "#195E56" },
-  warm: { bg: "#C0681A", dark: "#A05010" },
-  primary: { bg: "#08467D", dark: "#052F55" },
 };
 
 const LIST_TAB_KEYS = [
@@ -182,45 +175,6 @@ function buildCreateDefaults(classId: string): FormValues {
     justified: draft.justified,
     comment: draft.comment,
   };
-}
-
-// ---------------------------------------------------------------------------
-// FormHero — hero visuel du tab forms (différent du ModuleHeader bleu)
-// ---------------------------------------------------------------------------
-
-function FormHero(props: {
-  icon: React.ComponentProps<typeof Ionicons>["name"];
-  title: string;
-  subtitle?: string;
-  palette: HeroPalette;
-  testID?: string;
-}) {
-  const { bg, dark } = PALETTE_COLORS[props.palette];
-
-  return (
-    <View
-      style={[styles.heroContainer, { backgroundColor: bg }]}
-      testID={props.testID}
-    >
-      <View style={[styles.heroDecor1, { backgroundColor: dark }]} />
-      <View style={[styles.heroDecor2, { backgroundColor: dark }]} />
-      <View style={styles.heroRow}>
-        <View style={styles.heroIconWrap}>
-          <Ionicons
-            name={props.icon}
-            size={28}
-            color="rgba(255,255,255,0.92)"
-          />
-        </View>
-        <View style={styles.heroTextWrap}>
-          <Text style={styles.heroTitle}>{props.title}</Text>
-          {props.subtitle ? (
-            <Text style={styles.heroSubtitle}>{props.subtitle}</Text>
-          ) : null}
-        </View>
-      </View>
-    </View>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -1147,58 +1101,6 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 5,
-  },
-  // ── FormHero ──────────────────────────────────────────────────────────
-  heroContainer: {
-    borderRadius: 20,
-    padding: 20,
-    overflow: "hidden",
-    position: "relative",
-  },
-  heroDecor1: {
-    position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    top: -40,
-    right: -30,
-    opacity: 0.3,
-  },
-  heroDecor2: {
-    position: "absolute",
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    bottom: -20,
-    left: 40,
-    opacity: 0.2,
-  },
-  heroRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  heroIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroTextWrap: {
-    flex: 1,
-  },
-  heroTitle: {
-    color: "#FFFFFF",
-    fontSize: 17,
-    fontWeight: "800",
-    letterSpacing: 0.3,
-  },
-  heroSubtitle: {
-    color: "rgba(255,255,255,0.78)",
-    fontSize: 12,
-    marginTop: 3,
   },
   // ── Inline form layout ────────────────────────────────────────────────
   formsTabContent: {

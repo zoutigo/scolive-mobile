@@ -41,6 +41,7 @@ import { notesApi } from "../../api/notes.api";
 import { timetableApi } from "../../api/timetable.api";
 import { homeworkApi } from "../../api/homework.api";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { FormHero } from "../forms/FormHero";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { getViewType } from "../navigation/nav-config";
@@ -105,8 +106,15 @@ type TeacherSubjectOption = {
 
 type HomeworkInlinePanel = "comments" | "control";
 
-type HomeworkTabKey = "list" | "agenda";
+type HomeworkTabKey = "list" | "agenda" | "forms";
+type HomeworkListLikeTab = "list" | "agenda";
 type AgendaModeKey = "week" | "month";
+
+type HomeworkFormContext = {
+  type: "create" | "edit";
+  originTab: HomeworkListLikeTab;
+  item: HomeworkRow | null;
+};
 
 const HOMEWORK_LIST_PAGE_SIZE = 10;
 
@@ -555,11 +563,34 @@ function HomeworkCard(props: {
   );
 }
 
-function HomeworkFormModal(props: {
-  visible: boolean;
-  onClose: () => void;
-  headerSubtitle?: string;
+function HomeworkFormHero(props: {
+  mode: "create" | "edit";
+  item: HomeworkRow | null;
+  t: TranslateFn;
+}) {
+  const isEdit = props.mode === "edit";
+  const title = isEdit
+    ? (props.item?.title ?? props.t("homework.form.editTitle"))
+    : props.t("homework.form.createHeroTitle");
+  const subtitle = isEdit
+    ? (props.item?.subject.name ?? undefined)
+    : props.t("homework.form.createHeroSubtitle");
+
+  return (
+    <FormHero
+      icon={isEdit ? "create-outline" : "add-circle-outline"}
+      title={title}
+      subtitle={subtitle}
+      palette="teal"
+      testID="homework-form-hero"
+    />
+  );
+}
+
+function HomeworkFormContent(props: {
+  formContext: HomeworkFormContext;
   onSubmit: (payload: UpsertHomeworkPayload) => Promise<void>;
+  onCancel: () => void;
   onUploadAttachment: (file: {
     uri: string;
     mimeType: string;
@@ -571,51 +602,39 @@ function HomeworkFormModal(props: {
     fileName: string;
   }) => Promise<{ url: string }>;
   subjectOptions: TeacherSubjectOption[];
-  initialValue?: HomeworkRow | null;
   isSubmitting: boolean;
 }) {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const editorFieldRef = useRef<RichEditorFieldRef>(null);
-  const [attachments, setAttachments] = useState<HomeworkAttachment[]>([]);
-  const [descriptionHtml, setDescriptionHtml] = useState("");
+  const initialValue = props.formContext.item;
+  const [attachments, setAttachments] = useState<HomeworkAttachment[]>(
+    initialValue?.attachments ?? [],
+  );
+  const [descriptionHtml] = useState(initialValue?.contentHtml ?? "");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const textColorPresets = useMemo(() => buildTextColorPresets(t), [t]);
+  const initialExpectedAt = useMemo(
+    () => isoToLocalInput(initialValue?.expectedAt ?? ""),
+    [initialValue?.expectedAt],
+  );
   const {
     control,
     handleSubmit,
-    reset,
     setValue,
     watch,
     formState: { errors },
   } = useForm<HomeworkFormValues>({
     resolver: zodResolver(buildHomeworkFormSchema(t)),
     defaultValues: {
-      subjectId: props.subjectOptions[0]?.value ?? "",
-      title: "",
-      expectedDate: "",
-      expectedTime: "",
+      subjectId:
+        initialValue?.subject.id ?? props.subjectOptions[0]?.value ?? "",
+      title: initialValue?.title ?? "",
+      expectedDate: initialExpectedAt.slice(0, 10),
+      expectedTime: initialExpectedAt.slice(11, 16),
     },
   });
 
   const watchedSubjectId = watch("subjectId");
-
-  useEffect(() => {
-    if (!props.visible) return;
-    const initialExpectedAt = isoToLocalInput(
-      props.initialValue?.expectedAt ?? "",
-    );
-    reset({
-      title: props.initialValue?.title ?? "",
-      expectedDate: initialExpectedAt.slice(0, 10),
-      expectedTime: initialExpectedAt.slice(11, 16),
-      subjectId:
-        props.initialValue?.subject.id ?? props.subjectOptions[0]?.value ?? "",
-    });
-    setAttachments(props.initialValue?.attachments ?? []);
-    setDescriptionHtml(props.initialValue?.contentHtml ?? "");
-    setErrorMessage(null);
-  }, [props.initialValue, props.subjectOptions, props.visible, reset]);
 
   async function handleAddAttachment() {
     try {
@@ -671,76 +690,59 @@ function HomeworkFormModal(props: {
   });
 
   return (
-    <Modal
-      visible={props.visible}
-      animationType="slide"
-      onRequestClose={props.onClose}
-    >
+    <View style={styles.formsTabContent} testID="homework-form-tab">
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.modalRoot}
+        style={styles.formsKeyboardArea}
       >
         <ScrollView
-          style={styles.modalRoot}
-          contentContainerStyle={[
-            styles.modalContent,
-            {
-              paddingBottom: styles.modalContent.paddingBottom + insets.bottom,
-            },
-          ]}
+          style={styles.formScroll}
+          contentContainerStyle={styles.formScrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <ModuleHeader
-            title={
-              props.initialValue
-                ? t("homework.form.editTitle")
-                : t("homework.form.createTitle")
-            }
-            subtitle={props.headerSubtitle}
-            onBack={props.onClose}
-            testID="homework-form-header"
-            backTestID="homework-form-close"
-            titleTestID="homework-form-header-title"
-            subtitleTestID="homework-form-header-subtitle"
-            topInset={0}
-            backgroundColor={colors.primary}
+          <HomeworkFormHero
+            mode={props.formContext.type}
+            item={initialValue}
+            t={t}
           />
 
           {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>
-              {t("homework.form.subjectLabel")}
-            </Text>
-            <View style={styles.subjectPillsRow}>
-              {props.subjectOptions.map((option) => {
-                const active = option.value === watchedSubjectId;
-                const tone = subjectVisualTone(option.colorHex ?? undefined);
-                return (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.subjectPill,
-                      {
-                        backgroundColor: active ? tone.chip : tone.background,
-                        borderColor: tone.border,
-                      },
-                    ]}
-                    onPress={() => setValue("subjectId", option.value)}
-                    testID={`homework-form-subject-${option.value}`}
-                  >
-                    <Text
+            <View style={styles.subjectFieldInlineRow}>
+              <Text style={styles.inlineFieldLabel} numberOfLines={2}>
+                {t("homework.form.subjectLabel")}
+              </Text>
+              <View style={styles.subjectPillsRow}>
+                {props.subjectOptions.map((option) => {
+                  const active = option.value === watchedSubjectId;
+                  const tone = subjectVisualTone(option.colorHex ?? undefined);
+                  return (
+                    <TouchableOpacity
+                      key={option.value}
                       style={[
-                        styles.subjectPillText,
-                        { color: active ? colors.white : tone.text },
+                        styles.subjectPill,
+                        {
+                          backgroundColor: active ? tone.chip : tone.background,
+                          borderColor: tone.border,
+                        },
                       ]}
+                      onPress={() => setValue("subjectId", option.value)}
+                      testID={`homework-form-subject-${option.value}`}
                     >
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+                      <Text
+                        style={[
+                          styles.subjectPillText,
+                          { color: active ? colors.white : tone.text },
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
             {errors.subjectId?.message ? (
               <Text style={styles.fieldError}>{errors.subjectId.message}</Text>
@@ -771,40 +773,46 @@ function HomeworkFormModal(props: {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>
-              {t("homework.form.expectedDateLabel")}
-            </Text>
-            <View style={styles.expectedAtRow}>
-              <Controller
-                control={control}
-                name="expectedDate"
-                render={({ field: { value, onChange, onBlur } }) => (
-                  <DatePickerField
-                    value={value}
-                    onChange={onChange}
-                    onBlur={onBlur}
-                    placeholder={t("homework.form.datePlaceholder")}
-                    title={t("homework.form.expectedDateLabel")}
-                    hasError={Boolean(errors.expectedDate)}
-                    testID="homework-form-expected-date"
-                  />
-                )}
-              />
-              <Controller
-                control={control}
-                name="expectedTime"
-                render={({ field: { value, onChange, onBlur } }) => (
-                  <TimePickerField
-                    value={value}
-                    onChange={onChange}
-                    onBlur={onBlur}
-                    placeholder={t("homework.form.timePlaceholder")}
-                    title={t("homework.form.expectedTimeLabel")}
-                    hasError={Boolean(errors.expectedTime)}
-                    testID="homework-form-expected-time"
-                  />
-                )}
-              />
+            <View style={styles.expectedAtInlineRow}>
+              <Text style={styles.inlineFieldLabel} numberOfLines={2}>
+                {t("homework.form.expectedDateLabel")}
+              </Text>
+              <View style={styles.expectedAtRow}>
+                <Controller
+                  control={control}
+                  name="expectedDate"
+                  render={({ field: { value, onChange, onBlur } }) => (
+                    <View style={styles.expectedDateField}>
+                      <DatePickerField
+                        value={value}
+                        onChange={onChange}
+                        onBlur={onBlur}
+                        placeholder={t("homework.form.datePlaceholder")}
+                        title={t("homework.form.expectedDateLabel")}
+                        hasError={Boolean(errors.expectedDate)}
+                        testID="homework-form-expected-date"
+                      />
+                    </View>
+                  )}
+                />
+                <Controller
+                  control={control}
+                  name="expectedTime"
+                  render={({ field: { value, onChange, onBlur } }) => (
+                    <View style={styles.expectedTimeField}>
+                      <TimePickerField
+                        value={value}
+                        onChange={onChange}
+                        onBlur={onBlur}
+                        placeholder={t("homework.form.timePlaceholder")}
+                        title={t("homework.form.expectedTimeLabel")}
+                        hasError={Boolean(errors.expectedTime)}
+                        testID="homework-form-expected-time"
+                      />
+                    </View>
+                  )}
+                />
+              </View>
             </View>
             {errors.expectedDate?.message ? (
               <Text style={styles.fieldError}>
@@ -900,10 +908,23 @@ function HomeworkFormModal(props: {
               ))
             )}
           </SectionCard>
+        </ScrollView>
 
+        <View style={styles.formActionsBar}>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={props.onCancel}
+            disabled={props.isSubmitting}
+            testID="homework-form-cancel"
+          >
+            <Text style={styles.secondaryButtonText}>
+              {t("homework.common.cancel")}
+            </Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.primaryButton,
+              { flex: 1 },
               props.isSubmitting && styles.primaryButtonDisabled,
             ]}
             onPress={() => void handleSave()}
@@ -916,9 +937,9 @@ function HomeworkFormModal(props: {
                 : t("homework.common.save")}
             </Text>
           </TouchableOpacity>
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
-    </Modal>
+    </View>
   );
 }
 
@@ -975,13 +996,11 @@ export function ClassHomeworkScreen({
     null,
   );
   const [detailVisible, setDetailVisible] = useState(false);
-  const [formVisible, setFormVisible] = useState(false);
-  const [editingHomework, setEditingHomework] = useState<HomeworkRow | null>(
+  const [formContext, setFormContext] = useState<HomeworkFormContext | null>(
     null,
   );
-  const [queuedFormTarget, setQueuedFormTarget] = useState<
-    HomeworkRow | "create" | null
-  >(null);
+  const [queuedFormContext, setQueuedFormContext] =
+    useState<HomeworkFormContext | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<HomeworkRow | null>(null);
   const [controlTargetId, setControlTargetId] = useState<string | null>(null);
   const [listVisibleCount, setListVisibleCount] = useState(
@@ -1243,11 +1262,11 @@ export function ClassHomeworkScreen({
   }, [cursorDate, monthCells, selectedMonthDate, tab, agendaMode]);
 
   useEffect(() => {
-    if (detailVisible || queuedFormTarget === null) return;
-    setEditingHomework(queuedFormTarget === "create" ? null : queuedFormTarget);
-    setFormVisible(true);
-    setQueuedFormTarget(null);
-  }, [detailVisible, queuedFormTarget]);
+    if (detailVisible || queuedFormContext === null) return;
+    setFormContext(queuedFormContext);
+    setTab("forms");
+    setQueuedFormContext(null);
+  }, [detailVisible, queuedFormContext]);
 
   useEffect(() => {
     const nextCount = Math.min(HOMEWORK_LIST_PAGE_SIZE, listItems.length);
@@ -1305,23 +1324,41 @@ export function ClassHomeworkScreen({
   }
 
   function openCreateForm() {
+    const originTab: HomeworkListLikeTab = tab === "forms" ? "list" : tab;
+    const next: HomeworkFormContext = {
+      type: "create",
+      originTab,
+      item: null,
+    };
     if (detailVisible) {
-      setQueuedFormTarget("create");
+      setQueuedFormContext(next);
       setDetailVisible(false);
       return;
     }
-    setEditingHomework(null);
-    setFormVisible(true);
+    setFormContext(next);
+    setTab("forms");
   }
 
   function openEditForm(item: HomeworkRow) {
+    const originTab: HomeworkListLikeTab = tab === "forms" ? "list" : tab;
+    const next: HomeworkFormContext = {
+      type: "edit",
+      originTab,
+      item,
+    };
     if (detailVisible) {
-      setQueuedFormTarget(item);
+      setQueuedFormContext(next);
       setDetailVisible(false);
       return;
     }
-    setEditingHomework(item);
-    setFormVisible(true);
+    setFormContext(next);
+    setTab("forms");
+  }
+
+  function exitForms() {
+    const origin = formContext?.originTab ?? "list";
+    setFormContext(null);
+    setTab(origin);
   }
 
   function togglePanel(item: HomeworkRow, panel: HomeworkInlinePanel) {
@@ -1339,9 +1376,11 @@ export function ClassHomeworkScreen({
 
   async function handleSaveHomework(payload: UpsertHomeworkPayload) {
     if (!schoolSlug) return;
+    const editingId =
+      formContext?.type === "edit" ? formContext.item?.id : undefined;
     try {
-      if (editingHomework) {
-        await updateHomework(schoolSlug, classId, editingHomework.id, payload);
+      if (editingId) {
+        await updateHomework(schoolSlug, classId, editingId, payload);
         showSuccess({
           title: t("homework.toast.updatedTitle"),
           message: t("homework.toast.updatedMessage"),
@@ -1353,9 +1392,10 @@ export function ClassHomeworkScreen({
           message: t("homework.toast.createdMessage"),
         });
       }
-      setFormVisible(false);
-      setEditingHomework(null);
       await refreshHomework();
+      setTimeout(() => {
+        exitForms();
+      }, 2000);
     } catch (error) {
       showError({
         title: t("homework.toast.saveErrorTitle"),
@@ -1492,14 +1532,20 @@ export function ClassHomeworkScreen({
   }, [screenError]);
   const visibleTabError = screenError && !errorDismissed ? screenError : null;
 
+  const isFormsTab = tab === "forms";
+  const moduleHeaderTitle =
+    isFormsTab && formContext?.type === "edit"
+      ? t("homework.form.editModuleTitle")
+      : t("homework.header.title");
+
   const headerComponent = useMemo(
     () => (
       <>
         {showHeader ? (
           <ModuleHeader
-            title={t("homework.header.title")}
+            title={moduleHeaderTitle}
             subtitle={subtitle}
-            onBack={() => moduleBack(router)}
+            onBack={() => (isFormsTab ? exitForms() : moduleBack(router))}
             testID="class-homework-header"
             backTestID="class-homework-back"
             titleTestID="class-homework-header-title"
@@ -1508,7 +1554,7 @@ export function ClassHomeworkScreen({
           />
         ) : null}
 
-        {isLoadingContext && !subtitle ? (
+        {isFormsTab ? null : isLoadingContext && !subtitle ? (
           <LoadingBlock label={t("homework.loading.module")} />
         ) : (
           <View testID="class-homework-tabs-section">
@@ -1575,6 +1621,9 @@ export function ClassHomeworkScreen({
     ),
     [
       showHeader,
+      isFormsTab,
+      moduleHeaderTitle,
+      formContext,
       isLoadingContext,
       tab,
       agendaMode,
@@ -1590,7 +1639,7 @@ export function ClassHomeworkScreen({
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.root}
     >
-      {tab === "list" ? (
+      {tab === "forms" ? null : tab === "list" ? (
         <InfiniteScrollList
           data={visibleListItems}
           keyExtractor={(item) => item.id}
@@ -1846,7 +1895,26 @@ export function ClassHomeworkScreen({
         </ScrollView>
       )}
 
-      {canManageAll ? (
+      {tab === "forms" && formContext ? (
+        <View style={styles.root}>
+          {headerComponent}
+          <HomeworkFormContent
+            formContext={formContext}
+            onSubmit={handleSaveHomework}
+            onCancel={exitForms}
+            onUploadAttachment={(file) =>
+              homeworkApi.uploadAttachment(schoolSlug!, file)
+            }
+            onUploadInlineImage={(file) =>
+              homeworkApi.uploadInlineImage(schoolSlug!, file)
+            }
+            subjectOptions={teacherSubjectOptions}
+            isSubmitting={isSubmitting}
+          />
+        </View>
+      ) : null}
+
+      {canManageAll && tab !== "forms" ? (
         <TouchableOpacity
           style={styles.fab}
           onPress={openCreateForm}
@@ -1855,25 +1923,6 @@ export function ClassHomeworkScreen({
           <Ionicons name="add" size={28} color={colors.white} />
         </TouchableOpacity>
       ) : null}
-
-      <HomeworkFormModal
-        visible={formVisible}
-        onClose={() => {
-          setFormVisible(false);
-          setEditingHomework(null);
-        }}
-        onSubmit={handleSaveHomework}
-        onUploadAttachment={(file) =>
-          homeworkApi.uploadAttachment(schoolSlug!, file)
-        }
-        onUploadInlineImage={(file) =>
-          homeworkApi.uploadInlineImage(schoolSlug!, file)
-        }
-        headerSubtitle={subtitle}
-        subjectOptions={teacherSubjectOptions}
-        initialValue={editingHomework}
-        isSubmitting={isSubmitting}
-      />
 
       <Modal
         visible={!!controlTargetId}
@@ -2498,30 +2547,27 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     gap: 14,
   },
-  formHeroCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#DCE8F7",
-    backgroundColor: "#FBFDFF",
+  formsTabContent: {
+    flex: 1,
+  },
+  formsKeyboardArea: {
+    flex: 1,
+  },
+  formScroll: {
+    flex: 1,
+  },
+  formScrollContent: {
     padding: 16,
-    gap: 6,
+    gap: 16,
   },
-  formHeroEyebrow: {
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 0.7,
-    textTransform: "uppercase",
-    color: colors.primary,
-  },
-  formHeroTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: colors.textPrimary,
-  },
-  formHeroSubtitle: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.textSecondary,
+  formActionsBar: {
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: "row",
+    gap: 10,
   },
   fieldGroup: {
     gap: 8,
@@ -2536,11 +2582,30 @@ const styles = StyleSheet.create({
     color: "#B91C1C",
     fontWeight: "600",
   },
+  expectedAtInlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  inlineFieldLabel: {
+    width: 78,
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
   expectedAtRow: {
+    flex: 1,
+    flexDirection: "row",
     gap: 10,
   },
+  expectedDateField: {
+    flex: 1.3,
+  },
+  expectedTimeField: {
+    flex: 1,
+  },
   textInput: {
-    borderRadius: 12,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     backgroundColor: colors.white,
@@ -2549,14 +2614,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textPrimary,
   },
+  subjectFieldInlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
   subjectPillsRow: {
+    flex: 1,
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
   },
   subjectPill: {
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -2590,7 +2661,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     minHeight: 48,
-    borderRadius: 14,
+    borderRadius: 6,
     backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
@@ -2735,7 +2806,7 @@ const styles = StyleSheet.create({
   secondaryButton: {
     flex: 1,
     minHeight: 46,
-    borderRadius: 14,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.primary,
     alignItems: "center",
@@ -2750,7 +2821,7 @@ const styles = StyleSheet.create({
   dangerButton: {
     flex: 1,
     minHeight: 46,
-    borderRadius: 14,
+    borderRadius: 6,
     backgroundColor: "#B91C1C",
     alignItems: "center",
     justifyContent: "center",

@@ -33,6 +33,50 @@ jest.mock("../../src/components/navigation/AppShell", () => ({
   useDrawer: () => ({ openDrawer: jest.fn() }),
 }));
 
+// DatePickerField : appuyer déclenche onChange avec une date fixe de test.
+jest.mock("../../src/components/DatePickerField", () => {
+  const { TouchableOpacity, Text } = require("react-native");
+  return {
+    DatePickerField: ({
+      value,
+      onChange,
+      testID,
+    }: {
+      value: string;
+      onChange: (v: string) => void;
+      testID?: string;
+    }) => (
+      <TouchableOpacity testID={testID} onPress={() => onChange("2099-06-01")}>
+        <Text testID={testID ? `${testID}-value` : undefined}>
+          {value || "date-vide"}
+        </Text>
+      </TouchableOpacity>
+    ),
+  };
+});
+
+// TimePickerField : appuyer déclenche onChange avec une heure fixe de test.
+jest.mock("../../src/components/TimePickerField", () => {
+  const { TouchableOpacity, Text } = require("react-native");
+  return {
+    TimePickerField: ({
+      value,
+      onChange,
+      testID,
+    }: {
+      value: string;
+      onChange: (v: string) => void;
+      testID?: string;
+    }) => (
+      <TouchableOpacity testID={testID} onPress={() => onChange("09:00")}>
+        <Text testID={testID ? `${testID}-value` : undefined}>
+          {value || "heure-vide"}
+        </Text>
+      </TouchableOpacity>
+    ),
+  };
+});
+
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<
   typeof useAuthStore
 >;
@@ -276,6 +320,22 @@ describe("ClassHomeworkScreen — onglets sans conteneur carte", () => {
     );
 
     expect(screen.getByTestId("class-homework-list")).toBeTruthy();
+  });
+
+  it("l'onglet forms n'apparaît pas dans les UnderlineTabs", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-fab")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-fab"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("homework-form-hero")).toBeTruthy(),
+    );
+
+    expect(screen.queryByTestId("class-homework-tabs-section")).toBeNull();
   });
 
   it("passer à l'onglet Agenda affiche les sous-onglets semaine/mois", async () => {
@@ -915,5 +975,255 @@ describe("ClassHomeworkScreen — erreurs dans l'onglet (dismissibles)", () => {
     );
 
     expect(screen.getByTestId("class-homework-tab-agenda")).toBeTruthy();
+  });
+});
+
+// ─── Onglet formulaires (création / édition inline) ────────────────────────────
+
+describe("ClassHomeworkScreen — onglet formulaires", () => {
+  it("le FAB ouvre l'onglet forms avec le hero de création", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-fab")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-fab"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("homework-form-hero")).toBeTruthy(),
+    );
+
+    expect(
+      screen.getByText(translate("fr", "homework.form.createHeroTitle")),
+    ).toBeTruthy();
+    expect(screen.getByTestId("homework-form-title")).toBeTruthy();
+    expect(screen.queryByTestId("class-homework-fab")).toBeNull();
+  });
+
+  it("le bouton édition d'une card ouvre l'onglet forms pré-rempli", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-edit-hw-1")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-edit-hw-1"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("homework-form-hero")).toBeTruthy(),
+    );
+
+    expect(screen.getByDisplayValue("Exercices 1 à 3")).toBeTruthy();
+  });
+
+  it("Annuler revient au tab liste sans appeler l'API", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-fab")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-fab"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("homework-form-cancel")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("homework-form-cancel"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-list")).toBeTruthy(),
+    );
+
+    expect(screen.getByTestId("class-homework-tab-list")).toBeTruthy();
+    expect(mockHomeworkApi.createHomework).not.toHaveBeenCalled();
+  });
+
+  it("la flèche du ModuleHeader depuis forms revient au tab d'origine sans router.back()", async () => {
+    const backSpy = jest.fn();
+    jest.spyOn(require("expo-router"), "useRouter").mockReturnValue({
+      back: backSpy,
+    });
+
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-tab-agenda")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-tab-agenda"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-fab")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-fab"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-back")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-back"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-homework-agenda-mode-tabs"),
+      ).toBeTruthy(),
+    );
+
+    expect(backSpy).not.toHaveBeenCalled();
+  });
+
+  it("affiche les erreurs de validation sous les champs sans appeler l'API", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-fab")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-fab"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("homework-form-title")).toBeTruthy(),
+    );
+
+    fireEvent.changeText(screen.getByTestId("homework-form-title"), "");
+    fireEvent.press(screen.getByTestId("homework-form-submit"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          translate("fr", "homework.form.validation.titleRequired"),
+        ),
+      ).toBeTruthy(),
+    );
+
+    expect(mockHomeworkApi.createHomework).not.toHaveBeenCalled();
+  });
+
+  it("succès : appelle l'API, affiche le toast puis revient au tab d'origine après 2s", async () => {
+    jest.useFakeTimers();
+    mockHomeworkApi.createHomework.mockResolvedValue({
+      ...BASE_HOMEWORK,
+      id: "hw-2",
+    });
+
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-fab")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-fab"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("homework-form-title")).toBeTruthy(),
+    );
+
+    fireEvent.changeText(
+      screen.getByTestId("homework-form-title"),
+      "Nouveau devoir",
+    );
+    fireEvent.press(screen.getByTestId("homework-form-expected-date"));
+    fireEvent.press(screen.getByTestId("homework-form-expected-time"));
+    fireEvent.press(screen.getByTestId("homework-form-submit"));
+
+    await waitFor(() =>
+      expect(mockHomeworkApi.createHomework).toHaveBeenCalled(),
+    );
+
+    expect(screen.getByTestId("homework-form-hero")).toBeTruthy();
+
+    await jest.advanceTimersByTimeAsync(2000);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-list")).toBeTruthy(),
+    );
+    expect(screen.getByTestId("class-homework-tab-list")).toBeTruthy();
+
+    jest.useRealTimers();
+  });
+
+  it("erreur : affiche le toast d'erreur et reste sur l'onglet forms", async () => {
+    mockHomeworkApi.createHomework.mockRejectedValue(
+      new Error("Erreur serveur"),
+    );
+
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-fab")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-fab"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("homework-form-title")).toBeTruthy(),
+    );
+
+    fireEvent.changeText(
+      screen.getByTestId("homework-form-title"),
+      "Nouveau devoir",
+    );
+    fireEvent.press(screen.getByTestId("homework-form-expected-date"));
+    fireEvent.press(screen.getByTestId("homework-form-expected-time"));
+    fireEvent.press(screen.getByTestId("homework-form-submit"));
+
+    await waitFor(() =>
+      expect(mockHomeworkApi.createHomework).toHaveBeenCalled(),
+    );
+
+    expect(screen.getByTestId("homework-form-hero")).toBeTruthy();
+  });
+
+  it("origine correcte : ouverture depuis l'agenda ramène à l'agenda après Annuler", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-tab-agenda")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-tab-agenda"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-fab")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-fab"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("homework-form-cancel")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("homework-form-cancel"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-homework-agenda-mode-tabs"),
+      ).toBeTruthy(),
+    );
+
+    expect(screen.getByTestId("class-homework-tab-agenda")).toBeTruthy();
+  });
+
+  it("le module header affiche le titre de mise à jour en mode édition", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-edit-hw-1")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-edit-hw-1"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-header-title")).toBeTruthy(),
+    );
+
+    expect(
+      within(screen.getByTestId("class-homework-header-title")).getByText(
+        translate("fr", "homework.form.editModuleTitle"),
+      ),
+    ).toBeTruthy();
   });
 });

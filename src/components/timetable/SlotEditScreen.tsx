@@ -23,6 +23,7 @@ import { useAuthStore } from "../../store/auth.store";
 import { useTimetableStore } from "../../store/timetable.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { FormHero } from "../forms/FormHero";
 import { SelectDropdown } from "../SelectDropdown";
 import { TimePickerField } from "../TimePickerField";
 import type { RoomAvailability } from "../../types/room.types";
@@ -39,7 +40,6 @@ import { moduleBack } from "../../utils/moduleBack";
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
 const HERO_BG = "#C0681A";
-const HERO_DARK = "#A05010";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -397,37 +397,27 @@ export function SlotEditScreen() {
           testID="slot-edit-scroll"
         >
           {/* Hero */}
-          <View style={styles.hero} testID="slot-edit-hero">
-            <View style={[styles.heroDecor1, { backgroundColor: HERO_DARK }]} />
-            <View style={[styles.heroDecor2, { backgroundColor: HERO_DARK }]} />
-            <View style={styles.heroRow}>
-              <View style={styles.heroIconWrap}>
-                <Ionicons
-                  name="create-outline"
-                  size={28}
-                  color="rgba(255,255,255,0.92)"
-                />
-              </View>
-              <View style={styles.heroTextWrap}>
-                <Text style={styles.heroTitle}>
-                  {t("timetable.slotScreen.edit.heroTitle")}
-                </Text>
-                <Text style={styles.heroSubtitle}>
-                  {t("timetable.slotScreen.heroSubtitle")}
-                </Text>
-              </View>
+          <FormHero
+            icon="create-outline"
+            title={t("timetable.slotScreen.edit.heroTitle")}
+            subtitle={t("timetable.slotScreen.heroSubtitle")}
+            palette="warm"
+            testID="slot-edit-hero"
+            trailing={
               <View style={styles.scopePill} testID="slot-edit-scope-target">
                 <Text style={styles.scopePillText}>
                   {isRecurring ? "R" : "P"}
                 </Text>
               </View>
-            </View>
-            {headerMeta ? (
-              <Text style={styles.heroMeta} numberOfLines={1}>
-                {headerMeta}
-              </Text>
-            ) : null}
-          </View>
+            }
+            footer={
+              headerMeta ? (
+                <Text style={styles.heroMeta} numberOfLines={1}>
+                  {headerMeta}
+                </Text>
+              ) : null
+            }
+          />
 
           {/* Form card */}
           <View style={styles.card}>
@@ -671,60 +661,10 @@ const styles = StyleSheet.create({
   content: { gap: 16, padding: 16 },
 
   /* Hero */
-  hero: {
-    borderRadius: 20,
-    backgroundColor: HERO_BG,
-    padding: 20,
-    overflow: "hidden",
-    position: "relative",
-    gap: 8,
-  },
-  heroDecor1: {
-    position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    top: -40,
-    right: -30,
-    opacity: 0.3,
-  },
-  heroDecor2: {
-    position: "absolute",
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    bottom: -20,
-    left: 40,
-    opacity: 0.2,
-  },
-  heroRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  heroIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroTextWrap: { flex: 1 },
-  heroTitle: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: colors.white,
-    letterSpacing: 0.3,
-  },
-  heroSubtitle: {
-    fontSize: 12,
-    color: "rgba(255,255,255,0.78)",
-    marginTop: 3,
-  },
   heroMeta: {
     fontSize: 12,
     color: "rgba(255,255,255,0.65)",
+    marginTop: 8,
   },
   scopePill: {
     width: 28,
