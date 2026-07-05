@@ -261,16 +261,75 @@ export const messagingApi = {
     schoolSlug: string,
     messageId: string,
     payload: {
-      subject: string;
-      body: string;
-      recipientUserIds: string[];
+      subject?: string;
+      body?: string;
+      recipientUserIds?: string[];
+      /** Full desired attachment list — replaces all existing attachments on the draft. */
+      attachments?: Array<{
+        fileName: string;
+        fileUrl: string;
+        mimeType: string;
+        sizeBytes: number;
+      }>;
     },
   ): Promise<MessageDetail> {
-    return apiFetch<MessageDetail>(
+    const response = await apiFetch<MessageDetail>(
       `/schools/${schoolSlug}/messages/${messageId}/draft`,
       { method: "PATCH", body: JSON.stringify(payload) },
       true,
     );
+    return {
+      ...response,
+      attachments: (response.attachments ?? []).map((attachment) => ({
+        ...attachment,
+        url: normalizeMediaUrl(attachment.url),
+      })),
+    };
+  },
+
+  /**
+   * Upload a single message attachment ahead of time (draft compose flow).
+   * Returns clean metadata built from the upload response rather than a
+   * spread — the media service also returns width/height/etc which the
+   * update-draft endpoint's DTO would reject (forbidNonWhitelisted).
+   */
+  async uploadAttachment(
+    schoolSlug: string,
+    file: { uri: string; mimeType: string; fileName: string },
+  ): Promise<{
+    fileName: string;
+    fileUrl: string;
+    mimeType: string;
+    sizeBytes: number;
+  }> {
+    const formData = new FormData();
+    formData.append("file", {
+      uri: file.uri,
+      type: file.mimeType,
+      name: file.fileName,
+    } as unknown as Blob);
+
+    const response = await postMultipart(
+      `/schools/${schoolSlug}/messages/uploads/attachment`,
+      formData,
+    );
+
+    if (!response.ok) {
+      await throwMultipartError(response, "ATTACHMENT_UPLOAD_FAILED");
+    }
+
+    const data = (await response.json()) as {
+      url: string;
+      size: number;
+      mimeType: string;
+    };
+
+    return {
+      fileName: file.fileName,
+      fileUrl: normalizeMediaUrl(data.url),
+      mimeType: data.mimeType ?? file.mimeType,
+      sizeBytes: data.size,
+    };
   },
 
   async sendDraft(schoolSlug: string, messageId: string): Promise<void> {

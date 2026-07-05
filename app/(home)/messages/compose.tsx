@@ -25,7 +25,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
-import { RichEditor } from "react-native-pell-rich-editor";
 import { colors } from "../../../src/theme";
 import {
   messagingApi,
@@ -34,12 +33,10 @@ import {
 import { useAuthStore } from "../../../src/store/auth.store";
 import { useMessagingStore } from "../../../src/store/messaging.store";
 import { useSuccessToastStore } from "../../../src/store/success-toast.store";
-import { RichTextToolbar } from "../../../src/components/editor/RichTextToolbar";
 import {
-  ImageEditPanel,
-  type ImageSize,
-  type ImageAlign,
-} from "../../../src/components/editor/ImageEditPanel";
+  RichEditorField,
+  type RichEditorFieldRef,
+} from "../../../src/components/editor/RichEditorField";
 import { RecipientPickerModal } from "../../../src/components/messaging/RecipientPickerModal";
 import { AppShell } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
@@ -342,6 +339,15 @@ function splitAttachmentsForSend(attachedFiles: AttachedFile[]) {
   };
 }
 
+function buildDraftAttachmentsPayload(attachedFiles: AttachedFile[]) {
+  return attachedFiles.map((file) => ({
+    fileName: file.name,
+    fileUrl: file.uri,
+    mimeType: file.mimeType,
+    sizeBytes: file.size,
+  }));
+}
+
 function hasDraftContent(params: {
   subject: string;
   hasBody: boolean;
@@ -365,7 +371,7 @@ export default function ComposeScreen() {
   const { schoolSlug } = useAuthStore();
   const { folder, loadMessages } = useMessagingStore();
   const showFeedbackToast = useSuccessToastStore((state) => state.show);
-  const editorRef = useRef<RichEditor>(null);
+  const editorRef = useRef<RichEditorFieldRef>(null);
 
   const {
     replyToSubject,
@@ -411,6 +417,14 @@ export default function ComposeScreen() {
   const initialBodyHtml = buildQuotedBodyHtml(quoteHeader, quoteBodyHtml);
 
   const composeSchema = useMemo(() => buildComposeSchema(t), [t]);
+  const colorPresets = useMemo(
+    () =>
+      TEXT_COLOR_PRESETS.map((preset) => ({
+        label: t(preset.labelKey),
+        value: preset.value,
+      })),
+    [t],
+  );
 
   const { control, handleSubmit, formState, getValues, watch, reset } =
     useForm<ComposeValues>({
@@ -450,15 +464,8 @@ export default function ComposeScreen() {
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>(() =>
     parseForwardAttachments(forwardAttachments),
   );
-  const [editorHeight, setEditorHeight] = useState(200);
-  const [isInsertingImage, setIsInsertingImage] = useState(false);
+  const [isAttachingFile, setIsAttachingFile] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
-  const [selectedImageSize, setSelectedImageSize] = useState<ImageSize | null>(
-    null,
-  );
-  const [selectedImageAlign, setSelectedImageAlign] =
-    useState<ImageAlign | null>(null);
   const [isDraftLoading, setIsDraftLoading] = useState(isEditingDraft);
   const [draftLoadFailed, setDraftLoadFailed] = useState(false);
 
@@ -534,42 +541,7 @@ export default function ComposeScreen() {
     if (bodyError) setBodyError(null);
   }
 
-  // ── Inline image insertion ──────────────────────────────────────────────────
-
-  function handleInsertImage() {
-    Alert.alert(
-      t("messaging.compose.insertImage.title"),
-      t("messaging.compose.insertImage.message"),
-      [
-        {
-          text: t("messaging.compose.insertImage.gallery"),
-          onPress: pickFromGallery,
-        },
-        { text: t("messaging.compose.insertImage.camera"), onPress: takePhoto },
-        { text: t("messaging.compose.cancel"), style: "cancel" },
-      ],
-    );
-  }
-
-  async function pickFromGallery() {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        t("messaging.compose.errors.permissionDeniedTitle"),
-        t("messaging.compose.errors.galleryPermission"),
-      );
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: false,
-      quality: 0.85,
-      exif: false,
-    });
-    if (!result.canceled && result.assets[0]) {
-      await insertImageAsset(result.assets[0]);
-    }
-  }
+  // ── Attachment menu (separate files list, unrelated to inline body images) ──
 
   async function pickAttachmentFromGallery() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -588,25 +560,6 @@ export default function ComposeScreen() {
     });
     if (!result.canceled && result.assets[0]) {
       addImageAttachmentAsset(result.assets[0]);
-    }
-  }
-
-  async function takePhoto() {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        t("messaging.compose.errors.permissionDeniedTitle"),
-        t("messaging.compose.errors.cameraPermission"),
-      );
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["images"],
-      quality: 0.85,
-      exif: false,
-    });
-    if (!result.canceled && result.assets[0]) {
-      await insertImageAsset(result.assets[0]);
     }
   }
 
@@ -651,166 +604,57 @@ export default function ComposeScreen() {
     );
   }
 
-  function openTextColorMenu() {
-    Alert.alert(
-      t("messaging.compose.colorMenu.title"),
-      t("messaging.compose.colorMenu.message"),
-      [
-        ...TEXT_COLOR_PRESETS.map((color) => ({
-          text: t(color.labelKey),
-          onPress: () => editorRef.current?.setForeColor(color.value),
-        })),
-        { text: t("messaging.compose.cancel"), style: "cancel" as const },
-      ],
-    );
-  }
-
-  function applyHeading() {
-    editorRef.current?.command(buildFormatBlockCommand("h2"));
-  }
-
-  function applyQuote() {
-    editorRef.current?.command(buildFormatBlockCommand("blockquote"));
-  }
-
-  function injectImageClickHandler() {
-    editorRef.current?.commandDOM(`
-      (function() {
-        if (document.__rnImgListenerAdded) return;
-        document.__rnImgListenerAdded = true;
-        var imgCounter = 0;
-        document.addEventListener('click', function(e) {
-          var el = e.target;
-          if (el && el.tagName === 'IMG') {
-            if (!el.dataset.rnId) {
-              el.dataset.rnId = 'img_' + (++imgCounter);
-            }
-            var widthStr = el.style.width || '';
-            var size = null;
-            var match = widthStr.match(/^(\\d+)%$/);
-            if (match) size = parseInt(match[1], 10);
-            var align = el.style.float || el.style.marginLeft === 'auto' ? 'center' : null;
-            if (el.style.float === 'left') align = 'left';
-            else if (el.style.float === 'right') align = 'right';
-            else if (el.style.marginLeft === 'auto' && el.style.marginRight === 'auto') align = 'center';
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'IMAGE_TAPPED',
-              id: el.dataset.rnId,
-              size: size,
-              align: align
-            }));
-          } else {
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'CLICK_OUTSIDE_IMAGE'
-            }));
-          }
-        }, true);
-      })();
-    `);
-  }
-
-  function handleEditorMessage(message: {
-    type: string;
-    [key: string]: unknown;
+  /**
+   * Adds a picked/captured file to the attachment list. When editing an
+   * existing draft, the file is uploaded immediately (the update-draft
+   * endpoint expects a JSON list of already-hosted attachments, mirroring
+   * the homework module's attachment flow) — otherwise the upload is
+   * deferred to send/save-draft time, which submits everything as multipart.
+   */
+  async function addAttachmentFromAsset(params: {
+    uri: string;
+    name: string;
+    size: number;
+    mimeType: string;
   }) {
-    if (message.type === "IMAGE_TAPPED") {
-      const id = message.id as string | undefined;
-      const size = message.size as ImageSize | null | undefined;
-      const align = message.align as ImageAlign | null | undefined;
-      setSelectedImageId(id ?? null);
-      setSelectedImageSize(size ?? null);
-      setSelectedImageAlign(align ?? null);
-    } else if (message.type === "CLICK_OUTSIDE_IMAGE") {
-      setSelectedImageId(null);
-      setSelectedImageSize(null);
-      setSelectedImageAlign(null);
+    if (isEditingDraft) {
+      if (!schoolSlug) return;
+      setIsAttachingFile(true);
+      try {
+        const uploaded = await messagingApi.uploadAttachment(schoolSlug, {
+          uri: params.uri,
+          mimeType: params.mimeType,
+          fileName: params.name,
+        });
+        const newFile: AttachedFile = {
+          id: `${Date.now()}-${Math.random()}`,
+          name: uploaded.fileName,
+          size: uploaded.sizeBytes,
+          mimeType: uploaded.mimeType,
+          uri: uploaded.fileUrl,
+          uploaded: true,
+        };
+        setAttachedFiles((prev) => dedupeAttachedFiles([...prev, newFile]));
+      } catch {
+        Alert.alert(
+          t("messaging.compose.errors.genericTitle"),
+          t("messaging.compose.errors.attachmentUploadFailed"),
+        );
+      } finally {
+        setIsAttachingFile(false);
+      }
+      return;
     }
-  }
 
-  function applyImageSize(size: ImageSize) {
-    if (!selectedImageId) return;
-    setSelectedImageSize(size);
-    editorRef.current?.commandDOM(`
-      (function($) {
-        var img = $('[data-rn-id="${selectedImageId}"]');
-        if (img) {
-          img.style.width = '${size}%';
-          img.style.maxWidth = '${size}%';
-          img.style.height = 'auto';
-          img.style.display = 'block';
-          if (!img.style.marginLeft) img.style.marginLeft = '0';
-        }
-      })($);
-    `);
-  }
-
-  function applyImageAlign(align: ImageAlign) {
-    if (!selectedImageId) return;
-    setSelectedImageAlign(align);
-    editorRef.current?.commandDOM(`
-      (function($) {
-        var img = $('[data-rn-id="${selectedImageId}"]');
-        if (img) {
-          img.style.display = 'block';
-          if ('${align}' === 'left') {
-            img.style.float = 'left';
-            img.style.marginLeft = '0';
-            img.style.marginRight = '12px';
-          } else if ('${align}' === 'right') {
-            img.style.float = 'right';
-            img.style.marginRight = '0';
-            img.style.marginLeft = '12px';
-          } else {
-            img.style.float = 'none';
-            img.style.marginLeft = 'auto';
-            img.style.marginRight = 'auto';
-          }
-        }
-      })($);
-    `);
-  }
-
-  function deleteSelectedImage() {
-    if (!selectedImageId) return;
-    editorRef.current?.commandDOM(`
-      (function($) {
-        var img = $('[data-rn-id="${selectedImageId}"]');
-        if (img) img.parentNode.removeChild(img);
-      })($);
-    `);
-    setSelectedImageId(null);
-    setSelectedImageSize(null);
-    setSelectedImageAlign(null);
-  }
-
-  function dismissImageEdit() {
-    setSelectedImageId(null);
-    setSelectedImageSize(null);
-    setSelectedImageAlign(null);
-  }
-
-  async function insertImageAsset(asset: ImagePicker.ImagePickerAsset) {
-    if (!schoolSlug) return;
-    setIsInsertingImage(true);
-    try {
-      const url = await messagingApi.uploadInlineImage(
-        schoolSlug,
-        asset.uri,
-        asset.mimeType ?? "image/jpeg",
-        asset.fileName ?? `photo_${Date.now()}.jpg`,
-      );
-      editorRef.current?.insertImage(
-        url,
-        "width:100%;max-width:100%;height:auto;display:block;border-radius:8px;margin:8px 0;",
-      );
-    } catch {
-      Alert.alert(
-        t("messaging.compose.errors.genericTitle"),
-        t("messaging.compose.errors.insertImageFailed"),
-      );
-    } finally {
-      setIsInsertingImage(false);
-    }
+    const newFile: AttachedFile = {
+      id: `${Date.now()}-${Math.random()}`,
+      name: params.name,
+      size: params.size,
+      mimeType: params.mimeType,
+      uri: params.uri,
+      uploaded: null,
+    };
+    setAttachedFiles((prev) => dedupeAttachedFiles([...prev, newFile]));
   }
 
   function addImageAttachmentAsset(asset: ImagePicker.ImagePickerAsset) {
@@ -818,8 +662,8 @@ export default function ComposeScreen() {
       asset.fileName?.trim() ||
       `image_${Date.now()}.${asset.mimeType?.includes("png") ? "png" : "jpg"}`;
 
-    const newFile: AttachedFile = {
-      id: `${Date.now()}-${Math.random()}`,
+    void addAttachmentFromAsset({
+      uri: asset.uri,
       name,
       size: asset.fileSize ?? 0,
       mimeType: resolveAttachmentMimeType({
@@ -827,11 +671,7 @@ export default function ComposeScreen() {
         uri: asset.uri,
         mimeType: asset.mimeType ?? "image/jpeg",
       }),
-      uri: asset.uri,
-      uploaded: null,
-    };
-
-    setAttachedFiles((prev) => dedupeAttachedFiles([...prev, newFile]));
+    });
   }
 
   // ── File attachments (non-image documents) ──────────────────────────────────
@@ -847,20 +687,18 @@ export default function ComposeScreen() {
 
       if (result.canceled) return;
 
-      const newFiles: AttachedFile[] = result.assets.map((asset) => ({
-        id: `${Date.now()}-${Math.random()}`,
-        name: asset.name,
-        size: asset.size ?? 0,
-        mimeType: resolveAttachmentMimeType({
-          name: asset.name,
+      for (const asset of result.assets) {
+        await addAttachmentFromAsset({
           uri: asset.uri,
-          mimeType: asset.mimeType,
-        }),
-        uri: asset.uri,
-        uploaded: null,
-      }));
-
-      setAttachedFiles((prev) => dedupeAttachedFiles([...prev, ...newFiles]));
+          name: asset.name,
+          size: asset.size ?? 0,
+          mimeType: resolveAttachmentMimeType({
+            name: asset.name,
+            uri: asset.uri,
+            mimeType: asset.mimeType,
+          }),
+        });
+      }
     } catch {
       Alert.alert(
         t("messaging.compose.errors.genericTitle"),
@@ -877,7 +715,7 @@ export default function ComposeScreen() {
 
   const canSaveDraft =
     !isSending &&
-    !isInsertingImage &&
+    !isAttachingFile &&
     hasDraftContent({
       subject: watchedSubject,
       hasBody,
@@ -916,6 +754,7 @@ export default function ComposeScreen() {
           subject,
           body,
           recipientUserIds,
+          attachments: buildDraftAttachmentsPayload(attachedFiles),
         });
       } else {
         await messagingApi.send(schoolSlug, {
@@ -960,6 +799,7 @@ export default function ComposeScreen() {
           subject,
           body: bodyHtml,
           recipientUserIds: selectedRecipients.map((r) => r.value),
+          attachments: buildDraftAttachmentsPayload(attachedFiles),
         });
         await messagingApi.sendDraft(schoolSlug, draftId);
       } else {
@@ -1053,12 +893,12 @@ export default function ComposeScreen() {
           </View>
         ) : (
           <>
-            {/* Inserting image indicator */}
-            {isInsertingImage && (
-              <View style={styles.banner}>
+            {/* Attaching file indicator */}
+            {isAttachingFile && (
+              <View style={styles.banner} testID="compose-attaching-banner">
                 <ActivityIndicator size="small" color={colors.primary} />
                 <Text style={styles.bannerText}>
-                  {t("messaging.compose.insertingImage")}
+                  {t("messaging.compose.attachingFile")}
                 </Text>
               </View>
             )}
@@ -1154,54 +994,49 @@ export default function ComposeScreen() {
 
               <View style={styles.divider} />
 
-              {/* Formatting toolbar */}
-              <RichTextToolbar
-                editorRef={editorRef}
-                onPressAddImage={handleInsertImage}
-                onPressColor={openTextColorMenu}
-                onPressHeading={applyHeading}
-                onPressQuote={applyQuote}
-              />
-
-              {/* Image edit panel — shown when an image is tapped in editor */}
-              {selectedImageId ? (
-                <ImageEditPanel
-                  onSizePress={applyImageSize}
-                  onAlignPress={applyImageAlign}
-                  onDelete={deleteSelectedImage}
-                  onClose={dismissImageEdit}
-                  currentSize={selectedImageSize}
-                  currentAlign={selectedImageAlign}
-                />
-              ) : null}
-
-              {/* Rich text editor — useContainer + onHeightChange pour auto-expansion */}
-              <RichEditor
+              {/* Rich text editor — shared component (same as homework/notes/feed) */}
+              <RichEditorField
                 ref={editorRef}
-                style={[styles.richEditor, { height: editorHeight }]}
-                editorStyle={{
-                  backgroundColor: colors.surface,
-                  color: colors.textPrimary,
-                  placeholderColor: colors.textSecondary,
-                  contentCSSText: `
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                font-size: 15px;
-                line-height: 1.6;
-                padding: 16px;
-                min-height: 200px;
-              `,
-                  cssText:
-                    "img { max-width: 100%; height: auto; display: block; margin: 8px 0; }",
-                }}
+                initialHtml={bodyHtml}
+                onChangeHtml={handleEditorChange}
                 placeholder={t("messaging.compose.bodyPlaceholder")}
-                onChange={handleEditorChange}
-                onHeightChange={(h) => setEditorHeight(Math.max(200, h))}
-                initialContentHTML={initialBodyHtml}
-                useContainer
-                initialFocus={false}
-                editorInitializedCallback={injectImageClickHandler}
-                onMessage={handleEditorMessage}
-                testID="rich-editor"
+                insertingPlaceholder={t("messaging.compose.insertingImage")}
+                minHeight={200}
+                colorPresets={colorPresets}
+                labels={{
+                  colorMenuTitle: t("messaging.compose.colorMenu.title"),
+                  colorMenuMessage: t("messaging.compose.colorMenu.message"),
+                  cancel: t("messaging.compose.cancel"),
+                  permissionDeniedTitle: t(
+                    "messaging.compose.errors.permissionDeniedTitle",
+                  ),
+                  permissionDeniedMessage: t(
+                    "messaging.compose.errors.galleryPermission",
+                  ),
+                  imageErrorTitle: t("messaging.compose.errors.genericTitle"),
+                  imageErrorFallbackMessage: t(
+                    "messaging.compose.errors.insertImageFailed",
+                  ),
+                }}
+                onUploadInlineImage={(file) => {
+                  if (!schoolSlug) {
+                    return Promise.reject(new Error("NO_SCHOOL_SLUG"));
+                  }
+                  return messagingApi
+                    .uploadInlineImage(
+                      schoolSlug,
+                      file.uri,
+                      file.mimeType,
+                      file.name,
+                    )
+                    .then((url) => ({ url }));
+                }}
+                editorTestID="rich-editor"
+                toolbarTestID="rich-toolbar"
+                quickToolsTestID="editor-quick-tools"
+                colorButtonTestID="editor-color-btn"
+                headingButtonTestID="editor-heading-btn"
+                quoteButtonTestID="editor-quote-btn"
               />
 
               {/* Body error */}
@@ -1223,11 +1058,6 @@ export default function ComposeScreen() {
                       String(attachedFiles.length),
                     )}
                   </Text>
-                  {isEditingDraft ? (
-                    <Text style={styles.attachmentsLockedHint}>
-                      {t("messaging.compose.attachments.lockedHint")}
-                    </Text>
-                  ) : null}
                   {attachedFiles.map((file) => (
                     <View
                       key={file.id}
@@ -1260,7 +1090,7 @@ export default function ComposeScreen() {
                             : ""}
                         </Text>
                       </View>
-                      {file.existingAttachment ? null : (
+                      {isAttachingFile ? null : (
                         <TouchableOpacity
                           onPress={() => removeAttachment(file.id)}
                           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -1287,27 +1117,30 @@ export default function ComposeScreen() {
               ]}
             >
               <View style={styles.bottomBar} testID="compose-action-bar">
-                {isEditingDraft ? null : (
-                  <TouchableOpacity
-                    style={[styles.actionBarBtn, styles.attachActionBarBtn]}
-                    onPress={openAttachmentMenu}
-                    testID="attachment-actions-btn"
+                <TouchableOpacity
+                  style={[
+                    styles.actionBarBtn,
+                    styles.attachActionBarBtn,
+                    isAttachingFile && styles.actionBarBtnDisabled,
+                  ]}
+                  onPress={openAttachmentMenu}
+                  disabled={isAttachingFile}
+                  testID="attachment-actions-btn"
+                >
+                  <Ionicons
+                    name="attach-outline"
+                    size={20}
+                    color={colors.accentTeal}
+                  />
+                  <Text
+                    style={[
+                      styles.actionBarBtnLabel,
+                      styles.attachActionBarBtnLabel,
+                    ]}
                   >
-                    <Ionicons
-                      name="attach-outline"
-                      size={20}
-                      color={colors.accentTeal}
-                    />
-                    <Text
-                      style={[
-                        styles.actionBarBtnLabel,
-                        styles.attachActionBarBtnLabel,
-                      ]}
-                    >
-                      {t("messaging.compose.attachBtn")}
-                    </Text>
-                  </TouchableOpacity>
-                )}
+                    {t("messaging.compose.attachBtn")}
+                  </Text>
+                </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[
@@ -1333,13 +1166,13 @@ export default function ComposeScreen() {
                   style={[
                     styles.actionBarBtn,
                     styles.sendActionBarBtn,
-                    (isSending || isInsertingImage) &&
+                    (isSending || isAttachingFile) &&
                       styles.actionBarBtnDisabled,
                   ]}
                   onPress={() => {
                     void handleSend();
                   }}
-                  disabled={isSending || isInsertingImage}
+                  disabled={isSending || isAttachingFile}
                   testID="send-btn"
                 >
                   {isSending ? (
@@ -1456,40 +1289,6 @@ const styles = StyleSheet.create({
   },
   divider: { height: 1, backgroundColor: colors.warmBorder, marginLeft: 76 },
 
-  editorToolbarRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.warmSurface,
-    borderTopWidth: 1,
-    borderTopColor: colors.warmBorder,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.warmBorder,
-  },
-  richToolbar: {
-    flex: 1,
-    backgroundColor: "transparent",
-    height: 46,
-  },
-  editorQuickActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingRight: 10,
-  },
-  editorQuickToolBtn: {
-    alignItems: "center",
-    justifyContent: "center",
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-  },
-  richEditor: {
-    backgroundColor: colors.surface,
-  },
-
   // ── Attachments ─────────────────────────────────────────────────────────────
   attachmentsSection: {
     borderTopWidth: 1,
@@ -1504,11 +1303,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
-  },
-  attachmentsLockedHint: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontStyle: "italic",
   },
   attachmentRow: {
     flexDirection: "row",

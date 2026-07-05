@@ -251,27 +251,29 @@ describe("Bouton Envoyer", () => {
 });
 
 describe("Outils de l'éditeur", () => {
-  it("ouvre le menu de couleur du texte", () => {
+  it("ouvre le panneau de couleur du texte", () => {
     renderCompose();
 
     fireEvent.press(screen.getByTestId("editor-color-btn"));
 
-    expect(alertSpy).toHaveBeenCalledWith(
-      "Couleur du texte",
-      "Choisissez une couleur",
-      expect.any(Array),
-    );
+    expect(screen.getByTestId("color-picker-panel")).toBeTruthy();
+    expect(
+      screen.getByTestId(`color-swatch-${TEXT_COLOR_PRESETS[0].value}`),
+    ).toBeTruthy();
   });
 
   it("applique une couleur au texte", () => {
     renderCompose();
 
     fireEvent.press(screen.getByTestId("editor-color-btn"));
-    pressAlertAction("Bleu profond");
+    fireEvent.press(
+      screen.getByTestId(`color-swatch-${TEXT_COLOR_PRESETS[0].value}`),
+    );
 
     expect(mockEditorMethods.setForeColor).toHaveBeenCalledWith(
       TEXT_COLOR_PRESETS[0].value,
     );
+    expect(screen.queryByTestId("color-picker-panel")).toBeNull();
   });
 
   it("applique le format titre", () => {
@@ -767,14 +769,10 @@ describe("Gestion d'erreurs locales", () => {
 
     await act(async () => {
       fireEvent.press(screen.getByTestId("toolbar-insert-image"));
-      pressAlertAction("Galerie");
     });
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith(
-        "Erreur",
-        "Impossible d'insérer l'image. Réessayez.",
-      );
+      expect(alertSpy).toHaveBeenCalledWith("Erreur", "IMAGE_UPLOAD_FAILED");
     });
   });
 
@@ -794,7 +792,6 @@ describe("Gestion d'erreurs locales", () => {
 
     await act(async () => {
       fireEvent.press(screen.getByTestId("toolbar-insert-image"));
-      pressAlertAction("Galerie");
     });
 
     await waitFor(() => {
@@ -1018,6 +1015,21 @@ describe("Édition d'un brouillon existant", () => {
     expect(screen.getByText("bulletin.pdf")).toBeTruthy();
   });
 
+  it("affiche le texte du brouillon dans l'éditeur (pas un éditeur vide)", async () => {
+    // Regression: the editor used to mount with a hardcoded empty initial
+    // value regardless of the loaded draft's body, showing an empty editor
+    // even though the draft had text.
+    renderCompose({ draftId: "d1" });
+    await waitFor(() => {
+      expect(screen.getByTestId("subject-input").props.value).toBe(
+        "Brouillon en cours",
+      );
+    });
+    expect(
+      screen.getByTestId("rich-editor-initial-content").props.children,
+    ).toContain("Texte déjà saisi");
+  });
+
   it("affiche le titre 'Modifier le brouillon'", async () => {
     renderCompose({ draftId: "d1" });
     await waitFor(() => {
@@ -1026,13 +1038,13 @@ describe("Édition d'un brouillon existant", () => {
     expect(screen.getByText("Modifier le brouillon")).toBeTruthy();
   });
 
-  it("verrouille les pièces jointes existantes (pas de bouton joindre ni supprimer)", async () => {
+  it("autorise l'ajout et la suppression de pièces jointes sur un brouillon existant", async () => {
     renderCompose({ draftId: "d1" });
     await waitFor(() => {
       expect(screen.getByText("bulletin.pdf")).toBeTruthy();
     });
-    expect(screen.queryByTestId("attachment-actions-btn")).toBeNull();
-    expect(screen.queryByTestId("remove-attachment-att-1")).toBeNull();
+    expect(screen.getByTestId("attachment-actions-btn")).toBeTruthy();
+    expect(screen.getByTestId("remove-attachment-att-1")).toBeTruthy();
   });
 
   it("enregistre les modifications via updateDraft (pas de nouveau brouillon)", async () => {
@@ -1056,6 +1068,14 @@ describe("Édition d'un brouillon existant", () => {
       subject: "Brouillon modifié",
       body: "<p>Texte déjà saisi</p>",
       recipientUserIds: ["t1"],
+      attachments: [
+        {
+          fileName: "bulletin.pdf",
+          fileUrl: "http://10.0.2.2:9000/bulletin.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: 1024,
+        },
+      ],
     });
     expect(api.send).not.toHaveBeenCalled();
     expect(showFeedbackToast).toHaveBeenCalledWith({
@@ -1064,6 +1084,118 @@ describe("Édition d'un brouillon existant", () => {
       message: "Votre brouillon a bien été sauvegardé.",
     });
     expect(mockBack).toHaveBeenCalled();
+  });
+
+  it("supprime une pièce jointe existante puis répercute la suppression dans updateDraft", async () => {
+    renderCompose({ draftId: "d1" });
+    await waitFor(() => {
+      expect(screen.getByText("bulletin.pdf")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("remove-attachment-att-1"));
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("save-draft-btn"));
+    });
+
+    expect(api.updateDraft).toHaveBeenCalledWith("college-vogt", "d1", {
+      subject: "Brouillon en cours",
+      body: "<p>Texte déjà saisi</p>",
+      recipientUserIds: ["t1"],
+      attachments: [],
+    });
+  });
+
+  it("uploade immédiatement une nouvelle pièce jointe puis l'inclut dans updateDraft", async () => {
+    api.uploadAttachment.mockResolvedValue({
+      fileName: "nouveau.pdf",
+      fileUrl: "http://10.0.2.2:9000/nouveau.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 2048,
+    });
+    mockGetDocument.mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          name: "nouveau.pdf",
+          size: 2048,
+          mimeType: "application/pdf",
+          uri: "file:///tmp/nouveau.pdf",
+        },
+      ],
+    });
+
+    renderCompose({ draftId: "d1" });
+    await waitFor(() => {
+      expect(screen.getByText("bulletin.pdf")).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("attachment-actions-btn"));
+      pressAlertAction("Insérer un fichier");
+    });
+
+    await waitFor(() => {
+      expect(api.uploadAttachment).toHaveBeenCalledWith("college-vogt", {
+        uri: "file:///tmp/nouveau.pdf",
+        mimeType: "application/pdf",
+        fileName: "nouveau.pdf",
+      });
+    });
+    await waitFor(() => {
+      expect(screen.getByText("nouveau.pdf")).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("save-draft-btn"));
+    });
+
+    const call = api.updateDraft.mock.calls.at(-1)?.[2] as {
+      attachments: Array<{ fileUrl: string }>;
+    };
+    expect(call.attachments).toHaveLength(2);
+    expect(call.attachments.map((a) => a.fileUrl)).toEqual(
+      expect.arrayContaining([
+        "http://10.0.2.2:9000/bulletin.pdf",
+        "http://10.0.2.2:9000/nouveau.pdf",
+      ]),
+    );
+  });
+
+  it("affiche une erreur et n'ajoute rien si l'upload de la pièce jointe échoue", async () => {
+    api.uploadAttachment.mockRejectedValue(new Error("UPLOAD_FAILED"));
+    mockGetDocument.mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          name: "echec.pdf",
+          size: 512,
+          mimeType: "application/pdf",
+          uri: "file:///tmp/echec.pdf",
+        },
+      ],
+    });
+
+    renderCompose({ draftId: "d1" });
+    await waitFor(() => {
+      expect(screen.getByText("bulletin.pdf")).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("attachment-actions-btn"));
+      pressAlertAction("Insérer un fichier");
+    });
+
+    await waitFor(() => {
+      expect(api.uploadAttachment).toHaveBeenCalled();
+    });
+    expect(alertSpy).toHaveBeenCalledWith(
+      "Erreur",
+      "Impossible d'ajouter cette pièce jointe. Réessayez.",
+    );
+    // Only the pre-existing attachment remains.
+    expect(screen.queryByText("echec.pdf")).toBeNull();
+    expect(screen.getByText("bulletin.pdf")).toBeTruthy();
   });
 
   it("met à jour puis envoie le brouillon quand on presse Envoyer", async () => {
@@ -1083,6 +1215,14 @@ describe("Édition d'un brouillon existant", () => {
         subject: "Brouillon en cours",
         body: "<p>Texte déjà saisi</p>",
         recipientUserIds: ["t1"],
+        attachments: [
+          {
+            fileName: "bulletin.pdf",
+            fileUrl: "http://10.0.2.2:9000/bulletin.pdf",
+            mimeType: "application/pdf",
+            sizeBytes: 1024,
+          },
+        ],
       });
     });
     expect(api.sendDraft).toHaveBeenCalledWith("college-vogt", "d1");
@@ -1278,38 +1418,6 @@ describe("Éditeur — expansion de hauteur", () => {
 // ── Image inline : affichage et édition ───────────────────────────────────────
 
 describe("Image inline — insertion avec style corrigé", () => {
-  it("insère une image depuis la caméra avec width:100%, height:auto et display:block", async () => {
-    mockLaunchCamera.mockResolvedValueOnce({
-      canceled: false,
-      assets: [
-        {
-          uri: "file:///tmp/photo.jpg",
-          mimeType: "image/jpeg",
-          fileName: "photo.jpg",
-        },
-      ],
-    });
-
-    renderCompose();
-
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("toolbar-insert-image"));
-      pressAlertAction("Appareil photo");
-    });
-
-    await waitFor(() => {
-      expect(mockEditorMethods.insertImage).toHaveBeenCalledWith(
-        "http://10.0.2.2:9000/img.jpg",
-        expect.stringContaining("height:auto"),
-      );
-    });
-
-    const style = mockEditorMethods.insertImage.mock.calls[0]?.[1] as string;
-    expect(style).toContain("width:100%");
-    expect(style).toContain("max-width:100%");
-    expect(style).toContain("display:block");
-  });
-
   it("insère une image depuis la galerie avec width:100%, height:auto et display:block", async () => {
     mockLaunchLibrary.mockResolvedValueOnce({
       canceled: false,
@@ -1326,7 +1434,6 @@ describe("Image inline — insertion avec style corrigé", () => {
 
     await act(async () => {
       fireEvent.press(screen.getByTestId("toolbar-insert-image"));
-      pressAlertAction("Galerie");
     });
 
     await waitFor(() => {

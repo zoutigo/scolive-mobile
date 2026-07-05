@@ -74,6 +74,11 @@ class RichEditor extends React.Component {
       View,
       { testID: this.props.testID ?? "rich-editor" },
       React.createElement(
+        Text,
+        { testID: "rich-editor-initial-content" },
+        this.props.initialContentHTML ?? "",
+      ),
+      React.createElement(
         TouchableOpacity,
         {
           testID: "rich-editor-set-content",
