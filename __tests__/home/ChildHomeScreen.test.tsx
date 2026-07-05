@@ -868,6 +868,19 @@ describe("ChildHomeScreen — intégration contextuelle", () => {
     expect(headerStyle.backgroundColor).toBe(colors.primary);
   });
 
+  it("le header n'est pas rendu à l'intérieur du ScrollView (pleine largeur, pas de padding hérité)", async () => {
+    render(<ChildHomeScreen />);
+    await waitFor(
+      () => expect(screen.getByTestId("child-home-header")).toBeTruthy(),
+      WAIT_OPTS,
+    );
+
+    const scrollView = screen.UNSAFE_getByType(
+      require("react-native").ScrollView,
+    );
+    expect(within(scrollView).queryByTestId("child-home-header")).toBeNull();
+  });
+
   it("recharge les données au pull-to-refresh", async () => {
     render(<ChildHomeScreen />);
     await waitForContent();

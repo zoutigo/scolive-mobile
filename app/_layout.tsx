@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 import { Stack } from "expo-router";
+import { enableFreeze } from "react-native-screens";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useAuthStore } from "../src/store/auth.store";
 import { SuccessToastHost } from "../src/components/feedback/SuccessToastHost";
@@ -16,6 +17,12 @@ import { AppUpdateModal } from "../src/components/AppUpdateModal";
 import { AppInstallGuideModal } from "../src/components/AppInstallGuideModal";
 import { useTranslation } from "../src/i18n/useTranslation";
 import { colors } from "../src/theme";
+
+// Gèle le rendu des écrans empilés hors focus (react-native-screens) : sans
+// ça, tout écran resté monté (cf. logique de pile dans AppDrawer) continue de
+// re-render et de réagir à ses effets/listeners en arrière-plan, ce qui
+// aggrave le ralentissement observé sur les longues sessions.
+enableFreeze(true);
 
 export default function RootLayout() {
   const [showInstallGuide, setShowInstallGuide] = useState(false);

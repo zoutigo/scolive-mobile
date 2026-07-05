@@ -24,7 +24,8 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.zoutigo.scoliveapp"
+      "package": "com.zoutigo.scoliveapp",
+      "permissions": ["android.permission.RECORD_AUDIO"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -38,6 +39,13 @@
           "photosPermission": "Scolive a besoin d'accéder à votre galerie pour insérer des images dans vos messages."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0c146e99-482e-4c40-b4dd-54fc760cf223"
+      }
+    },
+    "owner": "zoutigo"
   }
 }

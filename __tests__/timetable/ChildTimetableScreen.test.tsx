@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 import { ChildTimetableScreen } from "../../src/components/timetable/ChildTimetableScreen";
 import { useAuthStore } from "../../src/store/auth.store";
@@ -210,6 +211,19 @@ describe("ChildTimetableScreen", () => {
     expect(titleStyle.fontWeight).toBe("600");
     expect(titleStyle.fontSize).toBe(19);
     expect(subtitleStyle.fontSize).toBe(11);
+  });
+
+  it("le header n'est pas rendu à l'intérieur du ScrollView (pleine largeur, pas de padding hérité)", () => {
+    render(<ChildTimetableScreen />);
+
+    expect(screen.getByTestId("child-timetable-header")).toBeTruthy();
+
+    const scrollView = screen.UNSAFE_getByType(
+      require("react-native").ScrollView,
+    );
+    expect(
+      within(scrollView).queryByTestId("child-timetable-header"),
+    ).toBeNull();
   });
 
   it("revient à l'écran précédent via le bouton retour", () => {

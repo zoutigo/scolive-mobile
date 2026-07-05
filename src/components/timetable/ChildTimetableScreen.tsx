@@ -386,6 +386,17 @@ export function ChildTimetableScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.root}
     >
+      <ModuleHeader
+        title={t("timetable.classManager.defaultTitle")}
+        subtitle={subtitle}
+        onBack={() => router.push(buildChildHomeTarget(childId) as never)}
+        testID="child-timetable-header"
+        backTestID="child-timetable-back"
+        titleTestID="child-timetable-header-title"
+        subtitleTestID="child-timetable-header-subtitle"
+        topInset={insets.top}
+      />
+
       <ScrollView
         style={styles.root}
         contentContainerStyle={[
@@ -404,17 +415,6 @@ export function ChildTimetableScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <ModuleHeader
-          title={t("timetable.classManager.defaultTitle")}
-          subtitle={subtitle}
-          onBack={() => router.push(buildChildHomeTarget(childId) as never)}
-          testID="child-timetable-header"
-          backTestID="child-timetable-back"
-          titleTestID="child-timetable-header-title"
-          subtitleTestID="child-timetable-header-subtitle"
-          topInset={insets.top}
-        />
-
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
         {isLoadingMyTimetable && !myTimetable ? (

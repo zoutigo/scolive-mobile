@@ -362,6 +362,167 @@ describe("messagingApi.markRead()", () => {
   });
 });
 
+// ── updateDraft() ────────────────────────────────────────────────────────────
+
+describe("messagingApi.updateDraft()", () => {
+  it("appelle PATCH .../draft avec le payload JSON", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okJson({
+        id: "d1",
+        subject: "Objet mis à jour",
+        body: "<p>Texte</p>",
+        status: "DRAFT",
+        createdAt: "2024-01-15T10:00:00Z",
+        sentAt: null,
+        senderArchivedAt: null,
+        isSender: true,
+        recipientState: null,
+        sender: null,
+        recipients: [],
+        attachments: [],
+      }),
+    );
+    await messagingApi.updateDraft("college-vogt", "d1", {
+      subject: "Objet mis à jour",
+      body: "<p>Texte</p>",
+      recipientUserIds: ["u2"],
+    });
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/messages/d1/draft");
+    expect(options.method).toBe("PATCH");
+    expect(JSON.parse(options.body)).toEqual({
+      subject: "Objet mis à jour",
+      body: "<p>Texte</p>",
+      recipientUserIds: ["u2"],
+    });
+  });
+
+  it("propage l'erreur si la requête échoue", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      json: () => Promise.resolve({ message: "Brouillon introuvable" }),
+    });
+    await expect(
+      messagingApi.updateDraft("college-vogt", "unknown", {
+        subject: "x",
+        body: "<p>x</p>",
+        recipientUserIds: [],
+      }),
+    ).rejects.toBeTruthy();
+  });
+
+  it("inclut le champ attachments dans le corps JSON quand fourni", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okJson({
+        id: "d1",
+        subject: "Objet",
+        body: "<p>Texte</p>",
+        status: "DRAFT",
+        createdAt: "2024-01-15T10:00:00Z",
+        sentAt: null,
+        senderArchivedAt: null,
+        isSender: true,
+        recipientState: null,
+        sender: null,
+        recipients: [],
+        attachments: [],
+      }),
+    );
+    await messagingApi.updateDraft("college-vogt", "d1", {
+      subject: "Objet",
+      body: "<p>Texte</p>",
+      recipientUserIds: ["u2"],
+      attachments: [
+        {
+          fileName: "a.pdf",
+          fileUrl: "https://cdn/a.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: 100,
+        },
+      ],
+    });
+    const [, options] = mockFetch.mock.calls[0];
+    expect(JSON.parse(options.body).attachments).toEqual([
+      {
+        fileName: "a.pdf",
+        fileUrl: "https://cdn/a.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 100,
+      },
+    ]);
+  });
+
+  it("normalise les URLs localhost des attachments dans la réponse", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okJson({
+        id: "d1",
+        subject: "Objet",
+        body: "<p>Texte</p>",
+        status: "DRAFT",
+        createdAt: "2024-01-15T10:00:00Z",
+        sentAt: null,
+        senderArchivedAt: null,
+        isSender: true,
+        recipientState: null,
+        sender: null,
+        recipients: [],
+        attachments: [
+          {
+            id: "att-1",
+            fileName: "a.pdf",
+            url: "http://localhost:9000/a.pdf",
+            mimeType: "application/pdf",
+            sizeBytes: 100,
+          },
+        ],
+      }),
+    );
+    const result = await messagingApi.updateDraft("college-vogt", "d1", {
+      attachments: [],
+    });
+    expect(result.attachments[0].url).toBe("http://10.0.2.2:9000/a.pdf");
+  });
+});
+
+// ── sendDraft() ───────────────────────────────────────────────────────────────
+
+describe("messagingApi.sendDraft()", () => {
+  it("appelle POST .../send sans corps", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okJson({
+        id: "d1",
+        subject: "Objet",
+        body: "<p>Texte</p>",
+        status: "SENT",
+        createdAt: "2024-01-15T10:00:00Z",
+        sentAt: "2024-01-15T10:05:00Z",
+        senderArchivedAt: null,
+        isSender: true,
+        recipientState: null,
+        sender: null,
+        recipients: [],
+        attachments: [],
+      }),
+    );
+    await messagingApi.sendDraft("college-vogt", "d1");
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/messages/d1/send");
+    expect(options.method).toBe("POST");
+  });
+
+  it("propage l'erreur si le brouillon n'a pas de destinataire", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ message: "Destinataire requis" }),
+    });
+    await expect(
+      messagingApi.sendDraft("college-vogt", "d1"),
+    ).rejects.toBeTruthy();
+  });
+});
+
 // ── archive() ─────────────────────────────────────────────────────────────────
 
 describe("messagingApi.archive()", () => {
@@ -475,5 +636,68 @@ describe("messagingApi.uploadInlineImage()", () => {
         "doc.pdf",
       ),
     ).rejects.toThrow("Type invalide");
+  });
+});
+
+// ── uploadAttachment() ──────────────────────────────────────────────────────
+
+describe("messagingApi.uploadAttachment()", () => {
+  it("poste sur /messages/uploads/attachment avec un FormData 'file'", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okJson({
+        url: "http://localhost:9000/school-live-media/doc.pdf",
+        size: 2048,
+        width: null,
+        height: null,
+        mimeType: "application/pdf",
+      }),
+    );
+    const result = await messagingApi.uploadAttachment("college-vogt", {
+      uri: "file:///tmp/doc.pdf",
+      mimeType: "application/pdf",
+      fileName: "doc.pdf",
+    });
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/schools/college-vogt/messages/uploads/attachment");
+    expect(options.body).toBeInstanceOf(FormData);
+    expect(result).toEqual({
+      fileName: "doc.pdf",
+      fileUrl: "http://10.0.2.2:9000/school-live-media/doc.pdf",
+      mimeType: "application/pdf",
+      sizeBytes: 2048,
+    });
+  });
+
+  it("builds a clean object rather than spreading the raw media response", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okJson({
+        url: "http://localhost:9000/x.png",
+        size: 500,
+        width: 800,
+        height: 600,
+        mimeType: "image/png",
+      }),
+    );
+    const result = await messagingApi.uploadAttachment("college-vogt", {
+      uri: "file:///tmp/x.png",
+      mimeType: "image/png",
+      fileName: "x.png",
+    });
+    expect(result).not.toHaveProperty("width");
+    expect(result).not.toHaveProperty("height");
+  });
+
+  it("lance une erreur si le serveur rejette l'upload", async () => {
+    mockFetch.mockResolvedValueOnce(
+      errorResponse(413, "Fichier trop volumineux"),
+    );
+    await expect(
+      messagingApi.uploadAttachment("college-vogt", {
+        uri: "file:///tmp/huge.pdf",
+        mimeType: "application/pdf",
+        fileName: "huge.pdf",
+      }),
+    ).rejects.toThrow("Fichier trop volumineux");
   });
 });

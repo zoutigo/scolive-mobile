@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 
-export type FormHeroPalette = "teal" | "warm" | "primary";
+export type FormHeroPalette = "teal" | "warm" | "primary" | "slate";
 
 const FORM_HERO_PALETTES: Record<
   FormHeroPalette,
@@ -12,6 +12,7 @@ const FORM_HERO_PALETTES: Record<
   teal: { bg: "#247C72", dark: "#195E56" },
   warm: { bg: "#C0681A", dark: "#A05010" },
   primary: { bg: "#08467D", dark: "#052F55" },
+  slate: { bg: "#4B5F73", dark: "#37485A" },
 };
 
 export function FormHero(props: {

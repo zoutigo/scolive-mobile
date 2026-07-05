@@ -21,6 +21,14 @@ Si la branche courante n'est pas `dev`, basculer dessus avant toute modification
 Application mobile React Native (Expo) du projet Scolive.
 Repo GitHub : `git@github.com:zoutigo/scolive-mobile.git`
 
+## Notifications push (FCM / EAS)
+
+- `android/app/google-services.json` n'est **jamais committé** (dans `.gitignore`) : il est déposé localement pour les builds dev, et stocké sur le VPS de prod (`vps-ovh:/home/ubuntu/apps/scolive-mobile-secrets/google-services.json`)
+- Le workflow `.github/workflows/publish-android.yml` le récupère par `scp` avant `assembleRelease`, via les secrets GitHub `VPS_HOST` / `VPS_USER` / `VPS_SSH_KEY` (même clé que le déploiement `scolive-web`)
+- Le `projectId` EAS (`@zoutigo/scolive-app`) est dans `app.json` (`extra.eas.projectId`), et embarqué automatiquement dans l'APK au build Gradle (asset `app.config`), sans besoin d'`expo prebuild`
+- La clé de service Firebase (FCM V1) est uploadée directement dans les credentials EAS (`eas credentials -p android`) — jamais dans le repo ni sur le VPS
+- Si les notifications ne partent plus en prod, vérifier dans cet ordre : `google-services.json` présent sur le VPS → secrets GitHub valides → clé de service FCM V1 toujours assignée dans `eas credentials -p android` → logs `[push]` dans `src/notifications/push-registration.ts` (avertissements non silencieux en cas d'échec de résolution du token)
+
 ## Structure du monorepo
 
 ```
@@ -42,6 +50,7 @@ Repo GitHub : `git@github.com:zoutigo/scolive-mobile.git`
 - Tout `POST` utilise le toast global centré pour ses retours `success/error`, affiché 7 secondes et fermable manuellement à tout moment
 - **Arrondis** : ne jamais utiliser de pills très arrondis (`borderRadius` élevé type 50/999). Préférer un arrondi très faible (ex. `borderRadius: 4` ou `6` au maximum).
 - **Formulaires — screen vs modale** : toujours créer les formulaires dans un écran dédié (screen), pas dans une modale. Raison : quand le clavier s'ouvre dans une modale, il peut masquer la totalité du formulaire sans recours. Dans un screen avec `adjustPan`, le champ actif reste toujours visible.
+- **Grandes pages — écran natif du routeur, jamais une modale native** : toute page de taille conséquente (liste, formulaire complet, détail, écran métier) doit être une route native gérée par `expo-router` (fichier dans `app/`), jamais une modale native (`<Modal>`, présentation modale du navigateur natif). Les modales natives sont réservées aux éléments ponctuels et courts (confirmation, sélecteur, action rapide).
 
 ## Internationalisation (i18n) — règle obligatoire
 

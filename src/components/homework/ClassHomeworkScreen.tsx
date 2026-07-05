@@ -10,7 +10,6 @@ import {
   Image,
   KeyboardAvoidingView,
   Linking,
-  Modal,
   Platform,
   RefreshControl,
   ScrollView,
@@ -1007,6 +1006,7 @@ export function ClassHomeworkScreen({
     useState<HomeworkFormContext | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<HomeworkRow | null>(null);
   const [controlTargetId, setControlTargetId] = useState<string | null>(null);
+  const [studentsExpanded, setStudentsExpanded] = useState(false);
   const [listVisibleCount, setListVisibleCount] = useState(
     HOMEWORK_LIST_PAGE_SIZE,
   );
@@ -1299,8 +1299,10 @@ export function ClassHomeworkScreen({
 
   async function openDetail(item: HomeworkRow) {
     if (!schoolSlug) return;
+    setControlTargetId(null);
     setSelectedHomeworkId(item.id);
     setDetailVisible(true);
+    setStudentsExpanded(false);
     resetCommentForm({ body: "" });
     try {
       await loadHomeworkDetail(
@@ -1375,6 +1377,7 @@ export function ClassHomeworkScreen({
 
   function openControlModal(item: HomeworkRow) {
     void ensureHomeworkDetail(item.id).catch(() => {});
+    setDetailVisible(false);
     setControlTargetId(item.id);
   }
 
@@ -1637,6 +1640,397 @@ export function ClassHomeworkScreen({
       t,
     ],
   );
+
+  if (controlTargetId) {
+    return (
+      <View style={styles.root} testID="class-homework-control-screen">
+        <ModuleHeader
+          title={t("homework.control.title")}
+          subtitle={controlTargetDetail?.title ?? subtitle}
+          onBack={() => setControlTargetId(null)}
+          testID="homework-control-header"
+          backTestID="homework-control-close"
+          titleTestID="homework-control-header-title"
+          subtitleTestID="homework-control-header-subtitle"
+          topInset={insets.top}
+        />
+
+        <ScrollView
+          style={styles.modalRoot}
+          contentContainerStyle={[
+            styles.modalContent,
+            { paddingBottom: insets.bottom + BOTTOM_TAB_BAR_HEIGHT + 24 },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          <FormHero
+            icon="people-outline"
+            title={t("homework.control.doneStudentsTitle")}
+            subtitle={
+              controlTargetDetail?.summary
+                ? `${controlTargetDetail.summary.doneStudents}/${controlTargetDetail.summary.totalStudents} ${t("homework.control.summarySuffix")}`
+                : undefined
+            }
+            palette="slate"
+            testID="homework-control-hero"
+          />
+
+          {isLoadingDetail && !controlTargetDetail ? (
+            <LoadingBlock label={t("homework.loading.control")} />
+          ) : controlTargetDetail ? (
+            <SectionCard>
+              {controlTargetDetail.completionStatuses.filter((status) =>
+                Boolean(status.doneAt),
+              ).length > 0 ? (
+                controlTargetDetail.completionStatuses
+                  .filter((status) => Boolean(status.doneAt))
+                  .map((status) => (
+                    <View
+                      key={status.studentId}
+                      style={styles.studentStatusRow}
+                    >
+                      <View>
+                        <Text style={styles.studentStatusName}>
+                          {status.lastName} {status.firstName}
+                        </Text>
+                        <Text style={styles.studentStatusMeta}>
+                          {t("homework.card.doneOnPrefix")}
+                          {formatHomeworkDateTime(status.doneAt!)}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.studentStatusPill,
+                          styles.studentStatusPillDone,
+                        ]}
+                      >
+                        <Text style={styles.studentStatusPillText}>
+                          {t("homework.status.done")}
+                        </Text>
+                      </View>
+                    </View>
+                  ))
+              ) : (
+                <Text style={styles.helperText}>
+                  {t("homework.control.noStudentDone")}
+                </Text>
+              )}
+            </SectionCard>
+          ) : (
+            <EmptyState
+              icon="people-outline"
+              title={t("homework.control.unavailableTitle")}
+              message={t("homework.control.unavailableMessage")}
+            />
+          )}
+        </ScrollView>
+      </View>
+    );
+  }
+
+  if (detailVisible) {
+    return (
+      <View style={styles.root} testID="class-homework-detail-screen">
+        <ModuleHeader
+          title={t("homework.detail.title")}
+          subtitle={
+            selectedDetail?.subject.name ??
+            selectedRow?.subject.name ??
+            subtitle
+          }
+          onBack={() => setDetailVisible(false)}
+          testID="homework-detail-header"
+          backTestID="homework-detail-close"
+          titleTestID="homework-detail-header-title"
+          subtitleTestID="homework-detail-header-subtitle"
+          topInset={insets.top}
+          backgroundColor={colors.primary}
+        />
+
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={styles.modalRoot}
+        >
+          <ScrollView
+            style={styles.modalRoot}
+            contentContainerStyle={[
+              styles.modalContent,
+              { paddingBottom: insets.bottom + BOTTOM_TAB_BAR_HEIGHT + 24 },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {isLoadingDetail && !selectedDetail ? (
+              <LoadingBlock label={t("homework.loading.detail")} />
+            ) : selectedDetail ? (
+              <>
+                <View style={styles.detailHero}>
+                  <Text style={styles.detailSubject}>
+                    {selectedDetail.subject.name}
+                  </Text>
+                  <Text style={styles.detailTitle}>{selectedDetail.title}</Text>
+                  <Text style={styles.detailMeta}>
+                    {t("homework.detail.duePrefix")}
+                    {formatHomeworkDateTime(selectedDetail.expectedAt)}
+                  </Text>
+                  <Text style={styles.detailMeta}>
+                    {t("homework.detail.authorPrefix")}
+                    {selectedDetail.authorDisplayName}
+                  </Text>
+                </View>
+
+                {!canManageAll ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.primaryButton,
+                      isHomeworkDone(selectedDetail)
+                        ? styles.secondarySuccessButton
+                        : null,
+                    ]}
+                    onPress={() => void handleToggleDone(selectedDetail)}
+                    testID="class-homework-toggle-done"
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {isHomeworkDone(selectedDetail)
+                        ? t("homework.detail.markUndone")
+                        : t("homework.detail.markDone")}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+
+                <SectionCard title={t("homework.detail.instructionsTitle")}>
+                  <Text style={styles.detailBodyText}>
+                    {htmlToText(selectedDetail.contentHtml ?? "") ||
+                      t("homework.detail.noInstructions")}
+                  </Text>
+                  {extractImageUrls(selectedDetail.contentHtml ?? "").length >
+                  0 ? (
+                    <View
+                      style={[
+                        styles.inlineImages,
+                        htmlToText(selectedDetail.contentHtml ?? "") && {
+                          marginTop: 12,
+                        },
+                      ]}
+                    >
+                      {extractImageUrls(selectedDetail.contentHtml ?? "").map(
+                        (url, idx) => (
+                          <Image
+                            key={`${url}-${idx}`}
+                            source={{ uri: url }}
+                            style={styles.inlineImage}
+                            resizeMode="contain"
+                            testID={`class-homework-detail-inline-image-${idx}`}
+                          />
+                        ),
+                      )}
+                    </View>
+                  ) : null}
+                </SectionCard>
+
+                <SectionCard title={t("homework.detail.attachmentsTitle")}>
+                  {selectedDetail.attachments.length === 0 ? (
+                    <Text style={styles.helperText}>
+                      {t("homework.detail.noAttachments")}
+                    </Text>
+                  ) : (
+                    selectedDetail.attachments.map((attachment, index) => (
+                      <TouchableOpacity
+                        key={`${attachment.fileName}-${index}`}
+                        style={styles.attachmentRow}
+                        onPress={() => void openAttachment(attachment)}
+                        testID={`class-homework-detail-attachment-${index}`}
+                      >
+                        <View style={styles.attachmentMetaWrap}>
+                          <Text style={styles.attachmentName}>
+                            {attachment.fileName}
+                          </Text>
+                          <Text style={styles.attachmentMeta}>
+                            {attachment.mimeType ?? "application/octet-stream"}
+                            {attachment.sizeLabel
+                              ? ` · ${attachment.sizeLabel}`
+                              : ""}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name="download-outline"
+                          size={18}
+                          color={colors.primary}
+                        />
+                      </TouchableOpacity>
+                    ))
+                  )}
+                </SectionCard>
+
+                {canManageAll ? (
+                  <View style={styles.studentsToggleCard}>
+                    <TouchableOpacity
+                      style={styles.studentsToggleButton}
+                      onPress={() => setStudentsExpanded((v) => !v)}
+                      accessibilityRole="button"
+                      testID="class-homework-detail-students-toggle"
+                    >
+                      <View style={styles.studentsToggleTextWrap}>
+                        <Text style={styles.studentsToggleTitle}>
+                          {t("homework.detail.studentsTitle")}
+                        </Text>
+                        {selectedDetail.summary ? (
+                          <Text style={styles.studentsToggleSubtitle}>
+                            {`${selectedDetail.summary.doneStudents}/${selectedDetail.summary.totalStudents} ${t("homework.detail.summarySuffix")}`}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Ionicons
+                        name={studentsExpanded ? "chevron-up" : "chevron-down"}
+                        size={20}
+                        color={colors.primary}
+                      />
+                    </TouchableOpacity>
+
+                    {studentsExpanded ? (
+                      <View style={styles.studentsToggleList}>
+                        {selectedDetail.completionStatuses.length === 0 ? (
+                          <Text style={styles.helperText}>
+                            {t("homework.detail.noStudentData")}
+                          </Text>
+                        ) : (
+                          selectedDetail.completionStatuses.map((status) => {
+                            const done = Boolean(status.doneAt);
+                            return (
+                              <View
+                                key={status.studentId}
+                                style={styles.studentStatusRow}
+                              >
+                                <View>
+                                  <Text style={styles.studentStatusName}>
+                                    {status.lastName} {status.firstName}
+                                  </Text>
+                                  <Text style={styles.studentStatusMeta}>
+                                    {done
+                                      ? `${t("homework.card.doneOnPrefix")}${formatHomeworkDateTime(status.doneAt!)}`
+                                      : t("homework.status.notDone")}
+                                  </Text>
+                                </View>
+                                <View
+                                  style={[
+                                    styles.studentStatusPill,
+                                    done
+                                      ? styles.studentStatusPillDone
+                                      : styles.studentStatusPillPending,
+                                  ]}
+                                >
+                                  <Text style={styles.studentStatusPillText}>
+                                    {done
+                                      ? t("homework.status.done")
+                                      : t("homework.status.pending")}
+                                  </Text>
+                                </View>
+                              </View>
+                            );
+                          })
+                        )}
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
+
+                <SectionCard title={t("homework.detail.commentsTitle")}>
+                  {selectedDetail.comments.length === 0 ? (
+                    <Text style={styles.helperText}>
+                      {t("homework.comment.empty")}
+                    </Text>
+                  ) : (
+                    selectedDetail.comments.map((comment) => (
+                      <View key={comment.id} style={styles.commentCard}>
+                        <Text style={styles.commentAuthor}>
+                          {comment.authorDisplayName}
+                        </Text>
+                        <Text style={styles.commentBody}>{comment.body}</Text>
+                        <Text style={styles.commentMeta}>
+                          {formatHomeworkDateTime(comment.createdAt)}
+                        </Text>
+                      </View>
+                    ))
+                  )}
+
+                  <View style={styles.commentComposer}>
+                    <Controller
+                      control={commentControl}
+                      name="body"
+                      render={({ field: { value, onChange } }) => (
+                        <TextInput
+                          value={value}
+                          onChangeText={onChange}
+                          placeholder={t("homework.comment.placeholder")}
+                          placeholderTextColor={colors.textSecondary}
+                          style={styles.commentInput}
+                          multiline
+                          testID="class-homework-comment-input"
+                        />
+                      )}
+                    />
+                    <TouchableOpacity
+                      style={styles.commentSubmit}
+                      onPress={() => void handleAddComment()}
+                      testID="class-homework-comment-submit"
+                    >
+                      <Ionicons name="send" size={16} color={colors.white} />
+                    </TouchableOpacity>
+                  </View>
+                  {commentErrors.body?.message ? (
+                    <Text style={styles.fieldError}>
+                      {commentErrors.body.message}
+                    </Text>
+                  ) : null}
+                </SectionCard>
+
+                {canEditSelected ? (
+                  <View style={styles.detailActionsRow}>
+                    <TouchableOpacity
+                      style={styles.secondaryButton}
+                      onPress={() => selectedRow && openEditForm(selectedRow)}
+                      testID="class-homework-detail-edit"
+                    >
+                      <Text style={styles.secondaryButtonText}>
+                        {t("homework.card.edit")}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.dangerButton}
+                      onPress={() =>
+                        selectedRow && setDeleteTarget(selectedRow)
+                      }
+                      testID="class-homework-detail-delete"
+                    >
+                      <Text style={styles.dangerButtonText}>
+                        {t("homework.card.delete")}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+              </>
+            ) : (
+              <EmptyState
+                icon="document-text-outline"
+                title={t("homework.detail.notFoundTitle")}
+                message={t("homework.detail.notFoundMessage")}
+              />
+            )}
+          </ScrollView>
+        </KeyboardAvoidingView>
+
+        <ConfirmDialog
+          visible={!!deleteTarget}
+          title={t("homework.dialog.deleteTitle")}
+          message={t("homework.dialog.deleteMessage")}
+          confirmLabel={t("homework.card.delete")}
+          cancelLabel={t("homework.common.cancel")}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => void handleDeleteHomework()}
+        />
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -1914,358 +2308,6 @@ export function ClassHomeworkScreen({
           <Ionicons name="add" size={28} color={colors.white} />
         </TouchableOpacity>
       ) : null}
-
-      <Modal
-        visible={!!controlTargetId}
-        animationType="slide"
-        onRequestClose={() => setControlTargetId(null)}
-      >
-        <View style={styles.modalRoot}>
-          <ScrollView
-            style={styles.modalRoot}
-            contentContainerStyle={styles.modalContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <ModuleHeader
-              title={t("homework.control.title")}
-              subtitle={controlTargetDetail?.title ?? subtitle}
-              onBack={() => setControlTargetId(null)}
-              testID="homework-control-header"
-              backTestID="homework-control-close"
-              titleTestID="homework-control-header-title"
-              subtitleTestID="homework-control-header-subtitle"
-              topInset={0}
-            />
-
-            {isLoadingDetail && !controlTargetDetail ? (
-              <LoadingBlock label={t("homework.loading.control")} />
-            ) : controlTargetDetail ? (
-              <SectionCard
-                title={t("homework.control.doneStudentsTitle")}
-                subtitle={
-                  controlTargetDetail.summary
-                    ? `${controlTargetDetail.summary.doneStudents}/${controlTargetDetail.summary.totalStudents} ${t("homework.control.summarySuffix")}`
-                    : undefined
-                }
-              >
-                {controlTargetDetail.completionStatuses.filter((status) =>
-                  Boolean(status.doneAt),
-                ).length > 0 ? (
-                  controlTargetDetail.completionStatuses
-                    .filter((status) => Boolean(status.doneAt))
-                    .map((status) => (
-                      <View
-                        key={status.studentId}
-                        style={styles.studentStatusRow}
-                      >
-                        <View>
-                          <Text style={styles.studentStatusName}>
-                            {status.lastName} {status.firstName}
-                          </Text>
-                          <Text style={styles.studentStatusMeta}>
-                            {t("homework.card.doneOnPrefix")}
-                            {formatHomeworkDateTime(status.doneAt!)}
-                          </Text>
-                        </View>
-                        <View
-                          style={[
-                            styles.studentStatusPill,
-                            styles.studentStatusPillDone,
-                          ]}
-                        >
-                          <Text style={styles.studentStatusPillText}>
-                            {t("homework.status.done")}
-                          </Text>
-                        </View>
-                      </View>
-                    ))
-                ) : (
-                  <Text style={styles.helperText}>
-                    {t("homework.control.noStudentDone")}
-                  </Text>
-                )}
-              </SectionCard>
-            ) : (
-              <EmptyState
-                icon="people-outline"
-                title={t("homework.control.unavailableTitle")}
-                message={t("homework.control.unavailableMessage")}
-              />
-            )}
-          </ScrollView>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={detailVisible}
-        animationType="slide"
-        onRequestClose={() => setDetailVisible(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.modalRoot}
-        >
-          <ScrollView
-            style={styles.modalRoot}
-            contentContainerStyle={styles.modalContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <ModuleHeader
-              title={t("homework.detail.title")}
-              subtitle={
-                selectedDetail?.subject.name ??
-                selectedRow?.subject.name ??
-                subtitle
-              }
-              onBack={() => setDetailVisible(false)}
-              testID="homework-detail-header"
-              backTestID="homework-detail-close"
-              titleTestID="homework-detail-header-title"
-              subtitleTestID="homework-detail-header-subtitle"
-              topInset={insets.top}
-              backgroundColor={colors.primary}
-            />
-
-            {isLoadingDetail && !selectedDetail ? (
-              <LoadingBlock label={t("homework.loading.detail")} />
-            ) : selectedDetail ? (
-              <>
-                <View style={styles.detailHero}>
-                  <Text style={styles.detailSubject}>
-                    {selectedDetail.subject.name}
-                  </Text>
-                  <Text style={styles.detailTitle}>{selectedDetail.title}</Text>
-                  <Text style={styles.detailMeta}>
-                    {t("homework.detail.duePrefix")}
-                    {formatHomeworkDateTime(selectedDetail.expectedAt)}
-                  </Text>
-                  <Text style={styles.detailMeta}>
-                    {t("homework.detail.authorPrefix")}
-                    {selectedDetail.authorDisplayName}
-                  </Text>
-                </View>
-
-                {!canManageAll ? (
-                  <TouchableOpacity
-                    style={[
-                      styles.primaryButton,
-                      isHomeworkDone(selectedDetail)
-                        ? styles.secondarySuccessButton
-                        : null,
-                    ]}
-                    onPress={() => void handleToggleDone(selectedDetail)}
-                    testID="class-homework-toggle-done"
-                  >
-                    <Text style={styles.primaryButtonText}>
-                      {isHomeworkDone(selectedDetail)
-                        ? t("homework.detail.markUndone")
-                        : t("homework.detail.markDone")}
-                    </Text>
-                  </TouchableOpacity>
-                ) : null}
-
-                <SectionCard title={t("homework.detail.instructionsTitle")}>
-                  <Text style={styles.detailBodyText}>
-                    {htmlToText(selectedDetail.contentHtml ?? "") ||
-                      t("homework.detail.noInstructions")}
-                  </Text>
-                  {extractImageUrls(selectedDetail.contentHtml ?? "").length >
-                  0 ? (
-                    <View
-                      style={[
-                        styles.inlineImages,
-                        htmlToText(selectedDetail.contentHtml ?? "") && {
-                          marginTop: 12,
-                        },
-                      ]}
-                    >
-                      {extractImageUrls(selectedDetail.contentHtml ?? "").map(
-                        (url, idx) => (
-                          <Image
-                            key={`${url}-${idx}`}
-                            source={{ uri: url }}
-                            style={styles.inlineImage}
-                            resizeMode="contain"
-                            testID={`class-homework-detail-inline-image-${idx}`}
-                          />
-                        ),
-                      )}
-                    </View>
-                  ) : null}
-                </SectionCard>
-
-                <SectionCard title={t("homework.detail.attachmentsTitle")}>
-                  {selectedDetail.attachments.length === 0 ? (
-                    <Text style={styles.helperText}>
-                      {t("homework.detail.noAttachments")}
-                    </Text>
-                  ) : (
-                    selectedDetail.attachments.map((attachment, index) => (
-                      <TouchableOpacity
-                        key={`${attachment.fileName}-${index}`}
-                        style={styles.attachmentRow}
-                        onPress={() => void openAttachment(attachment)}
-                        testID={`class-homework-detail-attachment-${index}`}
-                      >
-                        <View style={styles.attachmentMetaWrap}>
-                          <Text style={styles.attachmentName}>
-                            {attachment.fileName}
-                          </Text>
-                          <Text style={styles.attachmentMeta}>
-                            {attachment.mimeType ?? "application/octet-stream"}
-                            {attachment.sizeLabel
-                              ? ` · ${attachment.sizeLabel}`
-                              : ""}
-                          </Text>
-                        </View>
-                        <Ionicons
-                          name="download-outline"
-                          size={18}
-                          color={colors.primary}
-                        />
-                      </TouchableOpacity>
-                    ))
-                  )}
-                </SectionCard>
-
-                {canManageAll ? (
-                  <SectionCard
-                    title={t("homework.detail.studentsTitle")}
-                    subtitle={
-                      selectedDetail.summary
-                        ? `${selectedDetail.summary.doneStudents}/${selectedDetail.summary.totalStudents} ${t("homework.detail.summarySuffix")}`
-                        : undefined
-                    }
-                  >
-                    {selectedDetail.completionStatuses.length === 0 ? (
-                      <Text style={styles.helperText}>
-                        {t("homework.detail.noStudentData")}
-                      </Text>
-                    ) : (
-                      selectedDetail.completionStatuses.map((status) => {
-                        const done = Boolean(status.doneAt);
-                        return (
-                          <View
-                            key={status.studentId}
-                            style={styles.studentStatusRow}
-                          >
-                            <View>
-                              <Text style={styles.studentStatusName}>
-                                {status.lastName} {status.firstName}
-                              </Text>
-                              <Text style={styles.studentStatusMeta}>
-                                {done
-                                  ? `${t("homework.card.doneOnPrefix")}${formatHomeworkDateTime(status.doneAt!)}`
-                                  : t("homework.status.notDone")}
-                              </Text>
-                            </View>
-                            <View
-                              style={[
-                                styles.studentStatusPill,
-                                done
-                                  ? styles.studentStatusPillDone
-                                  : styles.studentStatusPillPending,
-                              ]}
-                            >
-                              <Text style={styles.studentStatusPillText}>
-                                {done
-                                  ? t("homework.status.done")
-                                  : t("homework.status.pending")}
-                              </Text>
-                            </View>
-                          </View>
-                        );
-                      })
-                    )}
-                  </SectionCard>
-                ) : null}
-
-                <SectionCard title={t("homework.detail.commentsTitle")}>
-                  {selectedDetail.comments.length === 0 ? (
-                    <Text style={styles.helperText}>
-                      {t("homework.comment.empty")}
-                    </Text>
-                  ) : (
-                    selectedDetail.comments.map((comment) => (
-                      <View key={comment.id} style={styles.commentCard}>
-                        <Text style={styles.commentAuthor}>
-                          {comment.authorDisplayName}
-                        </Text>
-                        <Text style={styles.commentBody}>{comment.body}</Text>
-                        <Text style={styles.commentMeta}>
-                          {formatHomeworkDateTime(comment.createdAt)}
-                        </Text>
-                      </View>
-                    ))
-                  )}
-
-                  <View style={styles.commentComposer}>
-                    <Controller
-                      control={commentControl}
-                      name="body"
-                      render={({ field: { value, onChange } }) => (
-                        <TextInput
-                          value={value}
-                          onChangeText={onChange}
-                          placeholder={t("homework.comment.placeholder")}
-                          placeholderTextColor={colors.textSecondary}
-                          style={styles.commentInput}
-                          multiline
-                          testID="class-homework-comment-input"
-                        />
-                      )}
-                    />
-                    <TouchableOpacity
-                      style={styles.commentSubmit}
-                      onPress={() => void handleAddComment()}
-                      testID="class-homework-comment-submit"
-                    >
-                      <Ionicons name="send" size={16} color={colors.white} />
-                    </TouchableOpacity>
-                  </View>
-                  {commentErrors.body?.message ? (
-                    <Text style={styles.fieldError}>
-                      {commentErrors.body.message}
-                    </Text>
-                  ) : null}
-                </SectionCard>
-
-                {canEditSelected ? (
-                  <View style={styles.detailActionsRow}>
-                    <TouchableOpacity
-                      style={styles.secondaryButton}
-                      onPress={() => selectedRow && openEditForm(selectedRow)}
-                      testID="class-homework-detail-edit"
-                    >
-                      <Text style={styles.secondaryButtonText}>
-                        {t("homework.card.edit")}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.dangerButton}
-                      onPress={() =>
-                        selectedRow && setDeleteTarget(selectedRow)
-                      }
-                      testID="class-homework-detail-delete"
-                    >
-                      <Text style={styles.dangerButtonText}>
-                        {t("homework.card.delete")}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : null}
-              </>
-            ) : (
-              <EmptyState
-                icon="document-text-outline"
-                title={t("homework.detail.notFoundTitle")}
-                message={t("homework.detail.notFoundMessage")}
-              />
-            )}
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </Modal>
 
       <ConfirmDialog
         visible={!!deleteTarget}
@@ -2737,6 +2779,41 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "800",
     color: colors.white,
+  },
+  studentsToggleCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  studentsToggleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    padding: 16,
+  },
+  studentsToggleTextWrap: {
+    flex: 1,
+    gap: 4,
+  },
+  studentsToggleTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  studentsToggleSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textSecondary,
+  },
+  studentsToggleList: {
+    borderTopWidth: 1,
+    borderTopColor: colors.warmBorder,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 4,
   },
   commentCard: {
     borderRadius: 12,

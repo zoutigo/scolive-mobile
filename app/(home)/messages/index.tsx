@@ -92,6 +92,13 @@ function MessagesScreenContent() {
   }
 
   function handlePress(item: MessageListItem) {
+    if (item.status === "DRAFT") {
+      router.push({
+        pathname: "/(home)/messages/compose",
+        params: { draftId: item.id },
+      });
+      return;
+    }
     router.push({
       pathname: "/(home)/messages/[messageId]",
       params: { messageId: item.id },
@@ -260,18 +267,20 @@ function MessagesScreenContent() {
         />
       )}
 
-      {/* FAB Compose */}
-      <TouchableOpacity
-        style={[
-          styles.fab,
-          { bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT },
-        ]}
-        onPress={handleCompose}
-        activeOpacity={0.85}
-        testID="compose-fab"
-      >
-        <Ionicons name="create-outline" size={26} color={colors.white} />
-      </TouchableOpacity>
+      {/* FAB Compose — visible uniquement sur l'onglet Boîte de réception */}
+      {folder === "inbox" ? (
+        <TouchableOpacity
+          style={[
+            styles.fab,
+            { bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT },
+          ]}
+          onPress={handleCompose}
+          activeOpacity={0.85}
+          testID="compose-fab"
+        >
+          <Ionicons name="add" size={28} color={colors.white} />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
@@ -366,7 +375,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.warmAccent,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
     elevation: 6,

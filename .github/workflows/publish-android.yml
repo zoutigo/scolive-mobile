@@ -52,6 +52,26 @@ jobs:
 
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/scolive-release.keystore"
 
+      - name: Fetch google-services.json from VPS
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          if [ -z "$VPS_SSH_KEY" ] || [ -z "$VPS_HOST" ] || [ -z "$VPS_USER" ]; then
+            echo "VPS_SSH_KEY/VPS_HOST/VPS_USER secrets are missing" >&2
+            exit 1
+          fi
+
+          install -m 600 /dev/null "$RUNNER_TEMP/vps_ssh_key"
+          echo "$VPS_SSH_KEY" > "$RUNNER_TEMP/vps_ssh_key"
+
+          scp -i "$RUNNER_TEMP/vps_ssh_key" -o StrictHostKeyChecking=accept-new \
+            "${VPS_USER}@${VPS_HOST}:/home/ubuntu/apps/scolive-mobile-secrets/google-services.json" \
+            android/app/google-services.json
+
+          rm -f "$RUNNER_TEMP/vps_ssh_key"
+
       - name: Resolve Android build version
         id: version
         run: |

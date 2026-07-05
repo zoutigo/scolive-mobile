@@ -225,10 +225,18 @@ export function AppDrawer({
     const isOnHome = activeSection === "home";
     const isSameSection = activeSection === targetSection;
     // Depuis l'accueil ou au sein du même module → push (on empile, le retour revient à l'onglet précédent).
-    // Changement de module (cross-section) → replace (on remplace sans empiler l'ancien module).
+    // Changement de module (cross-section) → on vide d'abord toute la pile
+    // (dismissAll) avant de naviguer : un simple `replace` ne remplaçait que le
+    // sommet de la pile et laissait les écrans du module précédent montés en
+    // mémoire indéfiniment (WebView, listeners AppState, etc. jamais libérés),
+    // ce qui provoquait un ralentissement croissant de l'app sur les longues
+    // sessions.
     const shouldPush = isOnHome || isSameSection;
 
     setTimeout(() => {
+      if (!shouldPush && router.canDismiss()) {
+        router.dismissAll();
+      }
       if (item.params) {
         if (shouldPush) {
           router.push({ pathname: item.route as never, params: item.params });

@@ -192,6 +192,17 @@ export function SchoolAdminUsersScreen() {
     </View>
   );
 
+  if (selectedUser) {
+    return (
+      <UserDetailModal
+        user={selectedUser}
+        schoolSlug={schoolSlug ?? ""}
+        onClose={() => setSelectedUser(null)}
+        testID="users-detail-modal"
+      />
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.root}
@@ -292,14 +303,6 @@ export function SchoolAdminUsersScreen() {
           testID="users-list"
         />
       )}
-
-      {/* Detail modal */}
-      <UserDetailModal
-        user={selectedUser}
-        schoolSlug={schoolSlug ?? ""}
-        onClose={() => setSelectedUser(null)}
-        testID="users-detail-modal"
-      />
     </KeyboardAvoidingView>
   );
 }

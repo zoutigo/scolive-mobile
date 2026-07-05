@@ -35,10 +35,16 @@ jest.mock("expo-application", () => ({
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
+const mockDismissAll = jest.fn();
 let mockPathname = "/";
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+  useRouter: () => ({
+    push: mockPush,
+    replace: mockReplace,
+    dismissAll: mockDismissAll,
+    canDismiss: () => true,
+  }),
   usePathname: () => mockPathname,
 }));
 
@@ -157,6 +163,7 @@ describe("Flux enseignant — anti-empilement cross-module", () => {
     fireEvent.press(screen.getByTestId("nav-item-teacher-class-class-a-feed"));
     act(() => jest.runAllTimers());
 
+    expect(mockDismissAll).toHaveBeenCalled();
     expect(mockReplace).toHaveBeenCalledWith({
       pathname: "/(home)/classes/[classId]/feed",
       params: { classId: "class-a" },
@@ -176,6 +183,7 @@ describe("Flux enseignant — anti-empilement cross-module", () => {
       params: { classId: "class-a" },
     });
     expect(mockReplace).not.toHaveBeenCalled();
+    expect(mockDismissAll).not.toHaveBeenCalled();
   });
 
   it("depuis la classe A, retour vers le menu général utilise replace", () => {
@@ -185,6 +193,7 @@ describe("Flux enseignant — anti-empilement cross-module", () => {
     fireEvent.press(screen.getByTestId("nav-item-timetable"));
     act(() => jest.runAllTimers());
 
+    expect(mockDismissAll).toHaveBeenCalled();
     expect(mockReplace).toHaveBeenCalledWith("/timetable");
     expect(mockPush).not.toHaveBeenCalled();
   });
@@ -205,6 +214,7 @@ describe("Flux enseignant depuis l'accueil", () => {
       params: { classId: "class-a" },
     });
     expect(mockReplace).not.toHaveBeenCalled();
+    expect(mockDismissAll).not.toHaveBeenCalled();
   });
 });
 
@@ -219,6 +229,7 @@ describe("Flux enseignant — navigation entre deux classes", () => {
     fireEvent.press(screen.getByTestId("nav-item-teacher-class-class-b-feed"));
     act(() => jest.runAllTimers());
 
+    expect(mockDismissAll).toHaveBeenCalled();
     expect(mockReplace).toHaveBeenCalledWith({
       pathname: "/(home)/classes/[classId]/feed",
       params: { classId: "class-b" },
@@ -239,6 +250,7 @@ describe("Flux parent — anti-empilement cross-section", () => {
     fireEvent.press(screen.getByTestId("nav-item-messages"));
     act(() => jest.runAllTimers());
 
+    expect(mockDismissAll).toHaveBeenCalled();
     expect(mockReplace).toHaveBeenCalledWith("/messages");
     expect(mockPush).not.toHaveBeenCalled();
   });
@@ -253,6 +265,7 @@ describe("Flux parent — anti-empilement cross-section", () => {
     fireEvent.press(screen.getByTestId("nav-item-child-c1-class-life"));
     act(() => jest.runAllTimers());
 
+    expect(mockDismissAll).toHaveBeenCalled();
     expect(mockReplace).toHaveBeenCalledWith({
       pathname: "/(home)/children/[childId]/vie-de-classe",
       params: { childId: "c1" },
@@ -272,6 +285,7 @@ describe("Flux parent — anti-empilement cross-section", () => {
       params: { childId: "c1" },
     });
     expect(mockReplace).not.toHaveBeenCalled();
+    expect(mockDismissAll).not.toHaveBeenCalled();
   });
 
   it("depuis enfant C1 vers enfant C2 → replace (sections différentes)", () => {
@@ -283,6 +297,7 @@ describe("Flux parent — anti-empilement cross-section", () => {
     fireEvent.press(screen.getByTestId("nav-item-child-c2-grades"));
     act(() => jest.runAllTimers());
 
+    expect(mockDismissAll).toHaveBeenCalled();
     expect(mockReplace).toHaveBeenCalledWith({
       pathname: "/(home)/notes/child/[childId]",
       params: { childId: "c2" },
@@ -303,6 +318,7 @@ describe("Flux parent — anti-empilement cross-section", () => {
       params: { childId: "c1" },
     });
     expect(mockReplace).not.toHaveBeenCalled();
+    expect(mockDismissAll).not.toHaveBeenCalled();
   });
 });
 
@@ -317,6 +333,7 @@ describe("Stratégie navigation — cas limites", () => {
 
     expect(mockPush).toHaveBeenCalled();
     expect(mockReplace).not.toHaveBeenCalled();
+    expect(mockDismissAll).not.toHaveBeenCalled();
   });
 
   it("route inconnue (pas dans les sections) traitée comme générale → replace si classe active", () => {
@@ -328,6 +345,7 @@ describe("Stratégie navigation — cas limites", () => {
     fireEvent.press(screen.getByTestId("nav-item-teacher-class-class-a-notes"));
     act(() => jest.runAllTimers());
 
+    expect(mockDismissAll).toHaveBeenCalled();
     expect(mockReplace).toHaveBeenCalledWith({
       pathname: "/(home)/classes/[classId]/notes",
       params: { classId: "class-a" },
@@ -335,8 +353,10 @@ describe("Stratégie navigation — cas limites", () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
-  it("plusieurs navigations cross-module successives : chaque fois replace", () => {
-    // module 1 → module 2 → module 3 : chaque transition utilise replace
+  it("plusieurs navigations cross-module successives : chaque fois replace, précédée d'un dismissAll", () => {
+    // module 1 → module 2 → module 3 : chaque transition vide d'abord la
+    // pile (dismissAll) avant de remplacer, pour ne jamais laisser d'écrans
+    // du module précédent montés en mémoire.
     mockPathname = "/feed";
     renderTeacherDrawer();
 
@@ -344,6 +364,7 @@ describe("Stratégie navigation — cas limites", () => {
     fireEvent.press(screen.getByTestId("nav-item-teacher-class-class-a-feed"));
     act(() => jest.runAllTimers());
 
+    expect(mockDismissAll).toHaveBeenCalledTimes(1);
     expect(mockReplace).toHaveBeenCalledTimes(1);
     expect(mockPush).not.toHaveBeenCalled();
   });

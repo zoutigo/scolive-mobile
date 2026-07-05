@@ -279,6 +279,17 @@ export function ChildHomeScreen() {
 
   return (
     <View style={styles.root}>
+      <ModuleHeader
+        title="Accueil enfant"
+        subtitle={subtitle}
+        onBack={() => router.push("/" as never)}
+        testID="child-home-header"
+        backTestID="child-home-back"
+        titleTestID="child-home-header-title"
+        subtitleTestID="child-home-header-subtitle"
+        topInset={insets.top}
+      />
+
       <ScrollView
         style={styles.root}
         contentContainerStyle={[
@@ -296,17 +307,6 @@ export function ChildHomeScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        <ModuleHeader
-          title="Accueil enfant"
-          subtitle={subtitle}
-          onBack={() => router.push("/" as never)}
-          testID="child-home-header"
-          backTestID="child-home-back"
-          titleTestID="child-home-header-title"
-          subtitleTestID="child-home-header-subtitle"
-          topInset={insets.top}
-        />
-
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
         {isLoading ? (

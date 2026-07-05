@@ -92,7 +92,9 @@ export const useAuthStore = create<AuthState>((set) => ({
           authErrorMessage: null,
         });
         if (schoolSlug) {
-          void syncPushRegistration(schoolSlug).catch(() => {});
+          void syncPushRegistration(schoolSlug).catch((error) =>
+            console.warn("[push] syncPushRegistration failed", error),
+          );
         }
         const fetchUser = schoolSlug
           ? authApi.me(schoolSlug)
@@ -128,7 +130,9 @@ export const useAuthStore = create<AuthState>((set) => ({
           authErrorMessage: null,
         });
         if (response.schoolSlug) {
-          void syncPushRegistration(response.schoolSlug).catch(() => {});
+          void syncPushRegistration(response.schoolSlug).catch((error) =>
+            console.warn("[push] syncPushRegistration failed", error),
+          );
         }
         if (response.schoolSlug) {
           authApi
@@ -164,7 +168,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       authErrorMessage: null,
     });
     if (response.schoolSlug) {
-      void syncPushRegistration(response.schoolSlug).catch(() => {});
+      void syncPushRegistration(response.schoolSlug).catch((error) =>
+        console.warn("[push] syncPushRegistration failed", error),
+      );
     }
     try {
       const user = response.schoolSlug

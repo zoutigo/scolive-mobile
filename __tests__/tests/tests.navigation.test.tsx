@@ -12,7 +12,12 @@ jest.mock("@expo/vector-icons", () => ({
 }));
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: jest.fn() }),
+  useRouter: () => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    dismissAll: jest.fn(),
+    canDismiss: () => true,
+  }),
   usePathname: () => "/",
 }));
 

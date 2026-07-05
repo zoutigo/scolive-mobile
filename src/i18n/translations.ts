@@ -1020,6 +1020,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.compose.titleNew": "Nouveau message",
     "messaging.compose.titleReply": "Répondre",
     "messaging.compose.titleForward": "Transférer",
+    "messaging.compose.titleEditDraft": "Modifier le brouillon",
     "messaging.compose.recipientsLabel": "À",
     "messaging.compose.subjectLabel": "Objet",
     "messaging.compose.subjectPlaceholder": "Objet du message",
@@ -1079,6 +1080,12 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Impossible d'insérer l'image. Réessayez.",
     "messaging.compose.errors.documentPickerFailed":
       "Impossible d'ouvrir le sélecteur de fichiers.",
+    "messaging.compose.errors.attachmentUploadFailed":
+      "Impossible d'ajouter cette pièce jointe. Réessayez.",
+    "messaging.compose.errors.draftLoadFailedTitle": "Erreur",
+    "messaging.compose.errors.draftLoadFailedMessage":
+      "Impossible de charger ce brouillon.",
+    "messaging.compose.attachingFile": "Ajout de la pièce jointe...",
 
     "messaging.compose.toasts.draftSavedTitle": "Brouillon enregistré",
     "messaging.compose.toasts.draftSavedMessage":
@@ -3009,6 +3016,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.compose.titleNew": "New message",
     "messaging.compose.titleReply": "Reply",
     "messaging.compose.titleForward": "Forward",
+    "messaging.compose.titleEditDraft": "Edit draft",
     "messaging.compose.recipientsLabel": "To",
     "messaging.compose.subjectLabel": "Subject",
     "messaging.compose.subjectPlaceholder": "Message subject",
@@ -3067,6 +3075,12 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Unable to insert the image. Please try again.",
     "messaging.compose.errors.documentPickerFailed":
       "Unable to open the file picker.",
+    "messaging.compose.errors.attachmentUploadFailed":
+      "Unable to add this attachment. Please try again.",
+    "messaging.compose.errors.draftLoadFailedTitle": "Error",
+    "messaging.compose.errors.draftLoadFailedMessage":
+      "Unable to load this draft.",
+    "messaging.compose.attachingFile": "Adding attachment...",
 
     "messaging.compose.toasts.draftSavedTitle": "Draft saved",
     "messaging.compose.toasts.draftSavedMessage":
