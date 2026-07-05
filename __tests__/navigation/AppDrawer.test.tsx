@@ -23,9 +23,15 @@ jest.mock("expo-application", () => ({
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
+const mockDismissAll = jest.fn();
 let mockPathname = "/";
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+  useRouter: () => ({
+    push: mockPush,
+    replace: mockReplace,
+    dismissAll: mockDismissAll,
+    canDismiss: () => true,
+  }),
   usePathname: () => mockPathname,
 }));
 
