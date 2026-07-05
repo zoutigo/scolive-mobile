@@ -1665,15 +1665,11 @@ export function ClassHomeworkScreen({
         >
           <FormHero
             icon="people-outline"
-            title={
-              controlTargetDetail?.title ??
-              subtitle ??
-              t("homework.control.title")
-            }
+            title={t("homework.control.doneStudentsTitle")}
             subtitle={
               controlTargetDetail?.summary
                 ? `${controlTargetDetail.summary.doneStudents}/${controlTargetDetail.summary.totalStudents} ${t("homework.control.summarySuffix")}`
-                : (controlTargetDetail?.subject.name ?? undefined)
+                : undefined
             }
             palette="slate"
             testID="homework-control-hero"
@@ -1682,7 +1678,7 @@ export function ClassHomeworkScreen({
           {isLoadingDetail && !controlTargetDetail ? (
             <LoadingBlock label={t("homework.loading.control")} />
           ) : controlTargetDetail ? (
-            <SectionCard title={t("homework.control.doneStudentsTitle")}>
+            <SectionCard>
               {controlTargetDetail.completionStatuses.filter((status) =>
                 Boolean(status.doneAt),
               ).length > 0 ? (

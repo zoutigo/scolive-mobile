@@ -924,7 +924,7 @@ describe("ClassHomeworkScreen — écran de suivi (control)", () => {
     ).toBeNull();
   });
 
-  it("affiche dans le hero le titre du devoir et le ratio d'élèves ayant terminé", async () => {
+  it("affiche dans le hero le libellé des élèves ayant terminé et le ratio", async () => {
     render(<ClassHomeworkScreen />);
 
     await waitFor(() =>
@@ -935,7 +935,9 @@ describe("ClassHomeworkScreen — écran de suivi (control)", () => {
 
     const hero = await screen.findByTestId("homework-control-hero");
 
-    expect(within(hero).getByText("Exercices 1 à 3")).toBeTruthy();
+    expect(
+      within(hero).getByText("Élèves ayant déjà fait le devoir"),
+    ).toBeTruthy();
     expect(within(hero).getByText(/3\/12/)).toBeTruthy();
   });
 
