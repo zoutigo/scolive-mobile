@@ -31,7 +31,10 @@ beforeEach(() => {
 describe("adminMessagingApi.list()", () => {
   it("appelle GET /admin/messages sans schoolSlug dans l'URL", async () => {
     mockFetch.mockReturnValueOnce(
-      okJson({ items: [], meta: { page: 1, limit: 25, total: 0, totalPages: 0 } }),
+      okJson({
+        items: [],
+        meta: { page: 1, limit: 25, total: 0, totalPages: 0 },
+      }),
     );
 
     await adminMessagingApi.list({ folder: "inbox" });

@@ -22,7 +22,9 @@ type ListParams = {
 };
 
 export type MessagingClient = {
-  list: (params: ListParams) => Promise<{ items: MessageListItem[]; meta: MessagesMeta }>;
+  list: (
+    params: ListParams,
+  ) => Promise<{ items: MessageListItem[]; meta: MessagesMeta }>;
   get: (messageId: string) => Promise<MessageDetail>;
   unreadCount: () => Promise<number>;
   send: (payload: {

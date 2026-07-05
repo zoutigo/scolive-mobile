@@ -14,7 +14,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { colors } from "../../../src/theme";
-import { getMessagingClient, PLATFORM_SCOPE } from "../../../src/api/messaging-client";
+import {
+  getMessagingClient,
+  PLATFORM_SCOPE,
+} from "../../../src/api/messaging-client";
 import { useMessagingStore } from "../../../src/store/messaging.store";
 import { useAuthStore } from "../../../src/store/auth.store";
 import { useBadgesStore } from "../../../src/store/badges.store";

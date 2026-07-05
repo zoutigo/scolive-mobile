@@ -1,5 +1,8 @@
 import { create } from "zustand";
-import { getMessagingClient, type MessagingScope } from "../api/messaging-client";
+import {
+  getMessagingClient,
+  type MessagingScope,
+} from "../api/messaging-client";
 import type {
   FolderKey,
   MessageListItem,

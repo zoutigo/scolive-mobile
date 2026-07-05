@@ -3,7 +3,10 @@
  * Vérifie que getMessagingClient() route vers messagingApi (schoolSlug réel)
  * ou vers adminMessagingApi (PLATFORM_SCOPE), sans jamais mélanger les deux.
  */
-import { getMessagingClient, PLATFORM_SCOPE } from "../../src/api/messaging-client";
+import {
+  getMessagingClient,
+  PLATFORM_SCOPE,
+} from "../../src/api/messaging-client";
 import { messagingApi } from "../../src/api/messaging.api";
 import { adminMessagingApi } from "../../src/api/admin-messaging.api";
 

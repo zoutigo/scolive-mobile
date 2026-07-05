@@ -365,7 +365,11 @@ export const adminMessagingApi = {
    * admin-only `/system/users` endpoint (already used by the web console).
    */
   async searchRecipients(query: string): Promise<RecipientOption[]> {
-    const params = new URLSearchParams({ search: query, page: "1", limit: "20" });
+    const params = new URLSearchParams({
+      search: query,
+      page: "1",
+      limit: "20",
+    });
     const response = await apiFetch<{ items: SystemUserSearchResult[] }>(
       `/system/users?${params.toString()}`,
       {},
@@ -373,7 +377,10 @@ export const adminMessagingApi = {
     );
     return response.items.map((entry) => ({
       value: entry.id,
-      label: `${entry.lastName} ${entry.firstName}`.trim() || entry.email || entry.id,
+      label:
+        `${entry.lastName} ${entry.firstName}`.trim() ||
+        entry.email ||
+        entry.id,
       email: entry.email ?? undefined,
       subtitle: entry.school?.name ?? undefined,
       schoolSlug: entry.school?.slug ?? null,
