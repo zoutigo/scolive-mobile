@@ -78,6 +78,7 @@ async function ensureExpoPushToken() {
   }
 
   if (status !== "granted") {
+    console.warn("[push] permission not granted, skipping token registration");
     return null;
   }
 
@@ -90,6 +91,9 @@ async function ensureExpoPushToken() {
 
   const projectId = resolveProjectId();
   if (!projectId) {
+    console.warn(
+      "[push] no EAS projectId resolved, skipping token registration",
+    );
     return null;
   }
 

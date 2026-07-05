@@ -21,6 +21,14 @@ Si la branche courante n'est pas `dev`, basculer dessus avant toute modification
 Application mobile React Native (Expo) du projet Scolive.
 Repo GitHub : `git@github.com:zoutigo/scolive-mobile.git`
 
+## Notifications push (FCM / EAS)
+
+- `android/app/google-services.json` n'est **jamais committé** (dans `.gitignore`) : il est déposé localement pour les builds dev, et stocké sur le VPS de prod (`vps-ovh:/home/ubuntu/apps/scolive-mobile-secrets/google-services.json`)
+- Le workflow `.github/workflows/publish-android.yml` le récupère par `scp` avant `assembleRelease`, via les secrets GitHub `VPS_HOST` / `VPS_USER` / `VPS_SSH_KEY` (même clé que le déploiement `scolive-web`)
+- Le `projectId` EAS (`@zoutigo/scolive-app`) est dans `app.json` (`extra.eas.projectId`), et embarqué automatiquement dans l'APK au build Gradle (asset `app.config`), sans besoin d'`expo prebuild`
+- La clé de service Firebase (FCM V1) est uploadée directement dans les credentials EAS (`eas credentials -p android`) — jamais dans le repo ni sur le VPS
+- Si les notifications ne partent plus en prod, vérifier dans cet ordre : `google-services.json` présent sur le VPS → secrets GitHub valides → clé de service FCM V1 toujours assignée dans `eas credentials -p android` → logs `[push]` dans `src/notifications/push-registration.ts` (avertissements non silencieux en cas d'échec de résolution du token)
+
 ## Structure du monorepo
 
 ```
