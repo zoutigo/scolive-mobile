@@ -861,6 +861,121 @@ describe("ClassHomeworkScreen — header du détail homework", () => {
   });
 });
 
+// ─── Suivi des élèves (toggle repliable dans le détail) ───────────────────────
+
+describe("ClassHomeworkScreen — suivi des élèves dans le détail (toggle)", () => {
+  it("affiche un bouton replié par défaut avec le résumé x/y et masque la liste des élèves", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Exercices 1 à 3")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-card-hw-1"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-homework-detail-students-toggle"),
+      ).toBeTruthy(),
+    );
+
+    expect(screen.getByText("3/12 homework faits")).toBeTruthy();
+    expect(screen.queryByText("Mebe Ariane")).toBeNull();
+  });
+
+  it("affiche la liste des élèves avec leur statut après avoir appuyé sur le bouton toggle", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Exercices 1 à 3")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-card-hw-1"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-homework-detail-students-toggle"),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.press(
+      screen.getByTestId("class-homework-detail-students-toggle"),
+    );
+
+    await waitFor(() => expect(screen.getByText("Mebe Ariane")).toBeTruthy());
+  });
+
+  it("replie de nouveau la liste des élèves si on rappuie sur le bouton toggle", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Exercices 1 à 3")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-card-hw-1"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-homework-detail-students-toggle"),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.press(
+      screen.getByTestId("class-homework-detail-students-toggle"),
+    );
+    await waitFor(() => expect(screen.getByText("Mebe Ariane")).toBeTruthy());
+
+    fireEvent.press(
+      screen.getByTestId("class-homework-detail-students-toggle"),
+    );
+    await waitFor(() => expect(screen.queryByText("Mebe Ariane")).toBeNull());
+  });
+
+  it("replie la liste des élèves quand on rouvre le détail d'un autre homework", async () => {
+    mockHomeworkApi.listClassHomework.mockResolvedValue([
+      BASE_HOMEWORK,
+      { ...BASE_HOMEWORK, id: "hw-2", title: "Exercices 4 à 6" },
+    ]);
+    mockHomeworkApi.getHomeworkDetail.mockImplementation(
+      async (_slug, _classId, homeworkId) =>
+        homeworkId === "hw-2"
+          ? { ...BASE_DETAIL, id: "hw-2", title: "Exercices 4 à 6" }
+          : BASE_DETAIL,
+    );
+
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Exercices 1 à 3")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-card-hw-1"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-homework-detail-students-toggle"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId("class-homework-detail-students-toggle"),
+    );
+    await waitFor(() => expect(screen.getByText("Mebe Ariane")).toBeTruthy());
+
+    fireEvent.press(screen.getByTestId("homework-detail-close"));
+    await waitFor(() =>
+      expect(screen.queryByTestId("homework-detail-header")).toBeNull(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-card-hw-2"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-homework-detail-students-toggle"),
+      ).toBeTruthy(),
+    );
+
+    expect(screen.queryByText("Mebe Ariane")).toBeNull();
+  });
+});
+
 // ─── Erreurs dans l'onglet ────────────────────────────────────────────────────
 
 describe("ClassHomeworkScreen — erreurs dans l'onglet (dismissibles)", () => {
