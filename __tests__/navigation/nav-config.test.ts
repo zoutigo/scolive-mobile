@@ -10,6 +10,7 @@ import {
   buildTeacherClassTimetableTarget,
   buildTeacherClassHomeworkTarget,
   buildDrawerNavigationConfig,
+  getNavItems,
 } from "../../src/components/navigation/nav-config";
 import type { AuthUser } from "../../src/types/auth.types";
 
@@ -462,5 +463,36 @@ describe("buildDrawerNavigationConfig", () => {
     expect(
       config.navItems.find((item) => item.key === "messages")?.unread,
     ).toBeUndefined();
+  });
+});
+
+describe("PLATFORM_NAV — Messagerie", () => {
+  it("inclut une entrée Messagerie pointant vers /messages pour un rôle plateforme", () => {
+    const admin = makeUser({ platformRoles: ["ADMIN"], role: "ADMIN" });
+    const items = getNavItems(admin);
+    const messagesItem = items.find((item) => item.key === "messages");
+    expect(messagesItem).toEqual({
+      key: "messages",
+      label: "Messagerie",
+      icon: "chatbubble-outline",
+      route: "/messages",
+    });
+  });
+
+  it("applique le badge non-lu agrégé sur l'entrée Messagerie plateforme", () => {
+    const superAdmin = makeUser({
+      platformRoles: ["SUPER_ADMIN"],
+      role: "SUPER_ADMIN",
+    });
+    const items = getNavItems(superAdmin, {
+      messagesUnread: 3,
+      feedUnread: 0,
+      ticketsNeedingResponse: 0,
+      ticketsUnreadReplies: 0,
+      children: [],
+      teacherClasses: [],
+      total: 3,
+    });
+    expect(items.find((item) => item.key === "messages")?.unread).toBe(3);
   });
 });

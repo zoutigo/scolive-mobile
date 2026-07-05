@@ -228,6 +228,12 @@ const PLATFORM_NAV: NavItem[] = [
     icon: "clipboard-outline",
     route: "/admin-tests",
   },
+  {
+    key: "messages",
+    label: "Messagerie",
+    icon: "chatbubble-outline",
+    route: "/messages",
+  },
   accountItem(),
 ];
 

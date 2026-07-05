@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { messagingApi } from "../api/messaging.api";
+import { getMessagingClient, type MessagingScope } from "../api/messaging-client";
 import type {
   FolderKey,
   MessageListItem,
@@ -22,10 +22,10 @@ interface MessagingState {
 
   setFolder: (folder: FolderKey) => void;
   setSearch: (search: string) => void;
-  loadMessages: (schoolSlug: string) => Promise<void>;
-  refreshMessages: (schoolSlug: string) => Promise<void>;
-  loadMoreMessages: (schoolSlug: string) => Promise<void>;
-  loadUnreadCount: (schoolSlug: string) => Promise<void>;
+  loadMessages: (scope: MessagingScope) => Promise<void>;
+  refreshMessages: (scope: MessagingScope) => Promise<void>;
+  loadMoreMessages: (scope: MessagingScope) => Promise<void>;
+  loadUnreadCount: (scope: MessagingScope) => Promise<void>;
   markLocalRead: (messageId: string) => void;
   markLocalUnread: (messageId: string) => void;
   removeLocal: (messageId: string) => void;
@@ -50,11 +50,11 @@ export const useMessagingStore = create<MessagingState>((set, get) => ({
     set({ search, messages: [], meta: null });
   },
 
-  async loadMessages(schoolSlug) {
+  async loadMessages(scope) {
     const { folder, search } = get();
     set({ isLoading: true });
     try {
-      const res = await messagingApi.list(schoolSlug, {
+      const res = await getMessagingClient(scope).list({
         folder,
         q: search || undefined,
         page: 1,
@@ -66,11 +66,11 @@ export const useMessagingStore = create<MessagingState>((set, get) => ({
     }
   },
 
-  async refreshMessages(schoolSlug) {
+  async refreshMessages(scope) {
     const { folder, search } = get();
     set({ isRefreshing: true });
     try {
-      const res = await messagingApi.list(schoolSlug, {
+      const res = await getMessagingClient(scope).list({
         folder,
         q: search || undefined,
         page: 1,
@@ -82,13 +82,13 @@ export const useMessagingStore = create<MessagingState>((set, get) => ({
     }
   },
 
-  async loadMoreMessages(schoolSlug) {
+  async loadMoreMessages(scope) {
     const { folder, search, messages, meta, isLoading } = get();
     if (isLoading || !meta || messages.length >= meta.total) return;
     set({ isLoading: true });
     try {
       const nextPage = Math.floor(messages.length / 25) + 1;
-      const res = await messagingApi.list(schoolSlug, {
+      const res = await getMessagingClient(scope).list({
         folder,
         q: search || undefined,
         page: nextPage,
@@ -100,9 +100,9 @@ export const useMessagingStore = create<MessagingState>((set, get) => ({
     }
   },
 
-  async loadUnreadCount(schoolSlug) {
+  async loadUnreadCount(scope) {
     try {
-      const count = await messagingApi.unreadCount(schoolSlug);
+      const count = await getMessagingClient(scope).unreadCount();
       set({ unreadCount: count });
     } catch {
       // silently ignore

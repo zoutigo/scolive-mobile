@@ -7,6 +7,12 @@ export type MessageSender = {
   email?: string;
 };
 
+/** Present only on the aggregated platform-admin mailbox (across schools). */
+export type MessageSchool = {
+  slug: string;
+  name: string;
+};
+
 export type MessageAttachment = {
   id: string;
   fileName: string;
@@ -25,6 +31,7 @@ export type MessageListItem = {
   sentAt: string | null;
   unread: boolean;
   sender: MessageSender | null;
+  school?: MessageSchool | null;
   recipientsCount: number;
   mailboxEntryId: string;
   attachments: MessageAttachment[];
@@ -55,6 +62,7 @@ export type MessageDetail = {
     deletedAt: string | null;
   } | null;
   sender: MessageSender | null;
+  school?: MessageSchool | null;
   recipients: MessageRecipient[];
   attachments: MessageAttachment[];
 };
@@ -71,6 +79,8 @@ export type RecipientOption = {
   label: string;
   email?: string;
   subtitle?: string;
+  /** Populated only by the admin platform-wide recipient search. */
+  schoolSlug?: string | null;
 };
 
 export type MessagingRecipients = {

@@ -26,10 +26,12 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import { colors } from "../../../src/theme";
+import { MessagingMultipartError } from "../../../src/api/messaging.api";
+import { AdminMessagingMultipartError } from "../../../src/api/admin-messaging.api";
 import {
-  messagingApi,
-  MessagingMultipartError,
-} from "../../../src/api/messaging.api";
+  getMessagingClient,
+  PLATFORM_SCOPE,
+} from "../../../src/api/messaging-client";
 import { useAuthStore } from "../../../src/store/auth.store";
 import { useMessagingStore } from "../../../src/store/messaging.store";
 import { useSuccessToastStore } from "../../../src/store/success-toast.store";
@@ -40,6 +42,7 @@ import {
 import { RecipientPickerModal } from "../../../src/components/messaging/RecipientPickerModal";
 import { AppShell } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
+import { getViewType } from "../../../src/components/navigation/nav-config";
 import {
   useTranslation,
   type TranslateFn,
@@ -291,8 +294,13 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 }
 
-function getMultipartError(error: unknown): MessagingMultipartError | null {
-  if (error instanceof MessagingMultipartError) {
+function getMultipartError(
+  error: unknown,
+): MessagingMultipartError | AdminMessagingMultipartError | null {
+  if (
+    error instanceof MessagingMultipartError ||
+    error instanceof AdminMessagingMultipartError
+  ) {
     return error;
   }
 
@@ -368,7 +376,9 @@ export default function ComposeScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { schoolSlug } = useAuthStore();
+  const { user, schoolSlug } = useAuthStore();
+  const isPlatform = user ? getViewType(user) === "platform" : false;
+  const scope = isPlatform ? PLATFORM_SCOPE : (schoolSlug ?? null);
   const { folder, loadMessages } = useMessagingStore();
   const showFeedbackToast = useSuccessToastStore((state) => state.show);
   const editorRef = useRef<RichEditorFieldRef>(null);
@@ -472,12 +482,12 @@ export default function ComposeScreen() {
   // ── Load existing draft (edit mode) ─────────────────────────────────────────
 
   useEffect(() => {
-    if (!draftId || !schoolSlug) return;
+    if (!draftId || !scope) return;
     let cancelled = false;
     setIsDraftLoading(true);
     setDraftLoadFailed(false);
-    messagingApi
-      .get(schoolSlug, draftId)
+    getMessagingClient(scope)
+      .get(draftId)
       .then((m) => {
         if (cancelled) return;
         reset({ subject: m.subject });
@@ -512,22 +522,24 @@ export default function ComposeScreen() {
     return () => {
       cancelled = true;
     };
-  }, [draftId, schoolSlug, reset]);
+  }, [draftId, scope, reset]);
 
-  // ── Load recipients ─────────────────────────────────────────────────────────
+  // ── Load recipients (school scope only — admin scope searches instead) ─────
 
   const loadRecipients = useCallback(async () => {
-    if (!schoolSlug) return;
+    if (!scope || isPlatform) return;
     setRecipientsLoading(true);
     try {
-      const data = await messagingApi.getRecipients(schoolSlug);
-      setRecipients(flattenRecipients(data, t));
+      const data = await getMessagingClient(scope).getRecipients?.();
+      if (data) {
+        setRecipients(flattenRecipients(data, t));
+      }
     } catch {
       // preselected reply recipient still works
     } finally {
       setRecipientsLoading(false);
     }
-  }, [schoolSlug]);
+  }, [scope, isPlatform]);
 
   useEffect(() => {
     loadRecipients();
@@ -618,10 +630,10 @@ export default function ComposeScreen() {
     mimeType: string;
   }) {
     if (isEditingDraft) {
-      if (!schoolSlug) return;
+      if (!scope) return;
       setIsAttachingFile(true);
       try {
-        const uploaded = await messagingApi.uploadAttachment(schoolSlug, {
+        const uploaded = await getMessagingClient(scope).uploadAttachment({
           uri: params.uri,
           mimeType: params.mimeType,
           fileName: params.name,
@@ -713,9 +725,22 @@ export default function ComposeScreen() {
 
   // ── Send ─────────────────────────────────────────────────────────────────────
 
+  // Recipients picked via the admin platform-wide search can span several
+  // schools in one compose action (e.g. "message every school admin") — the
+  // backend fans that out into one message per school on send, but a single
+  // "draft" row can't represent more than one school, so drafts are blocked.
+  const spansMultipleSchools =
+    isPlatform &&
+    new Set(
+      selectedRecipients
+        .map((r) => r.schoolSlug)
+        .filter((slug): slug is string => Boolean(slug)),
+    ).size > 1;
+
   const canSaveDraft =
     !isSending &&
     !isAttachingFile &&
+    !spansMultipleSchools &&
     hasDraftContent({
       subject: watchedSubject,
       hasBody,
@@ -740,7 +765,7 @@ export default function ComposeScreen() {
   });
 
   async function handleSaveDraft() {
-    if (!canSaveDraft || !schoolSlug) return;
+    if (!canSaveDraft || !scope) return;
     setIsSending(true);
     try {
       const currentSubject = getValues("subject");
@@ -748,16 +773,17 @@ export default function ComposeScreen() {
         currentSubject.trim() || t("messaging.compose.defaultDraftSubject");
       const body = hasBody ? bodyHtml : EMPTY_DRAFT_HTML;
       const recipientUserIds = selectedRecipients.map((r) => r.value);
+      const client = getMessagingClient(scope);
 
       if (isEditingDraft && draftId) {
-        await messagingApi.updateDraft(schoolSlug, draftId, {
+        await client.updateDraft(draftId, {
           subject,
           body,
           recipientUserIds,
           attachments: buildDraftAttachmentsPayload(attachedFiles),
         });
       } else {
-        await messagingApi.send(schoolSlug, {
+        await client.send({
           subject,
           body,
           recipientUserIds,
@@ -765,7 +791,7 @@ export default function ComposeScreen() {
           ...splitAttachmentsForSend(attachedFiles),
         });
       }
-      if (folder === "drafts") await loadMessages(schoolSlug);
+      if (folder === "drafts") await loadMessages(scope);
       showFeedbackToast({
         variant: "success",
         title: t("messaging.compose.toasts.draftSavedTitle"),
@@ -791,19 +817,20 @@ export default function ComposeScreen() {
   }
 
   async function doSend(subject: string) {
-    if (!schoolSlug) return;
+    if (!scope) return;
     setIsSending(true);
     try {
+      const client = getMessagingClient(scope);
       if (isEditingDraft && draftId) {
-        await messagingApi.updateDraft(schoolSlug, draftId, {
+        await client.updateDraft(draftId, {
           subject,
           body: bodyHtml,
           recipientUserIds: selectedRecipients.map((r) => r.value),
           attachments: buildDraftAttachmentsPayload(attachedFiles),
         });
-        await messagingApi.sendDraft(schoolSlug, draftId);
+        await client.sendDraft(draftId);
       } else {
-        await messagingApi.send(schoolSlug, {
+        await client.send({
           subject,
           body: bodyHtml,
           recipientUserIds: selectedRecipients.map((r) => r.value),
@@ -811,7 +838,7 @@ export default function ComposeScreen() {
         });
       }
       if (folder === "sent" || folder === "drafts") {
-        await loadMessages(schoolSlug);
+        await loadMessages(scope);
       }
       showFeedbackToast({
         variant: "success",
@@ -1019,16 +1046,11 @@ export default function ComposeScreen() {
                   ),
                 }}
                 onUploadInlineImage={(file) => {
-                  if (!schoolSlug) {
-                    return Promise.reject(new Error("NO_SCHOOL_SLUG"));
+                  if (!scope) {
+                    return Promise.reject(new Error("NO_MESSAGING_SCOPE"));
                   }
-                  return messagingApi
-                    .uploadInlineImage(
-                      schoolSlug,
-                      file.uri,
-                      file.mimeType,
-                      file.name,
-                    )
+                  return getMessagingClient(scope)
+                    .uploadInlineImage(file.uri, file.mimeType, file.name)
                     .then((url) => ({ url }));
                 }}
                 editorTestID="rich-editor"
@@ -1204,6 +1226,11 @@ export default function ComposeScreen() {
         selected={selectedRecipients}
         onClose={() => setPickerVisible(false)}
         onConfirm={(r) => setSelectedRecipients(r)}
+        onSearch={
+          isPlatform && scope
+            ? (query) => getMessagingClient(scope).searchRecipients!(query)
+            : undefined
+        }
       />
     </KeyboardAvoidingView>
   );

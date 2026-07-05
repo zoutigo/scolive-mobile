@@ -4,10 +4,14 @@
  */
 import { useMessagingStore } from "../../src/store/messaging.store";
 import { messagingApi } from "../../src/api/messaging.api";
+import { adminMessagingApi } from "../../src/api/admin-messaging.api";
+import { PLATFORM_SCOPE } from "../../src/api/messaging-client";
 
 jest.mock("../../src/api/messaging.api");
+jest.mock("../../src/api/admin-messaging.api");
 
 const api = messagingApi as jest.Mocked<typeof messagingApi>;
+const adminApi = adminMessagingApi as jest.Mocked<typeof adminMessagingApi>;
 
 const metaPage1 = { page: 1, limit: 25, total: 50, totalPages: 2 };
 const metaPage2 = { page: 2, limit: 25, total: 50, totalPages: 2 };
@@ -302,5 +306,40 @@ describe("reset()", () => {
     expect(state.search).toBe("");
     expect(state.unreadCount).toBe(0);
     expect(state.keepUnreadIds.size).toBe(0);
+  });
+});
+
+// ── scope plateforme (admin/super-admin) ───────────────────────────────────
+
+describe("loadMessages() / loadUnreadCount() — scope plateforme", () => {
+  it("délègue à adminMessagingApi.list quand le scope est PLATFORM_SCOPE", async () => {
+    adminApi.list.mockResolvedValueOnce({ items: [message1], meta: metaPage1 });
+    await useMessagingStore.getState().loadMessages(PLATFORM_SCOPE);
+
+    expect(adminApi.list).toHaveBeenCalledWith(
+      expect.objectContaining({ folder: "inbox" }),
+    );
+    expect(api.list).not.toHaveBeenCalled();
+    expect(useMessagingStore.getState().messages).toHaveLength(1);
+  });
+
+  it("délègue à adminMessagingApi.unreadCount quand le scope est PLATFORM_SCOPE", async () => {
+    adminApi.unreadCount.mockResolvedValueOnce(7);
+    await useMessagingStore.getState().loadUnreadCount(PLATFORM_SCOPE);
+
+    expect(adminApi.unreadCount).toHaveBeenCalledWith();
+    expect(api.unreadCount).not.toHaveBeenCalled();
+    expect(useMessagingStore.getState().unreadCount).toBe(7);
+  });
+
+  it("continue de déléguer à messagingApi pour un vrai schoolSlug", async () => {
+    api.list.mockResolvedValueOnce({ items: [], meta: metaPage1 });
+    await useMessagingStore.getState().loadMessages("college-vogt");
+
+    expect(api.list).toHaveBeenCalledWith(
+      "college-vogt",
+      expect.objectContaining({ folder: "inbox" }),
+    );
+    expect(adminApi.list).not.toHaveBeenCalled();
   });
 });

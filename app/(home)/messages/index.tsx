@@ -23,9 +23,13 @@ import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../../../src/components/navigation/BottomTabBar";
 import { HeaderBackButton } from "../../../src/components/navigation/HeaderBackButton";
 import { HeaderMenuButton } from "../../../src/components/navigation/HeaderMenuButton";
-import { buildChildHomeTarget } from "../../../src/components/navigation/nav-config";
+import {
+  buildChildHomeTarget,
+  getViewType,
+} from "../../../src/components/navigation/nav-config";
 import { AppShell } from "../../../src/components/navigation/AppShell";
 import { useDrawer } from "../../../src/components/navigation/drawer-context";
+import { PLATFORM_SCOPE } from "../../../src/api/messaging-client";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import type {
   FolderKey,
@@ -45,8 +49,12 @@ function MessagesScreenContent() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { openDrawer } = useDrawer();
-  const { schoolSlug } = useAuthStore();
+  const { user, schoolSlug } = useAuthStore();
   const { children, activeChildId } = useFamilyStore();
+  const scope =
+    user && getViewType(user) === "platform"
+      ? PLATFORM_SCOPE
+      : (schoolSlug ?? null);
 
   const {
     folder,
@@ -67,20 +75,20 @@ function MessagesScreenContent() {
   const [searchVisible, setSearchVisible] = useState(false);
 
   const load = useCallback(async () => {
-    if (!schoolSlug) return;
+    if (!scope) return;
     try {
-      await loadMessages(schoolSlug);
+      await loadMessages(scope);
     } catch (error) {
       console.error("MESSAGES_LOAD_FAILED", error);
     }
-  }, [schoolSlug, loadMessages]);
+  }, [scope, loadMessages]);
 
   // Garde le badge "non lus" des onglets à jour même quand l'écran est
   // ouvert directement (sans passer par un écran d'accueil qui le charge).
   useEffect(() => {
-    if (!schoolSlug) return;
-    void loadUnreadCount(schoolSlug);
-  }, [schoolSlug, loadUnreadCount]);
+    if (!scope) return;
+    void loadUnreadCount(scope);
+  }, [scope, loadUnreadCount]);
 
   // Reload when folder or search changes
   useEffect(() => {
@@ -110,15 +118,15 @@ function MessagesScreenContent() {
   }
 
   function handleRefresh() {
-    if (!schoolSlug) return;
-    void refreshMessages(schoolSlug).catch((error) => {
+    if (!scope) return;
+    void refreshMessages(scope).catch((error) => {
       console.error("MESSAGES_REFRESH_FAILED", error);
     });
   }
 
   function handleLoadMore() {
-    if (schoolSlug && meta && messages.length < meta.total && !isLoading) {
-      void loadMoreMessages(schoolSlug).catch((error) => {
+    if (scope && meta && messages.length < meta.total && !isLoading) {
+      void loadMoreMessages(scope).catch((error) => {
         console.error("MESSAGES_LOAD_MORE_FAILED", error);
       });
     }

@@ -6,6 +6,7 @@ import { useBadgesStore } from "../../store/badges.store";
 import { useFamilyStore } from "../../store/family.store";
 import { useTeacherClassNavStore } from "../../store/teacher-class-nav.store";
 import { colors } from "../../theme";
+import { PLATFORM_SCOPE } from "../../api/messaging-client";
 import { AppHeader } from "./AppHeader";
 import { AppDrawer } from "./AppDrawer";
 import { BottomTabBar, BOTTOM_TAB_BAR_HEIGHT } from "./BottomTabBar";
@@ -86,25 +87,28 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
     }
   }, [viewType, schoolSlug, loadTeacherClassOptions, resetTeacherClassNav]);
 
+  const badgesScope =
+    viewType === "platform" ? PLATFORM_SCOPE : (schoolSlug ?? null);
+
   useEffect(() => {
-    if (!schoolSlug || viewType === "unknown") {
+    if (!badgesScope || viewType === "unknown") {
       clearBadgesSummary();
       return;
     }
 
-    void loadBadgesSummary(schoolSlug);
+    void loadBadgesSummary(badgesScope);
 
     // Connectivity in the field is unreliable: refresh badges whenever the
     // app comes back to the foreground, which is the most common moment
     // connectivity returns after a drop.
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") {
-        void loadBadgesSummary(schoolSlug);
+        void loadBadgesSummary(badgesScope);
       }
     });
 
     return () => subscription.remove();
-  }, [viewType, schoolSlug, loadBadgesSummary, clearBadgesSummary]);
+  }, [viewType, badgesScope, loadBadgesSummary, clearBadgesSummary]);
 
   const { navItems, childSections, teacherClassSections } =
     buildDrawerNavigationConfig({
