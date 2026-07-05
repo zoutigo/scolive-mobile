@@ -137,9 +137,18 @@ describe("Rendu initial", () => {
     expect(screen.getByTestId("folder-tab-sent")).toBeTruthy();
   });
 
-  it("affiche le FAB de composition", () => {
+  it("affiche le FAB de composition sur l'onglet inbox", () => {
     render(<MessagesScreen />);
     expect(screen.getByTestId("compose-fab")).toBeTruthy();
+  });
+
+  it("n'affiche pas le FAB hors de l'onglet inbox", () => {
+    (useMessagingStore as unknown as jest.Mock).mockReturnValue({
+      ...defaultStoreState,
+      folder: "drafts",
+    });
+    render(<MessagesScreen />);
+    expect(screen.queryByTestId("compose-fab")).toBeNull();
   });
 
   it("n'affiche plus de bouton menu dans le header par défaut (déplacé vers la bottom tab bar)", () => {
@@ -262,6 +271,20 @@ describe("Navigation", () => {
     render(<MessagesScreen />);
     fireEvent.press(screen.getByTestId("compose-fab"));
     expect(mockPush).toHaveBeenCalledWith("/(home)/messages/compose");
+  });
+
+  it("navigue vers compose prérempli quand on presse un brouillon", () => {
+    (useMessagingStore as unknown as jest.Mock).mockReturnValue({
+      ...defaultStoreState,
+      folder: "drafts",
+      messages: [{ ...mockMessage, id: "d1", status: "DRAFT" }],
+    });
+    render(<MessagesScreen />);
+    fireEvent.press(screen.getByTestId("message-row-d1"));
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/messages/compose",
+      params: { draftId: "d1" },
+    });
   });
 
   it("appelle router.back() quand on presse la flèche retour", () => {

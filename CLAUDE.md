@@ -42,6 +42,7 @@ Repo GitHub : `git@github.com:zoutigo/scolive-mobile.git`
 - Tout `POST` utilise le toast global centré pour ses retours `success/error`, affiché 7 secondes et fermable manuellement à tout moment
 - **Arrondis** : ne jamais utiliser de pills très arrondis (`borderRadius` élevé type 50/999). Préférer un arrondi très faible (ex. `borderRadius: 4` ou `6` au maximum).
 - **Formulaires — screen vs modale** : toujours créer les formulaires dans un écran dédié (screen), pas dans une modale. Raison : quand le clavier s'ouvre dans une modale, il peut masquer la totalité du formulaire sans recours. Dans un screen avec `adjustPan`, le champ actif reste toujours visible.
+- **Grandes pages — écran natif du routeur, jamais une modale native** : toute page de taille conséquente (liste, formulaire complet, détail, écran métier) doit être une route native gérée par `expo-router` (fichier dans `app/`), jamais une modale native (`<Modal>`, présentation modale du navigateur natif). Les modales natives sont réservées aux éléments ponctuels et courts (confirmation, sélecteur, action rapide).
 
 ## Internationalisation (i18n) — règle obligatoire
 

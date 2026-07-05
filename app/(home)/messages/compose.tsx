@@ -66,6 +66,10 @@ export type AttachedFile = {
   /** Set when this attachment is carried over from a forwarded message — it is
    * sent by reference (forwardAttachmentIds) instead of being re-uploaded. */
   forwardedAttachmentId?: string;
+  /** Set when this attachment already belongs to the draft being edited — the
+   * update-draft endpoint does not support attachment changes, so these are
+   * displayed read-only and never re-submitted. */
+  existingAttachment?: boolean;
 };
 
 export const TEXT_COLOR_PRESETS = [
@@ -374,6 +378,7 @@ export default function ComposeScreen() {
     prefilledRecipientId,
     prefilledRecipientLabel,
     prefilledRecipientEmail,
+    draftId,
   } = useLocalSearchParams<{
     replyToSubject?: string;
     replyToSenderId?: string;
@@ -385,10 +390,12 @@ export default function ComposeScreen() {
     prefilledRecipientId?: string;
     prefilledRecipientLabel?: string;
     prefilledRecipientEmail?: string;
+    draftId?: string;
   }>();
 
   const isReply = !!replyToSubject;
   const isForward = !!forwardSubject;
+  const isEditingDraft = !!draftId;
 
   const initialSubject = isForward
     ? buildPrefixedSubject(
@@ -405,7 +412,7 @@ export default function ComposeScreen() {
 
   const composeSchema = useMemo(() => buildComposeSchema(t), [t]);
 
-  const { control, handleSubmit, formState, getValues, watch } =
+  const { control, handleSubmit, formState, getValues, watch, reset } =
     useForm<ComposeValues>({
       mode: "onChange",
       reValidateMode: "onChange",
@@ -452,6 +459,53 @@ export default function ComposeScreen() {
   );
   const [selectedImageAlign, setSelectedImageAlign] =
     useState<ImageAlign | null>(null);
+  const [isDraftLoading, setIsDraftLoading] = useState(isEditingDraft);
+  const [draftLoadFailed, setDraftLoadFailed] = useState(false);
+
+  // ── Load existing draft (edit mode) ─────────────────────────────────────────
+
+  useEffect(() => {
+    if (!draftId || !schoolSlug) return;
+    let cancelled = false;
+    setIsDraftLoading(true);
+    setDraftLoadFailed(false);
+    messagingApi
+      .get(schoolSlug, draftId)
+      .then((m) => {
+        if (cancelled) return;
+        reset({ subject: m.subject });
+        const html = m.body || EMPTY_DRAFT_HTML;
+        setBodyHtml(html);
+        setHasBody(hasTextContent(html));
+        setSelectedRecipients(
+          m.recipients.map((r) => ({
+            value: r.userId,
+            label: `${r.lastName} ${r.firstName}`,
+            email: r.email,
+          })),
+        );
+        setAttachedFiles(
+          m.attachments.map((a) => ({
+            id: a.id,
+            name: a.fileName,
+            size: a.sizeBytes,
+            mimeType: a.mimeType,
+            uri: a.url,
+            uploaded: true,
+            existingAttachment: true,
+          })),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setDraftLoadFailed(true);
+      })
+      .finally(() => {
+        if (!cancelled) setIsDraftLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [draftId, schoolSlug, reset]);
 
   // ── Load recipients ─────────────────────────────────────────────────────────
 
@@ -852,14 +906,26 @@ export default function ComposeScreen() {
     setIsSending(true);
     try {
       const currentSubject = getValues("subject");
-      await messagingApi.send(schoolSlug, {
-        subject:
-          currentSubject.trim() || t("messaging.compose.defaultDraftSubject"),
-        body: hasBody ? bodyHtml : EMPTY_DRAFT_HTML,
-        recipientUserIds: selectedRecipients.map((r) => r.value),
-        isDraft: true,
-        ...splitAttachmentsForSend(attachedFiles),
-      });
+      const subject =
+        currentSubject.trim() || t("messaging.compose.defaultDraftSubject");
+      const body = hasBody ? bodyHtml : EMPTY_DRAFT_HTML;
+      const recipientUserIds = selectedRecipients.map((r) => r.value);
+
+      if (isEditingDraft && draftId) {
+        await messagingApi.updateDraft(schoolSlug, draftId, {
+          subject,
+          body,
+          recipientUserIds,
+        });
+      } else {
+        await messagingApi.send(schoolSlug, {
+          subject,
+          body,
+          recipientUserIds,
+          isDraft: true,
+          ...splitAttachmentsForSend(attachedFiles),
+        });
+      }
       if (folder === "drafts") await loadMessages(schoolSlug);
       showFeedbackToast({
         variant: "success",
@@ -889,13 +955,24 @@ export default function ComposeScreen() {
     if (!schoolSlug) return;
     setIsSending(true);
     try {
-      await messagingApi.send(schoolSlug, {
-        subject,
-        body: bodyHtml,
-        recipientUserIds: selectedRecipients.map((r) => r.value),
-        ...splitAttachmentsForSend(attachedFiles),
-      });
-      if (folder === "sent") await loadMessages(schoolSlug);
+      if (isEditingDraft && draftId) {
+        await messagingApi.updateDraft(schoolSlug, draftId, {
+          subject,
+          body: bodyHtml,
+          recipientUserIds: selectedRecipients.map((r) => r.value),
+        });
+        await messagingApi.sendDraft(schoolSlug, draftId);
+      } else {
+        await messagingApi.send(schoolSlug, {
+          subject,
+          body: bodyHtml,
+          recipientUserIds: selectedRecipients.map((r) => r.value),
+          ...splitAttachmentsForSend(attachedFiles),
+        });
+      }
+      if (folder === "sent" || folder === "drafts") {
+        await loadMessages(schoolSlug);
+      }
       showFeedbackToast({
         variant: "success",
         title: t("messaging.compose.toasts.sentTitle"),
@@ -943,11 +1020,13 @@ export default function ComposeScreen() {
         {/* Header */}
         <ModuleHeader
           title={
-            isForward
-              ? t("messaging.compose.titleForward")
-              : isReply
-                ? t("messaging.compose.titleReply")
-                : t("messaging.compose.titleNew")
+            isEditingDraft
+              ? t("messaging.compose.titleEditDraft")
+              : isForward
+                ? t("messaging.compose.titleForward")
+                : isReply
+                  ? t("messaging.compose.titleReply")
+                  : t("messaging.compose.titleNew")
           }
           onBack={() => moduleBack(router)}
           topInset={insets.top}
@@ -956,290 +1035,333 @@ export default function ComposeScreen() {
           titleTestID="compose-header-title"
         />
 
-        {/* Inserting image indicator */}
-        {isInsertingImage && (
-          <View style={styles.banner}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.bannerText}>
-              {t("messaging.compose.insertingImage")}
-            </Text>
+        {/* Draft loading / error states */}
+        {isDraftLoading ? (
+          <View style={styles.center} testID="compose-draft-loading">
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
-        )}
-
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          nestedScrollEnabled
-        >
-          {/* Recipients */}
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>
-              {t("messaging.compose.recipientsLabel")}
-            </Text>
-            <TouchableOpacity
-              style={styles.recipientField}
-              onPress={() => {
-                setPickerVisible(true);
-                setRecipientsError(null);
-              }}
-              activeOpacity={0.7}
-              testID="recipients-field"
-            >
-              {selectedRecipients.length === 0 ? (
-                <Text style={styles.placeholder}>
-                  {recipientsLoading
-                    ? t("messaging.compose.recipientsLoading")
-                    : t("messaging.compose.recipientsPlaceholder")}
-                </Text>
-              ) : (
-                <View style={styles.chips}>
-                  {selectedRecipients.map((r) => (
-                    <View key={r.value} style={styles.chip}>
-                      <Text style={styles.chipText} numberOfLines={1}>
-                        {r.label}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-              <Ionicons
-                name="chevron-down"
-                size={16}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
-          {recipientsError ? (
-            <Text style={styles.inlineError} testID="recipients-error">
-              {recipientsError}
-            </Text>
-          ) : null}
-
-          <View style={styles.divider} />
-
-          {/* Subject */}
-          <Controller
-            control={control}
-            name="subject"
-            render={({ field, fieldState }) => {
-              const showErr =
-                !!fieldState.error && (fieldState.isDirty || submitCount > 0);
-              return (
-                <>
-                  <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>
-                      {t("messaging.compose.subjectLabel")}
-                    </Text>
-                    <TextInput
-                      style={styles.subjectInput}
-                      placeholder={t("messaging.compose.subjectPlaceholder")}
-                      placeholderTextColor={colors.textSecondary}
-                      value={field.value}
-                      onChangeText={field.onChange}
-                      maxLength={180}
-                      returnKeyType="next"
-                      testID="subject-input"
-                    />
-                  </View>
-                  {showErr ? (
-                    <Text style={styles.inlineError} testID="subject-error">
-                      {fieldState.error?.message}
-                    </Text>
-                  ) : null}
-                </>
-              );
-            }}
-          />
-
-          <View style={styles.divider} />
-
-          {/* Formatting toolbar */}
-          <RichTextToolbar
-            editorRef={editorRef}
-            onPressAddImage={handleInsertImage}
-            onPressColor={openTextColorMenu}
-            onPressHeading={applyHeading}
-            onPressQuote={applyQuote}
-          />
-
-          {/* Image edit panel — shown when an image is tapped in editor */}
-          {selectedImageId ? (
-            <ImageEditPanel
-              onSizePress={applyImageSize}
-              onAlignPress={applyImageAlign}
-              onDelete={deleteSelectedImage}
-              onClose={dismissImageEdit}
-              currentSize={selectedImageSize}
-              currentAlign={selectedImageAlign}
+        ) : draftLoadFailed ? (
+          <View style={styles.center} testID="compose-draft-error">
+            <Ionicons
+              name="alert-circle-outline"
+              size={32}
+              color={colors.notification}
             />
-          ) : null}
+            <Text style={styles.errorText}>
+              {t("messaging.compose.errors.draftLoadFailedMessage")}
+            </Text>
+          </View>
+        ) : (
+          <>
+            {/* Inserting image indicator */}
+            {isInsertingImage && (
+              <View style={styles.banner}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.bannerText}>
+                  {t("messaging.compose.insertingImage")}
+                </Text>
+              </View>
+            )}
 
-          {/* Rich text editor — useContainer + onHeightChange pour auto-expansion */}
-          <RichEditor
-            ref={editorRef}
-            style={[styles.richEditor, { height: editorHeight }]}
-            editorStyle={{
-              backgroundColor: colors.surface,
-              color: colors.textPrimary,
-              placeholderColor: colors.textSecondary,
-              contentCSSText: `
+            <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
+            >
+              {/* Recipients */}
+              <View style={styles.fieldRow}>
+                <Text style={styles.fieldLabel}>
+                  {t("messaging.compose.recipientsLabel")}
+                </Text>
+                <TouchableOpacity
+                  style={styles.recipientField}
+                  onPress={() => {
+                    setPickerVisible(true);
+                    setRecipientsError(null);
+                  }}
+                  activeOpacity={0.7}
+                  testID="recipients-field"
+                >
+                  {selectedRecipients.length === 0 ? (
+                    <Text style={styles.placeholder}>
+                      {recipientsLoading
+                        ? t("messaging.compose.recipientsLoading")
+                        : t("messaging.compose.recipientsPlaceholder")}
+                    </Text>
+                  ) : (
+                    <View style={styles.chips}>
+                      {selectedRecipients.map((r) => (
+                        <View key={r.value} style={styles.chip}>
+                          <Text style={styles.chipText} numberOfLines={1}>
+                            {r.label}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                  <Ionicons
+                    name="chevron-down"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+              {recipientsError ? (
+                <Text style={styles.inlineError} testID="recipients-error">
+                  {recipientsError}
+                </Text>
+              ) : null}
+
+              <View style={styles.divider} />
+
+              {/* Subject */}
+              <Controller
+                control={control}
+                name="subject"
+                render={({ field, fieldState }) => {
+                  const showErr =
+                    !!fieldState.error &&
+                    (fieldState.isDirty || submitCount > 0);
+                  return (
+                    <>
+                      <View style={styles.fieldRow}>
+                        <Text style={styles.fieldLabel}>
+                          {t("messaging.compose.subjectLabel")}
+                        </Text>
+                        <TextInput
+                          style={styles.subjectInput}
+                          placeholder={t(
+                            "messaging.compose.subjectPlaceholder",
+                          )}
+                          placeholderTextColor={colors.textSecondary}
+                          value={field.value}
+                          onChangeText={field.onChange}
+                          maxLength={180}
+                          returnKeyType="next"
+                          testID="subject-input"
+                        />
+                      </View>
+                      {showErr ? (
+                        <Text style={styles.inlineError} testID="subject-error">
+                          {fieldState.error?.message}
+                        </Text>
+                      ) : null}
+                    </>
+                  );
+                }}
+              />
+
+              <View style={styles.divider} />
+
+              {/* Formatting toolbar */}
+              <RichTextToolbar
+                editorRef={editorRef}
+                onPressAddImage={handleInsertImage}
+                onPressColor={openTextColorMenu}
+                onPressHeading={applyHeading}
+                onPressQuote={applyQuote}
+              />
+
+              {/* Image edit panel — shown when an image is tapped in editor */}
+              {selectedImageId ? (
+                <ImageEditPanel
+                  onSizePress={applyImageSize}
+                  onAlignPress={applyImageAlign}
+                  onDelete={deleteSelectedImage}
+                  onClose={dismissImageEdit}
+                  currentSize={selectedImageSize}
+                  currentAlign={selectedImageAlign}
+                />
+              ) : null}
+
+              {/* Rich text editor — useContainer + onHeightChange pour auto-expansion */}
+              <RichEditor
+                ref={editorRef}
+                style={[styles.richEditor, { height: editorHeight }]}
+                editorStyle={{
+                  backgroundColor: colors.surface,
+                  color: colors.textPrimary,
+                  placeholderColor: colors.textSecondary,
+                  contentCSSText: `
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
                 font-size: 15px;
                 line-height: 1.6;
                 padding: 16px;
                 min-height: 200px;
               `,
-              cssText:
-                "img { max-width: 100%; height: auto; display: block; margin: 8px 0; }",
-            }}
-            placeholder={t("messaging.compose.bodyPlaceholder")}
-            onChange={handleEditorChange}
-            onHeightChange={(h) => setEditorHeight(Math.max(200, h))}
-            initialContentHTML={initialBodyHtml}
-            useContainer
-            initialFocus={false}
-            editorInitializedCallback={injectImageClickHandler}
-            onMessage={handleEditorMessage}
-            testID="rich-editor"
-          />
-
-          {/* Body error */}
-          {bodyError ? (
-            <Text style={styles.inlineError} testID="body-error">
-              {bodyError}
-            </Text>
-          ) : null}
-
-          {/* Attached files list */}
-          {attachedFiles.length > 0 && (
-            <View
-              style={styles.attachmentsSection}
-              testID="attachments-section"
-            >
-              <Text style={styles.attachmentsSectionLabel}>
-                {t("messaging.compose.attachmentsTitle").replace(
-                  "{count}",
-                  String(attachedFiles.length),
-                )}
-              </Text>
-              {attachedFiles.map((file) => (
-                <View
-                  key={file.id}
-                  style={styles.attachmentRow}
-                  testID={`attachment-${file.id}`}
-                >
-                  <View
-                    style={[
-                      styles.attachmentIconBg,
-                      { backgroundColor: fileIconColor(file.mimeType) + "18" },
-                    ]}
-                  >
-                    <Ionicons
-                      name={fileIcon(file.mimeType) as "attach-outline"}
-                      size={20}
-                      color={fileIconColor(file.mimeType)}
-                    />
-                  </View>
-                  <View style={styles.attachmentInfo}>
-                    <Text style={styles.attachmentName} numberOfLines={1}>
-                      {file.name}
-                    </Text>
-                    <Text style={styles.attachmentMeta}>
-                      {formatFileSize(file.size)}
-                      {file.forwardedAttachmentId
-                        ? ` · ${t("messaging.compose.attachments.forwardedTag")}`
-                        : ""}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => removeAttachment(file.id)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    testID={`remove-attachment-${file.id}`}
-                  >
-                    <Ionicons
-                      name="close-circle"
-                      size={20}
-                      color={colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          )}
-        </ScrollView>
-
-        {/* Bottom media/file toolbar */}
-        <View
-          style={[styles.bottomBarWrap, { paddingBottom: insets.bottom + 10 }]}
-        >
-          <View style={styles.bottomBar} testID="compose-action-bar">
-            <TouchableOpacity
-              style={[styles.actionBarBtn, styles.attachActionBarBtn]}
-              onPress={openAttachmentMenu}
-              testID="attachment-actions-btn"
-            >
-              <Ionicons
-                name="attach-outline"
-                size={20}
-                color={colors.accentTeal}
+                  cssText:
+                    "img { max-width: 100%; height: auto; display: block; margin: 8px 0; }",
+                }}
+                placeholder={t("messaging.compose.bodyPlaceholder")}
+                onChange={handleEditorChange}
+                onHeightChange={(h) => setEditorHeight(Math.max(200, h))}
+                initialContentHTML={initialBodyHtml}
+                useContainer
+                initialFocus={false}
+                editorInitializedCallback={injectImageClickHandler}
+                onMessage={handleEditorMessage}
+                testID="rich-editor"
               />
-              <Text
-                style={[
-                  styles.actionBarBtnLabel,
-                  styles.attachActionBarBtnLabel,
-                ]}
-              >
-                {t("messaging.compose.attachBtn")}
-              </Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.actionBarBtn,
-                styles.draftActionBarBtn,
-                !canSaveDraft && styles.actionBarBtnDisabled,
-              ]}
-              onPress={handleSaveDraft}
-              disabled={!canSaveDraft}
-              testID="save-draft-btn"
-            >
-              <Ionicons name="save-outline" size={20} color={colors.primary} />
-              <Text style={styles.actionBarBtnLabel}>
-                {t("messaging.compose.draftBtn")}
-              </Text>
-            </TouchableOpacity>
+              {/* Body error */}
+              {bodyError ? (
+                <Text style={styles.inlineError} testID="body-error">
+                  {bodyError}
+                </Text>
+              ) : null}
 
-            <TouchableOpacity
-              style={[
-                styles.actionBarBtn,
-                styles.sendActionBarBtn,
-                (isSending || isInsertingImage) && styles.actionBarBtnDisabled,
-              ]}
-              onPress={() => {
-                void handleSend();
-              }}
-              disabled={isSending || isInsertingImage}
-              testID="send-btn"
-            >
-              {isSending ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <>
-                  <Ionicons name="send" size={18} color={colors.white} />
-                  <Text
-                    style={[
-                      styles.actionBarBtnLabel,
-                      styles.sendActionBarBtnLabel,
-                    ]}
-                  >
-                    {t("messaging.compose.sendBtn")}
+              {/* Attached files list */}
+              {attachedFiles.length > 0 && (
+                <View
+                  style={styles.attachmentsSection}
+                  testID="attachments-section"
+                >
+                  <Text style={styles.attachmentsSectionLabel}>
+                    {t("messaging.compose.attachmentsTitle").replace(
+                      "{count}",
+                      String(attachedFiles.length),
+                    )}
                   </Text>
-                </>
+                  {isEditingDraft ? (
+                    <Text style={styles.attachmentsLockedHint}>
+                      {t("messaging.compose.attachments.lockedHint")}
+                    </Text>
+                  ) : null}
+                  {attachedFiles.map((file) => (
+                    <View
+                      key={file.id}
+                      style={styles.attachmentRow}
+                      testID={`attachment-${file.id}`}
+                    >
+                      <View
+                        style={[
+                          styles.attachmentIconBg,
+                          {
+                            backgroundColor:
+                              fileIconColor(file.mimeType) + "18",
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name={fileIcon(file.mimeType) as "attach-outline"}
+                          size={20}
+                          color={fileIconColor(file.mimeType)}
+                        />
+                      </View>
+                      <View style={styles.attachmentInfo}>
+                        <Text style={styles.attachmentName} numberOfLines={1}>
+                          {file.name}
+                        </Text>
+                        <Text style={styles.attachmentMeta}>
+                          {formatFileSize(file.size)}
+                          {file.forwardedAttachmentId
+                            ? ` · ${t("messaging.compose.attachments.forwardedTag")}`
+                            : ""}
+                        </Text>
+                      </View>
+                      {file.existingAttachment ? null : (
+                        <TouchableOpacity
+                          onPress={() => removeAttachment(file.id)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          testID={`remove-attachment-${file.id}`}
+                        >
+                          <Ionicons
+                            name="close-circle"
+                            size={20}
+                            color={colors.textSecondary}
+                          />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                </View>
               )}
-            </TouchableOpacity>
-          </View>
-        </View>
+            </ScrollView>
+
+            {/* Bottom media/file toolbar */}
+            <View
+              style={[
+                styles.bottomBarWrap,
+                { paddingBottom: insets.bottom + 10 },
+              ]}
+            >
+              <View style={styles.bottomBar} testID="compose-action-bar">
+                {isEditingDraft ? null : (
+                  <TouchableOpacity
+                    style={[styles.actionBarBtn, styles.attachActionBarBtn]}
+                    onPress={openAttachmentMenu}
+                    testID="attachment-actions-btn"
+                  >
+                    <Ionicons
+                      name="attach-outline"
+                      size={20}
+                      color={colors.accentTeal}
+                    />
+                    <Text
+                      style={[
+                        styles.actionBarBtnLabel,
+                        styles.attachActionBarBtnLabel,
+                      ]}
+                    >
+                      {t("messaging.compose.attachBtn")}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  style={[
+                    styles.actionBarBtn,
+                    styles.draftActionBarBtn,
+                    !canSaveDraft && styles.actionBarBtnDisabled,
+                  ]}
+                  onPress={handleSaveDraft}
+                  disabled={!canSaveDraft}
+                  testID="save-draft-btn"
+                >
+                  <Ionicons
+                    name="save-outline"
+                    size={20}
+                    color={colors.primary}
+                  />
+                  <Text style={styles.actionBarBtnLabel}>
+                    {t("messaging.compose.draftBtn")}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.actionBarBtn,
+                    styles.sendActionBarBtn,
+                    (isSending || isInsertingImage) &&
+                      styles.actionBarBtnDisabled,
+                  ]}
+                  onPress={() => {
+                    void handleSend();
+                  }}
+                  disabled={isSending || isInsertingImage}
+                  testID="send-btn"
+                >
+                  {isSending ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <>
+                      <Ionicons name="send" size={18} color={colors.white} />
+                      <Text
+                        style={[
+                          styles.actionBarBtnLabel,
+                          styles.sendActionBarBtnLabel,
+                        ]}
+                      >
+                        {t("messaging.compose.sendBtn")}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </>
+        )}
       </View>
 
       {/* Recipient picker */}
@@ -1260,6 +1382,18 @@ export default function ComposeScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    padding: 24,
+  },
+  errorText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: "center",
+  },
 
   banner: {
     flexDirection: "row",
@@ -1370,6 +1504,11 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
+  },
+  attachmentsLockedHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontStyle: "italic",
   },
   attachmentRow: {
     flexDirection: "row",

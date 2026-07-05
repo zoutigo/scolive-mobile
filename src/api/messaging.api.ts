@@ -257,6 +257,30 @@ export const messagingApi = {
     }
   },
 
+  async updateDraft(
+    schoolSlug: string,
+    messageId: string,
+    payload: {
+      subject: string;
+      body: string;
+      recipientUserIds: string[];
+    },
+  ): Promise<MessageDetail> {
+    return apiFetch<MessageDetail>(
+      `/schools/${schoolSlug}/messages/${messageId}/draft`,
+      { method: "PATCH", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  async sendDraft(schoolSlug: string, messageId: string): Promise<void> {
+    await apiFetch(
+      `/schools/${schoolSlug}/messages/${messageId}/send`,
+      { method: "POST" },
+      true,
+    );
+  },
+
   async markRead(
     schoolSlug: string,
     messageId: string,

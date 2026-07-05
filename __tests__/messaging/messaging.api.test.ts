@@ -362,6 +362,95 @@ describe("messagingApi.markRead()", () => {
   });
 });
 
+// ── updateDraft() ────────────────────────────────────────────────────────────
+
+describe("messagingApi.updateDraft()", () => {
+  it("appelle PATCH .../draft avec le payload JSON", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okJson({
+        id: "d1",
+        subject: "Objet mis à jour",
+        body: "<p>Texte</p>",
+        status: "DRAFT",
+        createdAt: "2024-01-15T10:00:00Z",
+        sentAt: null,
+        senderArchivedAt: null,
+        isSender: true,
+        recipientState: null,
+        sender: null,
+        recipients: [],
+        attachments: [],
+      }),
+    );
+    await messagingApi.updateDraft("college-vogt", "d1", {
+      subject: "Objet mis à jour",
+      body: "<p>Texte</p>",
+      recipientUserIds: ["u2"],
+    });
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/messages/d1/draft");
+    expect(options.method).toBe("PATCH");
+    expect(JSON.parse(options.body)).toEqual({
+      subject: "Objet mis à jour",
+      body: "<p>Texte</p>",
+      recipientUserIds: ["u2"],
+    });
+  });
+
+  it("propage l'erreur si la requête échoue", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      json: () => Promise.resolve({ message: "Brouillon introuvable" }),
+    });
+    await expect(
+      messagingApi.updateDraft("college-vogt", "unknown", {
+        subject: "x",
+        body: "<p>x</p>",
+        recipientUserIds: [],
+      }),
+    ).rejects.toBeTruthy();
+  });
+});
+
+// ── sendDraft() ───────────────────────────────────────────────────────────────
+
+describe("messagingApi.sendDraft()", () => {
+  it("appelle POST .../send sans corps", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okJson({
+        id: "d1",
+        subject: "Objet",
+        body: "<p>Texte</p>",
+        status: "SENT",
+        createdAt: "2024-01-15T10:00:00Z",
+        sentAt: "2024-01-15T10:05:00Z",
+        senderArchivedAt: null,
+        isSender: true,
+        recipientState: null,
+        sender: null,
+        recipients: [],
+        attachments: [],
+      }),
+    );
+    await messagingApi.sendDraft("college-vogt", "d1");
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain("/messages/d1/send");
+    expect(options.method).toBe("POST");
+  });
+
+  it("propage l'erreur si le brouillon n'a pas de destinataire", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ message: "Destinataire requis" }),
+    });
+    await expect(
+      messagingApi.sendDraft("college-vogt", "d1"),
+    ).rejects.toBeTruthy();
+  });
+});
+
 // ── archive() ─────────────────────────────────────────────────────────────────
 
 describe("messagingApi.archive()", () => {

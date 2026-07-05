@@ -949,6 +949,175 @@ describe("Mode transfert", () => {
   });
 });
 
+describe("Édition d'un brouillon existant", () => {
+  const draftDetail = {
+    id: "d1",
+    subject: "Brouillon en cours",
+    body: "<p>Texte déjà saisi</p>",
+    status: "DRAFT" as const,
+    createdAt: "2024-01-15T10:00:00Z",
+    sentAt: null,
+    senderArchivedAt: null,
+    isSender: true,
+    recipientState: null,
+    sender: null,
+    recipients: [
+      {
+        id: "r1",
+        userId: "t1",
+        firstName: "Alice",
+        lastName: "Martin",
+        email: "alice@example.com",
+        readAt: null,
+        archivedAt: null,
+      },
+    ],
+    attachments: [
+      {
+        id: "att-1",
+        fileName: "bulletin.pdf",
+        url: "http://10.0.2.2:9000/bulletin.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 1024,
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    api.get.mockResolvedValue(draftDetail);
+    api.updateDraft.mockResolvedValue(draftDetail);
+    api.sendDraft.mockResolvedValue(undefined);
+  });
+
+  it("affiche un indicateur de chargement pendant la récupération du brouillon", () => {
+    api.get.mockImplementation(() => new Promise(() => {}));
+    renderCompose({ draftId: "d1" });
+    expect(screen.getByTestId("compose-draft-loading")).toBeTruthy();
+  });
+
+  it("affiche une erreur si le brouillon ne peut pas être chargé", async () => {
+    api.get.mockRejectedValueOnce(new Error("NOT_FOUND"));
+    renderCompose({ draftId: "d1" });
+    await waitFor(() => {
+      expect(screen.getByTestId("compose-draft-error")).toBeTruthy();
+    });
+  });
+
+  it("préremplit le sujet, les destinataires et les pièces jointes du brouillon", async () => {
+    renderCompose({ draftId: "d1" });
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith("college-vogt", "d1");
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("subject-input").props.value).toBe(
+        "Brouillon en cours",
+      );
+    });
+    expect(screen.getByText("Martin Alice")).toBeTruthy();
+    expect(screen.getByText("bulletin.pdf")).toBeTruthy();
+  });
+
+  it("affiche le titre 'Modifier le brouillon'", async () => {
+    renderCompose({ draftId: "d1" });
+    await waitFor(() => {
+      expect(screen.getByTestId("compose-header-title")).toBeTruthy();
+    });
+    expect(screen.getByText("Modifier le brouillon")).toBeTruthy();
+  });
+
+  it("verrouille les pièces jointes existantes (pas de bouton joindre ni supprimer)", async () => {
+    renderCompose({ draftId: "d1" });
+    await waitFor(() => {
+      expect(screen.getByText("bulletin.pdf")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("attachment-actions-btn")).toBeNull();
+    expect(screen.queryByTestId("remove-attachment-att-1")).toBeNull();
+  });
+
+  it("enregistre les modifications via updateDraft (pas de nouveau brouillon)", async () => {
+    renderCompose({ draftId: "d1" });
+    await waitFor(() => {
+      expect(screen.getByTestId("subject-input").props.value).toBe(
+        "Brouillon en cours",
+      );
+    });
+
+    fireEvent.changeText(
+      screen.getByTestId("subject-input"),
+      "Brouillon modifié",
+    );
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("save-draft-btn"));
+    });
+
+    expect(api.updateDraft).toHaveBeenCalledWith("college-vogt", "d1", {
+      subject: "Brouillon modifié",
+      body: "<p>Texte déjà saisi</p>",
+      recipientUserIds: ["t1"],
+    });
+    expect(api.send).not.toHaveBeenCalled();
+    expect(showFeedbackToast).toHaveBeenCalledWith({
+      variant: "success",
+      title: "Brouillon enregistré",
+      message: "Votre brouillon a bien été sauvegardé.",
+    });
+    expect(mockBack).toHaveBeenCalled();
+  });
+
+  it("met à jour puis envoie le brouillon quand on presse Envoyer", async () => {
+    renderCompose({ draftId: "d1" });
+    await waitFor(() => {
+      expect(screen.getByTestId("subject-input").props.value).toBe(
+        "Brouillon en cours",
+      );
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("send-btn"));
+    });
+
+    await waitFor(() => {
+      expect(api.updateDraft).toHaveBeenCalledWith("college-vogt", "d1", {
+        subject: "Brouillon en cours",
+        body: "<p>Texte déjà saisi</p>",
+        recipientUserIds: ["t1"],
+      });
+    });
+    expect(api.sendDraft).toHaveBeenCalledWith("college-vogt", "d1");
+    expect(showFeedbackToast).toHaveBeenCalledWith({
+      variant: "success",
+      title: "Message envoyé",
+      message: "Votre message a bien été envoyé.",
+    });
+    expect(mockBack).toHaveBeenCalled();
+  });
+
+  it("affiche une erreur si l'envoi du brouillon échoue", async () => {
+    api.sendDraft.mockRejectedValueOnce(new Error("SEND_MESSAGE_FAILED"));
+    renderCompose({ draftId: "d1" });
+    await waitFor(() => {
+      expect(screen.getByTestId("subject-input").props.value).toBe(
+        "Brouillon en cours",
+      );
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("send-btn"));
+    });
+
+    await waitFor(() => {
+      expect(showFeedbackToast).toHaveBeenCalledWith({
+        variant: "error",
+        title: "Envoi impossible",
+        message: "Impossible d'envoyer le message. Réessayez.",
+      });
+    });
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+});
+
 describe("fileIcon()", () => {
   it("retourne document-text-outline pour PDF", () => {
     expect(fileIcon("application/pdf")).toBe("document-text-outline");
