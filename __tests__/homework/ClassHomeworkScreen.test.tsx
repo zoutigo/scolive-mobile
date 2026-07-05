@@ -836,6 +836,27 @@ describe("ClassHomeworkScreen — header du détail homework", () => {
     );
   });
 
+  it("le header du détail n'est pas rendu à l'intérieur du ScrollView (pleine largeur)", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Exercices 1 à 3")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-card-hw-1"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("homework-detail-header")).toBeTruthy(),
+    );
+
+    const scrollView = screen.UNSAFE_getByType(
+      require("react-native").ScrollView,
+    );
+    expect(
+      within(scrollView).queryByTestId("homework-detail-header"),
+    ).toBeNull();
+  });
+
   it("le bouton retour du header de détail ramène à l'onglet liste", async () => {
     render(<ClassHomeworkScreen />);
 
@@ -858,6 +879,103 @@ describe("ClassHomeworkScreen — header du détail homework", () => {
     expect(screen.getByTestId("class-homework-list")).toBeTruthy();
     expect(screen.getByTestId("class-homework-tab-list")).toBeTruthy();
     expect(screen.getByText("Exercices 1 à 3")).toBeTruthy();
+  });
+});
+
+// ─── Écran de suivi (devoirs faits / à faire) ─────────────────────────────────
+
+describe("ClassHomeworkScreen — écran de suivi (control)", () => {
+  it("n'est pas une modale : ouvrir le suivi remplace la liste par le header et le hero de suivi", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-control-hw-1")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-control-hw-1"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("homework-control-header")).toBeTruthy(),
+    );
+
+    expect(screen.getByTestId("homework-control-hero")).toBeTruthy();
+    expect(screen.queryByTestId("class-homework-list")).toBeNull();
+    expect(screen.queryByTestId("class-homework-tab-list")).toBeNull();
+  });
+
+  it("le header de suivi n'est pas rendu à l'intérieur du ScrollView (pleine largeur)", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-control-hw-1")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-control-hw-1"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("homework-control-header")).toBeTruthy(),
+    );
+
+    const scrollView = screen.UNSAFE_getByType(
+      require("react-native").ScrollView,
+    );
+    expect(
+      within(scrollView).queryByTestId("homework-control-header"),
+    ).toBeNull();
+  });
+
+  it("affiche dans le hero le titre du devoir et le ratio d'élèves ayant terminé", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-control-hw-1")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-control-hw-1"));
+
+    const hero = await screen.findByTestId("homework-control-hero");
+
+    expect(within(hero).getByText("Exercices 1 à 3")).toBeTruthy();
+    expect(within(hero).getByText(/3\/12/)).toBeTruthy();
+  });
+
+  it("ferme le suivi via le bouton retour du header et revient à la liste", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-control-hw-1")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-control-hw-1"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("homework-control-close")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("homework-control-close"));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("homework-control-header")).toBeNull(),
+    );
+
+    expect(screen.getByTestId("class-homework-list")).toBeTruthy();
+    expect(screen.getByText("Exercices 1 à 3")).toBeTruthy();
+  });
+
+  it("liste les élèves ayant déjà terminé le devoir", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-control-hw-1")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-control-hw-1"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("homework-control-header")).toBeTruthy(),
+    );
+
+    await waitFor(() => expect(screen.getByText("Mebe Ariane")).toBeTruthy());
   });
 });
 

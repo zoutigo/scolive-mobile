@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,6 +19,7 @@ import { usersApi } from "../../api/users.api";
 import { familyApi } from "../../api/family.api";
 import { teachersApi } from "../../api/teachers.api";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { ROLE_LABELS, ROLE_COLORS } from "./UserCard";
 import { ModalFrame, FormActions } from "../teachers/TeacherSheetCommons";
 import { TeacherAssignmentSheet } from "../teachers/TeacherAssignmentSheet";
@@ -1476,224 +1476,219 @@ export function UserDetailModal({
 
   return (
     <>
-      <Modal
-        visible={!!user}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={onClose}
-        testID={testID ?? "user-detail-modal"}
-      >
-        <View style={styles.modalRoot}>
-          <View style={styles.headerWrap}>
-            <ModuleHeader
-              title="Utilisateurs"
-              subtitle={fullName}
-              onBack={onClose}
-              topInset={insets.top}
-              testID="user-detail-header"
-              backTestID="user-detail-close"
-              titleTestID="user-detail-title"
-              subtitleTestID="user-detail-name"
-            />
-          </View>
+      <View style={styles.modalRoot} testID={testID ?? "user-detail-modal"}>
+        <View style={styles.headerWrap}>
+          <ModuleHeader
+            title="Utilisateurs"
+            subtitle={fullName}
+            onBack={onClose}
+            topInset={insets.top}
+            testID="user-detail-header"
+            backTestID="user-detail-close"
+            titleTestID="user-detail-title"
+            subtitleTestID="user-detail-name"
+          />
+        </View>
 
-          <ScrollView
-            style={styles.body}
-            contentContainerStyle={styles.bodyContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Carte profil */}
-            <View style={styles.profileCard} testID="user-detail-profile">
-              <View style={styles.profileMainRow} testID="user-detail-fullname">
-                <Text style={styles.profileFullName}>{fullName}</Text>
-                {statusCfg ? (
-                  <View style={styles.profileStatusChip}>
-                    <Ionicons
-                      name={statusCfg.icon}
-                      size={12}
-                      color={statusCfg.color}
-                    />
-                    <Text
-                      style={[
-                        styles.profileStatusLabel,
-                        { color: statusCfg.color },
-                      ]}
-                    >
-                      {statusCfg.label}
-                    </Text>
-                  </View>
-                ) : (
-                  <View style={styles.profileStatusChip}>
-                    <Text
-                      style={[
-                        styles.profileStatusLabel,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      Sans compte
-                    </Text>
-                  </View>
-                )}
-              </View>
-              <View style={styles.profileRolesRow}>
-                {user.roles.map((role) => {
-                  const badge = ROLE_COLORS[role as SchoolRole] ?? {
-                    bg: colors.warmAccent,
-                    text: colors.white,
-                  };
-                  return (
-                    <View
-                      key={role}
-                      style={[
-                        styles.profileRoleBadge,
-                        { backgroundColor: badge.bg },
-                      ]}
-                    >
-                      <Text
-                        style={[styles.profileRoleText, { color: badge.text }]}
-                      >
-                        {ROLE_LABELS[role as SchoolRole] ?? role}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
-              {/* Actions communes (masquées pour student-only) */}
-              {user.hasAccount ? (
-                <>
-                  <View
+        <ScrollView
+          style={styles.body}
+          contentContainerStyle={[
+            styles.bodyContent,
+            { paddingBottom: insets.bottom + BOTTOM_TAB_BAR_HEIGHT + 24 },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Carte profil */}
+          <View style={styles.profileCard} testID="user-detail-profile">
+            <View style={styles.profileMainRow} testID="user-detail-fullname">
+              <Text style={styles.profileFullName}>{fullName}</Text>
+              {statusCfg ? (
+                <View style={styles.profileStatusChip}>
+                  <Ionicons
+                    name={statusCfg.icon}
+                    size={12}
+                    color={statusCfg.color}
+                  />
+                  <Text
                     style={[
-                      styles.sectionDivider,
-                      { borderTopColor: colors.warmBorder },
+                      styles.profileStatusLabel,
+                      { color: statusCfg.color },
                     ]}
-                  />
-                  <CommonActionsFooter
-                    member={user}
-                    onMessagePress={handleSendMessage}
-                    onEditRolesPress={handleOpenEditRoles}
-                  />
-                </>
-              ) : null}
+                  >
+                    {statusCfg.label}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.profileStatusChip}>
+                  <Text
+                    style={[
+                      styles.profileStatusLabel,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    Sans compte
+                  </Text>
+                </View>
+              )}
             </View>
-
-            {isLoading ? (
-              <View style={styles.loadingWrap} testID="user-detail-loading">
-                <ActivityIndicator color={colors.primary} size="large" />
-                <Text style={styles.loadingText}>Chargement du profil…</Text>
-              </View>
-            ) : error ? (
-              <View style={styles.errorWrap} testID="user-detail-error">
-                <Ionicons
-                  name="alert-circle-outline"
-                  size={28}
-                  color={colors.warmAccent}
-                />
-                <Text style={styles.errorText}>{error}</Text>
-                <TouchableOpacity
-                  style={styles.retryBtn}
-                  onPress={() => void loadDetail()}
-                >
-                  <Text style={styles.retryText}>Réessayer</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
+            <View style={styles.profileRolesRow}>
+              {user.roles.map((role) => {
+                const badge = ROLE_COLORS[role as SchoolRole] ?? {
+                  bg: colors.warmAccent,
+                  text: colors.white,
+                };
+                return (
+                  <View
+                    key={role}
+                    style={[
+                      styles.profileRoleBadge,
+                      { backgroundColor: badge.bg },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.profileRoleText, { color: badge.text }]}
+                    >
+                      {ROLE_LABELS[role as SchoolRole] ?? role}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+            {/* Actions communes (masquées pour student-only) */}
+            {user.hasAccount ? (
               <>
                 <View
-                  style={styles.roleSectionsWrap}
-                  testID="user-detail-role-sections"
-                >
-                  {renderRoleSections()}
-                </View>
-
-                {/* Contact — masqué pour student-only */}
-                {user.hasAccount ? (
-                  <View style={styles.section} testID="user-detail-contact">
-                    <Text style={styles.sectionTitle}>Contact</Text>
-                    <InfoRow
-                      icon="mail-outline"
-                      label="Adresse e-mail"
-                      value={
-                        (detail && "email" in detail ? detail.email : null) ??
-                        user.email ??
-                        "Non renseigné"
-                      }
-                      testID="user-detail-email"
-                    />
-                    <InfoRow
-                      icon="call-outline"
-                      label="Téléphone"
-                      value={
-                        (detail && "phone" in detail ? detail.phone : null) ??
-                        user.phone ??
-                        "Non renseigné"
-                      }
-                      testID="user-detail-phone"
-                    />
-                    {((detail && "gender" in detail ? detail.gender : null) ??
-                    user.gender) ? (
-                      <InfoRow
-                        icon="person-outline"
-                        label="Genre"
-                        value={
-                          GENDER_LABELS[
-                            ((detail && "gender" in detail
-                              ? detail.gender
-                              : null) ?? user.gender)!
-                          ] ?? "—"
-                        }
-                        testID="user-detail-gender"
-                      />
-                    ) : null}
-                  </View>
-                ) : null}
-
-                {/* Activité — masquée pour student-only */}
-                {user.hasAccount ? (
-                  <View style={styles.section} testID="user-detail-activity">
-                    <Text style={styles.sectionTitle}>Activité</Text>
-                    <InfoRow
-                      icon="calendar-outline"
-                      label="Membre depuis"
-                      value={formatDate(
-                        (detail && "createdAt" in detail
-                          ? detail.createdAt
-                          : null) ?? user.createdAt,
-                      )}
-                      testID="user-detail-created-at"
-                    />
-                    {detail &&
-                    "lastLoginAt" in detail &&
-                    detail.lastLoginAt !== undefined ? (
-                      <InfoRow
-                        icon="log-in-outline"
-                        label="Dernière connexion"
-                        value={
-                          detail.lastLoginAt
-                            ? formatDateTime(detail.lastLoginAt)
-                            : "Jamais connecté"
-                        }
-                        testID="user-detail-last-login"
-                      />
-                    ) : null}
-                    <InfoRow
-                      icon="shield-checkmark-outline"
-                      label="Profil complété"
-                      value={
-                        ((detail && "profileCompleted" in detail
-                          ? detail.profileCompleted
-                          : null) ?? user.profileCompleted)
-                          ? "Oui"
-                          : "Non"
-                      }
-                      testID="user-detail-profile-completed"
-                    />
-                  </View>
-                ) : null}
+                  style={[
+                    styles.sectionDivider,
+                    { borderTopColor: colors.warmBorder },
+                  ]}
+                />
+                <CommonActionsFooter
+                  member={user}
+                  onMessagePress={handleSendMessage}
+                  onEditRolesPress={handleOpenEditRoles}
+                />
               </>
-            )}
-          </ScrollView>
-        </View>
-      </Modal>
+            ) : null}
+          </View>
+
+          {isLoading ? (
+            <View style={styles.loadingWrap} testID="user-detail-loading">
+              <ActivityIndicator color={colors.primary} size="large" />
+              <Text style={styles.loadingText}>Chargement du profil…</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorWrap} testID="user-detail-error">
+              <Ionicons
+                name="alert-circle-outline"
+                size={28}
+                color={colors.warmAccent}
+              />
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity
+                style={styles.retryBtn}
+                onPress={() => void loadDetail()}
+              >
+                <Text style={styles.retryText}>Réessayer</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <View
+                style={styles.roleSectionsWrap}
+                testID="user-detail-role-sections"
+              >
+                {renderRoleSections()}
+              </View>
+
+              {/* Contact — masqué pour student-only */}
+              {user.hasAccount ? (
+                <View style={styles.section} testID="user-detail-contact">
+                  <Text style={styles.sectionTitle}>Contact</Text>
+                  <InfoRow
+                    icon="mail-outline"
+                    label="Adresse e-mail"
+                    value={
+                      (detail && "email" in detail ? detail.email : null) ??
+                      user.email ??
+                      "Non renseigné"
+                    }
+                    testID="user-detail-email"
+                  />
+                  <InfoRow
+                    icon="call-outline"
+                    label="Téléphone"
+                    value={
+                      (detail && "phone" in detail ? detail.phone : null) ??
+                      user.phone ??
+                      "Non renseigné"
+                    }
+                    testID="user-detail-phone"
+                  />
+                  {((detail && "gender" in detail ? detail.gender : null) ??
+                  user.gender) ? (
+                    <InfoRow
+                      icon="person-outline"
+                      label="Genre"
+                      value={
+                        GENDER_LABELS[
+                          ((detail && "gender" in detail
+                            ? detail.gender
+                            : null) ?? user.gender)!
+                        ] ?? "—"
+                      }
+                      testID="user-detail-gender"
+                    />
+                  ) : null}
+                </View>
+              ) : null}
+
+              {/* Activité — masquée pour student-only */}
+              {user.hasAccount ? (
+                <View style={styles.section} testID="user-detail-activity">
+                  <Text style={styles.sectionTitle}>Activité</Text>
+                  <InfoRow
+                    icon="calendar-outline"
+                    label="Membre depuis"
+                    value={formatDate(
+                      (detail && "createdAt" in detail
+                        ? detail.createdAt
+                        : null) ?? user.createdAt,
+                    )}
+                    testID="user-detail-created-at"
+                  />
+                  {detail &&
+                  "lastLoginAt" in detail &&
+                  detail.lastLoginAt !== undefined ? (
+                    <InfoRow
+                      icon="log-in-outline"
+                      label="Dernière connexion"
+                      value={
+                        detail.lastLoginAt
+                          ? formatDateTime(detail.lastLoginAt)
+                          : "Jamais connecté"
+                      }
+                      testID="user-detail-last-login"
+                    />
+                  ) : null}
+                  <InfoRow
+                    icon="shield-checkmark-outline"
+                    label="Profil complété"
+                    value={
+                      ((detail && "profileCompleted" in detail
+                        ? detail.profileCompleted
+                        : null) ?? user.profileCompleted)
+                        ? "Oui"
+                        : "Non"
+                    }
+                    testID="user-detail-profile-completed"
+                  />
+                </View>
+              ) : null}
+            </>
+          )}
+        </ScrollView>
+      </View>
 
       {/* Modale rôles (uniquement pour les users avec compte) */}
       <EditRolesSheet

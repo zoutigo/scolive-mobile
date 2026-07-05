@@ -227,6 +227,31 @@ describe("SchoolAdminUsersScreen — Fonctionnels", () => {
       expect(screen.getByTestId("users-detail-modal")).toBeOnTheScreen();
     });
   });
+
+  it("n'est pas une modale : ouvrir le détail remplace l'écran liste (pas d'affichage superposé)", async () => {
+    mockUsersApi.list.mockResolvedValueOnce(
+      makeUsersPage([TEACHER_USER, PARENT_USER]),
+    );
+    mockUsersApi.get.mockResolvedValueOnce(makeSchoolUserDetail(TEACHER_USER));
+    renderScreen();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(`user-card-${TEACHER_USER.id}`),
+      ).toBeOnTheScreen();
+    });
+    expect(screen.getByTestId("users-list")).toBeOnTheScreen();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId(`user-card-${TEACHER_USER.id}`));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("users-detail-modal")).toBeOnTheScreen();
+    });
+    expect(screen.queryByTestId("users-list")).toBeNull();
+    expect(screen.queryByTestId("school-admin-users-screen")).toBeNull();
+  });
 });
 
 describe("SchoolAdminUsersScreen — Intégration store", () => {
