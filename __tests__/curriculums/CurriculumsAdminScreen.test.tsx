@@ -331,6 +331,24 @@ beforeEach(() => {
       name: "Physique",
     },
   });
+
+  mockCurriculumsApi.createSubject.mockImplementation(
+    async (_schoolSlug, payload) => {
+      const created: CurriculumSubjectCatalogItem = {
+        id: "subject-new",
+        name: payload.name,
+        branches: [],
+        _count: {
+          assignments: 0,
+          studentGrades: 0,
+          curriculumSubjects: 0,
+          classOverrides: 0,
+        },
+      };
+      subjectsState = [...subjectsState, created];
+      return created;
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -922,6 +940,10 @@ describe("CurriculumsAdminScreen — matières du curriculum", () => {
 
     fireEvent.press(screen.getByTestId("curriculums-fab"));
     await waitFor(() =>
+      expect(screen.getByTestId("curriculums-subject-link-fab")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("curriculums-subject-link-fab"));
+    await waitFor(() =>
       expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
     expect(screen.getByText("Ajouter une matière")).toBeTruthy();
@@ -1037,10 +1059,278 @@ describe("CurriculumsAdminScreen — matières du curriculum", () => {
     );
     fireEvent.press(screen.getByTestId("curriculums-fab"));
     await waitFor(() =>
+      expect(screen.getByTestId("curriculums-subject-link-fab")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("curriculums-subject-link-fab"));
+    await waitFor(() =>
       expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
     const submit = screen.getByTestId("curriculum-subject-form-submit");
     expect(submit.props.accessibilityState?.disabled).toBeFalsy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FAB double action — création de matière au catalogue vs liaison à un curriculum
+// ---------------------------------------------------------------------------
+
+describe("CurriculumsAdminScreen — FAB double action sur l'onglet matières", () => {
+  it("ouvre un menu à deux actions au lieu d'ouvrir directement un formulaire", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-selector")).toBeTruthy(),
+    );
+
+    expect(screen.queryByTestId("curriculums-subject-create-fab")).toBeNull();
+    expect(screen.queryByTestId("curriculums-subject-link-fab")).toBeNull();
+    expect(screen.queryByTestId("curriculums-forms-tab")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculums-subject-create-fab")).toBeTruthy(),
+    );
+    expect(screen.getByTestId("curriculums-subject-link-fab")).toBeTruthy();
+    expect(screen.queryByTestId("curriculums-forms-tab")).toBeNull();
+  });
+
+  it("ferme le menu en pressant le fond (backdrop) sans ouvrir de formulaire", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-selector")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculums-fab-backdrop")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("curriculums-fab-backdrop"));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("curriculums-fab-backdrop")).toBeNull(),
+    );
+    expect(screen.queryByTestId("curriculums-subject-create-fab")).toBeNull();
+    expect(screen.queryByTestId("curriculums-forms-tab")).toBeNull();
+  });
+
+  it("ferme le menu quand on change d'onglet sans le sélectionner", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-selector")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculums-subject-create-fab")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-curriculums"));
+    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
+
+    expect(screen.queryByTestId("curriculums-subject-create-fab")).toBeNull();
+  });
+
+  it("ouvre le formulaire de création de matière depuis le mini-FAB dédié", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-selector")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculums-subject-create-fab")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("curriculums-subject-create-fab"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
+    );
+    expect(screen.getByTestId("curriculums-form-hero")).toBeTruthy();
+    expect(screen.getByText("Créer une matière")).toBeTruthy();
+    expect(
+      screen.getByTestId("curriculum-subject-catalog-name-input"),
+    ).toBeTruthy();
+    expect(screen.queryByTestId("curriculums-tab-subjects")).toBeNull();
+    expect(screen.queryByTestId("curriculums-fab")).toBeNull();
+  });
+
+  it("garde le submit actif même vide, valide côté champ et n'appelle pas l'API si le nom est vide", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-selector")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    fireEvent.press(
+      await screen.findByTestId("curriculums-subject-create-fab"),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
+    );
+
+    const submit = screen.getByTestId("curriculum-subject-catalog-form-submit");
+    expect(submit.props.accessibilityState?.disabled).toBeFalsy();
+
+    fireEvent.press(submit);
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("curriculum-subject-catalog-name-input-error"),
+      ).toBeTruthy(),
+    );
+    expect(mockCurriculumsApi.createSubject).not.toHaveBeenCalled();
+  });
+
+  it("crée une matière au catalogue, affiche un toast succès et revient au tab matières après 2 secondes", async () => {
+    jest.useFakeTimers();
+
+    render(<CurriculumsAdminScreen />);
+    await waitFor(() =>
+      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    fireEvent.press(
+      await screen.findByTestId("curriculums-subject-create-fab"),
+    );
+    await screen.findByTestId("curriculums-forms-tab");
+
+    fireEvent.changeText(
+      screen.getByTestId("curriculum-subject-catalog-name-input"),
+      "SVT",
+    );
+    fireEvent.press(
+      screen.getByTestId("curriculum-subject-catalog-form-submit"),
+    );
+
+    await waitFor(() =>
+      expect(mockCurriculumsApi.createSubject).toHaveBeenCalledWith(
+        "college-vogt",
+        { name: "SVT" },
+      ),
+    );
+    expect(mockShowSuccess).toHaveBeenCalledWith({
+      title: "Matière créée",
+      message: "La matière a été ajoutée au catalogue de l'établissement.",
+    });
+
+    expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy();
+
+    act(() => jest.advanceTimersByTime(2000));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("curriculums-forms-tab")).toBeNull(),
+    );
+    expect(screen.getByTestId("curriculums-tab-subjects")).toBeTruthy();
+
+    jest.useRealTimers();
+  });
+
+  it("affiche un toast d'erreur et reste sur le formulaire quand la création de matière échoue", async () => {
+    mockCurriculumsApi.createSubject.mockRejectedValue(
+      new Error("Erreur serveur"),
+    );
+
+    await renderAndWaitLoaded();
+    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    fireEvent.press(
+      await screen.findByTestId("curriculums-subject-create-fab"),
+    );
+    await screen.findByTestId("curriculums-forms-tab");
+
+    fireEvent.changeText(
+      screen.getByTestId("curriculum-subject-catalog-name-input"),
+      "SVT",
+    );
+    fireEvent.press(
+      screen.getByTestId("curriculum-subject-catalog-form-submit"),
+    );
+
+    await waitFor(() =>
+      expect(mockShowError).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Action impossible" }),
+      ),
+    );
+    expect(mockShowSuccess).not.toHaveBeenCalled();
+    expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy();
+  });
+
+  it("annule le formulaire de création de matière sans appeler l'API et revient au tab matières", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    fireEvent.press(
+      await screen.findByTestId("curriculums-subject-create-fab"),
+    );
+    await screen.findByTestId("curriculums-forms-tab");
+
+    fireEvent.press(
+      screen.getByTestId("curriculum-subject-catalog-form-cancel"),
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("curriculums-forms-tab")).toBeNull(),
+    );
+    expect(screen.getByTestId("curriculums-tab-subjects")).toBeTruthy();
+    expect(mockCurriculumsApi.createSubject).not.toHaveBeenCalled();
+  });
+
+  it("la flèche du header revient au tab matières depuis le formulaire de création de matière sans naviguer hors du module", async () => {
+    await renderAndWaitLoaded();
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    fireEvent.press(
+      await screen.findByTestId("curriculums-subject-create-fab"),
+    );
+    await screen.findByTestId("curriculums-forms-tab");
+
+    fireEvent.press(screen.getByTestId("curriculums-back-btn"));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("curriculums-forms-tab")).toBeNull(),
+    );
+    expect(screen.getByTestId("curriculums-tab-subjects")).toBeTruthy();
+    expect(mockBack).not.toHaveBeenCalled();
+  });
+
+  it("désactive le mini-FAB de liaison mais garde actif le mini-FAB de création quand il n'y a aucun curriculum", async () => {
+    curriculumsState = [];
+    mockCurriculumsApi.listCurriculums.mockResolvedValue([]);
+    render(<CurriculumsAdminScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculums-tab-subjects")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("curriculums-tab-subjects"));
+    await waitFor(() =>
+      expect(screen.getByText("Aucun curriculum disponible")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculums-subject-link-fab")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("curriculums-subject-link-fab"));
+    expect(screen.queryByTestId("curriculums-forms-tab")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("curriculums-subject-create-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
+    );
+    expect(screen.getByText("Créer une matière")).toBeTruthy();
   });
 });
 
@@ -1084,7 +1374,7 @@ describe("CurriculumsAdminScreen — sélecteur curriculum et matières", () => 
     expect(screen.getByText("0 matière(s)")).toBeTruthy();
   });
 
-  it("désactive le FAB sur l'onglet matières quand il n'y a aucun curriculum", async () => {
+  it("désactive uniquement le mini-FAB de liaison quand il n'y a aucun curriculum", async () => {
     curriculumsState = [];
     mockCurriculumsApi.listCurriculums.mockResolvedValue([]);
     render(<CurriculumsAdminScreen />);
@@ -1097,8 +1387,18 @@ describe("CurriculumsAdminScreen — sélecteur curriculum et matières", () => 
       expect(screen.getByText("Aucun curriculum disponible")).toBeTruthy(),
     );
 
-    const fab = screen.queryByTestId("curriculums-fab");
-    expect(fab?.props.accessibilityState?.disabled ?? true).toBeTruthy();
+    const fab = screen.getByTestId("curriculums-fab");
+    expect(fab.props.accessibilityState?.disabled).toBeFalsy();
+
+    fireEvent.press(fab);
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculums-subject-link-fab")).toBeTruthy(),
+    );
+    const linkFab = screen.getByTestId("curriculums-subject-link-fab");
+    expect(linkFab.props.accessibilityState?.disabled).toBeTruthy();
+
+    const createFab = screen.getByTestId("curriculums-subject-create-fab");
+    expect(createFab.props.accessibilityState?.disabled).toBeFalsy();
   });
 });
 

@@ -43,6 +43,7 @@ import {
 import type {
   CreateAcademicLevelPayload,
   CreateCurriculumPayload,
+  CreateSubjectPayload,
   CreateTrackPayload,
   CurriculumAcademicLevel,
   CurriculumRow,
@@ -87,6 +88,11 @@ type FormContext =
       mode: FormMode;
       originTab: ListTabKey;
       item?: CurriculumSubjectRow | null;
+    }
+  | {
+      kind: "subject";
+      mode: FormMode;
+      originTab: ListTabKey;
     };
 
 type DeleteTarget =
@@ -141,6 +147,10 @@ const CURRICULUM_SUBJECT_FORM_SCHEMA = z.object({
       "Les heures doivent être positives.",
     ),
   isMandatory: z.boolean(),
+});
+
+const SUBJECT_FORM_SCHEMA = z.object({
+  name: z.string().trim().min(1, "Le nom de la matière est obligatoire."),
 });
 
 function normalizeOptionalNumber(value?: string) {
@@ -837,6 +847,80 @@ function CurriculumSubjectFormContent(props: {
 }
 
 // ---------------------------------------------------------------------------
+// SubjectFormContent — formulaire inline création de matière (sans Modal)
+// ---------------------------------------------------------------------------
+
+function SubjectFormContent(props: {
+  isSubmitting?: boolean;
+  onCancel: () => void;
+  onSubmit: (values: CreateSubjectPayload) => Promise<void> | void;
+}) {
+  const {
+    control,
+    handleSubmit,
+    setFocus: focusField,
+    formState: { errors },
+  } = useForm<z.infer<typeof SUBJECT_FORM_SCHEMA>>({
+    resolver: zodResolver(SUBJECT_FORM_SCHEMA),
+    mode: "onChange",
+    defaultValues: {
+      name: "",
+    },
+  });
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="curriculum-subject-catalog-form-content"
+    >
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Controller
+          control={control}
+          name="name"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <TextFormField
+              ref={ref}
+              label="Nom de la matière"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ex: Mathématiques"
+              error={errors.name?.message}
+              testID="curriculum-subject-catalog-name-input"
+            />
+          )}
+        />
+      </ScrollView>
+
+      <View style={styles.formActionsBar}>
+        <FormActions
+          submitLabel="Créer la matière"
+          isSubmitting={props.isSubmitting}
+          onCancel={props.onCancel}
+          onSubmit={() =>
+            void handleSubmit(
+              async (values) => props.onSubmit(values),
+              (errs) => {
+                const first = Object.keys(errs)[0];
+                if (first)
+                  focusField(first as Parameters<typeof focusField>[0]);
+              },
+            )()
+          }
+          testIDPrefix="curriculum-subject-catalog-form"
+        />
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Hero content helpers
 // ---------------------------------------------------------------------------
 
@@ -851,6 +935,9 @@ function formHeroIcon(
   }
   if (ctx.kind === "curriculum") {
     return ctx.mode === "create" ? "albums-outline" : "create-outline";
+  }
+  if (ctx.kind === "subject") {
+    return "add-circle-outline";
   }
   return ctx.mode === "create" ? "link-outline" : "create-outline";
 }
@@ -871,6 +958,9 @@ function formHeroTitle(ctx: FormContext): string {
       ? "Créer un curriculum"
       : "Modifier le curriculum";
   }
+  if (ctx.kind === "subject") {
+    return "Créer une matière";
+  }
   return ctx.mode === "create"
     ? "Ajouter une matière"
     : "Modifier la matière du curriculum";
@@ -886,6 +976,9 @@ function formHeroSubtitle(ctx: FormContext): string {
   if (ctx.kind === "curriculum") {
     return "Assemblez un niveau et une filière dans un formulaire compact pour produire un intitulé cohérent.";
   }
+  if (ctx.kind === "subject") {
+    return "Ajoutez une matière au catalogue de l'établissement. Elle pourra ensuite être liée à n'importe quel curriculum.";
+  }
   return "Sélectionnez rapidement le curriculum et la matière, puis ajustez les paramètres pédagogiques.";
 }
 
@@ -900,6 +993,7 @@ function renderFormContent(
     isSubmittingLevelTrack: boolean;
     isSubmittingCurriculum: boolean;
     isSubmittingCurriculumSubject: boolean;
+    isSubmittingSubject: boolean;
     onCancel: () => void;
     onSubmitLevelTrack: (
       values: CreateAcademicLevelPayload | CreateTrackPayload,
@@ -911,6 +1005,7 @@ function renderFormContent(
       curriculumId: string,
       values: UpsertCurriculumSubjectPayload,
     ) => Promise<void> | void;
+    onSubmitSubject: (values: CreateSubjectPayload) => Promise<void> | void;
   },
 ) {
   switch (ctx.kind) {
@@ -955,6 +1050,14 @@ function renderFormContent(
           onSubmit={props.onSubmitCurriculumSubject}
         />
       );
+    case "subject":
+      return (
+        <SubjectFormContent
+          isSubmitting={props.isSubmittingSubject}
+          onCancel={props.onCancel}
+          onSubmit={props.onSubmitSubject}
+        />
+      );
   }
 }
 
@@ -978,6 +1081,8 @@ export function CurriculumsAdminScreen() {
   const [isSubmittingCurriculum, setIsSubmittingCurriculum] = useState(false);
   const [isSubmittingCurriculumSubject, setIsSubmittingCurriculumSubject] =
     useState(false);
+  const [isSubmittingSubject, setIsSubmittingSubject] = useState(false);
+  const [subjectsFabOpen, setSubjectsFabOpen] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [levels, setLevels] = useState<CurriculumAcademicLevel[]>([]);
   const [tracks, setTracks] = useState<CurriculumTrack[]>([]);
@@ -1094,6 +1199,12 @@ export function CurriculumsAdminScreen() {
   }, [isAllowed, loadOverview, schoolSlug]);
 
   useEffect(() => {
+    if (tab !== "subjects") {
+      setSubjectsFabOpen(false);
+    }
+  }, [tab]);
+
+  useEffect(() => {
     if (!isAllowed || !schoolSlug) return;
     if (tab !== "subjects") return;
     if (!selectedCurriculumId) {
@@ -1181,14 +1292,26 @@ export function CurriculumsAdminScreen() {
       return;
     }
     if (tab === "subjects") {
-      setFormContext({
-        kind: "curriculum-subject",
-        mode: "create",
-        originTab: "subjects",
-        item: null,
-      });
-      setTab("forms");
+      setSubjectsFabOpen((prev) => !prev);
     }
+  }
+
+  function openCreateSubjectForm() {
+    setSubjectsFabOpen(false);
+    setFormContext({ kind: "subject", mode: "create", originTab: "subjects" });
+    setTab("forms");
+  }
+
+  function openLinkSubjectForm() {
+    if (curriculums.length === 0) return;
+    setSubjectsFabOpen(false);
+    setFormContext({
+      kind: "curriculum-subject",
+      mode: "create",
+      originTab: "subjects",
+      item: null,
+    });
+    setTab("forms");
   }
 
   async function handleLevelTrackSubmit(
@@ -1338,6 +1461,34 @@ export function CurriculumsAdminScreen() {
     }
   }
 
+  async function handleSubjectSubmit(values: CreateSubjectPayload) {
+    if (!schoolSlug || !formContext || formContext.kind !== "subject") {
+      return;
+    }
+    const ctx = formContext;
+    setIsSubmittingSubject(true);
+    try {
+      await curriculumsApi.createSubject(schoolSlug, values);
+      await loadOverview(false);
+      showSuccess({
+        title: "Matière créée",
+        message: "La matière a été ajoutée au catalogue de l'établissement.",
+      });
+      const originTab = ctx.originTab;
+      setTimeout(() => {
+        setTab(originTab);
+        setFormContext(null);
+      }, 2000);
+    } catch (error) {
+      showError({
+        title: "Action impossible",
+        message: extractApiError(error),
+      });
+    } finally {
+      setIsSubmittingSubject(false);
+    }
+  }
+
   async function confirmDelete() {
     if (!schoolSlug || !deleteTarget) return;
     const currentTarget = deleteTarget;
@@ -1393,11 +1544,8 @@ export function CurriculumsAdminScreen() {
   }
 
   const fabDisabled =
-    tab === "help" ||
-    tab === "forms" ||
-    (tab === "subjects" && curriculums.length === 0) ||
-    !isAllowed ||
-    !schoolSlug;
+    tab === "help" || tab === "forms" || !isAllowed || !schoolSlug;
+  const linkSubjectDisabled = curriculums.length === 0;
 
   const helpCards = [
     {
@@ -1502,10 +1650,12 @@ export function CurriculumsAdminScreen() {
             isSubmittingLevelTrack,
             isSubmittingCurriculum,
             isSubmittingCurriculumSubject,
+            isSubmittingSubject,
             onCancel: exitForms,
             onSubmitLevelTrack: handleLevelTrackSubmit,
             onSubmitCurriculum: handleCurriculumSubmit,
             onSubmitCurriculumSubject: handleCurriculumSubjectSubmit,
+            onSubmitSubject: handleSubjectSubmit,
           })}
         </View>
       ) : (
@@ -2015,27 +2165,105 @@ export function CurriculumsAdminScreen() {
           </ScrollView>
 
           {tab !== "help" ? (
-            <TouchableOpacity
-              style={[
-                styles.fab,
-                {
-                  bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT,
-                  backgroundColor: fabDisabled
-                    ? colors.textSecondary
-                    : accentForTab(tab as ListTabKey),
-                },
-              ]}
-              disabled={fabDisabled}
-              onPress={openFab}
-              activeOpacity={0.88}
-              testID="curriculums-fab"
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color={colors.white} />
-              ) : (
-                <Ionicons name="add" size={28} color={colors.white} />
-              )}
-            </TouchableOpacity>
+            <>
+              {tab === "subjects" && subjectsFabOpen ? (
+                <TouchableOpacity
+                  style={styles.fabBackdrop}
+                  activeOpacity={1}
+                  onPress={() => setSubjectsFabOpen(false)}
+                  testID="curriculums-fab-backdrop"
+                />
+              ) : null}
+
+              {tab === "subjects" && subjectsFabOpen ? (
+                <View
+                  style={[
+                    styles.fabMiniStack,
+                    {
+                      bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT + 74,
+                    },
+                  ]}
+                >
+                  <View style={styles.fabMiniRow}>
+                    <View style={styles.fabMiniLabel}>
+                      <Text style={styles.fabMiniLabelText}>
+                        Lier à un curriculum
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.fabMini,
+                        {
+                          backgroundColor: linkSubjectDisabled
+                            ? colors.textSecondary
+                            : accentForTab("curriculums"),
+                        },
+                      ]}
+                      disabled={linkSubjectDisabled}
+                      onPress={openLinkSubjectForm}
+                      activeOpacity={0.88}
+                      testID="curriculums-subject-link-fab"
+                    >
+                      <Ionicons
+                        name="link-outline"
+                        size={20}
+                        color={colors.white}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.fabMiniRow}>
+                    <View style={styles.fabMiniLabel}>
+                      <Text style={styles.fabMiniLabelText}>
+                        Nouvelle matière
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.fabMini,
+                        { backgroundColor: accentForTab("subjects") },
+                      ]}
+                      onPress={openCreateSubjectForm}
+                      activeOpacity={0.88}
+                      testID="curriculums-subject-create-fab"
+                    >
+                      <Ionicons
+                        name="add-outline"
+                        size={22}
+                        color={colors.white}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : null}
+
+              <TouchableOpacity
+                style={[
+                  styles.fab,
+                  {
+                    bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT,
+                    backgroundColor: fabDisabled
+                      ? colors.textSecondary
+                      : accentForTab(tab as ListTabKey),
+                  },
+                ]}
+                disabled={fabDisabled}
+                onPress={openFab}
+                activeOpacity={0.88}
+                testID="curriculums-fab"
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Ionicons
+                    name={
+                      tab === "subjects" && subjectsFabOpen ? "close" : "add"
+                    }
+                    size={28}
+                    color={colors.white}
+                  />
+                )}
+              </TouchableOpacity>
+            </>
           ) : null}
         </>
       )}
@@ -2159,6 +2387,53 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
     elevation: 8,
+  },
+  fabBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(18, 28, 38, 0.28)",
+  },
+  fabMiniStack: {
+    position: "absolute",
+    right: 20,
+    gap: 14,
+    alignItems: "flex-end",
+  },
+  fabMiniRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  fabMiniLabel: {
+    backgroundColor: colors.surface,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  fabMiniLabelText: {
+    color: colors.textPrimary,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  fabMini: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
   },
   subjectSelectorBar: {
     marginTop: -4,

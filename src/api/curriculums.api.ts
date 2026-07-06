@@ -2,6 +2,7 @@ import { apiFetch } from "./client";
 import type {
   CreateAcademicLevelPayload,
   CreateCurriculumPayload,
+  CreateSubjectPayload,
   CreateTrackPayload,
   CurriculumAcademicLevel,
   CurriculumRow,
@@ -144,6 +145,20 @@ export const curriculumsApi = {
 
   listSubjects(schoolSlug: string): Promise<CurriculumSubjectCatalogItem[]> {
     return apiFetch(buildAdminPath(schoolSlug, "subjects"), {}, true);
+  },
+
+  createSubject(
+    schoolSlug: string,
+    payload: CreateSubjectPayload,
+  ): Promise<CurriculumSubjectCatalogItem> {
+    return apiFetch(
+      buildAdminPath(schoolSlug, "subjects"),
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      },
+      true,
+    );
   },
 
   listCurriculumSubjects(
