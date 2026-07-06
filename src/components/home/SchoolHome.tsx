@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   View,
@@ -11,7 +11,9 @@ import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import { useHeaderScroll } from "../navigation/header-scroll-context";
 import { useTranslation } from "../../i18n/useTranslation";
+import { dashboardApi } from "../../api/dashboard.api";
 import type { AuthUser, SchoolRole } from "../../types/auth.types";
+import type { SchoolDashboardKpis } from "../../types/dashboard.types";
 
 interface SchoolHomeProps {
   user: AuthUser;
@@ -55,13 +57,76 @@ function QuickLink({ icon, label, color, count, onPress }: QuickLinkProps) {
   );
 }
 
-export function SchoolHome({ user }: SchoolHomeProps) {
+export function SchoolHome({ user, schoolSlug }: SchoolHomeProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const { onScroll } = useHeaderScroll();
   const role = (user.activeRole ?? user.role) as SchoolRole | null;
   const roleLabelKey = role ? ROLE_LABEL_KEYS[role] : undefined;
   const roleLabel = roleLabelKey ? t(roleLabelKey) : (role ?? "");
+  const [kpis, setKpis] = useState<SchoolDashboardKpis | null>(null);
+
+  useEffect(() => {
+    if (!schoolSlug) return;
+    let cancelled = false;
+    dashboardApi
+      .getSchoolKpis(schoolSlug)
+      .then((data) => {
+        if (!cancelled) setKpis(data);
+      })
+      .catch(() => {
+        if (!cancelled) setKpis(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolSlug]);
+
+  const dashboardTitle = kpis?.academicYear
+    ? t("home.school.dashboard.title").replace(
+        "{year}",
+        kpis.academicYear.label,
+      )
+    : t("home.school.dashboard.title").replace("{year}", "").trim();
+
+  const statCards = [
+    {
+      icon: "book",
+      label: t("home.school.kpi.classes"),
+      value: kpis?.classesCount,
+      color: colors.primary,
+    },
+    {
+      icon: "people",
+      label: t("home.school.kpi.students"),
+      value: kpis?.studentsCount,
+      color: colors.accentTeal,
+    },
+    {
+      icon: "school",
+      label: t("home.school.kpi.teachers"),
+      value: kpis?.teachersCount,
+      color: colors.warmAccent,
+    },
+    {
+      icon: "heart",
+      label: t("home.school.kpi.parents"),
+      value: kpis?.parentsCount,
+      color: "#6B5EA8",
+    },
+    {
+      icon: "book-outline",
+      label: t("home.school.kpi.subjects"),
+      value: kpis?.subjectsCount,
+      color: "#3A8FAF",
+    },
+    {
+      icon: "business",
+      label: t("home.school.kpi.rooms"),
+      value: kpis?.roomsCount,
+      color: "#D08B3A",
+    },
+  ] as const;
 
   function handleQuickLinkPress(label: string) {
     if (label === "Fil d'actualité") {
@@ -103,14 +168,9 @@ export function SchoolHome({ user }: SchoolHomeProps) {
       </View>
 
       {/* Stats grid */}
-      <Text style={styles.sectionTitle}>Tableau de bord</Text>
+      <Text style={styles.sectionTitle}>{dashboardTitle}</Text>
       <View style={styles.statsGrid}>
-        {[
-          { icon: "book", label: "Classes", color: colors.primary },
-          { icon: "people", label: "Élèves", color: colors.accentTeal },
-          { icon: "school", label: "Enseignants", color: colors.warmAccent },
-          { icon: "person-add", label: "Inscriptions", color: "#6B5EA8" },
-        ].map((s) => (
+        {statCards.map((s) => (
           <TouchableOpacity
             key={s.label}
             style={styles.statCard}
@@ -119,10 +179,16 @@ export function SchoolHome({ user }: SchoolHomeProps) {
             <View
               style={[styles.statCardIcon, { backgroundColor: s.color + "18" }]}
             >
-              <Ionicons name={s.icon as "home"} size={26} color={s.color} />
+              <Ionicons name={s.icon as "home"} size={22} color={s.color} />
             </View>
-            <Text style={styles.statCardValue}>—</Text>
-            <Text style={styles.statCardLabel}>{s.label}</Text>
+            <View style={styles.statCardTextWrap}>
+              <Text style={styles.statCardLabel} numberOfLines={1}>
+                {s.label}
+              </Text>
+              <Text style={styles.statCardValue}>
+                {s.value === undefined ? "—" : s.value}
+              </Text>
+            </View>
           </TouchableOpacity>
         ))}
       </View>
@@ -224,24 +290,31 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.warmBorder,
-    padding: 16,
-    alignItems: "flex-start",
-    gap: 6,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   statCardIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
+  },
+  statCardTextWrap: {
+    flex: 1,
+    minWidth: 0,
+    height: 40,
+    justifyContent: "center",
+    gap: 2,
   },
   statCardValue: {
-    fontSize: 26,
+    fontSize: 18,
     fontWeight: "700",
     color: colors.textPrimary,
   },
-  statCardLabel: { fontSize: 13, color: colors.textSecondary },
+  statCardLabel: { fontSize: 12, color: colors.textSecondary },
 
   quickLinks: {
     backgroundColor: colors.surface,
