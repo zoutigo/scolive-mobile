@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -20,8 +21,14 @@ jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/curriculums.api");
 
 const mockBack = jest.fn();
+const mockCanGoBack = jest.fn(() => true);
+const mockNavigate = jest.fn();
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ back: mockBack }),
+  useRouter: () => ({
+    back: mockBack,
+    canGoBack: mockCanGoBack,
+    navigate: mockNavigate,
+  }),
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -397,15 +404,20 @@ describe("CurriculumsAdminScreen — navigation et accès", () => {
 // ---------------------------------------------------------------------------
 
 describe("CurriculumsAdminScreen — niveaux académiques", () => {
-  it("ouvre le formulaire de niveau depuis le FAB et crée un niveau avec toast de succès", async () => {
+  it("ouvre le formulaire inline de niveau depuis le FAB (tab forms, hero, onglets masqués) et crée un niveau", async () => {
     await renderAndWaitLoaded();
 
     fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
     await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
     fireEvent.press(screen.getByTestId("curriculums-fab"));
+
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
+    expect(screen.getByTestId("curriculums-form-hero")).toBeTruthy();
+    expect(screen.getByText("Créer un niveau académique")).toBeTruthy();
+    expect(screen.queryByTestId("curriculums-tab-levels")).toBeNull();
+    expect(screen.queryByTestId("curriculums-fab")).toBeNull();
 
     fireEvent.changeText(
       screen.getByTestId("curriculum-level-code-input"),
@@ -425,11 +437,47 @@ describe("CurriculumsAdminScreen — niveaux académiques", () => {
         { code: "5EME", label: "Cinquième" },
       ),
     );
-    await waitFor(() => expect(screen.getByText("Cinquième")).toBeTruthy());
     expect(mockShowSuccess).toHaveBeenCalledWith({
       title: "Niveau créé",
       message: "Le niveau académique a été ajouté.",
     });
+  });
+
+  it("succès création niveau → retour automatique au tab d'origine après 2 secondes", async () => {
+    jest.useFakeTimers();
+
+    render(<CurriculumsAdminScreen />);
+    await waitFor(() =>
+      expect(screen.getByText("6EME - TRONC_COMMUN")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await screen.findByTestId("curriculums-forms-tab");
+
+    fireEvent.changeText(
+      screen.getByTestId("curriculum-level-code-input"),
+      "5EME",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("curriculum-level-label-input"),
+      "Cinquième",
+    );
+    fireEvent.press(screen.getByTestId("curriculum-level-form-submit"));
+
+    await waitFor(() => expect(mockShowSuccess).toHaveBeenCalled());
+
+    // Pendant les 2 secondes, le tab forms est encore visible
+    expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy();
+
+    act(() => jest.advanceTimersByTime(2000));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("curriculums-forms-tab")).toBeNull(),
+    );
+    expect(screen.getByTestId("curriculums-tab-levels")).toBeTruthy();
+
+    jest.useRealTimers();
   });
 
   it("ouvre le formulaire d'édition de niveau pré-rempli et soumet la mise à jour", async () => {
@@ -442,8 +490,9 @@ describe("CurriculumsAdminScreen — niveaux académiques", () => {
 
     fireEvent.press(screen.getByTestId("curriculum-level-edit-level-6e"));
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
+    expect(screen.getByText("Modifier le niveau académique")).toBeTruthy();
 
     expect(screen.getByTestId("curriculum-level-code-input").props.value).toBe(
       "6EME",
@@ -520,7 +569,7 @@ describe("CurriculumsAdminScreen — niveaux académiques", () => {
     await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
     fireEvent.press(screen.getByTestId("curriculums-fab"));
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
     fireEvent.press(screen.getByTestId("curriculum-level-form-submit"));
 
@@ -539,7 +588,7 @@ describe("CurriculumsAdminScreen — niveaux académiques", () => {
     await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
     fireEvent.press(screen.getByTestId("curriculums-fab"));
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
     const submit = screen.getByTestId("curriculum-level-form-submit");
     expect(submit.props.accessibilityState?.disabled).toBeFalsy();
@@ -551,7 +600,7 @@ describe("CurriculumsAdminScreen — niveaux académiques", () => {
     await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
     fireEvent.press(screen.getByTestId("curriculums-fab"));
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
 
     fireEvent.changeText(
@@ -569,20 +618,39 @@ describe("CurriculumsAdminScreen — niveaux académiques", () => {
     expect(mockCurriculumsApi.createAcademicLevel).not.toHaveBeenCalled();
   });
 
-  it("ferme le formulaire de niveau via le bouton close sans appeler l'API", async () => {
+  it("annule via le bouton Annuler du formulaire et revient sur l'onglet d'origine sans appeler l'API", async () => {
     await renderAndWaitLoaded();
     fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
     await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
     fireEvent.press(screen.getByTestId("curriculums-fab"));
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
 
-    fireEvent.press(screen.getByTestId("curriculum-level-form-sheet-close"));
+    fireEvent.press(screen.getByTestId("curriculum-level-form-cancel"));
     await waitFor(() =>
-      expect(screen.queryByTestId("curriculum-level-form-sheet")).toBeNull(),
+      expect(screen.queryByTestId("curriculums-forms-tab")).toBeNull(),
     );
+    expect(screen.getByTestId("curriculums-tab-levels")).toBeTruthy();
     expect(mockCurriculumsApi.createAcademicLevel).not.toHaveBeenCalled();
+  });
+
+  it("la flèche du header revient sur l'onglet d'origine depuis le tab forms sans appeler router.back", async () => {
+    await renderAndWaitLoaded();
+    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
+    await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("curriculums-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("curriculums-back-btn"));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("curriculums-forms-tab")).toBeNull(),
+    );
+    expect(screen.getByTestId("curriculums-tab-levels")).toBeTruthy();
+    expect(mockBack).not.toHaveBeenCalled();
   });
 });
 
@@ -598,8 +666,9 @@ describe("CurriculumsAdminScreen — filières", () => {
     await waitFor(() => expect(screen.getByText("Scientifique")).toBeTruthy());
     fireEvent.press(screen.getByTestId("curriculums-fab"));
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-track-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
+    expect(screen.getByText("Créer une filière académique")).toBeTruthy();
 
     fireEvent.changeText(
       screen.getByTestId("curriculum-track-code-input"),
@@ -621,7 +690,6 @@ describe("CurriculumsAdminScreen — filières", () => {
       title: "Filière créée",
       message: "La filière a été ajoutée.",
     });
-    await waitFor(() => expect(screen.getByText("Littéraire")).toBeTruthy());
   });
 
   it("ouvre le formulaire d'édition de filière pré-rempli et soumet la mise à jour", async () => {
@@ -634,8 +702,9 @@ describe("CurriculumsAdminScreen — filières", () => {
 
     fireEvent.press(screen.getByTestId("curriculum-track-edit-track-sc"));
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-track-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
+    expect(screen.getByText("Modifier la filière académique")).toBeTruthy();
 
     expect(screen.getByTestId("curriculum-track-code-input").props.value).toBe(
       "SCI",
@@ -695,30 +764,14 @@ describe("CurriculumsAdminScreen — filières", () => {
 // ---------------------------------------------------------------------------
 
 describe("CurriculumsAdminScreen — curriculums", () => {
-  it("utilise des listes déroulantes dans le formulaire curriculum et crée un curriculum avec header et footer stylés", async () => {
+  it("utilise des listes déroulantes dans le formulaire curriculum et crée un curriculum", async () => {
     await renderAndWaitLoaded();
 
     fireEvent.press(screen.getByTestId("curriculums-fab"));
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
-
-    expect(screen.getByTestId("curriculum-form-sheet-header")).toHaveStyle({
-      backgroundColor: "#08467D",
-    });
-    expect(
-      screen.getByText(
-        "Assemblez un niveau et une filière dans un formulaire compact pour produire un intitulé cohérent.",
-      ),
-    ).toBeTruthy();
-    expect(screen.getByTestId("curriculum-form-level")).toHaveStyle({
-      borderRadius: 14,
-      backgroundColor: "#F9F3EA",
-    });
-    expect(screen.getByTestId("curriculum-form-track")).toHaveStyle({
-      borderRadius: 14,
-      backgroundColor: "#F9F3EA",
-    });
+    expect(screen.getByText("Créer un curriculum")).toBeTruthy();
     expect(screen.getByTestId("curriculum-form-action-bar")).toBeTruthy();
 
     fireEvent.press(screen.getByTestId("curriculum-form-level"));
@@ -762,13 +815,10 @@ describe("CurriculumsAdminScreen — curriculums", () => {
 
     fireEvent.press(screen.getByTestId("curriculum-edit-curr-1"));
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
 
-    expect(screen.getByTestId("curriculum-form-sheet-header")).toHaveStyle({
-      backgroundColor: "#08467D",
-    });
-    expect(screen.getByText("Modification")).toBeTruthy();
+    expect(screen.getByText("Modifier le curriculum")).toBeTruthy();
   });
 
   it("soumet la mise à jour d'un curriculum et affiche le toast de succès", async () => {
@@ -776,7 +826,7 @@ describe("CurriculumsAdminScreen — curriculums", () => {
 
     fireEvent.press(screen.getByTestId("curriculum-edit-curr-2"));
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
 
     fireEvent.press(screen.getByTestId("curriculum-form-track"));
@@ -850,7 +900,7 @@ describe("CurriculumsAdminScreen — curriculums", () => {
     await renderAndWaitLoaded();
     fireEvent.press(screen.getByTestId("curriculums-fab"));
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
     const submit = screen.getByTestId("curriculum-form-submit");
     expect(submit.props.accessibilityState?.disabled).toBeFalsy();
@@ -872,43 +922,12 @@ describe("CurriculumsAdminScreen — matières du curriculum", () => {
 
     fireEvent.press(screen.getByTestId("curriculums-fab"));
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-subject-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
-
-    expect(
-      screen.getByTestId("curriculum-subject-form-sheet-header"),
-    ).toHaveStyle({
-      backgroundColor: "#08467D",
-    });
-    expect(
-      screen.getByText(
-        "Sélectionnez rapidement le curriculum et la matière, puis ajustez les paramètres pédagogiques.",
-      ),
-    ).toBeTruthy();
-    expect(
-      screen.getByTestId("curriculum-subject-form-curriculum"),
-    ).toHaveStyle({
-      borderRadius: 14,
-      backgroundColor: "#F9F3EA",
-    });
-    expect(screen.getByTestId("curriculum-subject-form-subject")).toHaveStyle({
-      borderRadius: 14,
-      backgroundColor: "#F9F3EA",
-    });
-    expect(
-      screen.getByTestId("curriculum-subject-form-sheet-close"),
-    ).toHaveStyle({
-      borderRadius: 10,
-      backgroundColor: "rgba(255,255,255,0.15)",
-    });
+    expect(screen.getByText("Ajouter une matière")).toBeTruthy();
     expect(
       screen.getByTestId("curriculum-subject-form-action-bar"),
     ).toBeTruthy();
-    expect(
-      screen.getByTestId("curriculum-subject-form-action-bar"),
-    ).toHaveStyle({
-      flex: 1,
-    });
 
     fireEvent.press(screen.getByTestId("curriculum-subject-form-curriculum"));
     await waitFor(() =>
@@ -975,7 +994,7 @@ describe("CurriculumsAdminScreen — matières du curriculum", () => {
 
     fireEvent.press(screen.getByTestId("curriculum-subject-edit-curr-subj-1"));
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-subject-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
 
     fireEvent.press(screen.getByTestId("curriculum-subject-form-subject"));
@@ -1018,7 +1037,7 @@ describe("CurriculumsAdminScreen — matières du curriculum", () => {
     );
     fireEvent.press(screen.getByTestId("curriculums-fab"));
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-subject-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
     const submit = screen.getByTestId("curriculum-subject-form-submit");
     expect(submit.props.accessibilityState?.disabled).toBeFalsy();
@@ -1040,10 +1059,6 @@ describe("CurriculumsAdminScreen — sélecteur curriculum et matières", () => 
     );
 
     expect(screen.queryByText("Curriculum ciblé")).toBeNull();
-    expect(screen.getByTestId("curriculum-selector")).toHaveStyle({
-      borderRadius: 14,
-      backgroundColor: "#F9F3EA",
-    });
     expect(screen.getByText("1 matière · 1 classe")).toBeTruthy();
     expect(mockCurriculumsApi.listCurriculumSubjects).toHaveBeenCalledWith(
       "college-vogt",
@@ -1148,41 +1163,6 @@ describe("CurriculumsAdminScreen — apparence des listes", () => {
     ).toBeNull();
     expect(screen.getByText("Coef. 4 · 5 h/sem · Obligatoire")).toBeTruthy();
   });
-
-  it("affiche le header et footer stylés sur les formulaires et permet la fermeture", async () => {
-    await renderAndWaitLoaded();
-
-    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
-    await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
-    fireEvent.press(screen.getByTestId("curriculums-fab"));
-
-    await waitFor(() =>
-      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
-    );
-
-    expect(
-      screen.getByTestId("curriculum-level-form-sheet-header"),
-    ).toHaveStyle({
-      backgroundColor: "#08467D",
-    });
-    expect(
-      screen.getByText(
-        "Définissez un repère académique clair pour organiser les classes et les programmes.",
-      ),
-    ).toBeTruthy();
-    expect(screen.getByTestId("curriculum-level-form-sheet-close")).toHaveStyle(
-      {
-        borderRadius: 10,
-        backgroundColor: "rgba(255,255,255,0.15)",
-      },
-    );
-    expect(screen.getByTestId("curriculum-level-form-action-bar")).toBeTruthy();
-
-    fireEvent.press(screen.getByTestId("curriculum-level-form-sheet-close"));
-    await waitFor(() =>
-      expect(screen.queryByTestId("curriculum-level-form-sheet")).toBeNull(),
-    );
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1190,7 +1170,7 @@ describe("CurriculumsAdminScreen — apparence des listes", () => {
 // ---------------------------------------------------------------------------
 
 describe("CurriculumsAdminScreen — erreurs API", () => {
-  it("affiche un toast d'erreur quand la création d'un niveau échoue et garde le form ouvert", async () => {
+  it("affiche un toast d'erreur quand la création d'un niveau échoue et garde le formulaire ouvert", async () => {
     mockCurriculumsApi.createAcademicLevel.mockRejectedValue(
       new Error("Erreur réseau"),
     );
@@ -1200,7 +1180,7 @@ describe("CurriculumsAdminScreen — erreurs API", () => {
     await waitFor(() => expect(screen.getByText("Sixième")).toBeTruthy());
     fireEvent.press(screen.getByTestId("curriculums-fab"));
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-level-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
 
     fireEvent.changeText(
@@ -1219,6 +1199,7 @@ describe("CurriculumsAdminScreen — erreurs API", () => {
       ),
     );
     expect(mockShowSuccess).not.toHaveBeenCalled();
+    expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy();
   });
 
   it("affiche un toast d'erreur quand la suppression d'un curriculum échoue", async () => {
@@ -1238,7 +1219,7 @@ describe("CurriculumsAdminScreen — erreurs API", () => {
     expect(screen.getByTestId("curriculum-row-curr-1")).toBeTruthy();
   });
 
-  it("affiche un toast d'erreur quand la mise à jour d'une filière échoue", async () => {
+  it("affiche un toast d'erreur quand la mise à jour d'une filière échoue et reste sur le tab forms", async () => {
     mockCurriculumsApi.updateTrack.mockRejectedValue(
       new Error("Conflit serveur"),
     );
@@ -1251,7 +1232,7 @@ describe("CurriculumsAdminScreen — erreurs API", () => {
 
     fireEvent.press(screen.getByTestId("curriculum-track-edit-track-sc"));
     await waitFor(() =>
-      expect(screen.getByTestId("curriculum-track-form-sheet")).toBeTruthy(),
+      expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy(),
     );
 
     fireEvent.changeText(
@@ -1265,5 +1246,6 @@ describe("CurriculumsAdminScreen — erreurs API", () => {
         expect.objectContaining({ title: "Action impossible" }),
       ),
     );
+    expect(screen.getByTestId("curriculums-forms-tab")).toBeTruthy();
   });
 });
