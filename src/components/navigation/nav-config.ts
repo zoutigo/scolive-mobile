@@ -210,16 +210,6 @@ function feedItem(): NavItem {
 const PLATFORM_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
   placeholder("Écoles", "business-outline", "schools"),
-  placeholder("Classes", "book-outline", "classes"),
-  placeholder("Matières", "library-outline", "subjects"),
-  {
-    key: "curriculums",
-    label: "Curriculums",
-    icon: "layers-outline",
-    route: "/curriculums",
-  },
-  placeholder("Inscriptions", "person-add-outline", "enrollments"),
-  placeholder("Élèves", "people-outline", "students"),
   placeholder("Utilisateurs", "person-outline", "users"),
   placeholder("Indicateurs", "bar-chart-outline", "indicators"),
   {

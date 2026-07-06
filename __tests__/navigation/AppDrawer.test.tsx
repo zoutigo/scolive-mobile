@@ -179,13 +179,10 @@ describe("Items de navigation — plateforme", () => {
   const expectedKeys = [
     "home",
     "schools",
-    "classes",
-    "subjects",
-    "curriculums",
-    "enrollments",
-    "students",
     "users",
     "indicators",
+    "admin-tests",
+    "messages",
   ];
 
   expectedKeys.forEach((key) => {
@@ -193,6 +190,15 @@ describe("Items de navigation — plateforme", () => {
       renderDrawer(items);
       expect(screen.getByTestId(`nav-item-${key}`)).toBeTruthy();
     });
+  });
+
+  it("n'affiche plus les modules scolaires (classes, matières, curriculums, inscriptions, élèves) qui n'ont pas de sens au niveau plateforme", () => {
+    renderDrawer(items);
+    ["classes", "subjects", "curriculums", "enrollments", "students"].forEach(
+      (key) => {
+        expect(screen.queryByTestId(`nav-item-${key}`)).toBeNull();
+      },
+    );
   });
 
   it("n'affiche plus 'Mon compte' (déplacé vers la bottom tab bar)", () => {
