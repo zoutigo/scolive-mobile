@@ -210,16 +210,6 @@ function feedItem(): NavItem {
 const PLATFORM_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
   placeholder("Écoles", "business-outline", "schools"),
-  placeholder("Classes", "book-outline", "classes"),
-  placeholder("Matières", "library-outline", "subjects"),
-  {
-    key: "curriculums",
-    label: "Curriculums",
-    icon: "layers-outline",
-    route: "/curriculums",
-  },
-  placeholder("Inscriptions", "person-add-outline", "enrollments"),
-  placeholder("Élèves", "people-outline", "students"),
   placeholder("Utilisateurs", "person-outline", "users"),
   placeholder("Indicateurs", "bar-chart-outline", "indicators"),
   {
@@ -227,6 +217,12 @@ const PLATFORM_NAV: NavItem[] = [
     label: "Tests",
     icon: "clipboard-outline",
     route: "/admin-tests",
+  },
+  {
+    key: "messages",
+    label: "Messagerie",
+    icon: "chatbubble-outline",
+    route: "/messages",
   },
   accountItem(),
 ];
@@ -247,6 +243,12 @@ const SCHOOL_NAV: NavItem[] = [
     route: "/admin-classes",
   },
   placeholder("Matières", "library-outline", "subjects"),
+  {
+    key: "rooms",
+    label: "Salles",
+    icon: "business-outline",
+    route: "/salles",
+  },
   {
     key: "curriculums",
     label: "Curriculums",

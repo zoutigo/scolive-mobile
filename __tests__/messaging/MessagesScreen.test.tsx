@@ -391,3 +391,29 @@ describe("Infinite scroll", () => {
     consoleErrorSpy.mockRestore();
   });
 });
+
+// ── Vue plateforme (SUPER_ADMIN/ADMIN — mailbox agrégée) ───────────────────
+
+describe("Vue plateforme (admin/super-admin)", () => {
+  beforeEach(() => {
+    (useAuthStore as unknown as jest.Mock).mockReturnValue({
+      user: {
+        id: "admin-1",
+        firstName: "Root",
+        lastName: "Admin",
+        platformRoles: ["SUPER_ADMIN"],
+        memberships: [],
+        profileCompleted: true,
+        role: "SUPER_ADMIN",
+        activeRole: "SUPER_ADMIN",
+      },
+      schoolSlug: null,
+      logout: jest.fn(),
+    });
+  });
+
+  it("charge la mailbox agrégée avec le scope 'platform' au lieu de rester bloqué sans schoolSlug", () => {
+    render(<MessagesScreen />);
+    expect(defaultStoreState.loadMessages).toHaveBeenCalledWith("platform");
+  });
+});

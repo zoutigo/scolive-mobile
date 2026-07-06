@@ -46,7 +46,8 @@ function senderLabel(item: MessageListItem, t: TranslateFn): string {
     );
   }
   if (!item.sender) return t("messaging.list.unknownSender");
-  return `${item.sender.lastName} ${item.sender.firstName}`;
+  const base = `${item.sender.lastName} ${item.sender.firstName}`;
+  return item.school ? `${base} · ${item.school.name}` : base;
 }
 
 export function MessageRow({ item, onPress }: Props) {

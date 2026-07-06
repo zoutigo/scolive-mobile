@@ -15,6 +15,10 @@ type CurriculumsApiModule = {
     ) => Promise<unknown>;
     listTracks?: (schoolSlug: string) => Promise<unknown>;
     listSubjects?: (schoolSlug: string) => Promise<unknown>;
+    createSubject?: (
+      schoolSlug: string,
+      payload: Record<string, unknown>,
+    ) => Promise<unknown>;
     listCurriculums?: (schoolSlug: string) => Promise<unknown>;
     createCurriculum?: (
       schoolSlug: string,
@@ -182,6 +186,21 @@ describeCurriculumsApi("curriculumsApi", () => {
           weeklyHours: 5,
           isMandatory: true,
         }),
+      },
+      true,
+    );
+  });
+
+  it("crée une matière au catalogue de l'établissement", async () => {
+    apiFetch.mockResolvedValueOnce({ id: "subject-svt", name: "SVT" });
+
+    await curriculumsApi?.createSubject?.("college-vogt", { name: "SVT" });
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/admin/subjects",
+      {
+        method: "POST",
+        body: JSON.stringify({ name: "SVT" }),
       },
       true,
     );

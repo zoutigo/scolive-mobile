@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Modal,
   View,
@@ -22,6 +22,13 @@ interface Props {
   selected: RecipientOption[];
   onClose: () => void;
   onConfirm: (selected: RecipientOption[]) => void;
+  /**
+   * When provided, the picker searches remotely instead of filtering the
+   * (empty) `recipients` list locally — used by the admin platform-wide
+   * composer, whose candidate pool is the whole platform rather than one
+   * school's preloaded staff/teachers.
+   */
+  onSearch?: (query: string) => Promise<RecipientOption[]>;
 }
 
 export function RecipientPickerModal({
@@ -30,14 +37,40 @@ export function RecipientPickerModal({
   selected,
   onClose,
   onConfirm,
+  onSearch,
 }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState("");
   const [localSelected, setLocalSelected] =
     useState<RecipientOption[]>(selected);
+  const [remoteResults, setRemoteResults] = useState<RecipientOption[]>([]);
+
+  useEffect(() => {
+    if (!onSearch) return;
+    const query = search.trim();
+    if (query.length < 2) {
+      setRemoteResults([]);
+      return;
+    }
+    let cancelled = false;
+    const timeout = setTimeout(() => {
+      void onSearch(query)
+        .then((results) => {
+          if (!cancelled) setRemoteResults(results);
+        })
+        .catch(() => {
+          if (!cancelled) setRemoteResults([]);
+        });
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [search, onSearch]);
 
   const filtered = useMemo(() => {
+    if (onSearch) return remoteResults;
     const q = search.toLowerCase().trim();
     if (!q) return recipients;
     return recipients.filter(
@@ -46,7 +79,7 @@ export function RecipientPickerModal({
         r.email?.toLowerCase().includes(q) ||
         r.subtitle?.toLowerCase().includes(q),
     );
-  }, [recipients, search]);
+  }, [recipients, search, onSearch, remoteResults]);
 
   function toggle(option: RecipientOption) {
     setLocalSelected((prev) => {

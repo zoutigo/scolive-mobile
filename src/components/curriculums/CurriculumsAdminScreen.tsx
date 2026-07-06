@@ -11,7 +11,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,6 +22,7 @@ import { z } from "zod";
 import { curriculumsApi } from "../../api/curriculums.api";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { FormHero } from "../forms/FormHero";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { useAuthStore } from "../../store/auth.store";
@@ -43,6 +43,7 @@ import {
 import type {
   CreateAcademicLevelPayload,
   CreateCurriculumPayload,
+  CreateSubjectPayload,
   CreateTrackPayload,
   CurriculumAcademicLevel,
   CurriculumRow,
@@ -55,7 +56,44 @@ import type {
 } from "../../types/curriculums.types";
 import { moduleBack } from "../../utils/moduleBack";
 
-type TabKey = "levels" | "tracks" | "curriculums" | "subjects" | "help";
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type ListTabKey = "levels" | "tracks" | "curriculums" | "subjects" | "help";
+type TabKey = ListTabKey | "forms";
+
+type FormMode = "create" | "edit";
+type LevelTrackKind = "level" | "track";
+
+type FormContext =
+  | {
+      kind: LevelTrackKind;
+      mode: FormMode;
+      originTab: ListTabKey;
+      itemId?: string;
+      initialValues?: {
+        code: string;
+        label: string;
+      };
+    }
+  | {
+      kind: "curriculum";
+      mode: FormMode;
+      originTab: ListTabKey;
+      item?: CurriculumRow | null;
+    }
+  | {
+      kind: "curriculum-subject";
+      mode: FormMode;
+      originTab: ListTabKey;
+      item?: CurriculumSubjectRow | null;
+    }
+  | {
+      kind: "subject";
+      mode: FormMode;
+      originTab: ListTabKey;
+    };
 
 type DeleteTarget =
   | { kind: "level"; id: string; label: string }
@@ -68,39 +106,13 @@ type DeleteTarget =
       label: string;
     };
 
-type LevelTrackSheetMode = "create" | "edit";
-type LevelTrackSheetKind = "level" | "track";
-
-type LevelTrackSheetState = {
-  visible: boolean;
-  kind: LevelTrackSheetKind;
-  mode: LevelTrackSheetMode;
-  itemId?: string;
-  initialValues?: {
-    code: string;
-    label: string;
-  };
-};
-
-type CurriculumSheetState = {
-  visible: boolean;
-  mode: "create" | "edit";
-  item?: CurriculumRow | null;
-};
-
-type CurriculumSubjectSheetState = {
-  visible: boolean;
-  mode: "create" | "edit";
-  item?: CurriculumSubjectRow | null;
-};
-
-const TAB_ITEMS = [
+const TAB_ITEMS: Array<{ key: ListTabKey; label: string }> = [
   { key: "levels", label: "Niveaux" },
   { key: "tracks", label: "Filières" },
   { key: "curriculums", label: "Curriculums" },
   { key: "subjects", label: "Matières" },
   { key: "help", label: "Aide" },
-] as const;
+];
 
 const LEVEL_TRACK_FORM_SCHEMA = z.object({
   code: z.string().trim().min(1, "Le code est obligatoire."),
@@ -137,6 +149,10 @@ const CURRICULUM_SUBJECT_FORM_SCHEMA = z.object({
   isMandatory: z.boolean(),
 });
 
+const SUBJECT_FORM_SCHEMA = z.object({
+  name: z.string().trim().min(1, "Le nom de la matière est obligatoire."),
+});
+
 function normalizeOptionalNumber(value?: string) {
   if (!value || value.trim() === "") {
     return undefined;
@@ -162,7 +178,7 @@ function formatCount(value: number, singular: string, plural?: string) {
   return `${value} ${value > 1 ? (plural ?? `${singular}s`) : singular}`;
 }
 
-function accentForTab(tab: TabKey) {
+function accentForTab(tab: ListTabKey) {
   switch (tab) {
     case "levels":
       return "#D89B5B";
@@ -177,8 +193,8 @@ function accentForTab(tab: TabKey) {
   }
 }
 
-function rowPaletteForTab(tab: Exclude<TabKey, "help">, index: number) {
-  const palettes: Record<Exclude<TabKey, "help">, [string, string]> = {
+function rowPaletteForTab(tab: Exclude<ListTabKey, "help">, index: number) {
+  const palettes: Record<Exclude<ListTabKey, "help">, [string, string]> = {
     levels: ["#FFF9F3", "#FFF2E4"],
     tracks: ["#F4FCFA", "#EAF7F4"],
     curriculums: ["#F5FAFF", "#ECF4FB"],
@@ -194,88 +210,6 @@ function rowPaletteForTab(tab: Exclude<TabKey, "help">, index: number) {
 
 function alternateCard(index: number) {
   return index % 2 === 0 ? colors.surface : "#FFF8F0";
-}
-
-function ModalFrame(props: {
-  visible: boolean;
-  title: string;
-  eyebrow: string;
-  subtitle?: string;
-  onClose: () => void;
-  children: React.ReactNode;
-  footer: React.ReactNode;
-  testID: string;
-}) {
-  const { height: windowHeight } = useWindowDimensions();
-
-  return (
-    <Modal
-      visible={props.visible}
-      transparent
-      animationType="slide"
-      onRequestClose={props.onClose}
-    >
-      <View style={styles.sheetOverlay}>
-        {/* Backdrop plein écran — absolu pour ne pas interférer avec le flex de la carte */}
-        <TouchableOpacity
-          style={styles.sheetBackdrop}
-          activeOpacity={1}
-          onPress={props.onClose}
-        />
-        {/*
-          Sur Android Fabric, flex:1 dans un parent sans hauteur explicite = 0.
-          On laisse le KAV (et la carte) s'auto-dimensionner au contenu,
-          et on borne le ScrollView via maxHeight calculé dynamiquement.
-        */}
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.sheetKeyboard}
-        >
-          <View style={styles.sheetCard} testID={props.testID}>
-            <View style={styles.sheetHeader} testID={`${props.testID}-header`}>
-              <View style={styles.sheetHandle} />
-              <View style={styles.sheetHeaderRow}>
-                <View style={styles.sheetHeaderText}>
-                  <Text style={styles.sheetEyebrow}>{props.eyebrow}</Text>
-                  <Text style={styles.sheetTitle} numberOfLines={2}>
-                    {props.title}
-                  </Text>
-                  {props.subtitle ? (
-                    <Text style={styles.sheetSubtitle} numberOfLines={2}>
-                      {props.subtitle}
-                    </Text>
-                  ) : null}
-                </View>
-                <TouchableOpacity
-                  style={styles.sheetCloseButton}
-                  onPress={props.onClose}
-                  testID={`${props.testID}-close`}
-                >
-                  <Ionicons
-                    name="close"
-                    size={18}
-                    color="rgba(255,255,255,0.9)"
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-            <ScrollView
-              style={[
-                styles.sheetScrollArea,
-                { maxHeight: windowHeight * 0.55 },
-              ]}
-              contentContainerStyle={styles.sheetBody}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              {props.children}
-            </ScrollView>
-            <View style={styles.sheetFooter}>{props.footer}</View>
-          </View>
-        </KeyboardAvoidingView>
-      </View>
-    </Modal>
-  );
 }
 
 type TextFormFieldProps = {
@@ -493,16 +427,19 @@ function FormActions(props: {
   );
 }
 
-function LevelTrackFormSheet(props: {
-  visible: boolean;
-  kind: LevelTrackSheetKind;
-  mode: LevelTrackSheetMode;
+// ---------------------------------------------------------------------------
+// LevelTrackFormContent — formulaire inline niveau/filière (sans Modal)
+// ---------------------------------------------------------------------------
+
+function LevelTrackFormContent(props: {
+  kind: LevelTrackKind;
+  mode: FormMode;
   initialValues?: {
     code: string;
     label: string;
   };
   isSubmitting?: boolean;
-  onClose: () => void;
+  onCancel: () => void;
   onSubmit: (
     values: CreateAcademicLevelPayload | CreateTrackPayload,
   ) => Promise<void> | void;
@@ -510,7 +447,6 @@ function LevelTrackFormSheet(props: {
   const {
     control,
     handleSubmit,
-    reset,
     setFocus: focusField,
     formState: { errors },
   } = useForm<z.infer<typeof LEVEL_TRACK_FORM_SCHEMA>>({
@@ -522,21 +458,6 @@ function LevelTrackFormSheet(props: {
     },
   });
 
-  useEffect(() => {
-    if (!props.visible) return;
-    reset({
-      code: props.initialValues?.code ?? "",
-      label: props.initialValues?.label ?? "",
-    });
-  }, [
-    props.initialValues?.code,
-    props.initialValues?.label,
-    props.visible,
-    reset,
-  ]);
-
-  const title =
-    props.kind === "level" ? "Niveau académique" : "Filière académique";
   const actionLabel =
     props.mode === "create"
       ? props.kind === "level"
@@ -545,22 +466,58 @@ function LevelTrackFormSheet(props: {
       : "Enregistrer";
 
   return (
-    <ModalFrame
-      visible={props.visible}
-      onClose={props.onClose}
-      title={title}
-      eyebrow={props.mode === "create" ? "Création" : "Modification"}
-      subtitle={
-        props.kind === "level"
-          ? "Définissez un repère académique clair pour organiser les classes et les programmes."
-          : "Structurez les parcours proposés avec une dénomination claire et réutilisable."
-      }
-      testID={`curriculum-${props.kind}-form-sheet`}
-      footer={
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID={`curriculum-${props.kind}-form-content`}
+    >
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Controller
+          control={control}
+          name="code"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <TextFormField
+              ref={ref}
+              label="Code"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder={props.kind === "level" ? "Ex: 6EME" : "Ex: C"}
+              error={errors.code?.message}
+              testID={`curriculum-${props.kind}-code-input`}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="label"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <TextFormField
+              ref={ref}
+              label="Libellé"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder={
+                props.kind === "level" ? "Ex: Sixième" : "Ex: Scientifique"
+              }
+              error={errors.label?.message}
+              testID={`curriculum-${props.kind}-label-input`}
+            />
+          )}
+        />
+      </ScrollView>
+
+      <View style={styles.formActionsBar}>
         <FormActions
           submitLabel={actionLabel}
           isSubmitting={props.isSubmitting}
-          onCancel={props.onClose}
+          onCancel={props.onCancel}
           onSubmit={() =>
             void handleSubmit(
               async (values) => props.onSubmit(values),
@@ -573,88 +530,40 @@ function LevelTrackFormSheet(props: {
           }
           testIDPrefix={`curriculum-${props.kind}-form`}
         />
-      }
-    >
-      <Controller
-        control={control}
-        name="code"
-        render={({ field: { value, onChange, onBlur, ref } }) => (
-          <TextFormField
-            ref={ref}
-            label="Code"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder={props.kind === "level" ? "Ex: 6EME" : "Ex: C"}
-            error={errors.code?.message}
-            testID={`curriculum-${props.kind}-code-input`}
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="label"
-        render={({ field: { value, onChange, onBlur, ref } }) => (
-          <TextFormField
-            ref={ref}
-            label="Libellé"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder={
-              props.kind === "level" ? "Ex: Sixième" : "Ex: Scientifique"
-            }
-            error={errors.label?.message}
-            testID={`curriculum-${props.kind}-label-input`}
-          />
-        )}
-      />
-    </ModalFrame>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
-function CurriculumFormSheet(props: {
-  visible: boolean;
+// ---------------------------------------------------------------------------
+// CurriculumFormContent — formulaire inline curriculum (sans Modal)
+// ---------------------------------------------------------------------------
+
+function CurriculumFormContent(props: {
   item?: CurriculumRow | null;
   academicLevels: CurriculumAcademicLevel[];
   tracks: CurriculumTrack[];
   isSubmitting?: boolean;
-  onClose: () => void;
+  onCancel: () => void;
   onSubmit: (values: CreateCurriculumPayload) => Promise<void> | void;
 }) {
   const {
     control,
     handleSubmit,
     watch,
-    reset,
     setFocus: focusField,
     formState: { errors },
   } = useForm<z.infer<typeof CURRICULUM_FORM_SCHEMA>>({
     resolver: zodResolver(CURRICULUM_FORM_SCHEMA),
     mode: "onChange",
     defaultValues: {
-      academicLevelId: props.item?.academicLevelId ?? "",
+      academicLevelId:
+        props.item?.academicLevelId ?? props.academicLevels[0]?.id ?? "",
       trackId: props.item?.trackId ?? "",
     },
   });
 
   const values = watch();
-
-  useEffect(() => {
-    if (!props.visible) return;
-    reset({
-      academicLevelId:
-        props.item?.academicLevelId ?? props.academicLevels[0]?.id ?? "",
-      trackId: props.item?.trackId ?? "",
-    });
-  }, [
-    props.visible,
-    props.item?.academicLevelId,
-    props.item?.trackId,
-    props.academicLevels,
-    reset,
-  ]);
-
   const previewName = buildCurriculumNamePreview({
     academicLevelId: values.academicLevelId,
     trackId: values.trackId,
@@ -663,18 +572,75 @@ function CurriculumFormSheet(props: {
   });
 
   return (
-    <ModalFrame
-      visible={props.visible}
-      onClose={props.onClose}
-      title="Curriculum"
-      eyebrow={props.item ? "Modification" : "Création"}
-      subtitle="Assemblez un niveau et une filière dans un formulaire compact pour produire un intitulé cohérent."
-      testID="curriculum-form-sheet"
-      footer={
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="curriculum-form-content"
+    >
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Controller
+          control={control}
+          name="academicLevelId"
+          render={({ field: { value, onChange } }) => (
+            <CompactSelectField
+              label="Niveau académique"
+              value={value}
+              onChange={onChange}
+              options={props.academicLevels.map((level) => ({
+                value: level.id,
+                label: level.label,
+                meta: level.code,
+              }))}
+              testID="curriculum-form-level"
+              error={errors.academicLevelId?.message}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="trackId"
+          render={({ field: { value, onChange } }) => (
+            <CompactSelectField
+              label="Filière"
+              value={value ?? ""}
+              onChange={onChange}
+              options={[
+                {
+                  value: "",
+                  label: "Tronc commun",
+                  meta: "Sans filière dédiée",
+                },
+                ...props.tracks.map((track) => ({
+                  value: track.id,
+                  label: track.label,
+                  meta: track.code,
+                })),
+              ]}
+              testID="curriculum-form-track"
+            />
+          )}
+        />
+        <View style={styles.previewCard}>
+          <Text style={styles.previewLabel}>Nom généré automatiquement</Text>
+          <Text
+            style={styles.previewValue}
+            testID="curriculum-form-name-preview"
+          >
+            {previewName}
+          </Text>
+        </View>
+      </ScrollView>
+
+      <View style={styles.formActionsBar}>
         <FormActions
           submitLabel={props.item ? "Enregistrer" : "Créer le curriculum"}
           isSubmitting={props.isSubmitting}
-          onCancel={props.onClose}
+          onCancel={props.onCancel}
           onSubmit={() =>
             void handleSubmit(
               async (formValues) =>
@@ -693,68 +659,22 @@ function CurriculumFormSheet(props: {
           }
           testIDPrefix="curriculum-form"
         />
-      }
-    >
-      <Controller
-        control={control}
-        name="academicLevelId"
-        render={({ field: { value, onChange } }) => (
-          <CompactSelectField
-            label="Niveau académique"
-            value={value}
-            onChange={onChange}
-            options={props.academicLevels.map((level) => ({
-              value: level.id,
-              label: level.label,
-              meta: level.code,
-            }))}
-            testID="curriculum-form-level"
-            error={errors.academicLevelId?.message}
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="trackId"
-        render={({ field: { value, onChange } }) => (
-          <CompactSelectField
-            label="Filière"
-            value={value ?? ""}
-            onChange={onChange}
-            options={[
-              {
-                value: "",
-                label: "Tronc commun",
-                meta: "Sans filière dédiée",
-              },
-              ...props.tracks.map((track) => ({
-                value: track.id,
-                label: track.label,
-                meta: track.code,
-              })),
-            ]}
-            testID="curriculum-form-track"
-          />
-        )}
-      />
-      <View style={styles.previewCard}>
-        <Text style={styles.previewLabel}>Nom généré automatiquement</Text>
-        <Text style={styles.previewValue} testID="curriculum-form-name-preview">
-          {previewName}
-        </Text>
       </View>
-    </ModalFrame>
+    </KeyboardAvoidingView>
   );
 }
 
-function CurriculumSubjectFormSheet(props: {
-  visible: boolean;
+// ---------------------------------------------------------------------------
+// CurriculumSubjectFormContent — formulaire inline matière (sans Modal)
+// ---------------------------------------------------------------------------
+
+function CurriculumSubjectFormContent(props: {
   item?: CurriculumSubjectRow | null;
   selectedCurriculumId: string;
   curriculums: CurriculumRow[];
   subjects: CurriculumSubjectCatalogItem[];
   isSubmitting?: boolean;
-  onClose: () => void;
+  onCancel: () => void;
   onSubmit: (
     curriculumId: string,
     values: UpsertCurriculumSubjectPayload,
@@ -763,7 +683,6 @@ function CurriculumSubjectFormSheet(props: {
   const {
     control,
     handleSubmit,
-    reset,
     setFocus: focusField,
     formState: { errors },
   } = useForm<z.infer<typeof CURRICULUM_SUBJECT_FORM_SCHEMA>>({
@@ -780,40 +699,129 @@ function CurriculumSubjectFormSheet(props: {
     },
   });
 
-  useEffect(() => {
-    if (!props.visible) return;
-    reset({
-      curriculumId: props.selectedCurriculumId,
-      subjectId: props.item?.subjectId ?? "",
-      coefficient:
-        props.item?.coefficient != null ? String(props.item.coefficient) : "",
-      weeklyHours:
-        props.item?.weeklyHours != null ? String(props.item.weeklyHours) : "",
-      isMandatory: props.item?.isMandatory ?? true,
-    });
-  }, [
-    props.visible,
-    props.selectedCurriculumId,
-    props.item?.subjectId,
-    props.item?.coefficient,
-    props.item?.weeklyHours,
-    props.item?.isMandatory,
-    reset,
-  ]);
-
   return (
-    <ModalFrame
-      visible={props.visible}
-      onClose={props.onClose}
-      title="Matière du curriculum"
-      eyebrow={props.item ? "Modification" : "Ajout"}
-      subtitle="Sélectionnez rapidement le curriculum et la matière, puis ajustez les paramètres pédagogiques."
-      testID="curriculum-subject-form-sheet"
-      footer={
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="curriculum-subject-form-content"
+    >
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Controller
+          control={control}
+          name="curriculumId"
+          render={({ field: { value, onChange } }) => (
+            <CompactSelectField
+              label="Curriculum"
+              value={value}
+              onChange={onChange}
+              options={props.curriculums.map((curriculum) => ({
+                value: curriculum.id,
+                label: curriculum.name,
+                meta: `${formatCount(curriculum._count.subjects, "matière")} · ${formatCount(
+                  curriculum._count.classes,
+                  "classe",
+                )}`,
+              }))}
+              testID="curriculum-subject-form-curriculum"
+              error={errors.curriculumId?.message}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="subjectId"
+          render={({ field: { value, onChange } }) => (
+            <CompactSelectField
+              label="Matière"
+              value={value}
+              onChange={onChange}
+              options={props.subjects.map((subject) => ({
+                value: subject.id,
+                label: subject.name,
+                meta:
+                  subject._count?.curriculumSubjects != null
+                    ? formatCount(
+                        subject._count.curriculumSubjects,
+                        "curriculum",
+                      )
+                    : undefined,
+              }))}
+              testID="curriculum-subject-form-subject"
+              error={errors.subjectId?.message}
+              disabled={!!props.item}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="coefficient"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <TextFormField
+              ref={ref}
+              label="Coefficient"
+              value={value ?? ""}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ex: 4"
+              keyboardType="numeric"
+              error={errors.coefficient?.message}
+              testID="curriculum-subject-form-coefficient"
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="weeklyHours"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <TextFormField
+              ref={ref}
+              label="Heures / semaine"
+              value={value ?? ""}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ex: 3"
+              keyboardType="numeric"
+              error={errors.weeklyHours?.message}
+              testID="curriculum-subject-form-weekly-hours"
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="isMandatory"
+          render={({ field: { value, onChange } }) => (
+            <View style={styles.switchField}>
+              <View style={styles.switchFieldText}>
+                <Text style={styles.formLabel}>Matière obligatoire</Text>
+                <Text style={styles.switchFieldHint}>
+                  Désactivez pour une matière optionnelle.
+                </Text>
+              </View>
+              <Switch
+                value={value}
+                onValueChange={onChange}
+                trackColor={{
+                  false: colors.warmBorder,
+                  true: colors.accentTeal,
+                }}
+                thumbColor={colors.white}
+                testID="curriculum-subject-form-mandatory"
+              />
+            </View>
+          )}
+        />
+      </ScrollView>
+
+      <View style={styles.formActionsBar}>
         <FormActions
           submitLabel={props.item ? "Enregistrer" : "Ajouter la matière"}
           isSubmitting={props.isSubmitting}
-          onCancel={props.onClose}
+          onCancel={props.onCancel}
           onSubmit={() =>
             void handleSubmit(
               async (values) => {
@@ -833,112 +841,229 @@ function CurriculumSubjectFormSheet(props: {
           }
           testIDPrefix="curriculum-subject-form"
         />
-      }
-    >
-      <Controller
-        control={control}
-        name="curriculumId"
-        render={({ field: { value, onChange } }) => (
-          <CompactSelectField
-            label="Curriculum"
-            value={value}
-            onChange={onChange}
-            options={props.curriculums.map((curriculum) => ({
-              value: curriculum.id,
-              label: curriculum.name,
-              meta: `${formatCount(curriculum._count.subjects, "matière")} · ${formatCount(
-                curriculum._count.classes,
-                "classe",
-              )}`,
-            }))}
-            testID="curriculum-subject-form-curriculum"
-            error={errors.curriculumId?.message}
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="subjectId"
-        render={({ field: { value, onChange } }) => (
-          <CompactSelectField
-            label="Matière"
-            value={value}
-            onChange={onChange}
-            options={props.subjects.map((subject) => ({
-              value: subject.id,
-              label: subject.name,
-              meta:
-                subject._count?.curriculumSubjects != null
-                  ? formatCount(subject._count.curriculumSubjects, "curriculum")
-                  : undefined,
-            }))}
-            testID="curriculum-subject-form-subject"
-            error={errors.subjectId?.message}
-            disabled={!!props.item}
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="coefficient"
-        render={({ field: { value, onChange, onBlur, ref } }) => (
-          <TextFormField
-            ref={ref}
-            label="Coefficient"
-            value={value ?? ""}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder="Ex: 4"
-            keyboardType="numeric"
-            error={errors.coefficient?.message}
-            testID="curriculum-subject-form-coefficient"
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="weeklyHours"
-        render={({ field: { value, onChange, onBlur, ref } }) => (
-          <TextFormField
-            ref={ref}
-            label="Heures / semaine"
-            value={value ?? ""}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder="Ex: 3"
-            keyboardType="numeric"
-            error={errors.weeklyHours?.message}
-            testID="curriculum-subject-form-weekly-hours"
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="isMandatory"
-        render={({ field: { value, onChange } }) => (
-          <View style={styles.switchField}>
-            <View style={styles.switchFieldText}>
-              <Text style={styles.formLabel}>Matière obligatoire</Text>
-              <Text style={styles.switchFieldHint}>
-                Désactivez pour une matière optionnelle.
-              </Text>
-            </View>
-            <Switch
-              value={value}
-              onValueChange={onChange}
-              trackColor={{
-                false: colors.warmBorder,
-                true: colors.accentTeal,
-              }}
-              thumbColor={colors.white}
-              testID="curriculum-subject-form-mandatory"
-            />
-          </View>
-        )}
-      />
-    </ModalFrame>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
+
+// ---------------------------------------------------------------------------
+// SubjectFormContent — formulaire inline création de matière (sans Modal)
+// ---------------------------------------------------------------------------
+
+function SubjectFormContent(props: {
+  isSubmitting?: boolean;
+  onCancel: () => void;
+  onSubmit: (values: CreateSubjectPayload) => Promise<void> | void;
+}) {
+  const {
+    control,
+    handleSubmit,
+    setFocus: focusField,
+    formState: { errors },
+  } = useForm<z.infer<typeof SUBJECT_FORM_SCHEMA>>({
+    resolver: zodResolver(SUBJECT_FORM_SCHEMA),
+    mode: "onChange",
+    defaultValues: {
+      name: "",
+    },
+  });
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="curriculum-subject-catalog-form-content"
+    >
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Controller
+          control={control}
+          name="name"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <TextFormField
+              ref={ref}
+              label="Nom de la matière"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ex: Mathématiques"
+              error={errors.name?.message}
+              testID="curriculum-subject-catalog-name-input"
+            />
+          )}
+        />
+      </ScrollView>
+
+      <View style={styles.formActionsBar}>
+        <FormActions
+          submitLabel="Créer la matière"
+          isSubmitting={props.isSubmitting}
+          onCancel={props.onCancel}
+          onSubmit={() =>
+            void handleSubmit(
+              async (values) => props.onSubmit(values),
+              (errs) => {
+                const first = Object.keys(errs)[0];
+                if (first)
+                  focusField(first as Parameters<typeof focusField>[0]);
+              },
+            )()
+          }
+          testIDPrefix="curriculum-subject-catalog-form"
+        />
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Hero content helpers
+// ---------------------------------------------------------------------------
+
+function formHeroIcon(
+  ctx: FormContext,
+): React.ComponentProps<typeof Ionicons>["name"] {
+  if (ctx.kind === "level") {
+    return ctx.mode === "create" ? "layers-outline" : "create-outline";
+  }
+  if (ctx.kind === "track") {
+    return ctx.mode === "create" ? "git-branch-outline" : "create-outline";
+  }
+  if (ctx.kind === "curriculum") {
+    return ctx.mode === "create" ? "albums-outline" : "create-outline";
+  }
+  if (ctx.kind === "subject") {
+    return "add-circle-outline";
+  }
+  return ctx.mode === "create" ? "link-outline" : "create-outline";
+}
+
+function formHeroTitle(ctx: FormContext): string {
+  if (ctx.kind === "level") {
+    return ctx.mode === "create"
+      ? "Créer un niveau académique"
+      : "Modifier le niveau académique";
+  }
+  if (ctx.kind === "track") {
+    return ctx.mode === "create"
+      ? "Créer une filière académique"
+      : "Modifier la filière académique";
+  }
+  if (ctx.kind === "curriculum") {
+    return ctx.mode === "create"
+      ? "Créer un curriculum"
+      : "Modifier le curriculum";
+  }
+  if (ctx.kind === "subject") {
+    return "Créer une matière";
+  }
+  return ctx.mode === "create"
+    ? "Ajouter une matière"
+    : "Modifier la matière du curriculum";
+}
+
+function formHeroSubtitle(ctx: FormContext): string {
+  if (ctx.kind === "level") {
+    return "Définissez un repère académique clair pour organiser les classes et les programmes.";
+  }
+  if (ctx.kind === "track") {
+    return "Structurez les parcours proposés avec une dénomination claire et réutilisable.";
+  }
+  if (ctx.kind === "curriculum") {
+    return "Assemblez un niveau et une filière dans un formulaire compact pour produire un intitulé cohérent.";
+  }
+  if (ctx.kind === "subject") {
+    return "Ajoutez une matière au catalogue de l'établissement. Elle pourra ensuite être liée à n'importe quel curriculum.";
+  }
+  return "Sélectionnez rapidement le curriculum et la matière, puis ajustez les paramètres pédagogiques.";
+}
+
+function renderFormContent(
+  ctx: FormContext,
+  props: {
+    orderedLevels: CurriculumAcademicLevel[];
+    orderedTracks: CurriculumTrack[];
+    orderedCurriculums: CurriculumRow[];
+    subjects: CurriculumSubjectCatalogItem[];
+    selectedCurriculumId: string;
+    isSubmittingLevelTrack: boolean;
+    isSubmittingCurriculum: boolean;
+    isSubmittingCurriculumSubject: boolean;
+    isSubmittingSubject: boolean;
+    onCancel: () => void;
+    onSubmitLevelTrack: (
+      values: CreateAcademicLevelPayload | CreateTrackPayload,
+    ) => Promise<void> | void;
+    onSubmitCurriculum: (
+      values: CreateCurriculumPayload,
+    ) => Promise<void> | void;
+    onSubmitCurriculumSubject: (
+      curriculumId: string,
+      values: UpsertCurriculumSubjectPayload,
+    ) => Promise<void> | void;
+    onSubmitSubject: (values: CreateSubjectPayload) => Promise<void> | void;
+  },
+) {
+  switch (ctx.kind) {
+    case "level":
+    case "track":
+      return (
+        <LevelTrackFormContent
+          kind={ctx.kind}
+          mode={ctx.mode}
+          initialValues={ctx.initialValues}
+          isSubmitting={props.isSubmittingLevelTrack}
+          onCancel={props.onCancel}
+          onSubmit={props.onSubmitLevelTrack}
+        />
+      );
+    case "curriculum":
+      return (
+        <CurriculumFormContent
+          item={ctx.item}
+          academicLevels={props.orderedLevels}
+          tracks={props.orderedTracks}
+          isSubmitting={props.isSubmittingCurriculum}
+          onCancel={props.onCancel}
+          onSubmit={props.onSubmitCurriculum}
+        />
+      );
+    case "curriculum-subject":
+      return (
+        <CurriculumSubjectFormContent
+          item={ctx.item}
+          selectedCurriculumId={
+            ctx.item && props.selectedCurriculumId
+              ? props.selectedCurriculumId
+              : props.selectedCurriculumId ||
+                props.orderedCurriculums[0]?.id ||
+                ""
+          }
+          curriculums={props.orderedCurriculums}
+          subjects={props.subjects}
+          isSubmitting={props.isSubmittingCurriculumSubject}
+          onCancel={props.onCancel}
+          onSubmit={props.onSubmitCurriculumSubject}
+        />
+      );
+    case "subject":
+      return (
+        <SubjectFormContent
+          isSubmitting={props.isSubmittingSubject}
+          onCancel={props.onCancel}
+          onSubmit={props.onSubmitSubject}
+        />
+      );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CurriculumsAdminScreen
+// ---------------------------------------------------------------------------
 
 export function CurriculumsAdminScreen() {
   const router = useRouter();
@@ -948,9 +1073,16 @@ export function CurriculumsAdminScreen() {
   const showError = useSuccessToastStore((state) => state.showError);
 
   const [tab, setTab] = useState<TabKey>("curriculums");
+  const [formContext, setFormContext] = useState<FormContext | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmittingLevelTrack, setIsSubmittingLevelTrack] = useState(false);
+  const [isSubmittingCurriculum, setIsSubmittingCurriculum] = useState(false);
+  const [isSubmittingCurriculumSubject, setIsSubmittingCurriculumSubject] =
+    useState(false);
+  const [isSubmittingSubject, setIsSubmittingSubject] = useState(false);
+  const [subjectsFabOpen, setSubjectsFabOpen] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [levels, setLevels] = useState<CurriculumAcademicLevel[]>([]);
   const [tracks, setTracks] = useState<CurriculumTrack[]>([]);
@@ -960,20 +1092,6 @@ export function CurriculumsAdminScreen() {
     CurriculumSubjectRow[]
   >([]);
   const [selectedCurriculumId, setSelectedCurriculumId] = useState("");
-  const [levelTrackSheet, setLevelTrackSheet] = useState<LevelTrackSheetState>({
-    visible: false,
-    kind: "level",
-    mode: "create",
-  });
-  const [curriculumSheet, setCurriculumSheet] = useState<CurriculumSheetState>({
-    visible: false,
-    mode: "create",
-  });
-  const [curriculumSubjectSheet, setCurriculumSubjectSheet] =
-    useState<CurriculumSubjectSheetState>({
-      visible: false,
-      mode: "create",
-    });
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
 
   const role = user?.activeRole ?? user?.role ?? null;
@@ -1081,6 +1199,12 @@ export function CurriculumsAdminScreen() {
   }, [isAllowed, loadOverview, schoolSlug]);
 
   useEffect(() => {
+    if (tab !== "subjects") {
+      setSubjectsFabOpen(false);
+    }
+  }, [tab]);
+
+  useEffect(() => {
     if (!isAllowed || !schoolSlug) return;
     if (tab !== "subjects") return;
     if (!selectedCurriculumId) {
@@ -1113,11 +1237,10 @@ export function CurriculumsAdminScreen() {
     tab,
   ]);
 
-  async function runMutation(
+  async function runDeleteMutation(
     action: () => Promise<void>,
     successTitle: string,
     successMessage: string,
-    onDone?: () => void,
   ) {
     setIsSubmitting(true);
     try {
@@ -1126,7 +1249,6 @@ export function CurriculumsAdminScreen() {
         title: successTitle,
         message: successMessage,
       });
-      onDone?.();
       await loadOverview(false);
       if (selectedCurriculumId) {
         await loadSubjectsForCurriculum(selectedCurriculumId);
@@ -1142,109 +1264,229 @@ export function CurriculumsAdminScreen() {
     }
   }
 
+  function exitForms() {
+    const origin = formContext?.originTab ?? "curriculums";
+    setFormContext(null);
+    setTab(origin);
+  }
+
+  function openFab() {
+    if (tab === "levels") {
+      setFormContext({ kind: "level", mode: "create", originTab: "levels" });
+      setTab("forms");
+      return;
+    }
+    if (tab === "tracks") {
+      setFormContext({ kind: "track", mode: "create", originTab: "tracks" });
+      setTab("forms");
+      return;
+    }
+    if (tab === "curriculums") {
+      setFormContext({
+        kind: "curriculum",
+        mode: "create",
+        originTab: "curriculums",
+        item: null,
+      });
+      setTab("forms");
+      return;
+    }
+    if (tab === "subjects") {
+      setSubjectsFabOpen((prev) => !prev);
+    }
+  }
+
+  function openCreateSubjectForm() {
+    setSubjectsFabOpen(false);
+    setFormContext({ kind: "subject", mode: "create", originTab: "subjects" });
+    setTab("forms");
+  }
+
+  function openLinkSubjectForm() {
+    if (curriculums.length === 0) return;
+    setSubjectsFabOpen(false);
+    setFormContext({
+      kind: "curriculum-subject",
+      mode: "create",
+      originTab: "subjects",
+      item: null,
+    });
+    setTab("forms");
+  }
+
   async function handleLevelTrackSubmit(
     values: CreateAcademicLevelPayload | CreateTrackPayload,
   ) {
-    const sheet = levelTrackSheet;
-    if (!schoolSlug) return;
-    if (sheet.kind === "level") {
-      await runMutation(
-        async () => {
-          if (sheet.mode === "create") {
-            await curriculumsApi.createAcademicLevel(schoolSlug, values);
-          } else if (sheet.itemId) {
-            await curriculumsApi.updateAcademicLevel(
-              schoolSlug,
-              sheet.itemId,
-              values as UpdateAcademicLevelPayload,
-            );
-          }
-        },
-        sheet.mode === "create" ? "Niveau créé" : "Niveau modifié",
-        sheet.mode === "create"
-          ? "Le niveau académique a été ajouté."
-          : "Le niveau académique a été mis à jour.",
-        () =>
-          setLevelTrackSheet((current) => ({
-            ...current,
-            visible: false,
-          })),
-      );
+    if (
+      !schoolSlug ||
+      !formContext ||
+      (formContext.kind !== "level" && formContext.kind !== "track")
+    ) {
       return;
     }
-
-    await runMutation(
-      async () => {
-        if (sheet.mode === "create") {
+    const ctx = formContext;
+    setIsSubmittingLevelTrack(true);
+    try {
+      if (ctx.kind === "level") {
+        if (ctx.mode === "create") {
+          await curriculumsApi.createAcademicLevel(schoolSlug, values);
+        } else if (ctx.itemId) {
+          await curriculumsApi.updateAcademicLevel(
+            schoolSlug,
+            ctx.itemId,
+            values as UpdateAcademicLevelPayload,
+          );
+        }
+      } else {
+        if (ctx.mode === "create") {
           await curriculumsApi.createTrack(schoolSlug, values);
-        } else if (sheet.itemId) {
+        } else if (ctx.itemId) {
           await curriculumsApi.updateTrack(
             schoolSlug,
-            sheet.itemId,
+            ctx.itemId,
             values as UpdateTrackPayload,
           );
         }
-      },
-      sheet.mode === "create" ? "Filière créée" : "Filière modifiée",
-      sheet.mode === "create"
-        ? "La filière a été ajoutée."
-        : "La filière a été mise à jour.",
-      () =>
-        setLevelTrackSheet((current) => ({
-          ...current,
-          visible: false,
-        })),
-    );
+      }
+      await loadOverview(false);
+      showSuccess({
+        title:
+          ctx.kind === "level"
+            ? ctx.mode === "create"
+              ? "Niveau créé"
+              : "Niveau modifié"
+            : ctx.mode === "create"
+              ? "Filière créée"
+              : "Filière modifiée",
+        message:
+          ctx.kind === "level"
+            ? ctx.mode === "create"
+              ? "Le niveau académique a été ajouté."
+              : "Le niveau académique a été mis à jour."
+            : ctx.mode === "create"
+              ? "La filière a été ajoutée."
+              : "La filière a été mise à jour.",
+      });
+      const originTab = ctx.originTab;
+      setTimeout(() => {
+        setTab(originTab);
+        setFormContext(null);
+      }, 2000);
+    } catch (error) {
+      showError({
+        title: "Action impossible",
+        message: extractApiError(error),
+      });
+    } finally {
+      setIsSubmittingLevelTrack(false);
+    }
   }
 
   async function handleCurriculumSubmit(values: CreateCurriculumPayload) {
-    if (!schoolSlug) return;
-    await runMutation(
-      async () => {
-        if (curriculumSheet.mode === "create") {
-          await curriculumsApi.createCurriculum(schoolSlug, values);
-        } else if (curriculumSheet.item?.id) {
-          await curriculumsApi.updateCurriculum(
-            schoolSlug,
-            curriculumSheet.item.id,
-            values,
-          );
-        }
-      },
-      curriculumSheet.mode === "create"
-        ? "Curriculum créé"
-        : "Curriculum modifié",
-      curriculumSheet.mode === "create"
-        ? "Le curriculum a été ajouté."
-        : "Le curriculum a été mis à jour.",
-      () => setCurriculumSheet({ visible: false, mode: "create" }),
-    );
+    if (!schoolSlug || !formContext || formContext.kind !== "curriculum") {
+      return;
+    }
+    const ctx = formContext;
+    setIsSubmittingCurriculum(true);
+    try {
+      if (ctx.mode === "create") {
+        await curriculumsApi.createCurriculum(schoolSlug, values);
+      } else if (ctx.item?.id) {
+        await curriculumsApi.updateCurriculum(schoolSlug, ctx.item.id, values);
+      }
+      await loadOverview(false);
+      showSuccess({
+        title: ctx.mode === "create" ? "Curriculum créé" : "Curriculum modifié",
+        message:
+          ctx.mode === "create"
+            ? "Le curriculum a été ajouté."
+            : "Le curriculum a été mis à jour.",
+      });
+      const originTab = ctx.originTab;
+      setTimeout(() => {
+        setTab(originTab);
+        setFormContext(null);
+      }, 2000);
+    } catch (error) {
+      showError({
+        title: "Action impossible",
+        message: extractApiError(error),
+      });
+    } finally {
+      setIsSubmittingCurriculum(false);
+    }
   }
 
   async function handleCurriculumSubjectSubmit(
     curriculumId: string,
     values: UpsertCurriculumSubjectPayload,
   ) {
-    if (!schoolSlug) return;
-    await runMutation(
-      async () => {
-        await curriculumsApi.upsertCurriculumSubject(
-          schoolSlug,
-          curriculumId,
-          values,
-        );
-      },
-      curriculumSubjectSheet.mode === "create"
-        ? "Matière ajoutée"
-        : "Matière modifiée",
-      curriculumSubjectSheet.mode === "create"
-        ? "La matière a été liée au curriculum."
-        : "Les paramètres de la matière ont été mis à jour.",
-      () => {
-        setSelectedCurriculumId(curriculumId);
-        setCurriculumSubjectSheet({ visible: false, mode: "create" });
-      },
-    );
+    if (
+      !schoolSlug ||
+      !formContext ||
+      formContext.kind !== "curriculum-subject"
+    ) {
+      return;
+    }
+    const ctx = formContext;
+    setIsSubmittingCurriculumSubject(true);
+    try {
+      await curriculumsApi.upsertCurriculumSubject(
+        schoolSlug,
+        curriculumId,
+        values,
+      );
+      setSelectedCurriculumId(curriculumId);
+      await loadOverview(false);
+      await loadSubjectsForCurriculum(curriculumId);
+      showSuccess({
+        title: ctx.mode === "create" ? "Matière ajoutée" : "Matière modifiée",
+        message:
+          ctx.mode === "create"
+            ? "La matière a été liée au curriculum."
+            : "Les paramètres de la matière ont été mis à jour.",
+      });
+      const originTab = ctx.originTab;
+      setTimeout(() => {
+        setTab(originTab);
+        setFormContext(null);
+      }, 2000);
+    } catch (error) {
+      showError({
+        title: "Action impossible",
+        message: extractApiError(error),
+      });
+    } finally {
+      setIsSubmittingCurriculumSubject(false);
+    }
+  }
+
+  async function handleSubjectSubmit(values: CreateSubjectPayload) {
+    if (!schoolSlug || !formContext || formContext.kind !== "subject") {
+      return;
+    }
+    const ctx = formContext;
+    setIsSubmittingSubject(true);
+    try {
+      await curriculumsApi.createSubject(schoolSlug, values);
+      await loadOverview(false);
+      showSuccess({
+        title: "Matière créée",
+        message: "La matière a été ajoutée au catalogue de l'établissement.",
+      });
+      const originTab = ctx.originTab;
+      setTimeout(() => {
+        setTab(originTab);
+        setFormContext(null);
+      }, 2000);
+    } catch (error) {
+      showError({
+        title: "Action impossible",
+        message: extractApiError(error),
+      });
+    } finally {
+      setIsSubmittingSubject(false);
+    }
   }
 
   async function confirmDelete() {
@@ -1253,7 +1495,7 @@ export function CurriculumsAdminScreen() {
     setDeleteTarget(null);
 
     if (currentTarget.kind === "level") {
-      await runMutation(
+      await runDeleteMutation(
         async () => {
           await curriculumsApi.deleteAcademicLevel(
             schoolSlug,
@@ -1267,7 +1509,7 @@ export function CurriculumsAdminScreen() {
     }
 
     if (currentTarget.kind === "track") {
-      await runMutation(
+      await runDeleteMutation(
         async () => {
           await curriculumsApi.deleteTrack(schoolSlug, currentTarget.id);
         },
@@ -1278,7 +1520,7 @@ export function CurriculumsAdminScreen() {
     }
 
     if (currentTarget.kind === "curriculum") {
-      await runMutation(
+      await runDeleteMutation(
         async () => {
           await curriculumsApi.deleteCurriculum(schoolSlug, currentTarget.id);
         },
@@ -1288,7 +1530,7 @@ export function CurriculumsAdminScreen() {
       return;
     }
 
-    await runMutation(
+    await runDeleteMutation(
       async () => {
         await curriculumsApi.deleteCurriculumSubject(
           schoolSlug,
@@ -1301,43 +1543,9 @@ export function CurriculumsAdminScreen() {
     );
   }
 
-  function openCreateSheet() {
-    if (tab === "levels") {
-      setLevelTrackSheet({
-        visible: true,
-        kind: "level",
-        mode: "create",
-      });
-      return;
-    }
-    if (tab === "tracks") {
-      setLevelTrackSheet({
-        visible: true,
-        kind: "track",
-        mode: "create",
-      });
-      return;
-    }
-    if (tab === "curriculums") {
-      setCurriculumSheet({
-        visible: true,
-        mode: "create",
-      });
-      return;
-    }
-    if (tab === "subjects") {
-      setCurriculumSubjectSheet({
-        visible: true,
-        mode: "create",
-      });
-    }
-  }
-
   const fabDisabled =
-    tab === "help" ||
-    (tab === "subjects" && curriculums.length === 0) ||
-    !isAllowed ||
-    !schoolSlug;
+    tab === "help" || tab === "forms" || !isAllowed || !schoolSlug;
+  const linkSubjectDisabled = curriculums.length === 0;
 
   const helpCards = [
     {
@@ -1403,22 +1611,52 @@ export function CurriculumsAdminScreen() {
       <ModuleHeader
         title="Curriculums"
         subtitle={subtitle}
-        onBack={() => moduleBack(router)}
+        onBack={() => (tab === "forms" ? exitForms() : moduleBack(router))}
         testID="curriculums-header"
         backTestID="curriculums-back-btn"
         topInset={insets.top}
       />
 
-      <UnderlineTabs
-        items={[...TAB_ITEMS]}
-        activeKey={tab}
-        onSelect={setTab}
-        testIDPrefix="curriculums-tab"
-      />
+      {tab !== "forms" ? (
+        <UnderlineTabs
+          items={TAB_ITEMS}
+          activeKey={tab as ListTabKey}
+          onSelect={setTab}
+          testIDPrefix="curriculums-tab"
+        />
+      ) : null}
 
       {loading ? (
         <View style={styles.stateWrap}>
           <LoadingBlock label="Chargement des curriculums..." />
+        </View>
+      ) : tab === "forms" && formContext ? (
+        <View style={styles.formsTabContent} testID="curriculums-forms-tab">
+          <View style={styles.heroWrapper}>
+            <FormHero
+              icon={formHeroIcon(formContext)}
+              title={formHeroTitle(formContext)}
+              subtitle={formHeroSubtitle(formContext)}
+              palette={formContext.mode === "create" ? "teal" : "warm"}
+              testID="curriculums-form-hero"
+            />
+          </View>
+          {renderFormContent(formContext, {
+            orderedLevels,
+            orderedTracks,
+            orderedCurriculums,
+            subjects,
+            selectedCurriculumId,
+            isSubmittingLevelTrack,
+            isSubmittingCurriculum,
+            isSubmittingCurriculumSubject,
+            isSubmittingSubject,
+            onCancel: exitForms,
+            onSubmitLevelTrack: handleLevelTrackSubmit,
+            onSubmitCurriculum: handleCurriculumSubmit,
+            onSubmitCurriculumSubject: handleCurriculumSubjectSubmit,
+            onSubmitSubject: handleSubjectSubmit,
+          })}
         </View>
       ) : (
         <>
@@ -1524,18 +1762,19 @@ export function CurriculumsAdminScreen() {
                         <View style={styles.iconActions}>
                           <TouchableOpacity
                             style={styles.iconButton}
-                            onPress={() =>
-                              setLevelTrackSheet({
-                                visible: true,
+                            onPress={() => {
+                              setFormContext({
                                 kind: "level",
                                 mode: "edit",
+                                originTab: "levels",
                                 itemId: level.id,
                                 initialValues: {
                                   code: level.code,
                                   label: level.label,
                                 },
-                              })
-                            }
+                              });
+                              setTab("forms");
+                            }}
                             testID={`curriculum-level-edit-${level.id}`}
                           >
                             <Ionicons
@@ -1626,18 +1865,19 @@ export function CurriculumsAdminScreen() {
                         <View style={styles.iconActions}>
                           <TouchableOpacity
                             style={styles.iconButton}
-                            onPress={() =>
-                              setLevelTrackSheet({
-                                visible: true,
+                            onPress={() => {
+                              setFormContext({
                                 kind: "track",
                                 mode: "edit",
+                                originTab: "tracks",
                                 itemId: track.id,
                                 initialValues: {
                                   code: track.code,
                                   label: track.label,
                                 },
-                              })
-                            }
+                              });
+                              setTab("forms");
+                            }}
                             testID={`curriculum-track-edit-${track.id}`}
                           >
                             <Ionicons
@@ -1737,13 +1977,15 @@ export function CurriculumsAdminScreen() {
                         <View style={styles.iconActions}>
                           <TouchableOpacity
                             style={styles.iconButton}
-                            onPress={() =>
-                              setCurriculumSheet({
-                                visible: true,
+                            onPress={() => {
+                              setFormContext({
+                                kind: "curriculum",
                                 mode: "edit",
+                                originTab: "curriculums",
                                 item: curriculum,
-                              })
-                            }
+                              });
+                              setTab("forms");
+                            }}
                             testID={`curriculum-edit-${curriculum.id}`}
                           >
                             <Ionicons
@@ -1873,13 +2115,15 @@ export function CurriculumsAdminScreen() {
                             <View style={styles.iconActions}>
                               <TouchableOpacity
                                 style={styles.iconButton}
-                                onPress={() =>
-                                  setCurriculumSubjectSheet({
-                                    visible: true,
+                                onPress={() => {
+                                  setFormContext({
+                                    kind: "curriculum-subject",
                                     mode: "edit",
+                                    originTab: "subjects",
                                     item: entry,
-                                  })
-                                }
+                                  });
+                                  setTab("forms");
+                                }}
                                 testID={`curriculum-subject-edit-${entry.id}`}
                               >
                                 <Ionicons
@@ -1921,69 +2165,108 @@ export function CurriculumsAdminScreen() {
           </ScrollView>
 
           {tab !== "help" ? (
-            <TouchableOpacity
-              style={[
-                styles.fab,
-                {
-                  bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT,
-                  backgroundColor: fabDisabled
-                    ? colors.textSecondary
-                    : accentForTab(tab),
-                },
-              ]}
-              disabled={fabDisabled}
-              onPress={openCreateSheet}
-              activeOpacity={0.88}
-              testID="curriculums-fab"
-            >
-              {isSubmitting ? (
-                <ActivityIndicator color={colors.white} />
-              ) : (
-                <Ionicons name="add" size={28} color={colors.white} />
-              )}
-            </TouchableOpacity>
+            <>
+              {tab === "subjects" && subjectsFabOpen ? (
+                <TouchableOpacity
+                  style={styles.fabBackdrop}
+                  activeOpacity={1}
+                  onPress={() => setSubjectsFabOpen(false)}
+                  testID="curriculums-fab-backdrop"
+                />
+              ) : null}
+
+              {tab === "subjects" && subjectsFabOpen ? (
+                <View
+                  style={[
+                    styles.fabMiniStack,
+                    {
+                      bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT + 74,
+                    },
+                  ]}
+                >
+                  <View style={styles.fabMiniRow}>
+                    <View style={styles.fabMiniLabel}>
+                      <Text style={styles.fabMiniLabelText}>
+                        Lier à un curriculum
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.fabMini,
+                        {
+                          backgroundColor: linkSubjectDisabled
+                            ? colors.textSecondary
+                            : accentForTab("curriculums"),
+                        },
+                      ]}
+                      disabled={linkSubjectDisabled}
+                      onPress={openLinkSubjectForm}
+                      activeOpacity={0.88}
+                      testID="curriculums-subject-link-fab"
+                    >
+                      <Ionicons
+                        name="link-outline"
+                        size={20}
+                        color={colors.white}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.fabMiniRow}>
+                    <View style={styles.fabMiniLabel}>
+                      <Text style={styles.fabMiniLabelText}>
+                        Nouvelle matière
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.fabMini,
+                        { backgroundColor: accentForTab("subjects") },
+                      ]}
+                      onPress={openCreateSubjectForm}
+                      activeOpacity={0.88}
+                      testID="curriculums-subject-create-fab"
+                    >
+                      <Ionicons
+                        name="add-outline"
+                        size={22}
+                        color={colors.white}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : null}
+
+              <TouchableOpacity
+                style={[
+                  styles.fab,
+                  {
+                    bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT,
+                    backgroundColor: fabDisabled
+                      ? colors.textSecondary
+                      : accentForTab(tab as ListTabKey),
+                  },
+                ]}
+                disabled={fabDisabled}
+                onPress={openFab}
+                activeOpacity={0.88}
+                testID="curriculums-fab"
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Ionicons
+                    name={
+                      tab === "subjects" && subjectsFabOpen ? "close" : "add"
+                    }
+                    size={28}
+                    color={colors.white}
+                  />
+                )}
+              </TouchableOpacity>
+            </>
           ) : null}
         </>
       )}
-
-      <LevelTrackFormSheet
-        visible={levelTrackSheet.visible}
-        kind={levelTrackSheet.kind}
-        mode={levelTrackSheet.mode}
-        initialValues={levelTrackSheet.initialValues}
-        isSubmitting={isSubmitting}
-        onClose={() =>
-          setLevelTrackSheet((current) => ({ ...current, visible: false }))
-        }
-        onSubmit={handleLevelTrackSubmit}
-      />
-
-      <CurriculumFormSheet
-        visible={curriculumSheet.visible}
-        item={curriculumSheet.item ?? null}
-        academicLevels={orderedLevels}
-        tracks={orderedTracks}
-        isSubmitting={isSubmitting}
-        onClose={() => setCurriculumSheet({ visible: false, mode: "create" })}
-        onSubmit={handleCurriculumSubmit}
-      />
-
-      <CurriculumSubjectFormSheet
-        visible={curriculumSubjectSheet.visible}
-        item={curriculumSubjectSheet.item ?? null}
-        selectedCurriculumId={
-          curriculumSubjectSheet.item && selectedCurriculumId
-            ? selectedCurriculumId
-            : selectedCurriculumId || orderedCurriculums[0]?.id || ""
-        }
-        curriculums={orderedCurriculums}
-        subjects={subjects}
-        isSubmitting={isSubmitting}
-        onClose={() =>
-          setCurriculumSubjectSheet({ visible: false, mode: "create" })
-        }
-        onSubmit={handleCurriculumSubjectSubmit}
-      />
 
       <ConfirmDialog
         visible={deleteTarget != null}
@@ -2105,6 +2388,53 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
+  fabBackdrop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(18, 28, 38, 0.28)",
+  },
+  fabMiniStack: {
+    position: "absolute",
+    right: 20,
+    gap: 14,
+    alignItems: "flex-end",
+  },
+  fabMiniRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  fabMiniLabel: {
+    backgroundColor: colors.surface,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  fabMiniLabelText: {
+    color: colors.textPrimary,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  fabMini: {
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
   subjectSelectorBar: {
     marginTop: -4,
   },
@@ -2217,95 +2547,31 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
   },
-  sheetOverlay: {
+  // ── Inline form layout (tab "forms") ────────────────────────────────────
+  formsTabContent: {
     flex: 1,
-    backgroundColor: "rgba(18, 28, 38, 0.45)",
-    justifyContent: "flex-end",
   },
-  sheetBackdrop: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
+  heroWrapper: {
+    padding: 16,
   },
-  sheetKeyboard: {
-    // Auto-dimensionné au contenu : pas de flex ni maxHeight ici.
-    // Le ScrollView à l'intérieur est borné par maxHeight dynamique.
+  formsKeyboardArea: {
+    flex: 1,
   },
-  sheetCard: {
-    // Pas de flex:1 — hauteur déterminée par le contenu (header + scroll + footer).
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: "hidden",
+  formScroll: {
+    flex: 1,
   },
-  sheetHeader: {
-    backgroundColor: colors.primary,
-    paddingTop: 10,
-    paddingHorizontal: 18,
+  formScrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
     paddingBottom: 16,
-  },
-  sheetHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.25)",
-    alignSelf: "center",
-    marginBottom: 12,
-  },
-  sheetHeaderRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-  },
-  sheetHeaderText: {
-    flex: 1,
-    gap: 3,
-  },
-  sheetEyebrow: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 10,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-  },
-  sheetTitle: {
-    color: colors.white,
-    fontSize: 17,
-    fontWeight: "800",
-    lineHeight: 22,
-  },
-  sheetSubtitle: {
-    color: "rgba(255,255,255,0.62)",
-    fontSize: 12,
-    lineHeight: 17,
-    marginTop: 2,
-  },
-  sheetCloseButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 14,
-  },
-  sheetScrollArea: {
-    // maxHeight posé inline dans ModalFrame via useWindowDimensions.
-  },
-  sheetBody: {
-    padding: 18,
-    paddingBottom: 12,
     gap: 16,
   },
-  sheetFooter: {
+  formActionsBar: {
     backgroundColor: colors.warmSurface,
     borderTopWidth: 1,
     borderTopColor: colors.warmBorder,
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     flexDirection: "row",
     gap: 10,
   },
@@ -2318,7 +2584,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   formInput: {
-    borderRadius: 16,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     backgroundColor: colors.surface,
@@ -2329,11 +2595,6 @@ const styles = StyleSheet.create({
   },
   formInputFocused: {
     borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
   },
   formInputError: {
     borderColor: colors.warmAccent,
@@ -2344,7 +2605,7 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   switchField: {
-    borderRadius: 14,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     backgroundColor: "#FBF6EF",
@@ -2365,7 +2626,7 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   previewCard: {
-    borderRadius: 14,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     backgroundColor: colors.warmSurface,
@@ -2389,7 +2650,7 @@ const styles = StyleSheet.create({
   },
   secondaryAction: {
     flex: 1,
-    borderRadius: 14,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     backgroundColor: "rgba(255,255,255,0.86)",
@@ -2405,7 +2666,7 @@ const styles = StyleSheet.create({
   },
   primaryAction: {
     flex: 1,
-    borderRadius: 14,
+    borderRadius: 6,
     backgroundColor: colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 14,

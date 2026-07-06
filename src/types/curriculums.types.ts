@@ -93,3 +93,7 @@ export type UpsertCurriculumSubjectPayload = {
   coefficient?: number;
   weeklyHours?: number;
 };
+
+export type CreateSubjectPayload = {
+  name: string;
+};

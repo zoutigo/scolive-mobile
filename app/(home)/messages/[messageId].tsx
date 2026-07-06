@@ -14,7 +14,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { colors } from "../../../src/theme";
-import { messagingApi } from "../../../src/api/messaging.api";
+import {
+  getMessagingClient,
+  PLATFORM_SCOPE,
+} from "../../../src/api/messaging-client";
 import { useMessagingStore } from "../../../src/store/messaging.store";
 import { useAuthStore } from "../../../src/store/auth.store";
 import { useBadgesStore } from "../../../src/store/badges.store";
@@ -23,6 +26,7 @@ import { ConfirmDialog } from "../../../src/components/ConfirmDialog";
 import { AppShell } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import { SwipePager } from "../../../src/components/SwipePager";
+import { getViewType } from "../../../src/components/navigation/nav-config";
 import {
   useTranslation,
   type TranslateFn,
@@ -232,7 +236,11 @@ function MessageDetailPage({
 }) {
   const { t } = useTranslation();
   const router = useRouter();
-  const { schoolSlug } = useAuthStore();
+  const { user, schoolSlug } = useAuthStore();
+  const scope =
+    user && getViewType(user) === "platform"
+      ? PLATFORM_SCOPE
+      : (schoolSlug ?? null);
   const {
     markLocalRead,
     markLocalUnread,
@@ -251,12 +259,12 @@ function MessageDetailPage({
   const hasAutoMarkedRead = useRef(false);
 
   useEffect(() => {
-    if (!schoolSlug) return;
+    if (!scope) return;
     let cancelled = false;
     setIsLoading(true);
     setLoadFailed(false);
-    messagingApi
-      .get(schoolSlug, id)
+    getMessagingClient(scope)
+      .get(id)
       .then((m) => {
         if (!cancelled) setMessage(m);
       })
@@ -269,21 +277,23 @@ function MessageDetailPage({
     return () => {
       cancelled = true;
     };
-  }, [schoolSlug, id]);
+  }, [scope, id]);
 
   // Marque le message lu uniquement quand il devient visible à l'écran (page
   // active du swipe), sans jamais écraser un choix explicite "non lu" de
   // l'utilisateur (`keepUnreadIds`).
   useEffect(() => {
-    if (!schoolSlug || !message || !isActive) return;
+    if (!scope || !message || !isActive) return;
     if (!message.recipientState || message.recipientState.readAt) return;
     if (keepUnreadIds.has(id)) return;
     if (hasAutoMarkedRead.current) return;
     hasAutoMarkedRead.current = true;
 
-    messagingApi.markRead(schoolSlug, id, true).catch(() => {});
+    getMessagingClient(scope)
+      .markRead(id, true)
+      .catch(() => {});
     markLocalRead(id);
-    void useBadgesStore.getState().loadSummary(schoolSlug);
+    void useBadgesStore.getState().loadSummary(scope);
     setMessage((current) =>
       current && current.recipientState
         ? {
@@ -295,16 +305,16 @@ function MessageDetailPage({
           }
         : current,
     );
-  }, [schoolSlug, message, isActive, id, keepUnreadIds, markLocalRead]);
+  }, [scope, message, isActive, id, keepUnreadIds, markLocalRead]);
 
   async function handleArchiveToggle() {
-    if (!schoolSlug || !message) return;
+    if (!scope || !message) return;
     const isArchived = message.isSender
       ? !!message.senderArchivedAt
       : !!message.recipientState?.archivedAt;
     setIsBusy(true);
     try {
-      await messagingApi.archive(schoolSlug, message.id, !isArchived);
+      await getMessagingClient(scope).archive(message.id, !isArchived);
       showFeedbackToast({
         variant: "success",
         title: !isArchived
@@ -315,7 +325,7 @@ function MessageDetailPage({
           : t("messaging.toasts.unarchivedMessage"),
       });
       removeLocal(message.id);
-      void useBadgesStore.getState().loadSummary(schoolSlug);
+      void useBadgesStore.getState().loadSummary(scope);
       // Après un désarchivage, bascule sur le dossier d'origine pour que
       // l'écran de liste recharge inbox/sent et montre le message restauré.
       if (isArchived) {
@@ -334,12 +344,12 @@ function MessageDetailPage({
   }
 
   async function handleMarkUnread() {
-    if (!schoolSlug || !message || message.isSender) return;
+    if (!scope || !message || message.isSender) return;
     setIsBusy(true);
     try {
-      await messagingApi.markRead(schoolSlug, message.id, false);
+      await getMessagingClient(scope).markRead(message.id, false);
       markLocalUnread(message.id);
-      void useBadgesStore.getState().loadSummary(schoolSlug);
+      void useBadgesStore.getState().loadSummary(scope);
       setMessage((current) =>
         current
           ? {
@@ -366,17 +376,17 @@ function MessageDetailPage({
   }
 
   async function handleDelete() {
-    if (!schoolSlug || !message) return;
+    if (!scope || !message) return;
     setIsBusy(true);
     try {
-      await messagingApi.remove(schoolSlug, message.id);
+      await getMessagingClient(scope).remove(message.id);
       showFeedbackToast({
         variant: "success",
         title: t("messaging.toasts.deletedTitle"),
         message: t("messaging.toasts.deletedMessage"),
       });
       removeLocal(message.id);
-      void useBadgesStore.getState().loadSummary(schoolSlug);
+      void useBadgesStore.getState().loadSummary(scope);
       onExit();
     } catch {
       showFeedbackToast({

@@ -1978,6 +1978,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.hero.role.parent": "Parent",
     "home.hero.role.student": "Élève",
 
+    // Accueil Directeur/Administrateur d'école — tableau de bord
+    "home.school.dashboard.title": "Tableau de bord {year}",
+    "home.school.kpi.classes": "Classes",
+    "home.school.kpi.students": "Élèves",
+    "home.school.kpi.teachers": "Enseignants",
+    "home.school.kpi.parents": "Parents",
+    "home.school.kpi.subjects": "Matières",
+    "home.school.kpi.rooms": "Salles",
+
     // Accueil Parent
     "home.parent.children.title": "Mes enfants",
     "home.parent.children.empty.title": "Aucun enfant associé",
@@ -3948,6 +3957,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.hero.role.teacher": "Teacher",
     "home.hero.role.parent": "Parent",
     "home.hero.role.student": "Student",
+
+    // School admin/manager home — dashboard
+    "home.school.dashboard.title": "{year} dashboard",
+    "home.school.kpi.classes": "Classes",
+    "home.school.kpi.students": "Students",
+    "home.school.kpi.teachers": "Teachers",
+    "home.school.kpi.parents": "Parents",
+    "home.school.kpi.subjects": "Subjects",
+    "home.school.kpi.rooms": "Rooms",
 
     // Parent home
     "home.parent.children.title": "My children",
