@@ -66,14 +66,16 @@ describe("Curriculums drawer navigation", () => {
     });
   });
 
-  it("place curriculums entre matières et inscriptions dans le menu school admin", () => {
+  it("place curriculums entre salles et inscriptions dans le menu school admin", () => {
     const keys = getNavItems(schoolAdminUser).map((item) => item.key);
     const subjectsIndex = keys.indexOf("subjects");
+    const roomsIndex = keys.indexOf("rooms");
     const curriculumsIndex = keys.indexOf("curriculums");
     const enrollmentsIndex = keys.indexOf("enrollments");
 
     expect(subjectsIndex).toBeGreaterThanOrEqual(0);
-    expect(curriculumsIndex).toBe(subjectsIndex + 1);
+    expect(roomsIndex).toBe(subjectsIndex + 1);
+    expect(curriculumsIndex).toBe(roomsIndex + 1);
     expect(enrollmentsIndex).toBe(curriculumsIndex + 1);
   });
 
