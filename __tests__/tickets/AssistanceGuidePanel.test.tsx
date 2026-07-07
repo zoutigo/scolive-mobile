@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  act,
   fireEvent,
   render,
   screen,
@@ -8,15 +7,8 @@ import {
 } from "@testing-library/react-native";
 import { AssistanceGuidePanel } from "../../src/components/tickets/AssistanceGuidePanel";
 import { helpGuidesApi } from "../../src/api/help-guides.api";
-import { __mockEditorMethods } from "../../__mocks__/react-native-pell-rich-editor";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
-jest.mock("react-native-pell-rich-editor");
-
-jest.mock("expo-image-picker", () => ({
-  requestMediaLibraryPermissionsAsync: jest.fn(),
-  launchImageLibraryAsync: jest.fn(),
-}));
 
 jest.mock("../../src/api/help-guides.api", () => ({
   helpGuidesApi: {
@@ -26,12 +18,6 @@ jest.mock("../../src/api/help-guides.api", () => ({
     search: jest.fn(),
     listGlobalAdmin: jest.fn(),
     listSchoolAdmin: jest.fn(),
-    createGlobalGuide: jest.fn(),
-    createSchoolGuide: jest.fn(),
-    createGlobalChapter: jest.fn(),
-    createSchoolChapter: jest.fn(),
-    uploadInlineImage: jest.fn(),
-    uploadInlineVideo: jest.fn(),
   },
 }));
 
@@ -148,8 +134,9 @@ describe("AssistanceGuidePanel", () => {
     });
   });
 
-  it("charge le guide et affiche les formulaires admin", async () => {
-    render(<AssistanceGuidePanel />);
+  it("charge le guide et affiche le bouton de gestion pour un admin", async () => {
+    const onManage = jest.fn();
+    render(<AssistanceGuidePanel onManage={onManage} />);
 
     await waitFor(() => {
       expect(screen.getAllByText("Guide parent").length).toBeGreaterThanOrEqual(
@@ -158,12 +145,14 @@ describe("AssistanceGuidePanel", () => {
     });
 
     expect(screen.getAllByText("Messagerie").length).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getByTestId("assistance-guide-admin-forms-mobile"),
-    ).toBeTruthy();
+
+    const manageBtn = screen.getByTestId("assistance-guide-manage-btn");
+    expect(manageBtn).toBeTruthy();
+    fireEvent.press(manageBtn);
+    expect(onManage).toHaveBeenCalledTimes(1);
   });
 
-  it("masque les formulaires admin sans role platform local", async () => {
+  it("masque le bouton de gestion sans role platform local", async () => {
     render(<AssistanceGuidePanel canManageOverride={false} />);
 
     await waitFor(() => {
@@ -172,95 +161,6 @@ describe("AssistanceGuidePanel", () => {
       );
     });
 
-    expect(
-      screen.queryByTestId("assistance-guide-admin-forms-mobile"),
-    ).toBeNull();
-  });
-
-  it("uploade et insère une image dans l'éditeur de chapitre", async () => {
-    (
-      require("expo-image-picker")
-        .requestMediaLibraryPermissionsAsync as jest.Mock
-    ).mockResolvedValue({ status: "granted" });
-    (
-      require("expo-image-picker").launchImageLibraryAsync as jest.Mock
-    ).mockResolvedValue({
-      canceled: false,
-      assets: [
-        {
-          uri: "file:///photo.jpg",
-          fileName: "photo.jpg",
-          mimeType: "image/jpeg",
-        },
-      ],
-    });
-    mockApi.uploadInlineImage.mockResolvedValue({
-      url: "https://example.com/chapter-img.jpg",
-    });
-
-    render(<AssistanceGuidePanel />);
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("assistance-guide-admin-forms-mobile"),
-      ).toBeTruthy();
-    });
-
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("toolbar-insert-image"));
-    });
-
-    expect(mockApi.uploadInlineImage).toHaveBeenCalledWith({
-      uri: "file:///photo.jpg",
-      name: "photo.jpg",
-      mimeType: "image/jpeg",
-    });
-    expect(__mockEditorMethods.insertImage).toHaveBeenCalledWith(
-      "https://example.com/chapter-img.jpg",
-      expect.any(String),
-    );
-  });
-
-  it("uploade et insère une vidéo dans l'éditeur de chapitre", async () => {
-    (
-      require("expo-image-picker")
-        .requestMediaLibraryPermissionsAsync as jest.Mock
-    ).mockResolvedValue({ status: "granted" });
-    (
-      require("expo-image-picker").launchImageLibraryAsync as jest.Mock
-    ).mockResolvedValue({
-      canceled: false,
-      assets: [
-        {
-          uri: "file:///clip.mp4",
-          fileName: "clip.mp4",
-          mimeType: "video/mp4",
-        },
-      ],
-    });
-    mockApi.uploadInlineVideo.mockResolvedValue({
-      url: "https://example.com/chapter-video.mp4",
-    });
-
-    render(<AssistanceGuidePanel />);
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("assistance-guide-admin-forms-mobile"),
-      ).toBeTruthy();
-    });
-
-    await act(async () => {
-      fireEvent.press(screen.getByTestId("editor-video-btn"));
-    });
-
-    expect(mockApi.uploadInlineVideo).toHaveBeenCalledWith({
-      uri: "file:///clip.mp4",
-      name: "clip.mp4",
-      mimeType: "video/mp4",
-    });
-    expect(__mockEditorMethods.command).toHaveBeenCalledWith(
-      expect.stringContaining("https://example.com/chapter-video.mp4"),
-    );
+    expect(screen.queryByTestId("assistance-guide-manage-btn")).toBeNull();
   });
 });
