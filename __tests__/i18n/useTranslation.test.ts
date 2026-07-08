@@ -41,6 +41,25 @@ describe("homework.* translations", () => {
   });
 });
 
+describe("resources.* translations", () => {
+  it("has matching, non-empty fr/en keys", () => {
+    const frKeys = Object.keys(translations.fr).filter((key) =>
+      key.startsWith("resources."),
+    );
+    const enKeys = Object.keys(translations.en).filter((key) =>
+      key.startsWith("resources."),
+    );
+
+    expect(frKeys.length).toBeGreaterThan(0);
+    expect(new Set(enKeys)).toEqual(new Set(frKeys));
+
+    for (const key of frKeys) {
+      expect(translations.fr[key]).not.toBe("");
+      expect(translations.en[key]).not.toBe("");
+    }
+  });
+});
+
 describe("useTranslation", () => {
   beforeEach(async () => {
     await AsyncStorage.clear();

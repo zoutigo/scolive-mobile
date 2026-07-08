@@ -219,6 +219,12 @@ const PLATFORM_NAV: NavItem[] = [
     route: "/admin-tests",
   },
   {
+    key: "resources",
+    label: "Ressources",
+    icon: "library-outline",
+    route: "/resources",
+  },
+  {
     key: "messages",
     label: "Messagerie",
     icon: "chatbubble-outline",
@@ -288,6 +294,12 @@ const SCHOOL_NAV: NavItem[] = [
     route: "/admin-discipline",
   },
   {
+    key: "resources",
+    label: "Ressources",
+    icon: "library-outline",
+    route: "/resources",
+  },
+  {
     key: "messages",
     label: "Messagerie",
     icon: "chatbubble-outline",
@@ -312,6 +324,12 @@ const TEACHER_NAV: NavItem[] = [
     route: "/timetable",
   },
   {
+    key: "resources",
+    label: "Ressources",
+    icon: "library-outline",
+    route: "/resources",
+  },
+  {
     key: "messages",
     label: "Messagerie",
     icon: "chatbubble-outline",
@@ -330,6 +348,12 @@ const PARENT_NAV: NavItem[] = [
     route: "/(home)/finance",
   },
   {
+    key: "resources",
+    label: "Ressources",
+    icon: "library-outline",
+    route: "/resources",
+  },
+  {
     key: "messages",
     label: "Messagerie",
     icon: "chatbubble-outline",
@@ -342,6 +366,12 @@ const PARENT_NAV: NavItem[] = [
 const STUDENT_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
   placeholder("Notes & homework", "ribbon-outline", "grades"),
+  {
+    key: "resources",
+    label: "Ressources",
+    icon: "library-outline",
+    route: "/resources",
+  },
   {
     key: "messages",
     label: "Messagerie",
@@ -413,6 +443,12 @@ export function buildChildNavItems(
       label: "Messagerie",
       icon: "chatbubble-outline",
       route: "/messages",
+    },
+    {
+      key: `child-${childId}-resources`,
+      label: "Ressources",
+      icon: "library-outline",
+      route: "/resources",
     },
     {
       key: `child-${childId}-documents`,

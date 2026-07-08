@@ -184,7 +184,7 @@ describe("Scrollabilité de la liste de navigation", () => {
   it("tous les items plateforme sont dans le ScrollView (hors 'Mon compte', déplacé vers la bottom tab bar)", () => {
     render(<AppDrawer {...baseProps} navItems={getNavItems(platformUser)} />);
     const platformItems = getNavItems(platformUser);
-    expect(platformItems).toHaveLength(7);
+    expect(platformItems).toHaveLength(8);
     platformItems
       .filter((item) => item.key !== "account")
       .forEach((item) => {
@@ -206,7 +206,7 @@ describe("Scrollabilité de la liste de navigation", () => {
     };
     render(<AppDrawer {...baseProps} navItems={getNavItems(schoolUser)} />);
     const schoolItems = getNavItems(schoolUser);
-    expect(schoolItems).toHaveLength(16);
+    expect(schoolItems).toHaveLength(17);
     schoolItems
       .filter((item) => item.key !== "account")
       .forEach((item) => {
