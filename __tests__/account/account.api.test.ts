@@ -119,4 +119,19 @@ describe("accountApi", () => {
       true,
     );
   });
+
+  it("met à jour l'école active via PUT /me/active-school", async () => {
+    mockApiFetch.mockResolvedValueOnce({ schoolSlug: "college-b" });
+
+    await accountApi.setActiveSchool({ schoolId: "school-2" });
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/me/active-school",
+      {
+        method: "PUT",
+        body: JSON.stringify({ schoolId: "school-2" }),
+      },
+      true,
+    );
+  });
 });

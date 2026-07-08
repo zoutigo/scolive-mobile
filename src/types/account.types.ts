@@ -5,6 +5,16 @@ export type AccountGender = "M" | "F" | "OTHER";
 
 export type AccountLocale = "FR" | "EN";
 
+export type SchoolMembershipRole =
+  | "SCHOOL_ADMIN"
+  | "SCHOOL_MANAGER"
+  | "SUPERVISOR"
+  | "SCHOOL_ACCOUNTANT"
+  | "SCHOOL_STAFF"
+  | "TEACHER"
+  | "PARENT"
+  | "STUDENT";
+
 export interface AccountProfileResponse {
   firstName: string;
   lastName: string;
@@ -17,17 +27,16 @@ export interface AccountProfileResponse {
   platformRoles?: Array<"SUPER_ADMIN" | "ADMIN" | "SALES" | "SUPPORT">;
   memberships?: Array<{
     schoolId: string;
-    role:
-      | "SCHOOL_ADMIN"
-      | "SCHOOL_MANAGER"
-      | "SUPERVISOR"
-      | "SCHOOL_ACCOUNTANT"
-      | "SCHOOL_STAFF"
-      | "TEACHER"
-      | "PARENT"
-      | "STUDENT";
+    role: SchoolMembershipRole;
   }>;
   schoolSlug: string | null;
+  activeSchoolId?: string | null;
+  schools?: Array<{
+    schoolId: string;
+    slug: string;
+    name: string;
+    role: SchoolMembershipRole;
+  }>;
   hasPassword: boolean;
   hasPhoneCredential: boolean;
 }
@@ -102,6 +111,10 @@ export interface SetActiveRolePayload {
 
 export interface SetActiveRoleResponse {
   activeRole: AppRole;
+}
+
+export interface SetActiveSchoolPayload {
+  schoolId: string;
 }
 
 export interface RequestEmailChangePayload {

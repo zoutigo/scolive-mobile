@@ -11,6 +11,7 @@ import type {
   RequestEmailChangePayload,
   SetActiveRolePayload,
   SetActiveRoleResponse,
+  SetActiveSchoolPayload,
   UpdateAccountProfilePayload,
   UpdateAccountRecoveryPayload,
   UpdatePreferredLocalePayload,
@@ -50,6 +51,19 @@ export const accountApi = {
   setActiveRole(payload: SetActiveRolePayload): Promise<SetActiveRoleResponse> {
     return apiFetch(
       "/me/active-role",
+      {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      },
+      true,
+    );
+  },
+
+  setActiveSchool(
+    payload: SetActiveSchoolPayload,
+  ): Promise<AccountProfileResponse> {
+    return apiFetch(
+      "/me/active-school",
       {
         method: "PUT",
         body: JSON.stringify(payload),

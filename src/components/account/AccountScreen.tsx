@@ -1592,6 +1592,9 @@ function AccountScreenContent() {
   const { locale, setLocale, t } = useTranslation();
   const [selectedRole, setSelectedRole] = useState<AppRole | null>(null);
   const [savingActiveRole, setSavingActiveRole] = useState(false);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
+  const [savingActiveSchool, setSavingActiveSchool] = useState(false);
+  const switchActiveSchool = useAuthStore((state) => state.switchActiveSchool);
   const [savingAccountLanguage, setSavingAccountLanguage] = useState(false);
 
   const securityHint = useMemo(() => {
@@ -1611,6 +1614,11 @@ function AccountScreenContent() {
         ? profile.activeRole
         : (profile?.role ?? availableRoles[0] ?? null),
     [availableRoles, profile?.activeRole, profile?.role],
+  );
+
+  const currentActiveSchoolId = useMemo(
+    () => profile?.activeSchoolId ?? profile?.schools?.[0]?.schoolId ?? null,
+    [profile?.activeSchoolId, profile?.schools],
   );
 
   const syncProfileState = useCallback(
@@ -1688,6 +1696,10 @@ function AccountScreenContent() {
     setSelectedRole(currentActiveRole);
   }, [currentActiveRole]);
 
+  useEffect(() => {
+    setSelectedSchoolId(currentActiveSchoolId);
+  }, [currentActiveSchoolId]);
+
   async function handleRefresh() {
     setRefreshing(true);
     await Promise.all([loadProfile(), recoveryOptions ? loadRecovery() : null]);
@@ -1720,6 +1732,42 @@ function AccountScreenContent() {
       });
     } finally {
       setSavingActiveRole(false);
+    }
+  }
+
+  async function handleSaveActiveSchool() {
+    if (!selectedSchoolId) return;
+    try {
+      setSavingActiveSchool(true);
+      const nextSchoolSlug = await switchActiveSchool(selectedSchoolId);
+      setProfile((current) =>
+        current
+          ? {
+              ...current,
+              activeSchoolId: selectedSchoolId,
+              schoolSlug: nextSchoolSlug ?? current.schoolSlug,
+            }
+          : current,
+      );
+      const school = profile?.schools?.find(
+        (entry) => entry.schoolId === selectedSchoolId,
+      );
+      showSuccess({
+        title: "École active mise à jour",
+        message: school
+          ? `${school.name} est maintenant l'école active.`
+          : "L'école active a été mise à jour.",
+      });
+    } catch (error) {
+      showError({
+        title: "Mise à jour impossible",
+        message: getErrorMessage(
+          error,
+          "L'école active n'a pas pu être mise à jour.",
+        ),
+      });
+    } finally {
+      setSavingActiveSchool(false);
     }
   }
 
@@ -2099,6 +2147,78 @@ function AccountScreenContent() {
                 })}
               </View>
             </SectionCard>
+
+            {(profile?.schools?.length ?? 0) > 1 ? (
+              <SectionCard
+                title="École active"
+                subtitle="Choisissez l'établissement qui conditionne l'application"
+                testID="account-settings-school-card"
+              >
+                <View style={styles.settingsChoiceWrap}>
+                  {(profile?.schools ?? []).map((school) => {
+                    const selected = selectedSchoolId === school.schoolId;
+                    return (
+                      <TouchableOpacity
+                        key={school.schoolId}
+                        style={[
+                          styles.settingsRoleOption,
+                          selected && styles.settingsRoleOptionActive,
+                        ]}
+                        onPress={() => setSelectedSchoolId(school.schoolId)}
+                        testID={`account-active-school-${school.schoolId}`}
+                      >
+                        <Text
+                          style={[
+                            styles.settingsRoleLabel,
+                            selected && styles.settingsRoleLabelActive,
+                          ]}
+                        >
+                          {school.name} ({toReadableRole(school.role)})
+                        </Text>
+                        <Ionicons
+                          name={
+                            selected
+                              ? "radio-button-on-outline"
+                              : "radio-button-off-outline"
+                          }
+                          size={16}
+                          color={
+                            selected ? colors.primary : colors.textSecondary
+                          }
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <View style={styles.actionsRowSplit}>
+                  <ActionButton
+                    label="Réinitialiser"
+                    variant="secondary"
+                    onPress={() => setSelectedSchoolId(currentActiveSchoolId)}
+                    stretch
+                    disabled={
+                      savingActiveSchool ||
+                      selectedSchoolId === currentActiveSchoolId
+                    }
+                    testID="account-reset-active-school"
+                  />
+                  <ActionButton
+                    label="Appliquer"
+                    onPress={() => {
+                      void handleSaveActiveSchool();
+                    }}
+                    stretch
+                    loading={savingActiveSchool}
+                    disabled={
+                      !selectedSchoolId ||
+                      selectedSchoolId === currentActiveSchoolId
+                    }
+                    testID="account-save-active-school"
+                  />
+                </View>
+              </SectionCard>
+            ) : null}
 
             <SectionCard
               title="Profil actif"
