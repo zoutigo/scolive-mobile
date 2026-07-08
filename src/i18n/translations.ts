@@ -1504,6 +1504,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.errors.childContextMissing": "Contexte enfant introuvable.",
     "feed.errors.classContextMissing": "Contexte classe introuvable.",
     "feed.errors.schoolMissing": "Établissement introuvable",
+    "feed.errors.openAttachmentTitle": "Erreur",
+    "feed.errors.openAttachment": "Impossible d'ouvrir cette pièce jointe.",
 
     "feed.toast.pollPublishedTitle": "Sondage publié",
     "feed.toast.postPublishedTitle": "Actualité publiée",
@@ -3492,6 +3494,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.errors.childContextMissing": "Child context not found.",
     "feed.errors.classContextMissing": "Class context not found.",
     "feed.errors.schoolMissing": "School not found",
+    "feed.errors.openAttachmentTitle": "Error",
+    "feed.errors.openAttachment": "Unable to open this attachment.",
 
     "feed.toast.pollPublishedTitle": "Poll published",
     "feed.toast.postPublishedTitle": "Post published",
