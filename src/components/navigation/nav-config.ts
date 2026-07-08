@@ -242,7 +242,12 @@ const SCHOOL_NAV: NavItem[] = [
     icon: "book-outline",
     route: "/admin-classes",
   },
-  placeholder("Matières", "library-outline", "subjects"),
+  {
+    key: "subjects",
+    label: "Matières",
+    icon: "library-outline",
+    route: "/matieres",
+  },
   {
     key: "rooms",
     label: "Salles",
