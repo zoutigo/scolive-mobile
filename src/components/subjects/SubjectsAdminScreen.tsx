@@ -18,6 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { subjectsApi } from "../../api/subjects.api";
 import { curriculumsApi } from "../../api/curriculums.api";
+import { platformCatalogApi } from "../../api/platform-catalog.api";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { ModuleHeader } from "../navigation/ModuleHeader";
@@ -40,14 +41,15 @@ import {
 } from "../timetable/TimetableCommon";
 import type { CurriculumRow } from "../../types/curriculums.types";
 import type { SubjectRow } from "../../types/subjects.types";
+import type { NationalSubjectRow } from "../../types/platform-catalog.types";
 import { moduleBack } from "../../utils/moduleBack";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type TabKey = "list" | "help" | "forms";
-type ListTabKey = "list" | "help";
+type TabKey = "list" | "help" | "forms" | "national";
+type ListTabKey = "list" | "help" | "national";
 
 type FormContext = {
   type: "create-subject" | "edit-subject";
@@ -87,6 +89,11 @@ export const subjectFormSchema = z.object({
   name: z.string().trim().min(1, "Le nom de la matière est obligatoire."),
 });
 
+export const nationalSubjectFormSchema = z.object({
+  code: z.string().trim().min(1, "Le code est obligatoire."),
+  name: z.string().trim().min(1, "Le nom de la matière est obligatoire."),
+});
+
 function curriculumLabel(curriculum: CurriculumRow) {
   return curriculum.track
     ? `${curriculum.academicLevel.label} · ${curriculum.track.label}`
@@ -113,6 +120,10 @@ function subjectSearchText(subject: SubjectRow) {
 
 function roleAllowsAdmin(role: string | null | undefined) {
   return role === "SCHOOL_ADMIN" || role === "ADMIN" || role === "SUPER_ADMIN";
+}
+
+function roleAllowsPlatformAdmin(role: string | null | undefined) {
+  return role === "ADMIN" || role === "SUPER_ADMIN";
 }
 
 let branchDraftCounter = 0;
@@ -476,6 +487,229 @@ function SubjectFormContent(props: {
 }
 
 // ---------------------------------------------------------------------------
+// NationalSubjectsSection — catalogue national (plateforme)
+// ---------------------------------------------------------------------------
+
+function NationalSubjectFormContent(props: {
+  isSubmitting: boolean;
+  onSubmit: (values: { code: string; name: string }) => Promise<void> | void;
+}) {
+  const {
+    control,
+    handleSubmit,
+    setFocus: focusField,
+    reset,
+    formState: { errors },
+  } = useForm<z.infer<typeof nationalSubjectFormSchema>>({
+    resolver: zodResolver(nationalSubjectFormSchema),
+    mode: "onChange",
+    defaultValues: { code: "", name: "" },
+  });
+
+  const submit = handleSubmit(
+    async (values) => {
+      await props.onSubmit(values);
+      reset({ code: "", name: "" });
+    },
+    (errs) => {
+      const first = Object.keys(errs)[0];
+      if (first) focusField(first as Parameters<typeof focusField>[0]);
+    },
+  );
+
+  return (
+    <View style={styles.nationalForm} testID="subjects-admin-national-form">
+      <Controller
+        control={control}
+        name="code"
+        render={({ field: { value, onChange, onBlur, ref } }) => (
+          <TextFormField
+            ref={ref}
+            label="Code"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            placeholder="Ex: MATH"
+            error={errors.code?.message}
+            testID="subjects-admin-national-code"
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="name"
+        render={({ field: { value, onChange, onBlur, ref } }) => (
+          <TextFormField
+            ref={ref}
+            label="Nom de la matière"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            placeholder="Ex: Mathématiques"
+            error={errors.name?.message}
+            testID="subjects-admin-national-name"
+          />
+        )}
+      />
+      <TouchableOpacity
+        style={[
+          styles.primaryAction,
+          props.isSubmitting && styles.primaryActionDisabled,
+        ]}
+        disabled={props.isSubmitting}
+        onPress={submit}
+        testID="subjects-admin-national-submit"
+      >
+        <Text style={styles.primaryActionLabel}>
+          {props.isSubmitting ? "Création..." : "Ajouter"}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function NationalSubjectsSection() {
+  const [items, setItems] = useState<NationalSubjectRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<NationalSubjectRow | null>(
+    null,
+  );
+  const [isDeleting, setIsDeleting] = useState(false);
+  const showSuccess = useSuccessToastStore((state) => state.showSuccess);
+  const showError = useSuccessToastStore((state) => state.showError);
+
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    try {
+      const rows = await platformCatalogApi.listNationalSubjects();
+      setItems(rows);
+    } catch (error) {
+      setErrorMessage(extractApiError(error));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const handleCreate = useCallback(
+    async (values: { code: string; name: string }) => {
+      setIsSubmitting(true);
+      try {
+        await platformCatalogApi.createNationalSubject(values);
+        showSuccess({
+          title: "Matière nationale créée",
+          message: "La matière est disponible pour toutes les écoles.",
+        });
+        await load();
+      } catch (error) {
+        showError({
+          title: "Création impossible",
+          message: extractApiError(error),
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [load, showSuccess, showError],
+  );
+
+  const handleDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await platformCatalogApi.deleteNationalSubject(deleteTarget.id);
+      showSuccess({
+        title: "Matière nationale supprimée",
+        message: "La matière a été retirée du catalogue national.",
+      });
+      setDeleteTarget(null);
+      await load();
+    } catch (error) {
+      showError({
+        title: "Suppression impossible",
+        message: extractApiError(error),
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteTarget, load, showSuccess, showError]);
+
+  return (
+    <View style={styles.content} testID="subjects-admin-national-tab">
+      {errorMessage ? (
+        <ErrorBanner
+          message={errorMessage}
+          onDismiss={() => setErrorMessage(null)}
+          testID="subjects-admin-national-error-banner"
+        />
+      ) : null}
+
+      <NationalSubjectFormContent
+        isSubmitting={isSubmitting}
+        onSubmit={handleCreate}
+      />
+
+      {isLoading ? (
+        <LoadingBlock label="Chargement du catalogue national..." />
+      ) : items.length === 0 ? (
+        <EmptyState
+          icon="albums-outline"
+          title="Aucune matière nationale"
+          message="Créez la première matière du catalogue national."
+        />
+      ) : (
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {items.map((item) => (
+            <View
+              key={item.id}
+              style={styles.nationalRow}
+              testID={`subjects-admin-national-row-${item.id}`}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.nationalRowCode}>{item.code}</Text>
+                <Text style={styles.nationalRowName}>{item.name}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.secondaryAction}
+                onPress={() => setDeleteTarget(item)}
+                testID={`subjects-admin-national-delete-${item.id}`}
+              >
+                <Text style={styles.secondaryActionLabel}>Supprimer</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
+      )}
+
+      <ConfirmDialog
+        visible={deleteTarget != null}
+        title="Supprimer la matière nationale"
+        message={
+          deleteTarget
+            ? `Supprimer définitivement la matière nationale "${deleteTarget.name}" ?`
+            : ""
+        }
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        variant="danger"
+        onCancel={() => {
+          if (!isDeleting) setDeleteTarget(null);
+        }}
+        onConfirm={() => {
+          void handleDelete();
+        }}
+      />
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // SubjectsAdminScreen
 // ---------------------------------------------------------------------------
 
@@ -502,6 +736,15 @@ export function SubjectsAdminScreen() {
   const effectiveRole = user?.activeRole ?? user?.role ?? null;
   const subtitle = user ? buildAdminSubtitle(user) : null;
   const canAccessModule = roleAllowsAdmin(effectiveRole);
+  const isPlatformAdmin = roleAllowsPlatformAdmin(effectiveRole);
+
+  const tabItems = useMemo<Array<{ key: ListTabKey; label: string }>>(
+    () =>
+      isPlatformAdmin
+        ? [...BASE_TAB_ITEMS, { key: "national", label: "Catalogue national" }]
+        : BASE_TAB_ITEMS,
+    [isPlatformAdmin],
+  );
 
   const subjectCountLabel = `${subjects.length} matière${subjects.length > 1 ? "s" : ""}`;
 
@@ -738,12 +981,14 @@ export function SubjectsAdminScreen() {
 
       {tab !== "forms" ? (
         <UnderlineTabs<ListTabKey>
-          items={BASE_TAB_ITEMS}
+          items={tabItems}
           activeKey={tab as ListTabKey}
           onSelect={(key) => setTab(key)}
           testIDPrefix="subjects-admin-tab"
         />
       ) : null}
+
+      {tab === "national" ? <NationalSubjectsSection /> : null}
 
       {/* ── Tab forms : hero + formulaire inline ──────────────────────────── */}
       {tab === "forms" && formContext ? (
@@ -777,7 +1022,7 @@ export function SubjectsAdminScreen() {
       ) : null}
 
       {/* ── Tabs liste (list / help) ────────────────────────────── */}
-      {tab !== "forms" ? (
+      {tab !== "forms" && tab !== "national" ? (
         isLoading ? (
           <View style={styles.loadingWrap}>
             <LoadingBlock label="Chargement du module matières..." />
@@ -1393,5 +1638,28 @@ const styles = StyleSheet.create({
   },
   branchAddButtonDisabled: {
     opacity: 0.5,
+  },
+  // ── Catalogue national ───────────────────────────────────────────────────
+  nationalForm: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  nationalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.warmBorder,
+  },
+  nationalRowCode: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textSecondary,
+  },
+  nationalRowName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.textPrimary,
   },
 });

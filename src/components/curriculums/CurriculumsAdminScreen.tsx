@@ -20,6 +20,7 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { curriculumsApi } from "../../api/curriculums.api";
+import { platformCatalogApi } from "../../api/platform-catalog.api";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { FormHero } from "../forms/FormHero";
@@ -54,13 +55,23 @@ import type {
   UpdateTrackPayload,
   UpsertCurriculumSubjectPayload,
 } from "../../types/curriculums.types";
+import type {
+  NationalAcademicLevelRow,
+  NationalCurriculumRow,
+} from "../../types/platform-catalog.types";
 import { moduleBack } from "../../utils/moduleBack";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type ListTabKey = "levels" | "tracks" | "curriculums" | "subjects" | "help";
+type ListTabKey =
+  | "levels"
+  | "tracks"
+  | "curriculums"
+  | "subjects"
+  | "national"
+  | "help";
 type TabKey = ListTabKey | "forms";
 
 type FormMode = "create" | "edit";
@@ -106,7 +117,7 @@ type DeleteTarget =
       label: string;
     };
 
-const TAB_ITEMS: Array<{ key: ListTabKey; label: string }> = [
+const BASE_TAB_ITEMS: Array<{ key: ListTabKey; label: string }> = [
   { key: "levels", label: "Niveaux" },
   { key: "tracks", label: "Filières" },
   { key: "curriculums", label: "Curriculums" },
@@ -126,6 +137,17 @@ const CURRICULUM_FORM_SCHEMA = z.object({
     .min(1, "Le niveau académique est obligatoire."),
   trackId: z.string().trim().optional(),
 });
+
+const NATIONAL_CURRICULUM_FORM_SCHEMA = z.object({
+  academicLevelId: z
+    .string()
+    .trim()
+    .min(1, "Le niveau académique est obligatoire."),
+});
+
+function roleAllowsPlatformAdmin(role: string | null | undefined) {
+  return role === "ADMIN" || role === "SUPER_ADMIN";
+}
 
 const CURRICULUM_SUBJECT_FORM_SCHEMA = z.object({
   curriculumId: z.string().trim().min(1, "Choisissez un curriculum."),
@@ -199,6 +221,7 @@ function rowPaletteForTab(tab: Exclude<ListTabKey, "help">, index: number) {
     tracks: ["#F4FCFA", "#EAF7F4"],
     curriculums: ["#F5FAFF", "#ECF4FB"],
     subjects: ["#FFF7F0", "#FFF0E1"],
+    national: ["#F5FAFF", "#ECF4FB"],
   };
 
   const [base, alternate] = palettes[tab];
@@ -1062,6 +1085,411 @@ function renderFormContent(
 }
 
 // ---------------------------------------------------------------------------
+// NationalCatalogSection — catalogue national (plateforme)
+// ---------------------------------------------------------------------------
+
+function NationalLevelFormContent(props: {
+  isSubmitting: boolean;
+  onSubmit: (values: { code: string; label: string }) => Promise<void> | void;
+}) {
+  const {
+    control,
+    handleSubmit,
+    setFocus: focusField,
+    reset,
+    formState: { errors },
+  } = useForm<z.infer<typeof LEVEL_TRACK_FORM_SCHEMA>>({
+    resolver: zodResolver(LEVEL_TRACK_FORM_SCHEMA),
+    mode: "onChange",
+    defaultValues: { code: "", label: "" },
+  });
+
+  const submit = handleSubmit(
+    async (values) => {
+      await props.onSubmit(values);
+      reset({ code: "", label: "" });
+    },
+    (errs) => {
+      const first = Object.keys(errs)[0];
+      if (first) focusField(first as Parameters<typeof focusField>[0]);
+    },
+  );
+
+  return (
+    <View style={styles.nationalForm} testID="curriculums-national-level-form">
+      <Controller
+        control={control}
+        name="code"
+        render={({ field: { value, onChange, onBlur, ref } }) => (
+          <TextFormField
+            ref={ref}
+            label="Code"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            placeholder="Ex: 6EME"
+            error={errors.code?.message}
+            testID="curriculums-national-level-code"
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="label"
+        render={({ field: { value, onChange, onBlur, ref } }) => (
+          <TextFormField
+            ref={ref}
+            label="Libellé"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            placeholder="Ex: 6ème"
+            error={errors.label?.message}
+            testID="curriculums-national-level-label"
+          />
+        )}
+      />
+      <TouchableOpacity
+        style={[
+          styles.primaryAction,
+          props.isSubmitting && styles.primaryActionDisabled,
+        ]}
+        disabled={props.isSubmitting}
+        onPress={submit}
+        testID="curriculums-national-level-submit"
+      >
+        <Text style={styles.primaryActionLabel}>
+          {props.isSubmitting ? "Création..." : "Ajouter"}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function NationalCurriculumFormContent(props: {
+  levels: NationalAcademicLevelRow[];
+  isSubmitting: boolean;
+  onSubmit: (values: { academicLevelId: string }) => Promise<void> | void;
+}) {
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<z.infer<typeof NATIONAL_CURRICULUM_FORM_SCHEMA>>({
+    resolver: zodResolver(NATIONAL_CURRICULUM_FORM_SCHEMA),
+    mode: "onChange",
+    defaultValues: { academicLevelId: props.levels[0]?.id ?? "" },
+  });
+
+  const submit = handleSubmit(async (values) => {
+    await props.onSubmit(values);
+    reset({ academicLevelId: props.levels[0]?.id ?? "" });
+  });
+
+  return (
+    <View
+      style={styles.nationalForm}
+      testID="curriculums-national-curriculum-form"
+    >
+      <Controller
+        control={control}
+        name="academicLevelId"
+        render={({ field: { value, onChange } }) => (
+          <CompactSelectField
+            label="Niveau académique"
+            value={value}
+            onChange={onChange}
+            options={props.levels.map((level) => ({
+              value: level.id,
+              label: level.label,
+              meta: level.code,
+            }))}
+            testID="curriculums-national-curriculum-level"
+            error={errors.academicLevelId?.message}
+          />
+        )}
+      />
+      <TouchableOpacity
+        style={[
+          styles.primaryAction,
+          props.isSubmitting && styles.primaryActionDisabled,
+        ]}
+        disabled={props.isSubmitting}
+        onPress={submit}
+        testID="curriculums-national-curriculum-submit"
+      >
+        <Text style={styles.primaryActionLabel}>
+          {props.isSubmitting ? "Création..." : "Ajouter"}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function NationalCatalogSection() {
+  const [levels, setLevels] = useState<NationalAcademicLevelRow[]>([]);
+  const [curriculums, setCurriculums] = useState<NationalCurriculumRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmittingLevel, setIsSubmittingLevel] = useState(false);
+  const [isSubmittingCurriculum, setIsSubmittingCurriculum] = useState(false);
+  const [deleteLevelTarget, setDeleteLevelTarget] =
+    useState<NationalAcademicLevelRow | null>(null);
+  const [deleteCurriculumTarget, setDeleteCurriculumTarget] =
+    useState<NationalCurriculumRow | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const showSuccess = useSuccessToastStore((state) => state.showSuccess);
+  const showError = useSuccessToastStore((state) => state.showError);
+
+  const load = useCallback(async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    try {
+      const [levelRows, curriculumRows] = await Promise.all([
+        platformCatalogApi.listNationalAcademicLevels(),
+        platformCatalogApi.listNationalCurriculums(),
+      ]);
+      setLevels(levelRows);
+      setCurriculums(curriculumRows);
+    } catch (error) {
+      setErrorMessage(extractApiError(error));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const handleCreateLevel = useCallback(
+    async (values: { code: string; label: string }) => {
+      setIsSubmittingLevel(true);
+      try {
+        await platformCatalogApi.createNationalAcademicLevel(values);
+        showSuccess({
+          title: "Niveau national créé",
+          message: "Le niveau est disponible pour toutes les écoles.",
+        });
+        await load();
+      } catch (error) {
+        showError({
+          title: "Création impossible",
+          message: extractApiError(error),
+        });
+      } finally {
+        setIsSubmittingLevel(false);
+      }
+    },
+    [load, showSuccess, showError],
+  );
+
+  const handleCreateCurriculum = useCallback(
+    async (values: { academicLevelId: string }) => {
+      setIsSubmittingCurriculum(true);
+      try {
+        await platformCatalogApi.createNationalCurriculum(values);
+        showSuccess({
+          title: "Curriculum national créé",
+          message: "Le curriculum est disponible pour toutes les écoles.",
+        });
+        await load();
+      } catch (error) {
+        showError({
+          title: "Création impossible",
+          message: extractApiError(error),
+        });
+      } finally {
+        setIsSubmittingCurriculum(false);
+      }
+    },
+    [load, showSuccess, showError],
+  );
+
+  const handleDeleteLevel = useCallback(async () => {
+    if (!deleteLevelTarget) return;
+    setIsDeleting(true);
+    try {
+      await platformCatalogApi.deleteNationalAcademicLevel(
+        deleteLevelTarget.id,
+      );
+      showSuccess({
+        title: "Niveau national supprimé",
+        message: "Le niveau a été retiré du catalogue national.",
+      });
+      setDeleteLevelTarget(null);
+      await load();
+    } catch (error) {
+      showError({
+        title: "Suppression impossible",
+        message: extractApiError(error),
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteLevelTarget, load, showSuccess, showError]);
+
+  const handleDeleteCurriculum = useCallback(async () => {
+    if (!deleteCurriculumTarget) return;
+    setIsDeleting(true);
+    try {
+      await platformCatalogApi.deleteNationalCurriculum(
+        deleteCurriculumTarget.id,
+      );
+      showSuccess({
+        title: "Curriculum national supprimé",
+        message: "Le curriculum a été retiré du catalogue national.",
+      });
+      setDeleteCurriculumTarget(null);
+      await load();
+    } catch (error) {
+      showError({
+        title: "Suppression impossible",
+        message: extractApiError(error),
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteCurriculumTarget, load, showSuccess, showError]);
+
+  if (isLoading) {
+    return (
+      <View testID="curriculums-national-tab">
+        <LoadingBlock label="Chargement du catalogue national..." />
+      </View>
+    );
+  }
+
+  return (
+    <View testID="curriculums-national-tab">
+      {errorMessage ? (
+        <ErrorBanner
+          message={errorMessage}
+          onDismiss={() => setErrorMessage(null)}
+          testID="curriculums-national-error-banner"
+        />
+      ) : null}
+
+      <SectionCard
+        title="Niveaux académiques nationaux"
+        testID="curriculums-national-levels-card"
+      >
+        <NationalLevelFormContent
+          isSubmitting={isSubmittingLevel}
+          onSubmit={handleCreateLevel}
+        />
+        {levels.length === 0 ? (
+          <EmptyState
+            icon="albums-outline"
+            title="Aucun niveau national"
+            message="Créez le premier niveau du catalogue national."
+          />
+        ) : (
+          levels.map((level) => (
+            <View
+              key={level.id}
+              style={styles.nationalRow}
+              testID={`curriculums-national-level-row-${level.id}`}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.nationalRowCode}>{level.code}</Text>
+                <Text style={styles.nationalRowName}>{level.label}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.secondaryAction}
+                onPress={() => setDeleteLevelTarget(level)}
+                testID={`curriculums-national-level-delete-${level.id}`}
+              >
+                <Text style={styles.secondaryActionLabel}>Supprimer</Text>
+              </TouchableOpacity>
+            </View>
+          ))
+        )}
+      </SectionCard>
+
+      <SectionCard
+        title="Curriculums nationaux"
+        testID="curriculums-national-curriculums-card"
+      >
+        <NationalCurriculumFormContent
+          levels={levels}
+          isSubmitting={isSubmittingCurriculum}
+          onSubmit={handleCreateCurriculum}
+        />
+        {curriculums.length === 0 ? (
+          <EmptyState
+            icon="library-outline"
+            title="Aucun curriculum national"
+            message="Créez le premier curriculum du catalogue national."
+          />
+        ) : (
+          curriculums.map((curriculum) => (
+            <View
+              key={curriculum.id}
+              style={styles.nationalRow}
+              testID={`curriculums-national-curriculum-row-${curriculum.id}`}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.nationalRowName}>{curriculum.name}</Text>
+                <Text style={styles.nationalRowCode}>
+                  {curriculum.academicLevel.label}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.secondaryAction}
+                onPress={() => setDeleteCurriculumTarget(curriculum)}
+                testID={`curriculums-national-curriculum-delete-${curriculum.id}`}
+              >
+                <Text style={styles.secondaryActionLabel}>Supprimer</Text>
+              </TouchableOpacity>
+            </View>
+          ))
+        )}
+      </SectionCard>
+
+      <ConfirmDialog
+        visible={deleteLevelTarget != null}
+        title="Supprimer le niveau national"
+        message={
+          deleteLevelTarget
+            ? `Supprimer définitivement le niveau national "${deleteLevelTarget.label}" ?`
+            : ""
+        }
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        variant="danger"
+        onCancel={() => {
+          if (!isDeleting) setDeleteLevelTarget(null);
+        }}
+        onConfirm={() => {
+          void handleDeleteLevel();
+        }}
+      />
+
+      <ConfirmDialog
+        visible={deleteCurriculumTarget != null}
+        title="Supprimer le curriculum national"
+        message={
+          deleteCurriculumTarget
+            ? `Supprimer définitivement le curriculum national "${deleteCurriculumTarget.name}" ?`
+            : ""
+        }
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        variant="danger"
+        onCancel={() => {
+          if (!isDeleting) setDeleteCurriculumTarget(null);
+        }}
+        onConfirm={() => {
+          void handleDeleteCurriculum();
+        }}
+      />
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // CurriculumsAdminScreen
 // ---------------------------------------------------------------------------
 
@@ -1097,6 +1525,14 @@ export function CurriculumsAdminScreen() {
   const role = user?.activeRole ?? user?.role ?? null;
   const isAllowed =
     role === "SCHOOL_ADMIN" || role === "ADMIN" || role === "SUPER_ADMIN";
+  const isPlatformAdmin = roleAllowsPlatformAdmin(role);
+  const tabItems = useMemo<Array<{ key: ListTabKey; label: string }>>(
+    () =>
+      isPlatformAdmin
+        ? [...BASE_TAB_ITEMS, { key: "national", label: "Catalogue national" }]
+        : BASE_TAB_ITEMS,
+    [isPlatformAdmin],
+  );
   const subtitle = user ? buildAdminSubtitle(user) : null;
 
   const orderedLevels = useMemo(
@@ -1619,7 +2055,7 @@ export function CurriculumsAdminScreen() {
 
       {tab !== "forms" ? (
         <UnderlineTabs
-          items={TAB_ITEMS}
+          items={tabItems}
           activeKey={tab as ListTabKey}
           onSelect={setTab}
           testIDPrefix="curriculums-tab"
@@ -1704,6 +2140,8 @@ export function CurriculumsAdminScreen() {
                 </View>
               </SectionCard>
             ) : null}
+
+            {tab === "national" ? <NationalCatalogSection /> : null}
 
             {tab === "levels" ? (
               <SectionCard
@@ -2685,5 +3123,28 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 13,
     fontWeight: "700",
+  },
+  // ── Catalogue national ───────────────────────────────────────────────────
+  nationalForm: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  nationalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.warmBorder,
+  },
+  nationalRowCode: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textSecondary,
+  },
+  nationalRowName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.textPrimary,
   },
 });
