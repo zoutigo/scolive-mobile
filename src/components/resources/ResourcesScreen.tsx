@@ -225,12 +225,6 @@ export function ResourcesScreen() {
     setFiltersOpen(false);
   }
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [expandedDetail, setExpandedDetail] = useState<ResourceDetail | null>(
-    null,
-  );
-  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
-
   const [lists, setLists] = useState<
     Record<Exclude<TabKey, "forms" | "moderation">, ResourceRow[]>
   >({
@@ -330,25 +324,27 @@ export function ResourcesScreen() {
     void loadList(tab);
   }, [tab, moderationPart, loadList, loadModeration]);
 
-  async function toggleExpand(resource: ResourceRow) {
-    if (expandedId === resource.id) {
-      setExpandedId(null);
-      setExpandedDetail(null);
-      return;
-    }
-    setExpandedId(resource.id);
-    setIsLoadingDetail(true);
+  function goToResourcePart(
+    resourceId: string,
+    part: "statement" | "correction",
+  ) {
+    router.push({
+      pathname: (part === "statement"
+        ? "/(home)/resources/[resourceId]/statement"
+        : "/(home)/resources/[resourceId]/correction") as never,
+      params: { resourceId },
+    });
+  }
+
+  async function handleEditPress(resource: ResourceRow, originTab: TabKey) {
     try {
       const detail = await resourcesApi.getResource(resource.id);
-      setExpandedDetail(detail);
+      openEdit(detail, originTab);
     } catch (error) {
       showError({
         title: t("resources.toast.errorTitle"),
         message: extractApiError(error),
       });
-      setExpandedId(null);
-    } finally {
-      setIsLoadingDetail(false);
     }
   }
 
@@ -742,29 +738,17 @@ export function ResourcesScreen() {
             keyExtractor={(item) => item.id}
             testID={`resources-list-${tab}`}
             renderItem={({ item }) => (
-              <View>
-                <ResourceCard
-                  resource={item}
-                  onPress={() => toggleExpand(item)}
-                  onToggleFavorite={() => toggleFavorite(item, tab)}
-                  showStatuses={tab === "mine"}
-                  testID={`resources-card-${item.id}`}
-                />
-                {expandedId === item.id ? (
-                  <ResourceDetailPanel
-                    detail={expandedDetail}
-                    isLoading={isLoadingDetail}
-                    canEdit={
-                      !!expandedDetail &&
-                      expandedDetail.authorUserId === user?.id
-                    }
-                    onEdit={() =>
-                      expandedDetail && openEdit(expandedDetail, tab)
-                    }
-                    t={t}
-                  />
-                ) : null}
-              </View>
+              <ResourceCard
+                resource={item}
+                onPressStatement={() => goToResourcePart(item.id, "statement")}
+                onPressCorrection={() =>
+                  goToResourcePart(item.id, "correction")
+                }
+                onToggleFavorite={() => toggleFavorite(item, tab)}
+                onEdit={() => handleEditPress(item, tab)}
+                showStatuses={tab === "mine"}
+                testID={`resources-card-${item.id}`}
+              />
             )}
             emptyComponent={
               <Text style={styles.emptyText} testID={`resources-empty-${tab}`}>
@@ -786,17 +770,16 @@ export function ResourcesScreen() {
               >
                 <ResourceCard
                   resource={item}
-                  onPress={() => toggleExpand(item)}
+                  onPressStatement={() =>
+                    goToResourcePart(item.id, "statement")
+                  }
+                  onPressCorrection={() =>
+                    goToResourcePart(item.id, "correction")
+                  }
+                  onEdit={() => handleEditPress(item, "moderation")}
+                  showStatuses
+                  testID={`resources-moderation-resource-${item.id}`}
                 />
-                {expandedId === item.id ? (
-                  <ResourceDetailPanel
-                    detail={expandedDetail}
-                    isLoading={isLoadingDetail}
-                    canEdit={false}
-                    onEdit={() => {}}
-                    t={t}
-                  />
-                ) : null}
                 <View style={styles.moderationActions}>
                   <TouchableOpacity
                     style={[styles.moderationBtn, styles.moderationApprove]}
@@ -853,79 +836,6 @@ export function ResourcesScreen() {
       ) : null}
     </View>
   );
-}
-
-function ResourceDetailPanel(props: {
-  detail: ResourceDetail | null;
-  isLoading: boolean;
-  canEdit: boolean;
-  onEdit: () => void;
-  t: TranslateFn;
-}) {
-  if (props.isLoading) {
-    return (
-      <ActivityIndicator style={styles.detailLoader} color={colors.primary} />
-    );
-  }
-  if (!props.detail) return null;
-  const { detail, t } = props;
-
-  return (
-    <View style={styles.detailPanel} testID="resources-detail-panel">
-      <Text style={styles.detailSectionLabel}>
-        {t("resources.detail.statement")}
-      </Text>
-      <Text style={styles.detailText}>
-        {stripHtml(detail.statementContent)}
-      </Text>
-
-      {detail.correctionContent ? (
-        <>
-          <Text style={styles.detailSectionLabel}>
-            {t("resources.detail.correction")}
-          </Text>
-          <Text style={styles.detailText}>
-            {stripHtml(detail.correctionContent)}
-          </Text>
-        </>
-      ) : null}
-
-      {detail.attachments.length > 0 ? (
-        <View style={styles.attachmentsList}>
-          {detail.attachments.map((attachment, idx) => (
-            <View key={attachment.id ?? idx} style={styles.attachmentChip}>
-              <Ionicons
-                name="document-outline"
-                size={14}
-                color={colors.textSecondary}
-              />
-              <Text style={styles.attachmentText} numberOfLines={1}>
-                {attachment.fileName}
-              </Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
-
-      {props.canEdit ? (
-        <TouchableOpacity
-          style={styles.editBtn}
-          onPress={props.onEdit}
-          testID="resources-detail-edit"
-        >
-          <Ionicons name="create-outline" size={16} color={colors.primary} />
-          <Text style={styles.editBtnText}>{t("resources.detail.edit")}</Text>
-        </TouchableOpacity>
-      ) : null}
-    </View>
-  );
-}
-
-function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 function ResourceFormContent(props: {
@@ -1585,37 +1495,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: "700",
     fontSize: 13,
-  },
-  detailPanel: {
-    backgroundColor: colors.warmSurface,
-    borderRadius: 8,
-    padding: 12,
-    marginTop: -6,
-    marginBottom: 10,
-    gap: 6,
-  },
-  detailLoader: { marginVertical: 12 },
-  detailSectionLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.textSecondary,
-    textTransform: "uppercase",
-  },
-  detailText: {
-    fontSize: 13,
-    color: colors.textPrimary,
-    lineHeight: 19,
-  },
-  editBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 6,
-  },
-  editBtnText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: colors.primary,
   },
   fab: {
     position: "absolute",

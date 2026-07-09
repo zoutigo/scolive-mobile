@@ -3,12 +3,21 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
+import { useAuthStore } from "../../store/auth.store";
 import type {
   ResourceApprovalStatus,
   ResourceRow,
 } from "../../types/resources.types";
 
-const SEQUENCE_LABELS: Record<string, string> = {
+export function isResourcePlatformAdmin(
+  platformRoles: readonly string[] | undefined,
+): boolean {
+  return (platformRoles ?? []).some(
+    (role) => role === "ADMIN" || role === "SUPER_ADMIN",
+  );
+}
+
+export const SEQUENCE_LABELS: Record<string, string> = {
   SEQ_1: "Séq. 1",
   SEQ_2: "Séq. 2",
   SEQ_3: "Séq. 3",
@@ -17,7 +26,7 @@ const SEQUENCE_LABELS: Record<string, string> = {
   SEQ_6: "Séq. 6",
 };
 
-const EXAM_TYPE_KEYS: Record<string, string> = {
+export const EXAM_TYPE_KEYS: Record<string, string> = {
   SEQUENCE_TEST: "resources.examType.sequenceTest",
   POP_QUIZ: "resources.examType.popQuiz",
   MOCK_EXAM: "resources.examType.mockExam",
@@ -49,21 +58,25 @@ export function ResourceStatusBadge(props: {
 
 export function ResourceCard(props: {
   resource: ResourceRow;
-  onPress: () => void;
+  onPressStatement: () => void;
+  onPressCorrection?: () => void;
   onToggleFavorite?: () => void;
+  onEdit?: () => void;
   showStatuses?: boolean;
   testID?: string;
 }) {
   const { t } = useTranslation();
+  const { user } = useAuthStore();
   const { resource } = props;
 
+  const isOwner = resource.authorUserId === user?.id;
+  const isAdmin = isResourcePlatformAdmin(user?.platformRoles);
+  const canSeeCorrection =
+    !!resource.correctionContent &&
+    (resource.correctionStatus === "APPROVED" || isOwner || isAdmin);
+
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={props.onPress}
-      activeOpacity={0.85}
-      testID={props.testID}
-    >
+    <View style={styles.card} testID={props.testID}>
       <View style={styles.headerRow}>
         <Text style={styles.title} numberOfLines={2}>
           {resource.title}
@@ -118,7 +131,8 @@ export function ResourceCard(props: {
             status={resource.statementStatus}
             testID={`${props.testID}-statement-status`}
           />
-          {resource.correctionContent !== undefined ? (
+          {resource.correctionContent !== undefined &&
+          resource.correctionContent !== null ? (
             <ResourceStatusBadge
               label={t("resources.status.correction")}
               status={resource.correctionStatus}
@@ -127,7 +141,58 @@ export function ResourceCard(props: {
           ) : null}
         </View>
       ) : null}
-    </TouchableOpacity>
+
+      <View style={styles.actionsRow}>
+        <TouchableOpacity
+          style={[styles.actionBtn, styles.statementBtn]}
+          onPress={props.onPressStatement}
+          testID={`${props.testID}-statement-btn`}
+        >
+          <Ionicons
+            name="document-text-outline"
+            size={15}
+            color={colors.primary}
+          />
+          <Text style={styles.statementBtnText}>
+            {t("resources.card.statementButton")}
+          </Text>
+        </TouchableOpacity>
+
+        {canSeeCorrection && props.onPressCorrection ? (
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.correctionBtn]}
+            onPress={props.onPressCorrection}
+            testID={`${props.testID}-correction-btn`}
+          >
+            <Ionicons
+              name="checkmark-done-outline"
+              size={15}
+              color={colors.accentTeal}
+            />
+            <Text style={styles.correctionBtnText}>
+              {t("resources.card.correctionButton")}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {props.onEdit && (isOwner || isAdmin) ? (
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.editBtnAction]}
+            onPress={props.onEdit}
+            testID={`${props.testID}-edit-btn`}
+          >
+            <Ionicons
+              name="create-outline"
+              size={15}
+              color={colors.textSecondary}
+            />
+            <Text style={styles.editBtnActionText}>
+              {t("resources.card.editButton")}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    </View>
   );
 }
 
@@ -185,6 +250,48 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
+  },
+  actionsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 6,
+  },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  statementBtn: {
+    borderColor: colors.primary,
+    backgroundColor: colors.warmSurface,
+  },
+  statementBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.primary,
+  },
+  correctionBtn: {
+    borderColor: colors.accentTeal,
+    backgroundColor: "#DCF3EE",
+  },
+  correctionBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.accentTeal,
+  },
+  editBtnAction: {
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.surface,
+  },
+  editBtnActionText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textSecondary,
   },
   badgeText: {
     fontSize: 11,

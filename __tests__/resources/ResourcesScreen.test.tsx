@@ -13,11 +13,13 @@ import { translate } from "../../src/i18n/useTranslation";
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/resources.api");
 jest.mock("../../src/store/auth.store");
+const mockRouterPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({
     canGoBack: () => false,
     back: jest.fn(),
     navigate: jest.fn(),
+    push: mockRouterPush,
   }),
 }));
 jest.mock("react-native-safe-area-context", () => ({
@@ -402,11 +404,39 @@ describe("ResourcesScreen", () => {
     );
   });
 
-  it("liste : ouvre le détail au tap sur la card", async () => {
-    mockResourcesApi.getResource.mockResolvedValue({
-      ...BASE_RESOURCE,
-      statementContent: "<p>Enoncé complet</p>",
-      attachments: [],
+  it("liste : navigue vers la page Énoncé au tap sur le bouton", async () => {
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`resources-card-${BASE_RESOURCE.id}`),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId(`resources-card-${BASE_RESOURCE.id}-statement-btn`),
+    );
+
+    expect(mockRouterPush).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: "/(home)/resources/[resourceId]/statement",
+        params: { resourceId: BASE_RESOURCE.id },
+      }),
+    );
+  });
+
+  it("liste : le bouton Corrigé est masqué tant que le corrigé n'est pas approuvé", async () => {
+    mockResourcesApi.listResources.mockResolvedValue({
+      items: [
+        {
+          ...BASE_RESOURCE,
+          correctionContent: "<p>Corrigé</p>",
+          correctionStatus: "PENDING" as const,
+          authorUserId: "someone-else",
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
     });
 
     render(<ResourcesScreen />);
@@ -416,12 +446,33 @@ describe("ResourcesScreen", () => {
         screen.getByTestId(`resources-card-${BASE_RESOURCE.id}`),
       ).toBeTruthy(),
     );
-    fireEvent.press(screen.getByTestId(`resources-card-${BASE_RESOURCE.id}`));
+    expect(
+      screen.queryByTestId(`resources-card-${BASE_RESOURCE.id}-correction-btn`),
+    ).toBeNull();
+  });
+
+  it("liste : le bouton Corrigé est visible pour l'auteur même en attente", async () => {
+    mockResourcesApi.listResources.mockResolvedValue({
+      items: [
+        {
+          ...BASE_RESOURCE,
+          correctionContent: "<p>Corrigé</p>",
+          correctionStatus: "PENDING" as const,
+          authorUserId: TEACHER_USER.id,
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    render(<ResourcesScreen />);
 
     await waitFor(() =>
-      expect(screen.getByTestId("resources-detail-panel")).toBeTruthy(),
+      expect(
+        screen.getByTestId(`resources-card-${BASE_RESOURCE.id}-correction-btn`),
+      ).toBeTruthy(),
     );
-    expect(mockResourcesApi.getResource).toHaveBeenCalledWith(BASE_RESOURCE.id);
   });
 });
 
