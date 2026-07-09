@@ -36,6 +36,7 @@ import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { SelectDropdown, type SelectOption } from "../SelectDropdown";
+import { SelectField } from "../tests-admin/SelectField";
 import {
   RichEditorField,
   type RichEditorFieldRef,
@@ -168,35 +169,60 @@ export function ResourcesScreen() {
   const [schools, setSchools] = useState<ResourceSchoolOption[]>([]);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [searchText, setSearchText] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [filterAcademicYear, setFilterAcademicYear] = useState("");
-  const [filterSchoolId, setFilterSchoolId] = useState("");
-  const [filterAcademicLevelId, setFilterAcademicLevelId] = useState("");
-  const [filterSequence, setFilterSequence] = useState("");
-  const [filterExamType, setFilterExamType] = useState("");
 
-  const hasActiveFilters =
-    !!searchText ||
-    !!filterAcademicYear ||
-    !!filterSchoolId ||
-    !!filterAcademicLevelId ||
-    !!filterSequence ||
-    !!filterExamType;
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [appliedAcademicYear, setAppliedAcademicYear] = useState("");
+  const [appliedSchoolId, setAppliedSchoolId] = useState("");
+  const [appliedAcademicLevelId, setAppliedAcademicLevelId] = useState("");
+  const [appliedSequence, setAppliedSequence] = useState("");
+  const [appliedExamType, setAppliedExamType] = useState("");
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchText.trim()), 400);
-    return () => clearTimeout(timer);
-  }, [searchText]);
+  const [draftSearch, setDraftSearch] = useState("");
+  const [draftAcademicYear, setDraftAcademicYear] = useState("");
+  const [draftSchoolId, setDraftSchoolId] = useState("");
+  const [draftAcademicLevelId, setDraftAcademicLevelId] = useState("");
+  const [draftSequence, setDraftSequence] = useState("");
+  const [draftExamType, setDraftExamType] = useState("");
 
-  function resetFilters() {
-    setSearchText("");
-    setDebouncedSearch("");
-    setFilterAcademicYear("");
-    setFilterSchoolId("");
-    setFilterAcademicLevelId("");
-    setFilterSequence("");
-    setFilterExamType("");
+  const hasActiveDraftFilters =
+    !!draftSearch ||
+    !!draftAcademicYear ||
+    !!draftSchoolId ||
+    !!draftAcademicLevelId ||
+    !!draftSequence ||
+    !!draftExamType;
+
+  function openFiltersPanel() {
+    setDraftSearch(appliedSearch);
+    setDraftAcademicYear(appliedAcademicYear);
+    setDraftSchoolId(appliedSchoolId);
+    setDraftAcademicLevelId(appliedAcademicLevelId);
+    setDraftSequence(appliedSequence);
+    setDraftExamType(appliedExamType);
+    setFiltersOpen(true);
+  }
+
+  function cancelFilters() {
+    setFiltersOpen(false);
+  }
+
+  function resetDraftFilters() {
+    setDraftSearch("");
+    setDraftAcademicYear("");
+    setDraftSchoolId("");
+    setDraftAcademicLevelId("");
+    setDraftSequence("");
+    setDraftExamType("");
+  }
+
+  function applyFilters() {
+    setAppliedSearch(draftSearch.trim());
+    setAppliedAcademicYear(draftAcademicYear);
+    setAppliedSchoolId(draftSchoolId);
+    setAppliedAcademicLevelId(draftAcademicLevelId);
+    setAppliedSequence(draftSequence);
+    setAppliedExamType(draftExamType);
+    setFiltersOpen(false);
   }
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -246,16 +272,16 @@ export function ResourcesScreen() {
         } else {
           const result = await resourcesApi.listResources({
             kind: targetTab,
-            search: debouncedSearch || undefined,
-            academicYearLabel: filterAcademicYear || undefined,
-            schoolId: filterSchoolId || undefined,
-            academicLevelId: filterAcademicLevelId || undefined,
+            search: appliedSearch || undefined,
+            academicYearLabel: appliedAcademicYear || undefined,
+            schoolId: appliedSchoolId || undefined,
+            academicLevelId: appliedAcademicLevelId || undefined,
             sequence:
-              targetTab === "ASSESSMENT" && filterSequence
-                ? (filterSequence as ResourceSequence)
+              targetTab === "ASSESSMENT" && appliedSequence
+                ? (appliedSequence as ResourceSequence)
                 : undefined,
-            examType: filterExamType
-              ? (filterExamType as ResourceExamType)
+            examType: appliedExamType
+              ? (appliedExamType as ResourceExamType)
               : undefined,
           });
           setLists((current) => ({ ...current, [targetTab]: result.items }));
@@ -267,12 +293,12 @@ export function ResourcesScreen() {
       }
     },
     [
-      debouncedSearch,
-      filterAcademicYear,
-      filterSchoolId,
-      filterAcademicLevelId,
-      filterSequence,
-      filterExamType,
+      appliedSearch,
+      appliedAcademicYear,
+      appliedSchoolId,
+      appliedAcademicLevelId,
+      appliedSequence,
+      appliedExamType,
     ],
   );
 
@@ -487,7 +513,8 @@ export function ResourcesScreen() {
             isSearchableTab && !isFormsTab
               ? {
                   icon: "search-outline",
-                  onPress: () => setFiltersOpen((current) => !current),
+                  onPress: () =>
+                    filtersOpen ? cancelFilters() : openFiltersPanel(),
                   testID: "resources-search-toggle",
                   accessibilityLabel: t("resources.filters.toggleLabel"),
                   active: filtersOpen,
@@ -556,8 +583,8 @@ export function ResourcesScreen() {
                 color={colors.textSecondary}
               />
               <TextInput
-                value={searchText}
-                onChangeText={setSearchText}
+                value={draftSearch}
+                onChangeText={setDraftSearch}
                 placeholder={t("resources.filters.searchPlaceholder")}
                 placeholderTextColor={colors.textSecondary}
                 style={styles.searchInput}
@@ -565,96 +592,140 @@ export function ResourcesScreen() {
               />
             </View>
 
-            <View style={styles.filterFieldGroup}>
-              <Text style={styles.filterFieldLabel}>
+            <View style={styles.filterFieldRow}>
+              <Text style={styles.filterFieldRowLabel}>
                 {t("resources.filters.academicYear")}
               </Text>
-              <SelectDropdown
-                options={academicYearFilterOptions}
-                value={filterAcademicYear}
-                onChange={setFilterAcademicYear}
-                placeholder={t("resources.filters.allYears")}
-                testID="resources-filter-academic-year"
-              />
+              <View style={styles.filterFieldInputWrap}>
+                <SelectField
+                  options={academicYearFilterOptions}
+                  value={draftAcademicYear}
+                  onChange={setDraftAcademicYear}
+                  placeholder={t("resources.filters.allYears")}
+                  closeLabel={t("resources.filters.close")}
+                  testIDPrefix="resources-filter-academic-year"
+                />
+              </View>
             </View>
 
-            <View style={styles.filterFieldGroup}>
-              <Text style={styles.filterFieldLabel}>
+            <View style={styles.filterFieldRow}>
+              <Text style={styles.filterFieldRowLabel}>
                 {t("resources.filters.school")}
               </Text>
-              <SelectDropdown
-                options={schoolOptions}
-                value={filterSchoolId}
-                onChange={setFilterSchoolId}
-                placeholder={t("resources.filters.allSchools")}
-                testID="resources-filter-school"
-              />
+              <View style={styles.filterFieldInputWrap}>
+                <SelectField
+                  options={schoolOptions}
+                  value={draftSchoolId}
+                  onChange={setDraftSchoolId}
+                  placeholder={t("resources.filters.allSchools")}
+                  closeLabel={t("resources.filters.close")}
+                  testIDPrefix="resources-filter-school"
+                />
+              </View>
             </View>
 
-            <View style={styles.filterFieldGroup}>
-              <Text style={styles.filterFieldLabel}>
+            <View style={styles.filterFieldRow}>
+              <Text style={styles.filterFieldRowLabel}>
                 {t("resources.filters.level")}
               </Text>
-              <SelectDropdown
-                options={levelFilterOptions}
-                value={filterAcademicLevelId}
-                onChange={setFilterAcademicLevelId}
-                placeholder={t("resources.filters.allLevels")}
-                testID="resources-filter-level"
-              />
+              <View style={styles.filterFieldInputWrap}>
+                <SelectField
+                  options={levelFilterOptions}
+                  value={draftAcademicLevelId}
+                  onChange={setDraftAcademicLevelId}
+                  placeholder={t("resources.filters.allLevels")}
+                  closeLabel={t("resources.filters.close")}
+                  testIDPrefix="resources-filter-level"
+                />
+              </View>
             </View>
 
             {tab === "ASSESSMENT" ? (
-              <View style={styles.filterFieldGroup}>
-                <Text style={styles.filterFieldLabel}>
+              <View style={styles.filterFieldRow}>
+                <Text style={styles.filterFieldRowLabel}>
                   {t("resources.filters.sequence")}
                 </Text>
-                <SelectDropdown
-                  options={sequenceFilterOptions}
-                  value={filterSequence}
-                  onChange={setFilterSequence}
-                  placeholder={t("resources.filters.allSequences")}
-                  testID="resources-filter-sequence"
-                />
+                <View style={styles.filterFieldInputWrap}>
+                  <SelectField
+                    options={sequenceFilterOptions}
+                    value={draftSequence}
+                    onChange={setDraftSequence}
+                    placeholder={t("resources.filters.allSequences")}
+                    closeLabel={t("resources.filters.close")}
+                    testIDPrefix="resources-filter-sequence"
+                  />
+                </View>
               </View>
             ) : null}
 
-            <View style={styles.filterFieldGroup}>
-              <Text style={styles.filterFieldLabel}>
+            <View style={styles.filterFieldRow}>
+              <Text style={styles.filterFieldRowLabel}>
                 {t("resources.filters.examType")}
               </Text>
-              <SelectDropdown
-                options={examTypeFilterOptions}
-                value={filterExamType}
-                onChange={setFilterExamType}
-                placeholder={t("resources.filters.allExamTypes")}
-                testID="resources-filter-exam-type"
-              />
+              <View style={styles.filterFieldInputWrap}>
+                <SelectField
+                  options={examTypeFilterOptions}
+                  value={draftExamType}
+                  onChange={setDraftExamType}
+                  placeholder={t("resources.filters.allExamTypes")}
+                  closeLabel={t("resources.filters.close")}
+                  testIDPrefix="resources-filter-exam-type"
+                />
+              </View>
             </View>
 
-            <TouchableOpacity
-              style={[
-                styles.filterResetBtn,
-                !hasActiveFilters && styles.filterResetBtnDisabled,
-              ]}
-              onPress={resetFilters}
-              disabled={!hasActiveFilters}
-              testID="resources-filter-reset"
-            >
-              <Ionicons
-                name="refresh-outline"
-                size={16}
-                color={hasActiveFilters ? colors.primary : colors.textSecondary}
-              />
-              <Text
-                style={[
-                  styles.filterResetBtnText,
-                  !hasActiveFilters && styles.filterResetBtnTextDisabled,
-                ]}
+            <View style={styles.filterActionsRow}>
+              <TouchableOpacity
+                style={[styles.filterActionBtn, styles.filterCancelBtn]}
+                onPress={cancelFilters}
+                testID="resources-filter-cancel"
               >
-                {t("resources.filters.reset")}
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.filterActionBtnText,
+                    styles.filterCancelBtnText,
+                  ]}
+                >
+                  {t("resources.filters.cancel")}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.filterActionBtn,
+                  styles.filterResetBtn,
+                  !hasActiveDraftFilters && styles.filterResetBtnDisabled,
+                ]}
+                onPress={resetDraftFilters}
+                disabled={!hasActiveDraftFilters}
+                testID="resources-filter-reset"
+              >
+                <Text
+                  style={[
+                    styles.filterActionBtnText,
+                    styles.filterResetBtnText,
+                    !hasActiveDraftFilters && styles.filterResetBtnTextDisabled,
+                  ]}
+                >
+                  {t("resources.filters.reset")}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.filterActionBtn, styles.filterApplyBtn]}
+                onPress={applyFilters}
+                testID="resources-filter-apply"
+              >
+                <Text
+                  style={[
+                    styles.filterActionBtnText,
+                    styles.filterApplyBtnText,
+                  ]}
+                >
+                  {t("resources.filters.apply")}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : null}
 
@@ -1387,21 +1458,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.warmSurface,
     borderWidth: 1,
     borderColor: colors.warmBorder,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 12,
+    padding: 14,
     marginBottom: 10,
-    gap: 10,
+    gap: 12,
   },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    height: 44,
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    borderWidth: 1.5,
+    borderColor: "#E0D0BA",
+    borderRadius: 10,
+    paddingHorizontal: 12,
   },
   searchInput: {
     flex: 1,
@@ -1409,32 +1480,66 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     padding: 0,
   },
-  filterFieldGroup: { gap: 4 },
-  filterFieldLabel: {
+  filterFieldRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  filterFieldRowLabel: {
+    width: 128,
     fontSize: 12,
     fontWeight: "600",
     color: colors.textSecondary,
+    flexShrink: 0,
   },
-  filterResetBtn: {
+  filterFieldInputWrap: { flex: 1 },
+  filterActionsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 4,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.warmBorder,
+  },
+  filterActionBtn: {
+    flex: 1,
+    height: 44,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 6,
-    borderWidth: 1,
+    borderRadius: 10,
+    borderWidth: 1.5,
+  },
+  filterActionBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  filterCancelBtn: {
+    backgroundColor: colors.surface,
+    borderColor: "#E0D0BA",
+  },
+  filterCancelBtnText: {
+    color: colors.textSecondary,
+  },
+  filterResetBtn: {
+    backgroundColor: colors.surface,
     borderColor: colors.primary,
   },
   filterResetBtnDisabled: {
-    borderColor: colors.warmBorder,
+    borderColor: "#E0D0BA",
   },
   filterResetBtnText: {
-    fontSize: 13,
-    fontWeight: "700",
     color: colors.primary,
   },
   filterResetBtnTextDisabled: {
     color: colors.textSecondary,
+  },
+  filterApplyBtn: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  filterApplyBtnText: {
+    color: colors.white,
   },
   moderationSubTabs: {
     flexDirection: "row",

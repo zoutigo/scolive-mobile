@@ -735,6 +735,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.filters.examType": "Type d'évaluation",
     "resources.filters.allExamTypes": "Tous les types",
     "resources.filters.reset": "Réinitialiser",
+    "resources.filters.cancel": "Annuler",
+    "resources.filters.apply": "Appliquer",
+    "resources.filters.close": "Fermer",
 
     "timetable.common.thisWeek": "Cette semaine",
     "timetable.common.thisMonth": "Ce mois",
@@ -2829,6 +2832,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.filters.examType": "Assessment type",
     "resources.filters.allExamTypes": "All types",
     "resources.filters.reset": "Reset",
+    "resources.filters.cancel": "Cancel",
+    "resources.filters.apply": "Apply",
+    "resources.filters.close": "Close",
 
     "timetable.common.thisWeek": "This week",
     "timetable.common.thisMonth": "This month",

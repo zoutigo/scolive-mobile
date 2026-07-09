@@ -473,7 +473,9 @@ describe("ResourcesScreen — recherche et filtres", () => {
     );
     fireEvent.press(screen.getByTestId("resources-search-toggle"));
     await waitFor(() =>
-      expect(screen.getByTestId("resources-filter-sequence")).toBeTruthy(),
+      expect(
+        screen.getByTestId("resources-filter-sequence-trigger"),
+      ).toBeTruthy(),
     );
 
     fireEvent.press(screen.getByTestId("resources-tab-EXAM"));
@@ -482,11 +484,12 @@ describe("ResourcesScreen — recherche et filtres", () => {
         expect.objectContaining({ kind: "EXAM" }),
       ),
     );
-    expect(screen.queryByTestId("resources-filter-sequence")).toBeNull();
+    expect(
+      screen.queryByTestId("resources-filter-sequence-trigger"),
+    ).toBeNull();
   });
 
-  it("tape dans la recherche et déclenche listResources avec le texte après debounce", async () => {
-    jest.useFakeTimers();
+  it("tape dans la recherche, applique et déclenche listResources avec le texte saisi", async () => {
     render(<ResourcesScreen />);
 
     await waitFor(() =>
@@ -501,18 +504,16 @@ describe("ResourcesScreen — recherche et filtres", () => {
       screen.getByTestId("resources-filter-search-input"),
       "chapitre 3",
     );
-
-    await jest.advanceTimersByTimeAsync(400);
+    fireEvent.press(screen.getByTestId("resources-filter-apply"));
 
     await waitFor(() =>
       expect(mockResourcesApi.listResources).toHaveBeenCalledWith(
         expect.objectContaining({ kind: "ASSESSMENT", search: "chapitre 3" }),
       ),
     );
-    jest.useRealTimers();
   });
 
-  it("sélectionne un établissement dans le filtre et relance la recherche", async () => {
+  it("le panneau se ferme automatiquement après un apply", async () => {
     render(<ResourcesScreen />);
 
     await waitFor(() =>
@@ -520,13 +521,73 @@ describe("ResourcesScreen — recherche et filtres", () => {
     );
     fireEvent.press(screen.getByTestId("resources-search-toggle"));
     await waitFor(() =>
-      expect(screen.getByTestId("resources-filter-school")).toBeTruthy(),
+      expect(screen.getByTestId("resources-filter-apply")).toBeTruthy(),
     );
 
-    fireEvent.press(screen.getByTestId("resources-filter-school"));
+    fireEvent.press(screen.getByTestId("resources-filter-apply"));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("resources-filter-panel")).toBeNull(),
+    );
+  });
+
+  it("cancel ferme le panneau sans appliquer les changements du formulaire", async () => {
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-search-toggle")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("resources-search-toggle"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("resources-filter-school-trigger"),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("resources-filter-school-trigger"));
     fireEvent.press(
       screen.getByTestId("resources-filter-school-option-school-1"),
     );
+
+    mockResourcesApi.listResources.mockClear();
+    fireEvent.press(screen.getByTestId("resources-filter-cancel"));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("resources-filter-panel")).toBeNull(),
+    );
+    expect(mockResourcesApi.listResources).not.toHaveBeenCalled();
+
+    fireEvent.press(screen.getByTestId("resources-search-toggle"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("resources-filter-school-trigger"),
+      ).toBeTruthy(),
+    );
+    expect(
+      screen.getByText(translate("fr", "resources.filters.allSchools")),
+    ).toBeTruthy();
+  });
+
+  it("sélectionne un établissement puis applique pour relancer la recherche", async () => {
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-search-toggle")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("resources-search-toggle"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("resources-filter-school-trigger"),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("resources-filter-school-trigger"));
+    fireEvent.press(
+      screen.getByTestId("resources-filter-school-option-school-1"),
+    );
+
+    mockResourcesApi.listResources.mockClear();
+    fireEvent.press(screen.getByTestId("resources-filter-apply"));
 
     await waitFor(() =>
       expect(mockResourcesApi.listResources).toHaveBeenCalledWith(
@@ -535,7 +596,7 @@ describe("ResourcesScreen — recherche et filtres", () => {
     );
   });
 
-  it("le bouton réinitialiser est désactivé sans filtre actif, puis actif une fois un filtre choisi", async () => {
+  it("le bouton réinitialiser est désactivé sans filtre choisi dans le formulaire, puis actif une fois un filtre choisi", async () => {
     render(<ResourcesScreen />);
 
     await waitFor(() =>
@@ -550,7 +611,7 @@ describe("ResourcesScreen — recherche et filtres", () => {
         ?.disabled,
     ).toBe(true);
 
-    fireEvent.press(screen.getByTestId("resources-filter-school"));
+    fireEvent.press(screen.getByTestId("resources-filter-school-trigger"));
     fireEvent.press(
       screen.getByTestId("resources-filter-school-option-school-1"),
     );
@@ -563,7 +624,7 @@ describe("ResourcesScreen — recherche et filtres", () => {
     );
   });
 
-  it("réinitialiser efface les filtres et recharge la liste sans critère", async () => {
+  it("réinitialiser efface le formulaire de filtres sans recharger, apply recharge ensuite sans critère", async () => {
     render(<ResourcesScreen />);
 
     await waitFor(() =>
@@ -571,21 +632,36 @@ describe("ResourcesScreen — recherche et filtres", () => {
     );
     fireEvent.press(screen.getByTestId("resources-search-toggle"));
     await waitFor(() =>
-      expect(screen.getByTestId("resources-filter-school")).toBeTruthy(),
+      expect(
+        screen.getByTestId("resources-filter-school-trigger"),
+      ).toBeTruthy(),
     );
 
-    fireEvent.press(screen.getByTestId("resources-filter-school"));
+    fireEvent.press(screen.getByTestId("resources-filter-school-trigger"));
     fireEvent.press(
       screen.getByTestId("resources-filter-school-option-school-1"),
     );
+    fireEvent.press(screen.getByTestId("resources-filter-apply"));
     await waitFor(() =>
       expect(mockResourcesApi.listResources).toHaveBeenCalledWith(
         expect.objectContaining({ schoolId: "school-1" }),
       ),
     );
 
+    fireEvent.press(screen.getByTestId("resources-search-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-filter-reset")).toBeTruthy(),
+    );
+
     mockResourcesApi.listResources.mockClear();
     fireEvent.press(screen.getByTestId("resources-filter-reset"));
+
+    expect(mockResourcesApi.listResources).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(translate("fr", "resources.filters.allSchools")),
+    ).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("resources-filter-apply"));
 
     await waitFor(() =>
       expect(mockResourcesApi.listResources).toHaveBeenCalledWith(
