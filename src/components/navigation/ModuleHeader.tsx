@@ -18,6 +18,15 @@ import { useAuthStore } from "../../store/auth.store";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { useTranslation } from "../../i18n/useTranslation";
 
+interface ModuleHeaderSecondaryAction {
+  icon: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+  testID?: string;
+  accessibilityLabel?: string;
+  /** Visually marks the action as toggled on (e.g. a search panel that is open). */
+  active?: boolean;
+}
+
 interface ModuleHeaderProps {
   title: string;
   /** Segment appended after `title`, rendered in warm color (e.g. an unread/total counter). */
@@ -31,6 +40,8 @@ interface ModuleHeaderProps {
   topInset?: number;
   backgroundColor?: string;
   titleUppercase?: boolean;
+  /** Extra icon button rendered left of the kebab menu (e.g. a search toggle). */
+  secondaryAction?: ModuleHeaderSecondaryAction;
 }
 
 export function ModuleHeader({
@@ -45,6 +56,7 @@ export function ModuleHeader({
   topInset = 0,
   backgroundColor = colors.primary,
   titleUppercase = true,
+  secondaryAction,
 }: ModuleHeaderProps) {
   const { translateY } = useHeaderScroll();
   const { logout } = useAuthStore();
@@ -105,6 +117,28 @@ export function ModuleHeader({
               </Text>
             ) : null}
           </View>
+
+          {secondaryAction ? (
+            <TouchableOpacity
+              onPress={secondaryAction.onPress}
+              style={[
+                styles.kebabBtn,
+                secondaryAction.active && styles.secondaryActionActive,
+              ]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel={secondaryAction.accessibilityLabel}
+              accessibilityRole="button"
+              testID={
+                secondaryAction.testID ?? "module-header-secondary-action"
+              }
+            >
+              <Ionicons
+                name={secondaryAction.icon}
+                size={20}
+                color={colors.white}
+              />
+            </TouchableOpacity>
+          ) : null}
 
           <TouchableOpacity
             onPress={() => setMenuOpen(true)}
@@ -219,6 +253,9 @@ const styles = StyleSheet.create({
     borderColor: "rgba(216,155,91,0.55)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  secondaryActionActive: {
+    backgroundColor: "rgba(216,155,91,0.55)",
   },
   headerText: {
     flex: 1,

@@ -1,5 +1,10 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import { ResourcesScreen } from "../../src/components/resources/ResourcesScreen";
 import { resourcesApi, resourcesAdminApi } from "../../src/api/resources.api";
 import { useAuthStore } from "../../src/store/auth.store";
@@ -9,13 +14,19 @@ jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/resources.api");
 jest.mock("../../src/store/auth.store");
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ canGoBack: () => false, back: jest.fn(), navigate: jest.fn() }),
+  useRouter: () => ({
+    canGoBack: () => false,
+    back: jest.fn(),
+    navigate: jest.fn(),
+  }),
 }));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
-const mockUseAuthStore = useAuthStore as jest.MockedFunction<typeof useAuthStore>;
+const mockUseAuthStore = useAuthStore as jest.MockedFunction<
+  typeof useAuthStore
+>;
 const mockResourcesApi = resourcesApi as jest.Mocked<typeof resourcesApi>;
 const mockResourcesAdminApi = resourcesAdminApi as jest.Mocked<
   typeof resourcesAdminApi
@@ -56,6 +67,7 @@ const BASE_RESOURCE = {
   subjectId: "subject-1",
   examType: "SEQUENCE_TEST" as const,
   sequence: "SEQ_1" as const,
+  academicYearLabel: "2025-2026",
   title: "Contrôle chapitre 3",
   authorUserId: "teacher-1",
   statementStatus: "APPROVED" as const,
@@ -85,6 +97,9 @@ function mockDefaults() {
     page: 1,
     limit: 20,
   });
+  mockResourcesApi.listSchoolsWithResources.mockResolvedValue([
+    { id: "school-1", name: "École Test" },
+  ]);
 }
 
 describe("ResourcesScreen", () => {
@@ -124,7 +139,10 @@ describe("ResourcesScreen", () => {
 
   it("le FAB n'est pas visible pour un rôle qui ne peut pas soumettre", async () => {
     mockUseAuthStore.mockReturnValue({
-      user: { ...TEACHER_USER, memberships: [{ schoolId: "school-1", role: "PARENT" as const }] },
+      user: {
+        ...TEACHER_USER,
+        memberships: [{ schoolId: "school-1", role: "PARENT" as const }],
+      },
     } as never);
 
     render(<ResourcesScreen />);
@@ -138,7 +156,9 @@ describe("ResourcesScreen", () => {
   it("FAB → ouvre l'onglet forms avec le hero et les champs du formulaire", async () => {
     render(<ResourcesScreen />);
 
-    await waitFor(() => expect(screen.getByTestId("resources-fab")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
     fireEvent.press(screen.getByTestId("resources-fab"));
 
     await waitFor(() =>
@@ -148,29 +168,54 @@ describe("ResourcesScreen", () => {
     expect(screen.getByTestId("resources-form-level")).toBeTruthy();
     expect(screen.getByTestId("resources-form-subject")).toBeTruthy();
     expect(screen.getByTestId("resources-form-sequence")).toBeTruthy();
+    expect(screen.getByTestId("resources-form-academic-year")).toBeTruthy();
     expect(screen.queryByTestId("resources-tab-ASSESSMENT")).toBeNull();
   });
 
-  it("le champ séquence n'apparaît pas pour un examen national", async () => {
+  it("le champ année académique est pré-rempli avec l'année en cours", async () => {
     render(<ResourcesScreen />);
 
-    await waitFor(() => expect(screen.getByTestId("resources-tab-EXAM")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("resources-fab"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-form-academic-year")).toBeTruthy(),
+    );
+    // Non vide : une valeur par défaut est toujours sélectionnée, jamais un placeholder.
+    expect(
+      screen.getByTestId("resources-form-academic-year").props.children,
+    ).not.toBe(undefined);
+  });
+
+  it("le champ séquence n'apparaît pas pour un examen national, mais l'année académique reste obligatoire", async () => {
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-tab-EXAM")).toBeTruthy(),
+    );
     fireEvent.press(screen.getByTestId("resources-tab-EXAM"));
-    await waitFor(() => expect(mockResourcesApi.listResources).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: "EXAM" }),
-    ));
+    await waitFor(() =>
+      expect(mockResourcesApi.listResources).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: "EXAM" }),
+      ),
+    );
 
     fireEvent.press(screen.getByTestId("resources-fab"));
     await waitFor(() =>
       expect(screen.getByTestId("resources-form-hero")).toBeTruthy(),
     );
     expect(screen.queryByTestId("resources-form-sequence")).toBeNull();
+    expect(screen.getByTestId("resources-form-academic-year")).toBeTruthy();
   });
 
   it("Annuler → revient à l'onglet d'origine sans appeler l'API", async () => {
     render(<ResourcesScreen />);
 
-    await waitFor(() => expect(screen.getByTestId("resources-fab")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
     fireEvent.press(screen.getByTestId("resources-fab"));
 
     await waitFor(() =>
@@ -187,7 +232,9 @@ describe("ResourcesScreen", () => {
   it("la flèche du header depuis l'onglet forms revient au tab d'origine (pas de router.back)", async () => {
     render(<ResourcesScreen />);
 
-    await waitFor(() => expect(screen.getByTestId("resources-fab")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
     fireEvent.press(screen.getByTestId("resources-fab"));
 
     await waitFor(() =>
@@ -203,7 +250,9 @@ describe("ResourcesScreen", () => {
   it("validation : le submit est bloqué et affiche l'erreur si le titre est vide", async () => {
     render(<ResourcesScreen />);
 
-    await waitFor(() => expect(screen.getByTestId("resources-fab")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
     fireEvent.press(screen.getByTestId("resources-fab"));
 
     await waitFor(() =>
@@ -231,7 +280,9 @@ describe("ResourcesScreen", () => {
 
     render(<ResourcesScreen />);
 
-    await waitFor(() => expect(screen.getByTestId("resources-fab")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
     fireEvent.press(screen.getByTestId("resources-fab"));
 
     await waitFor(() =>
@@ -253,13 +304,13 @@ describe("ResourcesScreen", () => {
       screen.getByTestId("resources-form-exam-type-option-SEQUENCE_TEST"),
     );
     fireEvent.press(screen.getByTestId("resources-form-sequence"));
-    fireEvent.press(
-      screen.getByTestId("resources-form-sequence-option-SEQ_1"),
-    );
+    fireEvent.press(screen.getByTestId("resources-form-sequence-option-SEQ_1"));
 
     fireEvent.press(screen.getByTestId("resources-form-submit"));
 
-    await waitFor(() => expect(mockResourcesApi.createResource).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(mockResourcesApi.createResource).toHaveBeenCalled(),
+    );
     expect(mockResourcesApi.createResource).toHaveBeenCalledWith(
       expect.objectContaining({
         kind: "ASSESSMENT",
@@ -268,6 +319,7 @@ describe("ResourcesScreen", () => {
         subjectId: "subject-1",
         examType: "SEQUENCE_TEST",
         sequence: "SEQ_1",
+        academicYearLabel: expect.any(String),
         title: "Contrôle chapitre 4",
       }),
     );
@@ -284,13 +336,13 @@ describe("ResourcesScreen", () => {
   });
 
   it("erreur : affiche le toast d'erreur et reste sur l'onglet forms", async () => {
-    mockResourcesApi.createResource.mockRejectedValue(
-      new Error("Boom"),
-    );
+    mockResourcesApi.createResource.mockRejectedValue(new Error("Boom"));
 
     render(<ResourcesScreen />);
 
-    await waitFor(() => expect(screen.getByTestId("resources-fab")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
     fireEvent.press(screen.getByTestId("resources-fab"));
 
     await waitFor(() =>
@@ -308,14 +360,25 @@ describe("ResourcesScreen", () => {
       screen.getByTestId("resources-form-exam-type-option-SEQUENCE_TEST"),
     );
     fireEvent.press(screen.getByTestId("resources-form-sequence"));
-    fireEvent.press(
-      screen.getByTestId("resources-form-sequence-option-SEQ_1"),
-    );
+    fireEvent.press(screen.getByTestId("resources-form-sequence-option-SEQ_1"));
 
     fireEvent.press(screen.getByTestId("resources-form-submit"));
 
-    await waitFor(() => expect(mockResourcesApi.createResource).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(mockResourcesApi.createResource).toHaveBeenCalled(),
+    );
     expect(screen.getByTestId("resources-form-tab")).toBeTruthy();
+  });
+
+  it("liste : affiche l'année académique sur la card", async () => {
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`resources-card-${BASE_RESOURCE.id}-academic-year`),
+      ).toBeTruthy(),
+    );
+    expect(screen.getByText("2025-2026")).toBeTruthy();
   });
 
   it("liste : bascule le favori au tap sur l'étoile", async () => {
@@ -324,7 +387,9 @@ describe("ResourcesScreen", () => {
     render(<ResourcesScreen />);
 
     await waitFor(() =>
-      expect(screen.getByTestId(`resources-card-${BASE_RESOURCE.id}`)).toBeTruthy(),
+      expect(
+        screen.getByTestId(`resources-card-${BASE_RESOURCE.id}`),
+      ).toBeTruthy(),
     );
     fireEvent.press(
       screen.getByTestId(`resources-card-${BASE_RESOURCE.id}-favorite`),
@@ -347,7 +412,9 @@ describe("ResourcesScreen", () => {
     render(<ResourcesScreen />);
 
     await waitFor(() =>
-      expect(screen.getByTestId(`resources-card-${BASE_RESOURCE.id}`)).toBeTruthy(),
+      expect(
+        screen.getByTestId(`resources-card-${BASE_RESOURCE.id}`),
+      ).toBeTruthy(),
     );
     fireEvent.press(screen.getByTestId(`resources-card-${BASE_RESOURCE.id}`));
 
@@ -355,6 +422,184 @@ describe("ResourcesScreen", () => {
       expect(screen.getByTestId("resources-detail-panel")).toBeTruthy(),
     );
     expect(mockResourcesApi.getResource).toHaveBeenCalledWith(BASE_RESOURCE.id);
+  });
+});
+
+describe("ResourcesScreen — recherche et filtres", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseAuthStore.mockReturnValue({ user: TEACHER_USER } as never);
+    mockDefaults();
+  });
+
+  it("affiche le bouton de recherche sur l'onglet Évaluations mais pas sur Mes ressources", async () => {
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-search-toggle")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("resources-tab-mine"));
+    await waitFor(() =>
+      expect(mockResourcesApi.listMyResources).toHaveBeenCalled(),
+    );
+    expect(screen.queryByTestId("resources-search-toggle")).toBeNull();
+  });
+
+  it("ouvre et ferme le panneau de recherche au clic sur le bouton", async () => {
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-search-toggle")).toBeTruthy(),
+    );
+    expect(screen.queryByTestId("resources-filter-panel")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("resources-search-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-filter-panel")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("resources-search-toggle"));
+    await waitFor(() =>
+      expect(screen.queryByTestId("resources-filter-panel")).toBeNull(),
+    );
+  });
+
+  it("le filtre séquence est visible sur Évaluations mais pas sur Examens", async () => {
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-search-toggle")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("resources-search-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-filter-sequence")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("resources-tab-EXAM"));
+    await waitFor(() =>
+      expect(mockResourcesApi.listResources).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: "EXAM" }),
+      ),
+    );
+    expect(screen.queryByTestId("resources-filter-sequence")).toBeNull();
+  });
+
+  it("tape dans la recherche et déclenche listResources avec le texte après debounce", async () => {
+    jest.useFakeTimers();
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-search-toggle")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("resources-search-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-filter-search-input")).toBeTruthy(),
+    );
+
+    fireEvent.changeText(
+      screen.getByTestId("resources-filter-search-input"),
+      "chapitre 3",
+    );
+
+    await jest.advanceTimersByTimeAsync(400);
+
+    await waitFor(() =>
+      expect(mockResourcesApi.listResources).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: "ASSESSMENT", search: "chapitre 3" }),
+      ),
+    );
+    jest.useRealTimers();
+  });
+
+  it("sélectionne un établissement dans le filtre et relance la recherche", async () => {
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-search-toggle")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("resources-search-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-filter-school")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("resources-filter-school"));
+    fireEvent.press(
+      screen.getByTestId("resources-filter-school-option-school-1"),
+    );
+
+    await waitFor(() =>
+      expect(mockResourcesApi.listResources).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: "ASSESSMENT", schoolId: "school-1" }),
+      ),
+    );
+  });
+
+  it("le bouton réinitialiser est désactivé sans filtre actif, puis actif une fois un filtre choisi", async () => {
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-search-toggle")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("resources-search-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-filter-reset")).toBeTruthy(),
+    );
+    expect(
+      screen.getByTestId("resources-filter-reset").props.accessibilityState
+        ?.disabled,
+    ).toBe(true);
+
+    fireEvent.press(screen.getByTestId("resources-filter-school"));
+    fireEvent.press(
+      screen.getByTestId("resources-filter-school-option-school-1"),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("resources-filter-reset").props.accessibilityState
+          ?.disabled,
+      ).toBe(false),
+    );
+  });
+
+  it("réinitialiser efface les filtres et recharge la liste sans critère", async () => {
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-search-toggle")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("resources-search-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-filter-school")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("resources-filter-school"));
+    fireEvent.press(
+      screen.getByTestId("resources-filter-school-option-school-1"),
+    );
+    await waitFor(() =>
+      expect(mockResourcesApi.listResources).toHaveBeenCalledWith(
+        expect.objectContaining({ schoolId: "school-1" }),
+      ),
+    );
+
+    mockResourcesApi.listResources.mockClear();
+    fireEvent.press(screen.getByTestId("resources-filter-reset"));
+
+    await waitFor(() =>
+      expect(mockResourcesApi.listResources).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: "ASSESSMENT",
+          search: undefined,
+          schoolId: undefined,
+          academicYearLabel: undefined,
+          academicLevelId: undefined,
+          sequence: undefined,
+          examType: undefined,
+        }),
+      ),
+    );
   });
 });
 

@@ -317,6 +317,99 @@ describe("ModuleHeader — menu déroulant", () => {
   });
 });
 
+// ── Bouton d'action secondaire (ex. recherche) ─────────────────────────────────
+
+describe("ModuleHeader — secondaryAction", () => {
+  it("n'affiche rien si secondaryAction est absent", () => {
+    render(<ModuleHeader title="Test" onBack={jest.fn()} />);
+    expect(screen.queryByTestId("module-header-secondary-action")).toBeNull();
+  });
+
+  it("affiche le bouton avec le testID par défaut", () => {
+    render(
+      <ModuleHeader
+        title="Test"
+        onBack={jest.fn()}
+        secondaryAction={{ icon: "search-outline", onPress: jest.fn() }}
+      />,
+    );
+    expect(screen.getByTestId("module-header-secondary-action")).toBeTruthy();
+  });
+
+  it("utilise le testID personnalisé", () => {
+    render(
+      <ModuleHeader
+        title="Test"
+        onBack={jest.fn()}
+        secondaryAction={{
+          icon: "search-outline",
+          onPress: jest.fn(),
+          testID: "resources-search-toggle",
+        }}
+      />,
+    );
+    expect(screen.getByTestId("resources-search-toggle")).toBeTruthy();
+  });
+
+  it("appelle onPress au clic", () => {
+    const onPress = jest.fn();
+    render(
+      <ModuleHeader
+        title="Test"
+        onBack={jest.fn()}
+        secondaryAction={{
+          icon: "search-outline",
+          onPress,
+          testID: "search-toggle",
+        }}
+      />,
+    );
+    fireEvent.press(screen.getByTestId("search-toggle"));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it("affiche l'icône fournie", () => {
+    render(
+      <ModuleHeader
+        title="Test"
+        onBack={jest.fn()}
+        secondaryAction={{ icon: "search-outline", onPress: jest.fn() }}
+      />,
+    );
+    expect(screen.getByTestId("icon-search-outline")).toBeTruthy();
+  });
+
+  it("applique un fond distinct quand active=true", () => {
+    render(
+      <ModuleHeader
+        title="Test"
+        onBack={jest.fn()}
+        secondaryAction={{
+          icon: "search-outline",
+          onPress: jest.fn(),
+          testID: "search-toggle",
+          active: true,
+        }}
+      />,
+    );
+    const flat = StyleSheet.flatten(
+      screen.getByTestId("search-toggle").props.style,
+    );
+    expect(flat.backgroundColor).toBe("rgba(216,155,91,0.55)");
+  });
+
+  it("le bouton secondaire n'affecte pas le testID du kebab", () => {
+    render(
+      <ModuleHeader
+        title="Test"
+        onBack={jest.fn()}
+        secondaryAction={{ icon: "search-outline", onPress: jest.fn() }}
+      />,
+    );
+    expect(screen.getByTestId("module-header-menu")).toBeTruthy();
+  });
+});
+
 // ── Symétrie gauche/droite ────────────────────────────────────────────────────
 
 describe("ModuleHeader — symétrie bouton gauche / bouton droit", () => {

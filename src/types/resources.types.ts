@@ -26,6 +26,7 @@ export type ResourceRow = {
   subjectId: string;
   examType: ResourceExamType;
   sequence: ResourceSequence | null;
+  academicYearLabel: string;
   title: string;
   authorUserId: string;
   statementStatus: ResourceApprovalStatus;
@@ -52,6 +53,7 @@ export type ResourceListQuery = {
   examType?: ResourceExamType;
   sequence?: ResourceSequence;
   schoolId?: string;
+  academicYearLabel?: string;
   search?: string;
   page?: number;
   limit?: number;
@@ -71,6 +73,7 @@ export type UpsertResourcePayload = {
   subjectId: string;
   examType: ResourceExamType;
   sequence?: ResourceSequence;
+  academicYearLabel: string;
   title: string;
   statementContent: string;
   statementAttachments?: ResourceAttachment[];
@@ -82,6 +85,8 @@ export type ResourceCatalog = {
   academicLevels: Array<{ id: string; code: string; label: string }>;
   subjects: Array<{ id: string; code: string | null; name: string }>;
 };
+
+export type ResourceSchoolOption = { id: string; name: string };
 
 export type ListAdminResourcesQuery = {
   kind?: ResourceKind;

@@ -3,7 +3,10 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
-import type { ResourceApprovalStatus, ResourceRow } from "../../types/resources.types";
+import type {
+  ResourceApprovalStatus,
+  ResourceRow,
+} from "../../types/resources.types";
 
 const SEQUENCE_LABELS: Record<string, string> = {
   SEQ_1: "Séq. 1",
@@ -74,7 +77,9 @@ export function ResourceCard(props: {
             <Ionicons
               name={resource.isFavorite ? "star" : "star-outline"}
               size={20}
-              color={resource.isFavorite ? colors.warmAccent : colors.textSecondary}
+              color={
+                resource.isFavorite ? colors.warmAccent : colors.textSecondary
+              }
             />
           </TouchableOpacity>
         ) : null}
@@ -86,6 +91,9 @@ export function ResourceCard(props: {
       </Text>
 
       <View style={styles.pillsRow}>
+        <View style={styles.pill} testID={`${props.testID}-academic-year`}>
+          <Text style={styles.pillText}>{resource.academicYearLabel}</Text>
+        </View>
         <View style={styles.pill}>
           <Text style={styles.pillText}>{resource.academicLevel.label}</Text>
         </View>

@@ -24,7 +24,12 @@ describe("resourcesApi", () => {
 
   describe("listResources", () => {
     it("builds the query string with only the provided filters", async () => {
-      apiFetch.mockResolvedValueOnce({ items: [], total: 0, page: 1, limit: 20 });
+      apiFetch.mockResolvedValueOnce({
+        items: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+      });
 
       await resourcesApi.listResources({
         kind: "ASSESSMENT",
@@ -39,8 +44,35 @@ describe("resourcesApi", () => {
       );
     });
 
+    it("includes schoolId, academicYearLabel and search when provided", async () => {
+      apiFetch.mockResolvedValueOnce({
+        items: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+      });
+
+      await resourcesApi.listResources({
+        kind: "ASSESSMENT",
+        schoolId: "school-1",
+        academicYearLabel: "2025-2026",
+        search: "chapitre 3",
+      });
+
+      expect(apiFetch).toHaveBeenCalledWith(
+        "/resources?kind=ASSESSMENT&schoolId=school-1&academicYearLabel=2025-2026&search=chapitre+3",
+        {},
+        true,
+      );
+    });
+
     it("omits undefined filters entirely", async () => {
-      apiFetch.mockResolvedValueOnce({ items: [], total: 0, page: 1, limit: 20 });
+      apiFetch.mockResolvedValueOnce({
+        items: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+      });
 
       await resourcesApi.listResources({ kind: "EXAM" });
 
@@ -56,6 +88,15 @@ describe("resourcesApi", () => {
     });
   });
 
+  describe("listSchoolsWithResources", () => {
+    it("hits the schools-with-resources route", async () => {
+      apiFetch.mockResolvedValueOnce([{ id: "school-1", name: "Ecole A" }]);
+      const result = await resourcesApi.listSchoolsWithResources();
+      expect(apiFetch).toHaveBeenCalledWith("/resources/schools", {}, true);
+      expect(result).toEqual([{ id: "school-1", name: "Ecole A" }]);
+    });
+  });
+
   describe("createResource", () => {
     it("posts the payload as-is", async () => {
       apiFetch.mockResolvedValueOnce({ id: "res-1" });
@@ -67,6 +108,7 @@ describe("resourcesApi", () => {
         subjectId: "sub-1",
         examType: "SEQUENCE_TEST",
         sequence: "SEQ_1",
+        academicYearLabel: "2025-2026",
         title: "Controle",
         statementContent: "<p>Enonce</p>",
       });

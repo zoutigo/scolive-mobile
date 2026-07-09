@@ -7,6 +7,7 @@ import type {
   ResourceListQuery,
   ResourceListResult,
   ResourceRow,
+  ResourceSchoolOption,
   UpsertResourcePayload,
 } from "../types/resources.types";
 
@@ -62,6 +63,7 @@ export const resourcesApi = {
         examType: query.examType,
         sequence: query.sequence,
         schoolId: query.schoolId,
+        academicYearLabel: query.academicYearLabel,
         search: query.search,
         page: query.page,
         limit: query.limit,
@@ -76,15 +78,15 @@ export const resourcesApi = {
   },
 
   listMyResources(kind?: string): Promise<ResourceListResult> {
-    return apiFetch(
-      `/resources/mine${toQuery({ kind })}`,
-      {},
-      true,
-    );
+    return apiFetch(`/resources/mine${toQuery({ kind })}`, {}, true);
   },
 
   getCatalog(): Promise<ResourceCatalog> {
     return apiFetch(`/resources/catalog`, {}, true);
+  },
+
+  listSchoolsWithResources(): Promise<ResourceSchoolOption[]> {
+    return apiFetch(`/resources/schools`, {}, true);
   },
 
   getResource(resourceId: string): Promise<ResourceDetail> {
@@ -183,7 +185,10 @@ export const resourcesApi = {
     );
 
     if (!response.ok) {
-      await parseMultipartError(response, "RESOURCE_INLINE_IMAGE_UPLOAD_FAILED");
+      await parseMultipartError(
+        response,
+        "RESOURCE_INLINE_IMAGE_UPLOAD_FAILED",
+      );
     }
 
     return (await response.json()) as { url: string };
@@ -213,7 +218,10 @@ export const resourcesAdminApi = {
     );
   },
 
-  rejectStatement(resourceId: string, reason?: string): Promise<ResourceDetail> {
+  rejectStatement(
+    resourceId: string,
+    reason?: string,
+  ): Promise<ResourceDetail> {
     return apiFetch(
       `/admin/resources/${resourceId}/statement/reject`,
       { method: "PATCH", body: JSON.stringify({ reason }) },

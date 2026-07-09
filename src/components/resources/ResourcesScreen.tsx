@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -30,7 +36,10 @@ import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { SelectDropdown, type SelectOption } from "../SelectDropdown";
-import { RichEditorField, type RichEditorFieldRef } from "../editor/RichEditorField";
+import {
+  RichEditorField,
+  type RichEditorFieldRef,
+} from "../editor/RichEditorField";
 import { ResourceCard } from "./ResourceCard";
 import { moduleBack } from "../../utils/moduleBack";
 import type {
@@ -40,11 +49,18 @@ import type {
   ResourceExamType,
   ResourceKind,
   ResourceRow,
+  ResourceSchoolOption,
   ResourceSequence,
   UpsertResourcePayload,
 } from "../../types/resources.types";
 
-type TabKey = "ASSESSMENT" | "EXAM" | "mine" | "favorites" | "moderation" | "forms";
+type TabKey =
+  | "ASSESSMENT"
+  | "EXAM"
+  | "mine"
+  | "favorites"
+  | "moderation"
+  | "forms";
 
 type FormContext = {
   type: "create" | "edit";
@@ -62,6 +78,21 @@ const SEQUENCE_OPTIONS: SelectOption[] = [
   { value: "SEQ_6", label: "Séquence 6" },
 ];
 
+function currentAcademicYearLabel(now = new Date()): string {
+  const year = now.getFullYear();
+  return now.getMonth() >= 8 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+}
+
+function academicYearOptions(): SelectOption[] {
+  const [startYear] = currentAcademicYearLabel().split("-").map(Number);
+  const years: string[] = [];
+  for (let offset = -2; offset <= 1; offset += 1) {
+    const start = startYear + offset;
+    years.push(`${start}-${start + 1}`);
+  }
+  return years.map((label) => ({ value: label, label }));
+}
+
 function examTypeOptions(t: TranslateFn): SelectOption[] {
   return [
     { value: "SEQUENCE_TEST", label: t("resources.examType.sequenceTest") },
@@ -72,7 +103,10 @@ function examTypeOptions(t: TranslateFn): SelectOption[] {
 
 function buildResourceFormSchema(t: TranslateFn, kind: ResourceKind) {
   return z.object({
-    title: z.string().trim().min(1, t("resources.form.validation.titleRequired")),
+    title: z
+      .string()
+      .trim()
+      .min(1, t("resources.form.validation.titleRequired")),
     academicLevelId: z
       .string()
       .trim()
@@ -81,11 +115,21 @@ function buildResourceFormSchema(t: TranslateFn, kind: ResourceKind) {
       .string()
       .trim()
       .min(1, t("resources.form.validation.subjectRequired")),
-    examType: z.string().trim().min(1, t("resources.form.validation.examTypeRequired")),
+    examType: z
+      .string()
+      .trim()
+      .min(1, t("resources.form.validation.examTypeRequired")),
     sequence:
       kind === "ASSESSMENT"
-        ? z.string().trim().min(1, t("resources.form.validation.sequenceRequired"))
+        ? z
+            .string()
+            .trim()
+            .min(1, t("resources.form.validation.sequenceRequired"))
         : z.string(),
+    academicYearLabel: z
+      .string()
+      .trim()
+      .min(1, t("resources.form.validation.academicYearRequired")),
   });
 }
 
@@ -95,6 +139,7 @@ type ResourceFormValues = {
   subjectId: string;
   examType: string;
   sequence: string;
+  academicYearLabel: string;
 };
 
 export function ResourcesScreen() {
@@ -120,8 +165,44 @@ export function ResourcesScreen() {
     academicLevels: [],
     subjects: [],
   });
+  const [schools, setSchools] = useState<ResourceSchoolOption[]>([]);
+
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filterAcademicYear, setFilterAcademicYear] = useState("");
+  const [filterSchoolId, setFilterSchoolId] = useState("");
+  const [filterAcademicLevelId, setFilterAcademicLevelId] = useState("");
+  const [filterSequence, setFilterSequence] = useState("");
+  const [filterExamType, setFilterExamType] = useState("");
+
+  const hasActiveFilters =
+    !!searchText ||
+    !!filterAcademicYear ||
+    !!filterSchoolId ||
+    !!filterAcademicLevelId ||
+    !!filterSequence ||
+    !!filterExamType;
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchText.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  function resetFilters() {
+    setSearchText("");
+    setDebouncedSearch("");
+    setFilterAcademicYear("");
+    setFilterSchoolId("");
+    setFilterAcademicLevelId("");
+    setFilterSequence("");
+    setFilterExamType("");
+  }
+
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [expandedDetail, setExpandedDetail] = useState<ResourceDetail | null>(null);
+  const [expandedDetail, setExpandedDetail] = useState<ResourceDetail | null>(
+    null,
+  );
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
   const [lists, setLists] = useState<
@@ -132,16 +213,23 @@ export function ResourcesScreen() {
     mine: [],
     favorites: [],
   });
-  const [moderationPart, setModerationPart] = useState<"statement" | "correction">(
-    "statement",
-  );
+  const [moderationPart, setModerationPart] = useState<
+    "statement" | "correction"
+  >("statement");
   const [moderationItems, setModerationItems] = useState<ResourceRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    resourcesApi.getCatalog().then(setCatalog).catch(() => {});
+    resourcesApi
+      .getCatalog()
+      .then(setCatalog)
+      .catch(() => {});
+    resourcesApi
+      .listSchoolsWithResources()
+      .then(setSchools)
+      .catch(() => {});
   }, []);
 
   const loadList = useCallback(
@@ -156,7 +244,20 @@ export function ResourcesScreen() {
           const result = await resourcesApi.listMyResources();
           setLists((current) => ({ ...current, mine: result.items }));
         } else {
-          const result = await resourcesApi.listResources({ kind: targetTab });
+          const result = await resourcesApi.listResources({
+            kind: targetTab,
+            search: debouncedSearch || undefined,
+            academicYearLabel: filterAcademicYear || undefined,
+            schoolId: filterSchoolId || undefined,
+            academicLevelId: filterAcademicLevelId || undefined,
+            sequence:
+              targetTab === "ASSESSMENT" && filterSequence
+                ? (filterSequence as ResourceSequence)
+                : undefined,
+            examType: filterExamType
+              ? (filterExamType as ResourceExamType)
+              : undefined,
+          });
           setLists((current) => ({ ...current, [targetTab]: result.items }));
         }
       } catch (error) {
@@ -165,7 +266,14 @@ export function ResourcesScreen() {
         setIsLoading(false);
       }
     },
-    [],
+    [
+      debouncedSearch,
+      filterAcademicYear,
+      filterSchoolId,
+      filterAcademicLevelId,
+      filterSequence,
+      filterExamType,
+    ],
   );
 
   const loadModeration = useCallback(
@@ -218,7 +326,10 @@ export function ResourcesScreen() {
     }
   }
 
-  async function toggleFavorite(resource: ResourceRow, listKey: Exclude<TabKey, "forms" | "moderation">) {
+  async function toggleFavorite(
+    resource: ResourceRow,
+    listKey: Exclude<TabKey, "forms" | "moderation">,
+  ) {
     try {
       if (resource.isFavorite) {
         await resourcesApi.unfavoriteResource(resource.id);
@@ -249,7 +360,12 @@ export function ResourcesScreen() {
   }
 
   function openEdit(resource: ResourceDetail, originTab: TabKey) {
-    setFormContext({ type: "edit", kind: resource.kind, originTab, item: resource });
+    setFormContext({
+      type: "edit",
+      kind: resource.kind,
+      originTab,
+      item: resource,
+    });
     setTab("forms");
   }
 
@@ -292,12 +408,16 @@ export function ResourcesScreen() {
   ) {
     try {
       if (moderationPart === "statement") {
-        if (action === "approve") await resourcesAdminApi.approveStatement(resourceId);
-        else if (action === "reject") await resourcesAdminApi.rejectStatement(resourceId);
+        if (action === "approve")
+          await resourcesAdminApi.approveStatement(resourceId);
+        else if (action === "reject")
+          await resourcesAdminApi.rejectStatement(resourceId);
         else await resourcesAdminApi.revokeStatement(resourceId);
       } else {
-        if (action === "approve") await resourcesAdminApi.approveCorrection(resourceId);
-        else if (action === "reject") await resourcesAdminApi.rejectCorrection(resourceId);
+        if (action === "approve")
+          await resourcesAdminApi.approveCorrection(resourceId);
+        else if (action === "reject")
+          await resourcesAdminApi.rejectCorrection(resourceId);
         else await resourcesAdminApi.revokeCorrection(resourceId);
       }
       showSuccess({
@@ -331,6 +451,28 @@ export function ResourcesScreen() {
   }, [t, canSubmit, isPlatformRole]);
 
   const headerTitle = t("resources.header.title");
+  const isSearchableTab = tab === "ASSESSMENT" || tab === "EXAM";
+
+  const schoolOptions: SelectOption[] = [
+    { value: "", label: t("resources.filters.allSchools") },
+    ...schools.map((s) => ({ value: s.id, label: s.name })),
+  ];
+  const levelFilterOptions: SelectOption[] = [
+    { value: "", label: t("resources.filters.allLevels") },
+    ...catalog.academicLevels.map((l) => ({ value: l.id, label: l.label })),
+  ];
+  const sequenceFilterOptions: SelectOption[] = [
+    { value: "", label: t("resources.filters.allSequences") },
+    ...SEQUENCE_OPTIONS,
+  ];
+  const examTypeFilterOptions: SelectOption[] = [
+    { value: "", label: t("resources.filters.allExamTypes") },
+    ...examTypeOptions(t),
+  ];
+  const academicYearFilterOptions: SelectOption[] = [
+    { value: "", label: t("resources.filters.allYears") },
+    ...academicYearOptions(),
+  ];
 
   return (
     <View style={styles.root} testID="resources-screen">
@@ -341,6 +483,17 @@ export function ResourcesScreen() {
           testID="resources-header"
           backTestID="resources-back-btn"
           topInset={insets.top}
+          secondaryAction={
+            isSearchableTab && !isFormsTab
+              ? {
+                  icon: "search-outline",
+                  onPress: () => setFiltersOpen((current) => !current),
+                  testID: "resources-search-toggle",
+                  accessibilityLabel: t("resources.filters.toggleLabel"),
+                  active: filtersOpen,
+                }
+              : undefined
+          }
         />
       </View>
 
@@ -355,7 +508,11 @@ export function ResourcesScreen() {
 
       {loadError ? (
         <View style={styles.errorBanner} testID="resources-load-error">
-          <Ionicons name="alert-circle-outline" size={16} color={colors.notification} />
+          <Ionicons
+            name="alert-circle-outline"
+            size={16}
+            color={colors.notification}
+          />
           <Text style={styles.errorText}>{loadError}</Text>
         </View>
       ) : null}
@@ -390,11 +547,125 @@ export function ResourcesScreen() {
       ) : null}
 
       <View style={styles.body}>
+        {isSearchableTab && filtersOpen ? (
+          <View style={styles.filterPanel} testID="resources-filter-panel">
+            <View style={styles.searchRow}>
+              <Ionicons
+                name="search-outline"
+                size={16}
+                color={colors.textSecondary}
+              />
+              <TextInput
+                value={searchText}
+                onChangeText={setSearchText}
+                placeholder={t("resources.filters.searchPlaceholder")}
+                placeholderTextColor={colors.textSecondary}
+                style={styles.searchInput}
+                testID="resources-filter-search-input"
+              />
+            </View>
+
+            <View style={styles.filterFieldGroup}>
+              <Text style={styles.filterFieldLabel}>
+                {t("resources.filters.academicYear")}
+              </Text>
+              <SelectDropdown
+                options={academicYearFilterOptions}
+                value={filterAcademicYear}
+                onChange={setFilterAcademicYear}
+                placeholder={t("resources.filters.allYears")}
+                testID="resources-filter-academic-year"
+              />
+            </View>
+
+            <View style={styles.filterFieldGroup}>
+              <Text style={styles.filterFieldLabel}>
+                {t("resources.filters.school")}
+              </Text>
+              <SelectDropdown
+                options={schoolOptions}
+                value={filterSchoolId}
+                onChange={setFilterSchoolId}
+                placeholder={t("resources.filters.allSchools")}
+                testID="resources-filter-school"
+              />
+            </View>
+
+            <View style={styles.filterFieldGroup}>
+              <Text style={styles.filterFieldLabel}>
+                {t("resources.filters.level")}
+              </Text>
+              <SelectDropdown
+                options={levelFilterOptions}
+                value={filterAcademicLevelId}
+                onChange={setFilterAcademicLevelId}
+                placeholder={t("resources.filters.allLevels")}
+                testID="resources-filter-level"
+              />
+            </View>
+
+            {tab === "ASSESSMENT" ? (
+              <View style={styles.filterFieldGroup}>
+                <Text style={styles.filterFieldLabel}>
+                  {t("resources.filters.sequence")}
+                </Text>
+                <SelectDropdown
+                  options={sequenceFilterOptions}
+                  value={filterSequence}
+                  onChange={setFilterSequence}
+                  placeholder={t("resources.filters.allSequences")}
+                  testID="resources-filter-sequence"
+                />
+              </View>
+            ) : null}
+
+            <View style={styles.filterFieldGroup}>
+              <Text style={styles.filterFieldLabel}>
+                {t("resources.filters.examType")}
+              </Text>
+              <SelectDropdown
+                options={examTypeFilterOptions}
+                value={filterExamType}
+                onChange={setFilterExamType}
+                placeholder={t("resources.filters.allExamTypes")}
+                testID="resources-filter-exam-type"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.filterResetBtn,
+                !hasActiveFilters && styles.filterResetBtnDisabled,
+              ]}
+              onPress={resetFilters}
+              disabled={!hasActiveFilters}
+              testID="resources-filter-reset"
+            >
+              <Ionicons
+                name="refresh-outline"
+                size={16}
+                color={hasActiveFilters ? colors.primary : colors.textSecondary}
+              />
+              <Text
+                style={[
+                  styles.filterResetBtnText,
+                  !hasActiveFilters && styles.filterResetBtnTextDisabled,
+                ]}
+              >
+                {t("resources.filters.reset")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         {isLoading && tab !== "forms" ? (
           <ActivityIndicator style={styles.loader} color={colors.primary} />
         ) : null}
 
-        {tab === "ASSESSMENT" || tab === "EXAM" || tab === "mine" || tab === "favorites" ? (
+        {tab === "ASSESSMENT" ||
+        tab === "EXAM" ||
+        tab === "mine" ||
+        tab === "favorites" ? (
           <InfiniteScrollList
             data={lists[tab]}
             keyExtractor={(item) => item.id}
@@ -438,8 +709,14 @@ export function ResourcesScreen() {
             keyExtractor={(item) => item.id}
             testID="resources-moderation-list"
             renderItem={({ item }) => (
-              <View style={styles.moderationCard} testID={`resources-moderation-card-${item.id}`}>
-                <ResourceCard resource={item} onPress={() => toggleExpand(item)} />
+              <View
+                style={styles.moderationCard}
+                testID={`resources-moderation-card-${item.id}`}
+              >
+                <ResourceCard
+                  resource={item}
+                  onPress={() => toggleExpand(item)}
+                />
                 {expandedId === item.id ? (
                   <ResourceDetailPanel
                     detail={expandedDetail}
@@ -472,7 +749,10 @@ export function ResourcesScreen() {
               </View>
             )}
             emptyComponent={
-              <Text style={styles.emptyText} testID="resources-moderation-empty">
+              <Text
+                style={styles.emptyText}
+                testID="resources-moderation-empty"
+              >
                 {t("resources.moderation.empty")}
               </Text>
             }
@@ -512,7 +792,9 @@ function ResourceDetailPanel(props: {
   t: TranslateFn;
 }) {
   if (props.isLoading) {
-    return <ActivityIndicator style={styles.detailLoader} color={colors.primary} />;
+    return (
+      <ActivityIndicator style={styles.detailLoader} color={colors.primary} />
+    );
   }
   if (!props.detail) return null;
   const { detail, t } = props;
@@ -522,14 +804,18 @@ function ResourceDetailPanel(props: {
       <Text style={styles.detailSectionLabel}>
         {t("resources.detail.statement")}
       </Text>
-      <Text style={styles.detailText}>{stripHtml(detail.statementContent)}</Text>
+      <Text style={styles.detailText}>
+        {stripHtml(detail.statementContent)}
+      </Text>
 
       {detail.correctionContent ? (
         <>
           <Text style={styles.detailSectionLabel}>
             {t("resources.detail.correction")}
           </Text>
-          <Text style={styles.detailText}>{stripHtml(detail.correctionContent)}</Text>
+          <Text style={styles.detailText}>
+            {stripHtml(detail.correctionContent)}
+          </Text>
         </>
       ) : null}
 
@@ -537,7 +823,11 @@ function ResourceDetailPanel(props: {
         <View style={styles.attachmentsList}>
           {detail.attachments.map((attachment, idx) => (
             <View key={attachment.id ?? idx} style={styles.attachmentChip}>
-              <Ionicons name="document-outline" size={14} color={colors.textSecondary} />
+              <Ionicons
+                name="document-outline"
+                size={14}
+                color={colors.textSecondary}
+              />
               <Text style={styles.attachmentText} numberOfLines={1}>
                 {attachment.fileName}
               </Text>
@@ -561,7 +851,10 @@ function ResourceDetailPanel(props: {
 }
 
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function ResourceFormContent(props: {
@@ -578,12 +871,12 @@ function ResourceFormContent(props: {
   const initialValue = props.formContext.item;
   const kind = props.formContext.kind;
 
-  const [statementAttachments, setStatementAttachments] = useState<ResourceAttachment[]>(
-    initialValue?.attachments.filter((a) => a.part === "STATEMENT") ?? [],
-  );
-  const [correctionAttachments, setCorrectionAttachments] = useState<ResourceAttachment[]>(
-    initialValue?.attachments.filter((a) => a.part === "CORRECTION") ?? [],
-  );
+  const [statementAttachments, setStatementAttachments] = useState<
+    ResourceAttachment[]
+  >(initialValue?.attachments.filter((a) => a.part === "STATEMENT") ?? []);
+  const [correctionAttachments, setCorrectionAttachments] = useState<
+    ResourceAttachment[]
+  >(initialValue?.attachments.filter((a) => a.part === "CORRECTION") ?? []);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const {
@@ -598,13 +891,17 @@ function ResourceFormContent(props: {
       subjectId: initialValue?.subjectId ?? "",
       examType: initialValue?.examType ?? "SEQUENCE_TEST",
       sequence: initialValue?.sequence ?? "SEQ_1",
+      academicYearLabel:
+        initialValue?.academicYearLabel ?? currentAcademicYearLabel(),
     },
   });
 
-  const levelOptions: SelectOption[] = props.catalog.academicLevels.map((l) => ({
-    value: l.id,
-    label: l.label,
-  }));
+  const levelOptions: SelectOption[] = props.catalog.academicLevels.map(
+    (l) => ({
+      value: l.id,
+      label: l.label,
+    }),
+  );
   const subjectOptions: SelectOption[] = props.catalog.subjects.map((s) => ({
     value: s.id,
     label: s.name,
@@ -651,15 +948,24 @@ function ResourceFormContent(props: {
       const correctionContent = await correctionRef.current?.getContentHtml();
       const payload: UpsertResourcePayload = {
         kind,
-        schoolId: kind === "ASSESSMENT" ? (props.submitterSchoolId ?? undefined) : undefined,
+        schoolId:
+          kind === "ASSESSMENT"
+            ? (props.submitterSchoolId ?? undefined)
+            : undefined,
         academicLevelId: values.academicLevelId,
         subjectId: values.subjectId,
         examType: values.examType as ResourceExamType,
-        sequence: kind === "ASSESSMENT" ? (values.sequence as ResourceSequence) : undefined,
+        sequence:
+          kind === "ASSESSMENT"
+            ? (values.sequence as ResourceSequence)
+            : undefined,
+        academicYearLabel: values.academicYearLabel,
         title: values.title.trim(),
         statementContent: statementContent?.trim() ?? "",
         statementAttachments,
-        correctionContent: correctionContent?.trim() ? correctionContent : undefined,
+        correctionContent: correctionContent?.trim()
+          ? correctionContent
+          : undefined,
         correctionAttachments,
       };
       await props.onSubmit(payload);
@@ -681,7 +987,11 @@ function ResourceFormContent(props: {
           showsVerticalScrollIndicator={false}
         >
           <FormHero
-            icon={props.formContext.type === "edit" ? "create-outline" : "add-circle-outline"}
+            icon={
+              props.formContext.type === "edit"
+                ? "create-outline"
+                : "add-circle-outline"
+            }
             title={heroTitle}
             subtitle={
               kind === "ASSESSMENT"
@@ -694,13 +1004,19 @@ function ResourceFormContent(props: {
 
           {errorMessage ? (
             <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle-outline" size={16} color={colors.notification} />
+              <Ionicons
+                name="alert-circle-outline"
+                size={16}
+                color={colors.notification}
+              />
               <Text style={styles.errorText}>{errorMessage}</Text>
             </View>
           ) : null}
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>{t("resources.form.titleLabel")}</Text>
+            <Text style={styles.fieldLabel}>
+              {t("resources.form.titleLabel")}
+            </Text>
             <Controller
               control={control}
               name="title"
@@ -716,14 +1032,19 @@ function ResourceFormContent(props: {
               )}
             />
             {errors.title?.message ? (
-              <Text style={styles.fieldError} testID="resources-form-title-error">
+              <Text
+                style={styles.fieldError}
+                testID="resources-form-title-error"
+              >
                 {errors.title.message}
               </Text>
             ) : null}
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>{t("resources.form.levelLabel")}</Text>
+            <Text style={styles.fieldLabel}>
+              {t("resources.form.levelLabel")}
+            </Text>
             <Controller
               control={control}
               name="academicLevelId"
@@ -739,14 +1060,19 @@ function ResourceFormContent(props: {
               )}
             />
             {errors.academicLevelId?.message ? (
-              <Text style={styles.fieldError} testID="resources-form-level-error">
+              <Text
+                style={styles.fieldError}
+                testID="resources-form-level-error"
+              >
                 {errors.academicLevelId.message}
               </Text>
             ) : null}
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>{t("resources.form.subjectLabel")}</Text>
+            <Text style={styles.fieldLabel}>
+              {t("resources.form.subjectLabel")}
+            </Text>
             <Controller
               control={control}
               name="subjectId"
@@ -762,14 +1088,19 @@ function ResourceFormContent(props: {
               )}
             />
             {errors.subjectId?.message ? (
-              <Text style={styles.fieldError} testID="resources-form-subject-error">
+              <Text
+                style={styles.fieldError}
+                testID="resources-form-subject-error"
+              >
                 {errors.subjectId.message}
               </Text>
             ) : null}
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>{t("resources.form.examTypeLabel")}</Text>
+            <Text style={styles.fieldLabel}>
+              {t("resources.form.examTypeLabel")}
+            </Text>
             <Controller
               control={control}
               name="examType"
@@ -785,15 +1116,48 @@ function ResourceFormContent(props: {
               )}
             />
             {errors.examType?.message ? (
-              <Text style={styles.fieldError} testID="resources-form-exam-type-error">
+              <Text
+                style={styles.fieldError}
+                testID="resources-form-exam-type-error"
+              >
                 {errors.examType.message}
+              </Text>
+            ) : null}
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>
+              {t("resources.form.academicYearLabel")}
+            </Text>
+            <Controller
+              control={control}
+              name="academicYearLabel"
+              render={({ field: { value, onChange } }) => (
+                <SelectDropdown
+                  options={academicYearOptions()}
+                  value={value}
+                  onChange={onChange}
+                  placeholder={t("resources.form.academicYearPlaceholder")}
+                  hasError={!!errors.academicYearLabel}
+                  testID="resources-form-academic-year"
+                />
+              )}
+            />
+            {errors.academicYearLabel?.message ? (
+              <Text
+                style={styles.fieldError}
+                testID="resources-form-academic-year-error"
+              >
+                {errors.academicYearLabel.message}
               </Text>
             ) : null}
           </View>
 
           {kind === "ASSESSMENT" ? (
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>{t("resources.form.sequenceLabel")}</Text>
+              <Text style={styles.fieldLabel}>
+                {t("resources.form.sequenceLabel")}
+              </Text>
               <Controller
                 control={control}
                 name="sequence"
@@ -809,7 +1173,10 @@ function ResourceFormContent(props: {
                 )}
               />
               {errors.sequence?.message ? (
-                <Text style={styles.fieldError} testID="resources-form-sequence-error">
+                <Text
+                  style={styles.fieldError}
+                  testID="resources-form-sequence-error"
+                >
                   {errors.sequence.message}
                 </Text>
               ) : null}
@@ -817,7 +1184,9 @@ function ResourceFormContent(props: {
           ) : null}
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>{t("resources.form.statementLabel")}</Text>
+            <Text style={styles.fieldLabel}>
+              {t("resources.form.statementLabel")}
+            </Text>
             <RichEditorField
               ref={statementRef}
               initialHtml={initialValue?.statementContent ?? ""}
@@ -845,7 +1214,11 @@ function ResourceFormContent(props: {
               onPress={() => handleAddAttachment("statement")}
               testID="resources-form-statement-add-attachment"
             >
-              <Ionicons name="attach-outline" size={16} color={colors.primary} />
+              <Ionicons
+                name="attach-outline"
+                size={16}
+                color={colors.primary}
+              />
               <Text style={styles.addAttachmentText}>
                 {t("resources.form.addAttachment")}
               </Text>
@@ -895,7 +1268,11 @@ function ResourceFormContent(props: {
               onPress={() => handleAddAttachment("correction")}
               testID="resources-form-correction-add-attachment"
             >
-              <Ionicons name="attach-outline" size={16} color={colors.primary} />
+              <Ionicons
+                name="attach-outline"
+                size={16}
+                color={colors.primary}
+              />
               <Text style={styles.addAttachmentText}>
                 {t("resources.form.addAttachment")}
               </Text>
@@ -918,10 +1295,15 @@ function ResourceFormContent(props: {
             onPress={props.onCancel}
             testID="resources-form-cancel"
           >
-            <Text style={styles.cancelBtnText}>{t("resources.common.cancel")}</Text>
+            <Text style={styles.cancelBtnText}>
+              {t("resources.common.cancel")}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.submitBtn, props.isSubmitting && styles.submitBtnDisabled]}
+            style={[
+              styles.submitBtn,
+              props.isSubmitting && styles.submitBtnDisabled,
+            ]}
             onPress={handleSave}
             disabled={props.isSubmitting}
             testID="resources-form-submit"
@@ -929,7 +1311,9 @@ function ResourceFormContent(props: {
             {props.isSubmitting ? (
               <ActivityIndicator color={colors.white} size="small" />
             ) : (
-              <Text style={styles.submitBtnText}>{t("resources.common.submit")}</Text>
+              <Text style={styles.submitBtnText}>
+                {t("resources.common.submit")}
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -952,7 +1336,11 @@ function AttachmentList(props: {
           style={styles.attachmentChip}
           testID={`${props.testIDPrefix}-${idx}`}
         >
-          <Ionicons name="document-outline" size={14} color={colors.textSecondary} />
+          <Ionicons
+            name="document-outline"
+            size={14}
+            color={colors.textSecondary}
+          />
           <Text style={styles.attachmentText} numberOfLines={1}>
             {attachment.fileName}
           </Text>
@@ -961,7 +1349,11 @@ function AttachmentList(props: {
             testID={`${props.testIDPrefix}-${idx}-remove`}
             hitSlop={8}
           >
-            <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+            <Ionicons
+              name="close-circle"
+              size={16}
+              color={colors.textSecondary}
+            />
           </TouchableOpacity>
         </View>
       ))}
@@ -991,6 +1383,59 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   errorText: { flex: 1, fontSize: 13, color: colors.notification },
+  filterPanel: {
+    backgroundColor: colors.warmSurface,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+    gap: 10,
+  },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.textPrimary,
+    padding: 0,
+  },
+  filterFieldGroup: { gap: 4 },
+  filterFieldLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
+  filterResetBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  filterResetBtnDisabled: {
+    borderColor: colors.warmBorder,
+  },
+  filterResetBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.primary,
+  },
+  filterResetBtnTextDisabled: {
+    color: colors.textSecondary,
+  },
   moderationSubTabs: {
     flexDirection: "row",
     gap: 8,
@@ -1153,7 +1598,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 12,
   },
-  cancelBtnText: { fontSize: 14, fontWeight: "700", color: colors.textSecondary },
+  cancelBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.textSecondary,
+  },
   submitBtn: {
     flex: 1,
     borderRadius: 6,
