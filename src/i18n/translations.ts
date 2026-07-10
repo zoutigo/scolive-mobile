@@ -744,6 +744,66 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.filters.apply": "Appliquer",
     "resources.filters.close": "Fermer",
 
+    "resources.form.duplicateWarningTitle":
+      "Ressource peut-être déjà existante",
+    "resources.form.duplicateWarningMessage":
+      "Une ou plusieurs ressources similaires existent déjà. Voulez-vous vraiment créer celle-ci ?",
+    "resources.form.duplicateConfirm": "Créer quand même",
+    "resources.form.duplicateCancel": "Annuler",
+    "resources.form.duplicateBlocked":
+      "Cette ressource existe déjà (trop similaire à une ressource existante).",
+
+    "resources.card.proposeStatement": "Proposer un énoncé",
+    "resources.card.proposeCorrection": "Proposer un corrigé",
+
+    "resources.contribution.statementHeader": "Énoncé",
+    "resources.contribution.correctionHeader": "Corrigé",
+    "resources.contribution.approvedLabel": "Contenu retenu",
+    "resources.contribution.myContributionLabel": "Ma contribution",
+    "resources.contribution.contentPlaceholder": "Rédigez le contenu ici…",
+    "resources.contribution.saveDraft": "Enregistrer le brouillon",
+    "resources.contribution.submit": "Soumettre à validation",
+    "resources.contribution.draftSaved": "Brouillon enregistré",
+    "resources.contribution.submitted": "Soumis pour validation",
+    "resources.contribution.statusDraft": "Brouillon",
+    "resources.contribution.statusAwaiting": "En attente de validation",
+    "resources.contribution.statusApproved": "Validé",
+    "resources.contribution.statusRejected": "Rejeté",
+    "resources.contribution.statusDiscarded": "Non retenu",
+    "resources.contribution.rejectedReasonLabel": "Motif du rejet :",
+    "resources.contribution.noApprovedYet":
+      "Aucun contenu validé pour le moment.",
+    "resources.contribution.correctionLocked":
+      "Le corrigé est proposable une fois l'énoncé validé.",
+    "resources.contribution.addAttachment": "Ajouter une pièce jointe",
+    "resources.contribution.insertingImage": "Insertion de l'image…",
+    "resources.contribution.colorMenu.title": "Couleur du texte",
+    "resources.contribution.colorMenu.message": "Choisissez une couleur",
+    "resources.contribution.newProposal": "Nouvelle proposition",
+
+    "resources.moderation.proposedByLabel": "Proposé par",
+    "resources.moderation.approveThis": "Valider celle-ci",
+    "resources.moderation.rejectThis": "Rejeter",
+    "resources.moderation.rejectReasonPlaceholder":
+      "Motif du rejet (optionnel)",
+    "resources.moderation.conflictError":
+      "Cette soumission a déjà été traitée par un autre administrateur.",
+    "resources.moderation.approveSuccess": "Soumission validée.",
+    "resources.moderation.rejectSuccess": "Soumission rejetée.",
+
+    "resources.onboarding.title": "Comment contribuer une ressource",
+    "resources.onboarding.step1Title": "1. Créer la fiche",
+    "resources.onboarding.step1Body":
+      "Renseignez les informations générales : matière, niveau, séquence ou type d'examen.",
+    "resources.onboarding.step2Title": "2. Proposer un énoncé",
+    "resources.onboarding.step2Body":
+      "N'importe quel enseignant peut proposer un énoncé. Plusieurs propositions concurrentes sont possibles ; un administrateur valide la meilleure.",
+    "resources.onboarding.step3Title": "3. Proposer un corrigé",
+    "resources.onboarding.step3Body":
+      "Une fois l'énoncé validé, chacun peut proposer un corrigé, avec la même validation concurrente.",
+    "resources.onboarding.dontShowAgain": "Ne plus afficher",
+    "resources.onboarding.start": "Commencer",
+
     "timetable.common.thisWeek": "Cette semaine",
     "timetable.common.thisMonth": "Ce mois",
     "timetable.common.cancel": "Annuler",
@@ -2845,6 +2905,64 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.filters.cancel": "Cancel",
     "resources.filters.apply": "Apply",
     "resources.filters.close": "Close",
+
+    "resources.form.duplicateWarningTitle": "This resource may already exist",
+    "resources.form.duplicateWarningMessage":
+      "One or more similar resources already exist. Do you really want to create this one?",
+    "resources.form.duplicateConfirm": "Create anyway",
+    "resources.form.duplicateCancel": "Cancel",
+    "resources.form.duplicateBlocked":
+      "This resource already exists (too similar to an existing resource).",
+
+    "resources.card.proposeStatement": "Propose a statement",
+    "resources.card.proposeCorrection": "Propose a correction",
+
+    "resources.contribution.statementHeader": "Statement",
+    "resources.contribution.correctionHeader": "Correction",
+    "resources.contribution.approvedLabel": "Approved content",
+    "resources.contribution.myContributionLabel": "My contribution",
+    "resources.contribution.contentPlaceholder": "Write the content here…",
+    "resources.contribution.saveDraft": "Save draft",
+    "resources.contribution.submit": "Submit for review",
+    "resources.contribution.draftSaved": "Draft saved",
+    "resources.contribution.submitted": "Submitted for review",
+    "resources.contribution.statusDraft": "Draft",
+    "resources.contribution.statusAwaiting": "Pending review",
+    "resources.contribution.statusApproved": "Approved",
+    "resources.contribution.statusRejected": "Rejected",
+    "resources.contribution.statusDiscarded": "Not retained",
+    "resources.contribution.rejectedReasonLabel": "Rejection reason:",
+    "resources.contribution.noApprovedYet": "No approved content yet.",
+    "resources.contribution.correctionLocked":
+      "The correction can be proposed once the statement is approved.",
+    "resources.contribution.addAttachment": "Add an attachment",
+    "resources.contribution.insertingImage": "Inserting image…",
+    "resources.contribution.colorMenu.title": "Text color",
+    "resources.contribution.colorMenu.message": "Choose a color",
+    "resources.contribution.newProposal": "New proposal",
+
+    "resources.moderation.proposedByLabel": "Proposed by",
+    "resources.moderation.approveThis": "Approve this one",
+    "resources.moderation.rejectThis": "Reject",
+    "resources.moderation.rejectReasonPlaceholder":
+      "Rejection reason (optional)",
+    "resources.moderation.conflictError":
+      "This submission was already handled by another administrator.",
+    "resources.moderation.approveSuccess": "Submission approved.",
+    "resources.moderation.rejectSuccess": "Submission rejected.",
+
+    "resources.onboarding.title": "How to contribute a resource",
+    "resources.onboarding.step1Title": "1. Create the record",
+    "resources.onboarding.step1Body":
+      "Fill in the general information: subject, level, sequence or exam type.",
+    "resources.onboarding.step2Title": "2. Propose a statement",
+    "resources.onboarding.step2Body":
+      "Any teacher can propose a statement. Several competing proposals are possible; an administrator approves the best one.",
+    "resources.onboarding.step3Title": "3. Propose a correction",
+    "resources.onboarding.step3Body":
+      "Once the statement is approved, anyone can propose a correction, with the same concurrent review.",
+    "resources.onboarding.dontShowAgain": "Don't show again",
+    "resources.onboarding.start": "Get started",
 
     "timetable.common.thisWeek": "This week",
     "timetable.common.thisMonth": "This month",

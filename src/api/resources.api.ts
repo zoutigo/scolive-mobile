@@ -1,13 +1,17 @@
 import { apiFetch, BASE_URL, tokenStorage } from "./client";
 import type {
   ListAdminResourcesQuery,
+  ListAdminSubmissionsResult,
   ResourceAttachment,
   ResourceCatalog,
   ResourceDetail,
   ResourceListQuery,
   ResourceListResult,
+  ResourcePart,
   ResourceRow,
   ResourceSchoolOption,
+  ResourceSubmission,
+  SaveSubmissionDraftPayload,
   UpsertResourcePayload,
 } from "../types/resources.types";
 
@@ -112,6 +116,40 @@ export const resourcesApi = {
     );
   },
 
+  listSubmissions(
+    resourceId: string,
+    part: ResourcePart,
+  ): Promise<ResourceSubmission[]> {
+    return apiFetch(
+      `/resources/${resourceId}/submissions${toQuery({ part })}`,
+      {},
+      true,
+    );
+  },
+
+  saveSubmissionDraft(
+    resourceId: string,
+    part: ResourcePart,
+    payload: SaveSubmissionDraftPayload,
+  ): Promise<ResourceSubmission> {
+    return apiFetch(
+      `/resources/${resourceId}/${part}/submissions`,
+      { method: "POST", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  submitSubmission(
+    resourceId: string,
+    submissionId: string,
+  ): Promise<ResourceSubmission> {
+    return apiFetch(
+      `/resources/${resourceId}/submissions/${submissionId}/submit`,
+      { method: "PATCH" },
+      true,
+    );
+  },
+
   favoriteResource(resourceId: string): Promise<{ favorite: boolean }> {
     return apiFetch(
       `/resources/${resourceId}/favorite`,
@@ -196,9 +234,11 @@ export const resourcesApi = {
 };
 
 export const resourcesAdminApi = {
-  listAdminResources(query: ListAdminResourcesQuery) {
+  listAdminSubmissions(
+    query: ListAdminResourcesQuery,
+  ): Promise<ListAdminSubmissionsResult> {
     return apiFetch(
-      `/admin/resources${toQuery({
+      `/admin/resources/submissions${toQuery({
         kind: query.kind,
         part: query.part,
         status: query.status,
@@ -207,58 +247,31 @@ export const resourcesAdminApi = {
       })}`,
       {},
       true,
-    ) as Promise<ResourceListResult>;
+    );
   },
 
-  approveStatement(resourceId: string): Promise<ResourceDetail> {
+  approveSubmission(submissionId: string): Promise<ResourceDetail> {
     return apiFetch(
-      `/admin/resources/${resourceId}/statement/approve`,
+      `/admin/resources/submissions/${submissionId}/approve`,
       { method: "PATCH" },
       true,
     );
   },
 
-  rejectStatement(
-    resourceId: string,
+  rejectSubmission(
+    submissionId: string,
     reason?: string,
-  ): Promise<ResourceDetail> {
+  ): Promise<ResourceSubmission> {
     return apiFetch(
-      `/admin/resources/${resourceId}/statement/reject`,
+      `/admin/resources/submissions/${submissionId}/reject`,
       { method: "PATCH", body: JSON.stringify({ reason }) },
       true,
     );
   },
 
-  revokeStatement(resourceId: string): Promise<ResourceDetail> {
+  revokeSubmission(submissionId: string): Promise<ResourceDetail> {
     return apiFetch(
-      `/admin/resources/${resourceId}/statement/revoke`,
-      { method: "PATCH" },
-      true,
-    );
-  },
-
-  approveCorrection(resourceId: string): Promise<ResourceDetail> {
-    return apiFetch(
-      `/admin/resources/${resourceId}/correction/approve`,
-      { method: "PATCH" },
-      true,
-    );
-  },
-
-  rejectCorrection(
-    resourceId: string,
-    reason?: string,
-  ): Promise<ResourceDetail> {
-    return apiFetch(
-      `/admin/resources/${resourceId}/correction/reject`,
-      { method: "PATCH", body: JSON.stringify({ reason }) },
-      true,
-    );
-  },
-
-  revokeCorrection(resourceId: string): Promise<ResourceDetail> {
-    return apiFetch(
-      `/admin/resources/${resourceId}/correction/revoke`,
+      `/admin/resources/submissions/${submissionId}/revoke`,
       { method: "PATCH" },
       true,
     );

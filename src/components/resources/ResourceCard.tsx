@@ -62,6 +62,7 @@ export function ResourceCard(props: {
   onPressCorrection?: () => void;
   onToggleFavorite?: () => void;
   onEdit?: () => void;
+  canContribute?: boolean;
   showStatuses?: boolean;
   testID?: string;
 }) {
@@ -71,9 +72,13 @@ export function ResourceCard(props: {
 
   const isOwner = resource.authorUserId === user?.id;
   const isAdmin = isResourcePlatformAdmin(user?.platformRoles);
-  const canSeeCorrection =
-    !!resource.correctionContent &&
-    (resource.correctionStatus === "APPROVED" || isOwner || isAdmin);
+  const hasApprovedStatement = resource.statementStatus === "APPROVED";
+  const hasApprovedCorrection =
+    !!resource.correctionContent && resource.correctionStatus === "APPROVED";
+  const canSeeCorrection = hasApprovedCorrection || isOwner || isAdmin;
+  const canProposeStatement = !!props.canContribute && !hasApprovedStatement;
+  const canProposeCorrection =
+    !!props.canContribute && hasApprovedStatement && !hasApprovedCorrection;
 
   return (
     <View style={styles.card} testID={props.testID}>
@@ -154,7 +159,9 @@ export function ResourceCard(props: {
             color={colors.primary}
           />
           <Text style={styles.statementBtnText}>
-            {t("resources.card.statementButton")}
+            {canProposeStatement
+              ? t("resources.card.proposeStatement")
+              : t("resources.card.statementButton")}
           </Text>
         </TouchableOpacity>
 
@@ -171,6 +178,23 @@ export function ResourceCard(props: {
             />
             <Text style={styles.correctionBtnText}>
               {t("resources.card.correctionButton")}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {canProposeCorrection && props.onPressCorrection ? (
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.correctionBtn]}
+            onPress={props.onPressCorrection}
+            testID={`${props.testID}-propose-correction-btn`}
+          >
+            <Ionicons
+              name="add-circle-outline"
+              size={15}
+              color={colors.accentTeal}
+            />
+            <Text style={styles.correctionBtnText}>
+              {t("resources.card.proposeCorrection")}
             </Text>
           </TouchableOpacity>
         ) : null}

@@ -5,6 +5,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ResourcesScreen } from "../../src/components/resources/ResourcesScreen";
 import { resourcesApi, resourcesAdminApi } from "../../src/api/resources.api";
 import { useAuthStore } from "../../src/store/auth.store";
@@ -13,6 +14,7 @@ import { translate } from "../../src/i18n/useTranslation";
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/resources.api");
 jest.mock("../../src/store/auth.store");
+jest.mock("@react-native-async-storage/async-storage");
 const mockRouterPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({
@@ -72,6 +74,7 @@ const BASE_RESOURCE = {
   academicYearLabel: "2025-2026",
   title: "Contrôle chapitre 3",
   authorUserId: "teacher-1",
+  statementContent: "<p>Voici l'énoncé</p>",
   statementStatus: "APPROVED" as const,
   correctionContent: null,
   correctionStatus: "PENDING" as const,
@@ -104,9 +107,21 @@ function mockDefaults() {
   ]);
 }
 
+async function openCreateForm() {
+  fireEvent.press(screen.getByTestId("resources-fab"));
+  await waitFor(() =>
+    expect(screen.getByTestId("resources-onboarding-modal")).toBeTruthy(),
+  );
+  fireEvent.press(screen.getByTestId("resources-onboarding-start"));
+  await waitFor(() =>
+    expect(screen.getByTestId("resources-form-hero")).toBeTruthy(),
+  );
+}
+
 describe("ResourcesScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    void AsyncStorage.clear();
     mockUseAuthStore.mockReturnValue({ user: TEACHER_USER } as never);
     mockDefaults();
   });
@@ -125,7 +140,7 @@ describe("ResourcesScreen", () => {
 
   it("affiche l'onglet Modération uniquement pour un platform role", async () => {
     mockUseAuthStore.mockReturnValue({ user: ADMIN_USER } as never);
-    mockResourcesAdminApi.listAdminResources.mockResolvedValue({
+    mockResourcesAdminApi.listAdminSubmissions.mockResolvedValue({
       items: [],
       total: 0,
       page: 1,
@@ -155,8 +170,39 @@ describe("ResourcesScreen", () => {
     expect(screen.queryByTestId("resources-fab")).toBeNull();
   });
 
-  it("FAB → ouvre l'onglet forms avec le hero et les champs du formulaire", async () => {
+  it("FAB → affiche la modale d'onboarding puis l'onglet forms avec le hero et les champs du formulaire", async () => {
     render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
+    await openCreateForm();
+
+    expect(screen.getByTestId("resources-form-title")).toBeTruthy();
+    expect(screen.getByTestId("resources-form-level")).toBeTruthy();
+    expect(screen.getByTestId("resources-form-subject")).toBeTruthy();
+    expect(screen.getByTestId("resources-form-sequence")).toBeTruthy();
+    expect(screen.getByTestId("resources-form-academic-year")).toBeTruthy();
+    expect(screen.queryByTestId("resources-tab-ASSESSMENT")).toBeNull();
+  });
+
+  it("onboarding : cocher « ne plus afficher » saute la modale au prochain FAB", async () => {
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("resources-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-onboarding-modal")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("resources-onboarding-dont-show-again"));
+    fireEvent.press(screen.getByTestId("resources-onboarding-start"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-form-hero")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("resources-form-cancel"));
 
     await waitFor(() =>
       expect(screen.getByTestId("resources-fab")).toBeTruthy(),
@@ -166,12 +212,7 @@ describe("ResourcesScreen", () => {
     await waitFor(() =>
       expect(screen.getByTestId("resources-form-hero")).toBeTruthy(),
     );
-    expect(screen.getByTestId("resources-form-title")).toBeTruthy();
-    expect(screen.getByTestId("resources-form-level")).toBeTruthy();
-    expect(screen.getByTestId("resources-form-subject")).toBeTruthy();
-    expect(screen.getByTestId("resources-form-sequence")).toBeTruthy();
-    expect(screen.getByTestId("resources-form-academic-year")).toBeTruthy();
-    expect(screen.queryByTestId("resources-tab-ASSESSMENT")).toBeNull();
+    expect(screen.queryByTestId("resources-onboarding-modal")).toBeNull();
   });
 
   it("le champ année académique est pré-rempli avec l'année en cours", async () => {
@@ -180,11 +221,8 @@ describe("ResourcesScreen", () => {
     await waitFor(() =>
       expect(screen.getByTestId("resources-fab")).toBeTruthy(),
     );
-    fireEvent.press(screen.getByTestId("resources-fab"));
+    await openCreateForm();
 
-    await waitFor(() =>
-      expect(screen.getByTestId("resources-form-academic-year")).toBeTruthy(),
-    );
     // Non vide : une valeur par défaut est toujours sélectionnée, jamais un placeholder.
     expect(
       screen.getByTestId("resources-form-academic-year").props.children,
@@ -204,10 +242,7 @@ describe("ResourcesScreen", () => {
       ),
     );
 
-    fireEvent.press(screen.getByTestId("resources-fab"));
-    await waitFor(() =>
-      expect(screen.getByTestId("resources-form-hero")).toBeTruthy(),
-    );
+    await openCreateForm();
     expect(screen.queryByTestId("resources-form-sequence")).toBeNull();
     expect(screen.getByTestId("resources-form-academic-year")).toBeTruthy();
   });
@@ -218,11 +253,8 @@ describe("ResourcesScreen", () => {
     await waitFor(() =>
       expect(screen.getByTestId("resources-fab")).toBeTruthy(),
     );
-    fireEvent.press(screen.getByTestId("resources-fab"));
+    await openCreateForm();
 
-    await waitFor(() =>
-      expect(screen.getByTestId("resources-form-cancel")).toBeTruthy(),
-    );
     fireEvent.press(screen.getByTestId("resources-form-cancel"));
 
     await waitFor(() =>
@@ -237,11 +269,8 @@ describe("ResourcesScreen", () => {
     await waitFor(() =>
       expect(screen.getByTestId("resources-fab")).toBeTruthy(),
     );
-    fireEvent.press(screen.getByTestId("resources-fab"));
+    await openCreateForm();
 
-    await waitFor(() =>
-      expect(screen.getByTestId("resources-back-btn")).toBeTruthy(),
-    );
     fireEvent.press(screen.getByTestId("resources-back-btn"));
 
     await waitFor(() =>
@@ -255,11 +284,7 @@ describe("ResourcesScreen", () => {
     await waitFor(() =>
       expect(screen.getByTestId("resources-fab")).toBeTruthy(),
     );
-    fireEvent.press(screen.getByTestId("resources-fab"));
-
-    await waitFor(() =>
-      expect(screen.getByTestId("resources-form-submit")).toBeTruthy(),
-    );
+    await openCreateForm();
     fireEvent.press(screen.getByTestId("resources-form-submit"));
 
     await waitFor(() =>
@@ -276,7 +301,8 @@ describe("ResourcesScreen", () => {
     jest.useFakeTimers();
     mockResourcesApi.createResource.mockResolvedValue({
       ...BASE_RESOURCE,
-      statementContent: "<p>Bonjour</p>",
+      statementContent: null,
+      statementStatus: "PENDING",
       attachments: [],
     });
 
@@ -285,11 +311,8 @@ describe("ResourcesScreen", () => {
     await waitFor(() =>
       expect(screen.getByTestId("resources-fab")).toBeTruthy(),
     );
-    fireEvent.press(screen.getByTestId("resources-fab"));
+    await openCreateForm();
 
-    await waitFor(() =>
-      expect(screen.getByTestId("resources-form-title")).toBeTruthy(),
-    );
     fireEvent.changeText(
       screen.getByTestId("resources-form-title"),
       "Contrôle chapitre 4",
@@ -345,11 +368,8 @@ describe("ResourcesScreen", () => {
     await waitFor(() =>
       expect(screen.getByTestId("resources-fab")).toBeTruthy(),
     );
-    fireEvent.press(screen.getByTestId("resources-fab"));
+    await openCreateForm();
 
-    await waitFor(() =>
-      expect(screen.getByTestId("resources-form-title")).toBeTruthy(),
-    );
     fireEvent.changeText(screen.getByTestId("resources-form-title"), "X");
     fireEvent.press(screen.getByTestId("resources-form-level"));
     fireEvent.press(screen.getByTestId("resources-form-level-option-level-1"));
@@ -370,6 +390,66 @@ describe("ResourcesScreen", () => {
       expect(mockResourcesApi.createResource).toHaveBeenCalled(),
     );
     expect(screen.getByTestId("resources-form-tab")).toBeTruthy();
+  });
+
+  it("doublon (409 warning) : confirmer relance la création avec confirmDuplicate", async () => {
+    const { Alert } = require("react-native");
+    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    const duplicateError = Object.assign(new Error("Conflit"), {
+      statusCode: 409,
+      body: {
+        warning: true,
+        candidates: [{ id: "res-2", title: "X", score: 0.6 }],
+      },
+    });
+    mockResourcesApi.createResource
+      .mockRejectedValueOnce(duplicateError)
+      .mockResolvedValueOnce({
+        ...BASE_RESOURCE,
+        statementContent: null,
+        statementStatus: "PENDING",
+        attachments: [],
+      });
+
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
+    await openCreateForm();
+
+    fireEvent.changeText(screen.getByTestId("resources-form-title"), "X");
+    fireEvent.press(screen.getByTestId("resources-form-level"));
+    fireEvent.press(screen.getByTestId("resources-form-level-option-level-1"));
+    fireEvent.press(screen.getByTestId("resources-form-subject"));
+    fireEvent.press(
+      screen.getByTestId("resources-form-subject-option-subject-1"),
+    );
+    fireEvent.press(screen.getByTestId("resources-form-exam-type"));
+    fireEvent.press(
+      screen.getByTestId("resources-form-exam-type-option-SEQUENCE_TEST"),
+    );
+    fireEvent.press(screen.getByTestId("resources-form-sequence"));
+    fireEvent.press(screen.getByTestId("resources-form-sequence-option-SEQ_1"));
+
+    fireEvent.press(screen.getByTestId("resources-form-submit"));
+
+    await waitFor(() => expect(alertSpy).toHaveBeenCalled());
+    const buttons = alertSpy.mock.calls[0][2] as Array<{
+      text: string;
+      onPress?: () => void;
+    }>;
+    const confirmButton = buttons.find(
+      (b) => b.text === translate("fr", "resources.form.duplicateConfirm"),
+    );
+    confirmButton?.onPress?.();
+
+    await waitFor(() =>
+      expect(mockResourcesApi.createResource).toHaveBeenLastCalledWith(
+        expect.objectContaining({ confirmDuplicate: true }),
+      ),
+    );
+    alertSpy.mockRestore();
   });
 
   it("liste : affiche l'année académique sur la card", async () => {
@@ -479,6 +559,7 @@ describe("ResourcesScreen", () => {
 describe("ResourcesScreen — recherche et filtres", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    void AsyncStorage.clear();
     mockUseAuthStore.mockReturnValue({ user: TEACHER_USER } as never);
     mockDefaults();
   });
@@ -730,25 +811,49 @@ describe("ResourcesScreen — recherche et filtres", () => {
   });
 });
 
+const BASE_SUBMISSION = {
+  id: "sub-1",
+  resourceId: "res-1",
+  part: "STATEMENT" as const,
+  status: "AWAITING" as const,
+  content: "<p>Proposition d'énoncé</p>",
+  reason: null,
+  createdAt: "2026-07-01T10:00:00.000Z",
+  updatedAt: "2026-07-01T10:00:00.000Z",
+  reviewedAt: null,
+  authorUser: { id: "teacher-2", firstName: "Léa", lastName: "Dupont" },
+  attachments: [],
+  resource: {
+    id: "res-1",
+    kind: "ASSESSMENT" as const,
+    title: "Contrôle chapitre 3",
+    examType: "SEQUENCE_TEST" as const,
+    sequence: "SEQ_1" as const,
+    academicYearLabel: "2025-2026",
+    school: { id: "school-1", name: "École Test" },
+    academicLevel: { id: "level-1", label: "6ème" },
+    subject: { id: "subject-1", name: "Mathématiques" },
+  },
+};
+
 describe("ResourcesScreen — modération", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    void AsyncStorage.clear();
     mockUseAuthStore.mockReturnValue({ user: ADMIN_USER } as never);
     mockDefaults();
   });
 
-  it("liste les ressources en attente et permet d'approuver l'énoncé", async () => {
-    mockResourcesAdminApi.listAdminResources.mockResolvedValue({
-      items: [{ ...BASE_RESOURCE, statementStatus: "PENDING" as const }],
+  it("liste les soumissions en attente et permet d'approuver celle sélectionnée", async () => {
+    mockResourcesAdminApi.listAdminSubmissions.mockResolvedValue({
+      items: [BASE_SUBMISSION],
       total: 1,
       page: 1,
       limit: 20,
     });
-    mockResourcesAdminApi.approveStatement.mockResolvedValue({
+    mockResourcesAdminApi.approveSubmission.mockResolvedValue({
       ...BASE_RESOURCE,
-      statementContent: "<p>x</p>",
       attachments: [],
-      statementStatus: "APPROVED",
     });
 
     render(<ResourcesScreen />);
@@ -760,22 +865,103 @@ describe("ResourcesScreen — modération", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByTestId(`resources-moderation-approve-${BASE_RESOURCE.id}`),
+        screen.getByTestId(
+          `resources-moderation-approve-${BASE_SUBMISSION.id}`,
+        ),
       ).toBeTruthy(),
     );
+    expect(
+      screen.getByTestId(`resources-moderation-author-${BASE_SUBMISSION.id}`),
+    ).toBeTruthy();
     fireEvent.press(
-      screen.getByTestId(`resources-moderation-approve-${BASE_RESOURCE.id}`),
+      screen.getByTestId(`resources-moderation-approve-${BASE_SUBMISSION.id}`),
     );
 
     await waitFor(() =>
-      expect(mockResourcesAdminApi.approveStatement).toHaveBeenCalledWith(
-        BASE_RESOURCE.id,
+      expect(mockResourcesAdminApi.approveSubmission).toHaveBeenCalledWith(
+        BASE_SUBMISSION.id,
+      ),
+    );
+    await waitFor(() =>
+      expect(mockResourcesAdminApi.listAdminSubmissions).toHaveBeenCalledTimes(
+        2,
+      ),
+    );
+  });
+
+  it("rejette une soumission avec le motif saisi", async () => {
+    mockResourcesAdminApi.listAdminSubmissions.mockResolvedValue({
+      items: [BASE_SUBMISSION],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+    mockResourcesAdminApi.rejectSubmission.mockResolvedValue({
+      ...BASE_SUBMISSION,
+      status: "REJECTED",
+    });
+
+    render(<ResourcesScreen />);
+
+    fireEvent.press(screen.getByTestId("resources-tab-moderation"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`resources-moderation-reject-${BASE_SUBMISSION.id}`),
+      ).toBeTruthy(),
+    );
+    fireEvent.changeText(
+      screen.getByTestId(`resources-moderation-reason-${BASE_SUBMISSION.id}`),
+      "Contenu incomplet",
+    );
+    fireEvent.press(
+      screen.getByTestId(`resources-moderation-reject-${BASE_SUBMISSION.id}`),
+    );
+
+    await waitFor(() =>
+      expect(mockResourcesAdminApi.rejectSubmission).toHaveBeenCalledWith(
+        BASE_SUBMISSION.id,
+        "Contenu incomplet",
+      ),
+    );
+  });
+
+  it("conflit de concurrence (409) : affiche un message explicite et rafraîchit la liste", async () => {
+    mockResourcesAdminApi.listAdminSubmissions.mockResolvedValue({
+      items: [BASE_SUBMISSION],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+    mockResourcesAdminApi.approveSubmission.mockRejectedValue(
+      Object.assign(new Error("Conflit"), { statusCode: 409 }),
+    );
+
+    render(<ResourcesScreen />);
+
+    fireEvent.press(screen.getByTestId("resources-tab-moderation"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(
+          `resources-moderation-approve-${BASE_SUBMISSION.id}`,
+        ),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId(`resources-moderation-approve-${BASE_SUBMISSION.id}`),
+    );
+
+    await waitFor(() =>
+      expect(mockResourcesAdminApi.approveSubmission).toHaveBeenCalled(),
+    );
+    await waitFor(() =>
+      expect(mockResourcesAdminApi.listAdminSubmissions).toHaveBeenCalledTimes(
+        2,
       ),
     );
   });
 
   it("bascule entre énoncé et corrigé dans la modération", async () => {
-    mockResourcesAdminApi.listAdminResources.mockResolvedValue({
+    mockResourcesAdminApi.listAdminSubmissions.mockResolvedValue({
       items: [],
       total: 0,
       page: 1,
@@ -797,7 +983,7 @@ describe("ResourcesScreen — modération", () => {
     fireEvent.press(screen.getByTestId("resources-moderation-part-correction"));
 
     await waitFor(() =>
-      expect(mockResourcesAdminApi.listAdminResources).toHaveBeenCalledWith(
+      expect(mockResourcesAdminApi.listAdminSubmissions).toHaveBeenCalledWith(
         expect.objectContaining({ part: "correction" }),
       ),
     );

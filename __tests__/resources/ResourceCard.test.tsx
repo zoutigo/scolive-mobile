@@ -22,6 +22,7 @@ const BASE_RESOURCE: ResourceRow = {
   academicYearLabel: "2025-2026",
   title: "Contrôle chapitre 3",
   authorUserId: "teacher-1",
+  statementContent: "<p>Énoncé</p>",
   statementStatus: "APPROVED",
   correctionContent: null,
   correctionStatus: "PENDING",
@@ -215,6 +216,49 @@ describe("ResourceCard", () => {
 
     expect(screen.getByTestId("card-statement-status")).toBeTruthy();
     expect(screen.getByTestId("card-correction-status")).toBeTruthy();
+  });
+
+  it("propose « Proposer un énoncé » quand l'énoncé n'est pas encore approuvé et canContribute est vrai", () => {
+    render(
+      <ResourceCard
+        resource={{ ...BASE_RESOURCE, statementStatus: "PENDING" }}
+        onPressStatement={() => {}}
+        canContribute
+        testID="card"
+      />,
+    );
+
+    expect(screen.getByText("Proposer un énoncé")).toBeTruthy();
+  });
+
+  it("propose « Proposer un corrigé » quand l'énoncé est approuvé, sans corrigé approuvé, et canContribute est vrai", () => {
+    const onPressCorrection = jest.fn();
+    render(
+      <ResourceCard
+        resource={BASE_RESOURCE}
+        onPressStatement={() => {}}
+        onPressCorrection={onPressCorrection}
+        canContribute
+        testID="card"
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId("card-propose-correction-btn"));
+    expect(onPressCorrection).toHaveBeenCalledTimes(1);
+  });
+
+  it("ne propose aucun CTA de contribution quand canContribute est faux", () => {
+    render(
+      <ResourceCard
+        resource={{ ...BASE_RESOURCE, statementStatus: "PENDING" }}
+        onPressStatement={() => {}}
+        onPressCorrection={() => {}}
+        testID="card"
+      />,
+    );
+
+    expect(screen.queryByText("Proposer un énoncé")).toBeNull();
+    expect(screen.queryByTestId("card-propose-correction-btn")).toBeNull();
   });
 
   it("déclenche onToggleFavorite au tap sur l'étoile", () => {

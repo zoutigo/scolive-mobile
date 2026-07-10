@@ -1,6 +1,13 @@
 export type ResourceKind = "ASSESSMENT" | "EXAM";
 export type ResourceExamType = "SEQUENCE_TEST" | "POP_QUIZ" | "MOCK_EXAM";
 export type ResourceApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type ResourcePart = "statement" | "correction";
+export type ResourceSubmissionStatus =
+  | "DRAFT"
+  | "AWAITING"
+  | "APPROVED"
+  | "REJECTED"
+  | "DISCARDED";
 export type ResourceSequence =
   | "SEQ_1"
   | "SEQ_2"
@@ -29,6 +36,7 @@ export type ResourceRow = {
   academicYearLabel: string;
   title: string;
   authorUserId: string;
+  statementContent: string | null;
   statementStatus: ResourceApprovalStatus;
   correctionContent: string | null;
   correctionStatus: ResourceApprovalStatus;
@@ -42,7 +50,6 @@ export type ResourceRow = {
 };
 
 export type ResourceDetail = ResourceRow & {
-  statementContent: string;
   attachments: ResourceAttachment[];
 };
 
@@ -75,10 +82,51 @@ export type UpsertResourcePayload = {
   sequence?: ResourceSequence;
   academicYearLabel: string;
   title: string;
-  statementContent: string;
-  statementAttachments?: ResourceAttachment[];
-  correctionContent?: string;
-  correctionAttachments?: ResourceAttachment[];
+  confirmDuplicate?: boolean;
+};
+
+export type ResourceDuplicateCandidate = {
+  id: string;
+  title: string;
+  score: number;
+};
+
+export type ResourceDuplicateWarning = {
+  warning: true;
+  candidates: ResourceDuplicateCandidate[];
+};
+
+export type SaveSubmissionDraftPayload = {
+  content: string;
+  attachments?: ResourceAttachment[];
+};
+
+export type ResourceSubmission = {
+  id: string;
+  resourceId: string;
+  part: "STATEMENT" | "CORRECTION";
+  status: ResourceSubmissionStatus;
+  content: string;
+  reason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  reviewedAt: string | null;
+  authorUser: { id: string; firstName: string; lastName: string };
+  attachments: ResourceAttachment[];
+};
+
+export type ResourceAdminSubmission = ResourceSubmission & {
+  resource: {
+    id: string;
+    kind: ResourceKind;
+    title: string;
+    examType: ResourceExamType;
+    sequence: ResourceSequence | null;
+    academicYearLabel: string;
+    school: { id: string; name: string } | null;
+    academicLevel: { id: string; label: string };
+    subject: { id: string; name: string };
+  };
 };
 
 export type ResourceCatalog = {
@@ -90,8 +138,15 @@ export type ResourceSchoolOption = { id: string; name: string };
 
 export type ListAdminResourcesQuery = {
   kind?: ResourceKind;
-  part?: "statement" | "correction";
-  status?: ResourceApprovalStatus;
+  part?: ResourcePart;
+  status?: ResourceSubmissionStatus;
   page?: number;
   limit?: number;
+};
+
+export type ListAdminSubmissionsResult = {
+  items: ResourceAdminSubmission[];
+  total: number;
+  page: number;
+  limit: number;
 };

@@ -1,14 +1,7 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,7 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import * as DocumentPicker from "expo-document-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -29,6 +22,7 @@ import type { TranslateFn } from "../../i18n/useTranslation";
 import { useAuthStore } from "../../store/auth.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { resourcesApi, resourcesAdminApi } from "../../api/resources.api";
+import type { ApiClientError } from "../../api/client";
 import { extractApiError } from "../../utils/api-error";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { FormHero } from "../forms/FormHero";
@@ -37,14 +31,11 @@ import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { SelectDropdown, type SelectOption } from "../SelectDropdown";
 import { SelectField } from "../tests-admin/SelectField";
-import {
-  RichEditorField,
-  type RichEditorFieldRef,
-} from "../editor/RichEditorField";
 import { ResourceCard } from "./ResourceCard";
+import { ResourceCreationOnboardingModal } from "./ResourceCreationOnboardingModal";
 import { moduleBack } from "../../utils/moduleBack";
 import type {
-  ResourceAttachment,
+  ResourceAdminSubmission,
   ResourceCatalog,
   ResourceDetail,
   ResourceExamType,
@@ -54,6 +45,8 @@ import type {
   ResourceSequence,
   UpsertResourcePayload,
 } from "../../types/resources.types";
+
+const ONBOARDING_DISMISSED_KEY = "scolive-resources-onboarding-dismissed";
 
 type TabKey =
   | "ASSESSMENT"
@@ -236,10 +229,17 @@ export function ResourcesScreen() {
   const [moderationPart, setModerationPart] = useState<
     "statement" | "correction"
   >("statement");
-  const [moderationItems, setModerationItems] = useState<ResourceRow[]>([]);
+  const [moderationItems, setModerationItems] = useState<
+    ResourceAdminSubmission[]
+  >([]);
+  const [rejectReasons, setRejectReasons] = useState<Record<string, string>>(
+    {},
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [onboardingVisible, setOnboardingVisible] = useState(false);
+  const [onboardingDontShowAgain, setOnboardingDontShowAgain] = useState(false);
 
   useEffect(() => {
     resourcesApi
@@ -301,9 +301,9 @@ export function ResourcesScreen() {
       setIsLoading(true);
       setLoadError(null);
       try {
-        const result = await resourcesAdminApi.listAdminResources({
+        const result = await resourcesAdminApi.listAdminSubmissions({
           part,
-          status: "PENDING",
+          status: "AWAITING",
         });
         setModerationItems(result.items);
       } catch (error) {
@@ -375,10 +375,30 @@ export function ResourcesScreen() {
     }
   }
 
-  function openFab() {
+  function enterCreateForm() {
     const kind: ResourceKind = tab === "EXAM" ? "EXAM" : "ASSESSMENT";
     setFormContext({ type: "create", kind, originTab: tab, item: null });
     setTab("forms");
+  }
+
+  function openFab() {
+    AsyncStorage.getItem(ONBOARDING_DISMISSED_KEY)
+      .then((value) => {
+        if (value === "true") {
+          enterCreateForm();
+        } else {
+          setOnboardingVisible(true);
+        }
+      })
+      .catch(() => enterCreateForm());
+  }
+
+  function closeOnboarding() {
+    setOnboardingVisible(false);
+    if (onboardingDontShowAgain) {
+      void AsyncStorage.setItem(ONBOARDING_DISMISSED_KEY, "true");
+    }
+    enterCreateForm();
   }
 
   function openEdit(resource: ResourceDetail, originTab: TabKey) {
@@ -397,61 +417,122 @@ export function ResourcesScreen() {
     setTab(origin);
   }
 
-  async function handleSubmitResource(payload: UpsertResourcePayload) {
-    setIsSubmitting(true);
-    try {
-      if (formContext?.type === "edit" && formContext.item) {
-        await resourcesApi.updateResource(formContext.item.id, payload);
-      } else {
-        await resourcesApi.createResource(payload);
-      }
-      showSuccess({
-        title: t("resources.toast.successTitle"),
-        message: t("resources.toast.successMessage"),
-      });
-      const originTab = formContext?.originTab ?? "ASSESSMENT";
-      setTimeout(() => {
-        setFormContext(null);
-        setTab(originTab);
-      }, 2000);
-    } catch (error) {
-      showError({
-        title: t("resources.toast.errorTitle"),
-        message: extractApiError(error),
-      });
-    } finally {
-      setIsSubmitting(false);
+  async function submitResourcePayload(
+    payload: UpsertResourcePayload,
+  ): Promise<void> {
+    if (formContext?.type === "edit" && formContext.item) {
+      await resourcesApi.updateResource(formContext.item.id, payload);
+    } else {
+      await resourcesApi.createResource(payload);
     }
   }
 
-  async function handleModerationAction(
-    resourceId: string,
-    action: "approve" | "reject" | "revoke",
-  ) {
+  function finishResourceSubmission() {
+    showSuccess({
+      title: t("resources.toast.successTitle"),
+      message: t("resources.toast.successMessage"),
+    });
+    const originTab = formContext?.originTab ?? "ASSESSMENT";
+    setTimeout(() => {
+      setFormContext(null);
+      setTab(originTab);
+    }, 2000);
+  }
+
+  async function handleSubmitResource(payload: UpsertResourcePayload) {
+    setIsSubmitting(true);
     try {
-      if (moderationPart === "statement") {
-        if (action === "approve")
-          await resourcesAdminApi.approveStatement(resourceId);
-        else if (action === "reject")
-          await resourcesAdminApi.rejectStatement(resourceId);
-        else await resourcesAdminApi.revokeStatement(resourceId);
-      } else {
-        if (action === "approve")
-          await resourcesAdminApi.approveCorrection(resourceId);
-        else if (action === "reject")
-          await resourcesAdminApi.rejectCorrection(resourceId);
-        else await resourcesAdminApi.revokeCorrection(resourceId);
-      }
-      showSuccess({
-        title: t("resources.toast.successTitle"),
-        message: t("resources.moderation.actionSuccess"),
-      });
-      void loadModeration(moderationPart);
+      await submitResourcePayload(payload);
+      finishResourceSubmission();
     } catch (error) {
+      const apiError = error as ApiClientError;
+      const body = apiError.body as
+        | { warning?: boolean; candidates?: Array<{ title: string }> }
+        | undefined;
+      if (apiError.statusCode === 409 && body?.warning) {
+        setIsSubmitting(false);
+        Alert.alert(
+          t("resources.form.duplicateWarningTitle"),
+          t("resources.form.duplicateWarningMessage"),
+          [
+            { text: t("resources.form.duplicateCancel"), style: "cancel" },
+            {
+              text: t("resources.form.duplicateConfirm"),
+              style: "destructive",
+              onPress: () => {
+                setIsSubmitting(true);
+                submitResourcePayload({ ...payload, confirmDuplicate: true })
+                  .then(finishResourceSubmission)
+                  .catch((confirmError) =>
+                    showError({
+                      title: t("resources.toast.errorTitle"),
+                      message: extractApiError(confirmError),
+                    }),
+                  )
+                  .finally(() => setIsSubmitting(false));
+              },
+            },
+          ],
+        );
+        return;
+      }
       showError({
         title: t("resources.toast.errorTitle"),
         message: extractApiError(error),
       });
+      setIsSubmitting(false);
+      return;
+    }
+    setIsSubmitting(false);
+  }
+
+  async function handleModerationApprove(submissionId: string) {
+    try {
+      await resourcesAdminApi.approveSubmission(submissionId);
+      showSuccess({
+        title: t("resources.toast.successTitle"),
+        message: t("resources.moderation.approveSuccess"),
+      });
+      void loadModeration(moderationPart);
+    } catch (error) {
+      const apiError = error as ApiClientError;
+      showError({
+        title: t("resources.toast.errorTitle"),
+        message:
+          apiError.statusCode === 409
+            ? t("resources.moderation.conflictError")
+            : extractApiError(error),
+      });
+      void loadModeration(moderationPart);
+    }
+  }
+
+  async function handleModerationReject(submissionId: string) {
+    try {
+      await resourcesAdminApi.rejectSubmission(
+        submissionId,
+        rejectReasons[submissionId]?.trim() || undefined,
+      );
+      showSuccess({
+        title: t("resources.toast.successTitle"),
+        message: t("resources.moderation.rejectSuccess"),
+      });
+      setRejectReasons((current) => {
+        const next = { ...current };
+        delete next[submissionId];
+        return next;
+      });
+      void loadModeration(moderationPart);
+    } catch (error) {
+      const apiError = error as ApiClientError;
+      showError({
+        title: t("resources.toast.errorTitle"),
+        message:
+          apiError.statusCode === 409
+            ? t("resources.moderation.conflictError")
+            : extractApiError(error),
+      });
+      void loadModeration(moderationPart);
     }
   }
 
@@ -746,6 +827,7 @@ export function ResourcesScreen() {
                 }
                 onToggleFavorite={() => toggleFavorite(item, tab)}
                 onEdit={() => handleEditPress(item, tab)}
+                canContribute={canSubmit}
                 showStatuses={tab === "mine"}
                 testID={`resources-card-${item.id}`}
               />
@@ -768,35 +850,65 @@ export function ResourcesScreen() {
                 style={styles.moderationCard}
                 testID={`resources-moderation-card-${item.id}`}
               >
-                <ResourceCard
-                  resource={item}
-                  onPressStatement={() =>
-                    goToResourcePart(item.id, "statement")
+                <Text style={styles.moderationResourceTitle}>
+                  {item.resource.title}
+                </Text>
+                <Text style={styles.meta}>
+                  {item.resource.subject.name} •{" "}
+                  {item.resource.academicLevel.label}
+                  {item.resource.school
+                    ? ` • ${item.resource.school.name}`
+                    : ""}
+                </Text>
+                <Text
+                  style={styles.moderationAuthor}
+                  testID={`resources-moderation-author-${item.id}`}
+                >
+                  {t("resources.moderation.proposedByLabel")}{" "}
+                  {item.authorUser.firstName} {item.authorUser.lastName}
+                </Text>
+                <Text
+                  style={styles.moderationContentPreview}
+                  numberOfLines={4}
+                  testID={`resources-moderation-content-${item.id}`}
+                >
+                  {item.content
+                    .replace(/<[^>]*>/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim()}
+                </Text>
+                <TextInput
+                  value={rejectReasons[item.id] ?? ""}
+                  onChangeText={(value) =>
+                    setRejectReasons((current) => ({
+                      ...current,
+                      [item.id]: value,
+                    }))
                   }
-                  onPressCorrection={() =>
-                    goToResourcePart(item.id, "correction")
-                  }
-                  onEdit={() => handleEditPress(item, "moderation")}
-                  showStatuses
-                  testID={`resources-moderation-resource-${item.id}`}
+                  placeholder={t(
+                    "resources.moderation.rejectReasonPlaceholder",
+                  )}
+                  placeholderTextColor={colors.textSecondary}
+                  style={styles.moderationReasonInput}
+                  testID={`resources-moderation-reason-${item.id}`}
                 />
                 <View style={styles.moderationActions}>
                   <TouchableOpacity
                     style={[styles.moderationBtn, styles.moderationApprove]}
-                    onPress={() => handleModerationAction(item.id, "approve")}
+                    onPress={() => handleModerationApprove(item.id)}
                     testID={`resources-moderation-approve-${item.id}`}
                   >
                     <Text style={styles.moderationBtnText}>
-                      {t("resources.moderation.approve")}
+                      {t("resources.moderation.approveThis")}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.moderationBtn, styles.moderationReject]}
-                    onPress={() => handleModerationAction(item.id, "reject")}
+                    onPress={() => handleModerationReject(item.id)}
                     testID={`resources-moderation-reject-${item.id}`}
                   >
                     <Text style={styles.moderationBtnText}>
-                      {t("resources.moderation.reject")}
+                      {t("resources.moderation.rejectThis")}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -834,6 +946,13 @@ export function ResourcesScreen() {
           <Ionicons name="add" size={28} color={colors.white} />
         </TouchableOpacity>
       ) : null}
+
+      <ResourceCreationOnboardingModal
+        visible={onboardingVisible}
+        dontShowAgain={onboardingDontShowAgain}
+        onToggleDontShowAgain={setOnboardingDontShowAgain}
+        onClose={closeOnboarding}
+      />
     </View>
   );
 }
@@ -847,17 +966,9 @@ function ResourceFormContent(props: {
   isSubmitting: boolean;
 }) {
   const { t } = useTranslation();
-  const statementRef = useRef<RichEditorFieldRef>(null);
-  const correctionRef = useRef<RichEditorFieldRef>(null);
   const initialValue = props.formContext.item;
   const kind = props.formContext.kind;
 
-  const [statementAttachments, setStatementAttachments] = useState<
-    ResourceAttachment[]
-  >(initialValue?.attachments.filter((a) => a.part === "STATEMENT") ?? []);
-  const [correctionAttachments, setCorrectionAttachments] = useState<
-    ResourceAttachment[]
-  >(initialValue?.attachments.filter((a) => a.part === "CORRECTION") ?? []);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const {
@@ -888,33 +999,6 @@ function ResourceFormContent(props: {
     label: s.name,
   }));
 
-  async function handleAddAttachment(target: "statement" | "correction") {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "*/*",
-        multiple: true,
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled) return;
-      const uploaded = await Promise.all(
-        result.assets.map((asset) =>
-          resourcesApi.uploadAttachment({
-            uri: asset.uri,
-            mimeType: asset.mimeType ?? "application/octet-stream",
-            fileName: asset.name,
-          }),
-        ),
-      );
-      if (target === "statement") {
-        setStatementAttachments((current) => [...current, ...uploaded]);
-      } else {
-        setCorrectionAttachments((current) => [...current, ...uploaded]);
-      }
-    } catch {
-      setErrorMessage(t("resources.errors.addAttachment"));
-    }
-  }
-
   const heroTitle =
     props.formContext.type === "edit"
       ? (initialValue?.title ?? t("resources.form.editTitle"))
@@ -925,8 +1009,6 @@ function ResourceFormContent(props: {
   const handleSave = handleSubmit(async (values) => {
     setErrorMessage(null);
     try {
-      const statementContent = await statementRef.current?.getContentHtml();
-      const correctionContent = await correctionRef.current?.getContentHtml();
       const payload: UpsertResourcePayload = {
         kind,
         schoolId:
@@ -942,12 +1024,6 @@ function ResourceFormContent(props: {
             : undefined,
         academicYearLabel: values.academicYearLabel,
         title: values.title.trim(),
-        statementContent: statementContent?.trim() ?? "",
-        statementAttachments,
-        correctionContent: correctionContent?.trim()
-          ? correctionContent
-          : undefined,
-        correctionAttachments,
       };
       await props.onSubmit(payload);
     } catch (error) {
@@ -957,387 +1033,232 @@ function ResourceFormContent(props: {
 
   return (
     <View style={styles.formsTabContent} testID="resources-form-tab">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.formsKeyboardArea}
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          style={styles.formScroll}
-          contentContainerStyle={styles.formScrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <FormHero
-            icon={
-              props.formContext.type === "edit"
-                ? "create-outline"
-                : "add-circle-outline"
-            }
-            title={heroTitle}
-            subtitle={
-              kind === "ASSESSMENT"
-                ? t("resources.form.assessmentHeroSubtitle")
-                : t("resources.form.examHeroSubtitle")
-            }
-            palette="teal"
-            testID="resources-form-hero"
-          />
+        <FormHero
+          icon={
+            props.formContext.type === "edit"
+              ? "create-outline"
+              : "add-circle-outline"
+          }
+          title={heroTitle}
+          subtitle={
+            kind === "ASSESSMENT"
+              ? t("resources.form.assessmentHeroSubtitle")
+              : t("resources.form.examHeroSubtitle")
+          }
+          palette="teal"
+          testID="resources-form-hero"
+        />
 
-          {errorMessage ? (
-            <View style={styles.errorBanner}>
-              <Ionicons
-                name="alert-circle-outline"
-                size={16}
-                color={colors.notification}
-              />
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            </View>
-          ) : null}
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>
-              {t("resources.form.titleLabel")}
-            </Text>
-            <Controller
-              control={control}
-              name="title"
-              render={({ field: { value, onChange } }) => (
-                <TextInput
-                  value={value}
-                  onChangeText={onChange}
-                  placeholder={t("resources.form.titlePlaceholder")}
-                  style={styles.textInput}
-                  placeholderTextColor={colors.textSecondary}
-                  testID="resources-form-title"
-                />
-              )}
-            />
-            {errors.title?.message ? (
-              <Text
-                style={styles.fieldError}
-                testID="resources-form-title-error"
-              >
-                {errors.title.message}
-              </Text>
-            ) : null}
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>
-              {t("resources.form.levelLabel")}
-            </Text>
-            <Controller
-              control={control}
-              name="academicLevelId"
-              render={({ field: { value, onChange } }) => (
-                <SelectDropdown
-                  options={levelOptions}
-                  value={value}
-                  onChange={onChange}
-                  placeholder={t("resources.form.levelPlaceholder")}
-                  hasError={!!errors.academicLevelId}
-                  testID="resources-form-level"
-                />
-              )}
-            />
-            {errors.academicLevelId?.message ? (
-              <Text
-                style={styles.fieldError}
-                testID="resources-form-level-error"
-              >
-                {errors.academicLevelId.message}
-              </Text>
-            ) : null}
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>
-              {t("resources.form.subjectLabel")}
-            </Text>
-            <Controller
-              control={control}
-              name="subjectId"
-              render={({ field: { value, onChange } }) => (
-                <SelectDropdown
-                  options={subjectOptions}
-                  value={value}
-                  onChange={onChange}
-                  placeholder={t("resources.form.subjectPlaceholder")}
-                  hasError={!!errors.subjectId}
-                  testID="resources-form-subject"
-                />
-              )}
-            />
-            {errors.subjectId?.message ? (
-              <Text
-                style={styles.fieldError}
-                testID="resources-form-subject-error"
-              >
-                {errors.subjectId.message}
-              </Text>
-            ) : null}
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>
-              {t("resources.form.examTypeLabel")}
-            </Text>
-            <Controller
-              control={control}
-              name="examType"
-              render={({ field: { value, onChange } }) => (
-                <SelectDropdown
-                  options={examTypeOptions(t)}
-                  value={value}
-                  onChange={onChange}
-                  placeholder={t("resources.form.examTypePlaceholder")}
-                  hasError={!!errors.examType}
-                  testID="resources-form-exam-type"
-                />
-              )}
-            />
-            {errors.examType?.message ? (
-              <Text
-                style={styles.fieldError}
-                testID="resources-form-exam-type-error"
-              >
-                {errors.examType.message}
-              </Text>
-            ) : null}
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>
-              {t("resources.form.academicYearLabel")}
-            </Text>
-            <Controller
-              control={control}
-              name="academicYearLabel"
-              render={({ field: { value, onChange } }) => (
-                <SelectDropdown
-                  options={academicYearOptions()}
-                  value={value}
-                  onChange={onChange}
-                  placeholder={t("resources.form.academicYearPlaceholder")}
-                  hasError={!!errors.academicYearLabel}
-                  testID="resources-form-academic-year"
-                />
-              )}
-            />
-            {errors.academicYearLabel?.message ? (
-              <Text
-                style={styles.fieldError}
-                testID="resources-form-academic-year-error"
-              >
-                {errors.academicYearLabel.message}
-              </Text>
-            ) : null}
-          </View>
-
-          {kind === "ASSESSMENT" ? (
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>
-                {t("resources.form.sequenceLabel")}
-              </Text>
-              <Controller
-                control={control}
-                name="sequence"
-                render={({ field: { value, onChange } }) => (
-                  <SelectDropdown
-                    options={SEQUENCE_OPTIONS}
-                    value={value}
-                    onChange={onChange}
-                    placeholder={t("resources.form.sequencePlaceholder")}
-                    hasError={!!errors.sequence}
-                    testID="resources-form-sequence"
-                  />
-                )}
-              />
-              {errors.sequence?.message ? (
-                <Text
-                  style={styles.fieldError}
-                  testID="resources-form-sequence-error"
-                >
-                  {errors.sequence.message}
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>
-              {t("resources.form.statementLabel")}
-            </Text>
-            <RichEditorField
-              ref={statementRef}
-              initialHtml={initialValue?.statementContent ?? ""}
-              placeholder={t("resources.form.statementPlaceholder")}
-              insertingPlaceholder={t("resources.form.insertingImage")}
-              colorPresets={[]}
-              labels={{
-                colorMenuTitle: t("resources.form.colorMenu.title"),
-                colorMenuMessage: t("resources.form.colorMenu.message"),
-                cancel: t("resources.common.cancel"),
-              }}
-              onUploadInlineImage={(file) =>
-                resourcesApi.uploadInlineImage({
-                  uri: file.uri,
-                  mimeType: file.mimeType,
-                  fileName: file.name,
-                })
-              }
-              minHeight={180}
-              toolbarTestID="resources-form-statement-toolbar"
-              editorTestID="resources-form-statement-editor"
-            />
-            <TouchableOpacity
-              style={styles.addAttachmentBtn}
-              onPress={() => handleAddAttachment("statement")}
-              testID="resources-form-statement-add-attachment"
-            >
-              <Ionicons
-                name="attach-outline"
-                size={16}
-                color={colors.primary}
-              />
-              <Text style={styles.addAttachmentText}>
-                {t("resources.form.addAttachment")}
-              </Text>
-            </TouchableOpacity>
-            <AttachmentList
-              attachments={statementAttachments}
-              onRemove={(idx) =>
-                setStatementAttachments((current) =>
-                  current.filter((_, i) => i !== idx),
-                )
-              }
-              testIDPrefix="resources-form-statement-attachment"
-            />
-          </View>
-
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>
-              {t("resources.form.correctionLabel")}{" "}
-              <Text style={styles.optionalLabel}>
-                ({t("resources.form.optional")})
-              </Text>
-            </Text>
-            <RichEditorField
-              ref={correctionRef}
-              initialHtml={initialValue?.correctionContent ?? ""}
-              placeholder={t("resources.form.correctionPlaceholder")}
-              insertingPlaceholder={t("resources.form.insertingImage")}
-              colorPresets={[]}
-              labels={{
-                colorMenuTitle: t("resources.form.colorMenu.title"),
-                colorMenuMessage: t("resources.form.colorMenu.message"),
-                cancel: t("resources.common.cancel"),
-              }}
-              onUploadInlineImage={(file) =>
-                resourcesApi.uploadInlineImage({
-                  uri: file.uri,
-                  mimeType: file.mimeType,
-                  fileName: file.name,
-                })
-              }
-              minHeight={180}
-              toolbarTestID="resources-form-correction-toolbar"
-              editorTestID="resources-form-correction-editor"
-            />
-            <TouchableOpacity
-              style={styles.addAttachmentBtn}
-              onPress={() => handleAddAttachment("correction")}
-              testID="resources-form-correction-add-attachment"
-            >
-              <Ionicons
-                name="attach-outline"
-                size={16}
-                color={colors.primary}
-              />
-              <Text style={styles.addAttachmentText}>
-                {t("resources.form.addAttachment")}
-              </Text>
-            </TouchableOpacity>
-            <AttachmentList
-              attachments={correctionAttachments}
-              onRemove={(idx) =>
-                setCorrectionAttachments((current) =>
-                  current.filter((_, i) => i !== idx),
-                )
-              }
-              testIDPrefix="resources-form-correction-attachment"
-            />
-          </View>
-        </ScrollView>
-
-        <View style={styles.formActionsBar}>
-          <TouchableOpacity
-            style={styles.cancelBtn}
-            onPress={props.onCancel}
-            testID="resources-form-cancel"
-          >
-            <Text style={styles.cancelBtnText}>
-              {t("resources.common.cancel")}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.submitBtn,
-              props.isSubmitting && styles.submitBtnDisabled,
-            ]}
-            onPress={handleSave}
-            disabled={props.isSubmitting}
-            testID="resources-form-submit"
-          >
-            {props.isSubmitting ? (
-              <ActivityIndicator color={colors.white} size="small" />
-            ) : (
-              <Text style={styles.submitBtnText}>
-                {t("resources.common.submit")}
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
-    </View>
-  );
-}
-
-function AttachmentList(props: {
-  attachments: ResourceAttachment[];
-  onRemove: (index: number) => void;
-  testIDPrefix: string;
-}) {
-  if (props.attachments.length === 0) return null;
-  return (
-    <View style={styles.attachmentsList}>
-      {props.attachments.map((attachment, idx) => (
-        <View
-          key={`${attachment.fileName}-${idx}`}
-          style={styles.attachmentChip}
-          testID={`${props.testIDPrefix}-${idx}`}
-        >
-          <Ionicons
-            name="document-outline"
-            size={14}
-            color={colors.textSecondary}
-          />
-          <Text style={styles.attachmentText} numberOfLines={1}>
-            {attachment.fileName}
-          </Text>
-          <TouchableOpacity
-            onPress={() => props.onRemove(idx)}
-            testID={`${props.testIDPrefix}-${idx}-remove`}
-            hitSlop={8}
-          >
+        {errorMessage ? (
+          <View style={styles.errorBanner}>
             <Ionicons
-              name="close-circle"
+              name="alert-circle-outline"
               size={16}
-              color={colors.textSecondary}
+              color={colors.notification}
             />
-          </TouchableOpacity>
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>
+            {t("resources.form.titleLabel")}
+          </Text>
+          <Controller
+            control={control}
+            name="title"
+            render={({ field: { value, onChange } }) => (
+              <TextInput
+                value={value}
+                onChangeText={onChange}
+                placeholder={t("resources.form.titlePlaceholder")}
+                style={styles.textInput}
+                placeholderTextColor={colors.textSecondary}
+                testID="resources-form-title"
+              />
+            )}
+          />
+          {errors.title?.message ? (
+            <Text style={styles.fieldError} testID="resources-form-title-error">
+              {errors.title.message}
+            </Text>
+          ) : null}
         </View>
-      ))}
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>
+            {t("resources.form.levelLabel")}
+          </Text>
+          <Controller
+            control={control}
+            name="academicLevelId"
+            render={({ field: { value, onChange } }) => (
+              <SelectDropdown
+                options={levelOptions}
+                value={value}
+                onChange={onChange}
+                placeholder={t("resources.form.levelPlaceholder")}
+                hasError={!!errors.academicLevelId}
+                testID="resources-form-level"
+              />
+            )}
+          />
+          {errors.academicLevelId?.message ? (
+            <Text style={styles.fieldError} testID="resources-form-level-error">
+              {errors.academicLevelId.message}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>
+            {t("resources.form.subjectLabel")}
+          </Text>
+          <Controller
+            control={control}
+            name="subjectId"
+            render={({ field: { value, onChange } }) => (
+              <SelectDropdown
+                options={subjectOptions}
+                value={value}
+                onChange={onChange}
+                placeholder={t("resources.form.subjectPlaceholder")}
+                hasError={!!errors.subjectId}
+                testID="resources-form-subject"
+              />
+            )}
+          />
+          {errors.subjectId?.message ? (
+            <Text
+              style={styles.fieldError}
+              testID="resources-form-subject-error"
+            >
+              {errors.subjectId.message}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>
+            {t("resources.form.examTypeLabel")}
+          </Text>
+          <Controller
+            control={control}
+            name="examType"
+            render={({ field: { value, onChange } }) => (
+              <SelectDropdown
+                options={examTypeOptions(t)}
+                value={value}
+                onChange={onChange}
+                placeholder={t("resources.form.examTypePlaceholder")}
+                hasError={!!errors.examType}
+                testID="resources-form-exam-type"
+              />
+            )}
+          />
+          {errors.examType?.message ? (
+            <Text
+              style={styles.fieldError}
+              testID="resources-form-exam-type-error"
+            >
+              {errors.examType.message}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>
+            {t("resources.form.academicYearLabel")}
+          </Text>
+          <Controller
+            control={control}
+            name="academicYearLabel"
+            render={({ field: { value, onChange } }) => (
+              <SelectDropdown
+                options={academicYearOptions()}
+                value={value}
+                onChange={onChange}
+                placeholder={t("resources.form.academicYearPlaceholder")}
+                hasError={!!errors.academicYearLabel}
+                testID="resources-form-academic-year"
+              />
+            )}
+          />
+          {errors.academicYearLabel?.message ? (
+            <Text
+              style={styles.fieldError}
+              testID="resources-form-academic-year-error"
+            >
+              {errors.academicYearLabel.message}
+            </Text>
+          ) : null}
+        </View>
+
+        {kind === "ASSESSMENT" ? (
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>
+              {t("resources.form.sequenceLabel")}
+            </Text>
+            <Controller
+              control={control}
+              name="sequence"
+              render={({ field: { value, onChange } }) => (
+                <SelectDropdown
+                  options={SEQUENCE_OPTIONS}
+                  value={value}
+                  onChange={onChange}
+                  placeholder={t("resources.form.sequencePlaceholder")}
+                  hasError={!!errors.sequence}
+                  testID="resources-form-sequence"
+                />
+              )}
+            />
+            {errors.sequence?.message ? (
+              <Text
+                style={styles.fieldError}
+                testID="resources-form-sequence-error"
+              >
+                {errors.sequence.message}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+      </ScrollView>
+
+      <View style={styles.formActionsBar}>
+        <TouchableOpacity
+          style={styles.cancelBtn}
+          onPress={props.onCancel}
+          testID="resources-form-cancel"
+        >
+          <Text style={styles.cancelBtnText}>
+            {t("resources.common.cancel")}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.submitBtn,
+            props.isSubmitting && styles.submitBtnDisabled,
+          ]}
+          onPress={handleSave}
+          disabled={props.isSubmitting}
+          testID="resources-form-submit"
+        >
+          {props.isSubmitting ? (
+            <ActivityIndicator color={colors.white} size="small" />
+          ) : (
+            <Text style={styles.submitBtnText}>
+              {t("resources.common.submit")}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -1476,6 +1397,41 @@ const styles = StyleSheet.create({
   },
   moderationCard: {
     marginBottom: 10,
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    padding: 14,
+    gap: 6,
+  },
+  moderationResourceTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  meta: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  moderationAuthor: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.primary,
+  },
+  moderationContentPreview: {
+    fontSize: 13,
+    color: colors.textPrimary,
+    lineHeight: 18,
+  },
+  moderationReasonInput: {
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: colors.textPrimary,
+    backgroundColor: colors.surface,
   },
   moderationActions: {
     flexDirection: "row",

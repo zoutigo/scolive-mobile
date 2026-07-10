@@ -98,7 +98,7 @@ describe("resourcesApi", () => {
   });
 
   describe("createResource", () => {
-    it("posts the payload as-is", async () => {
+    it("posts the metadata-only payload as-is", async () => {
       apiFetch.mockResolvedValueOnce({ id: "res-1" });
 
       await resourcesApi.createResource({
@@ -110,12 +110,70 @@ describe("resourcesApi", () => {
         sequence: "SEQ_1",
         academicYearLabel: "2025-2026",
         title: "Controle",
-        statementContent: "<p>Enonce</p>",
       });
 
       expect(apiFetch).toHaveBeenCalledWith(
         "/resources",
         expect.objectContaining({ method: "POST" }),
+        true,
+      );
+    });
+
+    it("forwards confirmDuplicate when set", async () => {
+      apiFetch.mockResolvedValueOnce({ id: "res-1" });
+
+      await resourcesApi.createResource({
+        kind: "ASSESSMENT",
+        schoolId: "school-1",
+        academicLevelId: "level-1",
+        subjectId: "sub-1",
+        examType: "SEQUENCE_TEST",
+        sequence: "SEQ_1",
+        academicYearLabel: "2025-2026",
+        title: "Controle",
+        confirmDuplicate: true,
+      });
+
+      const [, options] = apiFetch.mock.calls[0];
+      expect(JSON.parse((options as { body: string }).body)).toEqual(
+        expect.objectContaining({ confirmDuplicate: true }),
+      );
+    });
+  });
+
+  describe("listSubmissions / saveSubmissionDraft / submitSubmission", () => {
+    it("listSubmissions GETs with the part query param", async () => {
+      apiFetch.mockResolvedValueOnce([]);
+      await resourcesApi.listSubmissions("res-1", "statement");
+      expect(apiFetch).toHaveBeenCalledWith(
+        "/resources/res-1/submissions?part=statement",
+        {},
+        true,
+      );
+    });
+
+    it("saveSubmissionDraft POSTs to the part-scoped submissions route", async () => {
+      apiFetch.mockResolvedValueOnce({ id: "sub-1" });
+      await resourcesApi.saveSubmissionDraft("res-1", "correction", {
+        content: "<p>Corrige</p>",
+        attachments: [],
+      });
+      expect(apiFetch).toHaveBeenCalledWith(
+        "/resources/res-1/correction/submissions",
+        {
+          method: "POST",
+          body: JSON.stringify({ content: "<p>Corrige</p>", attachments: [] }),
+        },
+        true,
+      );
+    });
+
+    it("submitSubmission PATCHes the submit route", async () => {
+      apiFetch.mockResolvedValueOnce({ id: "sub-1", status: "AWAITING" });
+      await resourcesApi.submitSubmission("res-1", "sub-1");
+      expect(apiFetch).toHaveBeenCalledWith(
+        "/resources/res-1/submissions/sub-1/submit",
+        { method: "PATCH" },
         true,
       );
     });
@@ -232,38 +290,36 @@ describe("resourcesAdminApi", () => {
     jest.clearAllMocks();
   });
 
-  it("builds the admin listing query with kind/part/status", async () => {
+  it("builds the admin submissions listing query with kind/part/status", async () => {
     apiFetch.mockResolvedValueOnce({ items: [], total: 0, page: 1, limit: 20 });
 
-    await resourcesAdminApi.listAdminResources({
+    await resourcesAdminApi.listAdminSubmissions({
       kind: "ASSESSMENT",
       part: "correction",
-      status: "PENDING",
+      status: "AWAITING",
     });
 
     expect(apiFetch).toHaveBeenCalledWith(
-      "/admin/resources?kind=ASSESSMENT&part=correction&status=PENDING",
+      "/admin/resources/submissions?kind=ASSESSMENT&part=correction&status=AWAITING",
       {},
       true,
     );
   });
 
   it.each([
-    ["approveStatement", "/admin/resources/res-1/statement/approve"],
-    ["revokeStatement", "/admin/resources/res-1/statement/revoke"],
-    ["approveCorrection", "/admin/resources/res-1/correction/approve"],
-    ["revokeCorrection", "/admin/resources/res-1/correction/revoke"],
+    ["approveSubmission", "/admin/resources/submissions/sub-1/approve"],
+    ["revokeSubmission", "/admin/resources/submissions/sub-1/revoke"],
   ] as const)("%s PATCHes %s", async (method, path) => {
-    apiFetch.mockResolvedValueOnce({ id: "res-1" });
-    await resourcesAdminApi[method]("res-1");
+    apiFetch.mockResolvedValueOnce({ id: "sub-1" });
+    await resourcesAdminApi[method]("sub-1");
     expect(apiFetch).toHaveBeenCalledWith(path, { method: "PATCH" }, true);
   });
 
-  it("rejectStatement sends the optional reason in the body", async () => {
-    apiFetch.mockResolvedValueOnce({ id: "res-1" });
-    await resourcesAdminApi.rejectStatement("res-1", "Contenu incomplet");
+  it("rejectSubmission sends the optional reason in the body", async () => {
+    apiFetch.mockResolvedValueOnce({ id: "sub-1" });
+    await resourcesAdminApi.rejectSubmission("sub-1", "Contenu incomplet");
     expect(apiFetch).toHaveBeenCalledWith(
-      "/admin/resources/res-1/statement/reject",
+      "/admin/resources/submissions/sub-1/reject",
       {
         method: "PATCH",
         body: JSON.stringify({ reason: "Contenu incomplet" }),
