@@ -17,11 +17,14 @@ import type {
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/resources.api");
 jest.mock("../../src/store/auth.store");
+const mockRouterBack = jest.fn();
+const mockRouterNavigate = jest.fn();
+const mockCanGoBack = jest.fn(() => false);
 jest.mock("expo-router", () => ({
   useRouter: () => ({
-    canGoBack: () => false,
-    back: jest.fn(),
-    navigate: jest.fn(),
+    canGoBack: mockCanGoBack,
+    back: mockRouterBack,
+    navigate: mockRouterNavigate,
   }),
 }));
 jest.mock("react-native-safe-area-context", () => ({
@@ -122,6 +125,7 @@ function makeSubmission(
 describe("ResourceDetailScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCanGoBack.mockReturnValue(false);
     mockUseAuthStore.mockReturnValue({ user: READER_USER } as never);
     mockResourcesApi.listSubmissions.mockResolvedValue([]);
   });
@@ -324,5 +328,25 @@ describe("ResourceDetailScreen", () => {
     expect(
       screen.getByTestId("resources-detail-editor-correction"),
     ).toBeTruthy();
+  });
+
+  it("le bouton Annuler revient à l'écran précédent sans appel API", async () => {
+    mockUseAuthStore.mockReturnValue({ user: TEACHER_USER } as never);
+    mockCanGoBack.mockReturnValue(true);
+    mockResourcesApi.getResource.mockResolvedValue(BASE_DETAIL);
+    mockResourcesApi.listSubmissions.mockResolvedValue([]);
+
+    render(<ResourceDetailScreen resourceId="res-1" part="correction" />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("resources-detail-editor-correction"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("resources-detail-cancel-correction"));
+
+    expect(mockRouterBack).toHaveBeenCalled();
+    expect(mockResourcesApi.saveSubmissionDraft).not.toHaveBeenCalled();
+    expect(mockResourcesApi.submitSubmission).not.toHaveBeenCalled();
   });
 });

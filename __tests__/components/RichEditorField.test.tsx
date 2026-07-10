@@ -82,6 +82,19 @@ describe("RichEditorField", () => {
   });
 
   describe("auto-resize", () => {
+    it("transmet minHeight comme initialHeight à la librairie sous-jacente (évite un éditeur qui démarre à hauteur quasi nulle)", () => {
+      render(
+        <RichEditorField
+          placeholder="Écrire ici…"
+          colorPresets={colorPresets}
+          labels={labels}
+          minHeight={160}
+        />,
+      );
+
+      expect(screen.UNSAFE_getByType(RichEditor).props.initialHeight).toBe(160);
+    });
+
     it("grandit quand le contenu WebView devient plus haut que la hauteur minimale", () => {
       render(
         <RichEditorField

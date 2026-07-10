@@ -484,6 +484,15 @@ export function ResourceDetailScreen(props: {
 
                     <View style={styles.contributionActions}>
                       <TouchableOpacity
+                        style={styles.cancelBtn}
+                        onPress={() => moduleBack(router)}
+                        testID={`resources-detail-cancel-${part}`}
+                      >
+                        <Text style={styles.cancelBtnText}>
+                          {t("resources.common.cancel")}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
                         style={[
                           styles.saveDraftBtn,
                           isSaving && styles.btnDisabled,
@@ -644,6 +653,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     marginTop: 4,
+  },
+  cancelBtn: {
+    flex: 1,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+  },
+  cancelBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.textSecondary,
   },
   saveDraftBtn: {
     flex: 1,
