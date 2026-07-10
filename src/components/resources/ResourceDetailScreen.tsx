@@ -55,10 +55,9 @@ export function ResourceDetailScreen(props: {
   const showError = useSuccessToastStore((state) => state.showError);
   const { resourceId, part } = props;
 
-  const memberships = user?.memberships ?? [];
-  const canContribute = memberships.some(
-    (m) => m.role === "TEACHER" || m.role === "SCHOOL_ADMIN",
-  );
+  const activeRole = user?.activeRole ?? null;
+  const canContribute =
+    activeRole === "TEACHER" || activeRole === "SCHOOL_ADMIN";
 
   const [detail, setDetail] = useState<ResourceDetail | null>(null);
   const [mySubmissions, setMySubmissions] = useState<ResourceSubmission[]>([]);

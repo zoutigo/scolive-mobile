@@ -31,7 +31,7 @@ import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { SelectDropdown, type SelectOption } from "../SelectDropdown";
 import { SelectField } from "../tests-admin/SelectField";
-import { ResourceCard } from "./ResourceCard";
+import { ResourceCard, isResourcePlatformAdmin } from "./ResourceCard";
 import { ResourceCreationOnboardingModal } from "./ResourceCreationOnboardingModal";
 import { moduleBack } from "../../utils/moduleBack";
 import type {
@@ -145,13 +145,12 @@ export function ResourcesScreen() {
   const showError = useSuccessToastStore((state) => state.showError);
 
   const memberships = user?.memberships ?? [];
-  const canSubmit = memberships.some(
-    (m) => m.role === "TEACHER" || m.role === "SCHOOL_ADMIN",
-  );
-  const isPlatformRole = (user?.platformRoles?.length ?? 0) > 0;
-  const submitterSchoolId =
-    memberships.find((m) => m.role === "TEACHER" || m.role === "SCHOOL_ADMIN")
-      ?.schoolId ?? null;
+  const activeRole = user?.activeRole ?? null;
+  const canSubmit = activeRole === "TEACHER" || activeRole === "SCHOOL_ADMIN";
+  const isPlatformRole = isResourcePlatformAdmin(activeRole);
+  const submitterSchoolId = canSubmit
+    ? (memberships.find((m) => m.role === activeRole)?.schoolId ?? null)
+    : null;
 
   const [tab, setTab] = useState<TabKey>("ASSESSMENT");
   const [formContext, setFormContext] = useState<FormContext | null>(null);

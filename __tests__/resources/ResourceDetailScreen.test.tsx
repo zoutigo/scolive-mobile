@@ -58,12 +58,14 @@ const TEACHER_USER = {
   id: "teacher-1",
   memberships: [{ schoolId: "school-1", role: "TEACHER" as const }],
   platformRoles: [] as never[],
+  activeRole: "TEACHER" as const,
 };
 
 const READER_USER = {
   id: "student-1",
   memberships: [{ schoolId: "school-1", role: "STUDENT" as const }],
   platformRoles: [] as never[],
+  activeRole: "STUDENT" as const,
 };
 
 const BASE_DETAIL: ResourceDetail = {
@@ -219,6 +221,31 @@ describe("ResourceDetailScreen", () => {
     await waitFor(() =>
       expect(
         screen.getByTestId("resources-detail-content-statement"),
+      ).toBeTruthy(),
+    );
+    expect(mockResourcesApi.listSubmissions).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId("resources-detail-editor-statement"),
+    ).toBeNull();
+  });
+
+  it("un membership TEACHER sur une autre école ne donne pas accès à la contribution quand le rôle actif est PARENT", async () => {
+    mockUseAuthStore.mockReturnValue({
+      user: {
+        ...TEACHER_USER,
+        activeRole: "PARENT" as const,
+      },
+    } as never);
+    mockResourcesApi.getResource.mockResolvedValue({
+      ...BASE_DETAIL,
+      statementStatus: "PENDING",
+      statementContent: null,
+    });
+    render(<ResourceDetailScreen resourceId="res-1" part="statement" />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("resources-detail-no-approved-statement"),
       ).toBeTruthy(),
     );
     expect(mockResourcesApi.listSubmissions).not.toHaveBeenCalled();

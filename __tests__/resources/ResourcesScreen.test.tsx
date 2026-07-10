@@ -159,6 +159,7 @@ describe("ResourcesScreen", () => {
       user: {
         ...TEACHER_USER,
         memberships: [{ schoolId: "school-1", role: "PARENT" as const }],
+        activeRole: "PARENT" as const,
       },
     } as never);
 
