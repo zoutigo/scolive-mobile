@@ -15,6 +15,14 @@ export function isResourcePlatformAdmin(
   return activeRole === "ADMIN" || activeRole === "SUPER_ADMIN";
 }
 
+const NON_AUTHOR_ROLES = new Set(["PARENT", "STUDENT"]);
+
+export function canActAsResourceAuthor(
+  activeRole: string | null | undefined,
+): boolean {
+  return activeRole == null || !NON_AUTHOR_ROLES.has(activeRole);
+}
+
 export const SEQUENCE_LABELS: Record<string, string> = {
   SEQ_1: "Séq. 1",
   SEQ_2: "Séq. 2",
@@ -68,8 +76,9 @@ export function ResourceCard(props: {
   const { user } = useAuthStore();
   const { resource } = props;
 
-  const isOwner = resource.authorUserId === user?.id;
   const activeRole = user?.activeRole ?? user?.role ?? null;
+  const isOwner =
+    resource.authorUserId === user?.id && canActAsResourceAuthor(activeRole);
   const isAdmin = isResourcePlatformAdmin(activeRole);
   const hasApprovedStatement = resource.statementStatus === "APPROVED";
   const hasApprovedCorrection =

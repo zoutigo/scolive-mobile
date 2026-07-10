@@ -177,6 +177,44 @@ describe("ResourceCard", () => {
     expect(screen.queryByTestId("card-correction-btn")).toBeNull();
   });
 
+  it("masque le bouton Corrigé pour l'auteur dont le rôle actif est parent", () => {
+    setUser({
+      id: BASE_RESOURCE.authorUserId,
+      activeRole: "PARENT",
+    });
+    render(
+      <ResourceCard
+        resource={{
+          ...BASE_RESOURCE,
+          correctionContent: "<p>Corrigé</p>",
+          correctionStatus: "PENDING",
+        }}
+        onPressStatement={() => {}}
+        onPressCorrection={() => {}}
+        testID="card"
+      />,
+    );
+
+    expect(screen.queryByTestId("card-correction-btn")).toBeNull();
+  });
+
+  it("masque le bouton Éditer pour l'auteur dont le rôle actif est parent", () => {
+    setUser({
+      id: BASE_RESOURCE.authorUserId,
+      activeRole: "PARENT",
+    });
+    render(
+      <ResourceCard
+        resource={BASE_RESOURCE}
+        onPressStatement={() => {}}
+        onEdit={() => {}}
+        testID="card"
+      />,
+    );
+
+    expect(screen.queryByTestId("card-edit-btn")).toBeNull();
+  });
+
   it("ne rend pas le bouton Éditer sans prop onEdit", () => {
     setUser({ id: BASE_RESOURCE.authorUserId });
     render(
