@@ -35,7 +35,14 @@ const BASE_RESOURCE: ResourceRow = {
   isFavorite: false,
 };
 
-function setUser(user: { id: string; platformRoles?: string[] } | null) {
+function setUser(
+  user: {
+    id: string;
+    platformRoles?: string[];
+    activeRole?: string | null;
+    role?: string | null;
+  } | null,
+) {
   mockUseAuthStore.mockReturnValue({ user } as never);
 }
 
@@ -126,8 +133,12 @@ describe("ResourceCard", () => {
     expect(screen.getByTestId("card-correction-btn")).toBeTruthy();
   });
 
-  it("affiche le bouton Corrigé pour un admin plateforme même si PENDING", () => {
-    setUser({ id: "admin-1", platformRoles: ["SUPER_ADMIN"] });
+  it("affiche le bouton Corrigé pour un admin plateforme actif même si PENDING", () => {
+    setUser({
+      id: "admin-1",
+      platformRoles: ["SUPER_ADMIN"],
+      activeRole: "SUPER_ADMIN",
+    });
     render(
       <ResourceCard
         resource={{
@@ -142,6 +153,28 @@ describe("ResourceCard", () => {
     );
 
     expect(screen.getByTestId("card-correction-btn")).toBeTruthy();
+  });
+
+  it("masque le bouton Corrigé pour un admin plateforme dont le rôle actif n'est pas admin", () => {
+    setUser({
+      id: "admin-1",
+      platformRoles: ["SUPER_ADMIN"],
+      activeRole: "PARENT",
+    });
+    render(
+      <ResourceCard
+        resource={{
+          ...BASE_RESOURCE,
+          correctionContent: "<p>Corrigé</p>",
+          correctionStatus: "PENDING",
+        }}
+        onPressStatement={() => {}}
+        onPressCorrection={() => {}}
+        testID="card"
+      />,
+    );
+
+    expect(screen.queryByTestId("card-correction-btn")).toBeNull();
   });
 
   it("ne rend pas le bouton Éditer sans prop onEdit", () => {
@@ -187,8 +220,8 @@ describe("ResourceCard", () => {
     expect(onEdit).toHaveBeenCalledTimes(1);
   });
 
-  it("affiche le bouton Éditer pour un admin plateforme non auteur", () => {
-    setUser({ id: "admin-1", platformRoles: ["ADMIN"] });
+  it("affiche le bouton Éditer pour un admin plateforme non auteur avec rôle actif admin", () => {
+    setUser({ id: "admin-1", platformRoles: ["ADMIN"], activeRole: "ADMIN" });
     render(
       <ResourceCard
         resource={BASE_RESOURCE}
@@ -199,6 +232,20 @@ describe("ResourceCard", () => {
     );
 
     expect(screen.getByTestId("card-edit-btn")).toBeTruthy();
+  });
+
+  it("masque le bouton Éditer pour un admin plateforme dont le rôle actif est parent", () => {
+    setUser({ id: "admin-1", platformRoles: ["ADMIN"], activeRole: "PARENT" });
+    render(
+      <ResourceCard
+        resource={BASE_RESOURCE}
+        onPressStatement={() => {}}
+        onEdit={() => {}}
+        testID="card"
+      />,
+    );
+
+    expect(screen.queryByTestId("card-edit-btn")).toBeNull();
   });
 
   it("affiche les badges de statut quand showStatuses est actif", () => {

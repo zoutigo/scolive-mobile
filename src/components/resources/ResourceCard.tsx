@@ -10,11 +10,9 @@ import type {
 } from "../../types/resources.types";
 
 export function isResourcePlatformAdmin(
-  platformRoles: readonly string[] | undefined,
+  activeRole: string | null | undefined,
 ): boolean {
-  return (platformRoles ?? []).some(
-    (role) => role === "ADMIN" || role === "SUPER_ADMIN",
-  );
+  return activeRole === "ADMIN" || activeRole === "SUPER_ADMIN";
 }
 
 export const SEQUENCE_LABELS: Record<string, string> = {
@@ -71,7 +69,8 @@ export function ResourceCard(props: {
   const { resource } = props;
 
   const isOwner = resource.authorUserId === user?.id;
-  const isAdmin = isResourcePlatformAdmin(user?.platformRoles);
+  const activeRole = user?.activeRole ?? user?.role ?? null;
+  const isAdmin = isResourcePlatformAdmin(activeRole);
   const hasApprovedStatement = resource.statementStatus === "APPROVED";
   const hasApprovedCorrection =
     !!resource.correctionContent && resource.correctionStatus === "APPROVED";
