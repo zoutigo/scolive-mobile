@@ -14,14 +14,11 @@ Un utilisateur peut avoir plusieurs rôles (plusieurs `memberships` école, plus
 
 **Contexte** : bug identifié dans le module Resources (`ResourcesScreen.tsx`, `ResourceDetailScreen.tsx`) — un compte avec un membership `TEACHER` sur une autre école voyait le formulaire de proposition d'énoncé et des ressources non approuvées même en naviguant avec le rôle actif `PARENT`, parce que ces deux écrans dérivaient les droits de `user.memberships` au lieu de `user.activeRole`. `ResourceCard.tsx` faisait déjà cela correctement (`isResourcePlatformAdmin`, `canActAsResourceAuthor`), d'où l'incohérence. Le backend (`resources.service.ts`) respecte déjà `user.activeRole` partout.
 
-**Instances connues restantes à corriger sur ce modèle** (repérées mais non corrigées, hors périmètre du correctif Resources) :
+**Autres instances du même anti-pattern, traitées le même jour** :
 
-- `src/components/navigation/nav-config.ts:135`
-- `src/components/tickets/TicketListScreen.tsx:147`
-- `src/components/tickets/TicketDetailScreen.tsx:64,68,175`
-
-Le même anti-pattern a aussi été trouvé et corrigé côté `scolive-web` :
-`apps/web/src/app/schools/[schoolSlug]/(app)/tickets/page.tsx` dérivait `isPlatformStaff`/`isPlatformAny` de `me.platformRoles.some(...)`/`.length` au lieu de `me.activeRole` (déjà présent dans la réponse `/me`). Corrigé le même jour que le bug Resources mobile.
+- `src/components/tickets/TicketListScreen.tsx:147` (`isPlatform`) et `src/components/tickets/TicketDetailScreen.tsx:63-68` (`isPlatformStaff`, `isPlatformAny`) dérivaient l'accès de `user.platformRoles.some(...)`/`.length` → corrigé pour tester `user.activeRole` directement.
+- Côté `scolive-web` : `apps/web/src/app/schools/[schoolSlug]/(app)/tickets/page.tsx` avait le même problème (`me.platformRoles.some(...)`/`.length` au lieu de `me.activeRole`, déjà présent dans la réponse `/me`) → corrigé.
+- `src/components/navigation/nav-config.ts:135` (`getViewType`) a été audité et **n'est pas un cas à corriger** : `user.activeRole` y est toujours vérifié en premier, et `user.platformRoles.length > 0` n'intervient qu'en repli si `activeRole` est absent (état dégradé avant hydratation) — conforme à la règle.
 
 ## Git — règle absolue
 

@@ -144,7 +144,9 @@ export function TicketListScreen() {
     [router],
   );
 
-  const isPlatform = (user?.platformRoles.length ?? 0) > 0;
+  const isPlatform = ["SUPER_ADMIN", "ADMIN", "SUPPORT", "SALES"].includes(
+    user?.activeRole ?? "",
+  );
   const hasMore = meta ? tickets.length < meta.total : false;
 
   const androidStatusInset =

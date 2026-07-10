@@ -60,12 +60,13 @@ export function TicketDetailScreen() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
 
-  const isPlatformStaff =
-    user?.platformRoles.some((r) =>
-      ["SUPER_ADMIN", "ADMIN", "SUPPORT"].includes(r),
-    ) ?? false;
+  const isPlatformStaff = ["SUPER_ADMIN", "ADMIN", "SUPPORT"].includes(
+    user?.activeRole ?? "",
+  );
 
-  const isPlatformAny = (user?.platformRoles.length ?? 0) > 0;
+  const isPlatformAny = ["SUPER_ADMIN", "ADMIN", "SUPPORT", "SALES"].includes(
+    user?.activeRole ?? "",
+  );
 
   const androidStatusInset =
     Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0;
