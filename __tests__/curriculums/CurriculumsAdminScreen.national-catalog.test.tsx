@@ -107,6 +107,8 @@ beforeEach(() => {
         id: "level-national-created",
         code: payload.code,
         label: payload.label,
+        cycle: payload.cycle ?? null,
+        languageSystem: payload.languageSystem ?? null,
         isNational: true,
       };
       nationalLevelsState = [...nationalLevelsState, created];
@@ -167,7 +169,14 @@ describe("CurriculumsAdminScreen — catalogue national", () => {
   it("affiche l'onglet catalogue national pour un SUPER_ADMIN et liste niveaux + curriculums", async () => {
     mockAuthState = { schoolSlug: "college-vogt", user: makeSuperAdminUser() };
     nationalLevelsState = [
-      { id: "level-1", code: "6EME", label: "6ème", isNational: true },
+      {
+        id: "level-1",
+        code: "6EME",
+        label: "6ème",
+        cycle: "SECONDARY",
+        languageSystem: "FRANCOPHONE",
+        isNational: true,
+      },
     ];
     nationalCurriculumsState = [
       {
@@ -188,6 +197,7 @@ describe("CurriculumsAdminScreen — catalogue national", () => {
     expect(await screen.findByTestId("curriculums-national-tab")).toBeTruthy();
     expect((await screen.findAllByText("6ème")).length).toBeGreaterThan(0);
     expect(await screen.findByText("6EME - TRONC_COMMUN")).toBeTruthy();
+    expect(await screen.findByText("Secondaire · Francophone")).toBeTruthy();
   });
 
   it("crée un niveau académique national avec soumission active et erreurs inline", async () => {
@@ -227,10 +237,70 @@ describe("CurriculumsAdminScreen — catalogue national", () => {
     });
   });
 
+  it("crée un niveau académique national anglophone secondaire avec cycle et système sélectionnés", async () => {
+    mockAuthState = { schoolSlug: "college-vogt", user: makeSuperAdminUser() };
+
+    render(<CurriculumsAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("curriculums-tab-national"));
+    await screen.findByTestId("curriculums-national-tab");
+
+    fireEvent.changeText(
+      screen.getByTestId("curriculums-national-level-code"),
+      "FORM1",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("curriculums-national-level-label"),
+      "Form 1",
+    );
+
+    fireEvent.press(screen.getByTestId("curriculums-national-level-cycle"));
+    fireEvent.press(
+      await screen.findByTestId(
+        "curriculums-national-level-cycle-option-SECONDARY",
+      ),
+    );
+
+    fireEvent.press(
+      screen.getByTestId("curriculums-national-level-language-system"),
+    );
+    fireEvent.press(
+      await screen.findByTestId(
+        "curriculums-national-level-language-system-option-ANGLOPHONE",
+      ),
+    );
+
+    fireEvent.press(screen.getByTestId("curriculums-national-level-submit"));
+
+    await waitFor(() => {
+      expect(
+        mockPlatformCatalogApi.createNationalAcademicLevel,
+      ).toHaveBeenCalledWith({
+        code: "FORM1",
+        label: "Form 1",
+        cycle: "SECONDARY",
+        languageSystem: "ANGLOPHONE",
+      });
+    });
+
+    expect(await screen.findByText("Secondaire · Anglophone")).toBeTruthy();
+
+    expect(
+      screen.getByTestId("curriculums-national-level-code").props.value,
+    ).toBe("");
+  });
+
   it("supprime un niveau académique national après confirmation", async () => {
     mockAuthState = { schoolSlug: "college-vogt", user: makeSuperAdminUser() };
     nationalLevelsState = [
-      { id: "level-1", code: "6EME", label: "6ème", isNational: true },
+      {
+        id: "level-1",
+        code: "6EME",
+        label: "6ème",
+        cycle: "SECONDARY",
+        languageSystem: "FRANCOPHONE",
+        isNational: true,
+      },
     ];
 
     render(<CurriculumsAdminScreen />);

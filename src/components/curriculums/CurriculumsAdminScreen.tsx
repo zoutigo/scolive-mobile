@@ -56,6 +56,7 @@ import type {
   UpsertCurriculumSubjectPayload,
 } from "../../types/curriculums.types";
 import type {
+  CreateNationalAcademicLevelPayload,
   NationalAcademicLevelRow,
   NationalCurriculumRow,
 } from "../../types/platform-catalog.types";
@@ -128,6 +129,18 @@ const BASE_TAB_ITEMS: Array<{ key: ListTabKey; label: string }> = [
 const LEVEL_TRACK_FORM_SCHEMA = z.object({
   code: z.string().trim().min(1, "Le code est obligatoire."),
   label: z.string().trim().min(1, "Le libellé est obligatoire."),
+});
+
+const NATIONAL_LEVEL_FORM_SCHEMA = z.object({
+  code: z.string().trim().min(1, "Le code est obligatoire."),
+  label: z.string().trim().min(1, "Le libellé est obligatoire."),
+  cycle: z.union([z.literal("PRIMARY"), z.literal("SECONDARY"), z.literal("")]),
+  languageSystem: z.union([
+    z.literal("FRANCOPHONE"),
+    z.literal("ANGLOPHONE"),
+    z.literal("BILINGUAL"),
+    z.literal(""),
+  ]),
 });
 
 const CURRICULUM_FORM_SCHEMA = z.object({
@@ -1088,9 +1101,25 @@ function renderFormContent(
 // NationalCatalogSection — catalogue national (plateforme)
 // ---------------------------------------------------------------------------
 
+const NATIONAL_LEVEL_CYCLE_OPTIONS = [
+  { value: "PRIMARY", label: "Primaire" },
+  { value: "SECONDARY", label: "Secondaire" },
+];
+
+const NATIONAL_LEVEL_LANGUAGE_SYSTEM_OPTIONS = [
+  { value: "FRANCOPHONE", label: "Francophone" },
+  { value: "ANGLOPHONE", label: "Anglophone" },
+  { value: "BILINGUAL", label: "Bilingue" },
+];
+
 function NationalLevelFormContent(props: {
   isSubmitting: boolean;
-  onSubmit: (values: { code: string; label: string }) => Promise<void> | void;
+  onSubmit: (values: {
+    code: string;
+    label: string;
+    cycle?: "PRIMARY" | "SECONDARY";
+    languageSystem?: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL";
+  }) => Promise<void> | void;
 }) {
   const {
     control,
@@ -1098,16 +1127,21 @@ function NationalLevelFormContent(props: {
     setFocus: focusField,
     reset,
     formState: { errors },
-  } = useForm<z.infer<typeof LEVEL_TRACK_FORM_SCHEMA>>({
-    resolver: zodResolver(LEVEL_TRACK_FORM_SCHEMA),
+  } = useForm<z.infer<typeof NATIONAL_LEVEL_FORM_SCHEMA>>({
+    resolver: zodResolver(NATIONAL_LEVEL_FORM_SCHEMA),
     mode: "onChange",
-    defaultValues: { code: "", label: "" },
+    defaultValues: { code: "", label: "", cycle: "", languageSystem: "" },
   });
 
   const submit = handleSubmit(
     async (values) => {
-      await props.onSubmit(values);
-      reset({ code: "", label: "" });
+      await props.onSubmit({
+        code: values.code,
+        label: values.label,
+        cycle: values.cycle || undefined,
+        languageSystem: values.languageSystem || undefined,
+      });
+      reset({ code: "", label: "", cycle: "", languageSystem: "" });
     },
     (errs) => {
       const first = Object.keys(errs)[0];
@@ -1146,6 +1180,38 @@ function NationalLevelFormContent(props: {
             placeholder="Ex: 6ème"
             error={errors.label?.message}
             testID="curriculums-national-level-label"
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="cycle"
+        render={({ field: { value, onChange } }) => (
+          <CompactSelectField
+            label="Cycle"
+            value={value}
+            onChange={(next) => onChange(next as "" | "PRIMARY" | "SECONDARY")}
+            options={NATIONAL_LEVEL_CYCLE_OPTIONS}
+            placeholder="Sélectionner un cycle"
+            testID="curriculums-national-level-cycle"
+            error={errors.cycle?.message}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="languageSystem"
+        render={({ field: { value, onChange } }) => (
+          <CompactSelectField
+            label="Système linguistique"
+            value={value}
+            onChange={(next) =>
+              onChange(next as "" | "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL")
+            }
+            options={NATIONAL_LEVEL_LANGUAGE_SYSTEM_OPTIONS}
+            placeholder="Sélectionner un système"
+            testID="curriculums-national-level-language-system"
+            error={errors.languageSystem?.message}
           />
         )}
       />
@@ -1264,7 +1330,7 @@ function NationalCatalogSection() {
   }, [load]);
 
   const handleCreateLevel = useCallback(
-    async (values: { code: string; label: string }) => {
+    async (values: CreateNationalAcademicLevelPayload) => {
       setIsSubmittingLevel(true);
       try {
         await platformCatalogApi.createNationalAcademicLevel(values);
@@ -1395,6 +1461,24 @@ function NationalCatalogSection() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.nationalRowCode}>{level.code}</Text>
                 <Text style={styles.nationalRowName}>{level.label}</Text>
+                {level.cycle || level.languageSystem ? (
+                  <Text style={styles.nationalRowCode}>
+                    {[
+                      level.cycle
+                        ? NATIONAL_LEVEL_CYCLE_OPTIONS.find(
+                            (option) => option.value === level.cycle,
+                          )?.label
+                        : null,
+                      level.languageSystem
+                        ? NATIONAL_LEVEL_LANGUAGE_SYSTEM_OPTIONS.find(
+                            (option) => option.value === level.languageSystem,
+                          )?.label
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </Text>
+                ) : null}
               </View>
               <TouchableOpacity
                 style={styles.secondaryAction}
