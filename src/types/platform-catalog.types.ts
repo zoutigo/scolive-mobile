@@ -19,10 +19,15 @@ export type CreateNationalSubjectPayload = {
 export type UpdateNationalSubjectPayload =
   Partial<CreateNationalSubjectPayload>;
 
+export type SchoolCycle = "PRIMARY" | "SECONDARY";
+export type SchoolLanguageSystem = "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL";
+
 export type NationalAcademicLevelRow = {
   id: string;
   code: string;
   label: string;
+  cycle: SchoolCycle | null;
+  languageSystem: SchoolLanguageSystem | null;
   isNational: true;
   _count?: {
     classes: number;
@@ -33,6 +38,8 @@ export type NationalAcademicLevelRow = {
 export type CreateNationalAcademicLevelPayload = {
   code: string;
   label: string;
+  cycle?: SchoolCycle;
+  languageSystem?: SchoolLanguageSystem;
 };
 
 export type UpdateNationalAcademicLevelPayload =

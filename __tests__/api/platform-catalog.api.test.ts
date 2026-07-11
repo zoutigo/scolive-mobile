@@ -78,6 +78,31 @@ describe("platformCatalogApi", () => {
     );
   });
 
+  it("crée un niveau académique national avec cycle et languageSystem", async () => {
+    (apiFetch as jest.Mock).mockResolvedValue({ id: "level-en-1" });
+
+    await platformCatalogApi.createNationalAcademicLevel({
+      code: "FORM1",
+      label: "Form 1",
+      cycle: "SECONDARY",
+      languageSystem: "ANGLOPHONE",
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/system/academic-levels",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          code: "FORM1",
+          label: "Form 1",
+          cycle: "SECONDARY",
+          languageSystem: "ANGLOPHONE",
+        }),
+      },
+      true,
+    );
+  });
+
   it("supprime un niveau académique national", async () => {
     (apiFetch as jest.Mock).mockResolvedValue({ success: true });
 
