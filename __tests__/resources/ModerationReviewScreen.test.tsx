@@ -397,8 +397,7 @@ describe("ModerationReviewScreen", () => {
       ).toBeNull(),
     );
     expect(
-      screen.getByTestId("resources-moderation-review-content").props
-        .children,
+      screen.getByTestId("resources-moderation-review-content").props.children,
     ).toBe("Corrigé par la plateforme");
   });
 
@@ -462,9 +461,7 @@ describe("ModerationReviewScreen", () => {
     );
 
     await waitFor(() =>
-      expect(
-        mockResourcesAdminApi.updateSubmissionContent,
-      ).toHaveBeenCalled(),
+      expect(mockResourcesAdminApi.updateSubmissionContent).toHaveBeenCalled(),
     );
     await waitFor(() =>
       expect(mockResourcesApi.listSubmissions).toHaveBeenCalledTimes(2),

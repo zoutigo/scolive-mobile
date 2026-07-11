@@ -65,9 +65,9 @@ export function ModerationReviewScreen(props: {
   const [isActing, setIsActing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
-  const [editAttachments, setEditAttachments] = useState<
-    ResourceAttachment[]
-  >([]);
+  const [editAttachments, setEditAttachments] = useState<ResourceAttachment[]>(
+    [],
+  );
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const editorRef = useRef<RichEditorFieldRef>(null);
 
@@ -599,7 +599,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 12,
   },
-  cancelBtnText: { fontSize: 14, fontWeight: "700", color: colors.textSecondary },
+  cancelBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.textSecondary,
+  },
   contentCard: {
     backgroundColor: colors.white,
     borderRadius: 12,
