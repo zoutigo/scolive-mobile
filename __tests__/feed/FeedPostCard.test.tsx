@@ -1,9 +1,22 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
+import { Linking } from "react-native";
 import { FeedPostCard } from "../../src/components/feed/FeedPostCard";
 import { formatFeedDate } from "../../src/components/feed/feed.helpers";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
+
+jest.spyOn(Linking, "canOpenURL").mockResolvedValue(true);
+jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
 
 const post = {
   id: "post-1",
@@ -281,6 +294,46 @@ describe("FeedPostCard", () => {
     expect(onVote).toHaveBeenCalledWith("poll-1", "option-1");
     expect(screen.getByLabelText("Mercredi matin, 4 votes")).toBeTruthy();
     expect(screen.getByLabelText("Vendredi après-midi, 2 votes")).toBeTruthy();
+  });
+
+  it("ouvre la pièce jointe au tap", async () => {
+    render(
+      <FeedPostCard
+        post={{
+          ...post,
+          attachments: [
+            {
+              id: "a1",
+              fileName: "ordre-du-jour.pdf",
+              sizeLabel: "44 Ko",
+              fileUrl: "http://10.0.2.2:9000/media/ordre-du-jour.pdf",
+            },
+          ],
+        }}
+        onToggleLike={jest.fn()}
+        onAddComment={jest.fn()}
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId("feed-post-attachment-a1"));
+    await waitFor(() => {
+      expect(Linking.openURL).toHaveBeenCalledWith(
+        "http://10.0.2.2:9000/media/ordre-du-jour.pdf",
+      );
+    });
+  });
+
+  it("n'ouvre rien si la pièce jointe n'a pas de fileUrl", () => {
+    render(
+      <FeedPostCard
+        post={post}
+        onToggleLike={jest.fn()}
+        onAddComment={jest.fn()}
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId("feed-post-attachment-a1"));
+    expect(Linking.openURL).not.toHaveBeenCalled();
   });
 
   it("n'affiche pas la poubelle si canManage mais pas onDelete", () => {

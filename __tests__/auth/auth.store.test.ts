@@ -1,5 +1,6 @@
 import { act } from "@testing-library/react-native";
 import { useAuthStore } from "../../src/store/auth.store";
+import { accountApi } from "../../src/api/account.api";
 import { authApi } from "../../src/api/auth.api";
 import { tokenStorage } from "../../src/api/client";
 import { DEFAULT_LOCALE } from "../../src/i18n/translations";
@@ -7,6 +8,7 @@ import { useLocaleStore } from "../../src/store/locale.store";
 import type { AuthUser, LoginResponse } from "../../src/types/auth.types";
 
 jest.mock("../../src/api/auth.api");
+jest.mock("../../src/api/account.api");
 jest.mock("../../src/notifications/push-registration", () => ({
   syncPushRegistration: jest.fn().mockResolvedValue(undefined),
   unregisterPushRegistration: jest.fn().mockResolvedValue(undefined),
@@ -25,6 +27,7 @@ jest.mock("../../src/api/client", () => ({
 }));
 
 const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
+const mockAccountApi = accountApi as jest.Mocked<typeof accountApi>;
 const mockStorage = tokenStorage as jest.Mocked<typeof tokenStorage>;
 
 const fakeLoginResponse: LoginResponse = {
@@ -316,6 +319,77 @@ describe("auth.store — synchronisation de la langue du compte", () => {
     });
 
     expect(useLocaleStore.getState().locale).toBe(DEFAULT_LOCALE);
+  });
+});
+
+describe("auth.store — switchActiveSchool", () => {
+  it("persiste la nouvelle école active, met à jour schoolSlug et recharge le user scolaire", async () => {
+    useAuthStore.setState({
+      user: fakeUser,
+      accessToken: "access-token-123",
+      schoolSlug: "ecole-a",
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    mockAccountApi.setActiveSchool.mockResolvedValue({
+      firstName: "Jean",
+      lastName: "Mbarga",
+      preferredLocale: "FR",
+      role: "TEACHER",
+      schoolSlug: "ecole-b",
+      hasPassword: true,
+      hasPhoneCredential: true,
+    });
+    mockStorage.setSchoolSlug.mockResolvedValue(undefined);
+    const nextUser: AuthUser = {
+      ...fakeUser,
+      memberships: [{ schoolId: "school-b", role: "TEACHER" }],
+    };
+    mockAuthApi.me.mockResolvedValue(nextUser);
+
+    let result: string | null = null;
+    await act(async () => {
+      result = await useAuthStore.getState().switchActiveSchool("school-b");
+    });
+
+    expect(mockAccountApi.setActiveSchool).toHaveBeenCalledWith({
+      schoolId: "school-b",
+    });
+    expect(mockStorage.setSchoolSlug).toHaveBeenCalledWith("ecole-b");
+    expect(mockAuthApi.me).toHaveBeenCalledWith("ecole-b");
+    expect(result).toBe("ecole-b");
+    const state = useAuthStore.getState();
+    expect(state.schoolSlug).toBe("ecole-b");
+    expect(state.user).toEqual(nextUser);
+  });
+
+  it("ne modifie pas le state si le backend ne renvoie pas de schoolSlug", async () => {
+    useAuthStore.setState({
+      user: fakeUser,
+      accessToken: "access-token-123",
+      schoolSlug: "ecole-a",
+      isAuthenticated: true,
+      isLoading: false,
+    });
+    mockAccountApi.setActiveSchool.mockResolvedValue({
+      firstName: "Jean",
+      lastName: "Mbarga",
+      preferredLocale: "FR",
+      role: "TEACHER",
+      schoolSlug: null,
+      hasPassword: true,
+      hasPhoneCredential: true,
+    });
+
+    let result: string | null = "unset";
+    await act(async () => {
+      result = await useAuthStore.getState().switchActiveSchool("school-b");
+    });
+
+    expect(result).toBeNull();
+    expect(mockStorage.setSchoolSlug).not.toHaveBeenCalled();
+    expect(mockAuthApi.me).not.toHaveBeenCalled();
+    expect(useAuthStore.getState().schoolSlug).toBe("ecole-a");
   });
 });
 

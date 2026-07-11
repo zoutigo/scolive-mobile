@@ -9,40 +9,12 @@ import { AssistanceFaqPanel } from "../../src/components/tickets/AssistanceFaqPa
 import { helpFaqsApi } from "../../src/api/help-faqs.api";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
-// react-native-pell-rich-editor est auto-mocké via __mocks__/react-native-pell-rich-editor.js
-// (mock manuel Jest partagé par tous les écrans utilisant RichEditorField).
-
-jest.mock("expo-image-picker", () => ({
-  requestMediaLibraryPermissionsAsync: jest.fn(),
-  launchImageLibraryAsync: jest.fn(),
-}));
 
 jest.mock("../../src/api/help-faqs.api", () => ({
   helpFaqsApi: {
     getCurrent: jest.fn(),
     getThemes: jest.fn(),
     search: jest.fn(),
-    listGlobalAdmin: jest.fn(),
-    listSchoolAdmin: jest.fn(),
-    createGlobalFaq: jest.fn(),
-    createSchoolFaq: jest.fn(),
-    updateGlobalFaq: jest.fn(),
-    updateSchoolFaq: jest.fn(),
-    deleteGlobalFaq: jest.fn(),
-    deleteSchoolFaq: jest.fn(),
-    createGlobalTheme: jest.fn(),
-    createSchoolTheme: jest.fn(),
-    updateGlobalTheme: jest.fn(),
-    updateSchoolTheme: jest.fn(),
-    deleteGlobalTheme: jest.fn(),
-    deleteSchoolTheme: jest.fn(),
-    createGlobalItem: jest.fn(),
-    createSchoolItem: jest.fn(),
-    updateGlobalItem: jest.fn(),
-    updateSchoolItem: jest.fn(),
-    deleteGlobalItem: jest.fn(),
-    deleteSchoolItem: jest.fn(),
-    uploadInlineImage: jest.fn(),
   },
 }));
 
@@ -164,28 +136,11 @@ describe("AssistanceFaqPanel", () => {
         },
       ],
     });
-
-    mockApi.listGlobalAdmin.mockResolvedValue({
-      items: [
-        {
-          id: "faq-1",
-          schoolId: null,
-          schoolName: null,
-          audience: "TEACHER",
-          title: "FAQ enseignant",
-          slug: "faq-enseignant",
-          description: "Réponses utiles pour la classe.",
-          status: "PUBLISHED",
-          themeCount: 1,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ],
-    });
   });
 
-  it("charge la faq et affiche les formulaires admin", async () => {
-    render(<AssistanceFaqPanel />);
+  it("charge la faq et affiche le bouton de gestion pour un admin", async () => {
+    const onManage = jest.fn();
+    render(<AssistanceFaqPanel onManage={onManage} />);
 
     await waitFor(() => {
       expect(
@@ -194,12 +149,14 @@ describe("AssistanceFaqPanel", () => {
     });
 
     expect(screen.getAllByText("Messagerie").length).toBeGreaterThanOrEqual(1);
-    expect(
-      screen.getByTestId("assistance-faq-admin-forms-mobile"),
-    ).toBeTruthy();
+
+    const manageBtn = screen.getByTestId("assistance-faq-manage-btn");
+    expect(manageBtn).toBeTruthy();
+    fireEvent.press(manageBtn);
+    expect(onManage).toHaveBeenCalledTimes(1);
   });
 
-  it("masque les formulaires admin sans role platform local", async () => {
+  it("masque le bouton de gestion sans role platform local", async () => {
     render(<AssistanceFaqPanel canManageOverride={false} />);
 
     await waitFor(() => {
@@ -208,9 +165,7 @@ describe("AssistanceFaqPanel", () => {
       ).toBeGreaterThanOrEqual(1);
     });
 
-    expect(
-      screen.queryByTestId("assistance-faq-admin-forms-mobile"),
-    ).toBeNull();
+    expect(screen.queryByTestId("assistance-faq-manage-btn")).toBeNull();
   });
 
   it("ouvre le contenu d'un thème", async () => {
@@ -231,53 +186,5 @@ describe("AssistanceFaqPanel", () => {
         ),
       ).toBeTruthy();
     });
-  });
-
-  it("uploade et insère une image dans l'éditeur de réponse FAQ", async () => {
-    (
-      require("expo-image-picker")
-        .requestMediaLibraryPermissionsAsync as jest.Mock
-    ).mockResolvedValue({ status: "granted" });
-    (
-      require("expo-image-picker").launchImageLibraryAsync as jest.Mock
-    ).mockResolvedValue({
-      canceled: false,
-      assets: [
-        {
-          uri: "file:///photo.jpg",
-          fileName: "photo.jpg",
-          mimeType: "image/jpeg",
-        },
-      ],
-    });
-    mockApi.uploadInlineImage.mockResolvedValue({
-      url: "https://example.com/faq-answer-img.jpg",
-    });
-
-    render(<AssistanceFaqPanel />);
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("assistance-faq-admin-forms-mobile"),
-      ).toBeTruthy();
-    });
-
-    await require("@testing-library/react-native").act(async () => {
-      fireEvent.press(screen.getByTestId("toolbar-insert-image"));
-    });
-
-    expect(mockApi.uploadInlineImage).toHaveBeenCalledWith({
-      uri: "file:///photo.jpg",
-      name: "photo.jpg",
-      mimeType: "image/jpeg",
-    });
-
-    const {
-      __mockEditorMethods,
-    } = require("../../__mocks__/react-native-pell-rich-editor");
-    expect(__mockEditorMethods.insertImage).toHaveBeenCalledWith(
-      "https://example.com/faq-answer-img.jpg",
-      expect.any(String),
-    );
   });
 });

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { registerSessionExpiredHandler } from "../auth/session-events";
+import { accountApi } from "../api/account.api";
 import { authApi } from "../api/auth.api";
 import { tokenStorage } from "../api/client";
 import {
@@ -51,6 +52,7 @@ export interface AuthState {
   invalidateSession: (message?: string) => Promise<void>;
   clearAuthError: () => void;
   setUser: (user: AuthUser) => void;
+  switchActiveSchool: (schoolId: string) => Promise<string | null>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -213,6 +215,33 @@ export const useAuthStore = create<AuthState>((set) => ({
   clearAuthError: () => set({ authErrorMessage: null }),
 
   setUser: (user: AuthUser) => set({ user }),
+
+  switchActiveSchool: async (schoolId: string): Promise<string | null> => {
+    const globalProfile = await accountApi.setActiveSchool({ schoolId });
+    const nextSchoolSlug = globalProfile.schoolSlug;
+
+    if (!nextSchoolSlug) {
+      return null;
+    }
+
+    await tokenStorage.setSchoolSlug(nextSchoolSlug);
+
+    const previousSchoolSlug = useAuthStore.getState().schoolSlug;
+    set({ schoolSlug: nextSchoolSlug });
+
+    if (previousSchoolSlug && previousSchoolSlug !== nextSchoolSlug) {
+      await unregisterPushRegistration(previousSchoolSlug).catch(() => {});
+    }
+    void syncPushRegistration(nextSchoolSlug).catch((error) =>
+      console.warn("[push] syncPushRegistration failed", error),
+    );
+
+    const user = await authApi.me(nextSchoolSlug);
+    set({ user });
+    applyAccountLocale(user);
+
+    return nextSchoolSlug;
+  },
 }));
 
 registerSessionExpiredHandler(async ({ message }) => {

@@ -550,6 +550,7 @@ export const RichEditorField = forwardRef<
         <RichEditor
           ref={editorRef}
           initialContentHTML={initialHtml}
+          initialHeight={minHeight}
           placeholder={
             isBusy && insertingPlaceholder ? insertingPlaceholder : placeholder
           }

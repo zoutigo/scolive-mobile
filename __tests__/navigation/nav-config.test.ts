@@ -314,6 +314,7 @@ describe("buildDrawerNavigationConfig", () => {
       "feed",
       "agenda",
       "timetable",
+      "resources",
       "messages",
       "account",
     ]);

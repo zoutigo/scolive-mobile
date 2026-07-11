@@ -20,9 +20,12 @@ import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { useHeaderScroll } from "../navigation/header-scroll-context";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
+import { AssistanceFaqAdminForms } from "./AssistanceFaqAdminForms";
 import { AssistanceFaqPanel } from "./AssistanceFaqPanel";
 import { TicketCard } from "./TicketCard";
+import { AssistanceGuideAdminForms } from "./AssistanceGuideAdminForms";
 import { AssistanceGuidePanel } from "./AssistanceGuidePanel";
+import { FormHero } from "../forms/FormHero";
 import type {
   TicketListItem,
   TicketStatus,
@@ -30,7 +33,13 @@ import type {
 } from "../../types/tickets.types";
 import { moduleBack } from "../../utils/moduleBack";
 
-type AssistanceTabKey = "manual" | "faq" | "tickets" | "chat";
+type ListTabKey = "manual" | "faq" | "tickets" | "chat";
+type AssistanceTabKey = ListTabKey | "forms";
+type AssistanceFormModule = "guide" | "faq";
+type FormContext = {
+  module: AssistanceFormModule;
+  originTab: ListTabKey;
+};
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
 const STATUS_FILTERS: Array<{
@@ -51,7 +60,7 @@ const TYPE_FILTERS: Array<{ label: string; value: TicketType | undefined }> = [
 ];
 
 const ASSISTANCE_TABS: Array<{
-  key: AssistanceTabKey;
+  key: ListTabKey;
   label: string;
   icon: IoniconName;
 }> = [
@@ -83,7 +92,24 @@ export function TicketListScreen() {
   } = useTicketsStore();
 
   const [activeTab, setActiveTab] = useState<AssistanceTabKey>("tickets");
+  const [formContext, setFormContext] = useState<FormContext | null>(null);
   const [searchText, setSearchText] = useState(search);
+
+  function exitForms() {
+    const origin = formContext?.originTab ?? "manual";
+    setFormContext(null);
+    setActiveTab(origin);
+  }
+
+  function openGuideAdmin() {
+    setFormContext({ module: "guide", originTab: "manual" });
+    setActiveTab("forms");
+  }
+
+  function openFaqAdmin() {
+    setFormContext({ module: "faq", originTab: "faq" });
+    setActiveTab("forms");
+  }
 
   useEffect(() => {
     if (activeTab !== "tickets") return;
@@ -118,7 +144,9 @@ export function TicketListScreen() {
     [router],
   );
 
-  const isPlatform = (user?.platformRoles.length ?? 0) > 0;
+  const isPlatform = ["SUPER_ADMIN", "ADMIN", "SUPPORT", "SALES"].includes(
+    user?.activeRole ?? "",
+  );
   const hasMore = meta ? tickets.length < meta.total : false;
 
   const androidStatusInset =
@@ -142,15 +170,19 @@ export function TicketListScreen() {
   );
 
   const subtitle =
-    activeTab === "tickets"
-      ? isPlatform
-        ? `${meta?.total ?? 0} ticket(s)`
-        : "Mes signalements"
-      : activeTab === "manual"
-        ? "Manuel utilisateur"
-        : activeTab === "faq"
-          ? "Questions fréquentes"
-          : "Discussion en direct";
+    activeTab === "forms"
+      ? formContext?.module === "guide"
+        ? "Administration du guide"
+        : "Administration de la FAQ"
+      : activeTab === "tickets"
+        ? isPlatform
+          ? `${meta?.total ?? 0} ticket(s)`
+          : "Mes signalements"
+        : activeTab === "manual"
+          ? "Manuel utilisateur"
+          : activeTab === "faq"
+            ? "Questions fréquentes"
+            : "Discussion en direct";
 
   const isTicketsTab = activeTab === "tickets";
 
@@ -223,47 +255,80 @@ export function TicketListScreen() {
       <ModuleHeader
         title="Assistance"
         subtitle={subtitle}
-        onBack={() => moduleBack(router)}
+        onBack={() =>
+          activeTab === "forms" ? exitForms() : moduleBack(router)
+        }
         topInset={androidStatusInset}
         testID="ticket-list-header"
       />
 
-      <View style={styles.topTabsWrap}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.topTabsInner}
-        >
-          {ASSISTANCE_TABS.map((tab) => {
-            const isActive = tab.key === activeTab;
-            return (
-              <TouchableOpacity
-                key={tab.key}
-                style={[styles.topTab, isActive && styles.topTabActive]}
-                onPress={() => setActiveTab(tab.key)}
-                activeOpacity={0.7}
-                testID={`assistance-tab-${tab.key}`}
-              >
-                <Ionicons
-                  name={tab.icon}
-                  size={16}
-                  color={isActive ? colors.primary : colors.textSecondary}
-                />
-                <Text
-                  style={[
-                    styles.topTabLabel,
-                    isActive && styles.topTabLabelActive,
-                  ]}
+      {activeTab !== "forms" ? (
+        <View style={styles.topTabsWrap}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.topTabsInner}
+          >
+            {ASSISTANCE_TABS.map((tab) => {
+              const isActive = tab.key === activeTab;
+              return (
+                <TouchableOpacity
+                  key={tab.key}
+                  style={[styles.topTab, isActive && styles.topTabActive]}
+                  onPress={() => setActiveTab(tab.key)}
+                  activeOpacity={0.7}
+                  testID={`assistance-tab-${tab.key}`}
                 >
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
+                  <Ionicons
+                    name={tab.icon}
+                    size={16}
+                    color={isActive ? colors.primary : colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.topTabLabel,
+                      isActive && styles.topTabLabelActive,
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      ) : null}
 
-      {isTicketsTab ? (
+      {activeTab === "forms" && formContext ? (
+        <View style={styles.formsTabContent} testID="assistance-forms-tab">
+          <View style={styles.heroWrapper}>
+            <FormHero
+              icon={
+                formContext.module === "guide"
+                  ? "book-outline"
+                  : "help-circle-outline"
+              }
+              title={
+                formContext.module === "guide"
+                  ? "Gérer le guide utilisateur"
+                  : "Gérer la FAQ"
+              }
+              subtitle={
+                formContext.module === "guide"
+                  ? "Créer un guide et ses chapitres"
+                  : "Créer ou modifier questions et réponses"
+              }
+              palette="primary"
+              testID="assistance-admin-form-hero"
+            />
+          </View>
+          {formContext.module === "guide" ? (
+            <AssistanceGuideAdminForms onDone={exitForms} />
+          ) : (
+            <AssistanceFaqAdminForms onDone={exitForms} />
+          )}
+        </View>
+      ) : isTicketsTab ? (
         <>
           <View style={styles.searchRow}>
             <View style={styles.searchBox}>
@@ -367,9 +432,9 @@ export function TicketListScreen() {
           </TouchableOpacity>
         </>
       ) : activeTab === "manual" ? (
-        <AssistanceGuidePanel />
+        <AssistanceGuidePanel onManage={openGuideAdmin} />
       ) : activeTab === "faq" ? (
-        <AssistanceFaqPanel />
+        <AssistanceFaqPanel onManage={openFaqAdmin} />
       ) : (
         <View style={styles.placeholderContainer}>{placeholder}</View>
       )}
@@ -387,6 +452,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     paddingHorizontal: 16,
+  },
+  formsTabContent: {
+    flex: 1,
+  },
+  heroWrapper: {
+    marginTop: 6,
   },
   topTabsWrap: {
     marginTop: 6,

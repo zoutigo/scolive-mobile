@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -10,55 +10,16 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Controller, useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { colors } from "../../theme";
 import { helpGuidesApi } from "../../api/help-guides.api";
 import type {
   HelpChapterItem,
-  HelpGuideAudience,
   HelpGuideItem,
   HelpGuideScopeType,
   HelpGuideSourceWithPlan,
   HelpPlanNode,
 } from "../../types/help-guides.types";
-import {
-  RichEditorField,
-  type RichEditorFieldRef,
-} from "../editor/RichEditorField";
 
-const guideSchema = z.object({
-  title: z.string().min(3, "Titre requis"),
-  audience: z.enum(["PARENT", "TEACHER", "STUDENT", "SCHOOL_ADMIN", "STAFF"]),
-});
-
-const chapterSchema = z
-  .object({
-    title: z.string().min(3, "Titre requis"),
-    contentType: z.enum(["RICH_TEXT", "VIDEO"]),
-    contentHtml: z.string().optional(),
-    videoUrl: z.string().optional(),
-  })
-  .superRefine((value, ctx) => {
-    if (value.contentType === "RICH_TEXT" && !value.contentHtml?.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["contentHtml"],
-        message: "Contenu requis",
-      });
-    }
-    if (value.contentType === "VIDEO" && !value.videoUrl?.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["videoUrl"],
-        message: "URL vidéo requise",
-      });
-    }
-  });
-
-type GuideFormValues = z.infer<typeof guideSchema>;
-type ChapterFormValues = z.infer<typeof chapterSchema>;
 type GuideViewMode = "plan" | "content";
 type ViewFilter = "all" | "GLOBAL" | "SCHOOL";
 type SearchItem = HelpChapterItem & {
@@ -84,20 +45,17 @@ function flattenPlan(nodes: HelpPlanNode[]): HelpPlanNode[] {
 
 type AssistanceGuidePanelProps = {
   canManageOverride?: boolean;
+  onManage?: () => void;
 };
 
 export function AssistanceGuidePanel({
   canManageOverride = true,
+  onManage,
 }: AssistanceGuidePanelProps) {
-  const editorRef = useRef<RichEditorFieldRef>(null);
   const [permissions, setPermissions] = useState({
     canManageGlobal: false,
     canManageSchool: false,
   });
-  const [schoolScope, setSchoolScope] = useState<{
-    schoolId: string;
-    schoolName: string;
-  } | null>(null);
   const [sources, setSources] = useState<HelpGuideSourceWithPlan[]>([]);
   const [chapter, setChapter] = useState<HelpChapterItem | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<ViewFilter>("all");
@@ -109,28 +67,8 @@ export function AssistanceGuidePanel({
   const [adminGuides, setAdminGuides] = useState<HelpGuideItem[]>([]);
   const [activeGuideId, setActiveGuideId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const guideForm = useForm<GuideFormValues>({
-    resolver: zodResolver(guideSchema),
-    mode: "onChange",
-    defaultValues: {
-      title: "",
-      audience: "PARENT",
-    },
-  });
-
-  const chapterForm = useForm<ChapterFormValues>({
-    resolver: zodResolver(chapterSchema),
-    mode: "onChange",
-    defaultValues: {
-      title: "",
-      contentType: "RICH_TEXT",
-      contentHtml: "",
-      videoUrl: "",
-    },
-  });
   const adminMode = permissions.canManageGlobal
     ? "GLOBAL"
     : permissions.canManageSchool
@@ -159,7 +97,6 @@ export function AssistanceGuidePanel({
           current.permissions.canManageSchool && canManageOverride,
       };
       setPermissions(nextPermissions);
-      setSchoolScope(current.schoolScope);
       setActiveSourceKey(current.defaultSourceKey);
       const resolvedGuideId = guideId ?? null;
       setActiveGuideId(resolvedGuideId);
@@ -249,76 +186,6 @@ export function AssistanceGuidePanel({
         ? current.filter((id) => id !== chapterId)
         : [...current, chapterId],
     );
-  }
-
-  async function createGuide(values: GuideFormValues) {
-    setSaving(true);
-    setError(null);
-    try {
-      const created =
-        adminMode === "SCHOOL"
-          ? await helpGuidesApi.createSchoolGuide({
-              title: values.title,
-              audience: values.audience,
-            })
-          : await helpGuidesApi.createGlobalGuide({
-              title: values.title,
-              audience: values.audience,
-            });
-      guideForm.reset({ title: "", audience: values.audience });
-      await load(created.id);
-    } catch (saveError) {
-      setError(
-        saveError instanceof Error ? saveError.message : "Création impossible",
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function createChapter(values: ChapterFormValues) {
-    if (!activeGuideId) {
-      setError("Aucun guide sélectionné");
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-    try {
-      const payload = {
-        title: values.title,
-        contentType: values.contentType,
-        contentHtml:
-          values.contentType === "RICH_TEXT"
-            ? values.contentHtml?.trim()
-            : undefined,
-        contentJson:
-          values.contentType === "RICH_TEXT" && values.contentHtml?.trim()
-            ? { html: values.contentHtml }
-            : undefined,
-        videoUrl:
-          values.contentType === "VIDEO" ? values.videoUrl?.trim() : undefined,
-      };
-      if (adminMode === "SCHOOL") {
-        await helpGuidesApi.createSchoolChapter(activeGuideId, payload);
-      } else {
-        await helpGuidesApi.createGlobalChapter(activeGuideId, payload);
-      }
-      chapterForm.reset({
-        title: "",
-        contentType: "RICH_TEXT",
-        contentHtml: "",
-        videoUrl: "",
-      });
-      editorRef.current?.clear();
-      await load(activeGuideId);
-    } catch (saveError) {
-      setError(
-        saveError instanceof Error ? saveError.message : "Création impossible",
-      );
-    } finally {
-      setSaving(false);
-    }
   }
 
   if (loading) {
@@ -432,6 +299,17 @@ export function AssistanceGuidePanel({
               </TouchableOpacity>
             ))}
           </View>
+        ) : null}
+
+        {adminMode && onManage ? (
+          <TouchableOpacity
+            style={styles.manageBtn}
+            onPress={onManage}
+            testID="assistance-guide-manage-btn"
+          >
+            <Ionicons name="settings-outline" size={14} color={colors.white} />
+            <Text style={styles.manageBtnLabel}>Gérer le guide</Text>
+          </TouchableOpacity>
         ) : null}
       </View>
 
@@ -581,218 +459,6 @@ export function AssistanceGuidePanel({
           </View>
         )}
       </View>
-
-      {adminMode ? (
-        <View
-          style={styles.adminForms}
-          testID="assistance-guide-admin-forms-mobile"
-        >
-          <Text style={styles.adminTitle}>
-            {adminMode === "SCHOOL"
-              ? `Guide de ${schoolScope?.schoolName ?? "l'école"}`
-              : "Guide Scolive"}
-          </Text>
-          <Text style={styles.adminSubtitle}>
-            {adminMode === "SCHOOL"
-              ? "Administration école"
-              : "Administration plateforme"}
-          </Text>
-          <Controller
-            control={guideForm.control}
-            name="title"
-            render={({ field: { onChange, value }, fieldState }) => (
-              <>
-                <TextInput
-                  style={[styles.input, fieldState.error && styles.inputError]}
-                  placeholder="Titre du guide"
-                  placeholderTextColor={colors.textSecondary}
-                  value={value}
-                  onChangeText={onChange}
-                />
-                {fieldState.error ? (
-                  <Text style={styles.error}>{fieldState.error.message}</Text>
-                ) : null}
-              </>
-            )}
-          />
-
-          <Controller
-            control={guideForm.control}
-            name="audience"
-            render={({ field: { onChange, value } }) => (
-              <View style={styles.audienceRow}>
-                {(
-                  [
-                    "PARENT",
-                    "TEACHER",
-                    "STUDENT",
-                    "SCHOOL_ADMIN",
-                    "STAFF",
-                  ] as HelpGuideAudience[]
-                ).map((item) => (
-                  <TouchableOpacity
-                    key={item}
-                    style={[
-                      styles.audienceChip,
-                      value === item && styles.audienceChipActive,
-                    ]}
-                    onPress={() => onChange(item)}
-                  >
-                    <Text
-                      style={[
-                        styles.audienceChipLabel,
-                        value === item && styles.audienceChipLabelActive,
-                      ]}
-                    >
-                      {item}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          />
-
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={guideForm.handleSubmit(
-              (values) => void createGuide(values),
-            )}
-            disabled={saving}
-          >
-            <Text style={styles.primaryBtnLabel}>Créer guide</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.adminTitle}>Créer un chapitre</Text>
-          <Controller
-            control={chapterForm.control}
-            name="title"
-            render={({ field: { onChange, value }, fieldState }) => (
-              <>
-                <TextInput
-                  style={[styles.input, fieldState.error && styles.inputError]}
-                  placeholder="Titre du chapitre"
-                  placeholderTextColor={colors.textSecondary}
-                  value={value}
-                  onChangeText={onChange}
-                />
-                {fieldState.error ? (
-                  <Text style={styles.error}>{fieldState.error.message}</Text>
-                ) : null}
-              </>
-            )}
-          />
-
-          <Controller
-            control={chapterForm.control}
-            name="contentType"
-            render={({ field: { onChange, value } }) => (
-              <View style={styles.audienceRow}>
-                {(["RICH_TEXT", "VIDEO"] as const).map((item) => (
-                  <TouchableOpacity
-                    key={item}
-                    style={[
-                      styles.audienceChip,
-                      value === item && styles.audienceChipActive,
-                    ]}
-                    onPress={() => onChange(item)}
-                  >
-                    <Text
-                      style={[
-                        styles.audienceChipLabel,
-                        value === item && styles.audienceChipLabelActive,
-                      ]}
-                    >
-                      {item}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          />
-
-          {chapterForm.watch("contentType") === "VIDEO" ? (
-            <Controller
-              control={chapterForm.control}
-              name="videoUrl"
-              render={({ field: { onChange, value }, fieldState }) => (
-                <>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      fieldState.error && styles.inputError,
-                    ]}
-                    placeholder="https://..."
-                    placeholderTextColor={colors.textSecondary}
-                    value={value}
-                    onChangeText={onChange}
-                  />
-                  {fieldState.error ? (
-                    <Text style={styles.error}>{fieldState.error.message}</Text>
-                  ) : null}
-                </>
-              )}
-            />
-          ) : (
-            <Controller
-              control={chapterForm.control}
-              name="contentHtml"
-              render={({ field: { onChange, value }, fieldState }) => (
-                <>
-                  <RichEditorField
-                    ref={editorRef}
-                    initialHtml={value ?? ""}
-                    onChangeHtml={onChange}
-                    placeholder="Contenu du chapitre…"
-                    insertingPlaceholder="Insertion du média…"
-                    colorPresets={[
-                      { label: "Bleu profond", value: "#0C5FA8" },
-                      { label: "Vert école", value: "#217346" },
-                      { label: "Rouge alerte", value: "#B42318" },
-                      { label: "Noir", value: "#1B1F23" },
-                    ]}
-                    labels={{
-                      colorMenuTitle: "Couleur du texte",
-                      colorMenuMessage: "Choisissez une couleur",
-                      cancel: "Annuler",
-                      permissionDeniedTitle: "Permission refusée",
-                      permissionDeniedMessage:
-                        "Autorisez l'accès à la galerie.",
-                      imageErrorTitle: "Image non ajoutée",
-                      imageErrorFallbackMessage:
-                        "Impossible d'ajouter l'image.",
-                      videoErrorTitle: "Vidéo non ajoutée",
-                      videoErrorFallbackMessage:
-                        "Impossible d'ajouter la vidéo.",
-                    }}
-                    onUploadInlineImage={(file) =>
-                      helpGuidesApi.uploadInlineImage(file)
-                    }
-                    onUploadInlineVideo={(file) =>
-                      helpGuidesApi.uploadInlineVideo(file)
-                    }
-                    minHeight={180}
-                    contentCSSText="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.55; padding: 12px;"
-                    editorTestID="assistance-guide-rich-editor-mobile"
-                  />
-                  {fieldState.error ? (
-                    <Text style={styles.error}>{fieldState.error.message}</Text>
-                  ) : null}
-                </>
-              )}
-            />
-          )}
-
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={chapterForm.handleSubmit(
-              (values) => void createChapter(values),
-            )}
-            disabled={saving}
-          >
-            <Text style={styles.primaryBtnLabel}>Créer chapitre</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
     </ScrollView>
   );
 }
@@ -928,6 +594,21 @@ const styles = StyleSheet.create({
   adminChipLabelActive: {
     color: colors.white,
   },
+  manageBtn: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 6,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  manageBtnLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.white,
+  },
   bodyRow: {
     gap: 10,
   },
@@ -1032,80 +713,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: colors.white,
-  },
-  adminForms: {
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    borderRadius: 14,
-    backgroundColor: colors.surface,
-    padding: 10,
-    gap: 8,
-  },
-  adminTitle: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: colors.primary,
-    marginTop: 6,
-  },
-  adminSubtitle: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: -2,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    backgroundColor: colors.warmSurface,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    color: colors.textPrimary,
-    fontSize: 13,
-  },
-  textArea: {
-    minHeight: 90,
-    textAlignVertical: "top",
-  },
-  inputError: {
-    borderColor: colors.notification,
-  },
-  audienceRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-  },
-  audienceChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 99,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.warmSurface,
-  },
-  audienceChipActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  audienceChipLabel: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontWeight: "600",
-  },
-  audienceChipLabelActive: {
-    color: colors.white,
-  },
-  primaryBtn: {
-    marginTop: 2,
-    alignSelf: "flex-start",
-    borderRadius: 10,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  primaryBtnLabel: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: "700",
   },
   error: {
     fontSize: 12,

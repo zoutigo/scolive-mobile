@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
+  Alert,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -9,7 +11,11 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
-import type { FeedComment, FeedPost } from "../../types/feed.types";
+import type {
+  FeedAttachment,
+  FeedComment,
+  FeedPost,
+} from "../../types/feed.types";
 import { useTranslation } from "../../i18n/useTranslation";
 import {
   formatCompactAuthorName,
@@ -132,6 +138,22 @@ export function FeedPostCard({
     setDraftComment((current) => `${current}${emoji}`);
   }
 
+  async function openAttachment(attachment: FeedAttachment) {
+    if (!attachment.fileUrl) return;
+    try {
+      const supported = await Linking.canOpenURL(attachment.fileUrl);
+      if (!supported) {
+        throw new Error("UNSUPPORTED_FEED_ATTACHMENT");
+      }
+      await Linking.openURL(attachment.fileUrl);
+    } catch {
+      Alert.alert(
+        t("feed.errors.openAttachmentTitle"),
+        t("feed.errors.openAttachment"),
+      );
+    }
+  }
+
   return (
     <Pressable
       style={styles.card}
@@ -173,10 +195,18 @@ export function FeedPostCard({
             </Text>
           </View>
           {post.attachments.slice(0, 3).map((attachment) => (
-            <View key={attachment.id} style={styles.attachmentRow}>
-              <Text style={styles.attachmentName}>{attachment.fileName}</Text>
+            <TouchableOpacity
+              key={attachment.id}
+              style={styles.attachmentRow}
+              onPress={() => void openAttachment(attachment)}
+              disabled={!attachment.fileUrl}
+              testID={`feed-post-attachment-${attachment.id}`}
+            >
+              <Text style={styles.attachmentName} numberOfLines={1}>
+                {attachment.fileName}
+              </Text>
               <Text style={styles.attachmentSize}>{attachment.sizeLabel}</Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       ) : null}

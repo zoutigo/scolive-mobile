@@ -13,7 +13,7 @@ import { colors } from "../../theme";
 export type SelectOption = { value: string; label: string };
 
 type Props = {
-  label: string;
+  label?: string;
   value: string;
   options: SelectOption[];
   onChange: (value: string) => void;
@@ -38,7 +38,7 @@ export function SelectField({
 
   return (
     <View style={styles.block}>
-      <Text style={styles.label}>{label}</Text>
+      {label ? <Text style={styles.label}>{label}</Text> : null}
       <TouchableOpacity
         style={[styles.trigger, error && styles.triggerError]}
         activeOpacity={0.8}
@@ -69,7 +69,7 @@ export function SelectField({
           />
           <View style={styles.sheet}>
             <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>{label}</Text>
+              <Text style={styles.sheetTitle}>{label ?? placeholder}</Text>
               <TouchableOpacity
                 onPress={() => setOpen(false)}
                 testID={`${testIDPrefix}-close`}
