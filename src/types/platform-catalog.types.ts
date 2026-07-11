@@ -60,3 +60,25 @@ export type NationalCurriculumRow = {
 export type CreateNationalCurriculumPayload = {
   academicLevelId: string;
 };
+
+export type UpdateNationalCurriculumPayload =
+  Partial<CreateNationalCurriculumPayload>;
+
+export type NationalCurriculumSubjectRow = {
+  id: string;
+  subjectId: string;
+  isMandatory: boolean;
+  coefficient: number | null;
+  weeklyHours: number | null;
+  subject: {
+    id: string;
+    name: string;
+  };
+};
+
+export type UpsertNationalCurriculumSubjectPayload = {
+  subjectId: string;
+  isMandatory?: boolean;
+  coefficient?: number;
+  weeklyHours?: number;
+};
