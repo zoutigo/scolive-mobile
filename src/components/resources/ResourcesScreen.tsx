@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Controller, useForm } from "react-hook-form";
@@ -235,9 +236,6 @@ export function ResourcesScreen() {
   const [moderationItems, setModerationItems] = useState<
     ResourceAdminSubmission[]
   >([]);
-  const [rejectReasons, setRejectReasons] = useState<Record<string, string>>(
-    {},
-  );
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -319,13 +317,17 @@ export function ResourcesScreen() {
   );
 
   useEffect(() => {
-    if (tab === "forms") return;
-    if (tab === "moderation") {
-      void loadModeration(moderationPart);
-      return;
-    }
+    if (tab === "forms" || tab === "moderation") return;
     void loadList(tab);
-  }, [tab, moderationPart, loadList, loadModeration]);
+  }, [tab, loadList]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (tab === "moderation") {
+        void loadModeration(moderationPart);
+      }
+    }, [tab, moderationPart, loadModeration]),
+  );
 
   function goToResourcePart(
     resourceId: string,
@@ -487,56 +489,6 @@ export function ResourcesScreen() {
       return;
     }
     setIsSubmitting(false);
-  }
-
-  async function handleModerationApprove(submissionId: string) {
-    try {
-      await resourcesAdminApi.approveSubmission(submissionId);
-      showSuccess({
-        title: t("resources.toast.successTitle"),
-        message: t("resources.moderation.approveSuccess"),
-      });
-      void loadModeration(moderationPart);
-    } catch (error) {
-      const apiError = error as ApiClientError;
-      showError({
-        title: t("resources.toast.errorTitle"),
-        message:
-          apiError.statusCode === 409
-            ? t("resources.moderation.conflictError")
-            : extractApiError(error),
-      });
-      void loadModeration(moderationPart);
-    }
-  }
-
-  async function handleModerationReject(submissionId: string) {
-    try {
-      await resourcesAdminApi.rejectSubmission(
-        submissionId,
-        rejectReasons[submissionId]?.trim() || undefined,
-      );
-      showSuccess({
-        title: t("resources.toast.successTitle"),
-        message: t("resources.moderation.rejectSuccess"),
-      });
-      setRejectReasons((current) => {
-        const next = { ...current };
-        delete next[submissionId];
-        return next;
-      });
-      void loadModeration(moderationPart);
-    } catch (error) {
-      const apiError = error as ApiClientError;
-      showError({
-        title: t("resources.toast.errorTitle"),
-        message:
-          apiError.statusCode === 409
-            ? t("resources.moderation.conflictError")
-            : extractApiError(error),
-      });
-      void loadModeration(moderationPart);
-    }
   }
 
   const isFormsTab = tab === "forms";
@@ -855,73 +807,57 @@ export function ResourcesScreen() {
             keyExtractor={(item) => item.id}
             testID="resources-moderation-list"
             renderItem={({ item }) => (
-              <View
+              <TouchableOpacity
                 style={styles.moderationCard}
+                activeOpacity={0.7}
+                onPress={() =>
+                  router.push({
+                    pathname:
+                      "/(home)/resources/moderation/[submissionId]" as never,
+                    params: {
+                      submissionId: item.id,
+                      resourceId: item.resourceId,
+                      part: moderationPart,
+                    },
+                  })
+                }
                 testID={`resources-moderation-card-${item.id}`}
               >
-                <Text style={styles.moderationResourceTitle}>
-                  {item.resource.title}
-                </Text>
-                <Text style={styles.meta}>
-                  {item.resource.subject.name} •{" "}
-                  {item.resource.academicLevel.label}
-                  {item.resource.school
-                    ? ` • ${item.resource.school.name}`
-                    : ""}
-                </Text>
-                <Text
-                  style={styles.moderationAuthor}
-                  testID={`resources-moderation-author-${item.id}`}
-                >
-                  {t("resources.moderation.proposedByLabel")}{" "}
-                  {item.authorUser.firstName} {item.authorUser.lastName}
-                </Text>
-                <Text
-                  style={styles.moderationContentPreview}
-                  numberOfLines={4}
-                  testID={`resources-moderation-content-${item.id}`}
-                >
-                  {item.content
-                    .replace(/<[^>]*>/g, " ")
-                    .replace(/\s+/g, " ")
-                    .trim()}
-                </Text>
-                <TextInput
-                  value={rejectReasons[item.id] ?? ""}
-                  onChangeText={(value) =>
-                    setRejectReasons((current) => ({
-                      ...current,
-                      [item.id]: value,
-                    }))
-                  }
-                  placeholder={t(
-                    "resources.moderation.rejectReasonPlaceholder",
-                  )}
-                  placeholderTextColor={colors.textSecondary}
-                  style={styles.moderationReasonInput}
-                  testID={`resources-moderation-reason-${item.id}`}
-                />
-                <View style={styles.moderationActions}>
-                  <TouchableOpacity
-                    style={[styles.moderationBtn, styles.moderationApprove]}
-                    onPress={() => handleModerationApprove(item.id)}
-                    testID={`resources-moderation-approve-${item.id}`}
+                <View style={styles.moderationCardMain}>
+                  <Text style={styles.moderationResourceTitle}>
+                    {item.resource.title}
+                  </Text>
+                  <Text style={styles.meta}>
+                    {item.resource.subject.name} •{" "}
+                    {item.resource.academicLevel.label}
+                    {item.resource.school
+                      ? ` • ${item.resource.school.name}`
+                      : ""}
+                  </Text>
+                  <Text
+                    style={styles.moderationAuthor}
+                    testID={`resources-moderation-author-${item.id}`}
                   >
-                    <Text style={styles.moderationBtnText}>
-                      {t("resources.moderation.approveThis")}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.moderationBtn, styles.moderationReject]}
-                    onPress={() => handleModerationReject(item.id)}
-                    testID={`resources-moderation-reject-${item.id}`}
+                    {t("resources.moderation.proposedByLabel")}{" "}
+                    {item.authorUser.firstName} {item.authorUser.lastName}
+                  </Text>
+                  <Text
+                    style={styles.moderationContentPreview}
+                    numberOfLines={2}
+                    testID={`resources-moderation-content-${item.id}`}
                   >
-                    <Text style={styles.moderationBtnText}>
-                      {t("resources.moderation.rejectThis")}
-                    </Text>
-                  </TouchableOpacity>
+                    {item.content
+                      .replace(/<[^>]*>/g, " ")
+                      .replace(/\s+/g, " ")
+                      .trim()}
+                  </Text>
                 </View>
-              </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
             )}
             emptyComponent={
               <Text
@@ -1411,8 +1347,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.warmBorder,
     padding: 14,
-    gap: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
+  moderationCardMain: { flex: 1, gap: 6 },
   moderationResourceTitle: {
     fontSize: 15,
     fontWeight: "700",
@@ -1431,35 +1370,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textPrimary,
     lineHeight: 18,
-  },
-  moderationReasonInput: {
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 13,
-    color: colors.textPrimary,
-    backgroundColor: colors.surface,
-  },
-  moderationActions: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: -4,
-    marginBottom: 8,
-  },
-  moderationBtn: {
-    flex: 1,
-    borderRadius: 6,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  moderationApprove: { backgroundColor: colors.accentTeal },
-  moderationReject: { backgroundColor: colors.notification },
-  moderationBtnText: {
-    color: colors.white,
-    fontWeight: "700",
-    fontSize: 13,
   },
   fab: {
     position: "absolute",

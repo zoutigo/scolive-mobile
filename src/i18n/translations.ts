@@ -790,6 +790,14 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Cette soumission a déjà été traitée par un autre administrateur.",
     "resources.moderation.approveSuccess": "Soumission validée.",
     "resources.moderation.rejectSuccess": "Soumission rejetée.",
+    "resources.moderation.statementNotApproved":
+      "L'énoncé de cette ressource n'est pas encore validé.",
+    "resources.moderation.reviewHeaderStatement": "Modération — Énoncé",
+    "resources.moderation.reviewHeaderCorrection": "Modération — Corrigé",
+    "resources.moderation.referenceStatementLabel": "Énoncé de référence",
+    "resources.moderation.submissionContentLabel": "Contenu proposé",
+    "resources.moderation.notFound":
+      "Cette soumission n'existe plus ou a déjà été traitée.",
 
     "resources.onboarding.title": "Comment contribuer une ressource",
     "resources.onboarding.step1Title": "1. Créer la fiche",
@@ -2950,6 +2958,14 @@ export const translations: Record<Locale, Record<string, string>> = {
       "This submission was already handled by another administrator.",
     "resources.moderation.approveSuccess": "Submission approved.",
     "resources.moderation.rejectSuccess": "Submission rejected.",
+    "resources.moderation.statementNotApproved":
+      "This resource's statement is not approved yet.",
+    "resources.moderation.reviewHeaderStatement": "Moderation — Statement",
+    "resources.moderation.reviewHeaderCorrection": "Moderation — Correction",
+    "resources.moderation.referenceStatementLabel": "Reference statement",
+    "resources.moderation.submissionContentLabel": "Submitted content",
+    "resources.moderation.notFound":
+      "This submission no longer exists or was already handled.",
 
     "resources.onboarding.title": "How to contribute a resource",
     "resources.onboarding.step1Title": "1. Create the record",

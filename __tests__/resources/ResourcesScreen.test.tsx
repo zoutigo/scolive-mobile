@@ -27,6 +27,14 @@ jest.mock("expo-router", () => ({
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
+jest.mock("@react-navigation/native", () => ({
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
+}));
 
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<
   typeof useAuthStore
@@ -959,16 +967,12 @@ describe("ResourcesScreen — modération", () => {
     mockDefaults();
   });
 
-  it("liste les soumissions en attente et permet d'approuver celle sélectionnée", async () => {
+  it("liste les soumissions en attente et navigue vers l'écran de revue au tap sur la card", async () => {
     mockResourcesAdminApi.listAdminSubmissions.mockResolvedValue({
       items: [BASE_SUBMISSION],
       total: 1,
       page: 1,
       limit: 20,
-    });
-    mockResourcesAdminApi.approveSubmission.mockResolvedValue({
-      ...BASE_RESOURCE,
-      attachments: [],
     });
 
     render(<ResourcesScreen />);
@@ -980,99 +984,30 @@ describe("ResourcesScreen — modération", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByTestId(
-          `resources-moderation-approve-${BASE_SUBMISSION.id}`,
-        ),
+        screen.getByTestId(`resources-moderation-card-${BASE_SUBMISSION.id}`),
       ).toBeTruthy(),
     );
     expect(
       screen.getByTestId(`resources-moderation-author-${BASE_SUBMISSION.id}`),
     ).toBeTruthy();
+    expect(
+      screen.queryByTestId(
+        `resources-moderation-approve-${BASE_SUBMISSION.id}`,
+      ),
+    ).toBeNull();
+
     fireEvent.press(
-      screen.getByTestId(`resources-moderation-approve-${BASE_SUBMISSION.id}`),
+      screen.getByTestId(`resources-moderation-card-${BASE_SUBMISSION.id}`),
     );
 
-    await waitFor(() =>
-      expect(mockResourcesAdminApi.approveSubmission).toHaveBeenCalledWith(
-        BASE_SUBMISSION.id,
-      ),
-    );
-    await waitFor(() =>
-      expect(mockResourcesAdminApi.listAdminSubmissions).toHaveBeenCalledTimes(
-        2,
-      ),
-    );
-  });
-
-  it("rejette une soumission avec le motif saisi", async () => {
-    mockResourcesAdminApi.listAdminSubmissions.mockResolvedValue({
-      items: [BASE_SUBMISSION],
-      total: 1,
-      page: 1,
-      limit: 20,
+    expect(mockRouterPush).toHaveBeenCalledWith({
+      pathname: "/(home)/resources/moderation/[submissionId]",
+      params: {
+        submissionId: BASE_SUBMISSION.id,
+        resourceId: BASE_SUBMISSION.resourceId,
+        part: "statement",
+      },
     });
-    mockResourcesAdminApi.rejectSubmission.mockResolvedValue({
-      ...BASE_SUBMISSION,
-      status: "REJECTED",
-    });
-
-    render(<ResourcesScreen />);
-
-    fireEvent.press(screen.getByTestId("resources-tab-moderation"));
-    await waitFor(() =>
-      expect(
-        screen.getByTestId(`resources-moderation-reject-${BASE_SUBMISSION.id}`),
-      ).toBeTruthy(),
-    );
-    fireEvent.changeText(
-      screen.getByTestId(`resources-moderation-reason-${BASE_SUBMISSION.id}`),
-      "Contenu incomplet",
-    );
-    fireEvent.press(
-      screen.getByTestId(`resources-moderation-reject-${BASE_SUBMISSION.id}`),
-    );
-
-    await waitFor(() =>
-      expect(mockResourcesAdminApi.rejectSubmission).toHaveBeenCalledWith(
-        BASE_SUBMISSION.id,
-        "Contenu incomplet",
-      ),
-    );
-  });
-
-  it("conflit de concurrence (409) : affiche un message explicite et rafraîchit la liste", async () => {
-    mockResourcesAdminApi.listAdminSubmissions.mockResolvedValue({
-      items: [BASE_SUBMISSION],
-      total: 1,
-      page: 1,
-      limit: 20,
-    });
-    mockResourcesAdminApi.approveSubmission.mockRejectedValue(
-      Object.assign(new Error("Conflit"), { statusCode: 409 }),
-    );
-
-    render(<ResourcesScreen />);
-
-    fireEvent.press(screen.getByTestId("resources-tab-moderation"));
-    await waitFor(() =>
-      expect(
-        screen.getByTestId(
-          `resources-moderation-approve-${BASE_SUBMISSION.id}`,
-        ),
-      ).toBeTruthy(),
-    );
-    fireEvent.press(
-      screen.getByTestId(`resources-moderation-approve-${BASE_SUBMISSION.id}`),
-    );
-
-    await waitFor(() =>
-      expect(mockResourcesAdminApi.approveSubmission).toHaveBeenCalled(),
-    );
-    await waitFor(() =>
-      expect(mockResourcesAdminApi.listAdminSubmissions).toHaveBeenCalledTimes(
-        2,
-      ),
-    );
   });
 
   it("bascule entre énoncé et corrigé dans la modération", async () => {
