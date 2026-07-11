@@ -143,21 +143,15 @@ export function ResourceCard(props: {
         ) : null}
       </View>
 
-      {props.showStatuses ? (
+      {props.showStatuses &&
+      resource.correctionContent !== undefined &&
+      resource.correctionContent !== null ? (
         <View style={styles.statusRow}>
           <ResourceStatusBadge
-            label={t("resources.status.statement")}
-            status={resource.statementStatus}
-            testID={`${props.testID}-statement-status`}
+            label={t("resources.status.correction")}
+            status={resource.correctionStatus}
+            testID={`${props.testID}-correction-status`}
           />
-          {resource.correctionContent !== undefined &&
-          resource.correctionContent !== null ? (
-            <ResourceStatusBadge
-              label={t("resources.status.correction")}
-              status={resource.correctionStatus}
-              testID={`${props.testID}-correction-status`}
-            />
-          ) : null}
         </View>
       ) : null}
 

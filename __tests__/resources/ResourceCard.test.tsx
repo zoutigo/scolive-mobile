@@ -270,7 +270,7 @@ describe("ResourceCard", () => {
     expect(screen.queryByTestId("card-edit-btn")).toBeNull();
   });
 
-  it("affiche les badges de statut quand showStatuses est actif", () => {
+  it("affiche uniquement le badge de statut du corrigé quand showStatuses est actif — pas de badge énoncé, déjà porté par le bouton", () => {
     render(
       <ResourceCard
         resource={{
@@ -283,8 +283,22 @@ describe("ResourceCard", () => {
       />,
     );
 
-    expect(screen.getByTestId("card-statement-status")).toBeTruthy();
     expect(screen.getByTestId("card-correction-status")).toBeTruthy();
+    expect(screen.queryByTestId("card-statement-status")).toBeNull();
+  });
+
+  it("n'affiche aucun badge de statut quand il n'y a pas encore de contenu de corrigé, même avec showStatuses actif", () => {
+    render(
+      <ResourceCard
+        resource={BASE_RESOURCE}
+        onPressStatement={() => {}}
+        showStatuses
+        testID="card"
+      />,
+    );
+
+    expect(screen.queryByTestId("card-statement-status")).toBeNull();
+    expect(screen.queryByTestId("card-correction-status")).toBeNull();
   });
 
   it("propose « Proposer un énoncé » quand l'énoncé n'est pas encore approuvé et canContribute est vrai", () => {
@@ -425,7 +439,8 @@ describe("ResourceCard — exclusivité stricte du slot corrigé", () => {
       expectPropose: false,
     },
     {
-      label: "corrigé PENDING, lecteur tiers, canContribute=true (n'importe qui peut proposer)",
+      label:
+        "corrigé PENDING, lecteur tiers, canContribute=true (n'importe qui peut proposer)",
       correctionStatus: "PENDING",
       correctionContent: "<p>Corrigé</p>",
       userId: "someone-else",
@@ -445,7 +460,8 @@ describe("ResourceCard — exclusivité stricte du slot corrigé", () => {
       expectPropose: true,
     },
     {
-      label: "corrigé PENDING, auteur, canContribute=false (browse sans capacité)",
+      label:
+        "corrigé PENDING, auteur, canContribute=false (browse sans capacité)",
       correctionStatus: "PENDING",
       correctionContent: "<p>Corrigé</p>",
       userId: BASE_RESOURCE.authorUserId,
@@ -475,7 +491,8 @@ describe("ResourceCard — exclusivité stricte du slot corrigé", () => {
       expectPropose: true,
     },
     {
-      label: "corrigé rejeté (contenu existant mais non approuvé), auteur, canContribute=true",
+      label:
+        "corrigé rejeté (contenu existant mais non approuvé), auteur, canContribute=true",
       correctionStatus: "REJECTED",
       correctionContent: "<p>Corrigé</p>",
       userId: BASE_RESOURCE.authorUserId,
