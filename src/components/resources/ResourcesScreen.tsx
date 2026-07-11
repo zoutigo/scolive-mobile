@@ -549,7 +549,9 @@ export function ResourcesScreen() {
     if (canSubmit) {
       items.push({ key: "mine", label: t("resources.tabs.mine") });
     }
-    items.push({ key: "favorites", label: t("resources.tabs.favorites") });
+    if (!isPlatformRole) {
+      items.push({ key: "favorites", label: t("resources.tabs.favorites") });
+    }
     if (isPlatformRole) {
       items.push({ key: "moderation", label: t("resources.tabs.moderation") });
     }
@@ -828,7 +830,9 @@ export function ResourcesScreen() {
                 onPressCorrection={() =>
                   goToResourcePart(item.id, "correction")
                 }
-                onToggleFavorite={() => toggleFavorite(item, tab)}
+                onToggleFavorite={
+                  isPlatformRole ? undefined : () => toggleFavorite(item, tab)
+                }
                 onEdit={
                   tab === "mine" ? () => handleEditPress(item, tab) : undefined
                 }
