@@ -794,13 +794,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.onboarding.title": "Comment contribuer une ressource",
     "resources.onboarding.step1Title": "1. Créer la fiche",
     "resources.onboarding.step1Body":
-      "Renseignez les informations générales : matière, niveau, séquence ou type d'examen.",
+      "Renseignez les informations générales : matière, niveau, séquence ou type d'examen. La fiche apparaît ensuite dans l'onglet \"Mes ressources\".",
     "resources.onboarding.step2Title": "2. Proposer un énoncé",
     "resources.onboarding.step2Body":
-      "N'importe quel enseignant peut proposer un énoncé. Plusieurs propositions concurrentes sont possibles ; un administrateur valide la meilleure.",
+      "Depuis l'onglet \"Mes ressources\", proposez l'énoncé de votre fiche. N'importe quel enseignant peut proposer un énoncé concurrent ; la plateforme valide le meilleur.",
     "resources.onboarding.step3Title": "3. Proposer un corrigé",
     "resources.onboarding.step3Body":
-      "Une fois l'énoncé validé, chacun peut proposer un corrigé, avec la même validation concurrente.",
+      'Une fois l\'énoncé validé par la plateforme, chacun peut proposer un corrigé depuis la fiche, toujours en "Mes ressources" : le meilleur corrigé est retenu lors de la validation.',
     "resources.onboarding.dontShowAgain": "Ne plus afficher",
     "resources.onboarding.start": "Commencer",
 
@@ -2954,13 +2954,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.onboarding.title": "How to contribute a resource",
     "resources.onboarding.step1Title": "1. Create the record",
     "resources.onboarding.step1Body":
-      "Fill in the general information: subject, level, sequence or exam type.",
+      'Fill in the general information: subject, level, sequence or exam type. The record then appears in the "My resources" tab.',
     "resources.onboarding.step2Title": "2. Propose a statement",
     "resources.onboarding.step2Body":
-      "Any teacher can propose a statement. Several competing proposals are possible; an administrator approves the best one.",
+      'From the "My resources" tab, propose the statement for your record. Any teacher can propose a competing statement; the platform approves the best one.',
     "resources.onboarding.step3Title": "3. Propose a correction",
     "resources.onboarding.step3Body":
-      "Once the statement is approved, anyone can propose a correction, with the same concurrent review.",
+      'Once the statement is approved by the platform, anyone can propose a correction from the record, still in "My resources": the best correction is retained on approval.',
     "resources.onboarding.dontShowAgain": "Don't show again",
     "resources.onboarding.start": "Get started",
 
