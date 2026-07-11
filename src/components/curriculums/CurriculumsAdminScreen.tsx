@@ -2466,22 +2466,27 @@ export function CurriculumsAdminScreen() {
   const role = user?.activeRole ?? user?.role ?? null;
   const isAllowed =
     role === "SCHOOL_ADMIN" || role === "ADMIN" || role === "SUPER_ADMIN";
+  // Un compte plateforme (SUPER_ADMIN/ADMIN) gère le catalogue NATIONAL, jamais
+  // le catalogue d'une école précise — même si schoolSlug reste en mémoire
+  // depuis un ancien membership école (cf. règle activeRole du projet).
   const isPlatformAdmin = roleAllowsPlatformAdmin(role);
   const tabItems = useMemo<Array<{ key: ListTabKey; label: string }>>(() => {
-    if (!isPlatformAdmin) return BASE_TAB_ITEMS;
-    const nationalTab = {
-      key: "national" as const,
-      label: "Catalogue national",
-    };
-    return schoolSlug ? [...BASE_TAB_ITEMS, nationalTab] : [nationalTab];
-  }, [isPlatformAdmin, schoolSlug]);
+    if (isPlatformAdmin) {
+      return [{ key: "national" as const, label: "Catalogue national" }];
+    }
+    return BASE_TAB_ITEMS;
+  }, [isPlatformAdmin]);
 
   useEffect(() => {
-    if (isPlatformAdmin && !schoolSlug && tab !== "national") {
+    if (isPlatformAdmin && tab !== "national" && tab !== "forms") {
       setTab("national");
     }
-  }, [isPlatformAdmin, schoolSlug, tab]);
-  const subtitle = user ? buildAdminSubtitle(user) : null;
+  }, [isPlatformAdmin, tab]);
+  const subtitle = isPlatformAdmin
+    ? null
+    : user
+      ? buildAdminSubtitle(user)
+      : null;
 
   const orderedLevels = useMemo(
     () => [...levels].sort((a, b) => a.code.localeCompare(b.code)),
@@ -2578,13 +2583,16 @@ export function CurriculumsAdminScreen() {
   );
 
   useEffect(() => {
-    if (!isAllowed) return;
+    if (!isAllowed || isPlatformAdmin) {
+      setLoading(false);
+      return;
+    }
     if (!schoolSlug) {
       setLoading(false);
       return;
     }
     void loadOverview(true);
-  }, [isAllowed, loadOverview, schoolSlug]);
+  }, [isAllowed, isPlatformAdmin, loadOverview, schoolSlug]);
 
   useEffect(() => {
     if (tab !== "subjects") {

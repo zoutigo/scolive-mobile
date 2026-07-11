@@ -268,6 +268,22 @@ describe("CurriculumsAdminScreen — catalogue national", () => {
     });
   });
 
+  it("n'affiche jamais les onglets école (Niveaux/Filières/Matières) pour un SUPER_ADMIN, même avec un schoolSlug actif hérité d'un ancien membership", async () => {
+    mockAuthState = { schoolSlug: "college-vogt", user: makeSuperAdminUser() };
+    nationalLevelsState = [];
+    nationalCurriculumsState = [];
+
+    render(<CurriculumsAdminScreen />);
+
+    expect(await screen.findByTestId("curriculums-national-tab")).toBeTruthy();
+    expect(screen.queryByTestId("curriculums-tab-levels")).toBeNull();
+    expect(screen.queryByTestId("curriculums-tab-tracks")).toBeNull();
+    expect(screen.queryByTestId("curriculums-tab-curriculums")).toBeNull();
+    expect(screen.queryByTestId("curriculums-tab-subjects")).toBeNull();
+    expect(screen.queryByText("collège vogt")).toBeNull();
+    expect(screen.queryByText("college-vogt")).toBeNull();
+  });
+
   it("affiche directement le catalogue national pour un SUPER_ADMIN sans école active (pas de blocage 'École introuvable')", async () => {
     mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
     nationalLevelsState = [
