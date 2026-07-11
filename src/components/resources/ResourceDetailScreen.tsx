@@ -27,7 +27,11 @@ import {
   RichEditorField,
   type RichEditorFieldRef,
 } from "../editor/RichEditorField";
-import { EXAM_TYPE_KEYS, SEQUENCE_LABELS } from "./ResourceCard";
+import {
+  EXAM_TYPE_KEYS,
+  SEQUENCE_LABELS,
+  canContributeToResources,
+} from "./ResourceCard";
 import type {
   ResourceAttachment,
   ResourceDetail,
@@ -56,8 +60,7 @@ export function ResourceDetailScreen(props: {
   const { resourceId, part } = props;
 
   const activeRole = user?.activeRole ?? null;
-  const canContribute =
-    activeRole === "TEACHER" || activeRole === "SCHOOL_ADMIN";
+  const canContribute = canContributeToResources(activeRole);
 
   const [detail, setDetail] = useState<ResourceDetail | null>(null);
   const [mySubmissions, setMySubmissions] = useState<ResourceSubmission[]>([]);
@@ -226,8 +229,11 @@ export function ResourceDetailScreen(props: {
     }
   }
 
+  // Un contenu déjà approuvé n'est jamais accompagné d'un formulaire : on ne
+  // propose de contribuer que tant qu'il n'y a pas encore de version approuvée.
   const showContributionForm =
     canContribute &&
+    !hasApprovedContent &&
     !correctionLocked &&
     (!activeSubmission || activeSubmission.status === "DRAFT");
 
@@ -360,7 +366,7 @@ export function ResourceDetailScreen(props: {
               </View>
             ) : null}
 
-            {canContribute && !correctionLocked ? (
+            {canContribute && !hasApprovedContent && !correctionLocked ? (
               <>
                 <Text style={styles.sectionLabel}>
                   {t("resources.contribution.myContributionLabel")}

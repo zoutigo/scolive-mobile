@@ -154,12 +154,31 @@ describe("ResourcesScreen", () => {
     );
   });
 
-  it("le FAB n'est pas visible pour un rôle qui ne peut pas soumettre", async () => {
+  it("le FAB reste visible pour un parent (module national, aucun rôle scolaire n'est privilégié)", async () => {
     mockUseAuthStore.mockReturnValue({
       user: {
         ...TEACHER_USER,
         memberships: [{ schoolId: "school-1", role: "PARENT" as const }],
         activeRole: "PARENT" as const,
+      },
+    } as never);
+
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-tab-ASSESSMENT")).toBeTruthy(),
+    );
+    expect(screen.getByTestId("resources-fab")).toBeTruthy();
+  });
+
+  it("le FAB n'est pas visible pour un rôle purement plateforme sans rattachement pédagogique", async () => {
+    mockUseAuthStore.mockReturnValue({
+      user: {
+        ...TEACHER_USER,
+        memberships: [] as never[],
+        platformRoles: ["SUPPORT"] as never[],
+        role: "SUPPORT" as const,
+        activeRole: "SUPPORT" as const,
       },
     } as never);
 
@@ -532,14 +551,58 @@ describe("ResourcesScreen", () => {
     ).toBeNull();
   });
 
-  it("liste : le bouton Corrigé est visible pour l'auteur même en attente", async () => {
+  it("liste (Évaluations) : le bouton « Proposer un corrigé » apparaît à l'emplacement du bouton Corrigé tant qu'il n'y a pas de corrigé approuvé, mais Éditer reste réservé à My Resources", async () => {
+    mockResourcesApi.listResources.mockResolvedValue({
+      items: [{ ...BASE_RESOURCE, authorUserId: "someone-else" }],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(
+          `resources-card-${BASE_RESOURCE.id}-propose-correction-btn`,
+        ),
+      ).toBeTruthy(),
+    );
+    expect(
+      screen.queryByTestId(`resources-card-${BASE_RESOURCE.id}-correction-btn`),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId(`resources-card-${BASE_RESOURCE.id}-edit-btn`),
+    ).toBeNull();
+  });
+
+  it("liste (Évaluations) : Éditer reste masqué même pour l'auteur — réservé à l'onglet My Resources", async () => {
+    mockResourcesApi.listResources.mockResolvedValue({
+      items: [{ ...BASE_RESOURCE, authorUserId: TEACHER_USER.id }],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`resources-card-${BASE_RESOURCE.id}`),
+      ).toBeTruthy(),
+    );
+    expect(
+      screen.queryByTestId(`resources-card-${BASE_RESOURCE.id}-edit-btn`),
+    ).toBeNull();
+  });
+
+  it("liste (Évaluations) : le bouton Corrigé (voir, pas proposer) apparaît dès qu'un corrigé approuvé existe", async () => {
     mockResourcesApi.listResources.mockResolvedValue({
       items: [
         {
           ...BASE_RESOURCE,
           correctionContent: "<p>Corrigé</p>",
-          correctionStatus: "PENDING" as const,
-          authorUserId: TEACHER_USER.id,
+          correctionStatus: "APPROVED" as const,
         },
       ],
       total: 1,
@@ -552,6 +615,57 @@ describe("ResourcesScreen", () => {
     await waitFor(() =>
       expect(
         screen.getByTestId(`resources-card-${BASE_RESOURCE.id}-correction-btn`),
+      ).toBeTruthy(),
+    );
+    expect(
+      screen.queryByTestId(
+        `resources-card-${BASE_RESOURCE.id}-propose-correction-btn`,
+      ),
+    ).toBeNull();
+  });
+
+  it("My Resources : le bouton Éditer est visible pour l'auteur sur sa propre ressource", async () => {
+    mockResourcesApi.listMyResources.mockResolvedValue({
+      items: [{ ...BASE_RESOURCE, authorUserId: TEACHER_USER.id }],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-tab-mine")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("resources-tab-mine"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`resources-card-${BASE_RESOURCE.id}-edit-btn`),
+      ).toBeTruthy(),
+    );
+  });
+
+  it("My Resources : le bouton « Proposer un corrigé » est visible pour l'auteur quand l'énoncé est approuvé sans corrigé approuvé", async () => {
+    mockResourcesApi.listMyResources.mockResolvedValue({
+      items: [{ ...BASE_RESOURCE, authorUserId: TEACHER_USER.id }],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-tab-mine")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("resources-tab-mine"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(
+          `resources-card-${BASE_RESOURCE.id}-propose-correction-btn`,
+        ),
       ).toBeTruthy(),
     );
   });

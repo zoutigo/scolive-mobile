@@ -115,7 +115,7 @@ describe("ResourceCard", () => {
     expect(onPressCorrection).toHaveBeenCalledTimes(1);
   });
 
-  it("affiche le bouton Corrigé pour l'auteur même si PENDING", () => {
+  it("RÉGRESSION : jamais les boutons Corrigé et Proposer un corrigé en même temps — l'auteur voit Proposer, pas Corrigé, tant que ce n'est pas approuvé", () => {
     setUser({ id: BASE_RESOURCE.authorUserId });
     render(
       <ResourceCard
@@ -126,14 +126,16 @@ describe("ResourceCard", () => {
         }}
         onPressStatement={() => {}}
         onPressCorrection={() => {}}
+        canContribute
         testID="card"
       />,
     );
 
-    expect(screen.getByTestId("card-correction-btn")).toBeTruthy();
+    expect(screen.queryByTestId("card-correction-btn")).toBeNull();
+    expect(screen.getByTestId("card-propose-correction-btn")).toBeTruthy();
   });
 
-  it("affiche le bouton Corrigé pour un admin plateforme actif même si PENDING", () => {
+  it("RÉGRESSION : un admin plateforme voit Proposer, pas Corrigé, tant que ce n'est pas approuvé", () => {
     setUser({
       id: "admin-1",
       platformRoles: ["SUPER_ADMIN"],
@@ -148,14 +150,16 @@ describe("ResourceCard", () => {
         }}
         onPressStatement={() => {}}
         onPressCorrection={() => {}}
+        canContribute
         testID="card"
       />,
     );
 
-    expect(screen.getByTestId("card-correction-btn")).toBeTruthy();
+    expect(screen.queryByTestId("card-correction-btn")).toBeNull();
+    expect(screen.getByTestId("card-propose-correction-btn")).toBeTruthy();
   });
 
-  it("masque le bouton Corrigé pour un admin plateforme dont le rôle actif n'est pas admin", () => {
+  it("masque tout bouton de corrigé quand canContribute est faux et que le corrigé n'est pas approuvé", () => {
     setUser({
       id: "admin-1",
       platformRoles: ["SUPER_ADMIN"],
@@ -175,30 +179,10 @@ describe("ResourceCard", () => {
     );
 
     expect(screen.queryByTestId("card-correction-btn")).toBeNull();
+    expect(screen.queryByTestId("card-propose-correction-btn")).toBeNull();
   });
 
-  it("masque le bouton Corrigé pour l'auteur dont le rôle actif est parent", () => {
-    setUser({
-      id: BASE_RESOURCE.authorUserId,
-      activeRole: "PARENT",
-    });
-    render(
-      <ResourceCard
-        resource={{
-          ...BASE_RESOURCE,
-          correctionContent: "<p>Corrigé</p>",
-          correctionStatus: "PENDING",
-        }}
-        onPressStatement={() => {}}
-        onPressCorrection={() => {}}
-        testID="card"
-      />,
-    );
-
-    expect(screen.queryByTestId("card-correction-btn")).toBeNull();
-  });
-
-  it("masque le bouton Éditer pour l'auteur dont le rôle actif est parent", () => {
+  it("affiche le bouton Éditer pour l'auteur même si son rôle actif est parent", () => {
     setUser({
       id: BASE_RESOURCE.authorUserId,
       activeRole: "PARENT",
@@ -212,7 +196,7 @@ describe("ResourceCard", () => {
       />,
     );
 
-    expect(screen.queryByTestId("card-edit-btn")).toBeNull();
+    expect(screen.getByTestId("card-edit-btn")).toBeTruthy();
   });
 
   it("ne rend pas le bouton Éditer sans prop onEdit", () => {
@@ -346,6 +330,25 @@ describe("ResourceCard", () => {
     expect(screen.queryByTestId("card-propose-correction-btn")).toBeNull();
   });
 
+  it("affiche le bouton « Voir le corrigé » plutôt que « Proposer » dès qu'un corrigé approuvé existe, même si canContribute est vrai", () => {
+    render(
+      <ResourceCard
+        resource={{
+          ...BASE_RESOURCE,
+          correctionContent: "<p>Corrigé</p>",
+          correctionStatus: "APPROVED",
+        }}
+        onPressStatement={() => {}}
+        onPressCorrection={() => {}}
+        canContribute
+        testID="card"
+      />,
+    );
+
+    expect(screen.getByTestId("card-correction-btn")).toBeTruthy();
+    expect(screen.queryByTestId("card-propose-correction-btn")).toBeNull();
+  });
+
   it("déclenche onToggleFavorite au tap sur l'étoile", () => {
     const onToggleFavorite = jest.fn();
     render(
@@ -360,4 +363,162 @@ describe("ResourceCard", () => {
     fireEvent.press(screen.getByTestId("card-favorite"));
     expect(onToggleFavorite).toHaveBeenCalledTimes(1);
   });
+});
+
+// Règle absolue (voir CLAUDE.md) : le slot "corrigé" d'une card est binaire.
+// Jamais "Voir le corrigé" et "Proposer un corrigé" en même temps, quels que
+// soient le rôle actif, la propriété de la ressource ou canContribute. Cette
+// matrice couvre toutes les combinaisons pour éviter toute régression future.
+describe("ResourceCard — exclusivité stricte du slot corrigé", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const CORRECTION_MATRIX: Array<{
+    label: string;
+    correctionStatus: "PENDING" | "APPROVED" | "REJECTED";
+    correctionContent: string | null;
+    userId: string;
+    activeRole: string | null;
+    canContribute: boolean;
+    expectView: boolean;
+    expectPropose: boolean;
+  }> = [
+    {
+      label: "corrigé approuvé, lecteur tiers, canContribute=false",
+      correctionStatus: "APPROVED",
+      correctionContent: "<p>Corrigé</p>",
+      userId: "someone-else",
+      activeRole: "PARENT",
+      canContribute: false,
+      expectView: true,
+      expectPropose: false,
+    },
+    {
+      label: "corrigé approuvé, auteur, canContribute=true",
+      correctionStatus: "APPROVED",
+      correctionContent: "<p>Corrigé</p>",
+      userId: BASE_RESOURCE.authorUserId,
+      activeRole: "TEACHER",
+      canContribute: true,
+      expectView: true,
+      expectPropose: false,
+    },
+    {
+      label: "corrigé approuvé, admin plateforme, canContribute=true",
+      correctionStatus: "APPROVED",
+      correctionContent: "<p>Corrigé</p>",
+      userId: "admin-1",
+      activeRole: "SUPER_ADMIN",
+      canContribute: true,
+      expectView: true,
+      expectPropose: false,
+    },
+    {
+      label: "corrigé PENDING, lecteur tiers, canContribute=false",
+      correctionStatus: "PENDING",
+      correctionContent: "<p>Corrigé</p>",
+      userId: "someone-else",
+      activeRole: "PARENT",
+      canContribute: false,
+      expectView: false,
+      expectPropose: false,
+    },
+    {
+      label: "corrigé PENDING, lecteur tiers, canContribute=true (n'importe qui peut proposer)",
+      correctionStatus: "PENDING",
+      correctionContent: "<p>Corrigé</p>",
+      userId: "someone-else",
+      activeRole: "PARENT",
+      canContribute: true,
+      expectView: false,
+      expectPropose: true,
+    },
+    {
+      label: "corrigé PENDING, auteur, canContribute=true",
+      correctionStatus: "PENDING",
+      correctionContent: "<p>Corrigé</p>",
+      userId: BASE_RESOURCE.authorUserId,
+      activeRole: "TEACHER",
+      canContribute: true,
+      expectView: false,
+      expectPropose: true,
+    },
+    {
+      label: "corrigé PENDING, auteur, canContribute=false (browse sans capacité)",
+      correctionStatus: "PENDING",
+      correctionContent: "<p>Corrigé</p>",
+      userId: BASE_RESOURCE.authorUserId,
+      activeRole: "TEACHER",
+      canContribute: false,
+      expectView: false,
+      expectPropose: false,
+    },
+    {
+      label: "corrigé admin plateforme, canContribute=true, PENDING",
+      correctionStatus: "PENDING",
+      correctionContent: "<p>Corrigé</p>",
+      userId: "admin-1",
+      activeRole: "SUPER_ADMIN",
+      canContribute: true,
+      expectView: false,
+      expectPropose: true,
+    },
+    {
+      label: "aucun contenu de corrigé, canContribute=true",
+      correctionStatus: "PENDING",
+      correctionContent: null,
+      userId: "someone-else",
+      activeRole: "PARENT",
+      canContribute: true,
+      expectView: false,
+      expectPropose: true,
+    },
+    {
+      label: "corrigé rejeté (contenu existant mais non approuvé), auteur, canContribute=true",
+      correctionStatus: "REJECTED",
+      correctionContent: "<p>Corrigé</p>",
+      userId: BASE_RESOURCE.authorUserId,
+      activeRole: "TEACHER",
+      canContribute: true,
+      expectView: false,
+      expectPropose: true,
+    },
+  ];
+
+  it.each(CORRECTION_MATRIX)(
+    "$label → Voir=$expectView / Proposer=$expectPropose, jamais les deux",
+    ({
+      correctionStatus,
+      correctionContent,
+      userId,
+      activeRole,
+      canContribute,
+      expectView,
+      expectPropose,
+    }) => {
+      setUser({ id: userId, activeRole });
+      render(
+        <ResourceCard
+          resource={{
+            ...BASE_RESOURCE,
+            correctionContent,
+            correctionStatus,
+          }}
+          onPressStatement={() => {}}
+          onPressCorrection={() => {}}
+          canContribute={canContribute}
+          testID="card"
+        />,
+      );
+
+      const viewBtn = screen.queryByTestId("card-correction-btn");
+      const proposeBtn = screen.queryByTestId("card-propose-correction-btn");
+
+      expect(Boolean(viewBtn)).toBe(expectView);
+      expect(Boolean(proposeBtn)).toBe(expectPropose);
+      // Invariant absolu : jamais les deux boutons simultanément.
+      expect(viewBtn && proposeBtn).toBeFalsy();
+    },
+  );
 });

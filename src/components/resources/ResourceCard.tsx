@@ -15,12 +15,16 @@ export function isResourcePlatformAdmin(
   return activeRole === "ADMIN" || activeRole === "SUPER_ADMIN";
 }
 
-const NON_AUTHOR_ROLES = new Set(["PARENT", "STUDENT"]);
+// Le module Ressources est national : aucun rôle scolaire n'a plus de droits
+// qu'un autre pour proposer un énoncé/corrigé, la modération se fait au niveau
+// plateforme (ADMIN/SUPER_ADMIN). Seuls les rôles purement plateforme sans
+// rattachement pédagogique (SALES/SUPPORT) sont exclus.
+const NON_CONTRIBUTOR_ROLES = new Set(["SALES", "SUPPORT"]);
 
-export function canActAsResourceAuthor(
+export function canContributeToResources(
   activeRole: string | null | undefined,
 ): boolean {
-  return activeRole == null || !NON_AUTHOR_ROLES.has(activeRole);
+  return activeRole != null && !NON_CONTRIBUTOR_ROLES.has(activeRole);
 }
 
 export const SEQUENCE_LABELS: Record<string, string> = {
@@ -77,13 +81,15 @@ export function ResourceCard(props: {
   const { resource } = props;
 
   const activeRole = user?.activeRole ?? user?.role ?? null;
-  const isOwner =
-    resource.authorUserId === user?.id && canActAsResourceAuthor(activeRole);
+  const isOwner = resource.authorUserId === user?.id;
   const isAdmin = isResourcePlatformAdmin(activeRole);
   const hasApprovedStatement = resource.statementStatus === "APPROVED";
   const hasApprovedCorrection =
     !!resource.correctionContent && resource.correctionStatus === "APPROVED";
-  const canSeeCorrection = hasApprovedCorrection || isOwner || isAdmin;
+  // Le bouton Corrigé est binaire, jamais les deux à la fois : soit le corrigé
+  // est approuvé et on l'affiche (Voir), soit il ne l'est pas et on propose de
+  // le rédiger (Proposer) — aucun aperçu anticipé pour le propriétaire/admin.
+  const canSeeCorrection = hasApprovedCorrection;
   const canProposeStatement = !!props.canContribute && !hasApprovedStatement;
   const canProposeCorrection =
     !!props.canContribute && hasApprovedStatement && !hasApprovedCorrection;

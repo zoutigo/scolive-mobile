@@ -31,7 +31,11 @@ import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { SelectDropdown, type SelectOption } from "../SelectDropdown";
 import { SelectField } from "../tests-admin/SelectField";
-import { ResourceCard, isResourcePlatformAdmin } from "./ResourceCard";
+import {
+  ResourceCard,
+  canContributeToResources,
+  isResourcePlatformAdmin,
+} from "./ResourceCard";
 import { ResourceCreationOnboardingModal } from "./ResourceCreationOnboardingModal";
 import { moduleBack } from "../../utils/moduleBack";
 import type {
@@ -146,7 +150,7 @@ export function ResourcesScreen() {
 
   const memberships = user?.memberships ?? [];
   const activeRole = user?.activeRole ?? null;
-  const canSubmit = activeRole === "TEACHER" || activeRole === "SCHOOL_ADMIN";
+  const canSubmit = canContributeToResources(activeRole);
   const isPlatformRole = isResourcePlatformAdmin(activeRole);
   const submitterSchoolId = canSubmit
     ? (memberships.find((m) => m.role === activeRole)?.schoolId ?? null)
@@ -825,7 +829,9 @@ export function ResourcesScreen() {
                   goToResourcePart(item.id, "correction")
                 }
                 onToggleFavorite={() => toggleFavorite(item, tab)}
-                onEdit={() => handleEditPress(item, tab)}
+                onEdit={
+                  tab === "mine" ? () => handleEditPress(item, tab) : undefined
+                }
                 canContribute={canSubmit}
                 showStatuses={tab === "mine"}
                 testID={`resources-card-${item.id}`}

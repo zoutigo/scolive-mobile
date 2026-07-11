@@ -68,6 +68,13 @@ const READER_USER = {
   activeRole: "STUDENT" as const,
 };
 
+const SUPPORT_USER = {
+  id: "support-1",
+  memberships: [] as never[],
+  platformRoles: ["SUPPORT"] as never[],
+  activeRole: "SUPPORT" as const,
+};
+
 const BASE_DETAIL: ResourceDetail = {
   id: "res-1",
   kind: "ASSESSMENT",
@@ -173,6 +180,22 @@ describe("ResourceDetailScreen", () => {
     ).toBeNull();
   });
 
+  it("RÉGRESSION : n'affiche jamais le formulaire de contribution sur un contenu déjà approuvé, même pour un contributeur (canContribute=true)", async () => {
+    mockUseAuthStore.mockReturnValue({ user: TEACHER_USER } as never);
+    mockResourcesApi.getResource.mockResolvedValue(BASE_DETAIL);
+    render(<ResourceDetailScreen resourceId="res-1" part="statement" />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("resources-detail-content-statement"),
+      ).toBeTruthy(),
+    );
+    expect(
+      screen.queryByTestId("resources-detail-editor-statement"),
+    ).toBeNull();
+    expect(screen.queryByText("Ma contribution")).toBeNull();
+  });
+
   it("affiche un message quand aucun contenu n'est encore approuvé", async () => {
     mockResourcesApi.getResource.mockResolvedValue({
       ...BASE_DETAIL,
@@ -214,7 +237,8 @@ describe("ResourceDetailScreen", () => {
     openSpy.mockRestore();
   });
 
-  it("un lecteur (élève) ne voit pas la zone de contribution", async () => {
+  it("un rôle purement plateforme (support) ne voit pas la zone de contribution", async () => {
+    mockUseAuthStore.mockReturnValue({ user: SUPPORT_USER } as never);
     mockResourcesApi.getResource.mockResolvedValue(BASE_DETAIL);
     render(<ResourceDetailScreen resourceId="res-1" part="statement" />);
 
@@ -229,11 +253,31 @@ describe("ResourceDetailScreen", () => {
     ).toBeNull();
   });
 
-  it("un membership TEACHER sur une autre école ne donne pas accès à la contribution quand le rôle actif est PARENT", async () => {
+  it("un élève (rôle actif STUDENT) a accès à la contribution : le module ressources est national, aucun rôle scolaire n'est privilégié", async () => {
+    mockUseAuthStore.mockReturnValue({ user: READER_USER } as never);
+    mockResourcesApi.getResource.mockResolvedValue({
+      ...BASE_DETAIL,
+      statementStatus: "PENDING",
+      statementContent: null,
+    });
+    render(<ResourceDetailScreen resourceId="res-1" part="statement" />);
+
+    await waitFor(() =>
+      expect(mockResourcesApi.listSubmissions).toHaveBeenCalledWith(
+        "res-1",
+        "statement",
+      ),
+    );
+    expect(
+      screen.getByTestId("resources-detail-editor-statement"),
+    ).toBeTruthy();
+  });
+
+  it("un membership TEACHER sur une autre école ne donne pas accès à la contribution quand le rôle actif est un rôle plateforme sans rattachement pédagogique", async () => {
     mockUseAuthStore.mockReturnValue({
       user: {
         ...TEACHER_USER,
-        activeRole: "PARENT" as const,
+        activeRole: "SUPPORT" as const,
       },
     } as never);
     mockResourcesApi.getResource.mockResolvedValue({
@@ -270,6 +314,25 @@ describe("ResourceDetailScreen", () => {
     expect(
       screen.queryByTestId("resources-detail-editor-correction"),
     ).toBeNull();
+  });
+
+  it("RÉGRESSION : n'affiche jamais le formulaire de contribution sur un corrigé déjà approuvé, même pour un contributeur (canContribute=true)", async () => {
+    mockUseAuthStore.mockReturnValue({ user: TEACHER_USER } as never);
+    mockResourcesApi.getResource.mockResolvedValue({
+      ...BASE_DETAIL,
+      correctionStatus: "APPROVED",
+    });
+    render(<ResourceDetailScreen resourceId="res-1" part="correction" />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("resources-detail-content-correction"),
+      ).toBeTruthy(),
+    );
+    expect(
+      screen.queryByTestId("resources-detail-editor-correction"),
+    ).toBeNull();
+    expect(screen.queryByText("Ma contribution")).toBeNull();
   });
 
   it("un enseignant peut enregistrer un brouillon puis le soumettre", async () => {
