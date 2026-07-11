@@ -268,6 +268,27 @@ describe("CurriculumsAdminScreen — catalogue national", () => {
     });
   });
 
+  it("affiche directement le catalogue national pour un SUPER_ADMIN sans école active (pas de blocage 'École introuvable')", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+    nationalLevelsState = [
+      {
+        id: "level-1",
+        code: "6EME",
+        label: "6ème",
+        cycle: "SECONDARY",
+        languageSystem: "FRANCOPHONE",
+        isNational: true,
+      },
+    ];
+    nationalCurriculumsState = [];
+
+    render(<CurriculumsAdminScreen />);
+
+    expect(await screen.findByTestId("curriculums-national-tab")).toBeTruthy();
+    expect(screen.queryByText("École introuvable")).toBeNull();
+    expect((await screen.findAllByText("6ème")).length).toBeGreaterThan(0);
+  });
+
   it("affiche l'onglet catalogue national pour un SUPER_ADMIN et liste niveaux + curriculums", async () => {
     mockAuthState = { schoolSlug: "college-vogt", user: makeSuperAdminUser() };
     nationalLevelsState = [

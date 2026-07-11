@@ -2467,13 +2467,20 @@ export function CurriculumsAdminScreen() {
   const isAllowed =
     role === "SCHOOL_ADMIN" || role === "ADMIN" || role === "SUPER_ADMIN";
   const isPlatformAdmin = roleAllowsPlatformAdmin(role);
-  const tabItems = useMemo<Array<{ key: ListTabKey; label: string }>>(
-    () =>
-      isPlatformAdmin
-        ? [...BASE_TAB_ITEMS, { key: "national", label: "Catalogue national" }]
-        : BASE_TAB_ITEMS,
-    [isPlatformAdmin],
-  );
+  const tabItems = useMemo<Array<{ key: ListTabKey; label: string }>>(() => {
+    if (!isPlatformAdmin) return BASE_TAB_ITEMS;
+    const nationalTab = {
+      key: "national" as const,
+      label: "Catalogue national",
+    };
+    return schoolSlug ? [...BASE_TAB_ITEMS, nationalTab] : [nationalTab];
+  }, [isPlatformAdmin, schoolSlug]);
+
+  useEffect(() => {
+    if (isPlatformAdmin && !schoolSlug && tab !== "national") {
+      setTab("national");
+    }
+  }, [isPlatformAdmin, schoolSlug, tab]);
   const subtitle = user ? buildAdminSubtitle(user) : null;
 
   const orderedLevels = useMemo(
@@ -2571,7 +2578,11 @@ export function CurriculumsAdminScreen() {
   );
 
   useEffect(() => {
-    if (!isAllowed || !schoolSlug) return;
+    if (!isAllowed) return;
+    if (!schoolSlug) {
+      setLoading(false);
+      return;
+    }
     void loadOverview(true);
   }, [isAllowed, loadOverview, schoolSlug]);
 
@@ -2939,28 +2950,6 @@ export function CurriculumsAdminScreen() {
     },
   ];
 
-  if (!schoolSlug) {
-    return (
-      <View style={styles.root}>
-        <ModuleHeader
-          title="Curriculums"
-          subtitle={subtitle}
-          onBack={() => moduleBack(router)}
-          testID="curriculums-header"
-          backTestID="curriculums-back-btn"
-          topInset={insets.top}
-        />
-        <View style={styles.stateWrap}>
-          <EmptyState
-            icon="business-outline"
-            title="École introuvable"
-            message="Aucun établissement n'est sélectionné pour ce compte."
-          />
-        </View>
-      </View>
-    );
-  }
-
   if (!isAllowed) {
     return (
       <View style={styles.root}>
@@ -2977,6 +2966,28 @@ export function CurriculumsAdminScreen() {
             icon="lock-closed-outline"
             title="Accès réservé"
             message="Ce module mobile est disponible pour les comptes school admin."
+          />
+        </View>
+      </View>
+    );
+  }
+
+  if (!schoolSlug && !isPlatformAdmin) {
+    return (
+      <View style={styles.root}>
+        <ModuleHeader
+          title="Curriculums"
+          subtitle={subtitle}
+          onBack={() => moduleBack(router)}
+          testID="curriculums-header"
+          backTestID="curriculums-back-btn"
+          topInset={insets.top}
+        />
+        <View style={styles.stateWrap}>
+          <EmptyState
+            icon="business-outline"
+            title="École introuvable"
+            message="Aucun établissement n'est sélectionné pour ce compte."
           />
         </View>
       </View>

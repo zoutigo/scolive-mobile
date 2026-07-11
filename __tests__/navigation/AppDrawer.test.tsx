@@ -181,6 +181,7 @@ describe("Items de navigation — plateforme", () => {
     "schools",
     "users",
     "indicators",
+    "curriculums",
     "admin-tests",
     "messages",
   ];
@@ -192,13 +193,16 @@ describe("Items de navigation — plateforme", () => {
     });
   });
 
-  it("n'affiche plus les modules scolaires (classes, matières, curriculums, inscriptions, élèves) qui n'ont pas de sens au niveau plateforme", () => {
+  it("n'affiche plus les modules scolaires (classes, matières, inscriptions, élèves) qui n'ont pas de sens au niveau plateforme", () => {
     renderDrawer(items);
-    ["classes", "subjects", "curriculums", "enrollments", "students"].forEach(
-      (key) => {
-        expect(screen.queryByTestId(`nav-item-${key}`)).toBeNull();
-      },
-    );
+    ["classes", "subjects", "enrollments", "students"].forEach((key) => {
+      expect(screen.queryByTestId(`nav-item-${key}`)).toBeNull();
+    });
+  });
+
+  it("affiche 'Curriculums' au niveau plateforme (gestion du catalogue national)", () => {
+    renderDrawer(items);
+    expect(screen.getByTestId("nav-item-curriculums")).toBeTruthy();
   });
 
   it("n'affiche plus 'Mon compte' (déplacé vers la bottom tab bar)", () => {

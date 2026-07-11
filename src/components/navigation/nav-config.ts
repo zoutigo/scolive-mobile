@@ -218,6 +218,12 @@ const PLATFORM_NAV: NavItem[] = [
   placeholder("Utilisateurs", "person-outline", "users"),
   placeholder("Indicateurs", "bar-chart-outline", "indicators"),
   {
+    key: "curriculums",
+    label: "Curriculums",
+    icon: "layers-outline",
+    route: "/curriculums",
+  },
+  {
     key: "admin-tests",
     label: "Tests",
     icon: "clipboard-outline",
