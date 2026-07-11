@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -12,6 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as DocumentPicker from "expo-document-picker";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
 import { useSuccessToastStore } from "../../store/success-toast.store";
@@ -21,6 +22,10 @@ import { extractApiError } from "../../utils/api-error";
 import { moduleBack } from "../../utils/moduleBack";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { FormHero } from "../forms/FormHero";
+import {
+  RichEditorField,
+  type RichEditorFieldRef,
+} from "../editor/RichEditorField";
 import { EXAM_TYPE_KEYS, SEQUENCE_LABELS } from "./ResourceCard";
 import type {
   ResourceAttachment,
@@ -53,13 +58,18 @@ export function ModerationReviewScreen(props: {
   const showError = useSuccessToastStore((state) => state.showError);
 
   const [detail, setDetail] = useState<ResourceDetail | null>(null);
-  const [submission, setSubmission] = useState<ResourceSubmission | null>(
-    null,
-  );
+  const [submission, setSubmission] = useState<ResourceSubmission | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [isActing, setIsActing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState("");
+  const [editAttachments, setEditAttachments] = useState<
+    ResourceAttachment[]
+  >([]);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const editorRef = useRef<RichEditorFieldRef>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -97,6 +107,73 @@ export function ModerationReviewScreen(props: {
     part === "correction"
       ? (detail?.attachments ?? []).filter((a) => a.part === "STATEMENT")
       : [];
+
+  function handleStartEdit() {
+    if (!submission) return;
+    setEditContent(submission.content);
+    setEditAttachments(submission.attachments);
+    setIsEditing(true);
+  }
+
+  function handleCancelEdit() {
+    setIsEditing(false);
+  }
+
+  async function handleAddAttachment() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        multiple: true,
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const uploaded = await Promise.all(
+        result.assets.map((asset) =>
+          resourcesApi.uploadAttachment({
+            uri: asset.uri,
+            mimeType: asset.mimeType ?? "application/octet-stream",
+            fileName: asset.name,
+          }),
+        ),
+      );
+      setEditAttachments((current) => [...current, ...uploaded]);
+    } catch {
+      showError({
+        title: t("resources.toast.errorTitle"),
+        message: extractApiError(new Error("resources.errors.addAttachment")),
+      });
+    }
+  }
+
+  async function handleSaveEdit() {
+    if (!submission) return;
+    setIsSavingEdit(true);
+    try {
+      const html = (await editorRef.current?.getContentHtml()) ?? editContent;
+      const updated = await resourcesAdminApi.updateSubmissionContent(
+        submission.id,
+        { content: html.trim(), attachments: editAttachments },
+      );
+      setSubmission(updated);
+      setIsEditing(false);
+      showSuccess({
+        title: t("resources.toast.successTitle"),
+        message: t("resources.moderation.editSuccess"),
+      });
+    } catch (error) {
+      const apiError = error as ApiClientError;
+      showError({
+        title: t("resources.toast.errorTitle"),
+        message:
+          apiError.statusCode === 409
+            ? t("resources.moderation.conflictError")
+            : extractApiError(error),
+      });
+      void load();
+    } finally {
+      setIsSavingEdit(false);
+    }
+  }
 
   async function handleApprove() {
     if (!submission) return;
@@ -269,39 +346,164 @@ export function ModerationReviewScreen(props: {
             </>
           ) : null}
 
-          <Text style={styles.sectionLabel}>
-            {t("resources.moderation.submissionContentLabel")}
-          </Text>
-          <View style={styles.contentCard}>
-            <Text
-              style={styles.contentText}
-              testID="resources-moderation-review-content"
-            >
-              {stripHtml(submission.content)}
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionLabel}>
+              {t("resources.moderation.submissionContentLabel")}
             </Text>
+            {!isEditing ? (
+              <TouchableOpacity
+                onPress={handleStartEdit}
+                testID="resources-moderation-review-edit-start"
+              >
+                <Text style={styles.editLink}>
+                  {t("resources.moderation.editContent")}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
-          {submission.attachments.length > 0 ? (
-            <View style={styles.attachmentsList}>
-              {submission.attachments.map((attachment, idx) => (
+
+          {isEditing ? (
+            <>
+              <RichEditorField
+                ref={editorRef}
+                initialHtml={editContent}
+                placeholder={t("resources.contribution.contentPlaceholder")}
+                insertingPlaceholder={t(
+                  "resources.contribution.insertingImage",
+                )}
+                colorPresets={[]}
+                labels={{
+                  colorMenuTitle: t("resources.contribution.colorMenu.title"),
+                  colorMenuMessage: t(
+                    "resources.contribution.colorMenu.message",
+                  ),
+                  cancel: t("resources.common.cancel"),
+                }}
+                onUploadInlineImage={(file) =>
+                  resourcesApi.uploadInlineImage({
+                    uri: file.uri,
+                    mimeType: file.mimeType,
+                    fileName: file.name,
+                  })
+                }
+                minHeight={160}
+                toolbarTestID="resources-moderation-review-edit-toolbar"
+                editorTestID="resources-moderation-review-edit-editor"
+              />
+              <TouchableOpacity
+                style={styles.addAttachmentBtn}
+                onPress={handleAddAttachment}
+                testID="resources-moderation-review-edit-add-attachment"
+              >
+                <Ionicons
+                  name="attach-outline"
+                  size={16}
+                  color={colors.primary}
+                />
+                <Text style={styles.editLink}>
+                  {t("resources.contribution.addAttachment")}
+                </Text>
+              </TouchableOpacity>
+              {editAttachments.length > 0 ? (
+                <View style={styles.attachmentsList}>
+                  {editAttachments.map((attachment, idx) => (
+                    <View
+                      key={`${attachment.fileName}-${idx}`}
+                      style={styles.attachmentChip}
+                      testID={`resources-moderation-review-edit-attachment-${idx}`}
+                    >
+                      <Ionicons
+                        name="document-outline"
+                        size={14}
+                        color={colors.textSecondary}
+                      />
+                      <Text style={styles.attachmentText} numberOfLines={1}>
+                        {attachment.fileName}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() =>
+                          setEditAttachments((current) =>
+                            current.filter((_, i) => i !== idx),
+                          )
+                        }
+                        hitSlop={8}
+                        testID={`resources-moderation-review-edit-attachment-${idx}-remove`}
+                      >
+                        <Ionicons
+                          name="close-circle"
+                          size={16}
+                          color={colors.textSecondary}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+              <View style={styles.actions}>
                 <TouchableOpacity
-                  key={attachment.id ?? idx}
-                  style={styles.attachmentChip}
-                  onPress={() => openAttachment(attachment.fileUrl)}
-                  disabled={!attachment.fileUrl}
-                  testID={`resources-moderation-review-attachment-${idx}`}
+                  style={styles.cancelBtn}
+                  onPress={handleCancelEdit}
+                  disabled={isSavingEdit}
+                  testID="resources-moderation-review-edit-cancel"
                 >
-                  <Ionicons
-                    name="document-outline"
-                    size={16}
-                    color={colors.primary}
-                  />
-                  <Text style={styles.attachmentText} numberOfLines={1}>
-                    {attachment.fileName}
+                  <Text style={styles.cancelBtnText}>
+                    {t("resources.common.cancel")}
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </View>
-          ) : null}
+                <TouchableOpacity
+                  style={[
+                    styles.btn,
+                    styles.approveBtn,
+                    isSavingEdit && styles.btnDisabled,
+                  ]}
+                  onPress={handleSaveEdit}
+                  disabled={isSavingEdit}
+                  testID="resources-moderation-review-edit-save"
+                >
+                  {isSavingEdit ? (
+                    <ActivityIndicator color={colors.white} size="small" />
+                  ) : (
+                    <Text style={styles.btnText}>
+                      {t("resources.moderation.saveEdit")}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.contentCard}>
+                <Text
+                  style={styles.contentText}
+                  testID="resources-moderation-review-content"
+                >
+                  {stripHtml(submission.content)}
+                </Text>
+              </View>
+              {submission.attachments.length > 0 ? (
+                <View style={styles.attachmentsList}>
+                  {submission.attachments.map((attachment, idx) => (
+                    <TouchableOpacity
+                      key={attachment.id ?? idx}
+                      style={styles.attachmentChip}
+                      onPress={() => openAttachment(attachment.fileUrl)}
+                      disabled={!attachment.fileUrl}
+                      testID={`resources-moderation-review-attachment-${idx}`}
+                    >
+                      <Ionicons
+                        name="document-outline"
+                        size={16}
+                        color={colors.primary}
+                      />
+                      <Text style={styles.attachmentText} numberOfLines={1}>
+                        {attachment.fileName}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : null}
+            </>
+          )}
 
           <TextInput
             value={rejectReason}
@@ -314,9 +516,13 @@ export function ModerationReviewScreen(props: {
 
           <View style={styles.actions}>
             <TouchableOpacity
-              style={[styles.btn, styles.approveBtn, isActing && styles.btnDisabled]}
+              style={[
+                styles.btn,
+                styles.approveBtn,
+                (isActing || isEditing) && styles.btnDisabled,
+              ]}
               onPress={handleApprove}
-              disabled={isActing}
+              disabled={isActing || isEditing}
               testID="resources-moderation-review-approve"
             >
               <Text style={styles.btnText}>
@@ -324,9 +530,13 @@ export function ModerationReviewScreen(props: {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.btn, styles.rejectBtn, isActing && styles.btnDisabled]}
+              style={[
+                styles.btn,
+                styles.rejectBtn,
+                (isActing || isEditing) && styles.btnDisabled,
+              ]}
               onPress={handleReject}
-              disabled={isActing}
+              disabled={isActing || isEditing}
               testID="resources-moderation-review-reject"
             >
               <Text style={styles.btnText}>
@@ -372,6 +582,24 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginTop: 4,
   },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 4,
+  },
+  editLink: { fontSize: 13, fontWeight: "700", color: colors.primary },
+  addAttachmentBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
+  cancelBtn: {
+    flex: 1,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+  },
+  cancelBtnText: { fontSize: 14, fontWeight: "700", color: colors.textSecondary },
   contentCard: {
     backgroundColor: colors.white,
     borderRadius: 12,

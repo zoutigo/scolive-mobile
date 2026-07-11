@@ -796,6 +796,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.moderation.reviewHeaderCorrection": "Modération — Corrigé",
     "resources.moderation.referenceStatementLabel": "Énoncé de référence",
     "resources.moderation.submissionContentLabel": "Contenu proposé",
+    "resources.moderation.editContent": "Modifier",
+    "resources.moderation.saveEdit": "Enregistrer les modifications",
+    "resources.moderation.editSuccess": "Contenu mis à jour.",
     "resources.moderation.notFound":
       "Cette soumission n'existe plus ou a déjà été traitée.",
 
@@ -2964,6 +2967,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.moderation.reviewHeaderCorrection": "Moderation — Correction",
     "resources.moderation.referenceStatementLabel": "Reference statement",
     "resources.moderation.submissionContentLabel": "Submitted content",
+    "resources.moderation.editContent": "Edit",
+    "resources.moderation.saveEdit": "Save changes",
+    "resources.moderation.editSuccess": "Content updated.",
     "resources.moderation.notFound":
       "This submission no longer exists or was already handled.",
 

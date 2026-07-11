@@ -250,6 +250,17 @@ export const resourcesAdminApi = {
     );
   },
 
+  updateSubmissionContent(
+    submissionId: string,
+    payload: SaveSubmissionDraftPayload,
+  ): Promise<ResourceSubmission> {
+    return apiFetch(
+      `/admin/resources/submissions/${submissionId}`,
+      { method: "PATCH", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
   approveSubmission(submissionId: string): Promise<ResourceDetail> {
     return apiFetch(
       `/admin/resources/submissions/${submissionId}/approve`,

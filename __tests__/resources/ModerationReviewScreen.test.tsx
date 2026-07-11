@@ -28,6 +28,24 @@ jest.mock("expo-router", () => ({
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
+jest.mock("../../src/components/editor/RichEditorField", () => {
+  const { forwardRef, useImperativeHandle } = require("react");
+  const { TextInput } = require("react-native");
+  const RichEditorField = forwardRef((props: any, ref: any) => {
+    useImperativeHandle(ref, () => ({
+      getContentHtml: async () => props.initialHtml ?? "",
+    }));
+    return (
+      <TextInput
+        testID={props.editorTestID}
+        value={props.initialHtml}
+        onChangeText={() => {}}
+        placeholder={props.placeholder}
+      />
+    );
+  });
+  return { RichEditorField };
+});
 
 const mockResourcesApi = resourcesApi as jest.Mocked<typeof resourcesApi>;
 const mockResourcesAdminApi = resourcesAdminApi as jest.Mocked<
@@ -141,8 +159,7 @@ describe("ModerationReviewScreen", () => {
         .children,
     ).toBe("Voici l'énoncé complet");
     expect(
-      screen.getByTestId("resources-moderation-review-content").props
-        .children,
+      screen.getByTestId("resources-moderation-review-content").props.children,
     ).toBe("Voici le corrigé proposé");
     expect(screen.getByText(/Léa Dupont/)).toBeTruthy();
     expect(mockResourcesApi.listSubmissions).toHaveBeenCalledWith(
@@ -327,5 +344,130 @@ describe("ModerationReviewScreen", () => {
       expect(mockResourcesApi.listSubmissions).toHaveBeenCalledTimes(2),
     );
     expect(mockRouterNavigate).not.toHaveBeenCalled();
+  });
+
+  it("permet au platform admin d'éditer le contenu proposé avant de l'approuver", async () => {
+    mockResourcesApi.getResource.mockResolvedValue(BASE_DETAIL);
+    mockResourcesApi.listSubmissions.mockResolvedValue([makeSubmission()]);
+    mockResourcesAdminApi.updateSubmissionContent.mockResolvedValue(
+      makeSubmission({ content: "<p>Corrigé par la plateforme</p>" }),
+    );
+
+    render(
+      <ModerationReviewScreen
+        submissionId="sub-1"
+        resourceId="res-1"
+        part="correction"
+      />,
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("resources-moderation-review-edit-start"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId("resources-moderation-review-edit-start"),
+    );
+
+    expect(
+      screen.getByTestId("resources-moderation-review-edit-editor"),
+    ).toBeTruthy();
+    // tant que l'édition est ouverte, on ne peut pas approuver/rejeter par accident
+    expect(
+      screen.getByTestId("resources-moderation-review-approve").props
+        .accessibilityState?.disabled,
+    ).toBe(true);
+
+    fireEvent.press(
+      screen.getByTestId("resources-moderation-review-edit-save"),
+    );
+
+    await waitFor(() =>
+      expect(
+        mockResourcesAdminApi.updateSubmissionContent,
+      ).toHaveBeenCalledWith("sub-1", {
+        content: "<p>Voici le corrigé proposé</p>",
+        attachments: makeSubmission().attachments,
+      }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId("resources-moderation-review-edit-editor"),
+      ).toBeNull(),
+    );
+    expect(
+      screen.getByTestId("resources-moderation-review-content").props
+        .children,
+    ).toBe("Corrigé par la plateforme");
+  });
+
+  it("annule l'édition sans appeler l'API de mise à jour", async () => {
+    mockResourcesApi.getResource.mockResolvedValue(BASE_DETAIL);
+    mockResourcesApi.listSubmissions.mockResolvedValue([makeSubmission()]);
+
+    render(
+      <ModerationReviewScreen
+        submissionId="sub-1"
+        resourceId="res-1"
+        part="correction"
+      />,
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("resources-moderation-review-edit-start"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId("resources-moderation-review-edit-start"),
+    );
+    fireEvent.press(
+      screen.getByTestId("resources-moderation-review-edit-cancel"),
+    );
+
+    expect(
+      screen.queryByTestId("resources-moderation-review-edit-editor"),
+    ).toBeNull();
+    expect(
+      mockResourcesAdminApi.updateSubmissionContent,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("conflit de concurrence (409) lors de l'édition : affiche une erreur et recharge", async () => {
+    mockResourcesApi.getResource.mockResolvedValue(BASE_DETAIL);
+    mockResourcesApi.listSubmissions.mockResolvedValue([makeSubmission()]);
+    mockResourcesAdminApi.updateSubmissionContent.mockRejectedValue(
+      Object.assign(new Error("Conflit"), { statusCode: 409 }),
+    );
+
+    render(
+      <ModerationReviewScreen
+        submissionId="sub-1"
+        resourceId="res-1"
+        part="correction"
+      />,
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("resources-moderation-review-edit-start"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId("resources-moderation-review-edit-start"),
+    );
+    fireEvent.press(
+      screen.getByTestId("resources-moderation-review-edit-save"),
+    );
+
+    await waitFor(() =>
+      expect(
+        mockResourcesAdminApi.updateSubmissionContent,
+      ).toHaveBeenCalled(),
+    );
+    await waitFor(() =>
+      expect(mockResourcesApi.listSubmissions).toHaveBeenCalledTimes(2),
+    );
   });
 });
