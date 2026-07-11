@@ -2,18 +2,50 @@ import { apiFetch } from "./client";
 import type {
   CreateNationalAcademicLevelPayload,
   CreateNationalCurriculumPayload,
+  CreateNationalCyclePayload,
   CreateNationalSubjectPayload,
   NationalAcademicLevelRow,
   NationalCurriculumRow,
   NationalCurriculumSubjectRow,
+  NationalCycleRow,
   NationalSubjectRow,
   UpdateNationalAcademicLevelPayload,
   UpdateNationalCurriculumPayload,
+  UpdateNationalCyclePayload,
   UpdateNationalSubjectPayload,
   UpsertNationalCurriculumSubjectPayload,
 } from "../types/platform-catalog.types";
 
 export const platformCatalogApi = {
+  listNationalCycles(): Promise<NationalCycleRow[]> {
+    return apiFetch("/system/cycles", {}, true);
+  },
+
+  createNationalCycle(
+    payload: CreateNationalCyclePayload,
+  ): Promise<NationalCycleRow> {
+    return apiFetch(
+      "/system/cycles",
+      { method: "POST", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  updateNationalCycle(
+    cycleId: string,
+    payload: UpdateNationalCyclePayload,
+  ): Promise<NationalCycleRow> {
+    return apiFetch(
+      `/system/cycles/${cycleId}`,
+      { method: "PATCH", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  deleteNationalCycle(cycleId: string) {
+    return apiFetch(`/system/cycles/${cycleId}`, { method: "DELETE" }, true);
+  },
+
   listNationalSubjects(): Promise<NationalSubjectRow[]> {
     return apiFetch("/system/subjects", {}, true);
   },

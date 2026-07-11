@@ -56,11 +56,13 @@ import type {
   UpsertCurriculumSubjectPayload,
 } from "../../types/curriculums.types";
 import type {
-  CreateNationalAcademicLevelPayload,
+  CreateNationalCyclePayload,
   NationalAcademicLevelRow,
   NationalCurriculumRow,
   NationalCurriculumSubjectRow,
+  NationalCycleRow,
   NationalSubjectRow,
+  SchoolLanguageSystem,
   UpsertNationalCurriculumSubjectPayload,
 } from "../../types/platform-catalog.types";
 import { moduleBack } from "../../utils/moduleBack";
@@ -69,14 +71,56 @@ import { moduleBack } from "../../utils/moduleBack";
 // Types
 // ---------------------------------------------------------------------------
 
-type ListTabKey =
-  | "levels"
-  | "tracks"
-  | "curriculums"
-  | "subjects"
-  | "national"
-  | "help";
+type ListTabKey = "levels" | "tracks" | "curriculums" | "subjects" | "help";
 type TabKey = ListTabKey | "forms";
+
+type NationalTabKey =
+  | "overview"
+  | "cycles"
+  | "levels"
+  | "curriculums"
+  | "subjects";
+type NationalPaneKey = NationalTabKey | "forms";
+
+type NationalFormContext =
+  | {
+      kind: "cycle";
+      mode: FormMode;
+      originPane: NationalTabKey;
+      id?: string;
+      initialValues?: { code: string; label: string };
+    }
+  | {
+      kind: "level";
+      mode: FormMode;
+      originPane: NationalTabKey;
+      id?: string;
+      initialValues?: {
+        code: string;
+        label: string;
+        cycleId?: string;
+        languageSystem?: SchoolLanguageSystem | "";
+      };
+    }
+  | {
+      kind: "curriculum";
+      mode: FormMode;
+      originPane: NationalTabKey;
+      item?: NationalCurriculumRow | null;
+    }
+  | {
+      kind: "subject";
+      mode: FormMode;
+      originPane: NationalTabKey;
+      id?: string;
+      initialValues?: { code: string; name: string };
+    };
+
+type NationalDeleteTarget =
+  | { kind: "cycle"; id: string; label: string }
+  | { kind: "level"; id: string; label: string }
+  | { kind: "curriculum"; id: string; label: string }
+  | { kind: "subject"; id: string; label: string };
 
 type FormMode = "create" | "edit";
 type LevelTrackKind = "level" | "track";
@@ -134,10 +178,15 @@ const LEVEL_TRACK_FORM_SCHEMA = z.object({
   label: z.string().trim().min(1, "Le libellé est obligatoire."),
 });
 
+const NATIONAL_CYCLE_FORM_SCHEMA = z.object({
+  code: z.string().trim().min(1, "Le code est obligatoire."),
+  label: z.string().trim().min(1, "Le libellé est obligatoire."),
+});
+
 const NATIONAL_LEVEL_FORM_SCHEMA = z.object({
   code: z.string().trim().min(1, "Le code est obligatoire."),
   label: z.string().trim().min(1, "Le libellé est obligatoire."),
-  cycle: z.union([z.literal("PRIMARY"), z.literal("SECONDARY"), z.literal("")]),
+  cycleId: z.string(),
   languageSystem: z.union([
     z.literal("FRANCOPHONE"),
     z.literal("ANGLOPHONE"),
@@ -263,7 +312,6 @@ function rowPaletteForTab(tab: Exclude<ListTabKey, "help">, index: number) {
     tracks: ["#F4FCFA", "#EAF7F4"],
     curriculums: ["#F5FAFF", "#ECF4FB"],
     subjects: ["#FFF7F0", "#FFF0E1"],
-    national: ["#F5FAFF", "#ECF4FB"],
   };
 
   const [base, alternate] = palettes[tab];
@@ -1130,199 +1178,262 @@ function renderFormContent(
 // NationalCatalogSection — catalogue national (plateforme)
 // ---------------------------------------------------------------------------
 
-const NATIONAL_LEVEL_CYCLE_OPTIONS = [
-  { value: "PRIMARY", label: "Primaire" },
-  { value: "SECONDARY", label: "Secondaire" },
-];
-
 const NATIONAL_LEVEL_LANGUAGE_SYSTEM_OPTIONS = [
   { value: "FRANCOPHONE", label: "Francophone" },
   { value: "ANGLOPHONE", label: "Anglophone" },
   { value: "BILINGUAL", label: "Bilingue" },
 ];
 
-function NationalLevelFormContent(props: {
-  mode?: FormMode;
-  initialValues?: {
-    code: string;
-    label: string;
-    cycle?: "PRIMARY" | "SECONDARY" | "";
-    languageSystem?: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL" | "";
-  };
-  isSubmitting: boolean;
-  onCancel?: () => void;
-  onSubmit: (values: {
-    code: string;
-    label: string;
-    cycle?: "PRIMARY" | "SECONDARY";
-    languageSystem?: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL";
-  }) => Promise<void> | void;
+function NationalCycleFormContent(props: {
+  mode: FormMode;
+  initialValues?: { code: string; label: string };
+  isSubmitting?: boolean;
+  onCancel: () => void;
+  onSubmit: (values: CreateNationalCyclePayload) => Promise<void> | void;
 }) {
-  const isEdit = props.mode === "edit";
   const {
     control,
     handleSubmit,
     setFocus: focusField,
-    reset,
+    formState: { errors },
+  } = useForm<z.infer<typeof NATIONAL_CYCLE_FORM_SCHEMA>>({
+    resolver: zodResolver(NATIONAL_CYCLE_FORM_SCHEMA),
+    mode: "onChange",
+    defaultValues: {
+      code: props.initialValues?.code ?? "",
+      label: props.initialValues?.label ?? "",
+    },
+  });
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="national-cycle-form-content"
+    >
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Controller
+          control={control}
+          name="code"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <TextFormField
+              ref={ref}
+              label="Code"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ex: PRIMARY"
+              error={errors.code?.message}
+              testID="national-cycle-form-code"
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="label"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <TextFormField
+              ref={ref}
+              label="Libellé"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ex: Primaire"
+              error={errors.label?.message}
+              testID="national-cycle-form-label"
+            />
+          )}
+        />
+      </ScrollView>
+
+      <View style={styles.formActionsBar}>
+        <FormActions
+          submitLabel={
+            props.mode === "create" ? "Créer le cycle" : "Enregistrer"
+          }
+          isSubmitting={props.isSubmitting}
+          onCancel={props.onCancel}
+          onSubmit={() =>
+            void handleSubmit(
+              async (values) => props.onSubmit(values),
+              (errs) => {
+                const first = Object.keys(errs)[0];
+                if (first)
+                  focusField(first as Parameters<typeof focusField>[0]);
+              },
+            )()
+          }
+          testIDPrefix="national-cycle-form"
+        />
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+function NationalLevelFormContent(props: {
+  cycles: NationalCycleRow[];
+  mode: FormMode;
+  initialValues?: {
+    code: string;
+    label: string;
+    cycleId?: string;
+    languageSystem?: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL" | "";
+  };
+  isSubmitting?: boolean;
+  onCancel: () => void;
+  onSubmit: (values: {
+    code: string;
+    label: string;
+    cycleId?: string;
+    languageSystem?: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL";
+  }) => Promise<void> | void;
+}) {
+  const {
+    control,
+    handleSubmit,
+    setFocus: focusField,
     formState: { errors },
   } = useForm<z.infer<typeof NATIONAL_LEVEL_FORM_SCHEMA>>({
     resolver: zodResolver(NATIONAL_LEVEL_FORM_SCHEMA),
     mode: "onChange",
-    defaultValues: props.initialValues ?? {
-      code: "",
-      label: "",
-      cycle: "",
-      languageSystem: "",
+    defaultValues: {
+      code: props.initialValues?.code ?? "",
+      label: props.initialValues?.label ?? "",
+      cycleId: props.initialValues?.cycleId ?? "",
+      languageSystem: props.initialValues?.languageSystem ?? "",
     },
   });
 
-  const submit = handleSubmit(
-    async (values) => {
-      await props.onSubmit({
-        code: values.code,
-        label: values.label,
-        cycle: values.cycle || undefined,
-        languageSystem: values.languageSystem || undefined,
-      });
-      if (!isEdit) {
-        reset({ code: "", label: "", cycle: "", languageSystem: "" });
-      }
-    },
-    (errs) => {
-      const first = Object.keys(errs)[0];
-      if (first) focusField(first as Parameters<typeof focusField>[0]);
-    },
-  );
-
   return (
-    <View
-      style={styles.nationalForm}
-      testID={
-        isEdit
-          ? "curriculums-national-level-edit-form"
-          : "curriculums-national-level-form"
-      }
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="national-level-form-content"
     >
-      <Controller
-        control={control}
-        name="code"
-        render={({ field: { value, onChange, onBlur, ref } }) => (
-          <TextFormField
-            ref={ref}
-            label="Code"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder="Ex: 6EME"
-            error={errors.code?.message}
-            testID={
-              isEdit
-                ? "curriculums-national-level-edit-code"
-                : "curriculums-national-level-code"
-            }
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="label"
-        render={({ field: { value, onChange, onBlur, ref } }) => (
-          <TextFormField
-            ref={ref}
-            label="Libellé"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder="Ex: 6ème"
-            error={errors.label?.message}
-            testID={
-              isEdit
-                ? "curriculums-national-level-edit-label"
-                : "curriculums-national-level-label"
-            }
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="cycle"
-        render={({ field: { value, onChange } }) => (
-          <CompactSelectField
-            label="Cycle"
-            value={value}
-            onChange={(next) => onChange(next as "" | "PRIMARY" | "SECONDARY")}
-            options={NATIONAL_LEVEL_CYCLE_OPTIONS}
-            placeholder="Sélectionner un cycle"
-            testID={
-              isEdit
-                ? "curriculums-national-level-edit-cycle"
-                : "curriculums-national-level-cycle"
-            }
-            error={errors.cycle?.message}
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="languageSystem"
-        render={({ field: { value, onChange } }) => (
-          <CompactSelectField
-            label="Système linguistique"
-            value={value}
-            onChange={(next) =>
-              onChange(next as "" | "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL")
-            }
-            options={NATIONAL_LEVEL_LANGUAGE_SYSTEM_OPTIONS}
-            placeholder="Sélectionner un système"
-            testID={
-              isEdit
-                ? "curriculums-national-level-edit-language-system"
-                : "curriculums-national-level-language-system"
-            }
-            error={errors.languageSystem?.message}
-          />
-        )}
-      />
-      {isEdit ? (
-        <FormActions
-          submitLabel="Enregistrer"
-          isSubmitting={props.isSubmitting}
-          onCancel={props.onCancel ?? (() => {})}
-          onSubmit={submit}
-          testIDPrefix="curriculums-national-level-edit"
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Controller
+          control={control}
+          name="code"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <TextFormField
+              ref={ref}
+              label="Code"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ex: 6EME"
+              error={errors.code?.message}
+              testID="national-level-form-code"
+            />
+          )}
         />
-      ) : (
-        <TouchableOpacity
-          style={[
-            styles.primaryAction,
-            props.isSubmitting && styles.primaryActionDisabled,
-          ]}
-          disabled={props.isSubmitting}
-          onPress={submit}
-          testID="curriculums-national-level-submit"
-        >
-          <Text style={styles.primaryActionLabel}>
-            {props.isSubmitting ? "Création..." : "Ajouter"}
-          </Text>
-        </TouchableOpacity>
-      )}
-    </View>
+        <Controller
+          control={control}
+          name="label"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <TextFormField
+              ref={ref}
+              label="Libellé"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ex: 6ème"
+              error={errors.label?.message}
+              testID="national-level-form-label"
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="cycleId"
+          render={({ field: { value, onChange } }) => (
+            <CompactSelectField
+              label="Cycle"
+              value={value}
+              onChange={onChange}
+              options={props.cycles.map((cycle) => ({
+                value: cycle.id,
+                label: cycle.label,
+                meta: cycle.code,
+              }))}
+              placeholder="Sélectionner un cycle"
+              testID="national-level-form-cycle"
+              error={errors.cycleId?.message}
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="languageSystem"
+          render={({ field: { value, onChange } }) => (
+            <CompactSelectField
+              label="Système linguistique"
+              value={value}
+              onChange={(next) =>
+                onChange(
+                  next as "" | "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL",
+                )
+              }
+              options={NATIONAL_LEVEL_LANGUAGE_SYSTEM_OPTIONS}
+              placeholder="Sélectionner un système"
+              testID="national-level-form-language-system"
+              error={errors.languageSystem?.message}
+            />
+          )}
+        />
+      </ScrollView>
+
+      <View style={styles.formActionsBar}>
+        <FormActions
+          submitLabel={
+            props.mode === "create" ? "Créer le niveau" : "Enregistrer"
+          }
+          isSubmitting={props.isSubmitting}
+          onCancel={props.onCancel}
+          onSubmit={() =>
+            void handleSubmit(
+              async (values) =>
+                props.onSubmit({
+                  code: values.code,
+                  label: values.label,
+                  cycleId: values.cycleId || undefined,
+                  languageSystem: values.languageSystem || undefined,
+                }),
+              (errs) => {
+                const first = Object.keys(errs)[0];
+                if (first)
+                  focusField(first as Parameters<typeof focusField>[0]);
+              },
+            )()
+          }
+          testIDPrefix="national-level-form"
+        />
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 function NationalCurriculumFormContent(props: {
   levels: NationalAcademicLevelRow[];
-  mode?: FormMode;
+  mode: FormMode;
   initialValues?: { academicLevelId: string };
-  isSubmitting: boolean;
-  onCancel?: () => void;
+  isSubmitting?: boolean;
+  onCancel: () => void;
   onSubmit: (values: { academicLevelId: string }) => Promise<void> | void;
 }) {
-  const isEdit = props.mode === "edit";
   const {
     control,
     handleSubmit,
-    reset,
     formState: { errors },
   } = useForm<z.infer<typeof NATIONAL_CURRICULUM_FORM_SCHEMA>>({
     resolver: zodResolver(NATIONAL_CURRICULUM_FORM_SCHEMA),
@@ -1333,84 +1444,66 @@ function NationalCurriculumFormContent(props: {
     },
   });
 
-  const submit = handleSubmit(async (values) => {
-    await props.onSubmit(values);
-    if (!isEdit) {
-      reset({ academicLevelId: props.levels[0]?.id ?? "" });
-    }
-  });
-
   return (
-    <View
-      style={styles.nationalForm}
-      testID={
-        isEdit
-          ? "curriculums-national-curriculum-edit-form"
-          : "curriculums-national-curriculum-form"
-      }
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="national-curriculum-form-content"
     >
-      <Controller
-        control={control}
-        name="academicLevelId"
-        render={({ field: { value, onChange } }) => (
-          <CompactSelectField
-            label="Niveau académique"
-            value={value}
-            onChange={onChange}
-            options={props.levels.map((level) => ({
-              value: level.id,
-              label: level.label,
-              meta: level.code,
-            }))}
-            testID={
-              isEdit
-                ? "curriculums-national-curriculum-edit-level"
-                : "curriculums-national-curriculum-level"
-            }
-            error={errors.academicLevelId?.message}
-          />
-        )}
-      />
-      {isEdit ? (
-        <FormActions
-          submitLabel="Enregistrer"
-          isSubmitting={props.isSubmitting}
-          onCancel={props.onCancel ?? (() => {})}
-          onSubmit={submit}
-          testIDPrefix="curriculums-national-curriculum-edit"
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Controller
+          control={control}
+          name="academicLevelId"
+          render={({ field: { value, onChange } }) => (
+            <CompactSelectField
+              label="Niveau académique"
+              value={value}
+              onChange={onChange}
+              options={props.levels.map((level) => ({
+                value: level.id,
+                label: level.label,
+                meta: level.code,
+              }))}
+              testID="national-curriculum-form-level"
+              error={errors.academicLevelId?.message}
+            />
+          )}
         />
-      ) : (
-        <TouchableOpacity
-          style={[
-            styles.primaryAction,
-            props.isSubmitting && styles.primaryActionDisabled,
-          ]}
-          disabled={props.isSubmitting}
-          onPress={submit}
-          testID="curriculums-national-curriculum-submit"
-        >
-          <Text style={styles.primaryActionLabel}>
-            {props.isSubmitting ? "Création..." : "Ajouter"}
-          </Text>
-        </TouchableOpacity>
-      )}
-    </View>
+      </ScrollView>
+
+      <View style={styles.formActionsBar}>
+        <FormActions
+          submitLabel={
+            props.mode === "create" ? "Créer le curriculum" : "Enregistrer"
+          }
+          isSubmitting={props.isSubmitting}
+          onCancel={props.onCancel}
+          onSubmit={() =>
+            void handleSubmit(async (values) => props.onSubmit(values))()
+          }
+          testIDPrefix="national-curriculum-form"
+        />
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 function NationalSubjectFormContent(props: {
-  mode?: FormMode;
+  mode: FormMode;
   initialValues?: { code: string; name: string };
-  isSubmitting: boolean;
-  onCancel?: () => void;
+  isSubmitting?: boolean;
+  onCancel: () => void;
   onSubmit: (values: { code: string; name: string }) => Promise<void> | void;
 }) {
-  const isEdit = props.mode === "edit";
   const {
     control,
     handleSubmit,
     setFocus: focusField,
-    reset,
     formState: { errors },
   } = useForm<z.infer<typeof NATIONAL_SUBJECT_FORM_SCHEMA>>({
     resolver: zodResolver(NATIONAL_SUBJECT_FORM_SCHEMA),
@@ -1418,92 +1511,73 @@ function NationalSubjectFormContent(props: {
     defaultValues: props.initialValues ?? { code: "", name: "" },
   });
 
-  const submit = handleSubmit(
-    async (values) => {
-      await props.onSubmit(values);
-      if (!isEdit) {
-        reset({ code: "", name: "" });
-      }
-    },
-    (errs) => {
-      const first = Object.keys(errs)[0];
-      if (first) focusField(first as Parameters<typeof focusField>[0]);
-    },
-  );
-
   return (
-    <View
-      style={styles.nationalForm}
-      testID={
-        isEdit
-          ? "curriculums-national-subject-edit-form"
-          : "curriculums-national-subject-form"
-      }
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="national-subject-form-content"
     >
-      <Controller
-        control={control}
-        name="code"
-        render={({ field: { value, onChange, onBlur, ref } }) => (
-          <TextFormField
-            ref={ref}
-            label="Code"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder="Ex: MATH"
-            error={errors.code?.message}
-            testID={
-              isEdit
-                ? "curriculums-national-subject-edit-code"
-                : "curriculums-national-subject-code"
-            }
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="name"
-        render={({ field: { value, onChange, onBlur, ref } }) => (
-          <TextFormField
-            ref={ref}
-            label="Nom"
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder="Ex: Mathématiques"
-            error={errors.name?.message}
-            testID={
-              isEdit
-                ? "curriculums-national-subject-edit-name"
-                : "curriculums-national-subject-name"
-            }
-          />
-        )}
-      />
-      {isEdit ? (
-        <FormActions
-          submitLabel="Enregistrer"
-          isSubmitting={props.isSubmitting}
-          onCancel={props.onCancel ?? (() => {})}
-          onSubmit={submit}
-          testIDPrefix="curriculums-national-subject-edit"
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Controller
+          control={control}
+          name="code"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <TextFormField
+              ref={ref}
+              label="Code"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ex: MATH"
+              error={errors.code?.message}
+              testID="national-subject-form-code"
+            />
+          )}
         />
-      ) : (
-        <TouchableOpacity
-          style={[
-            styles.primaryAction,
-            props.isSubmitting && styles.primaryActionDisabled,
-          ]}
-          disabled={props.isSubmitting}
-          onPress={submit}
-          testID="curriculums-national-subject-submit"
-        >
-          <Text style={styles.primaryActionLabel}>
-            {props.isSubmitting ? "Création..." : "Ajouter"}
-          </Text>
-        </TouchableOpacity>
-      )}
-    </View>
+        <Controller
+          control={control}
+          name="name"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <TextFormField
+              ref={ref}
+              label="Nom"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ex: Mathématiques"
+              error={errors.name?.message}
+              testID="national-subject-form-name"
+            />
+          )}
+        />
+      </ScrollView>
+
+      <View style={styles.formActionsBar}>
+        <FormActions
+          submitLabel={
+            props.mode === "create" ? "Créer la matière" : "Enregistrer"
+          }
+          isSubmitting={props.isSubmitting}
+          onCancel={props.onCancel}
+          onSubmit={() =>
+            void handleSubmit(
+              async (values) => props.onSubmit(values),
+              (errs) => {
+                const first = Object.keys(errs)[0];
+                if (first)
+                  focusField(first as Parameters<typeof focusField>[0]);
+              },
+            )()
+          }
+          testIDPrefix="national-subject-form"
+        />
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1650,39 +1724,114 @@ function NationalCurriculumSubjectFormContent(props: {
   );
 }
 
-function NationalCatalogSection() {
+const NATIONAL_TAB_ITEMS: Array<{ key: NationalTabKey; label: string }> = [
+  { key: "overview", label: "Vue d'ensemble" },
+  { key: "cycles", label: "Cycles" },
+  { key: "levels", label: "Niveaux" },
+  { key: "curriculums", label: "Curriculums" },
+  { key: "subjects", label: "Matières" },
+];
+
+const NATIONAL_TAB_STYLE_MAP: Record<
+  Exclude<NationalTabKey, "overview">,
+  Exclude<ListTabKey, "help">
+> = {
+  cycles: "levels",
+  levels: "tracks",
+  curriculums: "curriculums",
+  subjects: "subjects",
+};
+
+function nationalAccent(tab: Exclude<NationalTabKey, "overview">) {
+  return accentForTab(NATIONAL_TAB_STYLE_MAP[tab]);
+}
+
+function nationalRowPalette(
+  tab: Exclude<NationalTabKey, "overview">,
+  index: number,
+) {
+  return rowPaletteForTab(NATIONAL_TAB_STYLE_MAP[tab], index);
+}
+
+function nationalFormHeroIcon(
+  ctx: NationalFormContext,
+): React.ComponentProps<typeof Ionicons>["name"] {
+  if (ctx.kind === "cycle") {
+    return ctx.mode === "create" ? "layers-outline" : "create-outline";
+  }
+  if (ctx.kind === "level") {
+    return ctx.mode === "create" ? "school-outline" : "create-outline";
+  }
+  if (ctx.kind === "curriculum") {
+    return ctx.mode === "create" ? "albums-outline" : "create-outline";
+  }
+  return ctx.mode === "create" ? "book-outline" : "create-outline";
+}
+
+function nationalFormHeroTitle(ctx: NationalFormContext): string {
+  if (ctx.kind === "cycle") {
+    return ctx.mode === "create"
+      ? "Créer un cycle national"
+      : "Modifier le cycle national";
+  }
+  if (ctx.kind === "level") {
+    return ctx.mode === "create"
+      ? "Créer un niveau national"
+      : "Modifier le niveau national";
+  }
+  if (ctx.kind === "curriculum") {
+    return ctx.mode === "create"
+      ? "Créer un curriculum national"
+      : "Modifier le curriculum national";
+  }
+  return ctx.mode === "create"
+    ? "Créer une matière nationale"
+    : "Modifier la matière nationale";
+}
+
+function nationalFormHeroSubtitle(ctx: NationalFormContext): string {
+  if (ctx.kind === "cycle") {
+    return "Les cycles structurent les niveaux nationaux (primaire, secondaire...) pour toutes les écoles.";
+  }
+  if (ctx.kind === "level") {
+    return "Rattachez ce niveau à un cycle pour qu'il apparaisse dans le bon regroupement.";
+  }
+  if (ctx.kind === "curriculum") {
+    return "Assemblez un niveau national pour produire un curriculum partagé par toutes les écoles.";
+  }
+  return "Ajoutez une matière au catalogue national. Elle pourra être rattachée à n'importe quel curriculum national.";
+}
+
+function NationalCatalogTabs(props: { onBack: () => void }) {
+  const insets = useSafeAreaInsets();
+  const [pane, setPane] = useState<NationalPaneKey>("overview");
+  const [formContext, setFormContext] = useState<NationalFormContext | null>(
+    null,
+  );
+  const [cycles, setCycles] = useState<NationalCycleRow[]>([]);
   const [levels, setLevels] = useState<NationalAcademicLevelRow[]>([]);
   const [curriculums, setCurriculums] = useState<NationalCurriculumRow[]>([]);
   const [subjects, setSubjects] = useState<NationalSubjectRow[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isSubmittingLevel, setIsSubmittingLevel] = useState(false);
-  const [isSubmittingCurriculum, setIsSubmittingCurriculum] = useState(false);
-  const [isSubmittingSubject, setIsSubmittingSubject] = useState(false);
-  const [editingLevel, setEditingLevel] =
-    useState<NationalAcademicLevelRow | null>(null);
-  const [editingCurriculum, setEditingCurriculum] =
-    useState<NationalCurriculumRow | null>(null);
-  const [editingSubject, setEditingSubject] =
-    useState<NationalSubjectRow | null>(null);
-  const [deleteLevelTarget, setDeleteLevelTarget] =
-    useState<NationalAcademicLevelRow | null>(null);
-  const [deleteCurriculumTarget, setDeleteCurriculumTarget] =
-    useState<NationalCurriculumRow | null>(null);
-  const [deleteSubjectTarget, setDeleteSubjectTarget] =
-    useState<NationalSubjectRow | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [
-    selectedRattachementCurriculumId,
-    setSelectedRattachementCurriculumId,
-  ] = useState("");
   const [curriculumSubjects, setCurriculumSubjects] = useState<
     NationalCurriculumSubjectRow[]
   >([]);
+  const [selectedCurriculumId, setSelectedCurriculumId] = useState("");
+  const [selectedCycleFilterId, setSelectedCycleFilterId] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const [isLoadingCurriculumSubjects, setIsLoadingCurriculumSubjects] =
     useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isSubmittingCycle, setIsSubmittingCycle] = useState(false);
+  const [isSubmittingLevel, setIsSubmittingLevel] = useState(false);
+  const [isSubmittingCurriculum, setIsSubmittingCurriculum] = useState(false);
+  const [isSubmittingSubject, setIsSubmittingSubject] = useState(false);
   const [isSubmittingCurriculumSubject, setIsSubmittingCurriculumSubject] =
     useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<NationalDeleteTarget | null>(
+    null,
+  );
+  const [isDeleting, setIsDeleting] = useState(false);
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
 
@@ -1690,11 +1839,14 @@ function NationalCatalogSection() {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const [levelRows, curriculumRows, subjectRows] = await Promise.all([
-        platformCatalogApi.listNationalAcademicLevels(),
-        platformCatalogApi.listNationalCurriculums(),
-        platformCatalogApi.listNationalSubjects(),
-      ]);
+      const [cycleRows, levelRows, curriculumRows, subjectRows] =
+        await Promise.all([
+          platformCatalogApi.listNationalCycles(),
+          platformCatalogApi.listNationalAcademicLevels(),
+          platformCatalogApi.listNationalCurriculums(),
+          platformCatalogApi.listNationalSubjects(),
+        ]);
+      setCycles(cycleRows);
       setLevels(levelRows);
       setCurriculums(curriculumRows);
       setSubjects(subjectRows);
@@ -1713,9 +1865,9 @@ function NationalCatalogSection() {
     async (curriculumId: string) => {
       setIsLoadingCurriculumSubjects(true);
       try {
-        const rows =
-          await platformCatalogApi.listNationalCurriculumSubjects(curriculumId);
-        setCurriculumSubjects(rows);
+        setCurriculumSubjects(
+          await platformCatalogApi.listNationalCurriculumSubjects(curriculumId),
+        );
       } catch (error) {
         showError({
           title: "Chargement impossible",
@@ -1729,266 +1881,263 @@ function NationalCatalogSection() {
   );
 
   useEffect(() => {
-    if (!selectedRattachementCurriculumId) {
+    if (!selectedCurriculumId) {
       setCurriculumSubjects([]);
       return;
     }
-    void loadCurriculumSubjects(selectedRattachementCurriculumId);
-  }, [selectedRattachementCurriculumId, loadCurriculumSubjects]);
+    void loadCurriculumSubjects(selectedCurriculumId);
+  }, [selectedCurriculumId, loadCurriculumSubjects]);
 
-  const cycleSummaries = useMemo(() => {
-    const cycles: Array<"PRIMARY" | "SECONDARY" | "UNCLASSIFIED"> = [
-      "PRIMARY",
-      "SECONDARY",
-      "UNCLASSIFIED",
-    ];
-    return cycles.map((cycle) => {
-      const levelsForCycle = levels.filter((level) =>
-        cycle === "UNCLASSIFIED" ? !level.cycle : level.cycle === cycle,
-      );
-      return {
-        cycle,
-        count: levelsForCycle.length,
-        languageSystemBreakdown: (
-          ["FRANCOPHONE", "ANGLOPHONE", "BILINGUAL"] as const
-        ).map((languageSystem) => ({
-          languageSystem,
-          count: levelsForCycle.filter(
-            (level) => level.languageSystem === languageSystem,
-          ).length,
-        })),
-      };
-    });
-  }, [levels]);
+  const refreshAll = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    if (selectedCurriculumId) {
+      await loadCurriculumSubjects(selectedCurriculumId);
+    }
+    setRefreshing(false);
+  }, [load, loadCurriculumSubjects, selectedCurriculumId]);
 
-  const handleCreateLevel = useCallback(
-    async (values: CreateNationalAcademicLevelPayload) => {
-      setIsSubmittingLevel(true);
-      try {
+  const orderedCycles = useMemo(
+    () => [...cycles].sort((a, b) => a.code.localeCompare(b.code)),
+    [cycles],
+  );
+  const orderedLevels = useMemo(
+    () => [...levels].sort((a, b) => a.code.localeCompare(b.code)),
+    [levels],
+  );
+  const filteredLevels = useMemo(
+    () =>
+      selectedCycleFilterId
+        ? orderedLevels.filter(
+            (level) => level.cycleId === selectedCycleFilterId,
+          )
+        : orderedLevels,
+    [orderedLevels, selectedCycleFilterId],
+  );
+  const orderedCurriculums = useMemo(
+    () => [...curriculums].sort((a, b) => a.name.localeCompare(b.name)),
+    [curriculums],
+  );
+  const orderedSubjects = useMemo(
+    () => [...subjects].sort((a, b) => a.name.localeCompare(b.name)),
+    [subjects],
+  );
+
+  const cycleBreakdown = useMemo(() => {
+    const unclassifiedCount = levels.filter((level) => !level.cycleId).length;
+    return {
+      perCycle: orderedCycles.map((cycle) => {
+        const levelsForCycle = levels.filter(
+          (level) => level.cycleId === cycle.id,
+        );
+        return {
+          cycle,
+          count: levelsForCycle.length,
+          languageSystemBreakdown: (
+            ["FRANCOPHONE", "ANGLOPHONE", "BILINGUAL"] as const
+          ).map((languageSystem) => ({
+            languageSystem,
+            count: levelsForCycle.filter(
+              (level) => level.languageSystem === languageSystem,
+            ).length,
+          })),
+        };
+      }),
+      unclassifiedCount,
+    };
+  }, [orderedCycles, levels]);
+
+  function exitForms() {
+    const origin = formContext?.originPane ?? "overview";
+    setFormContext(null);
+    setPane(origin);
+  }
+
+  function openFab() {
+    if (pane === "cycles") {
+      setFormContext({ kind: "cycle", mode: "create", originPane: "cycles" });
+      setPane("forms");
+      return;
+    }
+    if (pane === "levels") {
+      setFormContext({
+        kind: "level",
+        mode: "create",
+        originPane: "levels",
+        initialValues: selectedCycleFilterId
+          ? {
+              code: "",
+              label: "",
+              cycleId: selectedCycleFilterId,
+              languageSystem: "",
+            }
+          : undefined,
+      });
+      setPane("forms");
+      return;
+    }
+    if (pane === "curriculums") {
+      setFormContext({
+        kind: "curriculum",
+        mode: "create",
+        originPane: "curriculums",
+        item: null,
+      });
+      setPane("forms");
+      return;
+    }
+    if (pane === "subjects") {
+      setFormContext({
+        kind: "subject",
+        mode: "create",
+        originPane: "subjects",
+      });
+      setPane("forms");
+    }
+  }
+
+  async function handleCycleSubmit(values: CreateNationalCyclePayload) {
+    if (!formContext || formContext.kind !== "cycle") return;
+    const ctx = formContext;
+    setIsSubmittingCycle(true);
+    try {
+      if (ctx.mode === "create") {
+        await platformCatalogApi.createNationalCycle(values);
+      } else if (ctx.id) {
+        await platformCatalogApi.updateNationalCycle(ctx.id, values);
+      }
+      await load();
+      showSuccess({
+        title: ctx.mode === "create" ? "Cycle créé" : "Cycle modifié",
+        message: "Les changements sont visibles pour toutes les écoles.",
+      });
+      const origin = ctx.originPane;
+      setTimeout(() => {
+        setPane(origin);
+        setFormContext(null);
+      }, 2000);
+    } catch (error) {
+      showError({
+        title: "Action impossible",
+        message: extractApiError(error),
+      });
+    } finally {
+      setIsSubmittingCycle(false);
+    }
+  }
+
+  async function handleLevelSubmit(values: {
+    code: string;
+    label: string;
+    cycleId?: string;
+    languageSystem?: SchoolLanguageSystem;
+  }) {
+    if (!formContext || formContext.kind !== "level") return;
+    const ctx = formContext;
+    setIsSubmittingLevel(true);
+    try {
+      if (ctx.mode === "create") {
         await platformCatalogApi.createNationalAcademicLevel(values);
-        showSuccess({
-          title: "Niveau national créé",
-          message: "Le niveau est disponible pour toutes les écoles.",
-        });
-        await load();
-      } catch (error) {
-        showError({
-          title: "Création impossible",
-          message: extractApiError(error),
-        });
-      } finally {
-        setIsSubmittingLevel(false);
+      } else if (ctx.id) {
+        await platformCatalogApi.updateNationalAcademicLevel(ctx.id, values);
       }
-    },
-    [load, showSuccess, showError],
-  );
+      await load();
+      showSuccess({
+        title:
+          ctx.mode === "create"
+            ? "Niveau national créé"
+            : "Niveau national modifié",
+        message: "Les changements sont visibles pour toutes les écoles.",
+      });
+      const origin = ctx.originPane;
+      setTimeout(() => {
+        setPane(origin);
+        setFormContext(null);
+      }, 2000);
+    } catch (error) {
+      showError({
+        title: "Action impossible",
+        message: extractApiError(error),
+      });
+    } finally {
+      setIsSubmittingLevel(false);
+    }
+  }
 
-  const handleCreateCurriculum = useCallback(
-    async (values: { academicLevelId: string }) => {
-      setIsSubmittingCurriculum(true);
-      try {
+  async function handleCurriculumSubmit(values: { academicLevelId: string }) {
+    if (!formContext || formContext.kind !== "curriculum") return;
+    const ctx = formContext;
+    setIsSubmittingCurriculum(true);
+    try {
+      if (ctx.mode === "create") {
         await platformCatalogApi.createNationalCurriculum(values);
-        showSuccess({
-          title: "Curriculum national créé",
-          message: "Le curriculum est disponible pour toutes les écoles.",
-        });
-        await load();
-      } catch (error) {
-        showError({
-          title: "Création impossible",
-          message: extractApiError(error),
-        });
-      } finally {
-        setIsSubmittingCurriculum(false);
+      } else if (ctx.item?.id) {
+        await platformCatalogApi.updateNationalCurriculum(ctx.item.id, values);
       }
-    },
-    [load, showSuccess, showError],
-  );
-
-  const handleDeleteLevel = useCallback(async () => {
-    if (!deleteLevelTarget) return;
-    setIsDeleting(true);
-    try {
-      await platformCatalogApi.deleteNationalAcademicLevel(
-        deleteLevelTarget.id,
-      );
-      showSuccess({
-        title: "Niveau national supprimé",
-        message: "Le niveau a été retiré du catalogue national.",
-      });
-      setDeleteLevelTarget(null);
       await load();
+      showSuccess({
+        title: ctx.mode === "create" ? "Curriculum créé" : "Curriculum modifié",
+        message: "Les changements sont visibles pour toutes les écoles.",
+      });
+      const origin = ctx.originPane;
+      setTimeout(() => {
+        setPane(origin);
+        setFormContext(null);
+      }, 2000);
     } catch (error) {
       showError({
-        title: "Suppression impossible",
+        title: "Action impossible",
         message: extractApiError(error),
       });
     } finally {
-      setIsDeleting(false);
+      setIsSubmittingCurriculum(false);
     }
-  }, [deleteLevelTarget, load, showSuccess, showError]);
+  }
 
-  const handleDeleteCurriculum = useCallback(async () => {
-    if (!deleteCurriculumTarget) return;
-    setIsDeleting(true);
+  async function handleSubjectSubmit(values: { code: string; name: string }) {
+    if (!formContext || formContext.kind !== "subject") return;
+    const ctx = formContext;
+    setIsSubmittingSubject(true);
     try {
-      await platformCatalogApi.deleteNationalCurriculum(
-        deleteCurriculumTarget.id,
-      );
-      showSuccess({
-        title: "Curriculum national supprimé",
-        message: "Le curriculum a été retiré du catalogue national.",
-      });
-      setDeleteCurriculumTarget(null);
-      await load();
-    } catch (error) {
-      showError({
-        title: "Suppression impossible",
-        message: extractApiError(error),
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [deleteCurriculumTarget, load, showSuccess, showError]);
-
-  const handleUpdateLevel = useCallback(
-    async (values: CreateNationalAcademicLevelPayload) => {
-      if (!editingLevel) return;
-      setIsSubmittingLevel(true);
-      try {
-        await platformCatalogApi.updateNationalAcademicLevel(
-          editingLevel.id,
-          values,
-        );
-        showSuccess({
-          title: "Niveau national modifié",
-          message: "Les changements sont visibles pour toutes les écoles.",
-        });
-        setEditingLevel(null);
-        await load();
-      } catch (error) {
-        showError({
-          title: "Modification impossible",
-          message: extractApiError(error),
-        });
-      } finally {
-        setIsSubmittingLevel(false);
-      }
-    },
-    [editingLevel, load, showSuccess, showError],
-  );
-
-  const handleUpdateCurriculum = useCallback(
-    async (values: { academicLevelId: string }) => {
-      if (!editingCurriculum) return;
-      setIsSubmittingCurriculum(true);
-      try {
-        await platformCatalogApi.updateNationalCurriculum(
-          editingCurriculum.id,
-          values,
-        );
-        showSuccess({
-          title: "Curriculum national modifié",
-          message: "Les changements sont visibles pour toutes les écoles.",
-        });
-        setEditingCurriculum(null);
-        await load();
-      } catch (error) {
-        showError({
-          title: "Modification impossible",
-          message: extractApiError(error),
-        });
-      } finally {
-        setIsSubmittingCurriculum(false);
-      }
-    },
-    [editingCurriculum, load, showSuccess, showError],
-  );
-
-  const handleCreateSubject = useCallback(
-    async (values: { code: string; name: string }) => {
-      setIsSubmittingSubject(true);
-      try {
+      if (ctx.mode === "create") {
         await platformCatalogApi.createNationalSubject(values);
-        showSuccess({
-          title: "Matière nationale créée",
-          message: "La matière est disponible pour toutes les écoles.",
-        });
-        await load();
-      } catch (error) {
-        showError({
-          title: "Création impossible",
-          message: extractApiError(error),
-        });
-      } finally {
-        setIsSubmittingSubject(false);
+      } else if (ctx.id) {
+        await platformCatalogApi.updateNationalSubject(ctx.id, values);
       }
-    },
-    [load, showSuccess, showError],
-  );
-
-  const handleUpdateSubject = useCallback(
-    async (values: { code: string; name: string }) => {
-      if (!editingSubject) return;
-      setIsSubmittingSubject(true);
-      try {
-        await platformCatalogApi.updateNationalSubject(
-          editingSubject.id,
-          values,
-        );
-        showSuccess({
-          title: "Matière nationale modifiée",
-          message: "Les changements sont visibles pour toutes les écoles.",
-        });
-        setEditingSubject(null);
-        await load();
-      } catch (error) {
-        showError({
-          title: "Modification impossible",
-          message: extractApiError(error),
-        });
-      } finally {
-        setIsSubmittingSubject(false);
-      }
-    },
-    [editingSubject, load, showSuccess, showError],
-  );
-
-  const handleDeleteSubject = useCallback(async () => {
-    if (!deleteSubjectTarget) return;
-    setIsDeleting(true);
-    try {
-      await platformCatalogApi.deleteNationalSubject(deleteSubjectTarget.id);
-      showSuccess({
-        title: "Matière nationale supprimée",
-        message: "La matière a été retirée du catalogue national.",
-      });
-      setDeleteSubjectTarget(null);
       await load();
+      showSuccess({
+        title: ctx.mode === "create" ? "Matière créée" : "Matière modifiée",
+        message: "Les changements sont visibles pour toutes les écoles.",
+      });
+      const origin = ctx.originPane;
+      setTimeout(() => {
+        setPane(origin);
+        setFormContext(null);
+      }, 2000);
     } catch (error) {
       showError({
-        title: "Suppression impossible",
+        title: "Action impossible",
         message: extractApiError(error),
       });
     } finally {
-      setIsDeleting(false);
+      setIsSubmittingSubject(false);
     }
-  }, [deleteSubjectTarget, load, showSuccess, showError]);
+  }
 
   const handleUpsertCurriculumSubject = useCallback(
     async (values: UpsertNationalCurriculumSubjectPayload) => {
-      if (!selectedRattachementCurriculumId) return;
+      if (!selectedCurriculumId) return;
       setIsSubmittingCurriculumSubject(true);
       try {
         await platformCatalogApi.upsertNationalCurriculumSubject(
-          selectedRattachementCurriculumId,
+          selectedCurriculumId,
           values,
         );
         showSuccess({
           title: "Matière rattachée",
           message: "Le rattachement au curriculum national est enregistré.",
         });
-        await loadCurriculumSubjects(selectedRattachementCurriculumId);
+        await loadCurriculumSubjects(selectedCurriculumId);
         await load();
       } catch (error) {
         showError({
@@ -2000,7 +2149,7 @@ function NationalCatalogSection() {
       }
     },
     [
-      selectedRattachementCurriculumId,
+      selectedCurriculumId,
       loadCurriculumSubjects,
       load,
       showSuccess,
@@ -2010,17 +2159,17 @@ function NationalCatalogSection() {
 
   const handleDeleteCurriculumSubject = useCallback(
     async (subjectId: string) => {
-      if (!selectedRattachementCurriculumId) return;
+      if (!selectedCurriculumId) return;
       try {
         await platformCatalogApi.deleteNationalCurriculumSubject(
-          selectedRattachementCurriculumId,
+          selectedCurriculumId,
           subjectId,
         );
         showSuccess({
           title: "Matière détachée",
           message: "Le rattachement a été retiré du curriculum national.",
         });
-        await loadCurriculumSubjects(selectedRattachementCurriculumId);
+        await loadCurriculumSubjects(selectedCurriculumId);
         await load();
       } catch (error) {
         showError({
@@ -2030,7 +2179,7 @@ function NationalCatalogSection() {
       }
     },
     [
-      selectedRattachementCurriculumId,
+      selectedCurriculumId,
       loadCurriculumSubjects,
       load,
       showSuccess,
@@ -2038,392 +2187,918 @@ function NationalCatalogSection() {
     ],
   );
 
+  async function runDelete(
+    action: () => Promise<void>,
+    successTitle: string,
+    successMessage: string,
+  ) {
+    setIsDeleting(true);
+    try {
+      await action();
+      showSuccess({ title: successTitle, message: successMessage });
+      await load();
+    } catch (error) {
+      showError({
+        title: "Suppression impossible",
+        message: extractApiError(error),
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    setDeleteTarget(null);
+
+    if (target.kind === "cycle") {
+      await runDelete(
+        async () => {
+          await platformCatalogApi.deleteNationalCycle(target.id);
+        },
+        "Cycle supprimé",
+        "Le cycle a été retiré du catalogue national.",
+      );
+      return;
+    }
+    if (target.kind === "level") {
+      await runDelete(
+        async () => {
+          await platformCatalogApi.deleteNationalAcademicLevel(target.id);
+        },
+        "Niveau supprimé",
+        "Le niveau a été retiré du catalogue national.",
+      );
+      return;
+    }
+    if (target.kind === "curriculum") {
+      await runDelete(
+        async () => {
+          await platformCatalogApi.deleteNationalCurriculum(target.id);
+        },
+        "Curriculum supprimé",
+        "Le curriculum a été retiré du catalogue national.",
+      );
+      return;
+    }
+    await runDelete(
+      async () => {
+        await platformCatalogApi.deleteNationalSubject(target.id);
+      },
+      "Matière supprimée",
+      "La matière a été retirée du catalogue national.",
+    );
+  }
+
+  const fabDisabled = pane === "overview" || pane === "forms";
+
   if (isLoading) {
     return (
-      <View testID="curriculums-national-tab">
-        <LoadingBlock label="Chargement du catalogue national..." />
+      <View style={styles.root}>
+        <ModuleHeader
+          title="Catalogue national"
+          subtitle="Structure pédagogique commune à toutes les écoles"
+          onBack={props.onBack}
+          testID="national-catalog-header"
+          backTestID="national-catalog-back-btn"
+          topInset={insets.top}
+        />
+        <View style={styles.stateWrap}>
+          <LoadingBlock label="Chargement du catalogue national..." />
+        </View>
       </View>
     );
   }
 
   return (
-    <View testID="curriculums-national-tab">
-      {errorMessage ? (
-        <ErrorBanner
-          message={errorMessage}
-          onDismiss={() => setErrorMessage(null)}
-          testID="curriculums-national-error-banner"
+    <View style={styles.root}>
+      <ModuleHeader
+        title="Catalogue national"
+        subtitle="Structure pédagogique commune à toutes les écoles"
+        onBack={() => (pane === "forms" ? exitForms() : props.onBack())}
+        testID="national-catalog-header"
+        backTestID="national-catalog-back-btn"
+        topInset={insets.top}
+      />
+
+      {pane !== "forms" ? (
+        <UnderlineTabs
+          items={NATIONAL_TAB_ITEMS}
+          activeKey={pane}
+          onSelect={setPane}
+          testIDPrefix="national-catalog-tab"
         />
       ) : null}
 
-      <SectionCard title="Cycles" testID="curriculums-national-cycles-card">
-        {cycleSummaries.map((summary) => (
-          <View
-            key={summary.cycle}
-            style={styles.nationalRow}
-            testID={`curriculums-national-cycle-row-${summary.cycle}`}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.nationalRowName}>
-                {summary.cycle === "PRIMARY"
-                  ? "Primaire"
-                  : summary.cycle === "SECONDARY"
-                    ? "Secondaire"
-                    : "Non classé"}
-              </Text>
-              <Text style={styles.nationalRowCode}>
-                {formatCount(
-                  summary.count,
-                  "niveau national",
-                  "niveaux nationaux",
-                )}
-              </Text>
-              <Text style={styles.nationalRowCode}>
-                {summary.languageSystemBreakdown
-                  .map(
-                    (entry) =>
-                      `${
-                        NATIONAL_LEVEL_LANGUAGE_SYSTEM_OPTIONS.find(
-                          (option) => option.value === entry.languageSystem,
-                        )?.label
-                      }: ${entry.count}`,
-                  )
-                  .join(" · ")}
-              </Text>
-            </View>
-          </View>
-        ))}
-      </SectionCard>
-
-      <SectionCard
-        title="Niveaux académiques nationaux"
-        testID="curriculums-national-levels-card"
-      >
-        <NationalLevelFormContent
-          isSubmitting={isSubmittingLevel}
-          onSubmit={handleCreateLevel}
-        />
-        {levels.length === 0 ? (
-          <EmptyState
-            icon="albums-outline"
-            title="Aucun niveau national"
-            message="Créez le premier niveau du catalogue national."
-          />
-        ) : (
-          levels.map((level) =>
-            editingLevel?.id === level.id ? (
-              <NationalLevelFormContent
-                key={level.id}
-                mode="edit"
-                initialValues={{
-                  code: level.code,
-                  label: level.label,
-                  cycle: level.cycle ?? "",
-                  languageSystem: level.languageSystem ?? "",
-                }}
-                isSubmitting={isSubmittingLevel}
-                onCancel={() => setEditingLevel(null)}
-                onSubmit={handleUpdateLevel}
-              />
-            ) : (
-              <View
-                key={level.id}
-                style={styles.nationalRow}
-                testID={`curriculums-national-level-row-${level.id}`}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.nationalRowCode}>{level.code}</Text>
-                  <Text style={styles.nationalRowName}>{level.label}</Text>
-                  {level.cycle || level.languageSystem ? (
-                    <Text style={styles.nationalRowCode}>
-                      {[
-                        level.cycle
-                          ? NATIONAL_LEVEL_CYCLE_OPTIONS.find(
-                              (option) => option.value === level.cycle,
-                            )?.label
-                          : null,
-                        level.languageSystem
-                          ? NATIONAL_LEVEL_LANGUAGE_SYSTEM_OPTIONS.find(
-                              (option) => option.value === level.languageSystem,
-                            )?.label
-                          : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </Text>
-                  ) : null}
-                </View>
-                <View style={styles.nationalRowActions}>
-                  <TouchableOpacity
-                    style={styles.secondaryAction}
-                    onPress={() => setEditingLevel(level)}
-                    testID={`curriculums-national-level-edit-${level.id}`}
-                  >
-                    <Text style={styles.secondaryActionLabel}>Modifier</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.secondaryAction}
-                    onPress={() => setDeleteLevelTarget(level)}
-                    testID={`curriculums-national-level-delete-${level.id}`}
-                  >
-                    <Text style={styles.secondaryActionLabel}>Supprimer</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ),
-          )
-        )}
-      </SectionCard>
-
-      <SectionCard
-        title="Curriculums nationaux"
-        testID="curriculums-national-curriculums-card"
-      >
-        <NationalCurriculumFormContent
-          levels={levels}
-          isSubmitting={isSubmittingCurriculum}
-          onSubmit={handleCreateCurriculum}
-        />
-        {curriculums.length === 0 ? (
-          <EmptyState
-            icon="library-outline"
-            title="Aucun curriculum national"
-            message="Créez le premier curriculum du catalogue national."
-          />
-        ) : (
-          curriculums.map((curriculum) =>
-            editingCurriculum?.id === curriculum.id ? (
-              <NationalCurriculumFormContent
-                key={curriculum.id}
-                levels={levels}
-                mode="edit"
-                initialValues={{ academicLevelId: curriculum.academicLevelId }}
-                isSubmitting={isSubmittingCurriculum}
-                onCancel={() => setEditingCurriculum(null)}
-                onSubmit={handleUpdateCurriculum}
-              />
-            ) : (
-              <View
-                key={curriculum.id}
-                style={styles.nationalRow}
-                testID={`curriculums-national-curriculum-row-${curriculum.id}`}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.nationalRowName}>{curriculum.name}</Text>
-                  <Text style={styles.nationalRowCode}>
-                    {curriculum.academicLevel.label}
-                  </Text>
-                </View>
-                <View style={styles.nationalRowActions}>
-                  <TouchableOpacity
-                    style={styles.secondaryAction}
-                    onPress={() => setEditingCurriculum(curriculum)}
-                    testID={`curriculums-national-curriculum-edit-${curriculum.id}`}
-                  >
-                    <Text style={styles.secondaryActionLabel}>Modifier</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.secondaryAction}
-                    onPress={() => setDeleteCurriculumTarget(curriculum)}
-                    testID={`curriculums-national-curriculum-delete-${curriculum.id}`}
-                  >
-                    <Text style={styles.secondaryActionLabel}>Supprimer</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ),
-          )
-        )}
-      </SectionCard>
-
-      <SectionCard
-        title="Matières nationales"
-        testID="curriculums-national-subjects-card"
-      >
-        <NationalSubjectFormContent
-          isSubmitting={isSubmittingSubject}
-          onSubmit={handleCreateSubject}
-        />
-        {subjects.length === 0 ? (
-          <EmptyState
-            icon="book-outline"
-            title="Aucune matière nationale"
-            message="Créez la première matière du catalogue national."
-          />
-        ) : (
-          subjects.map((subject) =>
-            editingSubject?.id === subject.id ? (
-              <NationalSubjectFormContent
-                key={subject.id}
-                mode="edit"
-                initialValues={{ code: subject.code, name: subject.name }}
-                isSubmitting={isSubmittingSubject}
-                onCancel={() => setEditingSubject(null)}
-                onSubmit={handleUpdateSubject}
-              />
-            ) : (
-              <View
-                key={subject.id}
-                style={styles.nationalRow}
-                testID={`curriculums-national-subject-row-${subject.id}`}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.nationalRowCode}>{subject.code}</Text>
-                  <Text style={styles.nationalRowName}>{subject.name}</Text>
-                </View>
-                <View style={styles.nationalRowActions}>
-                  <TouchableOpacity
-                    style={styles.secondaryAction}
-                    onPress={() => setEditingSubject(subject)}
-                    testID={`curriculums-national-subject-edit-${subject.id}`}
-                  >
-                    <Text style={styles.secondaryActionLabel}>Modifier</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.secondaryAction}
-                    onPress={() => setDeleteSubjectTarget(subject)}
-                    testID={`curriculums-national-subject-delete-${subject.id}`}
-                  >
-                    <Text style={styles.secondaryActionLabel}>Supprimer</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ),
-          )
-        )}
-      </SectionCard>
-
-      <SectionCard
-        title="Rattachement à un curriculum national"
-        testID="curriculums-national-rattachement-card"
-      >
-        <CompactSelectField
-          label="Curriculum national"
-          value={selectedRattachementCurriculumId}
-          onChange={setSelectedRattachementCurriculumId}
-          options={curriculums.map((curriculum) => ({
-            value: curriculum.id,
-            label: curriculum.name,
-          }))}
-          placeholder="Sélectionner un curriculum"
-          testID="curriculums-national-rattachement-curriculum"
-        />
-        {!selectedRattachementCurriculumId ? (
-          <EmptyState
-            icon="link-outline"
-            title="Aucun curriculum sélectionné"
-            message="Sélectionnez un curriculum national pour gérer ses matières."
-          />
-        ) : isLoadingCurriculumSubjects ? (
-          <LoadingBlock label="Chargement des matières..." />
-        ) : (
-          <>
-            <NationalCurriculumSubjectFormContent
-              subjects={subjects}
-              isSubmitting={isSubmittingCurriculumSubject}
-              onSubmit={handleUpsertCurriculumSubject}
+      {pane === "forms" && formContext ? (
+        <View
+          style={styles.formsTabContent}
+          testID="national-catalog-forms-tab"
+        >
+          <View style={styles.heroWrapper}>
+            <FormHero
+              icon={nationalFormHeroIcon(formContext)}
+              title={nationalFormHeroTitle(formContext)}
+              subtitle={nationalFormHeroSubtitle(formContext)}
+              palette={formContext.mode === "create" ? "teal" : "warm"}
+              testID="national-catalog-form-hero"
             />
-            {curriculumSubjects.length === 0 ? (
-              <EmptyState
-                icon="book-outline"
-                title="Aucune matière rattachée"
-                message="Ajoutez une matière ci-dessus."
+          </View>
+          {formContext.kind === "cycle" ? (
+            <NationalCycleFormContent
+              mode={formContext.mode}
+              initialValues={formContext.initialValues}
+              isSubmitting={isSubmittingCycle}
+              onCancel={exitForms}
+              onSubmit={handleCycleSubmit}
+            />
+          ) : null}
+          {formContext.kind === "level" ? (
+            <NationalLevelFormContent
+              cycles={orderedCycles}
+              mode={formContext.mode}
+              initialValues={formContext.initialValues}
+              isSubmitting={isSubmittingLevel}
+              onCancel={exitForms}
+              onSubmit={handleLevelSubmit}
+            />
+          ) : null}
+          {formContext.kind === "curriculum" ? (
+            <NationalCurriculumFormContent
+              levels={orderedLevels}
+              mode={formContext.mode}
+              initialValues={
+                formContext.item
+                  ? { academicLevelId: formContext.item.academicLevelId }
+                  : undefined
+              }
+              isSubmitting={isSubmittingCurriculum}
+              onCancel={exitForms}
+              onSubmit={handleCurriculumSubmit}
+            />
+          ) : null}
+          {formContext.kind === "subject" ? (
+            <NationalSubjectFormContent
+              mode={formContext.mode}
+              initialValues={formContext.initialValues}
+              isSubmitting={isSubmittingSubject}
+              onCancel={exitForms}
+              onSubmit={handleSubjectSubmit}
+            />
+          ) : null}
+        </View>
+      ) : (
+        <>
+          <ScrollView
+            style={styles.content}
+            contentContainerStyle={styles.contentContainer}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => {
+                  void refreshAll();
+                }}
+                tintColor={colors.primary}
               />
-            ) : (
-              curriculumSubjects.map((entry) => (
-                <View
-                  key={entry.id}
-                  style={styles.nationalRow}
-                  testID={`curriculums-national-rattachement-row-${entry.subjectId}`}
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.nationalRowName}>
-                      {entry.subject.name}
-                    </Text>
-                    <Text style={styles.nationalRowCode}>
-                      {[
-                        entry.coefficient != null
-                          ? `Coef. ${entry.coefficient}`
-                          : null,
-                        entry.weeklyHours != null
-                          ? `${entry.weeklyHours}h/sem`
-                          : null,
-                        entry.isMandatory ? "Obligatoire" : "Optionnelle",
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
+            }
+            showsVerticalScrollIndicator={false}
+          >
+            {errorMessage ? (
+              <ErrorBanner
+                message={errorMessage}
+                onDismiss={() => setErrorMessage(null)}
+                testID="national-catalog-error-banner"
+              />
+            ) : null}
+
+            {pane === "overview" ? (
+              <>
+                <View style={styles.statRow} testID="national-overview-stats">
+                  <View
+                    style={[styles.statTile, { backgroundColor: "#FFF2E4" }]}
+                  >
+                    <Text style={styles.statTileValue}>{cycles.length}</Text>
+                    <Text style={styles.statTileLabel}>
+                      {formatCount(cycles.length, "cycle")}
                     </Text>
                   </View>
-                  <TouchableOpacity
-                    style={styles.secondaryAction}
-                    onPress={() =>
-                      void handleDeleteCurriculumSubject(entry.subjectId)
-                    }
-                    testID={`curriculums-national-rattachement-delete-${entry.subjectId}`}
+                  <View
+                    style={[styles.statTile, { backgroundColor: "#EAF7F4" }]}
                   >
-                    <Text style={styles.secondaryActionLabel}>Retirer</Text>
-                  </TouchableOpacity>
+                    <Text style={styles.statTileValue}>{levels.length}</Text>
+                    <Text style={styles.statTileLabel}>
+                      {formatCount(levels.length, "niveau", "niveaux")}
+                    </Text>
+                  </View>
+                  <View
+                    style={[styles.statTile, { backgroundColor: "#ECF4FB" }]}
+                  >
+                    <Text style={styles.statTileValue}>
+                      {curriculums.length}
+                    </Text>
+                    <Text style={styles.statTileLabel}>
+                      {formatCount(curriculums.length, "curriculum")}
+                    </Text>
+                  </View>
+                  <View
+                    style={[styles.statTile, { backgroundColor: "#FFF0E1" }]}
+                  >
+                    <Text style={styles.statTileValue}>{subjects.length}</Text>
+                    <Text style={styles.statTileLabel}>
+                      {formatCount(subjects.length, "matière")}
+                    </Text>
+                  </View>
                 </View>
-              ))
+
+                <SectionCard
+                  title="Répartition par cycle"
+                  subtitle="Niveaux nationaux regroupés par cycle"
+                  testID="national-overview-cycles-card"
+                >
+                  {cycleBreakdown.perCycle.length === 0 &&
+                  cycleBreakdown.unclassifiedCount === 0 ? (
+                    <EmptyState
+                      icon="layers-outline"
+                      title="Aucun cycle"
+                      message="Créez un premier cycle dans l'onglet Cycles."
+                    />
+                  ) : (
+                    <View style={styles.listStack}>
+                      {cycleBreakdown.perCycle.map((entry) => (
+                        <View
+                          key={entry.cycle.id}
+                          style={styles.cycleBreakdownRow}
+                          testID={`national-overview-cycle-${entry.cycle.id}`}
+                        >
+                          <Text style={styles.entityTitle}>
+                            {entry.cycle.label}
+                          </Text>
+                          <Text style={styles.entityMeta}>
+                            {formatCount(
+                              entry.count,
+                              "niveau national",
+                              "niveaux nationaux",
+                            )}
+                            {entry.languageSystemBreakdown.some(
+                              (item) => item.count > 0,
+                            )
+                              ? ` · ${entry.languageSystemBreakdown
+                                  .filter((item) => item.count > 0)
+                                  .map(
+                                    (item) =>
+                                      `${
+                                        NATIONAL_LEVEL_LANGUAGE_SYSTEM_OPTIONS.find(
+                                          (option) =>
+                                            option.value ===
+                                            item.languageSystem,
+                                        )?.label
+                                      }: ${item.count}`,
+                                  )
+                                  .join(" · ")}`
+                              : ""}
+                          </Text>
+                        </View>
+                      ))}
+                      {cycleBreakdown.unclassifiedCount > 0 ? (
+                        <View
+                          style={styles.cycleBreakdownRow}
+                          testID="national-overview-cycle-unclassified"
+                        >
+                          <Text style={styles.entityTitle}>Non classés</Text>
+                          <Text style={styles.entityMeta}>
+                            {formatCount(
+                              cycleBreakdown.unclassifiedCount,
+                              "niveau national",
+                              "niveaux nationaux",
+                            )}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  )}
+                </SectionCard>
+              </>
+            ) : null}
+
+            {pane === "cycles" ? (
+              <SectionCard
+                title="Cycles"
+                subtitle="Regroupements pédagogiques nationaux (primaire, secondaire...)"
+                testID="national-cycles-card"
+              >
+                {orderedCycles.length === 0 ? (
+                  <EmptyState
+                    icon="layers-outline"
+                    title="Aucun cycle"
+                    message="Créez le premier cycle du catalogue national."
+                  />
+                ) : (
+                  <View style={styles.listStack}>
+                    {orderedCycles.map((cycle, index) => (
+                      <View
+                        key={cycle.id}
+                        style={[
+                          styles.entityRow,
+                          {
+                            backgroundColor: nationalRowPalette("cycles", index)
+                              .backgroundColor,
+                          },
+                        ]}
+                        testID={`national-cycle-row-${cycle.id}`}
+                      >
+                        <View
+                          style={[
+                            styles.entityAccent,
+                            {
+                              backgroundColor: nationalRowPalette(
+                                "cycles",
+                                index,
+                              ).accentColor,
+                            },
+                          ]}
+                        />
+                        <View style={styles.entityMain}>
+                          <View style={styles.entityTextWrap}>
+                            <Text style={styles.entityTitle}>
+                              {cycle.label}
+                            </Text>
+                            <Text style={styles.entityMeta}>
+                              {cycle.code} ·{" "}
+                              {formatCount(
+                                cycle._count?.academicLevels ?? 0,
+                                "niveau",
+                                "niveaux",
+                              )}
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={styles.iconActions}>
+                          <TouchableOpacity
+                            style={styles.iconButton}
+                            onPress={() => {
+                              setFormContext({
+                                kind: "cycle",
+                                mode: "edit",
+                                originPane: "cycles",
+                                id: cycle.id,
+                                initialValues: {
+                                  code: cycle.code,
+                                  label: cycle.label,
+                                },
+                              });
+                              setPane("forms");
+                            }}
+                            testID={`national-cycle-edit-${cycle.id}`}
+                          >
+                            <Ionicons
+                              name="pencil-outline"
+                              size={18}
+                              color={colors.primary}
+                            />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.iconButton, styles.iconButtonDanger]}
+                            onPress={() =>
+                              setDeleteTarget({
+                                kind: "cycle",
+                                id: cycle.id,
+                                label: cycle.label,
+                              })
+                            }
+                            testID={`national-cycle-delete-${cycle.id}`}
+                          >
+                            <Ionicons
+                              name="trash-outline"
+                              size={18}
+                              color={colors.warmAccent}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </SectionCard>
+            ) : null}
+
+            {pane === "levels" ? (
+              <>
+                <View
+                  style={styles.chipsRow}
+                  testID="national-levels-cycle-filter"
+                >
+                  <TouchableOpacity
+                    style={[
+                      styles.chip,
+                      !selectedCycleFilterId && styles.chipActive,
+                    ]}
+                    onPress={() => setSelectedCycleFilterId("")}
+                    testID="national-levels-filter-all"
+                  >
+                    <Text
+                      style={[
+                        styles.chipLabel,
+                        !selectedCycleFilterId && styles.chipLabelActive,
+                      ]}
+                    >
+                      Tous
+                    </Text>
+                  </TouchableOpacity>
+                  {orderedCycles.map((cycle) => (
+                    <TouchableOpacity
+                      key={cycle.id}
+                      style={[
+                        styles.chip,
+                        selectedCycleFilterId === cycle.id && styles.chipActive,
+                      ]}
+                      onPress={() => setSelectedCycleFilterId(cycle.id)}
+                      testID={`national-levels-filter-${cycle.id}`}
+                    >
+                      <Text
+                        style={[
+                          styles.chipLabel,
+                          selectedCycleFilterId === cycle.id &&
+                            styles.chipLabelActive,
+                        ]}
+                      >
+                        {cycle.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <SectionCard
+                  title="Niveaux académiques nationaux"
+                  subtitle={
+                    selectedCycleFilterId
+                      ? "Filtrés par cycle sélectionné"
+                      : "Tous les cycles"
+                  }
+                  testID="national-levels-card"
+                >
+                  {filteredLevels.length === 0 ? (
+                    <EmptyState
+                      icon="school-outline"
+                      title="Aucun niveau"
+                      message="Créez un niveau national pour ce cycle."
+                    />
+                  ) : (
+                    <View style={styles.listStack}>
+                      {filteredLevels.map((level, index) => (
+                        <View
+                          key={level.id}
+                          style={[
+                            styles.entityRow,
+                            {
+                              backgroundColor: nationalRowPalette(
+                                "levels",
+                                index,
+                              ).backgroundColor,
+                            },
+                          ]}
+                          testID={`national-level-row-${level.id}`}
+                        >
+                          <View
+                            style={[
+                              styles.entityAccent,
+                              {
+                                backgroundColor: nationalRowPalette(
+                                  "levels",
+                                  index,
+                                ).accentColor,
+                              },
+                            ]}
+                          />
+                          <View style={styles.entityMain}>
+                            <View style={styles.entityTextWrap}>
+                              <Text style={styles.entityTitle}>
+                                {level.label}
+                              </Text>
+                              <Text style={styles.entityMeta}>
+                                {[
+                                  level.code,
+                                  level.cycle?.label,
+                                  level.languageSystem
+                                    ? NATIONAL_LEVEL_LANGUAGE_SYSTEM_OPTIONS.find(
+                                        (option) =>
+                                          option.value === level.languageSystem,
+                                      )?.label
+                                    : null,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.iconActions}>
+                            <TouchableOpacity
+                              style={styles.iconButton}
+                              onPress={() => {
+                                setFormContext({
+                                  kind: "level",
+                                  mode: "edit",
+                                  originPane: "levels",
+                                  id: level.id,
+                                  initialValues: {
+                                    code: level.code,
+                                    label: level.label,
+                                    cycleId: level.cycleId ?? "",
+                                    languageSystem: level.languageSystem ?? "",
+                                  },
+                                });
+                                setPane("forms");
+                              }}
+                              testID={`national-level-edit-${level.id}`}
+                            >
+                              <Ionicons
+                                name="pencil-outline"
+                                size={18}
+                                color={colors.primary}
+                              />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[
+                                styles.iconButton,
+                                styles.iconButtonDanger,
+                              ]}
+                              onPress={() =>
+                                setDeleteTarget({
+                                  kind: "level",
+                                  id: level.id,
+                                  label: level.label,
+                                })
+                              }
+                              testID={`national-level-delete-${level.id}`}
+                            >
+                              <Ionicons
+                                name="trash-outline"
+                                size={18}
+                                color={colors.warmAccent}
+                              />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </SectionCard>
+              </>
+            ) : null}
+
+            {pane === "curriculums" ? (
+              <SectionCard
+                title="Curriculums nationaux"
+                subtitle="Assemblage d'un niveau académique national"
+                testID="national-curriculums-card"
+              >
+                {orderedCurriculums.length === 0 ? (
+                  <EmptyState
+                    icon="albums-outline"
+                    title="Aucun curriculum national"
+                    message="Créez le premier curriculum du catalogue national."
+                  />
+                ) : (
+                  <View style={styles.listStack}>
+                    {orderedCurriculums.map((curriculum, index) => (
+                      <View
+                        key={curriculum.id}
+                        style={[
+                          styles.entityRow,
+                          {
+                            backgroundColor: nationalRowPalette(
+                              "curriculums",
+                              index,
+                            ).backgroundColor,
+                          },
+                        ]}
+                        testID={`national-curriculum-row-${curriculum.id}`}
+                      >
+                        <View
+                          style={[
+                            styles.entityAccent,
+                            {
+                              backgroundColor: nationalRowPalette(
+                                "curriculums",
+                                index,
+                              ).accentColor,
+                            },
+                          ]}
+                        />
+                        <View style={styles.entityMain}>
+                          <View style={styles.entityTextWrap}>
+                            <Text style={styles.entityTitle}>
+                              {curriculum.name}
+                            </Text>
+                            <Text style={styles.entityMeta}>
+                              {curriculum.academicLevel.label} ·{" "}
+                              {formatCount(
+                                curriculum._count.subjects,
+                                "matière",
+                              )}{" "}
+                              ·{" "}
+                              {formatCount(curriculum._count.classes, "classe")}
+                            </Text>
+                          </View>
+                        </View>
+                        <View style={styles.iconActions}>
+                          <TouchableOpacity
+                            style={styles.iconButton}
+                            onPress={() => {
+                              setFormContext({
+                                kind: "curriculum",
+                                mode: "edit",
+                                originPane: "curriculums",
+                                item: curriculum,
+                              });
+                              setPane("forms");
+                            }}
+                            testID={`national-curriculum-edit-${curriculum.id}`}
+                          >
+                            <Ionicons
+                              name="pencil-outline"
+                              size={18}
+                              color={colors.primary}
+                            />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.iconButton, styles.iconButtonDanger]}
+                            onPress={() =>
+                              setDeleteTarget({
+                                kind: "curriculum",
+                                id: curriculum.id,
+                                label: curriculum.name,
+                              })
+                            }
+                            testID={`national-curriculum-delete-${curriculum.id}`}
+                          >
+                            <Ionicons
+                              name="trash-outline"
+                              size={18}
+                              color={colors.warmAccent}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </SectionCard>
+            ) : null}
+
+            {pane === "subjects" ? (
+              <>
+                <SectionCard
+                  title="Matières nationales"
+                  subtitle="Catalogue partagé par toutes les écoles"
+                  testID="national-subjects-card"
+                >
+                  {orderedSubjects.length === 0 ? (
+                    <EmptyState
+                      icon="book-outline"
+                      title="Aucune matière nationale"
+                      message="Créez la première matière du catalogue national."
+                    />
+                  ) : (
+                    <View style={styles.listStack}>
+                      {orderedSubjects.map((subject, index) => (
+                        <View
+                          key={subject.id}
+                          style={[
+                            styles.entityRow,
+                            {
+                              backgroundColor: nationalRowPalette(
+                                "subjects",
+                                index,
+                              ).backgroundColor,
+                            },
+                          ]}
+                          testID={`national-subject-row-${subject.id}`}
+                        >
+                          <View
+                            style={[
+                              styles.entityAccent,
+                              {
+                                backgroundColor: nationalRowPalette(
+                                  "subjects",
+                                  index,
+                                ).accentColor,
+                              },
+                            ]}
+                          />
+                          <View style={styles.entityMain}>
+                            <View style={styles.entityTextWrap}>
+                              <Text style={styles.entityTitle}>
+                                {subject.name}
+                              </Text>
+                              <Text style={styles.entityMeta}>
+                                {subject.code}
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.iconActions}>
+                            <TouchableOpacity
+                              style={styles.iconButton}
+                              onPress={() => {
+                                setFormContext({
+                                  kind: "subject",
+                                  mode: "edit",
+                                  originPane: "subjects",
+                                  id: subject.id,
+                                  initialValues: {
+                                    code: subject.code,
+                                    name: subject.name,
+                                  },
+                                });
+                                setPane("forms");
+                              }}
+                              testID={`national-subject-edit-${subject.id}`}
+                            >
+                              <Ionicons
+                                name="pencil-outline"
+                                size={18}
+                                color={colors.primary}
+                              />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[
+                                styles.iconButton,
+                                styles.iconButtonDanger,
+                              ]}
+                              onPress={() =>
+                                setDeleteTarget({
+                                  kind: "subject",
+                                  id: subject.id,
+                                  label: subject.name,
+                                })
+                              }
+                              testID={`national-subject-delete-${subject.id}`}
+                            >
+                              <Ionicons
+                                name="trash-outline"
+                                size={18}
+                                color={colors.warmAccent}
+                              />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </SectionCard>
+
+                <SectionCard
+                  title="Rattachement à un curriculum"
+                  subtitle="Associez une matière à un curriculum national avec coefficient et volume horaire"
+                  testID="national-rattachement-card"
+                >
+                  <CompactSelectField
+                    label="Curriculum national"
+                    value={selectedCurriculumId}
+                    onChange={setSelectedCurriculumId}
+                    options={orderedCurriculums.map((curriculum) => ({
+                      value: curriculum.id,
+                      label: curriculum.name,
+                    }))}
+                    placeholder="Sélectionner un curriculum"
+                    testID="national-rattachement-curriculum"
+                  />
+                  {!selectedCurriculumId ? (
+                    <EmptyState
+                      icon="link-outline"
+                      title="Aucun curriculum sélectionné"
+                      message="Sélectionnez un curriculum national pour gérer ses matières."
+                    />
+                  ) : isLoadingCurriculumSubjects ? (
+                    <LoadingBlock label="Chargement des matières..." />
+                  ) : (
+                    <>
+                      <NationalCurriculumSubjectFormContent
+                        subjects={orderedSubjects}
+                        isSubmitting={isSubmittingCurriculumSubject}
+                        onSubmit={handleUpsertCurriculumSubject}
+                      />
+                      {curriculumSubjects.length === 0 ? (
+                        <EmptyState
+                          icon="book-outline"
+                          title="Aucune matière rattachée"
+                          message="Ajoutez une matière ci-dessus."
+                        />
+                      ) : (
+                        <View style={styles.listStack}>
+                          {curriculumSubjects.map((entry, index) => (
+                            <View
+                              key={entry.id}
+                              style={[
+                                styles.entityRow,
+                                {
+                                  backgroundColor: nationalRowPalette(
+                                    "subjects",
+                                    index,
+                                  ).backgroundColor,
+                                },
+                              ]}
+                              testID={`national-rattachement-row-${entry.subjectId}`}
+                            >
+                              <View
+                                style={[
+                                  styles.entityAccent,
+                                  {
+                                    backgroundColor: nationalRowPalette(
+                                      "subjects",
+                                      index,
+                                    ).accentColor,
+                                  },
+                                ]}
+                              />
+                              <View style={styles.entityMain}>
+                                <View style={styles.entityTextWrap}>
+                                  <Text style={styles.entityTitle}>
+                                    {entry.subject.name}
+                                  </Text>
+                                  <Text style={styles.entityMeta}>
+                                    {[
+                                      entry.coefficient != null
+                                        ? `Coef. ${entry.coefficient}`
+                                        : null,
+                                      entry.weeklyHours != null
+                                        ? `${entry.weeklyHours}h/sem`
+                                        : null,
+                                      entry.isMandatory
+                                        ? "Obligatoire"
+                                        : "Optionnelle",
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" · ")}
+                                  </Text>
+                                </View>
+                              </View>
+                              <TouchableOpacity
+                                style={[
+                                  styles.iconButton,
+                                  styles.iconButtonDanger,
+                                ]}
+                                onPress={() =>
+                                  void handleDeleteCurriculumSubject(
+                                    entry.subjectId,
+                                  )
+                                }
+                                testID={`national-rattachement-delete-${entry.subjectId}`}
+                              >
+                                <Ionicons
+                                  name="trash-outline"
+                                  size={18}
+                                  color={colors.warmAccent}
+                                />
+                              </TouchableOpacity>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </>
+                  )}
+                </SectionCard>
+              </>
+            ) : null}
+          </ScrollView>
+
+          <TouchableOpacity
+            style={[
+              styles.fab,
+              {
+                bottom: insets.bottom + 20,
+                backgroundColor: fabDisabled
+                  ? colors.textSecondary
+                  : nationalAccent(pane as Exclude<NationalTabKey, "overview">),
+              },
+            ]}
+            disabled={fabDisabled}
+            onPress={openFab}
+            activeOpacity={0.88}
+            testID="national-catalog-fab"
+          >
+            {isDeleting ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <Ionicons name="add" size={28} color={colors.white} />
             )}
-          </>
-        )}
-      </SectionCard>
+          </TouchableOpacity>
+        </>
+      )}
 
       <ConfirmDialog
-        visible={deleteLevelTarget != null}
-        title="Supprimer le niveau national"
-        message={
-          deleteLevelTarget
-            ? `Supprimer définitivement le niveau national "${deleteLevelTarget.label}" ?`
-            : ""
-        }
+        visible={deleteTarget != null}
+        title="Confirmer la suppression"
+        subtitle={deleteTarget?.label}
+        message="Cette action supprimera définitivement cet élément du catalogue national."
         confirmLabel="Supprimer"
         cancelLabel="Annuler"
         variant="danger"
         onCancel={() => {
-          if (!isDeleting) setDeleteLevelTarget(null);
+          if (!isDeleting) setDeleteTarget(null);
         }}
         onConfirm={() => {
-          void handleDeleteLevel();
-        }}
-      />
-
-      <ConfirmDialog
-        visible={deleteCurriculumTarget != null}
-        title="Supprimer le curriculum national"
-        message={
-          deleteCurriculumTarget
-            ? `Supprimer définitivement le curriculum national "${deleteCurriculumTarget.name}" ?`
-            : ""
-        }
-        confirmLabel="Supprimer"
-        cancelLabel="Annuler"
-        variant="danger"
-        onCancel={() => {
-          if (!isDeleting) setDeleteCurriculumTarget(null);
-        }}
-        onConfirm={() => {
-          void handleDeleteCurriculum();
-        }}
-      />
-
-      <ConfirmDialog
-        visible={deleteSubjectTarget != null}
-        title="Supprimer la matière nationale"
-        message={
-          deleteSubjectTarget
-            ? `Supprimer définitivement la matière nationale "${deleteSubjectTarget.name}" ?`
-            : ""
-        }
-        confirmLabel="Supprimer"
-        cancelLabel="Annuler"
-        variant="danger"
-        onCancel={() => {
-          if (!isDeleting) setDeleteSubjectTarget(null);
-        }}
-        onConfirm={() => {
-          void handleDeleteSubject();
+          void confirmDelete();
         }}
       />
     </View>
@@ -2470,23 +3145,8 @@ export function CurriculumsAdminScreen() {
   // le catalogue d'une école précise — même si schoolSlug reste en mémoire
   // depuis un ancien membership école (cf. règle activeRole du projet).
   const isPlatformAdmin = roleAllowsPlatformAdmin(role);
-  const tabItems = useMemo<Array<{ key: ListTabKey; label: string }>>(() => {
-    if (isPlatformAdmin) {
-      return [{ key: "national" as const, label: "Catalogue national" }];
-    }
-    return BASE_TAB_ITEMS;
-  }, [isPlatformAdmin]);
-
-  useEffect(() => {
-    if (isPlatformAdmin && tab !== "national" && tab !== "forms") {
-      setTab("national");
-    }
-  }, [isPlatformAdmin, tab]);
-  const subtitle = isPlatformAdmin
-    ? null
-    : user
-      ? buildAdminSubtitle(user)
-      : null;
+  const tabItems = BASE_TAB_ITEMS;
+  const subtitle = user ? buildAdminSubtitle(user) : null;
 
   const orderedLevels = useMemo(
     () => [...levels].sort((a, b) => a.code.localeCompare(b.code)),
@@ -2980,7 +3640,11 @@ export function CurriculumsAdminScreen() {
     );
   }
 
-  if (!schoolSlug && !isPlatformAdmin) {
+  if (isPlatformAdmin) {
+    return <NationalCatalogTabs onBack={() => moduleBack(router)} />;
+  }
+
+  if (!schoolSlug) {
     return (
       <View style={styles.root}>
         <ModuleHeader
@@ -3100,8 +3764,6 @@ export function CurriculumsAdminScreen() {
                 </View>
               </SectionCard>
             ) : null}
-
-            {tab === "national" ? <NationalCatalogSection /> : null}
 
             {tab === "levels" ? (
               <SectionCard
@@ -4089,26 +4751,57 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 16,
   },
-  nationalRow: {
+  statRow: {
     flexDirection: "row",
-    alignItems: "center",
+    flexWrap: "wrap",
     gap: 12,
+  },
+  statTile: {
+    flexGrow: 1,
+    flexBasis: "45%",
+    borderRadius: 16,
+    padding: 16,
+    gap: 4,
+  },
+  statTileValue: {
+    color: colors.textPrimary,
+    fontSize: 26,
+    fontWeight: "800",
+  },
+  statTileLabel: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  chipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  chip: {
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  chipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  chipLabel: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  chipLabelActive: {
+    color: colors.white,
+  },
+  cycleBreakdownRow: {
+    gap: 3,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.warmBorder,
-  },
-  nationalRowCode: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.textSecondary,
-  },
-  nationalRowName: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  nationalRowActions: {
-    flexDirection: "row",
-    gap: 8,
   },
 });

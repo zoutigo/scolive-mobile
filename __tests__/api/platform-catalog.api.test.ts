@@ -14,6 +14,61 @@ describe("platformCatalogApi", () => {
     jest.clearAllMocks();
   });
 
+  it("liste les cycles nationaux", async () => {
+    (apiFetch as jest.Mock).mockResolvedValue([]);
+
+    await platformCatalogApi.listNationalCycles();
+
+    expect(apiFetch).toHaveBeenCalledWith("/system/cycles", {}, true);
+  });
+
+  it("crée un cycle national", async () => {
+    (apiFetch as jest.Mock).mockResolvedValue({ id: "cycle-1" });
+
+    await platformCatalogApi.createNationalCycle({
+      code: "PRESCHOOL",
+      label: "Préscolaire",
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/system/cycles",
+      {
+        method: "POST",
+        body: JSON.stringify({ code: "PRESCHOOL", label: "Préscolaire" }),
+      },
+      true,
+    );
+  });
+
+  it("met à jour un cycle national", async () => {
+    (apiFetch as jest.Mock).mockResolvedValue({ id: "cycle-1" });
+
+    await platformCatalogApi.updateNationalCycle("cycle-1", {
+      label: "Primaire renommé",
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/system/cycles/cycle-1",
+      {
+        method: "PATCH",
+        body: JSON.stringify({ label: "Primaire renommé" }),
+      },
+      true,
+    );
+  });
+
+  it("supprime un cycle national", async () => {
+    (apiFetch as jest.Mock).mockResolvedValue({ success: true });
+
+    await platformCatalogApi.deleteNationalCycle("cycle-1");
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/system/cycles/cycle-1",
+      { method: "DELETE" },
+      true,
+    );
+  });
+
   it("liste les matières nationales", async () => {
     (apiFetch as jest.Mock).mockResolvedValue([]);
 
@@ -78,13 +133,13 @@ describe("platformCatalogApi", () => {
     );
   });
 
-  it("crée un niveau académique national avec cycle et languageSystem", async () => {
+  it("crée un niveau académique national avec cycleId et languageSystem", async () => {
     (apiFetch as jest.Mock).mockResolvedValue({ id: "level-en-1" });
 
     await platformCatalogApi.createNationalAcademicLevel({
       code: "FORM1",
       label: "Form 1",
-      cycle: "SECONDARY",
+      cycleId: "cycle-secondary",
       languageSystem: "ANGLOPHONE",
     });
 
@@ -95,7 +150,7 @@ describe("platformCatalogApi", () => {
         body: JSON.stringify({
           code: "FORM1",
           label: "Form 1",
-          cycle: "SECONDARY",
+          cycleId: "cycle-secondary",
           languageSystem: "ANGLOPHONE",
         }),
       },
