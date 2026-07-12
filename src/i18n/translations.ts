@@ -2143,6 +2143,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.school.kpi.subjects": "Matières",
     "home.school.kpi.rooms": "Salles",
 
+    // Accueil plateforme — KPI ressources (devoirs / examens)
+    "home.platform.overview.title": "Vue d'ensemble",
+    "home.platform.quickAccess.title": "Accès rapides",
+    "home.platform.kpi.schools": "Écoles",
+    "home.platform.kpi.users": "Utilisateurs",
+    "home.platform.kpi.students": "Élèves",
+    "home.platform.resources.title": "Ressources",
+    "home.platform.resources.assessments.title": "Devoirs",
+    "home.platform.resources.exams.title": "Examens",
+    "home.platform.resources.kpi.withoutStatement": "Sans énoncé",
+    "home.platform.resources.kpi.withoutCorrection": "Sans corrigé",
+    "home.platform.resources.kpi.statementsToApprove": "Énoncés à approuver",
+    "home.platform.resources.kpi.correctionsToApprove":
+      "Corrigés à approuver",
+
     // Accueil Parent
     "home.parent.children.title": "Mes enfants",
     "home.parent.children.empty.title": "Aucun enfant associé",
@@ -4453,6 +4468,22 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.school.kpi.parents": "Parents",
     "home.school.kpi.subjects": "Subjects",
     "home.school.kpi.rooms": "Rooms",
+
+    // Platform home — resource KPIs (assessments / exams)
+    "home.platform.overview.title": "Overview",
+    "home.platform.quickAccess.title": "Quick access",
+    "home.platform.kpi.schools": "Schools",
+    "home.platform.kpi.users": "Users",
+    "home.platform.kpi.students": "Students",
+    "home.platform.resources.title": "Resources",
+    "home.platform.resources.assessments.title": "Assessments",
+    "home.platform.resources.exams.title": "Exams",
+    "home.platform.resources.kpi.withoutStatement": "Missing statement",
+    "home.platform.resources.kpi.withoutCorrection": "Missing correction",
+    "home.platform.resources.kpi.statementsToApprove":
+      "Statements to approve",
+    "home.platform.resources.kpi.correctionsToApprove":
+      "Corrections to approve",
 
     // Parent home
     "home.parent.children.title": "My children",
