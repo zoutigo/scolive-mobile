@@ -2,15 +2,50 @@ import { apiFetch } from "./client";
 import type {
   CreateNationalAcademicLevelPayload,
   CreateNationalCurriculumPayload,
+  CreateNationalCyclePayload,
   CreateNationalSubjectPayload,
   NationalAcademicLevelRow,
   NationalCurriculumRow,
+  NationalCurriculumSubjectRow,
+  NationalCycleRow,
   NationalSubjectRow,
   UpdateNationalAcademicLevelPayload,
+  UpdateNationalCurriculumPayload,
+  UpdateNationalCyclePayload,
   UpdateNationalSubjectPayload,
+  UpsertNationalCurriculumSubjectPayload,
 } from "../types/platform-catalog.types";
 
 export const platformCatalogApi = {
+  listNationalCycles(): Promise<NationalCycleRow[]> {
+    return apiFetch("/system/cycles", {}, true);
+  },
+
+  createNationalCycle(
+    payload: CreateNationalCyclePayload,
+  ): Promise<NationalCycleRow> {
+    return apiFetch(
+      "/system/cycles",
+      { method: "POST", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  updateNationalCycle(
+    cycleId: string,
+    payload: UpdateNationalCyclePayload,
+  ): Promise<NationalCycleRow> {
+    return apiFetch(
+      `/system/cycles/${cycleId}`,
+      { method: "PATCH", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  deleteNationalCycle(cycleId: string) {
+    return apiFetch(`/system/cycles/${cycleId}`, { method: "DELETE" }, true);
+  },
+
   listNationalSubjects(): Promise<NationalSubjectRow[]> {
     return apiFetch("/system/subjects", {}, true);
   },
@@ -91,9 +126,45 @@ export const platformCatalogApi = {
     );
   },
 
+  updateNationalCurriculum(
+    curriculumId: string,
+    payload: UpdateNationalCurriculumPayload,
+  ): Promise<NationalCurriculumRow> {
+    return apiFetch(
+      `/system/curriculums/${curriculumId}`,
+      { method: "PATCH", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
   deleteNationalCurriculum(curriculumId: string) {
     return apiFetch(
       `/system/curriculums/${curriculumId}`,
+      { method: "DELETE" },
+      true,
+    );
+  },
+
+  listNationalCurriculumSubjects(
+    curriculumId: string,
+  ): Promise<NationalCurriculumSubjectRow[]> {
+    return apiFetch(`/system/curriculums/${curriculumId}/subjects`, {}, true);
+  },
+
+  upsertNationalCurriculumSubject(
+    curriculumId: string,
+    payload: UpsertNationalCurriculumSubjectPayload,
+  ): Promise<NationalCurriculumSubjectRow> {
+    return apiFetch(
+      `/system/curriculums/${curriculumId}/subjects`,
+      { method: "POST", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  deleteNationalCurriculumSubject(curriculumId: string, subjectId: string) {
+    return apiFetch(
+      `/system/curriculums/${curriculumId}/subjects/${subjectId}`,
       { method: "DELETE" },
       true,
     );

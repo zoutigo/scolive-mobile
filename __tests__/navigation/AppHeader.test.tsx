@@ -103,6 +103,13 @@ describe("Variante par défaut (hors accueil)", () => {
     );
   });
 
+  it('affiche "SCOLIVE" pour un rôle plateforme même si schoolSlug est encore présent (ancien membership école)', () => {
+    renderHeader(platformUser, "college-vogt");
+    expect(screen.getByTestId("app-header-title").props.children).toBe(
+      "SCOLIVE",
+    );
+  });
+
   it("affiche le nom de l'école en majuscules pour un rôle école", () => {
     renderHeader(teacherUser, "college-vogt");
     expect(screen.getByTestId("app-header-title").props.children).toBe(
@@ -147,6 +154,11 @@ describe("Variante accueil", () => {
 
   it("n'affiche pas le sous-titre école quand schoolSlug est absent", () => {
     renderHeader(teacherUser, null);
+    expect(screen.queryByTestId("app-header-home-school")).toBeNull();
+  });
+
+  it("n'affiche pas le sous-titre école pour un rôle plateforme même si schoolSlug est encore présent (ancien membership école)", () => {
+    renderHeader(platformUser, "college-vogt");
     expect(screen.queryByTestId("app-header-home-school")).toBeNull();
   });
 

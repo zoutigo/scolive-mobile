@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -52,6 +58,42 @@ import type {
 } from "../../types/resources.types";
 
 const ONBOARDING_DISMISSED_KEY = "scolive-resources-onboarding-dismissed";
+const SEARCH_DEBOUNCE_MS = 300;
+const RESOURCES_PAGE_SIZE = 20;
+
+type PaginatedTabKey = "ASSESSMENT" | "EXAM";
+
+type ResourceListMeta = {
+  page: number;
+  limit: number;
+  total: number;
+};
+
+type ResourceFilters = {
+  academicYear: string;
+  schoolId: string;
+  academicLevelId: string;
+  sequence: string;
+  examType: string;
+};
+
+const NO_FILTERS: ResourceFilters = {
+  academicYear: "",
+  schoolId: "",
+  academicLevelId: "",
+  sequence: "",
+  examType: "",
+};
+
+function hasActiveFilters(filters: ResourceFilters) {
+  return (
+    !!filters.academicYear ||
+    !!filters.schoolId ||
+    !!filters.academicLevelId ||
+    !!filters.sequence ||
+    !!filters.examType
+  );
+}
 
 type TabKey =
   | "ASSESSMENT"
@@ -165,61 +207,47 @@ export function ResourcesScreen() {
   });
   const [schools, setSchools] = useState<ResourceSchoolOption[]>([]);
 
-  const [filtersOpen, setFiltersOpen] = useState(false);
-
+  const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
-  const [appliedAcademicYear, setAppliedAcademicYear] = useState("");
-  const [appliedSchoolId, setAppliedSchoolId] = useState("");
-  const [appliedAcademicLevelId, setAppliedAcademicLevelId] = useState("");
-  const [appliedSequence, setAppliedSequence] = useState("");
-  const [appliedExamType, setAppliedExamType] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<ResourceFilters>(NO_FILTERS);
+  const [appliedFilters, setAppliedFilters] =
+    useState<ResourceFilters>(NO_FILTERS);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [draftSearch, setDraftSearch] = useState("");
-  const [draftAcademicYear, setDraftAcademicYear] = useState("");
-  const [draftSchoolId, setDraftSchoolId] = useState("");
-  const [draftAcademicLevelId, setDraftAcademicLevelId] = useState("");
-  const [draftSequence, setDraftSequence] = useState("");
-  const [draftExamType, setDraftExamType] = useState("");
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setAppliedSearch(searchInput.trim());
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [searchInput]);
 
-  const hasActiveDraftFilters =
-    !!draftSearch ||
-    !!draftAcademicYear ||
-    !!draftSchoolId ||
-    !!draftAcademicLevelId ||
-    !!draftSequence ||
-    !!draftExamType;
-
-  function openFiltersPanel() {
-    setDraftSearch(appliedSearch);
-    setDraftAcademicYear(appliedAcademicYear);
-    setDraftSchoolId(appliedSchoolId);
-    setDraftAcademicLevelId(appliedAcademicLevelId);
-    setDraftSequence(appliedSequence);
-    setDraftExamType(appliedExamType);
+  function openFilters() {
+    setDraftFilters(appliedFilters);
     setFiltersOpen(true);
   }
 
-  function cancelFilters() {
+  function closeFilters() {
+    setDraftFilters(appliedFilters);
     setFiltersOpen(false);
   }
 
-  function resetDraftFilters() {
-    setDraftSearch("");
-    setDraftAcademicYear("");
-    setDraftSchoolId("");
-    setDraftAcademicLevelId("");
-    setDraftSequence("");
-    setDraftExamType("");
+  function toggleFilters() {
+    if (filtersOpen) closeFilters();
+    else openFilters();
   }
 
   function applyFilters() {
-    setAppliedSearch(draftSearch.trim());
-    setAppliedAcademicYear(draftAcademicYear);
-    setAppliedSchoolId(draftSchoolId);
-    setAppliedAcademicLevelId(draftAcademicLevelId);
-    setAppliedSequence(draftSequence);
-    setAppliedExamType(draftExamType);
+    setAppliedFilters(draftFilters);
     setFiltersOpen(false);
+  }
+
+  function resetFilters() {
+    setDraftFilters(NO_FILTERS);
+    setAppliedFilters(NO_FILTERS);
   }
 
   const [lists, setLists] = useState<
@@ -230,6 +258,12 @@ export function ResourcesScreen() {
     mine: [],
     favorites: [],
   });
+  const [listMeta, setListMeta] = useState<
+    Record<PaginatedTabKey, ResourceListMeta | null>
+  >({ ASSESSMENT: null, EXAM: null });
+  const [isLoadingMore, setIsLoadingMore] = useState<
+    Record<PaginatedTabKey, boolean>
+  >({ ASSESSMENT: false, EXAM: false });
   const [moderationPart, setModerationPart] = useState<
     "statement" | "correction"
   >("statement");
@@ -254,8 +288,20 @@ export function ResourcesScreen() {
   }, []);
 
   const loadList = useCallback(
-    async (targetTab: Exclude<TabKey, "forms" | "moderation">) => {
-      setIsLoading(true);
+    async (
+      targetTab: Exclude<TabKey, "forms" | "moderation">,
+      page: number,
+      mode: "reset" | "append" = "reset",
+    ) => {
+      const isPaginated = targetTab === "ASSESSMENT" || targetTab === "EXAM";
+      if (isPaginated && mode === "append") {
+        setIsLoadingMore((current) => ({
+          ...current,
+          [targetTab as PaginatedTabKey]: true,
+        }));
+      } else {
+        setIsLoading(true);
+      }
       setLoadError(null);
       try {
         if (targetTab === "favorites") {
@@ -268,33 +314,61 @@ export function ResourcesScreen() {
           const result = await resourcesApi.listResources({
             kind: targetTab,
             search: appliedSearch || undefined,
-            academicYearLabel: appliedAcademicYear || undefined,
-            schoolId: appliedSchoolId || undefined,
-            academicLevelId: appliedAcademicLevelId || undefined,
+            academicYearLabel: appliedFilters.academicYear || undefined,
+            schoolId: appliedFilters.schoolId || undefined,
+            academicLevelId: appliedFilters.academicLevelId || undefined,
             sequence:
-              targetTab === "ASSESSMENT" && appliedSequence
-                ? (appliedSequence as ResourceSequence)
+              targetTab === "ASSESSMENT" && appliedFilters.sequence
+                ? (appliedFilters.sequence as ResourceSequence)
                 : undefined,
-            examType: appliedExamType
-              ? (appliedExamType as ResourceExamType)
+            examType: appliedFilters.examType
+              ? (appliedFilters.examType as ResourceExamType)
               : undefined,
+            page,
+            limit: RESOURCES_PAGE_SIZE,
           });
-          setLists((current) => ({ ...current, [targetTab]: result.items }));
+          setLists((current) => ({
+            ...current,
+            [targetTab]:
+              mode === "append"
+                ? [...current[targetTab], ...result.items]
+                : result.items,
+          }));
+          setListMeta((current) => ({
+            ...current,
+            [targetTab]: {
+              page: result.page,
+              limit: result.limit,
+              total: result.total,
+            },
+          }));
         }
       } catch (error) {
         setLoadError(extractApiError(error));
       } finally {
-        setIsLoading(false);
+        if (isPaginated && mode === "append") {
+          setIsLoadingMore((current) => ({
+            ...current,
+            [targetTab as PaginatedTabKey]: false,
+          }));
+        } else {
+          setIsLoading(false);
+        }
       }
     },
-    [
-      appliedSearch,
-      appliedAcademicYear,
-      appliedSchoolId,
-      appliedAcademicLevelId,
-      appliedSequence,
-      appliedExamType,
-    ],
+    [appliedSearch, appliedFilters],
+  );
+
+  const handleLoadMoreResources = useCallback(
+    (targetTab: PaginatedTabKey) => {
+      const meta = listMeta[targetTab];
+      if (!meta) return;
+      if (isLoadingMore[targetTab]) return;
+      const totalPages = Math.max(1, Math.ceil(meta.total / meta.limit));
+      if (meta.page >= totalPages) return;
+      void loadList(targetTab, meta.page + 1, "append");
+    },
+    [listMeta, isLoadingMore, loadList],
   );
 
   const loadModeration = useCallback(
@@ -318,7 +392,7 @@ export function ResourcesScreen() {
 
   useEffect(() => {
     if (tab === "forms" || tab === "moderation") return;
-    void loadList(tab);
+    void loadList(tab, 1, "reset");
   }, [tab, loadList]);
 
   useFocusEffect(
@@ -543,18 +617,6 @@ export function ResourcesScreen() {
           testID="resources-header"
           backTestID="resources-back-btn"
           topInset={insets.top}
-          secondaryAction={
-            isSearchableTab && !isFormsTab
-              ? {
-                  icon: "search-outline",
-                  onPress: () =>
-                    filtersOpen ? cancelFilters() : openFiltersPanel(),
-                  testID: "resources-search-toggle",
-                  accessibilityLabel: t("resources.filters.toggleLabel"),
-                  active: filtersOpen,
-                }
-              : undefined
-          }
         />
       </View>
 
@@ -608,22 +670,71 @@ export function ResourcesScreen() {
       ) : null}
 
       <View style={styles.body}>
-        {isSearchableTab && filtersOpen ? (
-          <View style={styles.filterPanel} testID="resources-filter-panel">
-            <View style={styles.searchRow}>
-              <Ionicons
-                name="search-outline"
-                size={16}
-                color={colors.textSecondary}
-              />
+        {isSearchableTab && !isFormsTab ? (
+          <View style={styles.searchRow} testID="resources-search-row">
+            <View style={styles.searchBox}>
+              <Ionicons name="search" size={16} color={colors.textSecondary} />
               <TextInput
-                value={draftSearch}
-                onChangeText={setDraftSearch}
+                style={styles.searchInput}
+                value={searchInput}
+                onChangeText={setSearchInput}
                 placeholder={t("resources.filters.searchPlaceholder")}
                 placeholderTextColor={colors.textSecondary}
-                style={styles.searchInput}
-                testID="resources-filter-search-input"
+                returnKeyType="search"
+                autoCapitalize="none"
+                accessibilityLabel={t("resources.filters.searchPlaceholder")}
+                testID="resources-search-input"
               />
+              {searchInput.length > 0 ? (
+                <TouchableOpacity
+                  onPress={() => setSearchInput("")}
+                  testID="resources-search-clear"
+                >
+                  <Ionicons
+                    name="close-circle"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.filterToggle,
+                hasActiveFilters(appliedFilters) && styles.filterToggleActive,
+              ]}
+              onPress={toggleFilters}
+              testID="resources-filter-toggle"
+              accessibilityLabel={t("resources.filters.toggleLabel")}
+            >
+              <Ionicons
+                name={
+                  hasActiveFilters(appliedFilters) ? "filter" : "filter-outline"
+                }
+                size={18}
+                color={
+                  hasActiveFilters(appliedFilters)
+                    ? colors.white
+                    : colors.accentTeal
+                }
+              />
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
+        {isSearchableTab && filtersOpen ? (
+          <View style={styles.filterPanel} testID="resources-filter-panel">
+            <View style={styles.filterPanelHeader}>
+              <View style={styles.filterPanelHeaderIcon}>
+                <Ionicons
+                  name="options-outline"
+                  size={16}
+                  color={colors.accentTealDark}
+                />
+              </View>
+              <Text style={styles.filterPanelHeaderTitle}>
+                {t("resources.filters.toggleLabel")}
+              </Text>
             </View>
 
             <View style={styles.filterFieldRow}>
@@ -633,8 +744,13 @@ export function ResourcesScreen() {
               <View style={styles.filterFieldInputWrap}>
                 <SelectField
                   options={academicYearFilterOptions}
-                  value={draftAcademicYear}
-                  onChange={setDraftAcademicYear}
+                  value={draftFilters.academicYear}
+                  onChange={(value) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      academicYear: value,
+                    }))
+                  }
                   placeholder={t("resources.filters.allYears")}
                   closeLabel={t("resources.filters.close")}
                   testIDPrefix="resources-filter-academic-year"
@@ -649,8 +765,13 @@ export function ResourcesScreen() {
               <View style={styles.filterFieldInputWrap}>
                 <SelectField
                   options={schoolOptions}
-                  value={draftSchoolId}
-                  onChange={setDraftSchoolId}
+                  value={draftFilters.schoolId}
+                  onChange={(value) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      schoolId: value,
+                    }))
+                  }
                   placeholder={t("resources.filters.allSchools")}
                   closeLabel={t("resources.filters.close")}
                   testIDPrefix="resources-filter-school"
@@ -665,8 +786,13 @@ export function ResourcesScreen() {
               <View style={styles.filterFieldInputWrap}>
                 <SelectField
                   options={levelFilterOptions}
-                  value={draftAcademicLevelId}
-                  onChange={setDraftAcademicLevelId}
+                  value={draftFilters.academicLevelId}
+                  onChange={(value) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      academicLevelId: value,
+                    }))
+                  }
                   placeholder={t("resources.filters.allLevels")}
                   closeLabel={t("resources.filters.close")}
                   testIDPrefix="resources-filter-level"
@@ -682,8 +808,13 @@ export function ResourcesScreen() {
                 <View style={styles.filterFieldInputWrap}>
                   <SelectField
                     options={sequenceFilterOptions}
-                    value={draftSequence}
-                    onChange={setDraftSequence}
+                    value={draftFilters.sequence}
+                    onChange={(value) =>
+                      setDraftFilters((current) => ({
+                        ...current,
+                        sequence: value,
+                      }))
+                    }
                     placeholder={t("resources.filters.allSequences")}
                     closeLabel={t("resources.filters.close")}
                     testIDPrefix="resources-filter-sequence"
@@ -699,8 +830,13 @@ export function ResourcesScreen() {
               <View style={styles.filterFieldInputWrap}>
                 <SelectField
                   options={examTypeFilterOptions}
-                  value={draftExamType}
-                  onChange={setDraftExamType}
+                  value={draftFilters.examType}
+                  onChange={(value) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      examType: value,
+                    }))
+                  }
                   placeholder={t("resources.filters.allExamTypes")}
                   closeLabel={t("resources.filters.close")}
                   testIDPrefix="resources-filter-exam-type"
@@ -710,35 +846,20 @@ export function ResourcesScreen() {
 
             <View style={styles.filterActionsRow}>
               <TouchableOpacity
-                style={[styles.filterActionBtn, styles.filterCancelBtn]}
-                onPress={cancelFilters}
-                testID="resources-filter-cancel"
-              >
-                <Text
-                  style={[
-                    styles.filterActionBtnText,
-                    styles.filterCancelBtnText,
-                  ]}
-                >
-                  {t("resources.filters.cancel")}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
                 style={[
-                  styles.filterActionBtn,
-                  styles.filterResetBtn,
-                  !hasActiveDraftFilters && styles.filterResetBtnDisabled,
+                  styles.filterActionReset,
+                  !hasActiveFilters(draftFilters) &&
+                    styles.filterActionResetDisabled,
                 ]}
-                onPress={resetDraftFilters}
-                disabled={!hasActiveDraftFilters}
+                onPress={resetFilters}
+                disabled={!hasActiveFilters(draftFilters)}
                 testID="resources-filter-reset"
               >
                 <Text
                   style={[
-                    styles.filterActionBtnText,
-                    styles.filterResetBtnText,
-                    !hasActiveDraftFilters && styles.filterResetBtnTextDisabled,
+                    styles.filterActionResetLabel,
+                    !hasActiveFilters(draftFilters) &&
+                      styles.filterActionResetLabelDisabled,
                   ]}
                 >
                   {t("resources.filters.reset")}
@@ -746,16 +867,22 @@ export function ResourcesScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.filterActionBtn, styles.filterApplyBtn]}
+                style={styles.filterActionClose}
+                onPress={closeFilters}
+                testID="resources-filter-close"
+              >
+                <Text style={styles.filterActionCloseLabel}>
+                  {t("resources.filters.close")}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.filterActionApply}
                 onPress={applyFilters}
                 testID="resources-filter-apply"
               >
-                <Text
-                  style={[
-                    styles.filterActionBtnText,
-                    styles.filterApplyBtnText,
-                  ]}
-                >
+                <Ionicons name="checkmark" size={15} color={colors.white} />
+                <Text style={styles.filterActionApplyLabel}>
                   {t("resources.filters.apply")}
                 </Text>
               </TouchableOpacity>
@@ -793,6 +920,28 @@ export function ResourcesScreen() {
                 testID={`resources-card-${item.id}`}
               />
             )}
+            onLoadMore={
+              tab === "ASSESSMENT" || tab === "EXAM"
+                ? () => handleLoadMoreResources(tab)
+                : undefined
+            }
+            hasMore={
+              tab === "ASSESSMENT" || tab === "EXAM"
+                ? (() => {
+                    const meta = listMeta[tab];
+                    if (!meta) return false;
+                    return (
+                      meta.page <
+                      Math.max(1, Math.ceil(meta.total / meta.limit))
+                    );
+                  })()
+                : false
+            }
+            isLoadingMore={
+              tab === "ASSESSMENT" || tab === "EXAM"
+                ? isLoadingMore[tab]
+                : false
+            }
             emptyComponent={
               <Text style={styles.emptyText} testID={`resources-empty-${tab}`}>
                 {t("resources.empty.message")}
@@ -1230,31 +1379,70 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   errorText: { flex: 1, fontSize: 13, color: colors.notification },
-  filterPanel: {
-    backgroundColor: colors.warmSurface,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-    gap: 12,
-  },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    height: 44,
+    paddingBottom: 8,
+  },
+  searchBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: "#E0D0BA",
-    borderRadius: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
     color: colors.textPrimary,
     padding: 0,
+  },
+  filterToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}55`,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterToggleActive: {
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.accentTeal,
+  },
+  filterPanel: {
+    marginBottom: 10,
+    padding: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}33`,
+    backgroundColor: colors.surface,
+    gap: 14,
+  },
+  filterPanelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  filterPanelHeaderIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: `${colors.accentTeal}1F`,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterPanelHeaderTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.accentTealDark,
   },
   filterFieldRow: {
     flexDirection: "row",
@@ -1272,50 +1460,62 @@ const styles = StyleSheet.create({
   filterActionsRow: {
     flexDirection: "row",
     gap: 8,
-    marginTop: 4,
+    marginTop: 2,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: colors.warmBorder,
+    borderTopColor: colors.border,
   },
-  filterActionBtn: {
+  filterActionReset: {
     flex: 1,
-    height: 44,
-    flexDirection: "row",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.warmSurface,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 10,
-    borderWidth: 1.5,
+    paddingVertical: 11,
   },
-  filterActionBtnText: {
+  filterActionResetDisabled: {
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  filterActionResetLabel: {
+    color: colors.warmAccent,
     fontSize: 13,
     fontWeight: "700",
   },
-  filterCancelBtn: {
-    backgroundColor: colors.surface,
-    borderColor: "#E0D0BA",
-  },
-  filterCancelBtnText: {
+  filterActionResetLabelDisabled: {
     color: colors.textSecondary,
   },
-  filterResetBtn: {
-    backgroundColor: colors.surface,
-    borderColor: colors.primary,
+  filterActionClose: {
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 11,
   },
-  filterResetBtnDisabled: {
-    borderColor: "#E0D0BA",
-  },
-  filterResetBtnText: {
-    color: colors.primary,
-  },
-  filterResetBtnTextDisabled: {
+  filterActionCloseLabel: {
     color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: "700",
   },
-  filterApplyBtn: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
+  filterActionApply: {
+    flex: 1.3,
+    borderRadius: 8,
+    backgroundColor: colors.accentTeal,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+    paddingVertical: 11,
   },
-  filterApplyBtnText: {
+  filterActionApplyLabel: {
     color: colors.white,
+    fontSize: 13,
+    fontWeight: "700",
   },
   moderationSubTabs: {
     flexDirection: "row",

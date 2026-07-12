@@ -45,16 +45,18 @@ export function AppHeader() {
   const [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false);
 
   const isHome = isHomePath(pathname);
+  const view = user ? getViewType(user) : "unknown";
+  const isPlatformView = view === "platform";
 
   const centerTitle = useMemo(() => {
-    const view = user ? getViewType(user) : "unknown";
-    if (view === "platform") return "SCOLIVE";
+    if (isPlatformView) return "SCOLIVE";
     if (schoolSlug) return slugToDisplayName(schoolSlug).toUpperCase();
     return "SCOLIVE";
-  }, [user, schoolSlug]);
+  }, [isPlatformView, schoolSlug]);
 
   const userFullName = user ? formatHeaderUserName(user) : "";
-  const schoolDisplayName = schoolSlug ? slugToDisplayName(schoolSlug) : "";
+  const schoolDisplayName =
+    schoolSlug && !isPlatformView ? slugToDisplayName(schoolSlug) : "";
 
   const handleAuthButtonPress = () => {
     if (user) {
