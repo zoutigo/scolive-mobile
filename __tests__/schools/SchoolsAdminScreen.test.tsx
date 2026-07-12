@@ -14,11 +14,13 @@ import type { SchoolRow } from "../../src/types/schools.types";
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/schools.api");
 
+const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({
     back: jest.fn(),
     canGoBack: jest.fn(() => true),
     navigate: jest.fn(),
+    push: mockPush,
   }),
 }));
 
@@ -88,6 +90,7 @@ function makeSchool(overrides?: Partial<SchoolRow>): SchoolRow {
     logoUrl: null,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
+    academicYear: { id: "year-1", label: "2025-2026" },
     usersCount: 10,
     classesCount: 4,
     studentsCount: 120,
@@ -111,6 +114,7 @@ beforeEach(() => {
         name: payload.name,
         cycle: payload.cycle ?? null,
         languageSystem: payload.languageSystem ?? null,
+        academicYear: null,
         usersCount: 0,
         classesCount: 0,
         studentsCount: 0,
@@ -128,15 +132,6 @@ beforeEach(() => {
     schoolsState = schoolsState.filter((entry) => entry.id !== id);
     return { success: true };
   });
-  mockSchoolsApi.addSchoolAdmin.mockResolvedValue({
-    schoolAdmin: {
-      id: "admin-2",
-      email: "new.admin@vogt.cm",
-      firstName: "New",
-    },
-    userExisted: false,
-    setupCompleted: false,
-  });
 });
 
 describe("SchoolsAdminScreen", () => {
@@ -150,16 +145,74 @@ describe("SchoolsAdminScreen", () => {
     expect(mockSchoolsApi.listSchools).not.toHaveBeenCalled();
   });
 
-  it("liste les écoles en cartes pour un SUPER_ADMIN", async () => {
+  it("affiche la synthèse par cycle par défaut", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+    schoolsState = [
+      makeSchool(),
+      makeSchool({
+        id: "school-2",
+        slug: "ecole-primaire",
+        name: "École primaire du lac",
+        cycle: "PRIMARY",
+        studentsCount: 60,
+        classesCount: 3,
+      }),
+      makeSchool({
+        id: "school-3",
+        slug: "ecole-sans-cycle",
+        name: "École sans cycle",
+        cycle: null,
+        studentsCount: 5,
+        classesCount: 1,
+      }),
+    ];
+
+    render(<SchoolsAdminScreen />);
+
+    const synthese = await screen.findByTestId("schools-synthese-tab");
+    expect(
+      within(synthese).getByTestId("schools-synthese-total-schools"),
+    ).toHaveTextContent(/3/);
+    expect(
+      within(synthese).getByTestId("schools-synthese-cycle-PRIMARY"),
+    ).toBeTruthy();
+    expect(
+      within(synthese).getByTestId("schools-synthese-cycle-SECONDARY"),
+    ).toBeTruthy();
+    expect(
+      within(synthese).getByTestId("schools-synthese-cycle-UNSET"),
+    ).toBeTruthy();
+  });
+
+  it("liste les écoles en cartes avec header/body/footer pour un SUPER_ADMIN", async () => {
     mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
     schoolsState = [makeSchool()];
 
     render(<SchoolsAdminScreen />);
 
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
+
     const card = await screen.findByTestId("schools-card-school-1");
     expect(card).toHaveTextContent(/Collège Vogt/);
+    expect(card).toHaveTextContent(/2025-2026/);
+    within(card).getByTestId("schools-view-school-1");
     within(card).getByTestId("schools-edit-school-1");
     within(card).getByTestId("schools-delete-school-1");
+  });
+
+  it("navigue vers la fiche détaillée au clic sur Voir", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+    schoolsState = [makeSchool()];
+
+    render(<SchoolsAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
+    fireEvent.press(await screen.findByTestId("schools-view-school-1"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/schools/[schoolId]",
+      params: { schoolId: "school-1" },
+    });
   });
 
   it("filtre les écoles via la recherche du header", async () => {
@@ -177,6 +230,7 @@ describe("SchoolsAdminScreen", () => {
 
     render(<SchoolsAdminScreen />);
 
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
     await screen.findByTestId("schools-card-school-1");
 
     fireEvent.press(screen.getByTestId("schools-search-toggle"));
@@ -191,13 +245,19 @@ describe("SchoolsAdminScreen", () => {
     });
   });
 
-  it("crée une école avec cycle, système linguistique et email du school admin", async () => {
+  it("crée une école via le FAB, avec toast et retour au tab d'origine après 2s", async () => {
+    jest.useFakeTimers({ legacyFakeTimers: false });
     mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
 
     render(<SchoolsAdminScreen />);
 
-    fireEvent.press(await screen.findByTestId("schools-tab-create"));
-    await screen.findByTestId("schools-create-form");
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
+    fireEvent.press(await screen.findByTestId("schools-fab"));
+
+    const hero = await screen.findByTestId("schools-form-hero");
+    expect(hero).toBeTruthy();
+    expect(screen.queryByTestId("schools-tab-list")).toBeNull();
+    expect(screen.queryByTestId("schools-fab")).toBeNull();
 
     fireEvent.changeText(
       screen.getByTestId("schools-create-name"),
@@ -232,14 +292,54 @@ describe("SchoolsAdminScreen", () => {
         schoolAdminEmail: "admin@greenwich.cm",
       });
     });
+
+    await waitFor(() => expect(mockShowSuccess).toHaveBeenCalled());
+
+    jest.advanceTimersByTime(2000);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("schools-tab-list")).toBeTruthy();
+    });
+
+    jest.useRealTimers();
   });
 
-  it("modifie une école existante", async () => {
+  it("annule la création sans appeler l'API et revient au tab d'origine", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+
+    render(<SchoolsAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
+    fireEvent.press(await screen.findByTestId("schools-fab"));
+    await screen.findByTestId("schools-create-form");
+
+    fireEvent.press(screen.getByTestId("schools-create-cancel"));
+
+    expect(await screen.findByTestId("schools-tab-list")).toBeTruthy();
+    expect(mockSchoolsApi.createSchool).not.toHaveBeenCalled();
+  });
+
+  it("la flèche du header revient au tab d'origine depuis le formulaire, sans router.back", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+
+    render(<SchoolsAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("schools-tab-synthese"));
+    fireEvent.press(await screen.findByTestId("schools-fab"));
+    await screen.findByTestId("schools-create-form");
+
+    fireEvent.press(screen.getByTestId("module-header-back"));
+
+    expect(await screen.findByTestId("schools-tab-synthese")).toBeTruthy();
+  });
+
+  it("modifie une école existante depuis la carte", async () => {
     mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
     schoolsState = [makeSchool()];
 
     render(<SchoolsAdminScreen />);
 
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
     fireEvent.press(await screen.findByTestId("schools-edit-school-1"));
 
     const nameInput = await screen.findByTestId("schools-edit-name");
@@ -259,26 +359,36 @@ describe("SchoolsAdminScreen", () => {
     });
   });
 
-  it("ajoute un school admin depuis l'édition d'une école", async () => {
+  it("affiche une erreur de validation sans appeler l'API si le nom est vide", async () => {
     mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
     schoolsState = [makeSchool()];
 
     render(<SchoolsAdminScreen />);
 
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
     fireEvent.press(await screen.findByTestId("schools-edit-school-1"));
-    await screen.findByTestId("schools-add-admin-form");
 
-    fireEvent.changeText(
-      screen.getByTestId("schools-add-admin-email"),
-      "new.admin@vogt.cm",
-    );
-    fireEvent.press(screen.getByTestId("schools-add-admin-submit"));
+    const nameInput = await screen.findByTestId("schools-edit-name");
+    fireEvent.changeText(nameInput, "");
+    fireEvent.press(screen.getByTestId("schools-edit-submit"));
 
-    await waitFor(() => {
-      expect(mockSchoolsApi.addSchoolAdmin).toHaveBeenCalledWith("school-1", {
-        email: "new.admin@vogt.cm",
-      });
-    });
+    expect(await screen.findByTestId("schools-edit-name-error")).toBeTruthy();
+    expect(mockSchoolsApi.updateSchool).not.toHaveBeenCalled();
+  });
+
+  it("affiche un toast d'erreur et reste sur le formulaire en cas d'échec API", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+    schoolsState = [makeSchool()];
+    mockSchoolsApi.updateSchool.mockRejectedValueOnce(new Error("boom"));
+
+    render(<SchoolsAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
+    fireEvent.press(await screen.findByTestId("schools-edit-school-1"));
+    fireEvent.press(await screen.findByTestId("schools-edit-submit"));
+
+    await waitFor(() => expect(mockShowError).toHaveBeenCalled());
+    expect(screen.getByTestId("schools-edit-form-school-1")).toBeTruthy();
   });
 
   it("supprime une école après confirmation", async () => {
@@ -287,6 +397,7 @@ describe("SchoolsAdminScreen", () => {
 
     render(<SchoolsAdminScreen />);
 
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
     fireEvent.press(await screen.findByTestId("schools-delete-school-1"));
 
     fireEvent.press(await screen.findByTestId("confirm-dialog-confirm"));

@@ -4,6 +4,7 @@ import type {
   AddSchoolAdminResult,
   CreateSchoolPayload,
   CreateSchoolResult,
+  SchoolDetails,
   SchoolRow,
   UpdateSchoolPayload,
 } from "../types/schools.types";
@@ -11,6 +12,10 @@ import type {
 export const schoolsApi = {
   listSchools(): Promise<SchoolRow[]> {
     return apiFetch("/system/schools", {}, true);
+  },
+
+  getSchoolDetails(schoolId: string): Promise<SchoolDetails> {
+    return apiFetch(`/system/schools/${schoolId}`, {}, true);
   },
 
   createSchool(payload: CreateSchoolPayload): Promise<CreateSchoolResult> {
@@ -43,6 +48,17 @@ export const schoolsApi = {
     return apiFetch(
       `/system/schools/${schoolId}/admins`,
       { method: "POST", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  resendSchoolAdminInvite(
+    schoolId: string,
+    adminUserId: string,
+  ): Promise<{ success: boolean }> {
+    return apiFetch(
+      `/system/schools/${schoolId}/admins/${adminUserId}/resend-invite`,
+      { method: "POST" },
       true,
     );
   },

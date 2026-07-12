@@ -1,6 +1,13 @@
 export type SchoolCycle = "PRIMARY" | "SECONDARY";
 export type SchoolLanguageSystem = "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL";
 
+export type SchoolAcademicYear = {
+  id: string;
+  label: string;
+  startsAt?: string | null;
+  endsAt?: string | null;
+};
+
 export type SchoolRow = {
   id: string;
   slug: string;
@@ -13,9 +20,51 @@ export type SchoolRow = {
   logoUrl: string | null;
   createdAt: string;
   updatedAt: string;
+  academicYear: SchoolAcademicYear | null;
   usersCount: number;
   classesCount: number;
   studentsCount: number;
+};
+
+export type SchoolAdminRow = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  mustChangePassword: boolean;
+  profileCompleted: boolean;
+  canResendInvite: boolean;
+};
+
+export type SchoolRoleBreakdown = {
+  staff: number;
+  teachers: number;
+  parents: number;
+  students: number;
+};
+
+export type SchoolDetails = {
+  id: string;
+  slug: string;
+  name: string;
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  cycle: SchoolCycle | null;
+  languageSystem: SchoolLanguageSystem | null;
+  logoUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  academicYear: SchoolAcademicYear | null;
+  stats: {
+    usersCount: number;
+    classesCount: number;
+    studentsCount: number;
+    teachersCount: number;
+    gradesCount: number;
+  };
+  roleBreakdown: SchoolRoleBreakdown;
+  schoolAdmins: SchoolAdminRow[];
 };
 
 export type CreateSchoolPayload = {
