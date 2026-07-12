@@ -2155,8 +2155,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.platform.resources.kpi.withoutStatement": "Sans énoncé",
     "home.platform.resources.kpi.withoutCorrection": "Sans corrigé",
     "home.platform.resources.kpi.statementsToApprove": "Énoncés à approuver",
-    "home.platform.resources.kpi.correctionsToApprove":
-      "Corrigés à approuver",
+    "home.platform.resources.kpi.correctionsToApprove": "Corrigés à approuver",
 
     // Accueil Parent
     "home.parent.children.title": "Mes enfants",
@@ -4480,8 +4479,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.platform.resources.exams.title": "Exams",
     "home.platform.resources.kpi.withoutStatement": "Missing statement",
     "home.platform.resources.kpi.withoutCorrection": "Missing correction",
-    "home.platform.resources.kpi.statementsToApprove":
-      "Statements to approve",
+    "home.platform.resources.kpi.statementsToApprove": "Statements to approve",
     "home.platform.resources.kpi.correctionsToApprove":
       "Corrections to approve",
 
