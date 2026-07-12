@@ -216,16 +216,45 @@ describe("SelectDropdown — recherche", () => {
     expect(screen.getByText("Aucun résultat")).toBeTruthy();
   });
 
-  it("réinitialise la recherche à la réouverture du modal", async () => {
+  it("n'utilise pas de Modal quand searchPlaceholder est fourni (rendu inline)", async () => {
+    renderDropdown({
+      searchPlaceholder: "Rechercher...",
+      noResultsLabel: "Aucun résultat",
+    });
+    fireEvent.press(screen.getByTestId("test-select"));
+    await waitFor(() =>
+      expect(screen.getByTestId("test-select-panel")).toBeTruthy(),
+    );
+    expect(screen.queryByTestId("test-select-modal")).toBeNull();
+    expect(screen.queryByTestId("test-select-overlay")).toBeNull();
+  });
+
+  it("ferme le panneau inline en rappuyant sur le déclencheur", async () => {
+    renderDropdown({
+      searchPlaceholder: "Rechercher...",
+      noResultsLabel: "Aucun résultat",
+    });
+    fireEvent.press(screen.getByTestId("test-select"));
+    await waitFor(() =>
+      expect(screen.getByTestId("test-select-panel")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("test-select"));
+    await waitFor(() =>
+      expect(screen.queryByTestId("test-select-panel")).toBeNull(),
+    );
+  });
+
+  it("réinitialise la recherche à la réouverture du panneau", async () => {
     renderDropdown({
       searchPlaceholder: "Rechercher...",
       noResultsLabel: "Aucun résultat",
     });
     fireEvent.press(screen.getByTestId("test-select"));
     fireEvent.changeText(await screen.findByTestId("test-select-search"), "b4");
-    fireEvent.press(screen.getByTestId("test-select-overlay"));
+    fireEvent.press(screen.getByTestId("test-select"));
     await waitFor(() =>
-      expect(screen.queryByTestId("test-select-modal")).toBeNull(),
+      expect(screen.queryByTestId("test-select-panel")).toBeNull(),
     );
 
     fireEvent.press(screen.getByTestId("test-select"));

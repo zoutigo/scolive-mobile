@@ -1,9 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
   FlatList,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -26,8 +24,11 @@ interface SelectDropdownProps {
   hasError?: boolean;
   testID?: string;
   /**
-   * When provided, a search field is shown above the option list and filters
-   * options by label as the user types. Omit for short, fixed lists.
+   * When provided, the dropdown expands inline (no Modal) with a search field
+   * above the option list, filtering options by label as the user types.
+   * Inline rendering keeps the list inside the screen's own keyboard-aware
+   * layout (adjustPan), which a native Modal window cannot benefit from.
+   * Omit for short, fixed lists with no search need.
    */
   searchPlaceholder?: string;
   /** Label shown when the search filters out every option. Required alongside `searchPlaceholder`. */
@@ -55,21 +56,57 @@ export function SelectDropdown({
     return options.filter((o) => o.label.toLowerCase().includes(needle));
   }, [options, search, searchable]);
 
-  function handleOpen() {
-    setSearch("");
-    setOpen(true);
-  }
-
   function handleClose() {
     setSearch("");
     setOpen(false);
   }
 
+  function handleTriggerPress() {
+    if (searchable) {
+      if (open) {
+        handleClose();
+      } else {
+        setSearch("");
+        setOpen(true);
+      }
+      return;
+    }
+    setOpen(true);
+  }
+
+  function renderOption(item: SelectOption) {
+    return (
+      <TouchableOpacity
+        key={item.value || "__none__"}
+        style={[styles.option, item.value === value && styles.optionSelected]}
+        onPress={() => {
+          onChange(item.value);
+          handleClose();
+        }}
+        testID={testID ? `${testID}-option-${item.value || "none"}` : undefined}
+      >
+        <View style={styles.optionCheck}>
+          {item.value === value ? (
+            <Ionicons name="checkmark" size={16} color={colors.primary} />
+          ) : null}
+        </View>
+        <Text
+          style={[
+            styles.optionText,
+            item.value === value && styles.optionTextSelected,
+          ]}
+        >
+          {item.label}
+        </Text>
+      </TouchableOpacity>
+    );
+  }
+
   return (
-    <>
+    <View>
       <TouchableOpacity
         style={[styles.trigger, hasError && styles.triggerError]}
-        onPress={handleOpen}
+        onPress={handleTriggerPress}
         testID={testID}
         activeOpacity={0.8}
       >
@@ -79,96 +116,68 @@ export function SelectDropdown({
         >
           {selected ? selected.label : placeholder}
         </Text>
-        <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
+        <Ionicons
+          name={searchable && open ? "chevron-up" : "chevron-down"}
+          size={16}
+          color={colors.textSecondary}
+        />
       </TouchableOpacity>
 
-      <Modal
-        visible={open}
-        transparent
-        animationType="fade"
-        onRequestClose={handleClose}
-        testID={testID ? `${testID}-modal` : undefined}
-      >
-        <TouchableOpacity
-          style={styles.overlay}
-          activeOpacity={1}
-          onPress={handleClose}
-          testID={testID ? `${testID}-overlay` : undefined}
-        />
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.sheetWrap}
-          pointerEvents="box-none"
-        >
-          <View style={styles.sheet} pointerEvents="box-none">
-            {searchable ? (
-              <View style={styles.searchWrap}>
-                <Ionicons
-                  name="search"
-                  size={16}
-                  color={colors.textSecondary}
-                />
-                <TextInput
-                  value={search}
-                  onChangeText={setSearch}
-                  placeholder={searchPlaceholder}
-                  placeholderTextColor={colors.textSecondary}
-                  style={styles.searchInput}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  testID={testID ? `${testID}-search` : undefined}
-                />
-              </View>
-            ) : null}
-            {searchable && filteredOptions.length === 0 ? (
+      {searchable ? (
+        open ? (
+          <View
+            style={styles.inlinePanel}
+            testID={testID ? `${testID}-panel` : undefined}
+          >
+            <View style={styles.searchWrap}>
+              <Ionicons name="search" size={16} color={colors.textSecondary} />
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder={searchPlaceholder}
+                placeholderTextColor={colors.textSecondary}
+                style={styles.searchInput}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus
+                testID={testID ? `${testID}-search` : undefined}
+              />
+            </View>
+            {filteredOptions.length === 0 ? (
               <Text style={styles.noResults}>{noResultsLabel}</Text>
             ) : (
+              filteredOptions.map(renderOption)
+            )}
+          </View>
+        ) : null
+      ) : (
+        <Modal
+          visible={open}
+          transparent
+          animationType="fade"
+          onRequestClose={handleClose}
+          testID={testID ? `${testID}-modal` : undefined}
+        >
+          <TouchableOpacity
+            style={styles.overlay}
+            activeOpacity={1}
+            onPress={handleClose}
+            testID={testID ? `${testID}-overlay` : undefined}
+          />
+          <View style={styles.sheetWrap} pointerEvents="box-none">
+            <View style={styles.sheet} pointerEvents="box-none">
               <FlatList
-                data={filteredOptions}
+                data={options}
                 keyExtractor={(o) => o.value || "__none__"}
                 style={styles.list}
                 keyboardShouldPersistTaps="handled"
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.option,
-                      item.value === value && styles.optionSelected,
-                    ]}
-                    onPress={() => {
-                      onChange(item.value);
-                      handleClose();
-                    }}
-                    testID={
-                      testID
-                        ? `${testID}-option-${item.value || "none"}`
-                        : undefined
-                    }
-                  >
-                    <View style={styles.optionCheck}>
-                      {item.value === value ? (
-                        <Ionicons
-                          name="checkmark"
-                          size={16}
-                          color={colors.primary}
-                        />
-                      ) : null}
-                    </View>
-                    <Text
-                      style={[
-                        styles.optionText,
-                        item.value === value && styles.optionTextSelected,
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                )}
+                renderItem={({ item }) => renderOption(item)}
               />
-            )}
+            </View>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
-    </>
+        </Modal>
+      )}
+    </View>
   );
 }
 
@@ -216,11 +225,19 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     maxHeight: "55%",
   },
+  inlinePanel: {
+    marginTop: 8,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "#E0D0BA",
+    backgroundColor: colors.white,
+    paddingVertical: 8,
+  },
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginHorizontal: 16,
+    marginHorizontal: 12,
     marginBottom: 8,
     paddingHorizontal: 12,
     height: 42,
