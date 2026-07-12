@@ -129,6 +129,11 @@ export function SelectDropdown({
             style={styles.inlinePanel}
             testID={testID ? `${testID}-panel` : undefined}
           >
+            {filteredOptions.length === 0 ? (
+              <Text style={styles.noResults}>{noResultsLabel}</Text>
+            ) : (
+              filteredOptions.map(renderOption)
+            )}
             <View style={styles.searchWrap}>
               <Ionicons name="search" size={16} color={colors.textSecondary} />
               <TextInput
@@ -143,11 +148,6 @@ export function SelectDropdown({
                 testID={testID ? `${testID}-search` : undefined}
               />
             </View>
-            {filteredOptions.length === 0 ? (
-              <Text style={styles.noResults}>{noResultsLabel}</Text>
-            ) : (
-              filteredOptions.map(renderOption)
-            )}
           </View>
         ) : null
       ) : (
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     marginHorizontal: 12,
-    marginBottom: 8,
+    marginTop: 8,
     paddingHorizontal: 12,
     height: 42,
     borderRadius: 6,
