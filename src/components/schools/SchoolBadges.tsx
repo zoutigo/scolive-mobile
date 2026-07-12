@@ -66,12 +66,16 @@ export function StatTile(props: {
       <View
         style={[styles.statIconWrap, { backgroundColor: `${iconColor}1F` }]}
       >
-        <Ionicons name={props.icon} size={16} color={iconColor} />
+        <Ionicons name={props.icon} size={18} color={iconColor} />
       </View>
-      <Text style={styles.statValue}>{props.value}</Text>
-      <Text style={styles.statLabel} numberOfLines={2}>
-        {props.label}
-      </Text>
+      <View style={styles.statTextWrap}>
+        <Text style={styles.statValue} numberOfLines={1}>
+          {props.value}
+        </Text>
+        <Text style={styles.statLabel} numberOfLines={1}>
+          {props.label}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -97,25 +101,24 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   statTile: {
-    flexBasis: "48%",
+    flexBasis: "31%",
     flexGrow: 1,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    padding: 12,
-    gap: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   statIconWrap: {
-    width: 28,
-    height: 28,
+    width: 34,
+    height: 34,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 2,
+  },
+  statTextWrap: {
+    flexShrink: 1,
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "800",
     color: colors.textPrimary,
   },

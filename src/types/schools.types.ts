@@ -26,6 +26,45 @@ export type SchoolRow = {
   studentsCount: number;
 };
 
+export type SchoolsListMeta = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+
+export type SchoolsListParams = {
+  search?: string;
+  cycle?: SchoolCycle;
+  languageSystem?: SchoolLanguageSystem;
+  page?: number;
+  limit?: number;
+};
+
+export type SchoolsListResult = {
+  items: SchoolRow[];
+  meta: SchoolsListMeta;
+};
+
+export type SchoolsCycleBreakdown = {
+  schools: number;
+  students: number;
+  classes: number;
+};
+
+export type SchoolsOverview = {
+  totals: {
+    schools: number;
+    students: number;
+    classes: number;
+  };
+  byCycle: {
+    PRIMARY: SchoolsCycleBreakdown;
+    SECONDARY: SchoolsCycleBreakdown;
+    UNSET: SchoolsCycleBreakdown;
+  };
+};
+
 export type SchoolAdminRow = {
   id: string;
   firstName: string;

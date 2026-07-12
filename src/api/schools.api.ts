@@ -6,12 +6,32 @@ import type {
   CreateSchoolResult,
   SchoolDetails,
   SchoolRow,
+  SchoolsListParams,
+  SchoolsListResult,
+  SchoolsOverview,
   UpdateSchoolPayload,
 } from "../types/schools.types";
 
+const SCHOOLS_PAGE_LIMIT = 20;
+
+function buildSchoolsQuery(params: SchoolsListParams): string {
+  const q = new URLSearchParams();
+  if (params.search?.trim()) q.set("search", params.search.trim());
+  if (params.cycle) q.set("cycle", params.cycle);
+  if (params.languageSystem) q.set("languageSystem", params.languageSystem);
+  q.set("page", String(params.page ?? 1));
+  q.set("limit", String(params.limit ?? SCHOOLS_PAGE_LIMIT));
+  return `?${q.toString()}`;
+}
+
 export const schoolsApi = {
-  listSchools(): Promise<SchoolRow[]> {
-    return apiFetch("/system/schools", {}, true);
+  listSchools(params: SchoolsListParams = {}): Promise<SchoolsListResult> {
+    const query = buildSchoolsQuery(params);
+    return apiFetch(`/system/schools${query}`, {}, true);
+  },
+
+  getSchoolsOverview(): Promise<SchoolsOverview> {
+    return apiFetch("/system/schools/overview", {}, true);
   },
 
   getSchoolDetails(schoolId: string): Promise<SchoolDetails> {

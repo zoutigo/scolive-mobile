@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -22,6 +28,7 @@ import { ModuleHeader } from "../navigation/ModuleHeader";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { FormHero } from "../forms/FormHero";
 import { SelectDropdown } from "../SelectDropdown";
+import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { useAuthStore } from "../../store/auth.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
@@ -32,7 +39,7 @@ import {
   LoadingBlock,
   SectionCard,
 } from "../timetable/TimetableCommon";
-import { CyclePill, LanguagePill, StatTile } from "./SchoolBadges";
+import { CyclePill, LanguagePill } from "./SchoolBadges";
 import { colors } from "../../theme";
 import { extractApiError } from "../../utils/api-error";
 import type {
@@ -40,6 +47,8 @@ import type {
   SchoolCycle,
   SchoolLanguageSystem,
   SchoolRow,
+  SchoolsListMeta,
+  SchoolsOverview,
   UpdateSchoolPayload,
 } from "../../types/schools.types";
 import { moduleBack } from "../../utils/moduleBack";
@@ -57,12 +66,25 @@ type FormContext = {
   school: SchoolRow | null;
 };
 
+type SchoolsFilters = {
+  cycle: SchoolCycle | null;
+  languageSystem: SchoolLanguageSystem | null;
+};
+
+const NO_FILTERS: SchoolsFilters = { cycle: null, languageSystem: null };
+
 const CYCLE_KEYS: SchoolCycle[] = ["PRIMARY", "SECONDARY"];
 const LANGUAGE_KEYS: SchoolLanguageSystem[] = [
   "FRANCOPHONE",
   "ANGLOPHONE",
   "BILINGUAL",
 ];
+
+const SEARCH_DEBOUNCE_MS = 300;
+
+function hasActiveFilters(filters: SchoolsFilters) {
+  return filters.cycle != null || filters.languageSystem != null;
+}
 
 function roleAllowsPlatformAdmin(role: string | null | undefined) {
   return role === "ADMIN" || role === "SUPER_ADMIN";
@@ -676,32 +698,38 @@ function SchoolCard(props: {
 // Synthesis tab
 // ---------------------------------------------------------------------------
 
-function SynthesisTab(props: { schools: SchoolRow[]; t: TranslateFn }) {
-  const { schools, t } = props;
-
-  const totals = useMemo(
-    () => ({
-      schools: schools.length,
-      students: schools.reduce((sum, s) => sum + s.studentsCount, 0),
-      classes: schools.reduce((sum, s) => sum + s.classesCount, 0),
-    }),
-    [schools],
+function OverviewStatCard(props: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: number;
+  color: string;
+  testID?: string;
+}) {
+  return (
+    <View
+      style={[styles.overviewStatCard, { borderLeftColor: props.color }]}
+      testID={props.testID}
+    >
+      <Ionicons name={props.icon} size={20} color={props.color} />
+      <View style={styles.overviewStatTexts}>
+        <Text style={styles.overviewStatValue}>{props.value}</Text>
+        <Text style={styles.overviewStatLabel}>{props.label}</Text>
+      </View>
+    </View>
   );
+}
 
-  const byCycle = useMemo(() => {
-    const groups: Record<"PRIMARY" | "SECONDARY" | "UNSET", SchoolRow[]> = {
-      PRIMARY: [],
-      SECONDARY: [],
-      UNSET: [],
-    };
-    for (const school of schools) {
-      const key = school.cycle ?? "UNSET";
-      groups[key].push(school);
+function SynthesisTab(props: {
+  overview: SchoolsOverview | null;
+  isLoading: boolean;
+  t: TranslateFn;
+}) {
+  const { overview, isLoading, t } = props;
+
+  if (!overview) {
+    if (isLoading) {
+      return <LoadingBlock label={t("schoolsAdmin.detail.loading")} />;
     }
-    return groups;
-  }, [schools]);
-
-  if (schools.length === 0) {
     return (
       <EmptyState
         icon="stats-chart-outline"
@@ -713,34 +741,32 @@ function SynthesisTab(props: { schools: SchoolRow[]; t: TranslateFn }) {
 
   return (
     <View style={{ gap: 12 }} testID="schools-synthese-tab">
-      <SectionCard
-        title={t("schoolsAdmin.synthese.overviewTitle")}
-        testID="schools-synthese-overview"
-      >
-        <View style={styles.statsGrid}>
-          <StatTile
-            icon="business-outline"
-            label={t("schoolsAdmin.synthese.totalSchools")}
-            value={totals.schools}
-            tone="primary"
-            testID="schools-synthese-total-schools"
-          />
-          <StatTile
-            icon="people-outline"
-            label={t("schoolsAdmin.synthese.totalStudents")}
-            value={totals.students}
-            tone="teal"
-            testID="schools-synthese-total-students"
-          />
-          <StatTile
-            icon="grid-outline"
-            label={t("schoolsAdmin.synthese.totalClasses")}
-            value={totals.classes}
-            tone="warm"
-            testID="schools-synthese-total-classes"
-          />
-        </View>
-      </SectionCard>
+      <Text style={styles.overviewSectionTitle}>
+        {t("schoolsAdmin.synthese.overviewTitle")}
+      </Text>
+      <View style={styles.overviewStatsRow} testID="schools-synthese-overview">
+        <OverviewStatCard
+          icon="business-outline"
+          label={t("schoolsAdmin.synthese.totalSchools")}
+          value={overview.totals.schools}
+          color={colors.primary}
+          testID="schools-synthese-total-schools"
+        />
+        <OverviewStatCard
+          icon="people-outline"
+          label={t("schoolsAdmin.synthese.totalStudents")}
+          value={overview.totals.students}
+          color={colors.accentTeal}
+          testID="schools-synthese-total-students"
+        />
+        <OverviewStatCard
+          icon="grid-outline"
+          label={t("schoolsAdmin.synthese.totalClasses")}
+          value={overview.totals.classes}
+          color={colors.warmAccent}
+          testID="schools-synthese-total-classes"
+        />
+      </View>
 
       <SectionCard
         title={t("schoolsAdmin.synthese.byCycleTitle")}
@@ -748,16 +774,8 @@ function SynthesisTab(props: { schools: SchoolRow[]; t: TranslateFn }) {
       >
         <View style={{ gap: 10 }}>
           {(["PRIMARY", "SECONDARY", "UNSET"] as const).map((cycleKey) => {
-            const rows = byCycle[cycleKey];
-            if (rows.length === 0) return null;
-            const studentsCount = rows.reduce(
-              (sum, s) => sum + s.studentsCount,
-              0,
-            );
-            const classesCount = rows.reduce(
-              (sum, s) => sum + s.classesCount,
-              0,
-            );
+            const group = overview.byCycle[cycleKey];
+            if (group.schools === 0) return null;
             return (
               <View
                 key={cycleKey}
@@ -767,12 +785,12 @@ function SynthesisTab(props: { schools: SchoolRow[]; t: TranslateFn }) {
                 <View style={styles.cycleRowHeader}>
                   <CyclePill cycle={cycleKey === "UNSET" ? null : cycleKey} />
                   <Text style={styles.cycleRowCount}>
-                    {rows.length} {t("schoolsAdmin.synthese.schoolsLabel")}
+                    {group.schools} {t("schoolsAdmin.synthese.schoolsLabel")}
                   </Text>
                 </View>
                 <Text style={styles.cycleRowDetail}>
-                  {studentsCount} {t("schoolsAdmin.synthese.studentsLabel")} ·{" "}
-                  {classesCount} {t("schoolsAdmin.synthese.classesLabel")}
+                  {group.students} {t("schoolsAdmin.synthese.studentsLabel")} ·{" "}
+                  {group.classes} {t("schoolsAdmin.synthese.classesLabel")}
                 </Text>
               </View>
             );
@@ -797,54 +815,156 @@ export function SchoolsAdminScreen() {
 
   const [tab, setTab] = useState<TabKey>("synthese");
   const [formContext, setFormContext] = useState<FormContext | null>(null);
+
+  const [overview, setOverview] = useState<SchoolsOverview | null>(null);
+  const [isOverviewLoading, setIsOverviewLoading] = useState(true);
+  const [isOverviewRefreshing, setIsOverviewRefreshing] = useState(false);
+
   const [schools, setSchools] = useState<SchoolRow[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [listMeta, setListMeta] = useState<SchoolsListMeta | null>(null);
+  const [isListLoading, setIsListLoading] = useState(true);
+  const [isListLoadingMore, setIsListLoadingMore] = useState(false);
+  const [isListRefreshing, setIsListRefreshing] = useState(false);
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SchoolRow | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  const [draftFilters, setDraftFilters] = useState<SchoolsFilters>(NO_FILTERS);
+  const [appliedFilters, setAppliedFilters] =
+    useState<SchoolsFilters>(NO_FILTERS);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const role = user?.activeRole ?? user?.role ?? null;
   const isAllowed = roleAllowsPlatformAdmin(role);
 
-  const load = useCallback(async () => {
-    setErrorMessage(null);
-    try {
-      const rows = await schoolsApi.listSchools();
-      setSchools(rows);
-    } catch (error) {
-      setErrorMessage(extractApiError(error));
-    } finally {
-      setIsLoading(false);
-      setRefreshing(false);
+  const loadOverview = useCallback(
+    async (mode: "initial" | "refresh" = "initial") => {
+      setErrorMessage(null);
+      if (mode === "refresh") setIsOverviewRefreshing(true);
+      else setIsOverviewLoading(true);
+      try {
+        const result = await schoolsApi.getSchoolsOverview();
+        setOverview(result);
+      } catch (error) {
+        setErrorMessage(extractApiError(error));
+      } finally {
+        setIsOverviewLoading(false);
+        setIsOverviewRefreshing(false);
+      }
+    },
+    [],
+  );
+
+  const loadList = useCallback(
+    async (
+      page: number,
+      filters: SchoolsFilters,
+      searchQuery: string,
+      mode: "reset" | "append" | "refresh",
+    ) => {
+      setErrorMessage(null);
+      if (mode === "append") setIsListLoadingMore(true);
+      else if (mode === "refresh") setIsListRefreshing(true);
+      else setIsListLoading(true);
+      try {
+        const result = await schoolsApi.listSchools({
+          page,
+          search: searchQuery || undefined,
+          cycle: filters.cycle ?? undefined,
+          languageSystem: filters.languageSystem ?? undefined,
+        });
+        setSchools((prev) =>
+          mode === "append" ? [...prev, ...result.items] : result.items,
+        );
+        setListMeta(result.meta);
+      } catch (error) {
+        setErrorMessage(extractApiError(error));
+      } finally {
+        setIsListLoading(false);
+        setIsListLoadingMore(false);
+        setIsListRefreshing(false);
+      }
+    },
+    [],
+  );
+
+  // Précharge overview + première page de la liste dès l'arrivée sur le
+  // module, indépendamment de l'onglet actif (évite l'attente au clic sur
+  // "Liste").
+  useEffect(() => {
+    if (!isAllowed) {
+      setIsOverviewLoading(false);
+      return;
     }
-  }, []);
+    void loadOverview("initial");
+  }, [isAllowed, loadOverview]);
 
   useEffect(() => {
     if (!isAllowed) {
-      setIsLoading(false);
+      setIsListLoading(false);
       return;
     }
-    void load();
-  }, [load, isAllowed]);
+    void loadList(1, appliedFilters, appliedSearch, "reset");
+  }, [isAllowed, appliedFilters, appliedSearch, loadList]);
 
-  const orderedSchools = useMemo(
-    () => [...schools].sort((a, b) => a.name.localeCompare(b.name)),
-    [schools],
-  );
-  const filteredSchools = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return orderedSchools;
-    return orderedSchools.filter((school) =>
-      [school.name, school.slug, school.city, school.region, school.country]
-        .filter(Boolean)
-        .some((value) => value!.toLowerCase().includes(query)),
-    );
-  }, [orderedSchools, search]);
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setAppliedSearch(searchInput.trim());
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [searchInput]);
+
+  const handleLoadMoreSchools = useCallback(() => {
+    if (!listMeta) return;
+    if (listMeta.page >= listMeta.totalPages) return;
+    if (isListLoadingMore) return;
+    void loadList(listMeta.page + 1, appliedFilters, appliedSearch, "append");
+  }, [listMeta, isListLoadingMore, appliedFilters, appliedSearch, loadList]);
+
+  const handleListRefresh = useCallback(() => {
+    void loadList(1, appliedFilters, appliedSearch, "refresh");
+  }, [loadList, appliedFilters, appliedSearch]);
+
+  const reloadAfterMutation = useCallback(async () => {
+    await Promise.all([
+      loadOverview("refresh"),
+      loadList(1, appliedFilters, appliedSearch, "refresh"),
+    ]);
+  }, [loadOverview, loadList, appliedFilters, appliedSearch]);
+
+  function openFilters() {
+    setDraftFilters(appliedFilters);
+    setFiltersOpen(true);
+  }
+
+  function closeFilters() {
+    setDraftFilters(appliedFilters);
+    setFiltersOpen(false);
+  }
+
+  function toggleFilters() {
+    if (filtersOpen) closeFilters();
+    else openFilters();
+  }
+
+  function applyFilters() {
+    setAppliedFilters(draftFilters);
+    setFiltersOpen(false);
+  }
+
+  function resetFilters() {
+    setDraftFilters(NO_FILTERS);
+    setAppliedFilters(NO_FILTERS);
+  }
 
   function exitForms() {
     const origin = formContext?.originTab ?? "list";
@@ -869,7 +989,7 @@ export function SchoolsAdminScreen() {
             ? t("schoolsAdmin.toast.createdExisting")
             : t("schoolsAdmin.toast.createdNew"),
         });
-        await load();
+        await reloadAfterMutation();
         setTimeout(() => exitForms(), 2000);
       } catch (error) {
         showError({
@@ -880,7 +1000,7 @@ export function SchoolsAdminScreen() {
         setIsSubmittingCreate(false);
       }
     },
-    [load, showSuccess, showError, t, formContext],
+    [reloadAfterMutation, showSuccess, showError, t, formContext],
   );
 
   const handleUpdate = useCallback(
@@ -892,7 +1012,7 @@ export function SchoolsAdminScreen() {
           title: t("schoolsAdmin.toast.updatedTitle"),
           message: t("schoolsAdmin.toast.updatedMessage"),
         });
-        await load();
+        await reloadAfterMutation();
         setTimeout(() => exitForms(), 2000);
       } catch (error) {
         showError({
@@ -903,7 +1023,7 @@ export function SchoolsAdminScreen() {
         setIsSubmittingEdit(false);
       }
     },
-    [load, showSuccess, showError, t, formContext],
+    [reloadAfterMutation, showSuccess, showError, t, formContext],
   );
 
   const handleDelete = useCallback(async () => {
@@ -916,7 +1036,7 @@ export function SchoolsAdminScreen() {
         message: t("schoolsAdmin.toast.deletedMessage"),
       });
       setDeleteTarget(null);
-      await load();
+      await reloadAfterMutation();
     } catch (error) {
       showError({
         title: t("schoolsAdmin.toast.deleteFailedTitle"),
@@ -925,7 +1045,7 @@ export function SchoolsAdminScreen() {
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteTarget, load, showSuccess, showError, t]);
+  }, [deleteTarget, reloadAfterMutation, showSuccess, showError, t]);
 
   if (!isAllowed) {
     return (
@@ -963,17 +1083,6 @@ export function SchoolsAdminScreen() {
         onBack={() => (isFormsTab ? exitForms() : moduleBack(router))}
         testID="schools-header"
         topInset={insets.top}
-        secondaryAction={
-          tab === "list"
-            ? {
-                icon: "search-outline",
-                onPress: () => setFiltersOpen((current) => !current),
-                testID: "schools-search-toggle",
-                accessibilityLabel: t("schoolsAdmin.search.accessibilityLabel"),
-                active: filtersOpen,
-              }
-            : undefined
-        }
       />
 
       {!isFormsTab ? (
@@ -989,16 +1098,214 @@ export function SchoolsAdminScreen() {
         />
       ) : null}
 
+      {tab === "list" ? (
+        <View style={styles.searchRow} testID="schools-search-row">
+          <View style={styles.searchBox}>
+            <Ionicons name="search" size={16} color={colors.textSecondary} />
+            <TextInput
+              style={styles.searchInput}
+              value={searchInput}
+              onChangeText={setSearchInput}
+              placeholder={t("schoolsAdmin.search.placeholder")}
+              placeholderTextColor={colors.textSecondary}
+              returnKeyType="search"
+              autoCapitalize="none"
+              accessibilityLabel={t("schoolsAdmin.search.accessibilityLabel")}
+              testID="schools-search-input"
+            />
+            {searchInput.length > 0 ? (
+              <TouchableOpacity
+                onPress={() => setSearchInput("")}
+                testID="schools-search-clear"
+              >
+                <Ionicons
+                  name="close-circle"
+                  size={16}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.filterToggle,
+              hasActiveFilters(appliedFilters) && styles.filterToggleActive,
+            ]}
+            onPress={toggleFilters}
+            testID="schools-filter-toggle"
+            accessibilityLabel={t(
+              "schoolsAdmin.filters.toggleAccessibilityLabel",
+            )}
+          >
+            <Ionicons
+              name={
+                hasActiveFilters(appliedFilters) ? "filter" : "filter-outline"
+              }
+              size={18}
+              color={
+                hasActiveFilters(appliedFilters)
+                  ? colors.white
+                  : colors.accentTeal
+              }
+            />
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       {tab === "list" && filtersOpen ? (
-        <View style={styles.searchPanel} testID="schools-filter-panel">
-          <TextFormField
-            label={t("schoolsAdmin.search.label")}
-            value={search}
-            onChangeText={setSearch}
-            onBlur={() => {}}
-            placeholder={t("schoolsAdmin.search.placeholder")}
-            testID="schools-filter-search-input"
-          />
+        <View style={styles.filterPanel} testID="schools-filter-panel">
+          <View style={styles.filterPanelHeader}>
+            <View style={styles.filterPanelHeaderIcon}>
+              <Ionicons
+                name="options-outline"
+                size={16}
+                color={colors.accentTealDark}
+              />
+            </View>
+            <Text style={styles.filterPanelHeaderTitle}>
+              {t("schoolsAdmin.filters.toggleAccessibilityLabel")}
+            </Text>
+          </View>
+
+          <View style={styles.filterGroup}>
+            <Text style={styles.filterGroupLabel}>
+              {t("schoolsAdmin.filters.cycleLabel")}
+            </Text>
+            <View style={styles.filterChipsRow}>
+              <TouchableOpacity
+                style={[
+                  styles.filterChip,
+                  draftFilters.cycle == null && styles.filterChipActive,
+                ]}
+                onPress={() =>
+                  setDraftFilters((current) => ({ ...current, cycle: null }))
+                }
+                testID="schools-filter-cycle-all"
+              >
+                <Text
+                  style={[
+                    styles.filterChipLabel,
+                    draftFilters.cycle == null && styles.filterChipLabelActive,
+                  ]}
+                >
+                  {t("schoolsAdmin.filters.allOption")}
+                </Text>
+              </TouchableOpacity>
+              {CYCLE_KEYS.map((key) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[
+                    styles.filterChip,
+                    draftFilters.cycle === key && styles.filterChipActive,
+                  ]}
+                  onPress={() =>
+                    setDraftFilters((current) => ({ ...current, cycle: key }))
+                  }
+                  testID={`schools-filter-cycle-${key}`}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipLabel,
+                      draftFilters.cycle === key &&
+                        styles.filterChipLabelActive,
+                    ]}
+                  >
+                    {t(`schoolsAdmin.cycle.${key}`)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.filterGroup}>
+            <Text style={styles.filterGroupLabel}>
+              {t("schoolsAdmin.filters.languageLabel")}
+            </Text>
+            <View style={styles.filterChipsRow}>
+              <TouchableOpacity
+                style={[
+                  styles.filterChip,
+                  draftFilters.languageSystem == null &&
+                    styles.filterChipActive,
+                ]}
+                onPress={() =>
+                  setDraftFilters((current) => ({
+                    ...current,
+                    languageSystem: null,
+                  }))
+                }
+                testID="schools-filter-language-all"
+              >
+                <Text
+                  style={[
+                    styles.filterChipLabel,
+                    draftFilters.languageSystem == null &&
+                      styles.filterChipLabelActive,
+                  ]}
+                >
+                  {t("schoolsAdmin.filters.allOption")}
+                </Text>
+              </TouchableOpacity>
+              {LANGUAGE_KEYS.map((key) => (
+                <TouchableOpacity
+                  key={key}
+                  style={[
+                    styles.filterChip,
+                    draftFilters.languageSystem === key &&
+                      styles.filterChipActive,
+                  ]}
+                  onPress={() =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      languageSystem: key,
+                    }))
+                  }
+                  testID={`schools-filter-language-${key}`}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipLabel,
+                      draftFilters.languageSystem === key &&
+                        styles.filterChipLabelActive,
+                    ]}
+                  >
+                    {t(`schoolsAdmin.language.${key}`)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.filterActionsRow}>
+            <TouchableOpacity
+              style={styles.filterActionReset}
+              onPress={resetFilters}
+              testID="schools-filter-reset"
+            >
+              <Text style={styles.filterActionResetLabel}>
+                {t("schoolsAdmin.filters.reset")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.filterActionClose}
+              onPress={closeFilters}
+              testID="schools-filter-close"
+            >
+              <Text style={styles.filterActionCloseLabel}>
+                {t("schoolsAdmin.filters.close")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.filterActionApply}
+              onPress={applyFilters}
+              testID="schools-filter-apply"
+            >
+              <Ionicons name="checkmark" size={15} color={colors.white} />
+              <Text style={styles.filterActionApplyLabel}>
+                {t("schoolsAdmin.filters.apply")}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : null}
 
@@ -1051,21 +1358,73 @@ export function SchoolsAdminScreen() {
             )}
           </ScrollView>
         </KeyboardAvoidingView>
-      ) : isLoading ? (
-        <View style={styles.stateWrap}>
-          <LoadingBlock label={t("schoolsAdmin.detail.loading")} />
-        </View>
+      ) : tab === "list" ? (
+        isListLoading && schools.length === 0 ? (
+          <View style={styles.stateWrap}>
+            <LoadingBlock label={t("schoolsAdmin.detail.loading")} />
+          </View>
+        ) : (
+          <>
+            {errorMessage ? (
+              <ErrorBanner
+                message={errorMessage}
+                onDismiss={() => setErrorMessage(null)}
+                testID="schools-error-banner"
+              />
+            ) : null}
+            <InfiniteScrollList
+              data={schools}
+              renderItem={({ item: school }) => (
+                <SchoolCard
+                  school={school}
+                  t={t}
+                  onView={() =>
+                    router.push({
+                      pathname: "/(home)/schools/[schoolId]",
+                      params: { schoolId: school.id },
+                    })
+                  }
+                  onEdit={() => {
+                    setFormContext({
+                      type: "edit-school",
+                      originTab: "list",
+                      school,
+                    });
+                    setTab("forms");
+                  }}
+                  onDelete={() => setDeleteTarget(school)}
+                />
+              )}
+              keyExtractor={(school) => school.id}
+              onRefresh={handleListRefresh}
+              refreshing={isListRefreshing}
+              onLoadMore={handleLoadMoreSchools}
+              hasMore={listMeta ? listMeta.page < listMeta.totalPages : false}
+              isLoadingMore={isListLoadingMore}
+              emptyComponent={
+                <EmptyState
+                  icon="business-outline"
+                  title={t("schoolsAdmin.empty.title")}
+                  message={
+                    appliedSearch || hasActiveFilters(appliedFilters)
+                      ? t("schoolsAdmin.empty.messageSearch")
+                      : t("schoolsAdmin.empty.messageDefault")
+                  }
+                />
+              }
+              contentContainerStyle={styles.contentContainer}
+              testID="schools-list"
+            />
+          </>
+        )
       ) : (
         <ScrollView
           style={styles.content}
           contentContainerStyle={styles.contentContainer}
           refreshControl={
             <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                void load();
-              }}
+              refreshing={isOverviewRefreshing}
+              onRefresh={() => void loadOverview("refresh")}
               tintColor={colors.primary}
             />
           }
@@ -1080,47 +1439,18 @@ export function SchoolsAdminScreen() {
           ) : null}
 
           {tab === "synthese" ? (
-            <SynthesisTab schools={schools} t={t} />
-          ) : tab === "help" ? (
+            <SynthesisTab
+              overview={overview}
+              isLoading={isOverviewLoading}
+              t={t}
+            />
+          ) : (
             <SectionCard
               title={t("schoolsAdmin.help.title")}
               testID="schools-help-card"
             >
               <Text style={styles.helpText}>{t("schoolsAdmin.help.body")}</Text>
             </SectionCard>
-          ) : filteredSchools.length === 0 ? (
-            <EmptyState
-              icon="business-outline"
-              title={t("schoolsAdmin.empty.title")}
-              message={
-                search.trim()
-                  ? t("schoolsAdmin.empty.messageSearch")
-                  : t("schoolsAdmin.empty.messageDefault")
-              }
-            />
-          ) : (
-            filteredSchools.map((school) => (
-              <SchoolCard
-                key={school.id}
-                school={school}
-                t={t}
-                onView={() =>
-                  router.push({
-                    pathname: "/(home)/schools/[schoolId]",
-                    params: { schoolId: school.id },
-                  })
-                }
-                onEdit={() => {
-                  setFormContext({
-                    type: "edit-school",
-                    originTab: "list",
-                    school,
-                  });
-                  setTab("forms");
-                }}
-                onDelete={() => setDeleteTarget(school)}
-              />
-            ))
           )}
         </ScrollView>
       )}
@@ -1175,9 +1505,161 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
   },
-  searchPanel: {
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  searchBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.textPrimary,
+    padding: 0,
+  },
+  filterToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}55`,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterToggleActive: {
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.accentTeal,
+  },
+  filterPanel: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}33`,
+    backgroundColor: colors.surface,
+    gap: 14,
+  },
+  filterPanelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  filterPanelHeaderIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: `${colors.accentTeal}1F`,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterPanelHeaderTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.accentTealDark,
+  },
+  filterGroup: {
+    gap: 8,
+  },
+  filterGroupLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  filterChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  filterChipActive: {
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.accentTeal,
+  },
+  filterChipLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
+  filterChipLabelActive: {
+    color: colors.white,
+  },
+  filterActionsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 2,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  filterActionReset: {
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.warmSurface,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 11,
+  },
+  filterActionResetLabel: {
+    color: colors.warmAccent,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  filterActionClose: {
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 11,
+  },
+  filterActionCloseLabel: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  filterActionApply: {
+    flex: 1.3,
+    borderRadius: 8,
+    backgroundColor: colors.accentTeal,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+    paddingVertical: 11,
+  },
+  filterActionApplyLabel: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: "700",
   },
   helpText: {
     fontSize: 14,
@@ -1186,10 +1668,41 @@ const styles = StyleSheet.create({
   },
 
   // ── Synthesis ─────────────────────────────────────────────────────────
-  statsGrid: {
+  overviewSectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  overviewStatsRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: 10,
+  },
+  overviewStatCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    borderLeftWidth: 3,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  overviewStatTexts: {
+    flexShrink: 1,
+  },
+  overviewStatValue: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: colors.textPrimary,
+  },
+  overviewStatLabel: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 1,
   },
   cycleRow: {
     borderRadius: 10,
