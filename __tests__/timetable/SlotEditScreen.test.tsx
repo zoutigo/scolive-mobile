@@ -98,8 +98,8 @@ jest.mock("../../src/components/TimePickerField", () => ({
     );
   },
 }));
-jest.mock("../../src/components/SelectDropdown", () => ({
-  SelectDropdown: (props: {
+jest.mock("../../src/components/InlineSelectDropDown", () => ({
+  InlineSelectDropDown: (props: {
     value: string;
     onChange: (v: string) => void;
     options: { value: string; label: string }[];

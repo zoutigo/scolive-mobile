@@ -198,7 +198,7 @@ async function pickTime(testID: string, hour: string, minute: string) {
 async function openRoomDropdown() {
   fireEvent.press(screen.getByTestId("teacher-slot-room"));
   await waitFor(() =>
-    expect(screen.getByTestId("teacher-slot-room-modal")).toBeTruthy(),
+    expect(screen.getByTestId("teacher-slot-room-panel")).toBeTruthy(),
   );
 }
 
@@ -208,7 +208,7 @@ async function selectRoom(roomId: string) {
     screen.getByTestId(`teacher-slot-room-option-${roomId || "none"}`),
   );
   await waitFor(() =>
-    expect(screen.queryByTestId("teacher-slot-room-modal")).toBeNull(),
+    expect(screen.queryByTestId("teacher-slot-room-panel")).toBeNull(),
   );
 }
 

@@ -36,7 +36,10 @@ import { FormHero } from "../forms/FormHero";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
-import { SelectDropdown, type SelectOption } from "../SelectDropdown";
+import {
+  InlineSelectDropDown,
+  type InlineSelectDropDownOption,
+} from "../InlineSelectDropDown";
 import { SelectField } from "../tests-admin/SelectField";
 import {
   ResourceCard,
@@ -110,7 +113,7 @@ type FormContext = {
   item: ResourceDetail | null;
 };
 
-const SEQUENCE_OPTIONS: SelectOption[] = [
+const SEQUENCE_OPTIONS: InlineSelectDropDownOption[] = [
   { value: "SEQ_1", label: "Séquence 1" },
   { value: "SEQ_2", label: "Séquence 2" },
   { value: "SEQ_3", label: "Séquence 3" },
@@ -124,7 +127,7 @@ function currentAcademicYearLabel(now = new Date()): string {
   return now.getMonth() >= 8 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
 }
 
-function academicYearOptions(): SelectOption[] {
+function academicYearOptions(): InlineSelectDropDownOption[] {
   const [startYear] = currentAcademicYearLabel().split("-").map(Number);
   const years: string[] = [];
   for (let offset = -2; offset <= 1; offset += 1) {
@@ -134,7 +137,7 @@ function academicYearOptions(): SelectOption[] {
   return years.map((label) => ({ value: label, label }));
 }
 
-function examTypeOptions(t: TranslateFn): SelectOption[] {
+function examTypeOptions(t: TranslateFn): InlineSelectDropDownOption[] {
   return [
     { value: "SEQUENCE_TEST", label: t("resources.examType.sequenceTest") },
     { value: "POP_QUIZ", label: t("resources.examType.popQuiz") },
@@ -587,23 +590,23 @@ export function ResourcesScreen() {
   const headerTitle = t("resources.header.title");
   const isSearchableTab = tab === "ASSESSMENT" || tab === "EXAM";
 
-  const schoolOptions: SelectOption[] = [
+  const schoolOptions: InlineSelectDropDownOption[] = [
     { value: "", label: t("resources.filters.allSchools") },
     ...schools.map((s) => ({ value: s.id, label: s.name })),
   ];
-  const levelFilterOptions: SelectOption[] = [
+  const levelFilterOptions: InlineSelectDropDownOption[] = [
     { value: "", label: t("resources.filters.allLevels") },
     ...catalog.academicLevels.map((l) => ({ value: l.id, label: l.label })),
   ];
-  const sequenceFilterOptions: SelectOption[] = [
+  const sequenceFilterOptions: InlineSelectDropDownOption[] = [
     { value: "", label: t("resources.filters.allSequences") },
     ...SEQUENCE_OPTIONS,
   ];
-  const examTypeFilterOptions: SelectOption[] = [
+  const examTypeFilterOptions: InlineSelectDropDownOption[] = [
     { value: "", label: t("resources.filters.allExamTypes") },
     ...examTypeOptions(t),
   ];
-  const academicYearFilterOptions: SelectOption[] = [
+  const academicYearFilterOptions: InlineSelectDropDownOption[] = [
     { value: "", label: t("resources.filters.allYears") },
     ...academicYearOptions(),
   ];
@@ -1082,16 +1085,16 @@ function ResourceFormContent(props: {
     },
   });
 
-  const levelOptions: SelectOption[] = props.catalog.academicLevels.map(
-    (l) => ({
+  const levelOptions: InlineSelectDropDownOption[] =
+    props.catalog.academicLevels.map((l) => ({
       value: l.id,
       label: l.label,
-    }),
-  );
-  const subjectOptions: SelectOption[] = props.catalog.subjects.map((s) => ({
-    value: s.id,
-    label: s.name,
-  }));
+    }));
+  const subjectOptions: InlineSelectDropDownOption[] =
+    props.catalog.subjects.map((s) => ({
+      value: s.id,
+      label: s.name,
+    }));
 
   const heroTitle =
     props.formContext.type === "edit"
@@ -1193,7 +1196,7 @@ function ResourceFormContent(props: {
             control={control}
             name="academicLevelId"
             render={({ field: { value, onChange } }) => (
-              <SelectDropdown
+              <InlineSelectDropDown
                 options={levelOptions}
                 value={value}
                 onChange={onChange}
@@ -1218,7 +1221,7 @@ function ResourceFormContent(props: {
             control={control}
             name="subjectId"
             render={({ field: { value, onChange } }) => (
-              <SelectDropdown
+              <InlineSelectDropDown
                 options={subjectOptions}
                 value={value}
                 onChange={onChange}
@@ -1246,7 +1249,7 @@ function ResourceFormContent(props: {
             control={control}
             name="examType"
             render={({ field: { value, onChange } }) => (
-              <SelectDropdown
+              <InlineSelectDropDown
                 options={examTypeOptions(t)}
                 value={value}
                 onChange={onChange}
@@ -1274,7 +1277,7 @@ function ResourceFormContent(props: {
             control={control}
             name="academicYearLabel"
             render={({ field: { value, onChange } }) => (
-              <SelectDropdown
+              <InlineSelectDropDown
                 options={academicYearOptions()}
                 value={value}
                 onChange={onChange}
@@ -1303,7 +1306,7 @@ function ResourceFormContent(props: {
               control={control}
               name="sequence"
               render={({ field: { value, onChange } }) => (
-                <SelectDropdown
+                <InlineSelectDropDown
                   options={SEQUENCE_OPTIONS}
                   value={value}
                   onChange={onChange}

@@ -24,7 +24,7 @@ import { useTimetableStore } from "../../store/timetable.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { FormHero } from "../forms/FormHero";
-import { SelectDropdown } from "../SelectDropdown";
+import { InlineSelectDropDown } from "../InlineSelectDropDown";
 import { TimePickerField } from "../TimePickerField";
 import type { RoomAvailability } from "../../types/room.types";
 import type { ClassTimetableContextResponse } from "../../types/timetable.types";
@@ -572,7 +572,7 @@ export function SlotEditScreen() {
                   control={control}
                   name="roomId"
                   render={({ field: { value, onChange } }) => (
-                    <SelectDropdown
+                    <InlineSelectDropDown
                       options={roomOptions}
                       value={value ?? ""}
                       onChange={onChange}

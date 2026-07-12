@@ -27,6 +27,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "settings.form.save": "Enregistrer",
     "settings.form.searchPlaceholder": "Rechercher...",
     "settings.form.noResults": "Aucun résultat",
+    "components.inlineSelect.searchPlaceholder": "Rechercher...",
+    "components.inlineSelect.noResults": "Aucun résultat",
     "settings.form.deviceLanguage.title": "Langue de cet appareil",
     "settings.form.deviceLanguage.subtitle":
       "Choisissez la langue de l'application",
@@ -2472,6 +2474,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "settings.form.save": "Save",
     "settings.form.searchPlaceholder": "Search...",
     "settings.form.noResults": "No results",
+    "components.inlineSelect.searchPlaceholder": "Search...",
+    "components.inlineSelect.noResults": "No results",
     "settings.form.deviceLanguage.title": "Language of this device",
     "settings.form.deviceLanguage.subtitle": "Choose the application language",
     "settings.form.accountLanguage.title": "Account language",

@@ -195,8 +195,38 @@ describe("AccountScreen — sélecteur d'école active", () => {
     });
   });
 
-  it("filtre les écoles par la recherche dans le formulaire d'édition", async () => {
-    api.getMe.mockResolvedValue(multiSchoolProfile);
+  it("filtre les écoles par la recherche dans le formulaire d'édition (plus de 5 écoles)", async () => {
+    const manySchoolsProfile = {
+      ...multiSchoolProfile,
+      schools: [
+        ...multiSchoolProfile.schools,
+        {
+          schoolId: "school-3",
+          slug: "college-c",
+          name: "Collège C",
+          role: "TEACHER" as const,
+        },
+        {
+          schoolId: "school-4",
+          slug: "college-d",
+          name: "Collège D",
+          role: "TEACHER" as const,
+        },
+        {
+          schoolId: "school-5",
+          slug: "college-e",
+          name: "Collège E",
+          role: "TEACHER" as const,
+        },
+        {
+          schoolId: "school-6",
+          slug: "college-f",
+          name: "Collège F",
+          role: "TEACHER" as const,
+        },
+      ],
+    };
+    api.getMe.mockResolvedValue(manySchoolsProfile);
     setAuthState(jest.fn());
 
     render(<AccountScreen />);
@@ -219,6 +249,30 @@ describe("AccountScreen — sélecteur d'école active", () => {
     ).toBeTruthy();
     expect(
       screen.queryByTestId("settings-active-school-select-option-school-1"),
+    ).toBeNull();
+  });
+
+  it("n'affiche pas de recherche pour l'école active quand il y a 5 écoles ou moins", async () => {
+    api.getMe.mockResolvedValue(multiSchoolProfile);
+    setAuthState(jest.fn());
+
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+    fireEvent.press(screen.getByTestId("account-settings-school-edit"));
+    fireEvent.press(screen.getByTestId("settings-active-school-select"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("settings-active-school-select-option-school-1"),
+      ).toBeTruthy();
+    });
+    expect(
+      screen.queryByTestId("settings-active-school-select-search"),
     ).toBeNull();
   });
 });

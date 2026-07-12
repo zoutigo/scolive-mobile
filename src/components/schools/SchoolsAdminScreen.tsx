@@ -27,7 +27,7 @@ import { ConfirmDialog } from "../ConfirmDialog";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { FormHero } from "../forms/FormHero";
-import { SelectDropdown } from "../SelectDropdown";
+import { InlineSelectDropDown } from "../InlineSelectDropDown";
 import { InlineSearchSelect } from "../InlineSearchSelect";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
@@ -410,7 +410,7 @@ function CreateSchoolFormContent(props: {
           control={control}
           name="cycle"
           render={({ field: { value, onChange } }) => (
-            <SelectDropdown
+            <InlineSelectDropDown
               options={CYCLE_KEYS.map((key) => ({
                 value: key,
                 label: t(`schoolsAdmin.cycle.${key}`),
@@ -431,7 +431,7 @@ function CreateSchoolFormContent(props: {
           control={control}
           name="languageSystem"
           render={({ field: { value, onChange } }) => (
-            <SelectDropdown
+            <InlineSelectDropDown
               options={LANGUAGE_KEYS.map((key) => ({
                 value: key,
                 label: t(`schoolsAdmin.language.${key}`),
@@ -626,7 +626,7 @@ function EditSchoolFormContent(props: {
           control={control}
           name="cycle"
           render={({ field: { value, onChange } }) => (
-            <SelectDropdown
+            <InlineSelectDropDown
               options={CYCLE_KEYS.map((key) => ({
                 value: key,
                 label: t(`schoolsAdmin.cycle.${key}`),
@@ -647,7 +647,7 @@ function EditSchoolFormContent(props: {
           control={control}
           name="languageSystem"
           render={({ field: { value, onChange } }) => (
-            <SelectDropdown
+            <InlineSelectDropDown
               options={LANGUAGE_KEYS.map((key) => ({
                 value: key,
                 label: t(`schoolsAdmin.language.${key}`),

@@ -22,7 +22,7 @@ import { DatePickerField } from "../DatePickerField";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { FormHero } from "../forms/FormHero";
-import { SelectDropdown } from "../SelectDropdown";
+import { InlineSelectDropDown } from "../InlineSelectDropDown";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { useAuthStore } from "../../store/auth.store";
@@ -345,7 +345,7 @@ function RoomFormContent(props: {
           render={({ field: { value, onChange } }) => (
             <View style={styles.formField}>
               <Text style={styles.formLabel}>Statut</Text>
-              <SelectDropdown
+              <InlineSelectDropDown
                 options={STATUS_OPTIONS}
                 value={value}
                 onChange={(next) => onChange(next as RoomRow["status"])}
@@ -822,7 +822,7 @@ export function RoomsAdminScreen() {
                 >
                   <View style={styles.formField}>
                     <Text style={styles.formLabel}>Salle</Text>
-                    <SelectDropdown
+                    <InlineSelectDropDown
                       options={roomSelectOptions}
                       value={calendarRoomId}
                       onChange={setCalendarRoomId}

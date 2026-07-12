@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SelectDropdown } from "../SelectDropdown";
+import { InlineSelectDropDown } from "../InlineSelectDropDown";
 import { Ionicons } from "@expo/vector-icons";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -830,7 +830,7 @@ export function TeacherOneOffCreatePanel({
                 control={control}
                 name="roomId"
                 render={({ field: { value, onChange } }) => (
-                  <SelectDropdown
+                  <InlineSelectDropDown
                     options={availableRoomOptions}
                     value={value ?? ""}
                     onChange={onChange}

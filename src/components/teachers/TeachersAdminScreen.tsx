@@ -22,7 +22,7 @@ import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { FormHero } from "../forms/FormHero";
 import { SecureTextField } from "../SecureTextField";
-import { SelectDropdown } from "../SelectDropdown";
+import { InlineSelectDropDown } from "../InlineSelectDropDown";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { useAuthStore } from "../../store/auth.store";
@@ -641,7 +641,7 @@ function AssignmentFormContent(props: {
           render={({ field: { value, onChange } }) => (
             <View style={styles.formField}>
               <Text style={styles.formLabel}>Année scolaire</Text>
-              <SelectDropdown
+              <InlineSelectDropDown
                 options={schoolYearOptions}
                 value={value}
                 onChange={onChange}
@@ -666,7 +666,7 @@ function AssignmentFormContent(props: {
           render={({ field: { value, onChange } }) => (
             <View style={styles.formField}>
               <Text style={styles.formLabel}>Enseignant</Text>
-              <SelectDropdown
+              <InlineSelectDropDown
                 options={teacherSelectOptions}
                 value={value}
                 onChange={onChange}
@@ -691,7 +691,7 @@ function AssignmentFormContent(props: {
           render={({ field: { value, onChange } }) => (
             <View style={styles.formField}>
               <Text style={styles.formLabel}>Classe</Text>
-              <SelectDropdown
+              <InlineSelectDropDown
                 options={classOptions}
                 value={value}
                 onChange={onChange}
@@ -716,7 +716,7 @@ function AssignmentFormContent(props: {
           render={({ field: { value, onChange } }) => (
             <View style={styles.formField}>
               <Text style={styles.formLabel}>Matière</Text>
-              <SelectDropdown
+              <InlineSelectDropDown
                 options={subjectOptions}
                 value={value}
                 onChange={onChange}

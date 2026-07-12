@@ -62,7 +62,7 @@ import { SUPPORTED_LOCALES, type Locale } from "../../i18n/translations";
 import type { ApiClientError } from "../../api/client";
 import { moduleBack } from "../../utils/moduleBack";
 import { FormHero } from "../forms/FormHero";
-import { SelectDropdown } from "../SelectDropdown";
+import { InlineSelectDropDown } from "../InlineSelectDropDown";
 
 type AccountTab = "personal" | "security" | "help" | "settings" | "forms";
 type SettingsFormType =
@@ -2258,7 +2258,7 @@ function AccountScreenContent() {
                     <Text style={styles.fieldLabel}>
                       {t("settings.form.deviceLanguage.title")}
                     </Text>
-                    <SelectDropdown
+                    <InlineSelectDropDown
                       options={SUPPORTED_LOCALES.map((option) => ({
                         value: option,
                         label: t(`settings.language.${option}`),
@@ -2304,7 +2304,7 @@ function AccountScreenContent() {
                     <Text style={styles.fieldLabel}>
                       {t("settings.form.accountLanguage.title")}
                     </Text>
-                    <SelectDropdown
+                    <InlineSelectDropDown
                       options={SUPPORTED_LOCALES.map((option) => ({
                         value: option,
                         label: t(`settings.language.${option}`),
@@ -2356,7 +2356,7 @@ function AccountScreenContent() {
                     <Text style={styles.fieldLabel}>
                       {t("settings.form.activeSchool.title")}
                     </Text>
-                    <SelectDropdown
+                    <InlineSelectDropDown
                       options={(profile?.schools ?? []).map((school) => ({
                         value: school.schoolId,
                         label: `${school.name} (${toReadableRole(school.role)})`,
@@ -2408,7 +2408,7 @@ function AccountScreenContent() {
                     <Text style={styles.fieldLabel}>
                       {t("settings.form.activeRole.title")}
                     </Text>
-                    <SelectDropdown
+                    <InlineSelectDropDown
                       options={availableRoles.map((role) => ({
                         value: role,
                         label: toReadableRole(role),

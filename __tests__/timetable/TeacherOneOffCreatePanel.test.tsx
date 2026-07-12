@@ -595,7 +595,7 @@ describe("Sélecteur de salles (disponibles uniquement)", () => {
   async function openRoomDropdown() {
     fireEvent.press(screen.getByTestId("teacher-oneoff-room"));
     await waitFor(() =>
-      expect(screen.getByTestId("teacher-oneoff-room-modal")).toBeTruthy(),
+      expect(screen.getByTestId("teacher-oneoff-room-panel")).toBeTruthy(),
     );
   }
 
