@@ -60,6 +60,48 @@ describe("resources.* translations", () => {
   });
 });
 
+describe("schoolsAdmin.* translations", () => {
+  it("has matching, non-empty fr/en keys", () => {
+    const frKeys = Object.keys(translations.fr).filter((key) =>
+      key.startsWith("schoolsAdmin."),
+    );
+    const enKeys = Object.keys(translations.en).filter((key) =>
+      key.startsWith("schoolsAdmin."),
+    );
+
+    expect(frKeys.length).toBeGreaterThan(0);
+    expect(new Set(enKeys)).toEqual(new Set(frKeys));
+
+    for (const key of frKeys) {
+      expect(translations.fr[key]).not.toBe("");
+      expect(translations.en[key]).not.toBe("");
+    }
+  });
+
+  it("has the new admin-onboarding and location keys in both locales", () => {
+    const requiredKeys = [
+      "schoolsAdmin.form.adminModeEmail",
+      "schoolsAdmin.form.adminModePhone",
+      "schoolsAdmin.form.adminPhone",
+      "schoolsAdmin.form.adminPin",
+      "schoolsAdmin.form.mainAdminTitle",
+      "schoolsAdmin.form.additionalAdminsTitle",
+      "schoolsAdmin.form.addAdminButton",
+      "schoolsAdmin.form.cityPlaceholderNoRegion",
+      "schoolsAdmin.form.errors.emailRequired",
+      "schoolsAdmin.form.errors.phoneRequired",
+      "schoolsAdmin.form.errors.pinInvalid",
+      "schoolsAdmin.detail.removeAdmin",
+      "schoolsAdmin.detail.confirmRemoveAdminTitle",
+      "schoolsAdmin.detail.removeAdminLastAdminHint",
+    ];
+    for (const key of requiredKeys) {
+      expect(translations.fr[key]).toBeTruthy();
+      expect(translations.en[key]).toBeTruthy();
+    }
+  });
+});
+
 describe("useTranslation", () => {
   beforeEach(async () => {
     await AsyncStorage.clear();

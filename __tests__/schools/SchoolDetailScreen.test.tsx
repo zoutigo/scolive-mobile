@@ -95,8 +95,10 @@ function makeDetails(overrides?: Partial<SchoolDetails>): SchoolDetails {
         firstName: "Sarah",
         lastName: "Moukouri",
         email: "sarah@vogt.cm",
+        phone: null,
         mustChangePassword: false,
         profileCompleted: true,
+        activationRequired: false,
         canResendInvite: false,
       },
       {
@@ -104,8 +106,10 @@ function makeDetails(overrides?: Partial<SchoolDetails>): SchoolDetails {
         firstName: "Paul",
         lastName: "Etoa",
         email: "paul@vogt.cm",
+        phone: null,
         mustChangePassword: true,
         profileCompleted: false,
+        activationRequired: false,
         canResendInvite: true,
       },
     ],
@@ -213,6 +217,129 @@ describe("SchoolDetailScreen", () => {
       });
     });
     expect(mockShowSuccess).toHaveBeenCalled();
+  });
+
+  it("ajoute un school admin par téléphone + PIN et affiche le code d'activation", async () => {
+    mockSchoolsApi.getSchoolDetails.mockResolvedValue(makeDetails());
+    mockSchoolsApi.addSchoolAdmin.mockResolvedValue({
+      schoolAdmin: { id: "admin-4", email: null, firstName: "Administrateur" },
+      userExisted: false,
+      setupCompleted: false,
+      activationRequired: true,
+      activationCode: "ABCD1234",
+    });
+
+    render(<SchoolDetailScreen />);
+
+    await screen.findByTestId("school-detail-add-admin-form");
+    fireEvent.press(screen.getByTestId("school-detail-add-admin-mode-phone"));
+    fireEvent.changeText(
+      screen.getByTestId("school-detail-add-admin-phone"),
+      "699001122",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("school-detail-add-admin-pin"),
+      "123456",
+    );
+    fireEvent.press(screen.getByTestId("school-detail-add-admin-submit"));
+
+    await waitFor(() => {
+      expect(mockSchoolsApi.addSchoolAdmin).toHaveBeenCalledWith("school-1", {
+        phone: "699001122",
+        pin: "123456",
+      });
+    });
+    expect(mockShowSuccess).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining("ABCD1234"),
+      }),
+    );
+  });
+
+  it("bloque l'ajout par téléphone tant que le PIN n'est pas valide", async () => {
+    mockSchoolsApi.getSchoolDetails.mockResolvedValue(makeDetails());
+
+    render(<SchoolDetailScreen />);
+
+    await screen.findByTestId("school-detail-add-admin-form");
+    fireEvent.press(screen.getByTestId("school-detail-add-admin-mode-phone"));
+    fireEvent.changeText(
+      screen.getByTestId("school-detail-add-admin-phone"),
+      "699001122",
+    );
+    fireEvent.press(screen.getByTestId("school-detail-add-admin-submit"));
+
+    expect(
+      await screen.findByTestId("school-detail-add-admin-pin-error"),
+    ).toBeTruthy();
+    expect(mockSchoolsApi.addSchoolAdmin).not.toHaveBeenCalled();
+  });
+
+  it("retire un administrateur après confirmation", async () => {
+    mockSchoolsApi.getSchoolDetails.mockResolvedValue(makeDetails());
+    mockSchoolsApi.removeSchoolAdmin.mockResolvedValue({ success: true });
+
+    render(<SchoolDetailScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId("school-detail-remove-admin-admin-2"),
+    );
+    fireEvent.press(await screen.findByTestId("confirm-dialog-confirm"));
+
+    await waitFor(() => {
+      expect(mockSchoolsApi.removeSchoolAdmin).toHaveBeenCalledWith(
+        "school-1",
+        "admin-2",
+      );
+    });
+    expect(mockShowSuccess).toHaveBeenCalled();
+  });
+
+  it("affiche une erreur si le retrait d'un administrateur échoue", async () => {
+    mockSchoolsApi.getSchoolDetails.mockResolvedValue(makeDetails());
+    mockSchoolsApi.removeSchoolAdmin.mockRejectedValue(new Error("boom"));
+
+    render(<SchoolDetailScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId("school-detail-remove-admin-admin-2"),
+    );
+    fireEvent.press(await screen.findByTestId("confirm-dialog-confirm"));
+
+    await waitFor(() => expect(mockShowError).toHaveBeenCalled());
+  });
+
+  it("désactive le retrait du dernier administrateur restant", async () => {
+    mockSchoolsApi.getSchoolDetails.mockResolvedValue(
+      makeDetails({
+        schoolAdmins: [
+          {
+            id: "admin-1",
+            firstName: "Sarah",
+            lastName: "Moukouri",
+            email: "sarah@vogt.cm",
+            phone: null,
+            mustChangePassword: false,
+            profileCompleted: true,
+            activationRequired: false,
+            canResendInvite: false,
+          },
+        ],
+      }),
+    );
+
+    render(<SchoolDetailScreen />);
+
+    const removeButton = await screen.findByTestId(
+      "school-detail-remove-admin-admin-1",
+    );
+    expect(removeButton.props.accessibilityState?.disabled).toBe(true);
+    expect(
+      screen.getByText("Impossible de retirer le dernier administrateur."),
+    ).toBeTruthy();
+
+    fireEvent.press(removeButton);
+    expect(mockSchoolsApi.removeSchoolAdmin).not.toHaveBeenCalled();
   });
 
   it("affiche une erreur de validation sans appeler l'API pour un email invalide", async () => {

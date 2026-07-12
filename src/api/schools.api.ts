@@ -82,4 +82,15 @@ export const schoolsApi = {
       true,
     );
   },
+
+  removeSchoolAdmin(
+    schoolId: string,
+    adminUserId: string,
+  ): Promise<{ success: boolean }> {
+    return apiFetch(
+      `/system/schools/${schoolId}/admins/${adminUserId}`,
+      { method: "DELETE" },
+      true,
+    );
+  },
 };

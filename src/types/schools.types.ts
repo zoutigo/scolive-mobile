@@ -70,8 +70,10 @@ export type SchoolAdminRow = {
   firstName: string;
   lastName: string;
   email: string;
+  phone: string | null;
   mustChangePassword: boolean;
   profileCompleted: boolean;
+  activationRequired: boolean;
   canResendInvite: boolean;
 };
 
@@ -106,6 +108,10 @@ export type SchoolDetails = {
   schoolAdmins: SchoolAdminRow[];
 };
 
+export type SchoolAdminIdentity =
+  | { email: string; phone?: undefined; pin?: undefined }
+  | { email?: undefined; phone: string; pin: string };
+
 export type CreateSchoolPayload = {
   name: string;
   country?: string;
@@ -113,7 +119,9 @@ export type CreateSchoolPayload = {
   city?: string;
   cycle?: SchoolCycle;
   languageSystem?: SchoolLanguageSystem;
-  schoolAdminEmail: string;
+  schoolAdminEmail?: string;
+  schoolAdminPhone?: string;
+  schoolAdminPin?: string;
 };
 
 export type UpdateSchoolPayload = {
@@ -125,21 +133,38 @@ export type UpdateSchoolPayload = {
   languageSystem?: SchoolLanguageSystem | null;
 };
 
-export type AddSchoolAdminPayload = {
-  email: string;
-};
+export type AddSchoolAdminPayload = SchoolAdminIdentity;
 
 export type AddSchoolAdminResult = {
   schoolAdmin: {
     id: string;
-    email: string;
+    email: string | null;
     firstName: string;
   };
   userExisted: boolean;
   setupCompleted: boolean;
+  activationRequired?: boolean;
+  activationCode?: string | null;
+};
+
+export type CreatedSchoolSummary = {
+  id: string;
+  slug: string;
+  name: string;
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  cycle: SchoolCycle | null;
+  languageSystem: SchoolLanguageSystem | null;
+  logoUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type CreateSchoolResult = {
+  school: CreatedSchoolSummary;
   userExisted: boolean;
   setupCompleted: boolean;
+  activationRequired?: boolean;
+  activationCode?: string | null;
 };

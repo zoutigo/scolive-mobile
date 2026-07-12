@@ -28,6 +28,7 @@ import { ModuleHeader } from "../navigation/ModuleHeader";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { FormHero } from "../forms/FormHero";
 import { SelectDropdown } from "../SelectDropdown";
+import { InlineSearchSelect } from "../InlineSearchSelect";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { useAuthStore } from "../../store/auth.store";
@@ -40,9 +41,23 @@ import {
   SectionCard,
 } from "../timetable/TimetableCommon";
 import { CyclePill, LanguagePill } from "./SchoolBadges";
+import {
+  EMPTY_SCHOOL_ADMIN_ENTRY,
+  SchoolAdminEntryForm,
+  schoolAdminEntryToPayload,
+  validateSchoolAdminEntry,
+  type SchoolAdminEntryErrors,
+  type SchoolAdminEntryValue,
+} from "./SchoolAdminEntryForm";
 import { colors } from "../../theme";
 import { extractApiError } from "../../utils/api-error";
+import {
+  CAMEROON_CITIES_BY_REGION,
+  CAMEROON_COUNTRY,
+  CAMEROON_REGIONS,
+} from "../../data/cameroon-locations";
 import type {
+  AddSchoolAdminPayload,
   CreateSchoolPayload,
   SchoolCycle,
   SchoolLanguageSystem,
@@ -107,10 +122,6 @@ function buildCreateSchema(t: TranslateFn) {
       z.literal("BILINGUAL"),
       z.literal(""),
     ]),
-    schoolAdminEmail: z
-      .string()
-      .trim()
-      .email(t("schoolsAdmin.form.errors.emailInvalid")),
   });
 }
 
@@ -230,7 +241,10 @@ function FormActions(props: {
 function CreateSchoolFormContent(props: {
   isSubmitting: boolean;
   onCancel: () => void;
-  onSubmit: (values: CreateSchoolPayload) => Promise<void> | void;
+  onSubmit: (
+    values: CreateSchoolPayload,
+    additionalAdmins: AddSchoolAdminPayload[],
+  ) => Promise<void> | void;
   t: TranslateFn;
 }) {
   const { t } = props;
@@ -238,6 +252,8 @@ function CreateSchoolFormContent(props: {
   const {
     control,
     handleSubmit,
+    watch,
+    setValue,
     setFocus: focusField,
     formState: { errors },
   } = useForm<z.infer<typeof schema>>({
@@ -246,26 +262,73 @@ function CreateSchoolFormContent(props: {
     reValidateMode: "onChange",
     defaultValues: {
       name: "",
-      country: "",
+      country: CAMEROON_COUNTRY.value,
       region: "",
       city: "",
       cycle: "",
       languageSystem: "",
-      schoolAdminEmail: "",
     },
   });
 
+  const region = watch("region");
+
+  const [mainAdmin, setMainAdmin] = useState<SchoolAdminEntryValue>(
+    EMPTY_SCHOOL_ADMIN_ENTRY,
+  );
+  const [mainAdminErrors, setMainAdminErrors] =
+    useState<SchoolAdminEntryErrors>({});
+  const [additionalAdmins, setAdditionalAdmins] = useState<
+    SchoolAdminEntryValue[]
+  >([]);
+  const [additionalAdminErrors, setAdditionalAdminErrors] = useState<
+    SchoolAdminEntryErrors[]
+  >([]);
+
   const submit = handleSubmit(
     async (values) => {
-      await props.onSubmit({
-        name: values.name,
-        country: values.country || undefined,
-        region: values.region || undefined,
-        city: values.city || undefined,
-        cycle: values.cycle || undefined,
-        languageSystem: values.languageSystem || undefined,
-        schoolAdminEmail: values.schoolAdminEmail,
-      });
+      const mainErrors = validateSchoolAdminEntry(mainAdmin, t);
+      const additionalErrorsList = additionalAdmins.map((admin) =>
+        validateSchoolAdminEntry(admin, t),
+      );
+      const hasMainErrors = Object.keys(mainErrors).length > 0;
+      const hasAdditionalErrors = additionalErrorsList.some(
+        (entryErrors) => Object.keys(entryErrors).length > 0,
+      );
+
+      if (hasMainErrors || hasAdditionalErrors) {
+        setMainAdminErrors(mainErrors);
+        setAdditionalAdminErrors(additionalErrorsList);
+        return;
+      }
+      setMainAdminErrors({});
+      setAdditionalAdminErrors([]);
+
+      const mainPayload = schoolAdminEntryToPayload(mainAdmin);
+      if (!mainPayload) return;
+
+      const additionalPayloads = additionalAdmins
+        .map(schoolAdminEntryToPayload)
+        .filter(
+          (payload): payload is AddSchoolAdminPayload => payload !== null,
+        );
+
+      await props.onSubmit(
+        {
+          name: values.name,
+          country: values.country || undefined,
+          region: values.region || undefined,
+          city: values.city || undefined,
+          cycle: values.cycle || undefined,
+          languageSystem: values.languageSystem || undefined,
+          ...(mainPayload.email
+            ? { schoolAdminEmail: mainPayload.email }
+            : {
+                schoolAdminPhone: mainPayload.phone,
+                schoolAdminPin: mainPayload.pin,
+              }),
+        },
+        additionalPayloads,
+      );
     },
     (errs) => {
       const first = Object.keys(errs)[0];
@@ -294,14 +357,13 @@ function CreateSchoolFormContent(props: {
       <Controller
         control={control}
         name="country"
-        render={({ field: { value, onChange, onBlur, ref } }) => (
-          <TextFormField
-            ref={ref}
+        render={({ field: { value } }) => (
+          <InlineSearchSelect
             label={t("schoolsAdmin.form.country")}
-            value={value ?? ""}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder={t("schoolsAdmin.form.countryPlaceholder")}
+            options={[CAMEROON_COUNTRY]}
+            value={value || CAMEROON_COUNTRY.value}
+            onChange={() => {}}
+            disabled
             testID="schools-create-country"
           />
         )}
@@ -309,13 +371,15 @@ function CreateSchoolFormContent(props: {
       <Controller
         control={control}
         name="region"
-        render={({ field: { value, onChange, onBlur, ref } }) => (
-          <TextFormField
-            ref={ref}
+        render={({ field: { value, onChange } }) => (
+          <InlineSearchSelect
             label={t("schoolsAdmin.form.region")}
+            options={CAMEROON_REGIONS}
             value={value ?? ""}
-            onChangeText={onChange}
-            onBlur={onBlur}
+            onChange={(next) => {
+              onChange(next);
+              setValue("city", "");
+            }}
             placeholder={t("schoolsAdmin.form.regionPlaceholder")}
             testID="schools-create-region"
           />
@@ -324,14 +388,18 @@ function CreateSchoolFormContent(props: {
       <Controller
         control={control}
         name="city"
-        render={({ field: { value, onChange, onBlur, ref } }) => (
-          <TextFormField
-            ref={ref}
+        render={({ field: { value, onChange } }) => (
+          <InlineSearchSelect
             label={t("schoolsAdmin.form.city")}
+            options={region ? (CAMEROON_CITIES_BY_REGION[region] ?? []) : []}
             value={value ?? ""}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder={t("schoolsAdmin.form.cityPlaceholder")}
+            onChange={onChange}
+            disabled={!region}
+            placeholder={
+              region
+                ? t("schoolsAdmin.form.cityPlaceholder")
+                : t("schoolsAdmin.form.cityPlaceholderNoRegion")
+            }
             testID="schools-create-city"
           />
         )}
@@ -376,24 +444,55 @@ function CreateSchoolFormContent(props: {
           )}
         />
       </View>
-      <Controller
-        control={control}
-        name="schoolAdminEmail"
-        render={({ field: { value, onChange, onBlur, ref } }) => (
-          <TextFormField
-            ref={ref}
-            label={t("schoolsAdmin.form.adminEmail")}
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder={t("schoolsAdmin.form.adminEmailPlaceholder")}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            error={errors.schoolAdminEmail?.message}
-            testID="schools-create-admin-email"
-          />
-        )}
+
+      <Text style={styles.formSectionTitle}>
+        {t("schoolsAdmin.form.mainAdminTitle")}
+      </Text>
+      <SchoolAdminEntryForm
+        value={mainAdmin}
+        onChange={setMainAdmin}
+        errors={mainAdminErrors}
+        title={t("schoolsAdmin.form.mainAdminTitle")}
+        testIDPrefix="schools-create-main-admin"
+        t={t}
       />
+
+      <Text style={styles.formSectionTitle}>
+        {t("schoolsAdmin.form.additionalAdminsTitle")}
+      </Text>
+      {additionalAdmins.map((admin, index) => (
+        <SchoolAdminEntryForm
+          key={index}
+          value={admin}
+          onChange={(next) =>
+            setAdditionalAdmins((prev) =>
+              prev.map((entry, i) => (i === index ? next : entry)),
+            )
+          }
+          errors={additionalAdminErrors[index]}
+          title={`${t("schoolsAdmin.form.additionalAdminTitle")} ${index + 2}`}
+          onRemove={() => {
+            setAdditionalAdmins((prev) => prev.filter((_, i) => i !== index));
+            setAdditionalAdminErrors((prev) =>
+              prev.filter((_, i) => i !== index),
+            );
+          }}
+          testIDPrefix={`schools-create-additional-admin-${index}`}
+          t={t}
+        />
+      ))}
+      <TouchableOpacity
+        style={styles.addAdminButton}
+        onPress={() =>
+          setAdditionalAdmins((prev) => [...prev, EMPTY_SCHOOL_ADMIN_ENTRY])
+        }
+        testID="schools-create-add-admin"
+      >
+        <Text style={styles.addAdminButtonLabel}>
+          {t("schoolsAdmin.form.addAdminButton")}
+        </Text>
+      </TouchableOpacity>
+
       <FormActions
         submitLabel={t("schoolsAdmin.form.submitCreate")}
         submittingLabel={t("schoolsAdmin.form.submittingCreate")}
@@ -423,6 +522,8 @@ function EditSchoolFormContent(props: {
   const {
     control,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
@@ -430,13 +531,15 @@ function EditSchoolFormContent(props: {
     reValidateMode: "onChange",
     defaultValues: {
       name: props.school.name,
-      country: props.school.country ?? "",
+      country: CAMEROON_COUNTRY.value,
       region: props.school.region ?? "",
       city: props.school.city ?? "",
       cycle: props.school.cycle ?? "",
       languageSystem: props.school.languageSystem ?? "",
     },
   });
+
+  const region = watch("region");
 
   const submit = handleSubmit((values) =>
     props.onSubmit({
@@ -470,14 +573,13 @@ function EditSchoolFormContent(props: {
       <Controller
         control={control}
         name="country"
-        render={({ field: { value, onChange, onBlur, ref } }) => (
-          <TextFormField
-            ref={ref}
+        render={({ field: { value } }) => (
+          <InlineSearchSelect
             label={t("schoolsAdmin.form.country")}
-            value={value ?? ""}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder={t("schoolsAdmin.form.countryPlaceholder")}
+            options={[CAMEROON_COUNTRY]}
+            value={value || CAMEROON_COUNTRY.value}
+            onChange={() => {}}
+            disabled
             testID="schools-edit-country"
           />
         )}
@@ -485,13 +587,15 @@ function EditSchoolFormContent(props: {
       <Controller
         control={control}
         name="region"
-        render={({ field: { value, onChange, onBlur, ref } }) => (
-          <TextFormField
-            ref={ref}
+        render={({ field: { value, onChange } }) => (
+          <InlineSearchSelect
             label={t("schoolsAdmin.form.region")}
+            options={CAMEROON_REGIONS}
             value={value ?? ""}
-            onChangeText={onChange}
-            onBlur={onBlur}
+            onChange={(next) => {
+              onChange(next);
+              setValue("city", "");
+            }}
             placeholder={t("schoolsAdmin.form.regionPlaceholder")}
             testID="schools-edit-region"
           />
@@ -500,14 +604,18 @@ function EditSchoolFormContent(props: {
       <Controller
         control={control}
         name="city"
-        render={({ field: { value, onChange, onBlur, ref } }) => (
-          <TextFormField
-            ref={ref}
+        render={({ field: { value, onChange } }) => (
+          <InlineSearchSelect
             label={t("schoolsAdmin.form.city")}
+            options={region ? (CAMEROON_CITIES_BY_REGION[region] ?? []) : []}
             value={value ?? ""}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder={t("schoolsAdmin.form.cityPlaceholder")}
+            onChange={onChange}
+            disabled={!region}
+            placeholder={
+              region
+                ? t("schoolsAdmin.form.cityPlaceholder")
+                : t("schoolsAdmin.form.cityPlaceholderNoRegion")
+            }
             testID="schools-edit-city"
           />
         )}
@@ -979,16 +1087,51 @@ export function SchoolsAdminScreen() {
   }
 
   const handleCreate = useCallback(
-    async (values: CreateSchoolPayload) => {
+    async (
+      values: CreateSchoolPayload,
+      additionalAdmins: AddSchoolAdminPayload[],
+    ) => {
       setIsSubmittingCreate(true);
       try {
         const result = await schoolsApi.createSchool(values);
-        showSuccess({
-          title: t("schoolsAdmin.toast.createdTitle"),
-          message: result.userExisted
+        const activationCodes: string[] = [];
+        if (result.activationCode) activationCodes.push(result.activationCode);
+
+        let additionalFailures = 0;
+        for (const admin of additionalAdmins) {
+          try {
+            const addResult = await schoolsApi.addSchoolAdmin(
+              result.school.id,
+              admin,
+            );
+            if (addResult.activationCode) {
+              activationCodes.push(addResult.activationCode);
+            }
+          } catch {
+            additionalFailures += 1;
+          }
+        }
+
+        const messageParts = [
+          result.userExisted
             ? t("schoolsAdmin.toast.createdExisting")
             : t("schoolsAdmin.toast.createdNew"),
+          ...activationCodes.map(
+            (code) => `${t("schoolsAdmin.form.activationCodeBanner")}: ${code}`,
+          ),
+        ];
+        showSuccess({
+          title: t("schoolsAdmin.toast.createdTitle"),
+          message: messageParts.join("\n"),
         });
+
+        if (additionalFailures > 0) {
+          showError({
+            title: t("schoolsAdmin.toast.additionalAdminsFailedTitle"),
+            message: String(additionalFailures),
+          });
+        }
+
         await reloadAfterMutation();
         setTimeout(() => exitForms(), 2000);
       } catch (error) {
@@ -1883,6 +2026,25 @@ const styles = StyleSheet.create({
     color: "#B84A3B",
     fontSize: 12,
     lineHeight: 16,
+  },
+  formSectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.textPrimary,
+    marginTop: 8,
+  },
+  addAdminButton: {
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderRadius: 6,
+    paddingVertical: 10,
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  addAdminButtonLabel: {
+    color: colors.primary,
+    fontWeight: "700",
+    fontSize: 14,
   },
   formActions: {
     flex: 1,

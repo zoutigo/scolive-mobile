@@ -205,8 +205,33 @@ beforeEach(() => {
         studentsCount: 0,
       }),
     ];
-    return { userExisted: false, setupCompleted: false };
+    return {
+      school: {
+        id: "school-created",
+        slug: "nouvelle-ecole",
+        name: payload.name,
+        country: payload.country ?? null,
+        region: payload.region ?? null,
+        city: payload.city ?? null,
+        cycle: payload.cycle ?? null,
+        languageSystem: payload.languageSystem ?? null,
+        logoUrl: null,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+      userExisted: false,
+      setupCompleted: false,
+    };
   });
+  mockSchoolsApi.addSchoolAdmin.mockImplementation(async () => ({
+    schoolAdmin: {
+      id: "extra-admin-1",
+      email: "extra@greenwich.cm",
+      firstName: "Extra",
+    },
+    userExisted: false,
+    setupCompleted: false,
+  }));
   mockSchoolsApi.updateSchool.mockImplementation(async (id, payload) => {
     schoolsState = schoolsState.map((entry) =>
       entry.id === id ? { ...entry, ...payload } : entry,
@@ -599,7 +624,7 @@ describe("SchoolsAdminScreen", () => {
       "Greenwich College",
     );
     fireEvent.changeText(
-      screen.getByTestId("schools-create-admin-email"),
+      screen.getByTestId("schools-create-main-admin-email"),
       "admin@greenwich.cm",
     );
 
@@ -619,7 +644,7 @@ describe("SchoolsAdminScreen", () => {
     await waitFor(() => {
       expect(mockSchoolsApi.createSchool).toHaveBeenCalledWith({
         name: "Greenwich College",
-        country: undefined,
+        country: "Cameroun",
         region: undefined,
         city: undefined,
         cycle: "SECONDARY",
@@ -637,6 +662,187 @@ describe("SchoolsAdminScreen", () => {
     });
 
     jest.useRealTimers();
+  });
+
+  it("verrouille le pays sur Cameroun et propose région/ville en cascade avec recherche", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+
+    render(<SchoolsAdminScreen />);
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
+    fireEvent.press(await screen.findByTestId("schools-fab"));
+    await screen.findByTestId("schools-create-form");
+
+    // Pays verrouillé sur Cameroun, non éditable.
+    const countryInput = screen.getByTestId("schools-create-country-input");
+    expect(countryInput.props.value).toBe("Cameroun");
+    expect(countryInput.props.editable).toBe(false);
+
+    // La ville est désactivée tant qu'aucune région n'est choisie.
+    const cityInputBefore = screen.getByTestId("schools-create-city-input");
+    expect(cityInputBefore.props.editable).toBe(false);
+
+    // Choix de la région "Littoral" via la recherche par frappe.
+    const regionInput = screen.getByTestId("schools-create-region-input");
+    fireEvent(regionInput, "focus");
+    fireEvent.changeText(regionInput, "litto");
+    fireEvent.press(
+      await screen.findByTestId("schools-create-region-option-Littoral"),
+    );
+
+    // La ville se débloque et propose les villes du Littoral.
+    const cityInputAfter = screen.getByTestId("schools-create-city-input");
+    expect(cityInputAfter.props.editable).toBe(true);
+    fireEvent(cityInputAfter, "focus");
+    fireEvent.changeText(cityInputAfter, "doua");
+    fireEvent.press(
+      await screen.findByTestId("schools-create-city-option-Douala"),
+    );
+
+    fireEvent.changeText(
+      screen.getByTestId("schools-create-name"),
+      "École du Littoral",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("schools-create-main-admin-email"),
+      "admin@littoral.cm",
+    );
+    fireEvent.press(screen.getByTestId("schools-create-submit"));
+
+    await waitFor(() => {
+      expect(mockSchoolsApi.createSchool).toHaveBeenCalledWith(
+        expect.objectContaining({
+          country: "Cameroun",
+          region: "Littoral",
+          city: "Douala",
+        }),
+      );
+    });
+  });
+
+  it("crée l'admin fondateur par téléphone + PIN quand ce mode est choisi", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+
+    render(<SchoolsAdminScreen />);
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
+    fireEvent.press(await screen.findByTestId("schools-fab"));
+    await screen.findByTestId("schools-create-form");
+
+    fireEvent.changeText(
+      screen.getByTestId("schools-create-name"),
+      "École par téléphone",
+    );
+    fireEvent.press(screen.getByTestId("schools-create-main-admin-mode-phone"));
+    fireEvent.changeText(
+      screen.getByTestId("schools-create-main-admin-phone"),
+      "699001122",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("schools-create-main-admin-pin"),
+      "123456",
+    );
+    fireEvent.press(screen.getByTestId("schools-create-submit"));
+
+    await waitFor(() => {
+      expect(mockSchoolsApi.createSchool).toHaveBeenCalledWith(
+        expect.objectContaining({
+          schoolAdminPhone: "699001122",
+          schoolAdminPin: "123456",
+        }),
+      );
+    });
+    expect(mockSchoolsApi.createSchool).toHaveBeenCalledWith(
+      expect.not.objectContaining({ schoolAdminEmail: expect.anything() }),
+    );
+  });
+
+  it("permet d'ajouter et de retirer des administrateurs supplémentaires à la création", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+
+    render(<SchoolsAdminScreen />);
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
+    fireEvent.press(await screen.findByTestId("schools-fab"));
+    await screen.findByTestId("schools-create-form");
+
+    fireEvent.changeText(
+      screen.getByTestId("schools-create-name"),
+      "École multi-admins",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("schools-create-main-admin-email"),
+      "principal@ecole.cm",
+    );
+
+    fireEvent.press(screen.getByTestId("schools-create-add-admin"));
+    expect(
+      screen.getByTestId("schools-create-additional-admin-0"),
+    ).toBeTruthy();
+
+    // Un deuxième administrateur additionnel, par téléphone.
+    fireEvent.press(screen.getByTestId("schools-create-add-admin"));
+    fireEvent.press(
+      screen.getByTestId("schools-create-additional-admin-1-mode-phone"),
+    );
+    fireEvent.changeText(
+      screen.getByTestId("schools-create-additional-admin-1-phone"),
+      "677889900",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("schools-create-additional-admin-1-pin"),
+      "654321",
+    );
+
+    // On retire le premier administrateur additionnel (resté vide) : le
+    // deuxième (téléphone) glisse à l'index 0.
+    fireEvent.press(
+      screen.getByTestId("schools-create-additional-admin-0-remove"),
+    );
+    expect(
+      screen.queryByTestId("schools-create-additional-admin-1"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("schools-create-additional-admin-0-phone").props.value,
+    ).toBe("677889900");
+
+    fireEvent.press(screen.getByTestId("schools-create-submit"));
+
+    await waitFor(() => {
+      expect(mockSchoolsApi.createSchool).toHaveBeenCalledWith(
+        expect.objectContaining({ schoolAdminEmail: "principal@ecole.cm" }),
+      );
+    });
+    await waitFor(() => {
+      expect(mockSchoolsApi.addSchoolAdmin).toHaveBeenCalledWith(
+        "school-created",
+        { phone: "677889900", pin: "654321" },
+      );
+    });
+    expect(mockSchoolsApi.addSchoolAdmin).toHaveBeenCalledTimes(1);
+  });
+
+  it("bloque la soumission tant que l'admin fondateur téléphone n'a pas de PIN valide", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+
+    render(<SchoolsAdminScreen />);
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
+    fireEvent.press(await screen.findByTestId("schools-fab"));
+    await screen.findByTestId("schools-create-form");
+
+    fireEvent.changeText(
+      screen.getByTestId("schools-create-name"),
+      "École incomplète",
+    );
+    fireEvent.press(screen.getByTestId("schools-create-main-admin-mode-phone"));
+    fireEvent.changeText(
+      screen.getByTestId("schools-create-main-admin-phone"),
+      "699001122",
+    );
+    // PIN volontairement laissé vide.
+    fireEvent.press(screen.getByTestId("schools-create-submit"));
+
+    expect(
+      await screen.findByTestId("schools-create-main-admin-pin-error"),
+    ).toBeTruthy();
+    expect(mockSchoolsApi.createSchool).not.toHaveBeenCalled();
   });
 
   it("annule la création sans appeler l'API et revient au tab d'origine", async () => {

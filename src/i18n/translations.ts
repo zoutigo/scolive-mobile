@@ -2284,17 +2284,30 @@ export const translations: Record<Locale, Record<string, string>> = {
     "schoolsAdmin.form.name": "Nom de l'école",
     "schoolsAdmin.form.namePlaceholder": "Ex: Collège Vogt",
     "schoolsAdmin.form.country": "Pays",
-    "schoolsAdmin.form.countryPlaceholder": "Ex: Cameroun",
+    "schoolsAdmin.form.countryPlaceholder": "Cameroun",
     "schoolsAdmin.form.region": "Région",
-    "schoolsAdmin.form.regionPlaceholder": "Ex: Centre",
+    "schoolsAdmin.form.regionPlaceholder": "Choisir une région",
     "schoolsAdmin.form.city": "Ville",
-    "schoolsAdmin.form.cityPlaceholder": "Ex: Yaoundé",
+    "schoolsAdmin.form.cityPlaceholder": "Choisir une ville",
+    "schoolsAdmin.form.cityPlaceholderNoRegion": "Choisir une région d'abord",
     "schoolsAdmin.form.cycle": "Cycle",
     "schoolsAdmin.form.cyclePlaceholder": "Sélectionner un cycle",
     "schoolsAdmin.form.languageSystem": "Système linguistique",
     "schoolsAdmin.form.languageSystemPlaceholder": "Sélectionner un système",
     "schoolsAdmin.form.adminEmail": "Email du school admin",
     "schoolsAdmin.form.adminEmailPlaceholder": "admin@ecole.cm",
+    "schoolsAdmin.form.adminPhone": "Téléphone",
+    "schoolsAdmin.form.adminPhonePlaceholder": "699001122",
+    "schoolsAdmin.form.adminPin": "PIN initial",
+    "schoolsAdmin.form.adminModeEmail": "Email",
+    "schoolsAdmin.form.adminModePhone": "Téléphone + PIN",
+    "schoolsAdmin.form.mainAdminTitle": "Administrateur principal",
+    "schoolsAdmin.form.additionalAdminsTitle":
+      "Administrateurs supplémentaires",
+    "schoolsAdmin.form.additionalAdminTitle": "Administrateur",
+    "schoolsAdmin.form.addAdminButton": "+ Ajouter un administrateur",
+    "schoolsAdmin.form.activationCodeBanner":
+      "Code d'activation à transmettre à l'administrateur",
     "schoolsAdmin.form.submitCreate": "Créer l'école",
     "schoolsAdmin.form.submittingCreate": "Création...",
     "schoolsAdmin.form.submitEdit": "Enregistrer",
@@ -2304,6 +2317,12 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Le nom de l'école est obligatoire.",
     "schoolsAdmin.form.errors.emailInvalid":
       "L'email du school admin est invalide.",
+    "schoolsAdmin.form.errors.emailRequired": "L'email est obligatoire.",
+    "schoolsAdmin.form.errors.phoneRequired": "Le téléphone est obligatoire.",
+    "schoolsAdmin.form.errors.pinInvalid":
+      "Le PIN doit contenir exactement 6 chiffres.",
+    "schoolsAdmin.toast.additionalAdminsFailedTitle":
+      "Certains administrateurs n'ont pas pu être ajoutés",
 
     "schoolsAdmin.toast.createdTitle": "École créée",
     "schoolsAdmin.toast.createdExisting":
@@ -2363,6 +2382,20 @@ export const translations: Record<Locale, Record<string, string>> = {
     "schoolsAdmin.detail.resendInviteFailedTitle": "Envoi impossible",
     "schoolsAdmin.detail.pendingBadge": "En attente",
     "schoolsAdmin.detail.activeBadge": "Actif",
+    "schoolsAdmin.detail.removeAdmin": "Retirer",
+    "schoolsAdmin.detail.removeAdminLastAdminHint":
+      "Impossible de retirer le dernier administrateur.",
+    "schoolsAdmin.detail.confirmRemoveAdminTitle": "Retirer l'administrateur",
+    "schoolsAdmin.detail.confirmRemoveAdminMessage":
+      "Cette personne perdra son accès d'administrateur à cette école.",
+    "schoolsAdmin.detail.confirmRemoveAdminConfirm": "Retirer",
+    "schoolsAdmin.detail.confirmRemoveAdminCancel": "Annuler",
+    "schoolsAdmin.detail.removeAdminSuccessTitle": "Administrateur retiré",
+    "schoolsAdmin.detail.removeAdminSuccessMessage":
+      "L'administrateur a été retiré de l'école.",
+    "schoolsAdmin.detail.removeAdminFailedTitle": "Suppression impossible",
+    "schoolsAdmin.detail.activationCodeBanner":
+      "Code d'activation à transmettre à l'administrateur",
   },
   en: {
     "settings.language.title": "Language of this device",
@@ -4558,23 +4591,41 @@ export const translations: Record<Locale, Record<string, string>> = {
     "schoolsAdmin.form.name": "School name",
     "schoolsAdmin.form.namePlaceholder": "E.g: Vogt College",
     "schoolsAdmin.form.country": "Country",
-    "schoolsAdmin.form.countryPlaceholder": "E.g: Cameroon",
+    "schoolsAdmin.form.countryPlaceholder": "Cameroon",
     "schoolsAdmin.form.region": "Region",
-    "schoolsAdmin.form.regionPlaceholder": "E.g: Centre",
+    "schoolsAdmin.form.regionPlaceholder": "Choose a region",
     "schoolsAdmin.form.city": "City",
-    "schoolsAdmin.form.cityPlaceholder": "E.g: Yaoundé",
+    "schoolsAdmin.form.cityPlaceholder": "Choose a city",
+    "schoolsAdmin.form.cityPlaceholderNoRegion": "Choose a region first",
     "schoolsAdmin.form.cycle": "Cycle",
     "schoolsAdmin.form.cyclePlaceholder": "Select a cycle",
     "schoolsAdmin.form.languageSystem": "Language system",
     "schoolsAdmin.form.languageSystemPlaceholder": "Select a system",
     "schoolsAdmin.form.adminEmail": "School admin email",
     "schoolsAdmin.form.adminEmailPlaceholder": "admin@school.cm",
+    "schoolsAdmin.form.adminPhone": "Phone",
+    "schoolsAdmin.form.adminPhonePlaceholder": "699001122",
+    "schoolsAdmin.form.adminPin": "Initial PIN",
+    "schoolsAdmin.form.adminModeEmail": "Email",
+    "schoolsAdmin.form.adminModePhone": "Phone + PIN",
+    "schoolsAdmin.form.mainAdminTitle": "Main administrator",
+    "schoolsAdmin.form.additionalAdminsTitle": "Additional administrators",
+    "schoolsAdmin.form.additionalAdminTitle": "Administrator",
+    "schoolsAdmin.form.addAdminButton": "+ Add an administrator",
+    "schoolsAdmin.form.activationCodeBanner":
+      "Activation code to share with the administrator",
     "schoolsAdmin.form.submitCreate": "Create school",
     "schoolsAdmin.form.submittingCreate": "Creating...",
     "schoolsAdmin.form.submitEdit": "Save",
     "schoolsAdmin.form.submittingEdit": "Saving...",
     "schoolsAdmin.form.cancel": "Cancel",
     "schoolsAdmin.form.errors.nameRequired": "The school name is required.",
+    "schoolsAdmin.form.errors.emailRequired": "Email is required.",
+    "schoolsAdmin.form.errors.phoneRequired": "Phone is required.",
+    "schoolsAdmin.form.errors.pinInvalid":
+      "The PIN must contain exactly 6 digits.",
+    "schoolsAdmin.toast.additionalAdminsFailedTitle":
+      "Some administrators could not be added",
     "schoolsAdmin.form.errors.emailInvalid":
       "The school admin email is invalid.",
 
@@ -4636,5 +4687,19 @@ export const translations: Record<Locale, Record<string, string>> = {
     "schoolsAdmin.detail.resendInviteFailedTitle": "Sending failed",
     "schoolsAdmin.detail.pendingBadge": "Pending",
     "schoolsAdmin.detail.activeBadge": "Active",
+    "schoolsAdmin.detail.removeAdmin": "Remove",
+    "schoolsAdmin.detail.removeAdminLastAdminHint":
+      "The last administrator cannot be removed.",
+    "schoolsAdmin.detail.confirmRemoveAdminTitle": "Remove administrator",
+    "schoolsAdmin.detail.confirmRemoveAdminMessage":
+      "This person will lose administrator access to this school.",
+    "schoolsAdmin.detail.confirmRemoveAdminConfirm": "Remove",
+    "schoolsAdmin.detail.confirmRemoveAdminCancel": "Cancel",
+    "schoolsAdmin.detail.removeAdminSuccessTitle": "Administrator removed",
+    "schoolsAdmin.detail.removeAdminSuccessMessage":
+      "The administrator has been removed from the school.",
+    "schoolsAdmin.detail.removeAdminFailedTitle": "Removal failed",
+    "schoolsAdmin.detail.activationCodeBanner":
+      "Activation code to share with the administrator",
   },
 };

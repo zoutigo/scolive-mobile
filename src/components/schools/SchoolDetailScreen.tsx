@@ -5,17 +5,14 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Controller, useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { schoolsApi } from "../../api/schools.api";
+import { ConfirmDialog } from "../ConfirmDialog";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { useTranslation } from "../../i18n/useTranslation";
@@ -26,14 +23,18 @@ import {
   SectionCard,
 } from "../timetable/TimetableCommon";
 import { CyclePill, LanguagePill, StatTile } from "./SchoolBadges";
+import {
+  EMPTY_SCHOOL_ADMIN_ENTRY,
+  SchoolAdminEntryForm,
+  schoolAdminEntryToPayload,
+  validateSchoolAdminEntry,
+  type SchoolAdminEntryErrors,
+  type SchoolAdminEntryValue,
+} from "./SchoolAdminEntryForm";
 import { colors } from "../../theme";
 import { extractApiError } from "../../utils/api-error";
-import type { SchoolDetails } from "../../types/schools.types";
+import type { SchoolAdminRow, SchoolDetails } from "../../types/schools.types";
 import { moduleBack } from "../../utils/moduleBack";
-
-const ADD_ADMIN_FORM_SCHEMA = z.object({
-  email: z.string().trim().email(),
-});
 
 function formatAcademicDate(iso: string | null | undefined, locale: string) {
   if (!iso) return null;
@@ -61,6 +62,16 @@ export function SchoolDetailScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmittingAddAdmin, setIsSubmittingAddAdmin] = useState(false);
   const [resendingAdminId, setResendingAdminId] = useState<string | null>(null);
+  const [removeAdminTarget, setRemoveAdminTarget] =
+    useState<SchoolAdminRow | null>(null);
+  const [isRemovingAdmin, setIsRemovingAdmin] = useState(false);
+
+  const [newAdmin, setNewAdmin] = useState<SchoolAdminEntryValue>(
+    EMPTY_SCHOOL_ADMIN_ENTRY,
+  );
+  const [newAdminErrors, setNewAdminErrors] = useState<SchoolAdminEntryErrors>(
+    {},
+  );
 
   const load = useCallback(async () => {
     if (!schoolId) {
@@ -82,27 +93,28 @@ export function SchoolDetailScreen() {
     void load();
   }, [load]);
 
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<z.infer<typeof ADD_ADMIN_FORM_SCHEMA>>({
-    resolver: zodResolver(ADD_ADMIN_FORM_SCHEMA),
-    mode: "onChange",
-    reValidateMode: "onChange",
-    defaultValues: { email: "" },
-  });
+  const submitAddAdmin = useCallback(async () => {
+    const validationErrors = validateSchoolAdminEntry(newAdmin, t);
+    if (Object.keys(validationErrors).length > 0) {
+      setNewAdminErrors(validationErrors);
+      return;
+    }
+    const payload = schoolAdminEntryToPayload(newAdmin);
+    if (!payload) return;
 
-  const submitAddAdmin = handleSubmit(async (values) => {
+    setNewAdminErrors({});
     setIsSubmittingAddAdmin(true);
     try {
-      await schoolsApi.addSchoolAdmin(schoolId, { email: values.email });
+      const result = await schoolsApi.addSchoolAdmin(schoolId, payload);
       showSuccess({
         title: t("schoolsAdmin.detail.addAdminSuccessTitle"),
-        message: t("schoolsAdmin.detail.addAdminSuccessMessage"),
+        message: result.activationCode
+          ? `${t("schoolsAdmin.detail.addAdminSuccessMessage")}\n${t(
+              "schoolsAdmin.detail.activationCodeBanner",
+            )}: ${result.activationCode}`
+          : t("schoolsAdmin.detail.addAdminSuccessMessage"),
       });
-      reset({ email: "" });
+      setNewAdmin(EMPTY_SCHOOL_ADMIN_ENTRY);
       await load();
     } catch (error) {
       showError({
@@ -112,7 +124,7 @@ export function SchoolDetailScreen() {
     } finally {
       setIsSubmittingAddAdmin(false);
     }
-  });
+  }, [newAdmin, schoolId, showSuccess, showError, t, load]);
 
   const resendInvite = useCallback(
     async (adminUserId: string) => {
@@ -134,6 +146,27 @@ export function SchoolDetailScreen() {
     },
     [schoolId, showSuccess, showError, t],
   );
+
+  const confirmRemoveAdmin = useCallback(async () => {
+    if (!removeAdminTarget) return;
+    setIsRemovingAdmin(true);
+    try {
+      await schoolsApi.removeSchoolAdmin(schoolId, removeAdminTarget.id);
+      showSuccess({
+        title: t("schoolsAdmin.detail.removeAdminSuccessTitle"),
+        message: t("schoolsAdmin.detail.removeAdminSuccessMessage"),
+      });
+      setRemoveAdminTarget(null);
+      await load();
+    } catch (error) {
+      showError({
+        title: t("schoolsAdmin.detail.removeAdminFailedTitle"),
+        message: extractApiError(error),
+      });
+    } finally {
+      setIsRemovingAdmin(false);
+    }
+  }, [removeAdminTarget, schoolId, showSuccess, showError, t, load]);
 
   const academicStart = formatAcademicDate(
     details?.academicYear?.startsAt,
@@ -370,8 +403,29 @@ export function SchoolDetailScreen() {
                           />
                         </TouchableOpacity>
                       ) : null}
+                      <TouchableOpacity
+                        style={styles.resendBtn}
+                        onPress={() => setRemoveAdminTarget(admin)}
+                        disabled={details.schoolAdmins.length <= 1}
+                        testID={`school-detail-remove-admin-${admin.id}`}
+                      >
+                        <Ionicons
+                          name="person-remove-outline"
+                          size={14}
+                          color={
+                            details.schoolAdmins.length <= 1
+                              ? colors.textSecondary
+                              : colors.notification
+                          }
+                        />
+                      </TouchableOpacity>
                     </View>
                   ))}
+                  {details.schoolAdmins.length <= 1 ? (
+                    <Text style={styles.mutedText}>
+                      {t("schoolsAdmin.detail.removeAdminLastAdminHint")}
+                    </Text>
+                  ) : null}
                 </View>
               )}
 
@@ -379,41 +433,13 @@ export function SchoolDetailScreen() {
                 style={styles.addAdminForm}
                 testID="school-detail-add-admin-form"
               >
-                <Text style={styles.addAdminTitle}>
-                  {t("schoolsAdmin.detail.addAdminTitle")}
-                </Text>
-                <Controller
-                  control={control}
-                  name="email"
-                  render={({ field: { value, onChange, onBlur, ref } }) => (
-                    <View style={styles.formField}>
-                      <TextInput
-                        ref={ref}
-                        value={value}
-                        onChangeText={onChange}
-                        onBlur={onBlur}
-                        placeholder={t(
-                          "schoolsAdmin.form.adminEmailPlaceholder",
-                        )}
-                        placeholderTextColor={colors.textSecondary}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        style={[
-                          styles.formInput,
-                          errors.email ? styles.formInputError : null,
-                        ]}
-                        testID="school-detail-add-admin-email"
-                      />
-                      {errors.email ? (
-                        <Text
-                          style={styles.formError}
-                          testID="school-detail-add-admin-email-error"
-                        >
-                          {t("schoolsAdmin.form.errors.emailInvalid")}
-                        </Text>
-                      ) : null}
-                    </View>
-                  )}
+                <SchoolAdminEntryForm
+                  value={newAdmin}
+                  onChange={setNewAdmin}
+                  errors={newAdminErrors}
+                  title={t("schoolsAdmin.detail.addAdminTitle")}
+                  testIDPrefix="school-detail-add-admin"
+                  t={t}
                 />
                 <TouchableOpacity
                   style={[
@@ -435,6 +461,27 @@ export function SchoolDetailScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       )}
+
+      <ConfirmDialog
+        visible={removeAdminTarget != null}
+        title={t("schoolsAdmin.detail.confirmRemoveAdminTitle")}
+        message={
+          removeAdminTarget
+            ? `${removeAdminTarget.firstName} ${removeAdminTarget.lastName}\n${t(
+                "schoolsAdmin.detail.confirmRemoveAdminMessage",
+              )}`
+            : ""
+        }
+        variant="danger"
+        confirmLabel={t("schoolsAdmin.detail.confirmRemoveAdminConfirm")}
+        cancelLabel={t("schoolsAdmin.detail.confirmRemoveAdminCancel")}
+        onConfirm={() => {
+          void confirmRemoveAdmin();
+        }}
+        onCancel={() => {
+          if (!isRemovingAdmin) setRemoveAdminTarget(null);
+        }}
+      />
     </View>
   );
 }
@@ -561,26 +608,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.primary,
     textTransform: "uppercase",
-  },
-  formField: {
-    gap: 6,
-  },
-  formInput: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.white,
-    borderRadius: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: colors.textPrimary,
-    fontSize: 14,
-  },
-  formInputError: {
-    borderColor: "#B84A3B",
-  },
-  formError: {
-    color: "#B84A3B",
-    fontSize: 12,
   },
   addAdminSubmit: {
     alignSelf: "flex-start",
