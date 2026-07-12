@@ -1080,6 +1080,145 @@ describe("ResourcesScreen — recherche et filtres sur l'onglet Examens", () => 
   });
 });
 
+describe("ResourcesScreen — pagination", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    void AsyncStorage.clear();
+    mockUseAuthStore.mockReturnValue({ user: TEACHER_USER } as never);
+    mockDefaults();
+  });
+
+  function makeResource(id: string) {
+    return { ...BASE_RESOURCE, id, title: `Contrôle ${id}` };
+  }
+
+  it("charge la page suivante via l'infinite scroll sur Évaluations", async () => {
+    const page1 = Array.from({ length: 20 }, (_, index) =>
+      makeResource(`page1-${index + 1}`),
+    );
+    const page2 = [makeResource("page2-1")];
+
+    mockResourcesApi.listResources.mockImplementation(async (params) =>
+      params.page === 2
+        ? { items: page2, total: 21, page: 2, limit: 20 }
+        : { items: page1, total: 21, page: 1, limit: 20 },
+    );
+
+    render(<ResourcesScreen />);
+
+    await screen.findByTestId("resources-card-page1-1");
+    expect(screen.queryByTestId("resources-card-page2-1")).toBeNull();
+
+    fireEvent(screen.getByTestId("resources-list-ASSESSMENT"), "onEndReached", {
+      distanceFromEnd: 0,
+    });
+
+    await waitFor(() =>
+      expect(mockResourcesApi.listResources).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: "ASSESSMENT", page: 2 }),
+      ),
+    );
+    // Page 2 est la dernière (21 ressources / limite 20) : plus de page à
+    // charger, le footer de fin de liste s'affiche.
+    expect(
+      await screen.findByTestId("infinite-scroll-end-footer"),
+    ).toBeTruthy();
+  });
+
+  it("charge la page suivante via l'infinite scroll sur Examens", async () => {
+    const page1 = Array.from({ length: 20 }, (_, index) =>
+      makeResource(`exam1-${index + 1}`),
+    );
+    const page2 = [makeResource("exam2-1")];
+
+    mockResourcesApi.listResources.mockImplementation(async (params) =>
+      params.kind === "EXAM" && params.page === 2
+        ? { items: page2, total: 21, page: 2, limit: 20 }
+        : { items: page1, total: 21, page: 1, limit: 20 },
+    );
+
+    render(<ResourcesScreen />);
+    fireEvent.press(await screen.findByTestId("resources-tab-EXAM"));
+    await screen.findByTestId("resources-card-exam1-1");
+
+    fireEvent(screen.getByTestId("resources-list-EXAM"), "onEndReached", {
+      distanceFromEnd: 0,
+    });
+
+    await waitFor(() =>
+      expect(mockResourcesApi.listResources).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: "EXAM", page: 2 }),
+      ),
+    );
+  });
+
+  it("n'appelle pas de page suivante quand toutes les ressources sont déjà chargées", async () => {
+    mockResourcesApi.listResources.mockResolvedValue({
+      items: [BASE_RESOURCE],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    render(<ResourcesScreen />);
+    await screen.findByTestId("resources-card-res-1");
+    mockResourcesApi.listResources.mockClear();
+
+    fireEvent(screen.getByTestId("resources-list-ASSESSMENT"), "onEndReached", {
+      distanceFromEnd: 0,
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(mockResourcesApi.listResources).not.toHaveBeenCalled();
+  });
+
+  it("réinitialise à la page 1 lorsqu'une recherche est appliquée après un chargement de page suivante", async () => {
+    const page1 = Array.from({ length: 20 }, (_, index) =>
+      makeResource(`p1-${index + 1}`),
+    );
+    const page2 = [makeResource("p2-1")];
+    const searchResult = [makeResource("search-1")];
+
+    mockResourcesApi.listResources.mockImplementation(async (params) => {
+      if (params.search === "chapitre 3") {
+        return { items: searchResult, total: 1, page: 1, limit: 20 };
+      }
+      return params.page === 2
+        ? { items: page2, total: 21, page: 2, limit: 20 }
+        : { items: page1, total: 21, page: 1, limit: 20 };
+    });
+
+    render(<ResourcesScreen />);
+    await screen.findByTestId("resources-card-p1-1");
+
+    fireEvent(screen.getByTestId("resources-list-ASSESSMENT"), "onEndReached", {
+      distanceFromEnd: 0,
+    });
+    await waitFor(() =>
+      expect(mockResourcesApi.listResources).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: "ASSESSMENT", page: 2 }),
+      ),
+    );
+
+    fireEvent.changeText(
+      screen.getByTestId("resources-search-input"),
+      "chapitre 3",
+    );
+    await new Promise((resolve) => setTimeout(resolve, 650));
+
+    await waitFor(() =>
+      expect(mockResourcesApi.listResources).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: "ASSESSMENT",
+          search: "chapitre 3",
+          page: 1,
+        }),
+      ),
+    );
+    expect(await screen.findByTestId("resources-card-search-1")).toBeTruthy();
+  });
+});
+
 const BASE_SUBMISSION = {
   id: "sub-1",
   resourceId: "res-1",

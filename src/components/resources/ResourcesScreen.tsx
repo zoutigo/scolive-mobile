@@ -59,6 +59,15 @@ import type {
 
 const ONBOARDING_DISMISSED_KEY = "scolive-resources-onboarding-dismissed";
 const SEARCH_DEBOUNCE_MS = 300;
+const RESOURCES_PAGE_SIZE = 20;
+
+type PaginatedTabKey = "ASSESSMENT" | "EXAM";
+
+type ResourceListMeta = {
+  page: number;
+  limit: number;
+  total: number;
+};
 
 type ResourceFilters = {
   academicYear: string;
@@ -249,6 +258,12 @@ export function ResourcesScreen() {
     mine: [],
     favorites: [],
   });
+  const [listMeta, setListMeta] = useState<
+    Record<PaginatedTabKey, ResourceListMeta | null>
+  >({ ASSESSMENT: null, EXAM: null });
+  const [isLoadingMore, setIsLoadingMore] = useState<
+    Record<PaginatedTabKey, boolean>
+  >({ ASSESSMENT: false, EXAM: false });
   const [moderationPart, setModerationPart] = useState<
     "statement" | "correction"
   >("statement");
@@ -273,8 +288,20 @@ export function ResourcesScreen() {
   }, []);
 
   const loadList = useCallback(
-    async (targetTab: Exclude<TabKey, "forms" | "moderation">) => {
-      setIsLoading(true);
+    async (
+      targetTab: Exclude<TabKey, "forms" | "moderation">,
+      page: number,
+      mode: "reset" | "append" = "reset",
+    ) => {
+      const isPaginated = targetTab === "ASSESSMENT" || targetTab === "EXAM";
+      if (isPaginated && mode === "append") {
+        setIsLoadingMore((current) => ({
+          ...current,
+          [targetTab as PaginatedTabKey]: true,
+        }));
+      } else {
+        setIsLoading(true);
+      }
       setLoadError(null);
       try {
         if (targetTab === "favorites") {
@@ -297,16 +324,51 @@ export function ResourcesScreen() {
             examType: appliedFilters.examType
               ? (appliedFilters.examType as ResourceExamType)
               : undefined,
+            page,
+            limit: RESOURCES_PAGE_SIZE,
           });
-          setLists((current) => ({ ...current, [targetTab]: result.items }));
+          setLists((current) => ({
+            ...current,
+            [targetTab]:
+              mode === "append"
+                ? [...current[targetTab], ...result.items]
+                : result.items,
+          }));
+          setListMeta((current) => ({
+            ...current,
+            [targetTab]: {
+              page: result.page,
+              limit: result.limit,
+              total: result.total,
+            },
+          }));
         }
       } catch (error) {
         setLoadError(extractApiError(error));
       } finally {
-        setIsLoading(false);
+        if (isPaginated && mode === "append") {
+          setIsLoadingMore((current) => ({
+            ...current,
+            [targetTab as PaginatedTabKey]: false,
+          }));
+        } else {
+          setIsLoading(false);
+        }
       }
     },
     [appliedSearch, appliedFilters],
+  );
+
+  const handleLoadMoreResources = useCallback(
+    (targetTab: PaginatedTabKey) => {
+      const meta = listMeta[targetTab];
+      if (!meta) return;
+      if (isLoadingMore[targetTab]) return;
+      const totalPages = Math.max(1, Math.ceil(meta.total / meta.limit));
+      if (meta.page >= totalPages) return;
+      void loadList(targetTab, meta.page + 1, "append");
+    },
+    [listMeta, isLoadingMore, loadList],
   );
 
   const loadModeration = useCallback(
@@ -330,7 +392,7 @@ export function ResourcesScreen() {
 
   useEffect(() => {
     if (tab === "forms" || tab === "moderation") return;
-    void loadList(tab);
+    void loadList(tab, 1, "reset");
   }, [tab, loadList]);
 
   useFocusEffect(
@@ -858,6 +920,28 @@ export function ResourcesScreen() {
                 testID={`resources-card-${item.id}`}
               />
             )}
+            onLoadMore={
+              tab === "ASSESSMENT" || tab === "EXAM"
+                ? () => handleLoadMoreResources(tab)
+                : undefined
+            }
+            hasMore={
+              tab === "ASSESSMENT" || tab === "EXAM"
+                ? (() => {
+                    const meta = listMeta[tab];
+                    if (!meta) return false;
+                    return (
+                      meta.page <
+                      Math.max(1, Math.ceil(meta.total / meta.limit))
+                    );
+                  })()
+                : false
+            }
+            isLoadingMore={
+              tab === "ASSESSMENT" || tab === "EXAM"
+                ? isLoadingMore[tab]
+                : false
+            }
             emptyComponent={
               <Text style={styles.emptyText} testID={`resources-empty-${tab}`}>
                 {t("resources.empty.message")}
