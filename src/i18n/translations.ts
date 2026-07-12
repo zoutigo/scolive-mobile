@@ -21,6 +21,49 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Cette langue est associée à votre compte",
     "settings.accountLanguage.hint":
       "Elle s'applique automatiquement à chaque connexion, sur n'importe quel appareil.",
+    "settings.edit": "Modifier",
+    "settings.currentValue": "Valeur actuelle",
+    "settings.form.cancel": "Annuler",
+    "settings.form.save": "Enregistrer",
+    "settings.form.searchPlaceholder": "Rechercher...",
+    "settings.form.noResults": "Aucun résultat",
+    "settings.form.deviceLanguage.title": "Langue de cet appareil",
+    "settings.form.deviceLanguage.subtitle":
+      "Choisissez la langue de l'application",
+    "settings.form.accountLanguage.title": "Langue du compte",
+    "settings.form.accountLanguage.subtitle":
+      "Appliquée automatiquement à chaque connexion",
+    "settings.form.activeSchool.title": "École active",
+    "settings.form.activeSchool.subtitle":
+      "Choisissez l'établissement qui conditionne l'application",
+    "settings.form.activeRole.title": "Profil actif",
+    "settings.form.activeRole.subtitle": "Choisissez la navigation à afficher",
+    "settings.school.title": "École active",
+    "settings.school.subtitle": "Établissement qui conditionne l'application",
+    "settings.role.title": "Profil actif",
+    "settings.role.subtitle": "Navigation affichée dans l'application",
+    "settings.role.onlyOne": "Un seul profil est disponible sur ce compte.",
+    "settings.form.deviceLanguage.successTitle": "Langue mise à jour",
+    "settings.form.deviceLanguage.successMessage":
+      "La langue de l'appareil a été mise à jour.",
+    "settings.form.accountLanguage.successTitle": "Langue mise à jour",
+    "settings.form.accountLanguage.successMessage":
+      "La langue de votre compte a été enregistrée.",
+    "settings.form.accountLanguage.errorTitle": "Mise à jour impossible",
+    "settings.form.accountLanguage.errorMessage":
+      "La langue du compte n'a pas pu être mise à jour.",
+    "settings.form.activeSchool.successTitle": "École active mise à jour",
+    "settings.form.activeSchool.successMessage":
+      "L'école active a été mise à jour.",
+    "settings.form.activeSchool.errorTitle": "Mise à jour impossible",
+    "settings.form.activeSchool.errorMessage":
+      "L'école active n'a pas pu être mise à jour.",
+    "settings.form.activeRole.successTitle": "Profil actif mis à jour",
+    "settings.form.activeRole.successMessage":
+      "Le profil actif a été mis à jour.",
+    "settings.form.activeRole.errorTitle": "Mise à jour impossible",
+    "settings.form.activeRole.errorMessage":
+      "Le profil actif n'a pas pu être mis à jour.",
 
     "login.tagline": "Votre école en temps réel.",
     "login.method.phone": "Connexion par téléphone",
@@ -2423,6 +2466,48 @@ export const translations: Record<Locale, Record<string, string>> = {
       "This language is tied to your account",
     "settings.accountLanguage.hint":
       "It is applied automatically on every login, on any device.",
+    "settings.edit": "Edit",
+    "settings.currentValue": "Current value",
+    "settings.form.cancel": "Cancel",
+    "settings.form.save": "Save",
+    "settings.form.searchPlaceholder": "Search...",
+    "settings.form.noResults": "No results",
+    "settings.form.deviceLanguage.title": "Language of this device",
+    "settings.form.deviceLanguage.subtitle": "Choose the application language",
+    "settings.form.accountLanguage.title": "Account language",
+    "settings.form.accountLanguage.subtitle":
+      "Applied automatically on every login",
+    "settings.form.activeSchool.title": "Active school",
+    "settings.form.activeSchool.subtitle":
+      "Choose the establishment that drives the app",
+    "settings.form.activeRole.title": "Active profile",
+    "settings.form.activeRole.subtitle": "Choose the navigation to display",
+    "settings.school.title": "Active school",
+    "settings.school.subtitle": "Establishment that drives the app",
+    "settings.role.title": "Active profile",
+    "settings.role.subtitle": "Navigation displayed in the app",
+    "settings.role.onlyOne": "Only one profile is available on this account.",
+    "settings.form.deviceLanguage.successTitle": "Language updated",
+    "settings.form.deviceLanguage.successMessage":
+      "The device language has been updated.",
+    "settings.form.accountLanguage.successTitle": "Language updated",
+    "settings.form.accountLanguage.successMessage":
+      "Your account language has been saved.",
+    "settings.form.accountLanguage.errorTitle": "Update failed",
+    "settings.form.accountLanguage.errorMessage":
+      "The account language could not be updated.",
+    "settings.form.activeSchool.successTitle": "Active school updated",
+    "settings.form.activeSchool.successMessage":
+      "The active school has been updated.",
+    "settings.form.activeSchool.errorTitle": "Update failed",
+    "settings.form.activeSchool.errorMessage":
+      "The active school could not be updated.",
+    "settings.form.activeRole.successTitle": "Active profile updated",
+    "settings.form.activeRole.successMessage":
+      "The active profile has been updated.",
+    "settings.form.activeRole.errorTitle": "Update failed",
+    "settings.form.activeRole.errorMessage":
+      "The active profile could not be updated.",
 
     "login.tagline": "Your school, in real time.",
     "login.method.phone": "Sign in with phone",

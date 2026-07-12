@@ -143,7 +143,7 @@ describe("AccountScreen — sélecteur d'école active", () => {
     expect(screen.queryByTestId("account-settings-school-card")).toBeNull();
   });
 
-  it("affiche toutes les écoles de l'utilisateur quand il en a plusieurs", async () => {
+  it("affiche l'école active en lecture seule avec un bouton Modifier quand il y en a plusieurs", async () => {
     api.getMe.mockResolvedValue(multiSchoolProfile);
     setAuthState(jest.fn());
 
@@ -156,11 +156,13 @@ describe("AccountScreen — sélecteur d'école active", () => {
     fireEvent.press(screen.getByTestId("account-tab-settings"));
 
     expect(screen.getByTestId("account-settings-school-card")).toBeTruthy();
-    expect(screen.getByTestId("account-active-school-school-1")).toBeTruthy();
-    expect(screen.getByTestId("account-active-school-school-2")).toBeTruthy();
+    expect(screen.getByTestId("account-settings-school-edit")).toBeTruthy();
+    expect(
+      screen.getByTestId("account-settings-school-value"),
+    ).toHaveTextContent(/Collège A/);
   });
 
-  it("change l'école active via le store et affiche un succès", async () => {
+  it("change l'école active via le formulaire dédié et affiche un succès", async () => {
     api.getMe.mockResolvedValue(multiSchoolProfile);
     const switchActiveSchool = jest.fn().mockResolvedValue("college-b");
     setAuthState(switchActiveSchool);
@@ -172,8 +174,17 @@ describe("AccountScreen — sélecteur d'école active", () => {
     });
 
     fireEvent.press(screen.getByTestId("account-tab-settings"));
-    fireEvent.press(screen.getByTestId("account-active-school-school-2"));
-    fireEvent.press(screen.getByTestId("account-save-active-school"));
+    fireEvent.press(screen.getByTestId("account-settings-school-edit"));
+
+    expect(screen.getByTestId("settings-active-school-form-hero")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("settings-active-school-select"));
+    fireEvent.press(
+      await screen.findByTestId(
+        "settings-active-school-select-option-school-2",
+      ),
+    );
+    fireEvent.press(screen.getByTestId("settings-active-school-save"));
 
     await waitFor(() => {
       expect(switchActiveSchool).toHaveBeenCalledWith("school-2");
@@ -182,5 +193,32 @@ describe("AccountScreen — sélecteur d'école active", () => {
     await waitFor(() => {
       expect(useSuccessToastStore.getState().visible).toBe(true);
     });
+  });
+
+  it("filtre les écoles par la recherche dans le formulaire d'édition", async () => {
+    api.getMe.mockResolvedValue(multiSchoolProfile);
+    setAuthState(jest.fn());
+
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+    fireEvent.press(screen.getByTestId("account-settings-school-edit"));
+    fireEvent.press(screen.getByTestId("settings-active-school-select"));
+
+    fireEvent.changeText(
+      await screen.findByTestId("settings-active-school-select-search"),
+      "Collège B",
+    );
+
+    expect(
+      screen.getByTestId("settings-active-school-select-option-school-2"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("settings-active-school-select-option-school-1"),
+    ).toBeNull();
   });
 });

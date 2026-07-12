@@ -162,3 +162,75 @@ describe("SelectDropdown — liste vide", () => {
     expect(screen.getByText("—")).toBeTruthy();
   });
 });
+
+// ─── Recherche / filtrage ────────────────────────────────────────────────────
+
+describe("SelectDropdown — recherche", () => {
+  it("n'affiche pas de champ de recherche par défaut", async () => {
+    renderDropdown();
+    fireEvent.press(screen.getByTestId("test-select"));
+    await waitFor(() =>
+      expect(screen.getByTestId("test-select-modal")).toBeTruthy(),
+    );
+    expect(screen.queryByTestId("test-select-search")).toBeNull();
+  });
+
+  it("affiche un champ de recherche quand searchPlaceholder est fourni", async () => {
+    renderDropdown({
+      searchPlaceholder: "Rechercher...",
+      noResultsLabel: "Aucun résultat",
+    });
+    fireEvent.press(screen.getByTestId("test-select"));
+    await waitFor(() =>
+      expect(screen.getByTestId("test-select-search")).toBeTruthy(),
+    );
+  });
+
+  it("filtre les options selon la saisie", async () => {
+    renderDropdown({
+      searchPlaceholder: "Rechercher...",
+      noResultsLabel: "Aucun résultat",
+    });
+    fireEvent.press(screen.getByTestId("test-select"));
+    await waitFor(() =>
+      expect(screen.getByTestId("test-select-search")).toBeTruthy(),
+    );
+
+    fireEvent.changeText(screen.getByTestId("test-select-search"), "b4");
+
+    expect(screen.getByTestId("test-select-option-r-b45")).toBeTruthy();
+    expect(screen.queryByTestId("test-select-option-r-a01")).toBeNull();
+  });
+
+  it("affiche le message d'absence de résultat quand rien ne correspond", async () => {
+    renderDropdown({
+      searchPlaceholder: "Rechercher...",
+      noResultsLabel: "Aucun résultat",
+    });
+    fireEvent.press(screen.getByTestId("test-select"));
+    fireEvent.changeText(
+      await screen.findByTestId("test-select-search"),
+      "zzz-inexistant",
+    );
+
+    expect(screen.getByText("Aucun résultat")).toBeTruthy();
+  });
+
+  it("réinitialise la recherche à la réouverture du modal", async () => {
+    renderDropdown({
+      searchPlaceholder: "Rechercher...",
+      noResultsLabel: "Aucun résultat",
+    });
+    fireEvent.press(screen.getByTestId("test-select"));
+    fireEvent.changeText(await screen.findByTestId("test-select-search"), "b4");
+    fireEvent.press(screen.getByTestId("test-select-overlay"));
+    await waitFor(() =>
+      expect(screen.queryByTestId("test-select-modal")).toBeNull(),
+    );
+
+    fireEvent.press(screen.getByTestId("test-select"));
+    await waitFor(() =>
+      expect(screen.getByTestId("test-select-option-r-a01")).toBeTruthy(),
+    );
+  });
+});

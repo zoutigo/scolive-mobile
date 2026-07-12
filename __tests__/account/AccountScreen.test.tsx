@@ -384,7 +384,7 @@ describe("AccountScreen", () => {
     });
   });
 
-  it("affiche l'onglet paramètres avec langue et profil actif", async () => {
+  it("affiche l'onglet paramètres en lecture seule avec bouton Modifier par catégorie", async () => {
     render(<AccountScreen />);
 
     await waitFor(() => {
@@ -395,12 +395,19 @@ describe("AccountScreen", () => {
 
     expect(screen.getByTestId("account-settings-language-card")).toBeTruthy();
     expect(screen.getByTestId("account-settings-role-card")).toBeTruthy();
-    expect(screen.getByTestId("account-language-fr")).toBeTruthy();
-    expect(screen.getByTestId("account-active-role-PARENT")).toBeTruthy();
-    expect(screen.getByTestId("account-active-role-TEACHER")).toBeTruthy();
+    expect(screen.getByTestId("account-settings-language-edit")).toBeTruthy();
+    expect(screen.getByTestId("account-settings-role-edit")).toBeTruthy();
+    expect(
+      screen.getByTestId("account-settings-language-value"),
+    ).toHaveTextContent("Français");
+    expect(screen.getByTestId("account-settings-role-value")).toHaveTextContent(
+      "Parent",
+    );
+    // pas de sélecteurs directement sur la page de lecture
+    expect(screen.queryByTestId("account-active-role-TEACHER")).toBeNull();
   });
 
-  it("permet de changer le profil actif depuis paramètres", async () => {
+  it("permet de changer le profil actif via le formulaire dédié", async () => {
     render(<AccountScreen />);
 
     await waitFor(() => {
@@ -408,8 +415,15 @@ describe("AccountScreen", () => {
     });
 
     fireEvent.press(screen.getByTestId("account-tab-settings"));
-    fireEvent.press(screen.getByTestId("account-active-role-TEACHER"));
-    fireEvent.press(screen.getByTestId("account-save-active-role"));
+    fireEvent.press(screen.getByTestId("account-settings-role-edit"));
+
+    expect(screen.getByTestId("settings-active-role-form-hero")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("settings-active-role-select"));
+    fireEvent.press(
+      await screen.findByTestId("settings-active-role-select-option-TEACHER"),
+    );
+    fireEvent.press(screen.getByTestId("settings-active-role-save"));
 
     await waitFor(() => {
       expect(api.setActiveRole).toHaveBeenCalledWith({ role: "TEACHER" });
@@ -418,9 +432,17 @@ describe("AccountScreen", () => {
     await waitFor(() => {
       expect(useAuthStore.getState().user?.activeRole).toBe("TEACHER");
     });
+
+    // redirection automatique vers l'onglet paramètres après le toast
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("account-settings-role-card")).toBeTruthy();
+      },
+      { timeout: 3000 },
+    );
   });
 
-  it("bascule l'interface en anglais et persiste le choix", async () => {
+  it("annule l'édition du profil actif sans appeler l'API", async () => {
     render(<AccountScreen />);
 
     await waitFor(() => {
@@ -428,15 +450,37 @@ describe("AccountScreen", () => {
     });
 
     fireEvent.press(screen.getByTestId("account-tab-settings"));
+    fireEvent.press(screen.getByTestId("account-settings-role-edit"));
+    fireEvent.press(screen.getByTestId("settings-active-role-cancel"));
 
-    expect(screen.getByText("Langue de cet appareil")).toBeTruthy();
-    expect(screen.getAllByText("Français").length).toBeGreaterThan(0);
+    expect(screen.getByTestId("account-settings-role-card")).toBeTruthy();
+    expect(api.setActiveRole).not.toHaveBeenCalled();
+  });
 
-    fireEvent.press(screen.getByTestId("account-language-en"));
+  it("bascule l'interface en anglais via le formulaire de langue de l'appareil et persiste le choix", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+    expect(
+      screen.getByTestId("account-settings-language-value"),
+    ).toHaveTextContent("Français");
+
+    fireEvent.press(screen.getByTestId("account-settings-language-edit"));
+    expect(
+      screen.getByTestId("settings-device-language-form-hero"),
+    ).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("settings-device-language-select"));
+    fireEvent.press(
+      await screen.findByTestId("settings-device-language-select-option-en"),
+    );
+    fireEvent.press(screen.getByTestId("settings-device-language-save"));
 
     expect(useLocaleStore.getState().locale).toBe("en");
-    expect(screen.getByText("Language of this device")).toBeTruthy();
-    expect(screen.getByText("Choose the application language")).toBeTruthy();
 
     await waitFor(async () => {
       const stored = await AsyncStorage.getItem(LOCALE_STORAGE_KEY);
@@ -463,10 +507,12 @@ describe("AccountScreen", () => {
     fireEvent.press(screen.getByTestId("account-tab-settings"));
 
     expect(screen.getByText("Language of this device")).toBeTruthy();
-    expect(screen.getByTestId("account-language-en")).toBeTruthy();
+    expect(
+      screen.getByTestId("account-settings-language-value"),
+    ).toHaveTextContent("English");
   });
 
-  it("affiche la langue du compte et permet de la modifier", async () => {
+  it("affiche la langue du compte et permet de la modifier via le formulaire dédié", async () => {
     render(<AccountScreen />);
 
     await waitFor(() => {
@@ -478,8 +524,16 @@ describe("AccountScreen", () => {
     expect(
       screen.getByTestId("account-settings-account-language-card"),
     ).toBeTruthy();
-    expect(screen.getByTestId("account-profile-language-fr")).toBeTruthy();
-    expect(screen.getByTestId("account-profile-language-en")).toBeTruthy();
+    expect(
+      screen.getByTestId("account-settings-account-language-value"),
+    ).toHaveTextContent("Français");
+
+    fireEvent.press(
+      screen.getByTestId("account-settings-account-language-edit"),
+    );
+    expect(
+      screen.getByTestId("settings-account-language-form-hero"),
+    ).toBeTruthy();
   });
 
   it("met à jour la langue du compte et synchronise la langue de l'appareil", async () => {
@@ -495,9 +549,17 @@ describe("AccountScreen", () => {
     });
 
     fireEvent.press(screen.getByTestId("account-tab-settings"));
+    fireEvent.press(
+      screen.getByTestId("account-settings-account-language-edit"),
+    );
+
+    fireEvent.press(screen.getByTestId("settings-account-language-select"));
+    fireEvent.press(
+      await screen.findByTestId("settings-account-language-select-option-en"),
+    );
 
     await act(async () => {
-      fireEvent.press(screen.getByTestId("account-profile-language-en"));
+      fireEvent.press(screen.getByTestId("settings-account-language-save"));
     });
 
     await waitFor(() => {
