@@ -133,6 +133,9 @@ export type ResourceAdminSubmission = ResourceSubmission & {
   };
 };
 
+export type SchoolLanguageSystem = "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL";
+export type SchoolCycleCode = "PRIMARY" | "SECONDARY";
+
 export type ResourceCatalog = {
   cycles: Array<{ id: string; code: string; label: string }>;
   academicLevels: Array<{
@@ -140,6 +143,7 @@ export type ResourceCatalog = {
     code: string;
     label: string;
     cycleId: string | null;
+    languageSystem: SchoolLanguageSystem | null;
   }>;
   tracks: Array<{ id: string; code: string; label: string }>;
   curriculums: Array<{
@@ -152,6 +156,13 @@ export type ResourceCatalog = {
 };
 
 export type ResourceSchoolOption = { id: string; name: string };
+
+export type ResourceSchoolSearchOption = {
+  id: string;
+  name: string;
+  cycle: SchoolCycleCode | null;
+  languageSystem: SchoolLanguageSystem | null;
+};
 
 export type ListAdminResourcesQuery = {
   kind?: ResourceKind;

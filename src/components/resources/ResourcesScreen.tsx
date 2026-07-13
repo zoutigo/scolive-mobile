@@ -40,6 +40,7 @@ import {
   InlineSelectDropDown,
   type InlineSelectDropDownOption,
 } from "../InlineSelectDropDown";
+import { InlineSearchSelect } from "../InlineSearchSelect";
 import { SelectField } from "../tests-admin/SelectField";
 import {
   ResourceCard,
@@ -56,6 +57,7 @@ import type {
   ResourceKind,
   ResourceRow,
   ResourceSchoolOption,
+  ResourceSchoolSearchOption,
   ResourceSequence,
   UpsertResourcePayload,
 } from "../../types/resources.types";
@@ -156,6 +158,13 @@ function buildResourceFormSchema(
         .string()
         .trim()
         .min(1, t("resources.form.validation.titleRequired")),
+      schoolId:
+        kind === "ASSESSMENT"
+          ? z
+              .string()
+              .trim()
+              .min(1, t("resources.form.validation.schoolRequired"))
+          : z.string(),
       cycleId: z
         .string()
         .trim()
@@ -201,6 +210,7 @@ function buildResourceFormSchema(
 
 type ResourceFormValues = {
   title: string;
+  schoolId: string;
   cycleId: string;
   academicLevelId: string;
   trackId: string;
@@ -218,13 +228,9 @@ export function ResourcesScreen() {
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
 
-  const memberships = user?.memberships ?? [];
   const activeRole = user?.activeRole ?? null;
   const canSubmit = canContributeToResources(activeRole);
   const isPlatformRole = isResourcePlatformAdmin(activeRole);
-  const submitterSchoolId = canSubmit
-    ? (memberships.find((m) => m.role === activeRole)?.schoolId ?? null)
-    : null;
 
   const [tab, setTab] = useState<TabKey>("ASSESSMENT");
   const [formContext, setFormContext] = useState<FormContext | null>(null);
@@ -237,6 +243,9 @@ export function ResourcesScreen() {
     subjects: [],
   });
   const [schools, setSchools] = useState<ResourceSchoolOption[]>([]);
+  const [formSchools, setFormSchools] = useState<ResourceSchoolSearchOption[]>(
+    [],
+  );
 
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -315,6 +324,10 @@ export function ResourcesScreen() {
     resourcesApi
       .listSchoolsWithResources()
       .then(setSchools)
+      .catch(() => {});
+    resourcesApi
+      .searchSchools()
+      .then(setFormSchools)
       .catch(() => {});
   }, []);
 
@@ -1054,7 +1067,7 @@ export function ResourcesScreen() {
           <ResourceFormContent
             formContext={formContext}
             catalog={catalog}
-            submitterSchoolId={submitterSchoolId}
+            schools={formSchools}
             onSubmit={handleSubmitResource}
             onCancel={exitForms}
             isSubmitting={isSubmitting}
@@ -1085,7 +1098,7 @@ export function ResourcesScreen() {
 function ResourceFormContent(props: {
   formContext: FormContext;
   catalog: ResourceCatalog;
-  submitterSchoolId: string | null;
+  schools: ResourceSchoolSearchOption[];
   onSubmit: (payload: UpsertResourcePayload) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
@@ -1093,6 +1106,7 @@ function ResourceFormContent(props: {
   const { t } = useTranslation();
   const initialValue = props.formContext.item;
   const kind = props.formContext.kind;
+  const requiresSchool = kind === "ASSESSMENT";
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -1121,6 +1135,7 @@ function ResourceFormContent(props: {
     resolver: zodResolver(buildResourceFormSchema(t, kind, levelIdsWithTracks)),
     defaultValues: {
       title: initialValue?.title ?? "",
+      schoolId: initialValue?.schoolId ?? "",
       cycleId: initialCycleId,
       academicLevelId: initialValue?.academicLevelId ?? "",
       trackId: initialValue?.trackId ?? "",
@@ -1132,9 +1147,71 @@ function ResourceFormContent(props: {
     },
   });
 
+  const selectedSchoolId = watch("schoolId");
   const selectedCycleId = watch("cycleId");
   const selectedLevelId = watch("academicLevelId");
   const selectedTrackId = watch("trackId");
+
+  // Le lot initial (top 50 par nom) ne couvre pas les 300+ écoles de la
+  // plateforme : on enrichit ce pool avec les résultats de recherche serveur
+  // au fil de la frappe, sans jamais perdre l'école déjà sélectionnée.
+  const [extraSchools, setExtraSchools] = useState<
+    ResourceSchoolSearchOption[]
+  >([]);
+  const schoolSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  const schoolPool: ResourceSchoolSearchOption[] = useMemo(() => {
+    const byId = new Map<string, ResourceSchoolSearchOption>();
+    for (const s of props.schools) byId.set(s.id, s);
+    for (const s of extraSchools) byId.set(s.id, s);
+    if (
+      initialValue?.schoolId &&
+      initialValue.school &&
+      !byId.has(initialValue.schoolId)
+    ) {
+      byId.set(initialValue.schoolId, {
+        id: initialValue.schoolId,
+        name: initialValue.school.name,
+        cycle: null,
+        languageSystem: null,
+      });
+    }
+    return Array.from(byId.values());
+  }, [props.schools, extraSchools, initialValue]);
+
+  const selectedSchool = schoolPool.find((s) => s.id === selectedSchoolId);
+  const schoolOptions: InlineSelectDropDownOption[] = schoolPool.map((s) => ({
+    value: s.id,
+    label: s.name,
+  }));
+
+  function handleSchoolQueryChange(query: string) {
+    if (schoolSearchDebounceRef.current) {
+      clearTimeout(schoolSearchDebounceRef.current);
+    }
+    schoolSearchDebounceRef.current = setTimeout(() => {
+      resourcesApi
+        .searchSchools(query || undefined)
+        .then(setExtraSchools)
+        .catch(() => {});
+    }, 300);
+  }
+
+  useEffect(() => {
+    if (!requiresSchool) return;
+    if (!selectedSchool || !selectedSchool.cycle) return;
+    const resolvedCycleId =
+      props.catalog.cycles.find((c) => c.code === selectedSchool.cycle)?.id ??
+      "";
+    if (resolvedCycleId && resolvedCycleId !== selectedCycleId) {
+      setValue("cycleId", resolvedCycleId);
+      setValue("academicLevelId", "");
+      setValue("trackId", "");
+      setValue("subjectId", "");
+    }
+  }, [requiresSchool, selectedSchool, props.catalog.cycles]);
 
   const cycleOptions: InlineSelectDropDownOption[] = props.catalog.cycles.map(
     (c) => ({ value: c.id, label: c.label }),
@@ -1142,6 +1219,14 @@ function ResourceFormContent(props: {
   const levelOptions: InlineSelectDropDownOption[] =
     props.catalog.academicLevels
       .filter((l) => !selectedCycleId || l.cycleId === selectedCycleId)
+      .filter(
+        (l) =>
+          !requiresSchool ||
+          !selectedSchool?.languageSystem ||
+          selectedSchool.languageSystem === "BILINGUAL" ||
+          !l.languageSystem ||
+          l.languageSystem === selectedSchool.languageSystem,
+      )
       .map((l) => ({ value: l.id, label: l.label }));
 
   const trackIdsForLevel = new Set(
@@ -1185,10 +1270,7 @@ function ResourceFormContent(props: {
     try {
       const payload: UpsertResourcePayload = {
         kind,
-        schoolId:
-          kind === "ASSESSMENT"
-            ? (props.submitterSchoolId ?? undefined)
-            : undefined,
+        schoolId: kind === "ASSESSMENT" ? values.schoolId : undefined,
         academicLevelId: values.academicLevelId,
         trackId: levelHasTracks ? values.trackId || undefined : undefined,
         subjectId: values.subjectId,
@@ -1266,35 +1348,84 @@ function ResourceFormContent(props: {
           ) : null}
         </View>
 
-        <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>
-            {t("resources.form.cycleLabel")}
-          </Text>
-          <Controller
-            control={control}
-            name="cycleId"
-            render={({ field: { value, onChange } }) => (
-              <InlineSelectDropDown
-                options={cycleOptions}
-                value={value}
-                onChange={(next) => {
-                  onChange(next);
-                  setValue("academicLevelId", "");
-                  setValue("trackId", "");
-                  setValue("subjectId", "");
-                }}
-                placeholder={t("resources.form.cyclePlaceholder")}
-                hasError={!!errors.cycleId}
-                testID="resources-form-cycle"
-              />
-            )}
-          />
-          {errors.cycleId?.message ? (
-            <Text style={styles.fieldError} testID="resources-form-cycle-error">
-              {errors.cycleId.message}
+        {requiresSchool ? (
+          <View style={styles.fieldGroup}>
+            <Controller
+              control={control}
+              name="schoolId"
+              render={({ field: { value, onChange } }) => (
+                <InlineSearchSelect
+                  label={t("resources.form.schoolLabel")}
+                  options={schoolOptions}
+                  value={value}
+                  onChange={(next) => {
+                    onChange(next);
+                    setValue("academicLevelId", "");
+                    setValue("trackId", "");
+                    setValue("subjectId", "");
+                  }}
+                  placeholder={t("resources.form.schoolPlaceholder")}
+                  onQueryChange={handleSchoolQueryChange}
+                  hasError={!!errors.schoolId}
+                  testID="resources-form-school"
+                />
+              )}
+            />
+            {errors.schoolId?.message ? (
+              <Text
+                style={styles.fieldError}
+                testID="resources-form-school-error"
+              >
+                {errors.schoolId.message}
+              </Text>
+            ) : null}
+            {!errors.schoolId?.message &&
+            selectedSchool &&
+            !selectedSchool.cycle ? (
+              <Text
+                style={styles.fieldError}
+                testID="resources-form-school-no-cycle-error"
+              >
+                {t("resources.form.validation.schoolCycleMissing")}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        {!requiresSchool ? (
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>
+              {t("resources.form.cycleLabel")}
             </Text>
-          ) : null}
-        </View>
+            <Controller
+              control={control}
+              name="cycleId"
+              render={({ field: { value, onChange } }) => (
+                <InlineSelectDropDown
+                  options={cycleOptions}
+                  value={value}
+                  onChange={(next) => {
+                    onChange(next);
+                    setValue("academicLevelId", "");
+                    setValue("trackId", "");
+                    setValue("subjectId", "");
+                  }}
+                  placeholder={t("resources.form.cyclePlaceholder")}
+                  hasError={!!errors.cycleId}
+                  testID="resources-form-cycle"
+                />
+              )}
+            />
+            {errors.cycleId?.message ? (
+              <Text
+                style={styles.fieldError}
+                testID="resources-form-cycle-error"
+              >
+                {errors.cycleId.message}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
 
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>
