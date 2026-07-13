@@ -24,6 +24,8 @@ interface InlineSearchSelectProps {
   disabled?: boolean;
   hasError?: boolean;
   testID: string;
+  /** Called with the raw query text as the user types, e.g. to trigger a server-side search. */
+  onQueryChange?: (query: string) => void;
 }
 
 function normalizeForSearch(value: string) {
@@ -39,6 +41,7 @@ export function InlineSearchSelect({
   disabled = false,
   hasError = false,
   testID,
+  onQueryChange,
 }: InlineSearchSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -73,6 +76,7 @@ export function InlineSearchSelect({
             onChangeText={(text) => {
               setQuery(text);
               if (!open) setOpen(true);
+              onQueryChange?.(text);
             }}
             onFocus={() => {
               if (disabled) return;

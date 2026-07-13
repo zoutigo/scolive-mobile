@@ -36,7 +36,11 @@ import { FormHero } from "../forms/FormHero";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
-import { SelectDropdown, type SelectOption } from "../SelectDropdown";
+import {
+  InlineSelectDropDown,
+  type InlineSelectDropDownOption,
+} from "../InlineSelectDropDown";
+import { InlineSearchSelect } from "../InlineSearchSelect";
 import { SelectField } from "../tests-admin/SelectField";
 import {
   ResourceCard,
@@ -53,6 +57,7 @@ import type {
   ResourceKind,
   ResourceRow,
   ResourceSchoolOption,
+  ResourceSchoolSearchOption,
   ResourceSequence,
   UpsertResourcePayload,
 } from "../../types/resources.types";
@@ -110,7 +115,7 @@ type FormContext = {
   item: ResourceDetail | null;
 };
 
-const SEQUENCE_OPTIONS: SelectOption[] = [
+const SEQUENCE_OPTIONS: InlineSelectDropDownOption[] = [
   { value: "SEQ_1", label: "Séquence 1" },
   { value: "SEQ_2", label: "Séquence 2" },
   { value: "SEQ_3", label: "Séquence 3" },
@@ -124,7 +129,7 @@ function currentAcademicYearLabel(now = new Date()): string {
   return now.getMonth() >= 8 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
 }
 
-function academicYearOptions(): SelectOption[] {
+function academicYearOptions(): InlineSelectDropDownOption[] {
   const [startYear] = currentAcademicYearLabel().split("-").map(Number);
   const years: string[] = [];
   for (let offset = -2; offset <= 1; offset += 1) {
@@ -134,7 +139,7 @@ function academicYearOptions(): SelectOption[] {
   return years.map((label) => ({ value: label, label }));
 }
 
-function examTypeOptions(t: TranslateFn): SelectOption[] {
+function examTypeOptions(t: TranslateFn): InlineSelectDropDownOption[] {
   return [
     { value: "SEQUENCE_TEST", label: t("resources.examType.sequenceTest") },
     { value: "POP_QUIZ", label: t("resources.examType.popQuiz") },
@@ -142,41 +147,73 @@ function examTypeOptions(t: TranslateFn): SelectOption[] {
   ];
 }
 
-function buildResourceFormSchema(t: TranslateFn, kind: ResourceKind) {
-  return z.object({
-    title: z
-      .string()
-      .trim()
-      .min(1, t("resources.form.validation.titleRequired")),
-    academicLevelId: z
-      .string()
-      .trim()
-      .min(1, t("resources.form.validation.levelRequired")),
-    subjectId: z
-      .string()
-      .trim()
-      .min(1, t("resources.form.validation.subjectRequired")),
-    examType: z
-      .string()
-      .trim()
-      .min(1, t("resources.form.validation.examTypeRequired")),
-    sequence:
-      kind === "ASSESSMENT"
-        ? z
-            .string()
-            .trim()
-            .min(1, t("resources.form.validation.sequenceRequired"))
-        : z.string(),
-    academicYearLabel: z
-      .string()
-      .trim()
-      .min(1, t("resources.form.validation.academicYearRequired")),
-  });
+function buildResourceFormSchema(
+  t: TranslateFn,
+  kind: ResourceKind,
+  levelIdsWithTracks: Set<string>,
+) {
+  return z
+    .object({
+      title: z
+        .string()
+        .trim()
+        .min(1, t("resources.form.validation.titleRequired")),
+      schoolId:
+        kind === "ASSESSMENT"
+          ? z
+              .string()
+              .trim()
+              .min(1, t("resources.form.validation.schoolRequired"))
+          : z.string(),
+      cycleId: z
+        .string()
+        .trim()
+        .min(1, t("resources.form.validation.cycleRequired")),
+      academicLevelId: z
+        .string()
+        .trim()
+        .min(1, t("resources.form.validation.levelRequired")),
+      trackId: z.string(),
+      subjectId: z
+        .string()
+        .trim()
+        .min(1, t("resources.form.validation.subjectRequired")),
+      examType: z
+        .string()
+        .trim()
+        .min(1, t("resources.form.validation.examTypeRequired")),
+      sequence:
+        kind === "ASSESSMENT"
+          ? z
+              .string()
+              .trim()
+              .min(1, t("resources.form.validation.sequenceRequired"))
+          : z.string(),
+      academicYearLabel: z
+        .string()
+        .trim()
+        .min(1, t("resources.form.validation.academicYearRequired")),
+    })
+    .superRefine((values, ctx) => {
+      if (
+        levelIdsWithTracks.has(values.academicLevelId) &&
+        !values.trackId.trim()
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["trackId"],
+          message: t("resources.form.validation.trackRequired"),
+        });
+      }
+    });
 }
 
 type ResourceFormValues = {
   title: string;
+  schoolId: string;
+  cycleId: string;
   academicLevelId: string;
+  trackId: string;
   subjectId: string;
   examType: string;
   sequence: string;
@@ -191,21 +228,24 @@ export function ResourcesScreen() {
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
 
-  const memberships = user?.memberships ?? [];
   const activeRole = user?.activeRole ?? null;
   const canSubmit = canContributeToResources(activeRole);
   const isPlatformRole = isResourcePlatformAdmin(activeRole);
-  const submitterSchoolId = canSubmit
-    ? (memberships.find((m) => m.role === activeRole)?.schoolId ?? null)
-    : null;
 
   const [tab, setTab] = useState<TabKey>("ASSESSMENT");
   const [formContext, setFormContext] = useState<FormContext | null>(null);
   const [catalog, setCatalog] = useState<ResourceCatalog>({
+    cycles: [],
     academicLevels: [],
+    tracks: [],
+    curriculums: [],
+    curriculumSubjects: [],
     subjects: [],
   });
   const [schools, setSchools] = useState<ResourceSchoolOption[]>([]);
+  const [formSchools, setFormSchools] = useState<ResourceSchoolSearchOption[]>(
+    [],
+  );
 
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -284,6 +324,10 @@ export function ResourcesScreen() {
     resourcesApi
       .listSchoolsWithResources()
       .then(setSchools)
+      .catch(() => {});
+    resourcesApi
+      .searchSchools()
+      .then(setFormSchools)
       .catch(() => {});
   }, []);
 
@@ -587,23 +631,23 @@ export function ResourcesScreen() {
   const headerTitle = t("resources.header.title");
   const isSearchableTab = tab === "ASSESSMENT" || tab === "EXAM";
 
-  const schoolOptions: SelectOption[] = [
+  const schoolOptions: InlineSelectDropDownOption[] = [
     { value: "", label: t("resources.filters.allSchools") },
     ...schools.map((s) => ({ value: s.id, label: s.name })),
   ];
-  const levelFilterOptions: SelectOption[] = [
+  const levelFilterOptions: InlineSelectDropDownOption[] = [
     { value: "", label: t("resources.filters.allLevels") },
     ...catalog.academicLevels.map((l) => ({ value: l.id, label: l.label })),
   ];
-  const sequenceFilterOptions: SelectOption[] = [
+  const sequenceFilterOptions: InlineSelectDropDownOption[] = [
     { value: "", label: t("resources.filters.allSequences") },
     ...SEQUENCE_OPTIONS,
   ];
-  const examTypeFilterOptions: SelectOption[] = [
+  const examTypeFilterOptions: InlineSelectDropDownOption[] = [
     { value: "", label: t("resources.filters.allExamTypes") },
     ...examTypeOptions(t),
   ];
-  const academicYearFilterOptions: SelectOption[] = [
+  const academicYearFilterOptions: InlineSelectDropDownOption[] = [
     { value: "", label: t("resources.filters.allYears") },
     ...academicYearOptions(),
   ];
@@ -1023,7 +1067,7 @@ export function ResourcesScreen() {
           <ResourceFormContent
             formContext={formContext}
             catalog={catalog}
-            submitterSchoolId={submitterSchoolId}
+            schools={formSchools}
             onSubmit={handleSubmitResource}
             onCancel={exitForms}
             isSubmitting={isSubmitting}
@@ -1054,7 +1098,7 @@ export function ResourcesScreen() {
 function ResourceFormContent(props: {
   formContext: FormContext;
   catalog: ResourceCatalog;
-  submitterSchoolId: string | null;
+  schools: ResourceSchoolSearchOption[];
   onSubmit: (payload: UpsertResourcePayload) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
@@ -1062,18 +1106,39 @@ function ResourceFormContent(props: {
   const { t } = useTranslation();
   const initialValue = props.formContext.item;
   const kind = props.formContext.kind;
+  const requiresSchool = kind === "ASSESSMENT";
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const levelIdsWithTracks = useMemo(
+    () =>
+      new Set(
+        props.catalog.curriculums
+          .filter((c) => c.trackId)
+          .map((c) => c.academicLevelId),
+      ),
+    [props.catalog.curriculums],
+  );
+
+  const initialCycleId =
+    props.catalog.academicLevels.find(
+      (l) => l.id === initialValue?.academicLevelId,
+    )?.cycleId ?? "";
 
   const {
     control,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<ResourceFormValues>({
-    resolver: zodResolver(buildResourceFormSchema(t, kind)),
+    resolver: zodResolver(buildResourceFormSchema(t, kind, levelIdsWithTracks)),
     defaultValues: {
       title: initialValue?.title ?? "",
+      schoolId: initialValue?.schoolId ?? "",
+      cycleId: initialCycleId,
       academicLevelId: initialValue?.academicLevelId ?? "",
+      trackId: initialValue?.trackId ?? "",
       subjectId: initialValue?.subjectId ?? "",
       examType: initialValue?.examType ?? "SEQUENCE_TEST",
       sequence: initialValue?.sequence ?? "SEQ_1",
@@ -1082,16 +1147,116 @@ function ResourceFormContent(props: {
     },
   });
 
-  const levelOptions: SelectOption[] = props.catalog.academicLevels.map(
-    (l) => ({
-      value: l.id,
-      label: l.label,
-    }),
+  const selectedSchoolId = watch("schoolId");
+  const selectedCycleId = watch("cycleId");
+  const selectedLevelId = watch("academicLevelId");
+  const selectedTrackId = watch("trackId");
+
+  // Le lot initial (top 50 par nom) ne couvre pas les 300+ écoles de la
+  // plateforme : on enrichit ce pool avec les résultats de recherche serveur
+  // au fil de la frappe, sans jamais perdre l'école déjà sélectionnée.
+  const [extraSchools, setExtraSchools] = useState<
+    ResourceSchoolSearchOption[]
+  >([]);
+  const schoolSearchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
   );
-  const subjectOptions: SelectOption[] = props.catalog.subjects.map((s) => ({
+
+  const schoolPool: ResourceSchoolSearchOption[] = useMemo(() => {
+    const byId = new Map<string, ResourceSchoolSearchOption>();
+    for (const s of props.schools) byId.set(s.id, s);
+    for (const s of extraSchools) byId.set(s.id, s);
+    if (
+      initialValue?.schoolId &&
+      initialValue.school &&
+      !byId.has(initialValue.schoolId)
+    ) {
+      byId.set(initialValue.schoolId, {
+        id: initialValue.schoolId,
+        name: initialValue.school.name,
+        cycle: null,
+        languageSystem: null,
+      });
+    }
+    return Array.from(byId.values());
+  }, [props.schools, extraSchools, initialValue]);
+
+  const selectedSchool = schoolPool.find((s) => s.id === selectedSchoolId);
+  const schoolOptions: InlineSelectDropDownOption[] = schoolPool.map((s) => ({
     value: s.id,
     label: s.name,
   }));
+
+  function handleSchoolQueryChange(query: string) {
+    if (schoolSearchDebounceRef.current) {
+      clearTimeout(schoolSearchDebounceRef.current);
+    }
+    schoolSearchDebounceRef.current = setTimeout(() => {
+      resourcesApi
+        .searchSchools(query || undefined)
+        .then(setExtraSchools)
+        .catch(() => {});
+    }, 300);
+  }
+
+  useEffect(() => {
+    if (!requiresSchool) return;
+    if (!selectedSchool || !selectedSchool.cycle) return;
+    const resolvedCycleId =
+      props.catalog.cycles.find((c) => c.code === selectedSchool.cycle)?.id ??
+      "";
+    if (resolvedCycleId && resolvedCycleId !== selectedCycleId) {
+      setValue("cycleId", resolvedCycleId);
+      setValue("academicLevelId", "");
+      setValue("trackId", "");
+      setValue("subjectId", "");
+    }
+  }, [requiresSchool, selectedSchool, props.catalog.cycles]);
+
+  const cycleOptions: InlineSelectDropDownOption[] = props.catalog.cycles.map(
+    (c) => ({ value: c.id, label: c.label }),
+  );
+  const levelOptions: InlineSelectDropDownOption[] =
+    props.catalog.academicLevels
+      .filter((l) => !selectedCycleId || l.cycleId === selectedCycleId)
+      .filter(
+        (l) =>
+          !requiresSchool ||
+          !selectedSchool?.languageSystem ||
+          selectedSchool.languageSystem === "BILINGUAL" ||
+          !l.languageSystem ||
+          l.languageSystem === selectedSchool.languageSystem,
+      )
+      .map((l) => ({ value: l.id, label: l.label }));
+
+  const trackIdsForLevel = new Set(
+    props.catalog.curriculums
+      .filter((c) => c.academicLevelId === selectedLevelId && c.trackId)
+      .map((c) => c.trackId as string),
+  );
+  const levelHasTracks = trackIdsForLevel.size > 0;
+  const trackOptions: InlineSelectDropDownOption[] = props.catalog.tracks
+    .filter((tr) => trackIdsForLevel.has(tr.id))
+    .map((tr) => ({ value: tr.id, label: tr.label }));
+
+  const resolvedCurriculum = props.catalog.curriculums.find(
+    (c) =>
+      c.academicLevelId === selectedLevelId &&
+      c.trackId === (levelHasTracks ? selectedTrackId || null : null),
+  );
+  const subjectIdsForCurriculum = resolvedCurriculum
+    ? new Set(
+        props.catalog.curriculumSubjects
+          .filter((cs) => cs.curriculumId === resolvedCurriculum.id)
+          .map((cs) => cs.subjectId),
+      )
+    : new Set<string>();
+  const subjectOptions: InlineSelectDropDownOption[] = props.catalog.subjects
+    .filter((s) => subjectIdsForCurriculum.has(s.id))
+    .map((s) => ({
+      value: s.id,
+      label: s.name,
+    }));
 
   const heroTitle =
     props.formContext.type === "edit"
@@ -1105,11 +1270,9 @@ function ResourceFormContent(props: {
     try {
       const payload: UpsertResourcePayload = {
         kind,
-        schoolId:
-          kind === "ASSESSMENT"
-            ? (props.submitterSchoolId ?? undefined)
-            : undefined,
+        schoolId: kind === "ASSESSMENT" ? values.schoolId : undefined,
         academicLevelId: values.academicLevelId,
+        trackId: levelHasTracks ? values.trackId || undefined : undefined,
         subjectId: values.subjectId,
         examType: values.examType as ResourceExamType,
         sequence:
@@ -1185,6 +1348,85 @@ function ResourceFormContent(props: {
           ) : null}
         </View>
 
+        {requiresSchool ? (
+          <View style={styles.fieldGroup}>
+            <Controller
+              control={control}
+              name="schoolId"
+              render={({ field: { value, onChange } }) => (
+                <InlineSearchSelect
+                  label={t("resources.form.schoolLabel")}
+                  options={schoolOptions}
+                  value={value}
+                  onChange={(next) => {
+                    onChange(next);
+                    setValue("academicLevelId", "");
+                    setValue("trackId", "");
+                    setValue("subjectId", "");
+                  }}
+                  placeholder={t("resources.form.schoolPlaceholder")}
+                  onQueryChange={handleSchoolQueryChange}
+                  hasError={!!errors.schoolId}
+                  testID="resources-form-school"
+                />
+              )}
+            />
+            {errors.schoolId?.message ? (
+              <Text
+                style={styles.fieldError}
+                testID="resources-form-school-error"
+              >
+                {errors.schoolId.message}
+              </Text>
+            ) : null}
+            {!errors.schoolId?.message &&
+            selectedSchool &&
+            !selectedSchool.cycle ? (
+              <Text
+                style={styles.fieldError}
+                testID="resources-form-school-no-cycle-error"
+              >
+                {t("resources.form.validation.schoolCycleMissing")}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        {!requiresSchool ? (
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>
+              {t("resources.form.cycleLabel")}
+            </Text>
+            <Controller
+              control={control}
+              name="cycleId"
+              render={({ field: { value, onChange } }) => (
+                <InlineSelectDropDown
+                  options={cycleOptions}
+                  value={value}
+                  onChange={(next) => {
+                    onChange(next);
+                    setValue("academicLevelId", "");
+                    setValue("trackId", "");
+                    setValue("subjectId", "");
+                  }}
+                  placeholder={t("resources.form.cyclePlaceholder")}
+                  hasError={!!errors.cycleId}
+                  testID="resources-form-cycle"
+                />
+              )}
+            />
+            {errors.cycleId?.message ? (
+              <Text
+                style={styles.fieldError}
+                testID="resources-form-cycle-error"
+              >
+                {errors.cycleId.message}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>
             {t("resources.form.levelLabel")}
@@ -1193,10 +1435,14 @@ function ResourceFormContent(props: {
             control={control}
             name="academicLevelId"
             render={({ field: { value, onChange } }) => (
-              <SelectDropdown
+              <InlineSelectDropDown
                 options={levelOptions}
                 value={value}
-                onChange={onChange}
+                onChange={(next) => {
+                  onChange(next);
+                  setValue("trackId", "");
+                  setValue("subjectId", "");
+                }}
                 placeholder={t("resources.form.levelPlaceholder")}
                 hasError={!!errors.academicLevelId}
                 testID="resources-form-level"
@@ -1210,6 +1456,39 @@ function ResourceFormContent(props: {
           ) : null}
         </View>
 
+        {levelHasTracks ? (
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>
+              {t("resources.form.trackLabel")}
+            </Text>
+            <Controller
+              control={control}
+              name="trackId"
+              render={({ field: { value, onChange } }) => (
+                <InlineSelectDropDown
+                  options={trackOptions}
+                  value={value}
+                  onChange={(next) => {
+                    onChange(next);
+                    setValue("subjectId", "");
+                  }}
+                  placeholder={t("resources.form.trackPlaceholder")}
+                  hasError={!!errors.trackId}
+                  testID="resources-form-track"
+                />
+              )}
+            />
+            {errors.trackId?.message ? (
+              <Text
+                style={styles.fieldError}
+                testID="resources-form-track-error"
+              >
+                {errors.trackId.message}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>
             {t("resources.form.subjectLabel")}
@@ -1218,7 +1497,7 @@ function ResourceFormContent(props: {
             control={control}
             name="subjectId"
             render={({ field: { value, onChange } }) => (
-              <SelectDropdown
+              <InlineSelectDropDown
                 options={subjectOptions}
                 value={value}
                 onChange={onChange}
@@ -1246,7 +1525,7 @@ function ResourceFormContent(props: {
             control={control}
             name="examType"
             render={({ field: { value, onChange } }) => (
-              <SelectDropdown
+              <InlineSelectDropDown
                 options={examTypeOptions(t)}
                 value={value}
                 onChange={onChange}
@@ -1274,7 +1553,7 @@ function ResourceFormContent(props: {
             control={control}
             name="academicYearLabel"
             render={({ field: { value, onChange } }) => (
-              <SelectDropdown
+              <InlineSelectDropDown
                 options={academicYearOptions()}
                 value={value}
                 onChange={onChange}
@@ -1303,7 +1582,7 @@ function ResourceFormContent(props: {
               control={control}
               name="sequence"
               render={({ field: { value, onChange } }) => (
-                <SelectDropdown
+                <InlineSelectDropDown
                   options={SEQUENCE_OPTIONS}
                   value={value}
                   onChange={onChange}

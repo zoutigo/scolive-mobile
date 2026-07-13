@@ -61,6 +61,24 @@ describe("InlineSearchSelect", () => {
     expect(screen.queryByTestId("region-select-option-Centre")).toBeNull();
   });
 
+  it("forwards the raw typed text to onQueryChange, e.g. to trigger a server-side search", () => {
+    const onQueryChange = jest.fn();
+    render(
+      <InlineSearchSelect
+        label="Région"
+        options={OPTIONS}
+        value=""
+        onChange={jest.fn()}
+        onQueryChange={onQueryChange}
+        testID="region-select"
+      />,
+    );
+    const input = screen.getByTestId("region-select-input");
+    fireEvent(input, "focus");
+    fireEvent.changeText(input, "vogt");
+    expect(onQueryChange).toHaveBeenCalledWith("vogt");
+  });
+
   it("calls onChange and closes the list when an option is selected", () => {
     const onChange = jest.fn();
     render(

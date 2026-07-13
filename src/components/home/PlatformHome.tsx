@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   View,
@@ -11,6 +11,11 @@ import { colors } from "../../theme";
 import { useHeaderScroll } from "../navigation/header-scroll-context";
 import { useTranslation } from "../../i18n/useTranslation";
 import type { AuthUser } from "../../types/auth.types";
+import { platformIndicatorsApi } from "../../api/platform-indicators.api";
+import type {
+  PlatformIndicators,
+  ResourceApprovalIndicators,
+} from "../../types/platform-indicators.types";
 
 interface PlatformHomeProps {
   user: AuthUser;
@@ -30,6 +35,72 @@ function StatPill({ icon, label, value, color }: StatPillProps) {
       <View style={styles.statTexts}>
         <Text style={styles.statValue}>{value}</Text>
         <Text style={styles.statLabel}>{label}</Text>
+      </View>
+    </View>
+  );
+}
+
+interface MiniStatCardProps {
+  icon: string;
+  label: string;
+  value: string;
+  color: string;
+}
+
+function MiniStatCard({ icon, label, value, color }: MiniStatCardProps) {
+  return (
+    <View style={styles.miniStatCard}>
+      <View style={[styles.miniStatIcon, { backgroundColor: color + "18" }]}>
+        <Ionicons name={icon as "home"} size={16} color={color} />
+      </View>
+      <View style={styles.statTexts}>
+        <Text style={styles.miniStatValue}>{value}</Text>
+        <Text style={styles.miniStatLabel} numberOfLines={2}>
+          {label}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+interface ResourceKpiBlockProps {
+  title: string;
+  data: ResourceApprovalIndicators | undefined;
+  t: (key: string) => string;
+}
+
+function ResourceKpiBlock({ title, data, t }: ResourceKpiBlockProps) {
+  const fmt = (value: number | undefined) =>
+    value === undefined ? "—" : String(value);
+
+  return (
+    <View style={styles.resourceBlock}>
+      <Text style={styles.resourceBlockTitle}>{title}</Text>
+      <View style={styles.miniStatsGrid}>
+        <MiniStatCard
+          icon="document-text-outline"
+          label={t("home.platform.resources.kpi.withoutStatement")}
+          value={fmt(data?.withoutStatement)}
+          color={colors.notification}
+        />
+        <MiniStatCard
+          icon="checkmark-done-outline"
+          label={t("home.platform.resources.kpi.withoutCorrection")}
+          value={fmt(data?.withoutCorrection)}
+          color={colors.warmAccent}
+        />
+        <MiniStatCard
+          icon="time-outline"
+          label={t("home.platform.resources.kpi.statementsToApprove")}
+          value={fmt(data?.statementsToApprove)}
+          color={colors.accentTeal}
+        />
+        <MiniStatCard
+          icon="shield-checkmark-outline"
+          label={t("home.platform.resources.kpi.correctionsToApprove")}
+          value={fmt(data?.correctionsToApprove)}
+          color="#6B5EA8"
+        />
       </View>
     </View>
   );
@@ -77,6 +148,26 @@ export function PlatformHome({ user }: PlatformHomeProps) {
     ? t(roleLabelKeys[platformRole] ?? platformRole)
     : "";
 
+  const [indicators, setIndicators] = useState<PlatformIndicators | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    platformIndicatorsApi
+      .getIndicators()
+      .then((data) => {
+        if (!cancelled) setIndicators(data);
+      })
+      .catch(() => {
+        if (!cancelled) setIndicators(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const fmt = (value: number | undefined) =>
+    value === undefined ? "—" : String(value);
+
   return (
     <ScrollView
       style={styles.scroll}
@@ -105,30 +196,51 @@ export function PlatformHome({ user }: PlatformHomeProps) {
       </View>
 
       {/* Stats */}
-      <Text style={styles.sectionTitle}>Vue d'ensemble</Text>
+      <Text style={styles.sectionTitle}>
+        {t("home.platform.overview.title")}
+      </Text>
       <View style={styles.statsRow}>
         <StatPill
           icon="business"
-          label="Écoles"
-          value="—"
+          label={t("home.platform.kpi.schools")}
+          value={fmt(indicators?.schoolsCount)}
           color={colors.primary}
         />
         <StatPill
           icon="people"
-          label="Utilisateurs"
-          value="—"
+          label={t("home.platform.kpi.users")}
+          value={fmt(indicators?.usersCount)}
           color={colors.accentTeal}
         />
         <StatPill
           icon="person"
-          label="Élèves"
-          value="—"
+          label={t("home.platform.kpi.students")}
+          value={fmt(indicators?.studentsCount)}
           color={colors.warmAccent}
         />
       </View>
 
+      {/* Resource KPIs */}
+      <Text style={styles.sectionTitle}>
+        {t("home.platform.resources.title")}
+      </Text>
+      <View style={styles.resourcesRow}>
+        <ResourceKpiBlock
+          title={t("home.platform.resources.assessments.title")}
+          data={indicators?.resources.assessments}
+          t={t}
+        />
+        <ResourceKpiBlock
+          title={t("home.platform.resources.exams.title")}
+          data={indicators?.resources.exams}
+          t={t}
+        />
+      </View>
+
       {/* Quick actions */}
-      <Text style={styles.sectionTitle}>Accès rapides</Text>
+      <Text style={styles.sectionTitle}>
+        {t("home.platform.quickAccess.title")}
+      </Text>
       <View style={styles.actionsGrid}>
         <ActionCard
           icon="business-outline"
@@ -243,6 +355,58 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textSecondary,
     marginTop: 1,
+  },
+
+  resourcesRow: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  resourceBlock: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    padding: 12,
+  },
+  resourceBlockTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.textPrimary,
+    marginBottom: 10,
+  },
+  miniStatsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  miniStatCard: {
+    width: "47.5%",
+    backgroundColor: colors.warmSurface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    padding: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  miniStatIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  miniStatValue: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  miniStatLabel: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    marginTop: 1,
+    lineHeight: 12,
   },
 
   actionsGrid: {

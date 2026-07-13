@@ -62,6 +62,7 @@ import type {
   NationalCurriculumSubjectRow,
   NationalCycleRow,
   NationalSubjectRow,
+  NationalTrackRow,
   SchoolLanguageSystem,
   UpsertNationalCurriculumSubjectPayload,
 } from "../../types/platform-catalog.types";
@@ -78,6 +79,7 @@ type NationalTabKey =
   | "overview"
   | "cycles"
   | "levels"
+  | "tracks"
   | "curriculums"
   | "subjects";
 type NationalPaneKey = NationalTabKey | "forms";
@@ -103,6 +105,13 @@ type NationalFormContext =
       };
     }
   | {
+      kind: "track";
+      mode: FormMode;
+      originPane: NationalTabKey;
+      id?: string;
+      initialValues?: { code: string; label: string };
+    }
+  | {
       kind: "curriculum";
       mode: FormMode;
       originPane: NationalTabKey;
@@ -119,6 +128,7 @@ type NationalFormContext =
 type NationalDeleteTarget =
   | { kind: "cycle"; id: string; label: string }
   | { kind: "level"; id: string; label: string }
+  | { kind: "track"; id: string; label: string }
   | { kind: "curriculum"; id: string; label: string }
   | { kind: "subject"; id: string; label: string };
 
@@ -208,6 +218,12 @@ const NATIONAL_CURRICULUM_FORM_SCHEMA = z.object({
     .string()
     .trim()
     .min(1, "Le niveau académique est obligatoire."),
+  trackId: z.string().trim().optional(),
+});
+
+const NATIONAL_TRACK_FORM_SCHEMA = z.object({
+  code: z.string().trim().min(1, "Le code est obligatoire."),
+  label: z.string().trim().min(1, "Le libellé est obligatoire."),
 });
 
 const NATIONAL_SUBJECT_FORM_SCHEMA = z.object({
@@ -1425,11 +1441,15 @@ function NationalLevelFormContent(props: {
 
 function NationalCurriculumFormContent(props: {
   levels: NationalAcademicLevelRow[];
+  tracks: NationalTrackRow[];
   mode: FormMode;
-  initialValues?: { academicLevelId: string };
+  initialValues?: { academicLevelId: string; trackId?: string | null };
   isSubmitting?: boolean;
   onCancel: () => void;
-  onSubmit: (values: { academicLevelId: string }) => Promise<void> | void;
+  onSubmit: (values: {
+    academicLevelId: string;
+    trackId?: string;
+  }) => Promise<void> | void;
 }) {
   const {
     control,
@@ -1441,6 +1461,7 @@ function NationalCurriculumFormContent(props: {
     defaultValues: {
       academicLevelId:
         props.initialValues?.academicLevelId ?? props.levels[0]?.id ?? "",
+      trackId: props.initialValues?.trackId ?? "",
     },
   });
 
@@ -1474,6 +1495,30 @@ function NationalCurriculumFormContent(props: {
             />
           )}
         />
+        <Controller
+          control={control}
+          name="trackId"
+          render={({ field: { value, onChange } }) => (
+            <CompactSelectField
+              label="Filière"
+              value={value ?? ""}
+              onChange={onChange}
+              options={[
+                {
+                  value: "",
+                  label: "Tronc commun",
+                  meta: "Sans filière dédiée",
+                },
+                ...props.tracks.map((track) => ({
+                  value: track.id,
+                  label: track.label,
+                  meta: track.code,
+                })),
+              ]}
+              testID="national-curriculum-form-track"
+            />
+          )}
+        />
       </ScrollView>
 
       <View style={styles.formActionsBar}>
@@ -1484,9 +1529,102 @@ function NationalCurriculumFormContent(props: {
           isSubmitting={props.isSubmitting}
           onCancel={props.onCancel}
           onSubmit={() =>
-            void handleSubmit(async (values) => props.onSubmit(values))()
+            void handleSubmit(async (values) =>
+              props.onSubmit({
+                academicLevelId: values.academicLevelId,
+                trackId: values.trackId || undefined,
+              }),
+            )()
           }
           testIDPrefix="national-curriculum-form"
+        />
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+function NationalTrackFormContent(props: {
+  mode: FormMode;
+  initialValues?: { code: string; label: string };
+  isSubmitting?: boolean;
+  onCancel: () => void;
+  onSubmit: (values: { code: string; label: string }) => Promise<void> | void;
+}) {
+  const {
+    control,
+    handleSubmit,
+    setFocus: focusField,
+    formState: { errors },
+  } = useForm<z.infer<typeof NATIONAL_TRACK_FORM_SCHEMA>>({
+    resolver: zodResolver(NATIONAL_TRACK_FORM_SCHEMA),
+    mode: "onChange",
+    defaultValues: props.initialValues ?? { code: "", label: "" },
+  });
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="national-track-form-content"
+    >
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Controller
+          control={control}
+          name="code"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <TextFormField
+              ref={ref}
+              label="Code"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ex: D"
+              error={errors.code?.message}
+              testID="national-track-form-code"
+            />
+          )}
+        />
+        <Controller
+          control={control}
+          name="label"
+          render={({ field: { value, onChange, onBlur, ref } }) => (
+            <TextFormField
+              ref={ref}
+              label="Libellé"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholder="Ex: Série D"
+              error={errors.label?.message}
+              testID="national-track-form-label"
+            />
+          )}
+        />
+      </ScrollView>
+
+      <View style={styles.formActionsBar}>
+        <FormActions
+          submitLabel={
+            props.mode === "create" ? "Créer la filière" : "Enregistrer"
+          }
+          isSubmitting={props.isSubmitting}
+          onCancel={props.onCancel}
+          onSubmit={() =>
+            void handleSubmit(
+              async (values) => props.onSubmit(values),
+              (errs) => {
+                const first = Object.keys(errs)[0];
+                if (first)
+                  focusField(first as Parameters<typeof focusField>[0]);
+              },
+            )()
+          }
+          testIDPrefix="national-track-form"
         />
       </View>
     </KeyboardAvoidingView>
@@ -1728,6 +1866,7 @@ const NATIONAL_TAB_ITEMS: Array<{ key: NationalTabKey; label: string }> = [
   { key: "overview", label: "Vue d'ensemble" },
   { key: "cycles", label: "Cycles" },
   { key: "levels", label: "Niveaux" },
+  { key: "tracks", label: "Filières" },
   { key: "curriculums", label: "Curriculums" },
   { key: "subjects", label: "Matières" },
 ];
@@ -1738,6 +1877,7 @@ const NATIONAL_TAB_STYLE_MAP: Record<
 > = {
   cycles: "levels",
   levels: "tracks",
+  tracks: "tracks",
   curriculums: "curriculums",
   subjects: "subjects",
 };
@@ -1762,6 +1902,9 @@ function nationalFormHeroIcon(
   if (ctx.kind === "level") {
     return ctx.mode === "create" ? "school-outline" : "create-outline";
   }
+  if (ctx.kind === "track") {
+    return ctx.mode === "create" ? "git-branch-outline" : "create-outline";
+  }
   if (ctx.kind === "curriculum") {
     return ctx.mode === "create" ? "albums-outline" : "create-outline";
   }
@@ -1778,6 +1921,11 @@ function nationalFormHeroTitle(ctx: NationalFormContext): string {
     return ctx.mode === "create"
       ? "Créer un niveau national"
       : "Modifier le niveau national";
+  }
+  if (ctx.kind === "track") {
+    return ctx.mode === "create"
+      ? "Créer une filière nationale"
+      : "Modifier la filière nationale";
   }
   if (ctx.kind === "curriculum") {
     return ctx.mode === "create"
@@ -1796,6 +1944,9 @@ function nationalFormHeroSubtitle(ctx: NationalFormContext): string {
   if (ctx.kind === "level") {
     return "Rattachez ce niveau à un cycle pour qu'il apparaisse dans le bon regroupement.";
   }
+  if (ctx.kind === "track") {
+    return "Les filières nationales pourront être rattachées à un niveau lors de la création d'un curriculum national.";
+  }
   if (ctx.kind === "curriculum") {
     return "Assemblez un niveau national pour produire un curriculum partagé par toutes les écoles.";
   }
@@ -1810,6 +1961,7 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
   );
   const [cycles, setCycles] = useState<NationalCycleRow[]>([]);
   const [levels, setLevels] = useState<NationalAcademicLevelRow[]>([]);
+  const [tracks, setTracks] = useState<NationalTrackRow[]>([]);
   const [curriculums, setCurriculums] = useState<NationalCurriculumRow[]>([]);
   const [subjects, setSubjects] = useState<NationalSubjectRow[]>([]);
   const [curriculumSubjects, setCurriculumSubjects] = useState<
@@ -1824,6 +1976,7 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
   const [refreshing, setRefreshing] = useState(false);
   const [isSubmittingCycle, setIsSubmittingCycle] = useState(false);
   const [isSubmittingLevel, setIsSubmittingLevel] = useState(false);
+  const [isSubmittingTrack, setIsSubmittingTrack] = useState(false);
   const [isSubmittingCurriculum, setIsSubmittingCurriculum] = useState(false);
   const [isSubmittingSubject, setIsSubmittingSubject] = useState(false);
   const [isSubmittingCurriculumSubject, setIsSubmittingCurriculumSubject] =
@@ -1839,15 +1992,17 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const [cycleRows, levelRows, curriculumRows, subjectRows] =
+      const [cycleRows, levelRows, trackRows, curriculumRows, subjectRows] =
         await Promise.all([
           platformCatalogApi.listNationalCycles(),
           platformCatalogApi.listNationalAcademicLevels(),
+          platformCatalogApi.listNationalTracks(),
           platformCatalogApi.listNationalCurriculums(),
           platformCatalogApi.listNationalSubjects(),
         ]);
       setCycles(cycleRows);
       setLevels(levelRows);
+      setTracks(trackRows);
       setCurriculums(curriculumRows);
       setSubjects(subjectRows);
     } catch (error) {
@@ -1914,6 +2069,10 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
         : orderedLevels,
     [orderedLevels, selectedCycleFilterId],
   );
+  const orderedTracks = useMemo(
+    () => [...tracks].sort((a, b) => a.code.localeCompare(b.code)),
+    [tracks],
+  );
   const orderedCurriculums = useMemo(
     () => [...curriculums].sort((a, b) => a.name.localeCompare(b.name)),
     [curriculums],
@@ -1973,6 +2132,11 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
             }
           : undefined,
       });
+      setPane("forms");
+      return;
+    }
+    if (pane === "tracks") {
+      setFormContext({ kind: "track", mode: "create", originPane: "tracks" });
       setPane("forms");
       return;
     }
@@ -2064,7 +2228,40 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
     }
   }
 
-  async function handleCurriculumSubmit(values: { academicLevelId: string }) {
+  async function handleTrackSubmit(values: { code: string; label: string }) {
+    if (!formContext || formContext.kind !== "track") return;
+    const ctx = formContext;
+    setIsSubmittingTrack(true);
+    try {
+      if (ctx.mode === "create") {
+        await platformCatalogApi.createNationalTrack(values);
+      } else if (ctx.id) {
+        await platformCatalogApi.updateNationalTrack(ctx.id, values);
+      }
+      await load();
+      showSuccess({
+        title: ctx.mode === "create" ? "Filière créée" : "Filière modifiée",
+        message: "Les changements sont visibles pour toutes les écoles.",
+      });
+      const origin = ctx.originPane;
+      setTimeout(() => {
+        setPane(origin);
+        setFormContext(null);
+      }, 2000);
+    } catch (error) {
+      showError({
+        title: "Action impossible",
+        message: extractApiError(error),
+      });
+    } finally {
+      setIsSubmittingTrack(false);
+    }
+  }
+
+  async function handleCurriculumSubmit(values: {
+    academicLevelId: string;
+    trackId?: string;
+  }) {
     if (!formContext || formContext.kind !== "curriculum") return;
     const ctx = formContext;
     setIsSubmittingCurriculum(true);
@@ -2232,6 +2429,16 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
       );
       return;
     }
+    if (target.kind === "track") {
+      await runDelete(
+        async () => {
+          await platformCatalogApi.deleteNationalTrack(target.id);
+        },
+        "Filière supprimée",
+        "La filière a été retirée du catalogue national.",
+      );
+      return;
+    }
     if (target.kind === "curriculum") {
       await runDelete(
         async () => {
@@ -2324,13 +2531,26 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
               onSubmit={handleLevelSubmit}
             />
           ) : null}
+          {formContext.kind === "track" ? (
+            <NationalTrackFormContent
+              mode={formContext.mode}
+              initialValues={formContext.initialValues}
+              isSubmitting={isSubmittingTrack}
+              onCancel={exitForms}
+              onSubmit={handleTrackSubmit}
+            />
+          ) : null}
           {formContext.kind === "curriculum" ? (
             <NationalCurriculumFormContent
               levels={orderedLevels}
+              tracks={orderedTracks}
               mode={formContext.mode}
               initialValues={
                 formContext.item
-                  ? { academicLevelId: formContext.item.academicLevelId }
+                  ? {
+                      academicLevelId: formContext.item.academicLevelId,
+                      trackId: formContext.item.trackId,
+                    }
                   : undefined
               }
               isSubmitting={isSubmittingCurriculum}
@@ -2746,6 +2966,100 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
               </>
             ) : null}
 
+            {pane === "tracks" ? (
+              <SectionCard
+                title="Filières nationales"
+                subtitle="Catalogue partagé par toutes les écoles"
+                testID="national-tracks-card"
+              >
+                {orderedTracks.length === 0 ? (
+                  <EmptyState
+                    icon="git-branch-outline"
+                    title="Aucune filière nationale"
+                    message="Créez la première filière du catalogue national."
+                  />
+                ) : (
+                  <View style={styles.listStack}>
+                    {orderedTracks.map((track, index) => (
+                      <View
+                        key={track.id}
+                        style={[
+                          styles.entityRow,
+                          {
+                            backgroundColor: nationalRowPalette("tracks", index)
+                              .backgroundColor,
+                          },
+                        ]}
+                        testID={`national-track-row-${track.id}`}
+                      >
+                        <View
+                          style={[
+                            styles.entityAccent,
+                            {
+                              backgroundColor: nationalRowPalette(
+                                "tracks",
+                                index,
+                              ).accentColor,
+                            },
+                          ]}
+                        />
+                        <View style={styles.entityMain}>
+                          <View style={styles.entityTextWrap}>
+                            <Text style={styles.entityTitle}>
+                              {track.label}
+                            </Text>
+                            <Text style={styles.entityMeta}>{track.code}</Text>
+                          </View>
+                        </View>
+                        <View style={styles.iconActions}>
+                          <TouchableOpacity
+                            style={styles.iconButton}
+                            onPress={() => {
+                              setFormContext({
+                                kind: "track",
+                                mode: "edit",
+                                originPane: "tracks",
+                                id: track.id,
+                                initialValues: {
+                                  code: track.code,
+                                  label: track.label,
+                                },
+                              });
+                              setPane("forms");
+                            }}
+                            testID={`national-track-edit-${track.id}`}
+                          >
+                            <Ionicons
+                              name="pencil-outline"
+                              size={18}
+                              color={colors.primary}
+                            />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.iconButton, styles.iconButtonDanger]}
+                            onPress={() =>
+                              setDeleteTarget({
+                                kind: "track",
+                                id: track.id,
+                                label: track.label,
+                              })
+                            }
+                            testID={`national-track-delete-${track.id}`}
+                          >
+                            <Ionicons
+                              name="trash-outline"
+                              size={18}
+                              color={colors.warmAccent}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </SectionCard>
+            ) : null}
+
             {pane === "curriculums" ? (
               <SectionCard
                 title="Curriculums nationaux"
@@ -2792,6 +3106,10 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
                             </Text>
                             <Text style={styles.entityMeta}>
                               {curriculum.academicLevel.label} ·{" "}
+                              {curriculum.track
+                                ? curriculum.track.label
+                                : "Tronc commun"}{" "}
+                              ·{" "}
                               {formatCount(
                                 curriculum._count.subjects,
                                 "matière",

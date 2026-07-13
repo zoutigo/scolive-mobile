@@ -21,6 +21,51 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Cette langue est associée à votre compte",
     "settings.accountLanguage.hint":
       "Elle s'applique automatiquement à chaque connexion, sur n'importe quel appareil.",
+    "settings.edit": "Modifier",
+    "settings.currentValue": "Valeur actuelle",
+    "settings.form.cancel": "Annuler",
+    "settings.form.save": "Enregistrer",
+    "settings.form.searchPlaceholder": "Rechercher...",
+    "settings.form.noResults": "Aucun résultat",
+    "components.inlineSelect.searchPlaceholder": "Rechercher...",
+    "components.inlineSelect.noResults": "Aucun résultat",
+    "settings.form.deviceLanguage.title": "Langue de cet appareil",
+    "settings.form.deviceLanguage.subtitle":
+      "Choisissez la langue de l'application",
+    "settings.form.accountLanguage.title": "Langue du compte",
+    "settings.form.accountLanguage.subtitle":
+      "Appliquée automatiquement à chaque connexion",
+    "settings.form.activeSchool.title": "École active",
+    "settings.form.activeSchool.subtitle":
+      "Choisissez l'établissement qui conditionne l'application",
+    "settings.form.activeRole.title": "Profil actif",
+    "settings.form.activeRole.subtitle": "Choisissez la navigation à afficher",
+    "settings.school.title": "École active",
+    "settings.school.subtitle": "Établissement qui conditionne l'application",
+    "settings.role.title": "Profil actif",
+    "settings.role.subtitle": "Navigation affichée dans l'application",
+    "settings.role.onlyOne": "Un seul profil est disponible sur ce compte.",
+    "settings.form.deviceLanguage.successTitle": "Langue mise à jour",
+    "settings.form.deviceLanguage.successMessage":
+      "La langue de l'appareil a été mise à jour.",
+    "settings.form.accountLanguage.successTitle": "Langue mise à jour",
+    "settings.form.accountLanguage.successMessage":
+      "La langue de votre compte a été enregistrée.",
+    "settings.form.accountLanguage.errorTitle": "Mise à jour impossible",
+    "settings.form.accountLanguage.errorMessage":
+      "La langue du compte n'a pas pu être mise à jour.",
+    "settings.form.activeSchool.successTitle": "École active mise à jour",
+    "settings.form.activeSchool.successMessage":
+      "L'école active a été mise à jour.",
+    "settings.form.activeSchool.errorTitle": "Mise à jour impossible",
+    "settings.form.activeSchool.errorMessage":
+      "L'école active n'a pas pu être mise à jour.",
+    "settings.form.activeRole.successTitle": "Profil actif mis à jour",
+    "settings.form.activeRole.successMessage":
+      "Le profil actif a été mis à jour.",
+    "settings.form.activeRole.errorTitle": "Mise à jour impossible",
+    "settings.form.activeRole.errorMessage":
+      "Le profil actif n'a pas pu être mis à jour.",
 
     "login.tagline": "Votre école en temps réel.",
     "login.method.phone": "Connexion par téléphone",
@@ -701,8 +746,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.form.examHeroSubtitle": "Examen national officiel",
     "resources.form.titleLabel": "Titre",
     "resources.form.titlePlaceholder": "Ex. Contrôle chapitre 3",
+    "resources.form.schoolLabel": "École",
+    "resources.form.schoolPlaceholder": "Choisir une école",
+    "resources.form.cycleLabel": "Cycle",
+    "resources.form.cyclePlaceholder": "Choisir un cycle",
     "resources.form.levelLabel": "Niveau",
     "resources.form.levelPlaceholder": "Choisir un niveau",
+    "resources.form.trackLabel": "Filière",
+    "resources.form.trackPlaceholder": "Choisir une filière",
     "resources.form.subjectLabel": "Matière",
     "resources.form.subjectPlaceholder": "Choisir une matière",
     "resources.form.examTypeLabel": "Type",
@@ -721,7 +772,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.form.colorMenu.title": "Couleur du texte",
     "resources.form.colorMenu.message": "Choisissez une couleur",
     "resources.form.validation.titleRequired": "Le titre est requis.",
+    "resources.form.validation.schoolRequired": "L'école est requise.",
+    "resources.form.validation.schoolCycleMissing":
+      "Cette école n'a pas de cycle configuré — impossible de proposer des niveaux. Contactez un administrateur.",
+    "resources.form.validation.cycleRequired": "Le cycle est requis.",
     "resources.form.validation.levelRequired": "Le niveau est requis.",
+    "resources.form.validation.trackRequired": "La filière est requise.",
     "resources.form.validation.subjectRequired": "La matière est requise.",
     "resources.form.validation.examTypeRequired": "Le type est requis.",
     "resources.form.validation.sequenceRequired": "La séquence est requise.",
@@ -2143,6 +2199,20 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.school.kpi.subjects": "Matières",
     "home.school.kpi.rooms": "Salles",
 
+    // Accueil plateforme — KPI ressources (devoirs / examens)
+    "home.platform.overview.title": "Vue d'ensemble",
+    "home.platform.quickAccess.title": "Accès rapides",
+    "home.platform.kpi.schools": "Écoles",
+    "home.platform.kpi.users": "Utilisateurs",
+    "home.platform.kpi.students": "Élèves",
+    "home.platform.resources.title": "Ressources",
+    "home.platform.resources.assessments.title": "Devoirs",
+    "home.platform.resources.exams.title": "Examens",
+    "home.platform.resources.kpi.withoutStatement": "Sans énoncé",
+    "home.platform.resources.kpi.withoutCorrection": "Sans corrigé",
+    "home.platform.resources.kpi.statementsToApprove": "Énoncés à approuver",
+    "home.platform.resources.kpi.correctionsToApprove": "Corrigés à approuver",
+
     // Accueil Parent
     "home.parent.children.title": "Mes enfants",
     "home.parent.children.empty.title": "Aucun enfant associé",
@@ -2409,6 +2479,50 @@ export const translations: Record<Locale, Record<string, string>> = {
       "This language is tied to your account",
     "settings.accountLanguage.hint":
       "It is applied automatically on every login, on any device.",
+    "settings.edit": "Edit",
+    "settings.currentValue": "Current value",
+    "settings.form.cancel": "Cancel",
+    "settings.form.save": "Save",
+    "settings.form.searchPlaceholder": "Search...",
+    "settings.form.noResults": "No results",
+    "components.inlineSelect.searchPlaceholder": "Search...",
+    "components.inlineSelect.noResults": "No results",
+    "settings.form.deviceLanguage.title": "Language of this device",
+    "settings.form.deviceLanguage.subtitle": "Choose the application language",
+    "settings.form.accountLanguage.title": "Account language",
+    "settings.form.accountLanguage.subtitle":
+      "Applied automatically on every login",
+    "settings.form.activeSchool.title": "Active school",
+    "settings.form.activeSchool.subtitle":
+      "Choose the establishment that drives the app",
+    "settings.form.activeRole.title": "Active profile",
+    "settings.form.activeRole.subtitle": "Choose the navigation to display",
+    "settings.school.title": "Active school",
+    "settings.school.subtitle": "Establishment that drives the app",
+    "settings.role.title": "Active profile",
+    "settings.role.subtitle": "Navigation displayed in the app",
+    "settings.role.onlyOne": "Only one profile is available on this account.",
+    "settings.form.deviceLanguage.successTitle": "Language updated",
+    "settings.form.deviceLanguage.successMessage":
+      "The device language has been updated.",
+    "settings.form.accountLanguage.successTitle": "Language updated",
+    "settings.form.accountLanguage.successMessage":
+      "Your account language has been saved.",
+    "settings.form.accountLanguage.errorTitle": "Update failed",
+    "settings.form.accountLanguage.errorMessage":
+      "The account language could not be updated.",
+    "settings.form.activeSchool.successTitle": "Active school updated",
+    "settings.form.activeSchool.successMessage":
+      "The active school has been updated.",
+    "settings.form.activeSchool.errorTitle": "Update failed",
+    "settings.form.activeSchool.errorMessage":
+      "The active school could not be updated.",
+    "settings.form.activeRole.successTitle": "Active profile updated",
+    "settings.form.activeRole.successMessage":
+      "The active profile has been updated.",
+    "settings.form.activeRole.errorTitle": "Update failed",
+    "settings.form.activeRole.errorMessage":
+      "The active profile could not be updated.",
 
     "login.tagline": "Your school, in real time.",
     "login.method.phone": "Sign in with phone",
@@ -3053,8 +3167,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.form.examHeroSubtitle": "Official national exam",
     "resources.form.titleLabel": "Title",
     "resources.form.titlePlaceholder": "E.g. Chapter 3 test",
+    "resources.form.schoolLabel": "School",
+    "resources.form.schoolPlaceholder": "Choose a school",
+    "resources.form.cycleLabel": "Cycle",
+    "resources.form.cyclePlaceholder": "Choose a cycle",
     "resources.form.levelLabel": "Level",
     "resources.form.levelPlaceholder": "Choose a level",
+    "resources.form.trackLabel": "Track",
+    "resources.form.trackPlaceholder": "Choose a track",
     "resources.form.subjectLabel": "Subject",
     "resources.form.subjectPlaceholder": "Choose a subject",
     "resources.form.examTypeLabel": "Type",
@@ -3073,7 +3193,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.form.colorMenu.title": "Text color",
     "resources.form.colorMenu.message": "Choose a color",
     "resources.form.validation.titleRequired": "Title is required.",
+    "resources.form.validation.schoolRequired": "School is required.",
+    "resources.form.validation.schoolCycleMissing":
+      "This school has no cycle configured — levels cannot be offered. Contact an administrator.",
+    "resources.form.validation.cycleRequired": "Cycle is required.",
     "resources.form.validation.levelRequired": "Level is required.",
+    "resources.form.validation.trackRequired": "Track is required.",
     "resources.form.validation.subjectRequired": "Subject is required.",
     "resources.form.validation.examTypeRequired": "Type is required.",
     "resources.form.validation.sequenceRequired": "Sequence is required.",
@@ -4453,6 +4578,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.school.kpi.parents": "Parents",
     "home.school.kpi.subjects": "Subjects",
     "home.school.kpi.rooms": "Rooms",
+
+    // Platform home — resource KPIs (assessments / exams)
+    "home.platform.overview.title": "Overview",
+    "home.platform.quickAccess.title": "Quick access",
+    "home.platform.kpi.schools": "Schools",
+    "home.platform.kpi.users": "Users",
+    "home.platform.kpi.students": "Students",
+    "home.platform.resources.title": "Resources",
+    "home.platform.resources.assessments.title": "Assessments",
+    "home.platform.resources.exams.title": "Exams",
+    "home.platform.resources.kpi.withoutStatement": "Missing statement",
+    "home.platform.resources.kpi.withoutCorrection": "Missing correction",
+    "home.platform.resources.kpi.statementsToApprove": "Statements to approve",
+    "home.platform.resources.kpi.correctionsToApprove":
+      "Corrections to approve",
 
     // Parent home
     "home.parent.children.title": "My children",

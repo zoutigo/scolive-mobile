@@ -16,6 +16,7 @@ import type {
   NationalCurriculumSubjectRow,
   NationalCycleRow,
   NationalSubjectRow,
+  NationalTrackRow,
 } from "../../src/types/platform-catalog.types";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
@@ -88,6 +89,7 @@ function makeSchoolAdminUser(): AuthUser {
 
 let nationalCyclesState: NationalCycleRow[];
 let nationalLevelsState: NationalAcademicLevelRow[];
+let nationalTracksState: NationalTrackRow[];
 let nationalCurriculumsState: NationalCurriculumRow[];
 let nationalSubjectsState: NationalSubjectRow[];
 let nationalCurriculumSubjectsState: NationalCurriculumSubjectRow[];
@@ -96,6 +98,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   nationalCyclesState = [];
   nationalLevelsState = [];
+  nationalTracksState = [];
   nationalCurriculumsState = [];
   nationalSubjectsState = [];
   nationalCurriculumSubjectsState = [];
@@ -172,6 +175,37 @@ beforeEach(() => {
       return { success: true };
     },
   );
+  mockPlatformCatalogApi.listNationalTracks.mockImplementation(
+    async () => nationalTracksState,
+  );
+  mockPlatformCatalogApi.createNationalTrack.mockImplementation(
+    async (payload) => {
+      const created: NationalTrackRow = {
+        id: "track-national-created",
+        code: payload.code,
+        label: payload.label,
+        isNational: true,
+        _count: { classes: 0, curriculums: 0 },
+      };
+      nationalTracksState = [...nationalTracksState, created];
+      return created;
+    },
+  );
+  mockPlatformCatalogApi.updateNationalTrack.mockImplementation(
+    async (id, payload) => {
+      nationalTracksState = nationalTracksState.map((entry) =>
+        entry.id === id ? { ...entry, ...payload } : entry,
+      );
+      return nationalTracksState.find((entry) => entry.id === id)!;
+    },
+  );
+  mockPlatformCatalogApi.deleteNationalTrack.mockImplementation(async (id) => {
+    nationalTracksState = nationalTracksState.filter(
+      (entry) => entry.id !== id,
+    );
+    return { success: true };
+  });
+
   mockPlatformCatalogApi.listNationalCurriculums.mockImplementation(
     async () => nationalCurriculumsState,
   );
@@ -180,15 +214,20 @@ beforeEach(() => {
       const level = nationalLevelsState.find(
         (entry) => entry.id === payload.academicLevelId,
       );
+      const track = nationalTracksState.find(
+        (entry) => entry.id === payload.trackId,
+      );
       const created: NationalCurriculumRow = {
         id: "curriculum-national-created",
-        name: `${level?.code ?? "N/A"} - TRONC_COMMUN`,
+        name: `${level?.code ?? "N/A"} - ${track ? track.code : "TRONC_COMMUN"}`,
         academicLevelId: payload.academicLevelId,
+        trackId: payload.trackId ?? null,
         academicLevel: level ?? {
           id: payload.academicLevelId,
           code: "N/A",
           label: "N/A",
         },
+        track: track ?? null,
         isNational: true,
         _count: { classes: 0, subjects: 0 },
       };
@@ -572,7 +611,9 @@ describe("CurriculumsAdminScreen — catalogue national", () => {
         id: "curriculum-1",
         name: "6EME - TRONC_COMMUN",
         academicLevelId: "level-1",
+        trackId: null,
         academicLevel: { id: "level-1", code: "6EME", label: "6ème" },
+        track: null,
         isNational: true,
         _count: { classes: 0, subjects: 0 },
       },
@@ -606,6 +647,125 @@ describe("CurriculumsAdminScreen — catalogue national", () => {
     });
   });
 
+  it("crée, modifie et supprime une filière nationale depuis l'onglet Filières", async () => {
+    jest.useFakeTimers();
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+
+    render(<CurriculumsAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("national-catalog-tab-tracks"));
+    fireEvent.press(await screen.findByTestId("national-catalog-fab"));
+    fireEvent.changeText(
+      await screen.findByTestId("national-track-form-code"),
+      "D",
+    );
+    fireEvent.changeText(
+      await screen.findByTestId("national-track-form-label"),
+      "Série D",
+    );
+    fireEvent.press(await screen.findByTestId("national-track-form-submit"));
+
+    await waitFor(() => {
+      expect(mockPlatformCatalogApi.createNationalTrack).toHaveBeenCalledWith({
+        code: "D",
+        label: "Série D",
+      });
+    });
+
+    act(() => jest.advanceTimersByTime(2000));
+
+    fireEvent.press(
+      await screen.findByTestId("national-track-edit-track-national-created"),
+    );
+    fireEvent.changeText(
+      await screen.findByTestId("national-track-form-label"),
+      "Série D renommée",
+    );
+    fireEvent.press(await screen.findByTestId("national-track-form-submit"));
+
+    await waitFor(() => {
+      expect(mockPlatformCatalogApi.updateNationalTrack).toHaveBeenCalledWith(
+        "track-national-created",
+        expect.objectContaining({ label: "Série D renommée" }),
+      );
+    });
+
+    act(() => jest.advanceTimersByTime(2000));
+
+    fireEvent.press(
+      await screen.findByTestId("national-track-delete-track-national-created"),
+    );
+    fireEvent.press(await screen.findByTestId("confirm-dialog-confirm"));
+
+    await waitFor(() => {
+      expect(mockPlatformCatalogApi.deleteNationalTrack).toHaveBeenCalledWith(
+        "track-national-created",
+      );
+    });
+  });
+
+  it("crée un curriculum national avec une filière et l'affiche dans la liste", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+    nationalLevelsState = [
+      {
+        id: "level-1",
+        code: "TLE",
+        label: "Terminale",
+        cycleId: null,
+        cycle: null,
+        languageSystem: null,
+        isNational: true,
+      },
+    ];
+    nationalTracksState = [
+      {
+        id: "track-1",
+        code: "D",
+        label: "Série D",
+        isNational: true,
+        _count: { classes: 0, curriculums: 0 },
+      },
+    ];
+
+    render(<CurriculumsAdminScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId("national-catalog-tab-curriculums"),
+    );
+    fireEvent.press(await screen.findByTestId("national-catalog-fab"));
+
+    fireEvent.press(
+      await screen.findByTestId("national-curriculum-form-level"),
+    );
+    fireEvent.press(
+      await screen.findByTestId(
+        "national-curriculum-form-level-option-level-1",
+      ),
+    );
+    fireEvent.press(
+      await screen.findByTestId("national-curriculum-form-track"),
+    );
+    fireEvent.press(
+      await screen.findByTestId(
+        "national-curriculum-form-track-option-track-1",
+      ),
+    );
+    fireEvent.press(
+      await screen.findByTestId("national-curriculum-form-submit"),
+    );
+
+    await waitFor(() => {
+      expect(
+        mockPlatformCatalogApi.createNationalCurriculum,
+      ).toHaveBeenCalledWith({
+        academicLevelId: "level-1",
+        trackId: "track-1",
+      });
+    });
+
+    expect(await screen.findByText("Série D")).toBeTruthy();
+  });
+
   it("crée, modifie une matière nationale puis la rattache à un curriculum avec un coefficient", async () => {
     jest.useFakeTimers();
     mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
@@ -614,7 +774,9 @@ describe("CurriculumsAdminScreen — catalogue national", () => {
         id: "curriculum-1",
         name: "6EME - TRONC_COMMUN",
         academicLevelId: "level-1",
+        trackId: null,
         academicLevel: { id: "level-1", code: "6EME", label: "6ème" },
+        track: null,
         isNational: true,
         _count: { classes: 0, subjects: 0 },
       },

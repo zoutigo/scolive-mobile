@@ -61,8 +61,19 @@ import { useTranslation } from "../../i18n/useTranslation";
 import { SUPPORTED_LOCALES, type Locale } from "../../i18n/translations";
 import type { ApiClientError } from "../../api/client";
 import { moduleBack } from "../../utils/moduleBack";
+import { FormHero } from "../forms/FormHero";
+import { InlineSelectDropDown } from "../InlineSelectDropDown";
 
-type AccountTab = "personal" | "security" | "help" | "settings";
+type AccountTab = "personal" | "security" | "help" | "settings" | "forms";
+type SettingsFormType =
+  | "device-language"
+  | "account-language"
+  | "active-school"
+  | "active-role";
+type SettingsFormContext = {
+  type: SettingsFormType;
+  originTab: AccountTab;
+};
 type SecuritySection =
   | "password"
   | "create-password"
@@ -208,6 +219,54 @@ function ActionButton(props: {
         </Text>
       )}
     </Pressable>
+  );
+}
+
+function SettingsEditButton(props: {
+  label: string;
+  onPress: () => void;
+  testID: string;
+}) {
+  return (
+    <TouchableOpacity
+      style={styles.settingsEditButton}
+      onPress={props.onPress}
+      testID={props.testID}
+      accessibilityLabel={props.label}
+      activeOpacity={0.75}
+    >
+      <Ionicons name="create-outline" size={18} color={colors.primary} />
+    </TouchableOpacity>
+  );
+}
+
+function SettingsValueCard(props: {
+  title: string;
+  subtitle: string;
+  value: string;
+  onEdit: () => void;
+  cardTestID: string;
+  editTestID: string;
+  valueTestID: string;
+  editLabel: string;
+}) {
+  return (
+    <SectionCard
+      title={props.title}
+      subtitle={props.subtitle}
+      testID={props.cardTestID}
+      action={
+        <SettingsEditButton
+          label={props.editLabel}
+          onPress={props.onEdit}
+          testID={props.editTestID}
+        />
+      }
+    >
+      <Text style={styles.settingsCurrentValue} testID={props.valueTestID}>
+        {props.value}
+      </Text>
+    </SectionCard>
   );
 }
 
@@ -1596,6 +1655,13 @@ function AccountScreenContent() {
   const [savingActiveSchool, setSavingActiveSchool] = useState(false);
   const switchActiveSchool = useAuthStore((state) => state.switchActiveSchool);
   const [savingAccountLanguage, setSavingAccountLanguage] = useState(false);
+  const [formContext, setFormContext] = useState<SettingsFormContext | null>(
+    null,
+  );
+  const [pendingDeviceLocale, setPendingDeviceLocale] =
+    useState<Locale>(locale);
+  const [pendingAccountLocale, setPendingAccountLocale] =
+    useState<Locale>("fr");
 
   const securityHint = useMemo(() => {
     if (profile?.role === "PARENT") {
@@ -1705,11 +1771,10 @@ function AccountScreenContent() {
     await Promise.all([loadProfile(), recoveryOptions ? loadRecovery() : null]);
   }
 
-  async function handleSaveActiveRole() {
-    if (!selectedRole) return;
+  async function handleSaveActiveRole(role: AppRole): Promise<boolean> {
     try {
       setSavingActiveRole(true);
-      const response = await accountApi.setActiveRole({ role: selectedRole });
+      const response = await accountApi.setActiveRole({ role });
       setSelectedRole(response.activeRole);
       setProfile((current) =>
         current ? { ...current, activeRole: response.activeRole } : current,
@@ -1719,62 +1784,60 @@ function AccountScreenContent() {
         setUser({ ...currentUser, activeRole: response.activeRole });
       }
       showSuccess({
-        title: "Profil actif mis à jour",
-        message: `${toReadableRole(response.activeRole)} est maintenant actif.`,
+        title: t("settings.form.activeRole.successTitle"),
+        message: t("settings.form.activeRole.successMessage"),
       });
+      return true;
     } catch (error) {
       showError({
-        title: "Mise à jour impossible",
+        title: t("settings.form.activeRole.errorTitle"),
         message: getErrorMessage(
           error,
-          "Le profil actif n'a pas pu être mis à jour.",
+          t("settings.form.activeRole.errorMessage"),
         ),
       });
+      return false;
     } finally {
       setSavingActiveRole(false);
     }
   }
 
-  async function handleSaveActiveSchool() {
-    if (!selectedSchoolId) return;
+  async function handleSaveActiveSchool(schoolId: string): Promise<boolean> {
     try {
       setSavingActiveSchool(true);
-      const nextSchoolSlug = await switchActiveSchool(selectedSchoolId);
+      const nextSchoolSlug = await switchActiveSchool(schoolId);
       setProfile((current) =>
         current
           ? {
               ...current,
-              activeSchoolId: selectedSchoolId,
+              activeSchoolId: schoolId,
               schoolSlug: nextSchoolSlug ?? current.schoolSlug,
             }
           : current,
       );
-      const school = profile?.schools?.find(
-        (entry) => entry.schoolId === selectedSchoolId,
-      );
       showSuccess({
-        title: "École active mise à jour",
-        message: school
-          ? `${school.name} est maintenant l'école active.`
-          : "L'école active a été mise à jour.",
+        title: t("settings.form.activeSchool.successTitle"),
+        message: t("settings.form.activeSchool.successMessage"),
       });
+      return true;
     } catch (error) {
       showError({
-        title: "Mise à jour impossible",
+        title: t("settings.form.activeSchool.errorTitle"),
         message: getErrorMessage(
           error,
-          "L'école active n'a pas pu être mise à jour.",
+          t("settings.form.activeSchool.errorMessage"),
         ),
       });
+      return false;
     } finally {
       setSavingActiveSchool(false);
     }
   }
 
-  async function handleSetAccountLanguage(option: Locale) {
+  async function handleSetAccountLanguage(option: Locale): Promise<boolean> {
     const preferredLocale: AccountLocale = option === "en" ? "EN" : "FR";
-    if (profile?.preferredLocale === preferredLocale || savingAccountLanguage) {
-      return;
+    if (profile?.preferredLocale === preferredLocale) {
+      return true;
     }
     try {
       setSavingAccountLanguage(true);
@@ -1782,20 +1845,78 @@ function AccountScreenContent() {
       syncProfileState(response);
       setLocale(option);
       showSuccess({
-        title: "Langue mise à jour",
-        message: "La langue de votre compte a été enregistrée.",
+        title: t("settings.form.accountLanguage.successTitle"),
+        message: t("settings.form.accountLanguage.successMessage"),
       });
+      return true;
     } catch (error) {
       showError({
-        title: "Mise à jour impossible",
+        title: t("settings.form.accountLanguage.errorTitle"),
         message: getErrorMessage(
           error,
-          "La langue du compte n'a pas pu être mise à jour.",
+          t("settings.form.accountLanguage.errorMessage"),
         ),
       });
+      return false;
     } finally {
       setSavingAccountLanguage(false);
     }
+  }
+
+  function exitForms() {
+    const origin = formContext?.originTab ?? "settings";
+    setFormContext(null);
+    setTab(origin);
+  }
+
+  function openDeviceLanguageForm() {
+    setPendingDeviceLocale(locale);
+    setFormContext({ type: "device-language", originTab: "settings" });
+    setTab("forms");
+  }
+
+  function openAccountLanguageForm() {
+    setPendingAccountLocale(profile?.preferredLocale === "EN" ? "en" : "fr");
+    setFormContext({ type: "account-language", originTab: "settings" });
+    setTab("forms");
+  }
+
+  function openActiveSchoolForm() {
+    setSelectedSchoolId(currentActiveSchoolId);
+    setFormContext({ type: "active-school", originTab: "settings" });
+    setTab("forms");
+  }
+
+  function openActiveRoleForm() {
+    setSelectedRole(currentActiveRole);
+    setFormContext({ type: "active-role", originTab: "settings" });
+    setTab("forms");
+  }
+
+  function handleSaveDeviceLanguageForm() {
+    setLocale(pendingDeviceLocale);
+    showSuccess({
+      title: t("settings.form.deviceLanguage.successTitle"),
+      message: t("settings.form.deviceLanguage.successMessage"),
+    });
+    setTimeout(exitForms, 2000);
+  }
+
+  async function handleSaveAccountLanguageForm() {
+    const ok = await handleSetAccountLanguage(pendingAccountLocale);
+    if (ok) setTimeout(exitForms, 2000);
+  }
+
+  async function handleSaveActiveSchoolForm() {
+    if (!selectedSchoolId) return;
+    const ok = await handleSaveActiveSchool(selectedSchoolId);
+    if (ok) setTimeout(exitForms, 2000);
+  }
+
+  async function handleSaveActiveRoleForm() {
+    if (!selectedRole) return;
+    const ok = await handleSaveActiveRole(selectedRole);
+    if (ok) setTimeout(exitForms, 2000);
   }
 
   if (loading) {
@@ -1822,11 +1943,11 @@ function AccountScreenContent() {
             ? `${profile.firstName} ${profile.lastName} • ${toReadableRole(profile.role)}`
             : "Mon espace personnel"
         }
-        onBack={() => moduleBack(router)}
+        onBack={() => (tab === "forms" ? exitForms() : moduleBack(router))}
         backgroundColor={colors.primaryDark}
         testID="account-header"
       />
-      <TopTabs tab={tab} onChange={setTab} />
+      {tab !== "forms" ? <TopTabs tab={tab} onChange={setTab} /> : null}
 
       <ScrollView
         style={styles.scroll}
@@ -2055,246 +2176,274 @@ function AccountScreenContent() {
 
         {tab === "settings" ? (
           <View style={styles.settingsStack}>
-            <SectionCard
+            <SettingsValueCard
               title={t("settings.language.title")}
               subtitle={t("settings.language.subtitle")}
-              testID="account-settings-language-card"
-            >
-              <Text style={styles.settingsHint}>
-                {t("settings.language.hint")}
-              </Text>
-              <View style={styles.settingsChoiceWrap}>
-                {SUPPORTED_LOCALES.map((option) => {
-                  const selected = locale === option;
-                  return (
-                    <TouchableOpacity
-                      key={option}
-                      style={[
-                        styles.settingsRoleOption,
-                        selected && styles.settingsRoleOptionActive,
-                      ]}
-                      onPress={() => setLocale(option)}
-                      testID={`account-language-${option}`}
-                    >
-                      <Text
-                        style={[
-                          styles.settingsRoleLabel,
-                          selected && styles.settingsRoleLabelActive,
-                        ]}
-                      >
-                        {t(`settings.language.${option}`)}
-                      </Text>
-                      <Ionicons
-                        name={
-                          selected
-                            ? "radio-button-on-outline"
-                            : "radio-button-off-outline"
-                        }
-                        size={16}
-                        color={selected ? colors.primary : colors.textSecondary}
-                      />
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </SectionCard>
+              value={t(`settings.language.${locale}`)}
+              onEdit={openDeviceLanguageForm}
+              cardTestID="account-settings-language-card"
+              editTestID="account-settings-language-edit"
+              valueTestID="account-settings-language-value"
+              editLabel={t("settings.edit")}
+            />
 
-            <SectionCard
+            <SettingsValueCard
               title={t("settings.accountLanguage.title")}
               subtitle={t("settings.accountLanguage.subtitle")}
-              testID="account-settings-account-language-card"
-            >
-              <Text style={styles.settingsHint}>
-                {t("settings.accountLanguage.hint")}
-              </Text>
-              <View style={styles.settingsChoiceWrap}>
-                {SUPPORTED_LOCALES.map((option) => {
-                  const accountLocale: Locale =
-                    profile?.preferredLocale === "EN" ? "en" : "fr";
-                  const selected = accountLocale === option;
-                  return (
-                    <TouchableOpacity
-                      key={option}
-                      style={[
-                        styles.settingsRoleOption,
-                        selected && styles.settingsRoleOptionActive,
-                      ]}
-                      onPress={() => {
-                        void handleSetAccountLanguage(option);
-                      }}
-                      disabled={savingAccountLanguage}
-                      testID={`account-profile-language-${option}`}
-                    >
-                      <Text
-                        style={[
-                          styles.settingsRoleLabel,
-                          selected && styles.settingsRoleLabelActive,
-                        ]}
-                      >
-                        {t(`settings.language.${option}`)}
-                      </Text>
-                      <Ionicons
-                        name={
-                          selected
-                            ? "radio-button-on-outline"
-                            : "radio-button-off-outline"
-                        }
-                        size={16}
-                        color={selected ? colors.primary : colors.textSecondary}
-                      />
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </SectionCard>
+              value={t(
+                `settings.language.${profile?.preferredLocale === "EN" ? "en" : "fr"}`,
+              )}
+              onEdit={openAccountLanguageForm}
+              cardTestID="account-settings-account-language-card"
+              editTestID="account-settings-account-language-edit"
+              valueTestID="account-settings-account-language-value"
+              editLabel={t("settings.edit")}
+            />
 
             {(profile?.schools?.length ?? 0) > 1 ? (
-              <SectionCard
-                title="École active"
-                subtitle="Choisissez l'établissement qui conditionne l'application"
-                testID="account-settings-school-card"
-              >
-                <View style={styles.settingsChoiceWrap}>
-                  {(profile?.schools ?? []).map((school) => {
-                    const selected = selectedSchoolId === school.schoolId;
-                    return (
-                      <TouchableOpacity
-                        key={school.schoolId}
-                        style={[
-                          styles.settingsRoleOption,
-                          selected && styles.settingsRoleOptionActive,
-                        ]}
-                        onPress={() => setSelectedSchoolId(school.schoolId)}
-                        testID={`account-active-school-${school.schoolId}`}
-                      >
-                        <Text
-                          style={[
-                            styles.settingsRoleLabel,
-                            selected && styles.settingsRoleLabelActive,
-                          ]}
-                        >
-                          {school.name} ({toReadableRole(school.role)})
-                        </Text>
-                        <Ionicons
-                          name={
-                            selected
-                              ? "radio-button-on-outline"
-                              : "radio-button-off-outline"
-                          }
-                          size={16}
-                          color={
-                            selected ? colors.primary : colors.textSecondary
-                          }
-                        />
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                <View style={styles.actionsRowSplit}>
-                  <ActionButton
-                    label="Réinitialiser"
-                    variant="secondary"
-                    onPress={() => setSelectedSchoolId(currentActiveSchoolId)}
-                    stretch
-                    disabled={
-                      savingActiveSchool ||
-                      selectedSchoolId === currentActiveSchoolId
-                    }
-                    testID="account-reset-active-school"
-                  />
-                  <ActionButton
-                    label="Appliquer"
-                    onPress={() => {
-                      void handleSaveActiveSchool();
-                    }}
-                    stretch
-                    loading={savingActiveSchool}
-                    disabled={
-                      !selectedSchoolId ||
-                      selectedSchoolId === currentActiveSchoolId
-                    }
-                    testID="account-save-active-school"
-                  />
-                </View>
-              </SectionCard>
+              <SettingsValueCard
+                title={t("settings.school.title")}
+                subtitle={t("settings.school.subtitle")}
+                value={
+                  profile?.schools?.find(
+                    (school) => school.schoolId === currentActiveSchoolId,
+                  )
+                    ? `${
+                        profile?.schools?.find(
+                          (school) => school.schoolId === currentActiveSchoolId,
+                        )?.name
+                      } (${toReadableRole(
+                        profile?.schools?.find(
+                          (school) => school.schoolId === currentActiveSchoolId,
+                        )?.role,
+                      )})`
+                    : "-"
+                }
+                onEdit={openActiveSchoolForm}
+                cardTestID="account-settings-school-card"
+                editTestID="account-settings-school-edit"
+                valueTestID="account-settings-school-value"
+                editLabel={t("settings.edit")}
+              />
             ) : null}
 
-            <SectionCard
-              title="Profil actif"
-              subtitle="Choisissez la navigation à afficher"
-              testID="account-settings-role-card"
-            >
-              {availableRoles.length <= 1 ? (
-                <Text style={styles.settingsHint}>
-                  Un seul profil est disponible sur ce compte.
-                </Text>
-              ) : (
-                <View style={styles.settingsChoiceWrap}>
-                  {availableRoles.map((role) => {
-                    const selected = selectedRole === role;
-                    return (
-                      <TouchableOpacity
-                        key={role}
-                        style={[
-                          styles.settingsRoleOption,
-                          selected && styles.settingsRoleOptionActive,
-                        ]}
-                        onPress={() => setSelectedRole(role)}
-                        testID={`account-active-role-${role}`}
-                      >
-                        <Text
-                          style={[
-                            styles.settingsRoleLabel,
-                            selected && styles.settingsRoleLabelActive,
-                          ]}
-                        >
-                          {toReadableRole(role)}
-                        </Text>
-                        <Ionicons
-                          name={
-                            selected
-                              ? "radio-button-on-outline"
-                              : "radio-button-off-outline"
-                          }
-                          size={16}
-                          color={
-                            selected ? colors.primary : colors.textSecondary
-                          }
-                        />
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
+            {availableRoles.length > 1 ? (
+              <SettingsValueCard
+                title={t("settings.role.title")}
+                subtitle={t("settings.role.subtitle")}
+                value={toReadableRole(currentActiveRole)}
+                onEdit={openActiveRoleForm}
+                cardTestID="account-settings-role-card"
+                editTestID="account-settings-role-edit"
+                valueTestID="account-settings-role-value"
+                editLabel={t("settings.edit")}
+              />
+            ) : null}
+          </View>
+        ) : null}
 
-              <View style={styles.actionsRowSplit}>
-                <ActionButton
-                  label="Réinitialiser"
-                  variant="secondary"
-                  onPress={() => setSelectedRole(currentActiveRole)}
-                  stretch
-                  disabled={
-                    savingActiveRole || selectedRole === currentActiveRole
-                  }
-                  testID="account-reset-active-role"
+        {tab === "forms" && formContext ? (
+          <View style={styles.formsTabContent}>
+            {formContext.type === "device-language" ? (
+              <>
+                <FormHero
+                  icon="language-outline"
+                  title={t("settings.form.deviceLanguage.title")}
+                  subtitle={t("settings.form.deviceLanguage.subtitle")}
+                  palette="primary"
+                  testID="settings-device-language-form-hero"
                 />
-                <ActionButton
-                  label="Appliquer"
-                  onPress={() => {
-                    void handleSaveActiveRole();
-                  }}
-                  stretch
-                  loading={savingActiveRole}
-                  disabled={
-                    !selectedRole ||
-                    selectedRole === currentActiveRole ||
-                    availableRoles.length <= 1
-                  }
-                  testID="account-save-active-role"
+                <View style={styles.formStack}>
+                  <View style={styles.fieldBlock}>
+                    <Text style={styles.fieldLabel}>
+                      {t("settings.form.deviceLanguage.title")}
+                    </Text>
+                    <InlineSelectDropDown
+                      options={SUPPORTED_LOCALES.map((option) => ({
+                        value: option,
+                        label: t(`settings.language.${option}`),
+                      }))}
+                      value={pendingDeviceLocale}
+                      onChange={(value) =>
+                        setPendingDeviceLocale(value as Locale)
+                      }
+                      testID="settings-device-language-select"
+                    />
+                  </View>
+                  <View style={styles.actionsRowSplit}>
+                    <ActionButton
+                      label={t("settings.form.cancel")}
+                      variant="secondary"
+                      onPress={exitForms}
+                      stretch
+                      testID="settings-device-language-cancel"
+                    />
+                    <ActionButton
+                      label={t("settings.form.save")}
+                      onPress={handleSaveDeviceLanguageForm}
+                      stretch
+                      disabled={pendingDeviceLocale === locale}
+                      testID="settings-device-language-save"
+                    />
+                  </View>
+                </View>
+              </>
+            ) : null}
+
+            {formContext.type === "account-language" ? (
+              <>
+                <FormHero
+                  icon="globe-outline"
+                  title={t("settings.form.accountLanguage.title")}
+                  subtitle={t("settings.form.accountLanguage.subtitle")}
+                  palette="primary"
+                  testID="settings-account-language-form-hero"
                 />
-              </View>
-            </SectionCard>
+                <View style={styles.formStack}>
+                  <View style={styles.fieldBlock}>
+                    <Text style={styles.fieldLabel}>
+                      {t("settings.form.accountLanguage.title")}
+                    </Text>
+                    <InlineSelectDropDown
+                      options={SUPPORTED_LOCALES.map((option) => ({
+                        value: option,
+                        label: t(`settings.language.${option}`),
+                      }))}
+                      value={pendingAccountLocale}
+                      onChange={(value) =>
+                        setPendingAccountLocale(value as Locale)
+                      }
+                      testID="settings-account-language-select"
+                    />
+                  </View>
+                  <View style={styles.actionsRowSplit}>
+                    <ActionButton
+                      label={t("settings.form.cancel")}
+                      variant="secondary"
+                      onPress={exitForms}
+                      stretch
+                      testID="settings-account-language-cancel"
+                    />
+                    <ActionButton
+                      label={t("settings.form.save")}
+                      onPress={() => {
+                        void handleSaveAccountLanguageForm();
+                      }}
+                      stretch
+                      loading={savingAccountLanguage}
+                      disabled={
+                        pendingAccountLocale ===
+                        (profile?.preferredLocale === "EN" ? "en" : "fr")
+                      }
+                      testID="settings-account-language-save"
+                    />
+                  </View>
+                </View>
+              </>
+            ) : null}
+
+            {formContext.type === "active-school" ? (
+              <>
+                <FormHero
+                  icon="business-outline"
+                  title={t("settings.form.activeSchool.title")}
+                  subtitle={t("settings.form.activeSchool.subtitle")}
+                  palette="primary"
+                  testID="settings-active-school-form-hero"
+                />
+                <View style={styles.formStack}>
+                  <View style={styles.fieldBlock}>
+                    <Text style={styles.fieldLabel}>
+                      {t("settings.form.activeSchool.title")}
+                    </Text>
+                    <InlineSelectDropDown
+                      options={(profile?.schools ?? []).map((school) => ({
+                        value: school.schoolId,
+                        label: `${school.name} (${toReadableRole(school.role)})`,
+                      }))}
+                      value={selectedSchoolId ?? ""}
+                      onChange={setSelectedSchoolId}
+                      searchPlaceholder={t("settings.form.searchPlaceholder")}
+                      noResultsLabel={t("settings.form.noResults")}
+                      testID="settings-active-school-select"
+                    />
+                  </View>
+                  <View style={styles.actionsRowSplit}>
+                    <ActionButton
+                      label={t("settings.form.cancel")}
+                      variant="secondary"
+                      onPress={exitForms}
+                      stretch
+                      testID="settings-active-school-cancel"
+                    />
+                    <ActionButton
+                      label={t("settings.form.save")}
+                      onPress={() => {
+                        void handleSaveActiveSchoolForm();
+                      }}
+                      stretch
+                      loading={savingActiveSchool}
+                      disabled={
+                        !selectedSchoolId ||
+                        selectedSchoolId === currentActiveSchoolId
+                      }
+                      testID="settings-active-school-save"
+                    />
+                  </View>
+                </View>
+              </>
+            ) : null}
+
+            {formContext.type === "active-role" ? (
+              <>
+                <FormHero
+                  icon="people-outline"
+                  title={t("settings.form.activeRole.title")}
+                  subtitle={t("settings.form.activeRole.subtitle")}
+                  palette="primary"
+                  testID="settings-active-role-form-hero"
+                />
+                <View style={styles.formStack}>
+                  <View style={styles.fieldBlock}>
+                    <Text style={styles.fieldLabel}>
+                      {t("settings.form.activeRole.title")}
+                    </Text>
+                    <InlineSelectDropDown
+                      options={availableRoles.map((role) => ({
+                        value: role,
+                        label: toReadableRole(role),
+                      }))}
+                      value={selectedRole ?? ""}
+                      onChange={(value) => setSelectedRole(value as AppRole)}
+                      searchPlaceholder={t("settings.form.searchPlaceholder")}
+                      noResultsLabel={t("settings.form.noResults")}
+                      testID="settings-active-role-select"
+                    />
+                  </View>
+                  <View style={styles.actionsRowSplit}>
+                    <ActionButton
+                      label={t("settings.form.cancel")}
+                      variant="secondary"
+                      onPress={exitForms}
+                      stretch
+                      testID="settings-active-role-cancel"
+                    />
+                    <ActionButton
+                      label={t("settings.form.save")}
+                      onPress={() => {
+                        void handleSaveActiveRoleForm();
+                      }}
+                      stretch
+                      loading={savingActiveRole}
+                      disabled={
+                        !selectedRole || selectedRole === currentActiveRole
+                      }
+                      testID="settings-active-role-save"
+                    />
+                  </View>
+                </View>
+              </>
+            ) : null}
           </View>
         ) : null}
 
@@ -2688,39 +2837,23 @@ const styles = StyleSheet.create({
   settingsStack: {
     gap: 16,
   },
-  settingsHint: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.textSecondary,
-  },
-  settingsChoiceWrap: {
-    marginTop: 10,
-    gap: 10,
-  },
-  settingsRoleOption: {
-    flexDirection: "row",
+  settingsEditButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  settingsRoleOptionActive: {
-    borderColor: "rgba(12,95,168,0.24)",
+    justifyContent: "center",
     backgroundColor: "rgba(12,95,168,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(12,95,168,0.14)",
   },
-  settingsRoleLabel: {
-    fontSize: 14,
-    color: colors.textPrimary,
+  settingsCurrentValue: {
+    fontSize: 15,
     fontWeight: "600",
+    color: colors.textPrimary,
   },
-  settingsRoleLabelActive: {
-    color: colors.primary,
-    fontWeight: "700",
+  formsTabContent: {
+    gap: 16,
   },
   helpList: {
     gap: 14,

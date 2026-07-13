@@ -97,6 +97,43 @@ describe("resourcesApi", () => {
     });
   });
 
+  describe("searchSchools", () => {
+    it("hits the search route without a query param when q is omitted", async () => {
+      apiFetch.mockResolvedValueOnce([]);
+      await resourcesApi.searchSchools();
+      expect(apiFetch).toHaveBeenCalledWith(
+        "/resources/schools/search",
+        {},
+        true,
+      );
+    });
+
+    it("forwards q as a query param when provided", async () => {
+      apiFetch.mockResolvedValueOnce([
+        {
+          id: "school-1",
+          name: "Ecole A",
+          cycle: "SECONDARY",
+          languageSystem: "FRANCOPHONE",
+        },
+      ]);
+      const result = await resourcesApi.searchSchools("vogt");
+      expect(apiFetch).toHaveBeenCalledWith(
+        "/resources/schools/search?q=vogt",
+        {},
+        true,
+      );
+      expect(result).toEqual([
+        {
+          id: "school-1",
+          name: "Ecole A",
+          cycle: "SECONDARY",
+          languageSystem: "FRANCOPHONE",
+        },
+      ]);
+    });
+  });
+
   describe("createResource", () => {
     it("posts the metadata-only payload as-is", async () => {
       apiFetch.mockResolvedValueOnce({ id: "res-1" });

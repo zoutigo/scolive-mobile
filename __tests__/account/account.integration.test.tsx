@@ -195,16 +195,18 @@ describe("account integration", () => {
     });
 
     fireEvent.press(screen.getByTestId("account-tab-settings"));
-    fireEvent.press(screen.getByTestId("account-active-role-TEACHER"));
-    fireEvent.press(screen.getByTestId("account-save-active-role"));
+    fireEvent.press(screen.getByTestId("account-settings-role-edit"));
+    fireEvent.press(screen.getByTestId("settings-active-role-select"));
+    fireEvent.press(
+      await screen.findByTestId("settings-active-role-select-option-TEACHER"),
+    );
+    fireEvent.press(screen.getByTestId("settings-active-role-save"));
 
     await waitFor(() => {
       expect(api.setActiveRole).toHaveBeenCalledWith({ role: "TEACHER" });
     });
 
     expect(screen.getByText("Profil actif mis à jour")).toBeTruthy();
-    expect(
-      screen.getByText("Enseignant(e) est maintenant actif."),
-    ).toBeTruthy();
+    expect(screen.getByText("Le profil actif a été mis à jour.")).toBeTruthy();
   });
 });

@@ -10,6 +10,7 @@ import type {
   ResourcePart,
   ResourceRow,
   ResourceSchoolOption,
+  ResourceSchoolSearchOption,
   ResourceSubmission,
   SaveSubmissionDraftPayload,
   UpsertResourcePayload,
@@ -91,6 +92,10 @@ export const resourcesApi = {
 
   listSchoolsWithResources(): Promise<ResourceSchoolOption[]> {
     return apiFetch(`/resources/schools`, {}, true);
+  },
+
+  searchSchools(q?: string): Promise<ResourceSchoolSearchOption[]> {
+    return apiFetch(`/resources/schools/search${toQuery({ q })}`, {}, true);
   },
 
   getResource(resourceId: string): Promise<ResourceDetail> {

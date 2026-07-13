@@ -22,7 +22,7 @@ import { useAuthStore } from "../../store/auth.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { FormHero } from "../forms/FormHero";
-import { SelectDropdown } from "../SelectDropdown";
+import { InlineSelectDropDown } from "../InlineSelectDropDown";
 import { DatePickerField } from "../DatePickerField";
 import { TimePickerField } from "../TimePickerField";
 import type { RoomAvailability } from "../../types/room.types";
@@ -867,7 +867,7 @@ export function SlotCreateScreen({
                     control={control}
                     name="roomId"
                     render={({ field: { value, onChange } }) => (
-                      <SelectDropdown
+                      <InlineSelectDropDown
                         options={availableRoomOptions}
                         value={value ?? ""}
                         onChange={onChange}

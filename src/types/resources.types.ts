@@ -30,6 +30,7 @@ export type ResourceRow = {
   kind: ResourceKind;
   schoolId: string | null;
   academicLevelId: string;
+  trackId: string | null;
   subjectId: string;
   examType: ResourceExamType;
   sequence: ResourceSequence | null;
@@ -44,6 +45,7 @@ export type ResourceRow = {
   updatedAt: string;
   school: { id: string; name: string } | null;
   academicLevel: { id: string; code: string; label: string };
+  track: { id: string; code: string; label: string } | null;
   subject: { id: string; name: string };
   authorUser: { id: string; firstName: string; lastName: string };
   isFavorite?: boolean;
@@ -56,6 +58,7 @@ export type ResourceDetail = ResourceRow & {
 export type ResourceListQuery = {
   kind: ResourceKind;
   academicLevelId?: string;
+  trackId?: string;
   subjectId?: string;
   examType?: ResourceExamType;
   sequence?: ResourceSequence;
@@ -77,6 +80,7 @@ export type UpsertResourcePayload = {
   kind: ResourceKind;
   schoolId?: string;
   academicLevelId: string;
+  trackId?: string;
   subjectId: string;
   examType: ResourceExamType;
   sequence?: ResourceSequence;
@@ -129,12 +133,36 @@ export type ResourceAdminSubmission = ResourceSubmission & {
   };
 };
 
+export type SchoolLanguageSystem = "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL";
+export type SchoolCycleCode = "PRIMARY" | "SECONDARY";
+
 export type ResourceCatalog = {
-  academicLevels: Array<{ id: string; code: string; label: string }>;
+  cycles: Array<{ id: string; code: string; label: string }>;
+  academicLevels: Array<{
+    id: string;
+    code: string;
+    label: string;
+    cycleId: string | null;
+    languageSystem: SchoolLanguageSystem | null;
+  }>;
+  tracks: Array<{ id: string; code: string; label: string }>;
+  curriculums: Array<{
+    id: string;
+    academicLevelId: string;
+    trackId: string | null;
+  }>;
+  curriculumSubjects: Array<{ curriculumId: string; subjectId: string }>;
   subjects: Array<{ id: string; code: string | null; name: string }>;
 };
 
 export type ResourceSchoolOption = { id: string; name: string };
+
+export type ResourceSchoolSearchOption = {
+  id: string;
+  name: string;
+  cycle: SchoolCycleCode | null;
+  languageSystem: SchoolLanguageSystem | null;
+};
 
 export type ListAdminResourcesQuery = {
   kind?: ResourceKind;

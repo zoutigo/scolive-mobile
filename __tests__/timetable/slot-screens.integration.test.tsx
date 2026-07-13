@@ -76,8 +76,8 @@ jest.mock("../../src/components/TimePickerField", () => ({
     );
   },
 }));
-jest.mock("../../src/components/SelectDropdown", () => ({
-  SelectDropdown: () => null,
+jest.mock("../../src/components/InlineSelectDropDown", () => ({
+  InlineSelectDropDown: () => null,
 }));
 
 const api = timetableApi as jest.Mocked<typeof timetableApi>;

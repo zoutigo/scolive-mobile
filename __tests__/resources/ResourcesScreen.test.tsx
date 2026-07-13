@@ -68,8 +68,31 @@ const ADMIN_USER = {
   activeRole: "SUPER_ADMIN" as const,
 };
 
+const FORM_SCHOOL = {
+  id: "school-1",
+  name: "École Test",
+  cycle: "SECONDARY" as const,
+  languageSystem: null,
+};
+
 const CATALOG = {
-  academicLevels: [{ id: "level-1", code: "6EME", label: "6ème" }],
+  cycles: [{ id: "cycle-1", code: "SECONDARY", label: "Secondaire" }],
+  academicLevels: [
+    {
+      id: "level-1",
+      code: "6EME",
+      label: "6ème",
+      cycleId: "cycle-1",
+      languageSystem: null,
+    },
+  ],
+  tracks: [],
+  curriculums: [
+    { id: "curriculum-1", academicLevelId: "level-1", trackId: null },
+  ],
+  curriculumSubjects: [
+    { curriculumId: "curriculum-1", subjectId: "subject-1" },
+  ],
   subjects: [{ id: "subject-1", code: "MATH", name: "Mathématiques" }],
 };
 
@@ -78,6 +101,7 @@ const BASE_RESOURCE = {
   kind: "ASSESSMENT" as const,
   schoolId: "school-1",
   academicLevelId: "level-1",
+  trackId: null,
   subjectId: "subject-1",
   examType: "SEQUENCE_TEST" as const,
   sequence: "SEQ_1" as const,
@@ -92,6 +116,7 @@ const BASE_RESOURCE = {
   updatedAt: "2026-07-01T10:00:00.000Z",
   school: { id: "school-1", name: "École Test" },
   academicLevel: { id: "level-1", code: "6EME", label: "6ème" },
+  track: null,
   subject: { id: "subject-1", name: "Mathématiques" },
   authorUser: { id: "teacher-1", firstName: "Paul", lastName: "Martin" },
   isFavorite: false,
@@ -115,6 +140,7 @@ function mockDefaults() {
   mockResourcesApi.listSchoolsWithResources.mockResolvedValue([
     { id: "school-1", name: "École Test" },
   ]);
+  mockResourcesApi.searchSchools.mockResolvedValue([FORM_SCHOOL]);
 }
 
 async function openCreateForm() {
@@ -125,6 +151,14 @@ async function openCreateForm() {
   fireEvent.press(screen.getByTestId("resources-onboarding-start"));
   await waitFor(() =>
     expect(screen.getByTestId("resources-form-hero")).toBeTruthy(),
+  );
+}
+
+async function selectSchoolInForm(schoolId = "school-1") {
+  const input = screen.getByTestId("resources-form-school-input");
+  fireEvent(input, "focus");
+  fireEvent.press(
+    await screen.findByTestId(`resources-form-school-option-${schoolId}`),
   );
 }
 
@@ -209,11 +243,202 @@ describe("ResourcesScreen", () => {
     await openCreateForm();
 
     expect(screen.getByTestId("resources-form-title")).toBeTruthy();
+    expect(screen.getByTestId("resources-form-school")).toBeTruthy();
+    expect(screen.queryByTestId("resources-form-cycle")).toBeNull();
     expect(screen.getByTestId("resources-form-level")).toBeTruthy();
     expect(screen.getByTestId("resources-form-subject")).toBeTruthy();
     expect(screen.getByTestId("resources-form-sequence")).toBeTruthy();
     expect(screen.getByTestId("resources-form-academic-year")).toBeTruthy();
     expect(screen.queryByTestId("resources-tab-ASSESSMENT")).toBeNull();
+  });
+
+  it("cascade cycle → niveau → filière → matière : le niveau est filtré par cycle, la filière n'apparaît que si le niveau en a, et la matière est filtrée par le curriculum résolu", async () => {
+    mockResourcesApi.getCatalog.mockResolvedValue({
+      cycles: [
+        { id: "cycle-1", code: "SECONDARY", label: "Secondaire" },
+        { id: "cycle-2", code: "PRIMARY", label: "Primaire" },
+      ],
+      academicLevels: [
+        {
+          id: "level-1",
+          code: "6EME",
+          label: "6ème",
+          cycleId: "cycle-2",
+          languageSystem: null,
+        },
+        {
+          id: "level-tle",
+          code: "TLE",
+          label: "Terminale",
+          cycleId: "cycle-1",
+          languageSystem: null,
+        },
+      ],
+      tracks: [
+        { id: "track-d", code: "D", label: "Série D" },
+        { id: "track-c", code: "C", label: "Série C" },
+      ],
+      curriculums: [
+        { id: "curriculum-1", academicLevelId: "level-1", trackId: null },
+        {
+          id: "curriculum-tle-d",
+          academicLevelId: "level-tle",
+          trackId: "track-d",
+        },
+        {
+          id: "curriculum-tle-c",
+          academicLevelId: "level-tle",
+          trackId: "track-c",
+        },
+      ],
+      curriculumSubjects: [
+        { curriculumId: "curriculum-1", subjectId: "subject-1" },
+        { curriculumId: "curriculum-tle-d", subjectId: "subject-1" },
+        { curriculumId: "curriculum-tle-c", subjectId: "subject-2" },
+      ],
+      subjects: [
+        { id: "subject-1", code: "MATH", name: "Mathématiques" },
+        { id: "subject-2", code: "PHILO", name: "Philosophie" },
+      ],
+    });
+
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
+    await openCreateForm();
+
+    // Le cycle est dérivé automatiquement de l'école choisie (SECONDARY →
+    // cycle-1) : le niveau "6ème" (cycle-2, primaire) n'est donc pas proposé.
+    await selectSchoolInForm();
+
+    fireEvent.press(screen.getByTestId("resources-form-level"));
+    expect(
+      screen.queryByTestId("resources-form-level-option-level-1"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("resources-form-level-option-level-tle"),
+    ).toBeTruthy();
+    fireEvent.press(
+      screen.getByTestId("resources-form-level-option-level-tle"),
+    );
+
+    // Terminale a des filières : le champ filière doit apparaître, et la
+    // matière ne peut pas encore être choisie tant que la filière ne l'est
+    // pas (curriculum non résolu).
+    expect(screen.getByTestId("resources-form-track")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("resources-form-subject"));
+    expect(
+      screen.queryByTestId("resources-form-subject-option-subject-1"),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId("resources-form-subject-option-subject-2"),
+    ).toBeNull();
+    fireEvent.press(screen.getByTestId("resources-form-subject"));
+
+    fireEvent.press(screen.getByTestId("resources-form-track"));
+    fireEvent.press(screen.getByTestId("resources-form-track-option-track-c"));
+
+    fireEvent.press(screen.getByTestId("resources-form-subject"));
+    expect(
+      screen.getByTestId("resources-form-subject-option-subject-2"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("resources-form-subject-option-subject-1"),
+    ).toBeNull();
+  });
+
+  it("filtre les niveaux par languageSystem de l'école choisie (anomalie initiale : ne plus proposer tous les niveaux du cycle, toutes langues confondues)", async () => {
+    mockResourcesApi.getCatalog.mockResolvedValue({
+      cycles: [{ id: "cycle-1", code: "SECONDARY", label: "Secondaire" }],
+      academicLevels: [
+        {
+          id: "level-1ere",
+          code: "1ERE",
+          label: "1ère",
+          cycleId: "cycle-1",
+          languageSystem: "FRANCOPHONE",
+        },
+        {
+          id: "level-lsix",
+          code: "LSIX",
+          label: "Lower Sixth",
+          cycleId: "cycle-1",
+          languageSystem: "ANGLOPHONE",
+        },
+      ],
+      tracks: [],
+      curriculums: [
+        { id: "curriculum-1ere", academicLevelId: "level-1ere", trackId: null },
+        { id: "curriculum-lsix", academicLevelId: "level-lsix", trackId: null },
+      ],
+      curriculumSubjects: [
+        { curriculumId: "curriculum-1ere", subjectId: "subject-1" },
+        { curriculumId: "curriculum-lsix", subjectId: "subject-1" },
+      ],
+      subjects: [{ id: "subject-1", code: "MATH", name: "Mathématiques" }],
+    });
+    mockResourcesApi.searchSchools.mockResolvedValue([
+      {
+        id: "school-fr",
+        name: "École Francophone",
+        cycle: "SECONDARY",
+        languageSystem: "FRANCOPHONE",
+      },
+    ]);
+
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
+    await openCreateForm();
+    await selectSchoolInForm("school-fr");
+
+    fireEvent.press(screen.getByTestId("resources-form-level"));
+    expect(
+      screen.getByTestId("resources-form-level-option-level-1ere"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("resources-form-level-option-level-lsix"),
+    ).toBeNull();
+  });
+
+  it("le champ École relance une recherche serveur au fil de la frappe (le lot initial ne couvre pas toutes les écoles)", async () => {
+    jest.useFakeTimers({ legacyFakeTimers: false });
+    mockResourcesApi.searchSchools.mockResolvedValue([FORM_SCHOOL]);
+
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
+    await openCreateForm();
+    mockResourcesApi.searchSchools.mockClear();
+    mockResourcesApi.searchSchools.mockResolvedValue([
+      {
+        id: "school-far",
+        name: "Collège Vogt",
+        cycle: "SECONDARY",
+        languageSystem: null,
+      },
+    ]);
+
+    const input = screen.getByTestId("resources-form-school-input");
+    fireEvent(input, "focus");
+    fireEvent.changeText(input, "Vogt");
+
+    await jest.advanceTimersByTimeAsync(300);
+
+    await waitFor(() =>
+      expect(mockResourcesApi.searchSchools).toHaveBeenCalledWith("Vogt"),
+    );
+    expect(
+      await screen.findByTestId("resources-form-school-option-school-far"),
+    ).toBeTruthy();
+
+    jest.useRealTimers();
   });
 
   it("onboarding : cocher « ne plus afficher » saute la modale au prochain FAB", async () => {
@@ -348,6 +573,7 @@ describe("ResourcesScreen", () => {
       "Contrôle chapitre 4",
     );
 
+    await selectSchoolInForm();
     fireEvent.press(screen.getByTestId("resources-form-level"));
     fireEvent.press(screen.getByTestId("resources-form-level-option-level-1"));
     fireEvent.press(screen.getByTestId("resources-form-subject"));
@@ -401,6 +627,7 @@ describe("ResourcesScreen", () => {
     await openCreateForm();
 
     fireEvent.changeText(screen.getByTestId("resources-form-title"), "X");
+    await selectSchoolInForm();
     fireEvent.press(screen.getByTestId("resources-form-level"));
     fireEvent.press(screen.getByTestId("resources-form-level-option-level-1"));
     fireEvent.press(screen.getByTestId("resources-form-subject"));
@@ -449,6 +676,7 @@ describe("ResourcesScreen", () => {
     await openCreateForm();
 
     fireEvent.changeText(screen.getByTestId("resources-form-title"), "X");
+    await selectSchoolInForm();
     fireEvent.press(screen.getByTestId("resources-form-level"));
     fireEvent.press(screen.getByTestId("resources-form-level-option-level-1"));
     fireEvent.press(screen.getByTestId("resources-form-subject"));

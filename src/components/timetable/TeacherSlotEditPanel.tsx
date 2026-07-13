@@ -17,7 +17,7 @@ import { timetableApi } from "../../api/timetable.api";
 import { roomsApi } from "../../api/rooms.api";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { TimePickerField } from "../TimePickerField";
-import { SelectDropdown } from "../SelectDropdown";
+import { InlineSelectDropDown } from "../InlineSelectDropDown";
 import type { RoomAvailability } from "../../types/room.types";
 import type {
   ClassTimetableContextResponse,
@@ -529,7 +529,7 @@ export function TeacherSlotEditPanel({
                 control={control}
                 name="roomId"
                 render={({ field: { value, onChange } }) => (
-                  <SelectDropdown
+                  <InlineSelectDropDown
                     options={roomOptions}
                     value={value ?? ""}
                     onChange={onChange}

@@ -4,15 +4,18 @@ import type {
   CreateNationalCurriculumPayload,
   CreateNationalCyclePayload,
   CreateNationalSubjectPayload,
+  CreateNationalTrackPayload,
   NationalAcademicLevelRow,
   NationalCurriculumRow,
   NationalCurriculumSubjectRow,
   NationalCycleRow,
   NationalSubjectRow,
+  NationalTrackRow,
   UpdateNationalAcademicLevelPayload,
   UpdateNationalCurriculumPayload,
   UpdateNationalCyclePayload,
   UpdateNationalSubjectPayload,
+  UpdateNationalTrackPayload,
   UpsertNationalCurriculumSubjectPayload,
 } from "../types/platform-catalog.types";
 
@@ -110,6 +113,35 @@ export const platformCatalogApi = {
       { method: "DELETE" },
       true,
     );
+  },
+
+  listNationalTracks(): Promise<NationalTrackRow[]> {
+    return apiFetch("/system/tracks", {}, true);
+  },
+
+  createNationalTrack(
+    payload: CreateNationalTrackPayload,
+  ): Promise<NationalTrackRow> {
+    return apiFetch(
+      "/system/tracks",
+      { method: "POST", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  updateNationalTrack(
+    trackId: string,
+    payload: UpdateNationalTrackPayload,
+  ): Promise<NationalTrackRow> {
+    return apiFetch(
+      `/system/tracks/${trackId}`,
+      { method: "PATCH", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  deleteNationalTrack(trackId: string) {
+    return apiFetch(`/system/tracks/${trackId}`, { method: "DELETE" }, true);
   },
 
   listNationalCurriculums(): Promise<NationalCurriculumRow[]> {
