@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -50,6 +50,7 @@ export function InlineSearchSelect({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const isDisabled = disabled || loading;
+  const inputRef = useRef<TextInput>(null);
 
   const selected = options.find((o) => o.value === value);
 
@@ -77,6 +78,7 @@ export function InlineSearchSelect({
           ]}
         >
           <TextInput
+            ref={inputRef}
             value={displayedText}
             onChangeText={(text) => {
               setQuery(text);
@@ -105,22 +107,33 @@ export function InlineSearchSelect({
               testID={`${testID}-loading`}
             />
           ) : !disabled ? (
-            <Ionicons
-              name={open ? "chevron-up" : "chevron-down"}
-              size={16}
-              color={colors.textSecondary}
-            />
+            <TouchableOpacity
+              onPress={() => {
+                setOpen(true);
+                setQuery("");
+                inputRef.current?.focus();
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              testID={`${testID}-chevron`}
+            >
+              <Ionicons
+                name={open ? "chevron-up" : "chevron-down"}
+                size={16}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
           ) : null}
         </View>
         {open && filteredOptions.length > 0 ? (
           <View style={styles.suggestions} testID={`${testID}-suggestions`}>
-            <FlatList
-              data={filteredOptions}
-              keyExtractor={(o) => o.value}
+            <ScrollView
               keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
               style={styles.suggestionsList}
-              renderItem={({ item }) => (
+            >
+              {filteredOptions.map((item) => (
                 <TouchableOpacity
+                  key={item.value}
                   style={[
                     styles.suggestionOption,
                     item.value === value && styles.suggestionOptionSelected,
@@ -141,8 +154,8 @@ export function InlineSearchSelect({
                     {item.label}
                   </Text>
                 </TouchableOpacity>
-              )}
-            />
+              ))}
+            </ScrollView>
           </View>
         ) : null}
         {open && filteredOptions.length === 0 ? (
