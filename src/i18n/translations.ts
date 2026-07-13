@@ -728,6 +728,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.detail.noContent": "Aucun contenu disponible.",
     "resources.errors.addAttachment":
       "Impossible d'ajouter cette pièce jointe.",
+    "resources.errors.openAttachment":
+      "Impossible d'ouvrir cette pièce jointe.",
     "resources.toast.successTitle": "Ressource enregistrée",
     "resources.toast.successMessage":
       "Votre soumission est en attente de validation.",
@@ -3152,6 +3154,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.detail.notFound": "Resource not found.",
     "resources.detail.noContent": "No content available.",
     "resources.errors.addAttachment": "Could not add this attachment.",
+    "resources.errors.openAttachment": "Could not open this attachment.",
     "resources.toast.successTitle": "Resource saved",
     "resources.toast.successMessage": "Your submission is pending approval.",
     "resources.toast.errorTitle": "Error",

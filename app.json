@@ -38,7 +38,8 @@
         {
           "photosPermission": "Scolive a besoin d'accéder à votre galerie pour insérer des images dans vos messages."
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "extra": {
       "router": {},

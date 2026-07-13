@@ -4,10 +4,17 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react-native";
-import { Linking } from "react-native";
 import { ResourceDetailScreen } from "../../src/components/resources/ResourceDetailScreen";
 import { resourcesApi } from "../../src/api/resources.api";
+import { downloadAndOpenAttachment } from "../../src/utils/attachment-download";
+
+jest.mock("../../src/utils/attachment-download");
+const mockDownloadAndOpenAttachment =
+  downloadAndOpenAttachment as jest.MockedFunction<
+    typeof downloadAndOpenAttachment
+  >;
 import { useAuthStore } from "../../src/store/auth.store";
 import type {
   ResourceDetail,
@@ -149,6 +156,7 @@ describe("ResourceDetailScreen", () => {
     mockCanGoBack.mockReturnValue(false);
     mockUseAuthStore.mockReturnValue({ user: READER_USER } as never);
     mockResourcesApi.listSubmissions.mockResolvedValue([]);
+    mockDownloadAndOpenAttachment.mockResolvedValue(undefined);
   });
 
   it("affiche un loader pendant le chargement", () => {
@@ -183,7 +191,11 @@ describe("ResourceDetailScreen", () => {
         screen.getByTestId("resources-detail-content-statement"),
       ).toBeTruthy(),
     );
-    expect(screen.getByText("Voici l' énoncé complet")).toBeTruthy();
+    expect(
+      within(
+        screen.getByTestId("resources-detail-content-statement"),
+      ).getByTestId("rich-editor-initial-content").props.children,
+    ).toBe("<p>Voici l'<i>énoncé</i> complet</p>");
     expect(
       screen.getByTestId("resources-detail-attachment-statement-0"),
     ).toBeTruthy();
@@ -224,10 +236,6 @@ describe("ResourceDetailScreen", () => {
   });
 
   it("ouvre la pièce jointe au tap", async () => {
-    const openURLSpy = jest
-      .spyOn(Linking, "canOpenURL")
-      .mockResolvedValue(true);
-    const openSpy = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
     mockResourcesApi.getResource.mockResolvedValue(BASE_DETAIL);
     render(<ResourceDetailScreen resourceId="res-1" part="statement" />);
 
@@ -241,12 +249,12 @@ describe("ResourceDetailScreen", () => {
     );
 
     await waitFor(() =>
-      expect(openSpy).toHaveBeenCalledWith(
-        "https://files.example.com/sujet.pdf",
+      expect(mockDownloadAndOpenAttachment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fileUrl: "https://files.example.com/sujet.pdf",
+        }),
       ),
     );
-    openURLSpy.mockRestore();
-    openSpy.mockRestore();
   });
 
   it("un rôle purement plateforme (support) ne voit pas la zone de contribution", async () => {

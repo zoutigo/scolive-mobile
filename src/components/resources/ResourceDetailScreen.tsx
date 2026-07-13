@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -27,6 +26,8 @@ import {
   RichEditorField,
   type RichEditorFieldRef,
 } from "../editor/RichEditorField";
+import { RichContentView } from "../editor/RichContentView";
+import { downloadAndOpenAttachment } from "../../utils/attachment-download";
 import {
   EXAM_TYPE_KEYS,
   SEQUENCE_LABELS,
@@ -76,6 +77,9 @@ export function ResourceDetailScreen(props: {
   >([]);
   const [isSaving, setIsSaving] = useState(false);
   const [contentError, setContentError] = useState<string | null>(null);
+  const [openingAttachmentKey, setOpeningAttachmentKey] = useState<
+    string | null
+  >(null);
   const editorRef = useRef<RichEditorFieldRef>(null);
 
   const load = useCallback(async () => {
@@ -133,14 +137,17 @@ export function ResourceDetailScreen(props: {
     }
   }, [activeSubmission?.id, activeSubmission?.status]);
 
-  async function openAttachment(url?: string | null) {
-    if (!url) return;
+  async function openAttachment(attachment: ResourceAttachment, key: string) {
+    setOpeningAttachmentKey(key);
     try {
-      const supported = await Linking.canOpenURL(url);
-      if (!supported) return;
-      await Linking.openURL(url);
+      await downloadAndOpenAttachment(attachment);
     } catch {
-      // ignore, l'ouverture externe n'est pas critique
+      showError({
+        title: t("resources.toast.errorTitle"),
+        message: t("resources.errors.openAttachment"),
+      });
+    } finally {
+      setOpeningAttachmentKey(null);
     }
   }
 
@@ -334,33 +341,43 @@ export function ResourceDetailScreen(props: {
             {hasApprovedContent ? (
               <>
                 <View style={styles.contentCard}>
-                  <Text
-                    style={styles.contentText}
+                  <RichContentView
+                    html={approvedContent ?? ""}
                     testID={`resources-detail-content-${part}`}
-                  >
-                    {stripHtml(approvedContent ?? "")}
-                  </Text>
+                  />
                 </View>
                 {attachments.length > 0 ? (
                   <View style={styles.attachmentsList}>
-                    {attachments.map((attachment, idx) => (
-                      <TouchableOpacity
-                        key={attachment.id ?? idx}
-                        style={styles.attachmentChip}
-                        onPress={() => openAttachment(attachment.fileUrl)}
-                        disabled={!attachment.fileUrl}
-                        testID={`resources-detail-attachment-${part}-${idx}`}
-                      >
-                        <Ionicons
-                          name="document-outline"
-                          size={16}
-                          color={colors.primary}
-                        />
-                        <Text style={styles.attachmentText} numberOfLines={1}>
-                          {attachment.fileName}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                    {attachments.map((attachment, idx) => {
+                      const key = `approved-${attachment.id ?? idx}`;
+                      return (
+                        <TouchableOpacity
+                          key={attachment.id ?? idx}
+                          style={styles.attachmentChip}
+                          onPress={() => openAttachment(attachment, key)}
+                          disabled={
+                            !attachment.fileUrl || openingAttachmentKey === key
+                          }
+                          testID={`resources-detail-attachment-${part}-${idx}`}
+                        >
+                          {openingAttachmentKey === key ? (
+                            <ActivityIndicator
+                              size="small"
+                              color={colors.primary}
+                            />
+                          ) : (
+                            <Ionicons
+                              name="document-outline"
+                              size={16}
+                              color={colors.primary}
+                            />
+                          )}
+                          <Text style={styles.attachmentText} numberOfLines={1}>
+                            {attachment.fileName}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 ) : null}
               </>
