@@ -69,7 +69,17 @@ const ADMIN_USER = {
 };
 
 const CATALOG = {
-  academicLevels: [{ id: "level-1", code: "6EME", label: "6ème" }],
+  cycles: [{ id: "cycle-1", code: "SECONDARY", label: "Secondaire" }],
+  academicLevels: [
+    { id: "level-1", code: "6EME", label: "6ème", cycleId: "cycle-1" },
+  ],
+  tracks: [],
+  curriculums: [
+    { id: "curriculum-1", academicLevelId: "level-1", trackId: null },
+  ],
+  curriculumSubjects: [
+    { curriculumId: "curriculum-1", subjectId: "subject-1" },
+  ],
   subjects: [{ id: "subject-1", code: "MATH", name: "Mathématiques" }],
 };
 
@@ -78,6 +88,7 @@ const BASE_RESOURCE = {
   kind: "ASSESSMENT" as const,
   schoolId: "school-1",
   academicLevelId: "level-1",
+  trackId: null,
   subjectId: "subject-1",
   examType: "SEQUENCE_TEST" as const,
   sequence: "SEQ_1" as const,
@@ -92,6 +103,7 @@ const BASE_RESOURCE = {
   updatedAt: "2026-07-01T10:00:00.000Z",
   school: { id: "school-1", name: "École Test" },
   academicLevel: { id: "level-1", code: "6EME", label: "6ème" },
+  track: null,
   subject: { id: "subject-1", name: "Mathématiques" },
   authorUser: { id: "teacher-1", firstName: "Paul", lastName: "Martin" },
   isFavorite: false,
@@ -209,11 +221,106 @@ describe("ResourcesScreen", () => {
     await openCreateForm();
 
     expect(screen.getByTestId("resources-form-title")).toBeTruthy();
+    expect(screen.getByTestId("resources-form-cycle")).toBeTruthy();
     expect(screen.getByTestId("resources-form-level")).toBeTruthy();
     expect(screen.getByTestId("resources-form-subject")).toBeTruthy();
     expect(screen.getByTestId("resources-form-sequence")).toBeTruthy();
     expect(screen.getByTestId("resources-form-academic-year")).toBeTruthy();
     expect(screen.queryByTestId("resources-tab-ASSESSMENT")).toBeNull();
+  });
+
+  it("cascade cycle → niveau → filière → matière : le niveau est filtré par cycle, la filière n'apparaît que si le niveau en a, et la matière est filtrée par le curriculum résolu", async () => {
+    mockResourcesApi.getCatalog.mockResolvedValue({
+      cycles: [
+        { id: "cycle-1", code: "SECONDARY", label: "Secondaire" },
+        { id: "cycle-2", code: "PRIMARY", label: "Primaire" },
+      ],
+      academicLevels: [
+        { id: "level-1", code: "6EME", label: "6ème", cycleId: "cycle-2" },
+        {
+          id: "level-tle",
+          code: "TLE",
+          label: "Terminale",
+          cycleId: "cycle-1",
+        },
+      ],
+      tracks: [
+        { id: "track-d", code: "D", label: "Série D" },
+        { id: "track-c", code: "C", label: "Série C" },
+      ],
+      curriculums: [
+        { id: "curriculum-1", academicLevelId: "level-1", trackId: null },
+        {
+          id: "curriculum-tle-d",
+          academicLevelId: "level-tle",
+          trackId: "track-d",
+        },
+        {
+          id: "curriculum-tle-c",
+          academicLevelId: "level-tle",
+          trackId: "track-c",
+        },
+      ],
+      curriculumSubjects: [
+        { curriculumId: "curriculum-1", subjectId: "subject-1" },
+        { curriculumId: "curriculum-tle-d", subjectId: "subject-1" },
+        { curriculumId: "curriculum-tle-c", subjectId: "subject-2" },
+      ],
+      subjects: [
+        { id: "subject-1", code: "MATH", name: "Mathématiques" },
+        { id: "subject-2", code: "PHILO", name: "Philosophie" },
+      ],
+    });
+
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
+    await openCreateForm();
+
+    // Avant tout choix de cycle, le niveau "Terminale" (cycle-1) n'est pas
+    // proposé tant que le cycle "Secondaire" n'a pas été sélectionné.
+    fireEvent.press(screen.getByTestId("resources-form-cycle"));
+    expect(
+      screen.queryByTestId("resources-form-cycle-option-cycle-1"),
+    ).toBeTruthy();
+    fireEvent.press(screen.getByTestId("resources-form-cycle-option-cycle-1"));
+
+    fireEvent.press(screen.getByTestId("resources-form-level"));
+    expect(
+      screen.queryByTestId("resources-form-level-option-level-1"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("resources-form-level-option-level-tle"),
+    ).toBeTruthy();
+    fireEvent.press(
+      screen.getByTestId("resources-form-level-option-level-tle"),
+    );
+
+    // Terminale a des filières : le champ filière doit apparaître, et la
+    // matière ne peut pas encore être choisie tant que la filière ne l'est
+    // pas (curriculum non résolu).
+    expect(screen.getByTestId("resources-form-track")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("resources-form-subject"));
+    expect(
+      screen.queryByTestId("resources-form-subject-option-subject-1"),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId("resources-form-subject-option-subject-2"),
+    ).toBeNull();
+    fireEvent.press(screen.getByTestId("resources-form-subject"));
+
+    fireEvent.press(screen.getByTestId("resources-form-track"));
+    fireEvent.press(screen.getByTestId("resources-form-track-option-track-c"));
+
+    fireEvent.press(screen.getByTestId("resources-form-subject"));
+    expect(
+      screen.getByTestId("resources-form-subject-option-subject-2"),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId("resources-form-subject-option-subject-1"),
+    ).toBeNull();
   });
 
   it("onboarding : cocher « ne plus afficher » saute la modale au prochain FAB", async () => {
@@ -348,6 +455,8 @@ describe("ResourcesScreen", () => {
       "Contrôle chapitre 4",
     );
 
+    fireEvent.press(screen.getByTestId("resources-form-cycle"));
+    fireEvent.press(screen.getByTestId("resources-form-cycle-option-cycle-1"));
     fireEvent.press(screen.getByTestId("resources-form-level"));
     fireEvent.press(screen.getByTestId("resources-form-level-option-level-1"));
     fireEvent.press(screen.getByTestId("resources-form-subject"));
@@ -401,6 +510,8 @@ describe("ResourcesScreen", () => {
     await openCreateForm();
 
     fireEvent.changeText(screen.getByTestId("resources-form-title"), "X");
+    fireEvent.press(screen.getByTestId("resources-form-cycle"));
+    fireEvent.press(screen.getByTestId("resources-form-cycle-option-cycle-1"));
     fireEvent.press(screen.getByTestId("resources-form-level"));
     fireEvent.press(screen.getByTestId("resources-form-level-option-level-1"));
     fireEvent.press(screen.getByTestId("resources-form-subject"));
@@ -449,6 +560,8 @@ describe("ResourcesScreen", () => {
     await openCreateForm();
 
     fireEvent.changeText(screen.getByTestId("resources-form-title"), "X");
+    fireEvent.press(screen.getByTestId("resources-form-cycle"));
+    fireEvent.press(screen.getByTestId("resources-form-cycle-option-cycle-1"));
     fireEvent.press(screen.getByTestId("resources-form-level"));
     fireEvent.press(screen.getByTestId("resources-form-level-option-level-1"));
     fireEvent.press(screen.getByTestId("resources-form-subject"));

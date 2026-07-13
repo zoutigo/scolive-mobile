@@ -145,41 +145,65 @@ function examTypeOptions(t: TranslateFn): InlineSelectDropDownOption[] {
   ];
 }
 
-function buildResourceFormSchema(t: TranslateFn, kind: ResourceKind) {
-  return z.object({
-    title: z
-      .string()
-      .trim()
-      .min(1, t("resources.form.validation.titleRequired")),
-    academicLevelId: z
-      .string()
-      .trim()
-      .min(1, t("resources.form.validation.levelRequired")),
-    subjectId: z
-      .string()
-      .trim()
-      .min(1, t("resources.form.validation.subjectRequired")),
-    examType: z
-      .string()
-      .trim()
-      .min(1, t("resources.form.validation.examTypeRequired")),
-    sequence:
-      kind === "ASSESSMENT"
-        ? z
-            .string()
-            .trim()
-            .min(1, t("resources.form.validation.sequenceRequired"))
-        : z.string(),
-    academicYearLabel: z
-      .string()
-      .trim()
-      .min(1, t("resources.form.validation.academicYearRequired")),
-  });
+function buildResourceFormSchema(
+  t: TranslateFn,
+  kind: ResourceKind,
+  levelIdsWithTracks: Set<string>,
+) {
+  return z
+    .object({
+      title: z
+        .string()
+        .trim()
+        .min(1, t("resources.form.validation.titleRequired")),
+      cycleId: z
+        .string()
+        .trim()
+        .min(1, t("resources.form.validation.cycleRequired")),
+      academicLevelId: z
+        .string()
+        .trim()
+        .min(1, t("resources.form.validation.levelRequired")),
+      trackId: z.string(),
+      subjectId: z
+        .string()
+        .trim()
+        .min(1, t("resources.form.validation.subjectRequired")),
+      examType: z
+        .string()
+        .trim()
+        .min(1, t("resources.form.validation.examTypeRequired")),
+      sequence:
+        kind === "ASSESSMENT"
+          ? z
+              .string()
+              .trim()
+              .min(1, t("resources.form.validation.sequenceRequired"))
+          : z.string(),
+      academicYearLabel: z
+        .string()
+        .trim()
+        .min(1, t("resources.form.validation.academicYearRequired")),
+    })
+    .superRefine((values, ctx) => {
+      if (
+        levelIdsWithTracks.has(values.academicLevelId) &&
+        !values.trackId.trim()
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["trackId"],
+          message: t("resources.form.validation.trackRequired"),
+        });
+      }
+    });
 }
 
 type ResourceFormValues = {
   title: string;
+  cycleId: string;
   academicLevelId: string;
+  trackId: string;
   subjectId: string;
   examType: string;
   sequence: string;
@@ -205,7 +229,11 @@ export function ResourcesScreen() {
   const [tab, setTab] = useState<TabKey>("ASSESSMENT");
   const [formContext, setFormContext] = useState<FormContext | null>(null);
   const [catalog, setCatalog] = useState<ResourceCatalog>({
+    cycles: [],
     academicLevels: [],
+    tracks: [],
+    curriculums: [],
+    curriculumSubjects: [],
     subjects: [],
   });
   const [schools, setSchools] = useState<ResourceSchoolOption[]>([]);
@@ -1068,15 +1096,34 @@ function ResourceFormContent(props: {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const levelIdsWithTracks = useMemo(
+    () =>
+      new Set(
+        props.catalog.curriculums
+          .filter((c) => c.trackId)
+          .map((c) => c.academicLevelId),
+      ),
+    [props.catalog.curriculums],
+  );
+
+  const initialCycleId =
+    props.catalog.academicLevels.find(
+      (l) => l.id === initialValue?.academicLevelId,
+    )?.cycleId ?? "";
+
   const {
     control,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<ResourceFormValues>({
-    resolver: zodResolver(buildResourceFormSchema(t, kind)),
+    resolver: zodResolver(buildResourceFormSchema(t, kind, levelIdsWithTracks)),
     defaultValues: {
       title: initialValue?.title ?? "",
+      cycleId: initialCycleId,
       academicLevelId: initialValue?.academicLevelId ?? "",
+      trackId: initialValue?.trackId ?? "",
       subjectId: initialValue?.subjectId ?? "",
       examType: initialValue?.examType ?? "SEQUENCE_TEST",
       sequence: initialValue?.sequence ?? "SEQ_1",
@@ -1085,13 +1132,43 @@ function ResourceFormContent(props: {
     },
   });
 
+  const selectedCycleId = watch("cycleId");
+  const selectedLevelId = watch("academicLevelId");
+  const selectedTrackId = watch("trackId");
+
+  const cycleOptions: InlineSelectDropDownOption[] = props.catalog.cycles.map(
+    (c) => ({ value: c.id, label: c.label }),
+  );
   const levelOptions: InlineSelectDropDownOption[] =
-    props.catalog.academicLevels.map((l) => ({
-      value: l.id,
-      label: l.label,
-    }));
-  const subjectOptions: InlineSelectDropDownOption[] =
-    props.catalog.subjects.map((s) => ({
+    props.catalog.academicLevels
+      .filter((l) => !selectedCycleId || l.cycleId === selectedCycleId)
+      .map((l) => ({ value: l.id, label: l.label }));
+
+  const trackIdsForLevel = new Set(
+    props.catalog.curriculums
+      .filter((c) => c.academicLevelId === selectedLevelId && c.trackId)
+      .map((c) => c.trackId as string),
+  );
+  const levelHasTracks = trackIdsForLevel.size > 0;
+  const trackOptions: InlineSelectDropDownOption[] = props.catalog.tracks
+    .filter((tr) => trackIdsForLevel.has(tr.id))
+    .map((tr) => ({ value: tr.id, label: tr.label }));
+
+  const resolvedCurriculum = props.catalog.curriculums.find(
+    (c) =>
+      c.academicLevelId === selectedLevelId &&
+      c.trackId === (levelHasTracks ? selectedTrackId || null : null),
+  );
+  const subjectIdsForCurriculum = resolvedCurriculum
+    ? new Set(
+        props.catalog.curriculumSubjects
+          .filter((cs) => cs.curriculumId === resolvedCurriculum.id)
+          .map((cs) => cs.subjectId),
+      )
+    : new Set<string>();
+  const subjectOptions: InlineSelectDropDownOption[] = props.catalog.subjects
+    .filter((s) => subjectIdsForCurriculum.has(s.id))
+    .map((s) => ({
       value: s.id,
       label: s.name,
     }));
@@ -1113,6 +1190,7 @@ function ResourceFormContent(props: {
             ? (props.submitterSchoolId ?? undefined)
             : undefined,
         academicLevelId: values.academicLevelId,
+        trackId: levelHasTracks ? values.trackId || undefined : undefined,
         subjectId: values.subjectId,
         examType: values.examType as ResourceExamType,
         sequence:
@@ -1190,6 +1268,36 @@ function ResourceFormContent(props: {
 
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>
+            {t("resources.form.cycleLabel")}
+          </Text>
+          <Controller
+            control={control}
+            name="cycleId"
+            render={({ field: { value, onChange } }) => (
+              <InlineSelectDropDown
+                options={cycleOptions}
+                value={value}
+                onChange={(next) => {
+                  onChange(next);
+                  setValue("academicLevelId", "");
+                  setValue("trackId", "");
+                  setValue("subjectId", "");
+                }}
+                placeholder={t("resources.form.cyclePlaceholder")}
+                hasError={!!errors.cycleId}
+                testID="resources-form-cycle"
+              />
+            )}
+          />
+          {errors.cycleId?.message ? (
+            <Text style={styles.fieldError} testID="resources-form-cycle-error">
+              {errors.cycleId.message}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>
             {t("resources.form.levelLabel")}
           </Text>
           <Controller
@@ -1199,7 +1307,11 @@ function ResourceFormContent(props: {
               <InlineSelectDropDown
                 options={levelOptions}
                 value={value}
-                onChange={onChange}
+                onChange={(next) => {
+                  onChange(next);
+                  setValue("trackId", "");
+                  setValue("subjectId", "");
+                }}
                 placeholder={t("resources.form.levelPlaceholder")}
                 hasError={!!errors.academicLevelId}
                 testID="resources-form-level"
@@ -1212,6 +1324,39 @@ function ResourceFormContent(props: {
             </Text>
           ) : null}
         </View>
+
+        {levelHasTracks ? (
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>
+              {t("resources.form.trackLabel")}
+            </Text>
+            <Controller
+              control={control}
+              name="trackId"
+              render={({ field: { value, onChange } }) => (
+                <InlineSelectDropDown
+                  options={trackOptions}
+                  value={value}
+                  onChange={(next) => {
+                    onChange(next);
+                    setValue("subjectId", "");
+                  }}
+                  placeholder={t("resources.form.trackPlaceholder")}
+                  hasError={!!errors.trackId}
+                  testID="resources-form-track"
+                />
+              )}
+            />
+            {errors.trackId?.message ? (
+              <Text
+                style={styles.fieldError}
+                testID="resources-form-track-error"
+              >
+                {errors.trackId.message}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
 
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>

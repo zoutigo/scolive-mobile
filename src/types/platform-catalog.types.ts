@@ -61,11 +61,31 @@ export type CreateNationalAcademicLevelPayload = {
 export type UpdateNationalAcademicLevelPayload =
   Partial<CreateNationalAcademicLevelPayload>;
 
+export type NationalTrackRow = {
+  id: string;
+  code: string;
+  label: string;
+  isNational: true;
+  _count?: {
+    classes: number;
+    curriculums: number;
+  };
+};
+
+export type CreateNationalTrackPayload = {
+  code: string;
+  label: string;
+};
+
+export type UpdateNationalTrackPayload = Partial<CreateNationalTrackPayload>;
+
 export type NationalCurriculumRow = {
   id: string;
   name: string;
   academicLevelId: string;
+  trackId: string | null;
   academicLevel: { id: string; code: string; label: string };
+  track: { id: string; code: string; label: string } | null;
   isNational: true;
   _count: {
     classes: number;
@@ -75,6 +95,7 @@ export type NationalCurriculumRow = {
 
 export type CreateNationalCurriculumPayload = {
   academicLevelId: string;
+  trackId?: string;
 };
 
 export type UpdateNationalCurriculumPayload =
