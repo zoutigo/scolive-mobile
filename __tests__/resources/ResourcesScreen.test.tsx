@@ -603,7 +603,7 @@ describe("ResourcesScreen", () => {
     );
   });
 
-  it("succès : appelle l'API de création puis revient au tab d'origine après 2s", async () => {
+  it("succès : appelle l'API de création puis revient à l'onglet Mes ressources après 2s", async () => {
     jest.useFakeTimers();
     mockResourcesApi.createResource.mockResolvedValue({
       ...BASE_RESOURCE,
@@ -661,7 +661,63 @@ describe("ResourcesScreen", () => {
     await jest.advanceTimersByTimeAsync(2000);
 
     await waitFor(() =>
-      expect(screen.getByTestId("resources-tab-ASSESSMENT")).toBeTruthy(),
+      expect(screen.getByTestId("resources-tab-mine")).toBeTruthy(),
+    );
+
+    jest.useRealTimers();
+  });
+
+  it("édition : ne renvoie jamais la propriété kind à l'API et revient à Mes ressources après succès", async () => {
+    jest.useFakeTimers();
+    mockResourcesApi.listMyResources.mockResolvedValue({
+      items: [{ ...BASE_RESOURCE, authorUserId: TEACHER_USER.id }],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+    mockResourcesApi.getResource.mockResolvedValue({
+      ...BASE_RESOURCE,
+      authorUserId: TEACHER_USER.id,
+      attachments: [],
+    });
+    mockResourcesApi.updateResource.mockResolvedValue({
+      ...BASE_RESOURCE,
+      authorUserId: TEACHER_USER.id,
+      attachments: [],
+    });
+
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-tab-mine")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("resources-tab-mine"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`resources-card-${BASE_RESOURCE.id}-edit-btn`),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId(`resources-card-${BASE_RESOURCE.id}-edit-btn`),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-form-hero")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("resources-form-submit"));
+
+    await waitFor(() =>
+      expect(mockResourcesApi.updateResource).toHaveBeenCalled(),
+    );
+    const [, payload] = mockResourcesApi.updateResource.mock.calls[0];
+    expect(payload).not.toHaveProperty("kind");
+
+    await jest.advanceTimersByTimeAsync(2000);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-tab-mine")).toBeTruthy(),
     );
 
     jest.useRealTimers();

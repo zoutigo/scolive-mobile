@@ -547,7 +547,9 @@ export function ResourcesScreen() {
     payload: UpsertResourcePayload,
   ): Promise<void> {
     if (formContext?.type === "edit" && formContext.item) {
-      await resourcesApi.updateResource(formContext.item.id, payload);
+      const updatePayload: Partial<UpsertResourcePayload> = { ...payload };
+      delete updatePayload.kind;
+      await resourcesApi.updateResource(formContext.item.id, updatePayload);
     } else {
       await resourcesApi.createResource(payload);
     }
@@ -558,10 +560,9 @@ export function ResourcesScreen() {
       title: t("resources.toast.successTitle"),
       message: t("resources.toast.successMessage"),
     });
-    const originTab = formContext?.originTab ?? "ASSESSMENT";
     setTimeout(() => {
       setFormContext(null);
-      setTab(originTab);
+      setTab("mine");
     }, 2000);
   }
 
