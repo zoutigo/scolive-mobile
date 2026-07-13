@@ -28,6 +28,7 @@ import {
 } from "../editor/RichEditorField";
 import { RichContentView } from "../editor/RichContentView";
 import { downloadAndOpenAttachment } from "../../utils/attachment-download";
+import { toAttachmentPayload } from "../../utils/resource-attachments";
 import {
   EXAM_TYPE_KEYS,
   SEQUENCE_LABELS,
@@ -184,7 +185,10 @@ export function ResourceDetailScreen(props: {
       const submission = await resourcesApi.saveSubmissionDraft(
         resourceId,
         part,
-        { content: html.trim(), attachments: draftAttachments },
+        {
+          content: html.trim(),
+          attachments: toAttachmentPayload(draftAttachments),
+        },
       );
       setMySubmissions((current) => {
         const others = current.filter((s) => s.id !== submission.id);
@@ -217,7 +221,10 @@ export function ResourceDetailScreen(props: {
       const submission = await resourcesApi.saveSubmissionDraft(
         resourceId,
         part,
-        { content: html.trim(), attachments: draftAttachments },
+        {
+          content: html.trim(),
+          attachments: toAttachmentPayload(draftAttachments),
+        },
       );
       const submitted = await resourcesApi.submitSubmission(
         resourceId,

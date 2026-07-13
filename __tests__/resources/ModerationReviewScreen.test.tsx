@@ -402,7 +402,14 @@ describe("ModerationReviewScreen", () => {
         mockResourcesAdminApi.updateSubmissionContent,
       ).toHaveBeenCalledWith("sub-1", {
         content: "<p>Voici le corrigé proposé</p>",
-        attachments: makeSubmission().attachments,
+        attachments: [
+          {
+            fileName: "correction-scanne.pdf",
+            fileUrl: "https://files.example.com/correction-scanne.pdf",
+            mimeType: undefined,
+            sizeLabel: undefined,
+          },
+        ],
       }),
     );
     await waitFor(() =>

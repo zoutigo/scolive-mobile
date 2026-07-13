@@ -27,6 +27,7 @@ import {
 } from "../editor/RichEditorField";
 import { RichContentView } from "../editor/RichContentView";
 import { downloadAndOpenAttachment } from "../../utils/attachment-download";
+import { toAttachmentPayload } from "../../utils/resource-attachments";
 import { EXAM_TYPE_KEYS, SEQUENCE_LABELS } from "./ResourceCard";
 import type {
   ResourceAttachment,
@@ -158,7 +159,10 @@ export function ModerationReviewScreen(props: {
       const html = (await editorRef.current?.getContentHtml()) ?? editContent;
       const updated = await resourcesAdminApi.updateSubmissionContent(
         submission.id,
-        { content: html.trim(), attachments: editAttachments },
+        {
+          content: html.trim(),
+          attachments: toAttachmentPayload(editAttachments),
+        },
       );
       setSubmission(updated);
       setIsEditing(false);
