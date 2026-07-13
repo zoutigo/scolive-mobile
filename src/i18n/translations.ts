@@ -837,6 +837,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.contribution.colorMenu.title": "Couleur du texte",
     "resources.contribution.colorMenu.message": "Choisissez une couleur",
     "resources.contribution.newProposal": "Nouvelle proposition",
+    "resources.contribution.contentRequired": "Le contenu est obligatoire.",
 
     "resources.moderation.proposedByLabel": "Proposé par",
     "resources.moderation.approveThis": "Valider celle-ci",
@@ -3257,6 +3258,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.contribution.colorMenu.title": "Text color",
     "resources.contribution.colorMenu.message": "Choose a color",
     "resources.contribution.newProposal": "New proposal",
+    "resources.contribution.contentRequired": "Content is required.",
 
     "resources.moderation.proposedByLabel": "Proposed by",
     "resources.moderation.approveThis": "Approve this one",

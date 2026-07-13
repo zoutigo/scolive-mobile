@@ -45,6 +45,10 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+function hasMeaningfulContent(html: string): boolean {
+  return stripHtml(html).length > 0 || /<img[\s>]/i.test(html);
+}
+
 const ACTIVE_STATUSES = new Set(["DRAFT", "AWAITING"]);
 
 export function ResourceDetailScreen(props: {
@@ -71,6 +75,7 @@ export function ResourceDetailScreen(props: {
     ResourceAttachment[]
   >([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [contentError, setContentError] = useState<string | null>(null);
   const editorRef = useRef<RichEditorFieldRef>(null);
 
   const load = useCallback(async () => {
@@ -193,10 +198,28 @@ export function ResourceDetailScreen(props: {
   }
 
   async function handleSubmit() {
-    if (!activeSubmission || activeSubmission.status !== "DRAFT") return;
+    const html = (await editorRef.current?.getContentHtml()) ?? draftContent;
+    if (!hasMeaningfulContent(html)) {
+      setContentError(t("resources.contribution.contentRequired"));
+      editorRef.current?.focus();
+      return;
+    }
+    setContentError(null);
     setIsSaving(true);
     try {
-      await resourcesApi.submitSubmission(resourceId, activeSubmission.id);
+      const submission = await resourcesApi.saveSubmissionDraft(
+        resourceId,
+        part,
+        { content: html.trim(), attachments: draftAttachments },
+      );
+      const submitted = await resourcesApi.submitSubmission(
+        resourceId,
+        submission.id,
+      );
+      setMySubmissions((current) => {
+        const others = current.filter((s) => s.id !== submitted.id);
+        return [...others, submitted];
+      });
       showSuccess({
         title: t("resources.toast.successTitle"),
         message: t("resources.contribution.submitted"),
@@ -434,6 +457,14 @@ export function ResourceDetailScreen(props: {
                       toolbarTestID={`resources-detail-editor-toolbar-${part}`}
                       editorTestID={`resources-detail-editor-${part}`}
                     />
+                    {contentError ? (
+                      <Text
+                        style={styles.fieldErrorText}
+                        testID={`resources-detail-content-error-${part}`}
+                      >
+                        {contentError}
+                      </Text>
+                    ) : null}
                     <TouchableOpacity
                       style={styles.addAttachmentBtn}
                       onPress={handleAddAttachment}
@@ -513,17 +544,10 @@ export function ResourceDetailScreen(props: {
                       <TouchableOpacity
                         style={[
                           styles.submitBtn,
-                          (isSaving ||
-                            !activeSubmission ||
-                            activeSubmission.status !== "DRAFT") &&
-                            styles.btnDisabled,
+                          isSaving && styles.btnDisabled,
                         ]}
                         onPress={handleSubmit}
-                        disabled={
-                          isSaving ||
-                          !activeSubmission ||
-                          activeSubmission.status !== "DRAFT"
-                        }
+                        disabled={isSaving}
                         testID={`resources-detail-submit-${part}`}
                       >
                         {isSaving ? (
@@ -606,6 +630,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     fontStyle: "italic",
+  },
+  fieldErrorText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.notification,
   },
   lockedBanner: {
     flexDirection: "row",

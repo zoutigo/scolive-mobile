@@ -31,17 +31,27 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock("../../src/components/editor/RichEditorField", () => {
-  const { forwardRef, useImperativeHandle } = require("react");
+  const {
+    forwardRef,
+    useImperativeHandle,
+    useRef,
+    useState,
+  } = require("react");
   const { TextInput } = require("react-native");
   const RichEditorField = forwardRef((props: any, ref: any) => {
+    const [value, setValue] = useState(props.initialHtml ?? "");
+    const valueRef = useRef(value);
+    valueRef.current = value;
+    const focus = jest.fn();
     useImperativeHandle(ref, () => ({
-      getContentHtml: async () => props.initialHtml ?? "",
+      getContentHtml: async () => valueRef.current,
+      focus,
     }));
     return (
       <TextInput
         testID={props.editorTestID}
-        value={props.initialHtml}
-        onChangeText={() => {}}
+        value={value}
+        onChangeText={setValue}
         placeholder={props.placeholder}
       />
     );
@@ -355,6 +365,10 @@ describe("ResourceDetailScreen", () => {
         screen.getByTestId("resources-detail-editor-correction"),
       ).toBeTruthy(),
     );
+    fireEvent.changeText(
+      screen.getByTestId("resources-detail-editor-correction"),
+      "<p>Contenu du brouillon</p>",
+    );
     fireEvent.press(
       screen.getByTestId("resources-detail-save-draft-correction"),
     );
@@ -367,12 +381,6 @@ describe("ResourceDetailScreen", () => {
       ),
     );
 
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("resources-detail-submit-correction").props
-          .accessibilityState?.disabled,
-      ).toBe(false),
-    );
     fireEvent.press(screen.getByTestId("resources-detail-submit-correction"));
 
     await waitFor(() =>
@@ -381,6 +389,81 @@ describe("ResourceDetailScreen", () => {
         draft.id,
       ),
     );
+  });
+
+  it("RÉGRESSION : le bouton Soumettre reste actif sans brouillon préalable et soumet directement un contenu valide", async () => {
+    mockUseAuthStore.mockReturnValue({ user: TEACHER_USER } as never);
+    mockResourcesApi.getResource.mockResolvedValue(BASE_DETAIL);
+    mockResourcesApi.listSubmissions.mockResolvedValue([]);
+    const created = makeSubmission({
+      status: "DRAFT",
+      content: "<p>Contenu</p>",
+    });
+    mockResourcesApi.saveSubmissionDraft.mockResolvedValue(created);
+    mockResourcesApi.submitSubmission.mockResolvedValue({
+      ...created,
+      status: "AWAITING",
+    });
+
+    render(<ResourceDetailScreen resourceId="res-1" part="correction" />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("resources-detail-editor-correction"),
+      ).toBeTruthy(),
+    );
+
+    // Aucun brouillon n'a été enregistré au préalable : le bouton doit
+    // rester actif dès le chargement (jamais bloqué par l'absence de
+    // submission active), conformément au standard formulaires.
+    expect(
+      screen.getByTestId("resources-detail-submit-correction").props
+        .accessibilityState?.disabled,
+    ).toBe(false);
+
+    fireEvent.changeText(
+      screen.getByTestId("resources-detail-editor-correction"),
+      "<p>Contenu saisi directement</p>",
+    );
+    fireEvent.press(screen.getByTestId("resources-detail-submit-correction"));
+
+    await waitFor(() =>
+      expect(mockResourcesApi.saveSubmissionDraft).toHaveBeenCalledWith(
+        "res-1",
+        "correction",
+        expect.objectContaining({ content: expect.any(String) }),
+      ),
+    );
+    await waitFor(() =>
+      expect(mockResourcesApi.submitSubmission).toHaveBeenCalledWith(
+        "res-1",
+        created.id,
+      ),
+    );
+  });
+
+  it("affiche une erreur sous l'éditeur et bloque l'appel API si le contenu est vide à la soumission", async () => {
+    mockUseAuthStore.mockReturnValue({ user: TEACHER_USER } as never);
+    mockResourcesApi.getResource.mockResolvedValue(BASE_DETAIL);
+    mockResourcesApi.listSubmissions.mockResolvedValue([]);
+
+    render(<ResourceDetailScreen resourceId="res-1" part="correction" />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("resources-detail-editor-correction"),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("resources-detail-submit-correction"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("resources-detail-content-error-correction"),
+      ).toBeTruthy(),
+    );
+    expect(mockResourcesApi.saveSubmissionDraft).not.toHaveBeenCalled();
+    expect(mockResourcesApi.submitSubmission).not.toHaveBeenCalled();
   });
 
   it("affiche le statut « en attente » et masque l'éditeur quand la soumission est AWAITING", async () => {
