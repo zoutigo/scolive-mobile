@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
@@ -22,6 +23,8 @@ interface InlineSearchSelectProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  /** Options are still being fetched: field is disabled and shows a spinner instead of looking unresponsive. */
+  loading?: boolean;
   hasError?: boolean;
   testID: string;
   /** Called with the raw query text as the user types, e.g. to trigger a server-side search. */
@@ -39,12 +42,14 @@ export function InlineSearchSelect({
   onChange,
   placeholder = "—",
   disabled = false,
+  loading = false,
   hasError = false,
   testID,
   onQueryChange,
 }: InlineSearchSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const isDisabled = disabled || loading;
 
   const selected = options.find((o) => o.value === value);
 
@@ -68,7 +73,7 @@ export function InlineSearchSelect({
           style={[
             styles.inputWrapper,
             hasError && styles.inputWrapperError,
-            disabled && styles.inputWrapperDisabled,
+            isDisabled && styles.inputWrapperDisabled,
           ]}
         >
           <TextInput
@@ -79,7 +84,7 @@ export function InlineSearchSelect({
               onQueryChange?.(text);
             }}
             onFocus={() => {
-              if (disabled) return;
+              if (isDisabled) return;
               setOpen(true);
               setQuery("");
             }}
@@ -87,13 +92,19 @@ export function InlineSearchSelect({
               setOpen(false);
               setQuery("");
             }}
-            editable={!disabled}
+            editable={!isDisabled}
             placeholder={placeholder}
             placeholderTextColor={colors.textSecondary}
             style={styles.input}
             testID={`${testID}-input`}
           />
-          {!disabled ? (
+          {loading ? (
+            <ActivityIndicator
+              size="small"
+              color={colors.textSecondary}
+              testID={`${testID}-loading`}
+            />
+          ) : !disabled ? (
             <Ionicons
               name={open ? "chevron-up" : "chevron-down"}
               size={16}

@@ -246,6 +246,7 @@ export function ResourcesScreen() {
   const [formSchools, setFormSchools] = useState<ResourceSchoolSearchOption[]>(
     [],
   );
+  const [formSchoolsLoading, setFormSchoolsLoading] = useState(true);
 
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -328,7 +329,8 @@ export function ResourcesScreen() {
     resourcesApi
       .searchSchools()
       .then(setFormSchools)
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setFormSchoolsLoading(false));
   }, []);
 
   const loadList = useCallback(
@@ -1068,6 +1070,7 @@ export function ResourcesScreen() {
             formContext={formContext}
             catalog={catalog}
             schools={formSchools}
+            schoolsLoading={formSchoolsLoading}
             onSubmit={handleSubmitResource}
             onCancel={exitForms}
             isSubmitting={isSubmitting}
@@ -1099,6 +1102,7 @@ function ResourceFormContent(props: {
   formContext: FormContext;
   catalog: ResourceCatalog;
   schools: ResourceSchoolSearchOption[];
+  schoolsLoading: boolean;
   onSubmit: (payload: UpsertResourcePayload) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
@@ -1364,7 +1368,12 @@ function ResourceFormContent(props: {
                     setValue("trackId", "");
                     setValue("subjectId", "");
                   }}
-                  placeholder={t("resources.form.schoolPlaceholder")}
+                  placeholder={
+                    props.schoolsLoading
+                      ? t("resources.form.schoolLoading")
+                      : t("resources.form.schoolPlaceholder")
+                  }
+                  loading={props.schoolsLoading}
                   onQueryChange={handleSchoolQueryChange}
                   hasError={!!errors.schoolId}
                   testID="resources-form-school"
