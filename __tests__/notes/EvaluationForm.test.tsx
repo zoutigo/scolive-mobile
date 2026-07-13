@@ -667,6 +667,60 @@ describe("EvaluationForm — toutes les erreurs simultanément au premier submit
   });
 });
 
+// ─── 7bis. Scroll / focus vers la première erreur au submit invalide ────────
+//
+// Bug corrigé : un submit invalide n'amenait le champ en erreur à l'écran que
+// s'il était déjà visible ; un champ requis situé plus bas (ou au-dessus,
+// après avoir scrollé) restait invisible et l'utilisateur avait l'impression
+// qu'« il ne se passe rien » au tap sur Publier/Sauvegarder. Vérifié
+// manuellement sur émulateur pour le rendu natif (scrollTo/focus réels non
+// simulables par react-test-renderer) ; ici on couvre le câblage qui ne doit
+// jamais lever d'exception, quel que soit le champ en tête de formulaire.
+describe("EvaluationForm — câblage du scroll vers la première erreur", () => {
+  it("déclenche onLayout sur les groupes de champs sans crasher", () => {
+    render(<EvaluationForm {...buildProps()} />);
+
+    const titleGroup = screen.getByTestId("eval-form-title").parent;
+    const dateGroup = screen.getByTestId("eval-form-date").parent?.parent;
+
+    expect(() =>
+      fireEvent(titleGroup!, "layout", {
+        nativeEvent: { layout: { x: 0, y: 40, width: 320, height: 60 } },
+      }),
+    ).not.toThrow();
+    expect(() =>
+      fireEvent(dateGroup!, "layout", {
+        nativeEvent: { layout: { x: 0, y: 500, width: 320, height: 60 } },
+      }),
+    ).not.toThrow();
+  });
+
+  it("un submit invalide après enregistrement des offsets ne lève pas d'exception, quel que soit le champ fautif", async () => {
+    render(<EvaluationForm {...buildProps()} />);
+
+    const titleGroup = screen.getByTestId("eval-form-title").parent;
+    fireEvent(titleGroup!, "layout", {
+      nativeEvent: { layout: { x: 0, y: 40, width: 320, height: 60 } },
+    });
+
+    // Titre rempli, date absente : le premier champ en erreur (date) n'a
+    // jamais été mesuré (pas d'offset enregistré) — le handler doit rester
+    // silencieux plutôt que de crasher.
+    fireEvent.changeText(
+      screen.getByTestId("eval-form-title"),
+      "Composition T1",
+    );
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("eval-form-publish"));
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("eval-form-date-error")).toBeTruthy(),
+    );
+  });
+});
+
 // ─── 8. Bordure d'erreur sur les inputs ──────────────────────────────────────
 
 describe("EvaluationForm — bordure rouge des champs en erreur", () => {

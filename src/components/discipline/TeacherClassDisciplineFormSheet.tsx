@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   Modal,
   ScrollView,
@@ -34,6 +34,7 @@ import {
   StudentSelectField,
   type StudentSelectOption,
 } from "./StudentSelectField";
+import { useScrollToFirstError } from "../../hooks/useScrollToFirstError";
 
 function createTeacherClassDisciplineFormSchema(
   baseSchema: DisciplineFormSchema,
@@ -144,6 +145,26 @@ export function TeacherClassDisciplineFormSheet({
     defaultValues,
   });
 
+  const occurredAtRef = useRef<TextInput>(null);
+  const reasonRef = useRef<TextInput>(null);
+  const durationRef = useRef<TextInput>(null);
+  const {
+    scrollViewRef,
+    registerFieldOffset,
+    registerFieldInputRef,
+    focusFirstInvalidField,
+  } = useScrollToFirstError<keyof FormValues>();
+  registerFieldInputRef("occurredAt", occurredAtRef);
+  registerFieldInputRef("reason", reasonRef);
+  registerFieldInputRef("durationMinutes", durationRef);
+
+  const FIELD_ORDER: Array<keyof FormValues> = [
+    "studentId",
+    "occurredAt",
+    "reason",
+    "durationMinutes",
+  ];
+
   const watchedValues = watch();
   const selectedType = watch("type");
 
@@ -186,19 +207,22 @@ export function TeacherClassDisciplineFormSheet({
     ? t("discipline.form.buttons.edit")
     : t("discipline.form.buttons.create");
 
-  const onSave = handleSubmit(async (values) => {
-    await onSubmit({
-      studentId: values.studentId,
-      payload: {
-        ...buildLifeEventPayload(values, baseSchema),
-        classId,
-      },
-    });
-    if (!editing) {
-      clearDraft(classId);
-      reset(buildCreateDefaults(classId));
-    }
-  });
+  const onSave = handleSubmit(
+    async (values) => {
+      await onSubmit({
+        studentId: values.studentId,
+        payload: {
+          ...buildLifeEventPayload(values, baseSchema),
+          classId,
+        },
+      });
+      if (!editing) {
+        clearDraft(classId);
+        reset(buildCreateDefaults(classId));
+      }
+    },
+    (formErrors) => focusFirstInvalidField(FIELD_ORDER, formErrors),
+  );
 
   return (
     <Modal
@@ -229,29 +253,34 @@ export function TeacherClassDisciplineFormSheet({
           </View>
 
           <ScrollView
+            ref={scrollViewRef}
             style={styles.scroll}
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <Controller
-              control={control}
-              name="studentId"
-              render={({ field: { value, onChange } }) => (
-                <StudentSelectField
-                  label={t("discipline.form.fields.student")}
-                  value={value}
-                  options={studentOptions}
-                  onChange={onChange}
-                  allowEmpty={false}
-                  placeholder={t("discipline.form.fields.studentPlaceholder")}
-                  testIDPrefix="discipline-form-student"
-                />
-              )}
-            />
-            {errors.studentId ? (
-              <Text style={styles.fieldError}>{errors.studentId.message}</Text>
-            ) : null}
+            <View onLayout={registerFieldOffset("studentId")}>
+              <Controller
+                control={control}
+                name="studentId"
+                render={({ field: { value, onChange } }) => (
+                  <StudentSelectField
+                    label={t("discipline.form.fields.student")}
+                    value={value}
+                    options={studentOptions}
+                    onChange={onChange}
+                    allowEmpty={false}
+                    placeholder={t("discipline.form.fields.studentPlaceholder")}
+                    testIDPrefix="discipline-form-student"
+                  />
+                )}
+              />
+              {errors.studentId ? (
+                <Text style={styles.fieldError}>
+                  {errors.studentId.message}
+                </Text>
+              ) : null}
+            </View>
 
             <View style={styles.fieldBlock}>
               <Text style={styles.fieldLabel}>
@@ -297,66 +326,77 @@ export function TeacherClassDisciplineFormSheet({
               </View>
             </View>
 
-            <Controller
-              control={control}
-              name="occurredAt"
-              render={({ field: { value, onChange } }) => (
-                <FieldTextInput
-                  label={t("discipline.form.fields.dateTime")}
-                  value={value}
-                  onChangeText={onChange}
-                  placeholder={t(
-                    "discipline.form.fields.dateTimePlaceholderIso",
-                  )}
-                  testID="discipline-form-occurred-at"
-                />
-              )}
-            />
-            {errors.occurredAt ? (
-              <Text style={styles.fieldError}>{errors.occurredAt.message}</Text>
-            ) : null}
+            <View onLayout={registerFieldOffset("occurredAt")}>
+              <Controller
+                control={control}
+                name="occurredAt"
+                render={({ field: { value, onChange } }) => (
+                  <FieldTextInput
+                    ref={occurredAtRef}
+                    label={t("discipline.form.fields.dateTime")}
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder={t(
+                      "discipline.form.fields.dateTimePlaceholderIso",
+                    )}
+                    testID="discipline-form-occurred-at"
+                  />
+                )}
+              />
+              {errors.occurredAt ? (
+                <Text style={styles.fieldError}>
+                  {errors.occurredAt.message}
+                </Text>
+              ) : null}
+            </View>
 
-            <Controller
-              control={control}
-              name="reason"
-              render={({ field: { value, onChange } }) => (
-                <FieldTextInput
-                  label={t("discipline.form.fields.description")}
-                  value={value}
-                  onChangeText={onChange}
-                  placeholder={t(
-                    "discipline.form.fields.reasonPlaceholderShort",
-                  )}
-                  multiline
-                  testID="discipline-form-reason"
-                />
-              )}
-            />
-            {errors.reason ? (
-              <Text style={styles.fieldError}>{errors.reason.message}</Text>
-            ) : null}
+            <View onLayout={registerFieldOffset("reason")}>
+              <Controller
+                control={control}
+                name="reason"
+                render={({ field: { value, onChange } }) => (
+                  <FieldTextInput
+                    ref={reasonRef}
+                    label={t("discipline.form.fields.description")}
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder={t(
+                      "discipline.form.fields.reasonPlaceholderShort",
+                    )}
+                    multiline
+                    testID="discipline-form-reason"
+                  />
+                )}
+              />
+              {errors.reason ? (
+                <Text style={styles.fieldError}>{errors.reason.message}</Text>
+              ) : null}
+            </View>
 
-            <Controller
-              control={control}
-              name="durationMinutes"
-              render={({ field: { value, onChange } }) => (
-                <FieldTextInput
-                  label={t("discipline.form.fields.duration")}
-                  value={value}
-                  onChangeText={onChange}
-                  placeholder={t(
-                    "discipline.form.fields.durationPlaceholderAlt",
-                  )}
-                  keyboardType="numeric"
-                  testID="discipline-form-duration"
-                />
-              )}
-            />
-            {errors.durationMinutes ? (
-              <Text style={styles.fieldError}>
-                {errors.durationMinutes.message}
-              </Text>
-            ) : null}
+            <View onLayout={registerFieldOffset("durationMinutes")}>
+              <Controller
+                control={control}
+                name="durationMinutes"
+                render={({ field: { value, onChange } }) => (
+                  <FieldTextInput
+                    ref={durationRef}
+                    label={t("discipline.form.fields.duration")}
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder={t(
+                      "discipline.form.fields.durationPlaceholderAlt",
+                    )}
+                    keyboardType="numeric"
+                    testID="discipline-form-duration"
+                  />
+                )}
+              />
+              {errors.durationMinutes ? (
+                <Text style={styles.fieldError}>
+                  {errors.durationMinutes.message}
+                </Text>
+              ) : null}
+            </View>
 
             {typeHasJustified(selectedType) ? (
               <Controller
@@ -442,19 +482,23 @@ export function TeacherClassDisciplineFormSheet({
   );
 }
 
-function FieldTextInput(props: {
-  label: string;
-  value: string;
-  onChangeText: (value: string) => void;
-  placeholder: string;
-  keyboardType?: "default" | "numeric";
-  multiline?: boolean;
-  testID: string;
-}) {
+const FieldTextInput = React.forwardRef<
+  TextInput,
+  {
+    label: string;
+    value: string;
+    onChangeText: (value: string) => void;
+    placeholder: string;
+    keyboardType?: "default" | "numeric";
+    multiline?: boolean;
+    testID: string;
+  }
+>(function FieldTextInput(props, ref) {
   return (
     <View style={styles.fieldBlock}>
       <Text style={styles.fieldLabel}>{props.label}</Text>
       <TextInput
+        ref={ref}
         style={[styles.input, props.multiline && styles.inputMultiline]}
         value={props.value}
         onChangeText={props.onChangeText}
@@ -468,7 +512,7 @@ function FieldTextInput(props: {
       />
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   overlay: {

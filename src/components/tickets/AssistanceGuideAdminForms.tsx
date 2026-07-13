@@ -72,6 +72,24 @@ type Props = {
 
 export function AssistanceGuideAdminForms({ onDone }: Props) {
   const editorRef = useRef<RichEditorFieldRef>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const guideTitleRef = useRef<TextInput>(null);
+  const chapterTitleRef = useRef<TextInput>(null);
+  const sectionOffsets = useRef<{ guide: number; chapter: number }>({
+    guide: 0,
+    chapter: 0,
+  });
+  function registerSectionOffset(section: "guide" | "chapter") {
+    return (e: { nativeEvent: { layout: { y: number } } }) => {
+      sectionOffsets.current[section] = e.nativeEvent.layout.y;
+    };
+  }
+  function scrollToSection(section: "guide" | "chapter") {
+    scrollRef.current?.scrollTo({
+      y: Math.max(0, sectionOffsets.current[section] - 12),
+      animated: true,
+    });
+  }
   const { showSuccess, showError } = useSuccessToastStore();
 
   const [adminMode, setAdminMode] = useState<"GLOBAL" | "SCHOOL" | null>(null);
@@ -223,6 +241,7 @@ export function AssistanceGuideAdminForms({ onDone }: Props) {
       testID="assistance-guide-admin-forms-mobile"
     >
       <ScrollView
+        ref={scrollRef}
         style={styles.formScroll}
         contentContainerStyle={styles.formScrollContent}
         keyboardShouldPersistTaps="handled"
@@ -259,13 +278,19 @@ export function AssistanceGuideAdminForms({ onDone }: Props) {
           </View>
         ) : null}
 
-        <Text style={styles.formLabel}>Créer un guide</Text>
+        <Text
+          style={styles.formLabel}
+          onLayout={registerSectionOffset("guide")}
+        >
+          Créer un guide
+        </Text>
         <Controller
           control={guideForm.control}
           name="title"
           render={({ field: { onChange, value }, fieldState }) => (
             <>
               <TextInput
+                ref={guideTitleRef}
                 style={[styles.input, fieldState.error && styles.inputError]}
                 placeholder="Titre du guide"
                 placeholderTextColor={colors.textSecondary}
@@ -310,7 +335,15 @@ export function AssistanceGuideAdminForms({ onDone }: Props) {
 
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={guideForm.handleSubmit((values) => void createGuide(values))}
+          onPress={guideForm.handleSubmit(
+            (values) => void createGuide(values),
+            (errs) => {
+              if (errs.title) {
+                scrollToSection("guide");
+                guideTitleRef.current?.focus();
+              }
+            },
+          )}
           disabled={savingGuide}
           testID="assistance-guide-admin-create-guide-submit"
         >
@@ -319,13 +352,19 @@ export function AssistanceGuideAdminForms({ onDone }: Props) {
           </Text>
         </TouchableOpacity>
 
-        <Text style={styles.sectionTitle}>Créer un chapitre</Text>
+        <Text
+          style={styles.sectionTitle}
+          onLayout={registerSectionOffset("chapter")}
+        >
+          Créer un chapitre
+        </Text>
         <Controller
           control={chapterForm.control}
           name="title"
           render={({ field: { onChange, value }, fieldState }) => (
             <>
               <TextInput
+                ref={chapterTitleRef}
                 style={[styles.input, fieldState.error && styles.inputError]}
                 placeholder="Titre du chapitre"
                 placeholderTextColor={colors.textSecondary}
@@ -439,6 +478,14 @@ export function AssistanceGuideAdminForms({ onDone }: Props) {
           style={styles.primaryBtn}
           onPress={chapterForm.handleSubmit(
             (values) => void createChapter(values),
+            (errs) => {
+              if (errs.title || errs.contentHtml || errs.videoUrl) {
+                scrollToSection("chapter");
+              }
+              if (errs.title) {
+                chapterTitleRef.current?.focus();
+              }
+            },
           )}
           disabled={savingChapter}
           testID="assistance-guide-admin-create-chapter-submit"

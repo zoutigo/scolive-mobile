@@ -49,6 +49,7 @@ import {
 } from "./ResourceCard";
 import { ResourceCreationOnboardingModal } from "./ResourceCreationOnboardingModal";
 import { moduleBack } from "../../utils/moduleBack";
+import { useScrollToFirstError } from "../../hooks/useScrollToFirstError";
 import type {
   ResourceAdminSubmission,
   ResourceCatalog,
@@ -1114,6 +1115,15 @@ function ResourceFormContent(props: {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const titleInputRef = useRef<TextInput>(null);
+  const {
+    scrollViewRef,
+    registerFieldOffset,
+    registerFieldInputRef,
+    focusFirstInvalidField,
+  } = useScrollToFirstError<keyof ResourceFormValues>();
+  registerFieldInputRef("title", titleInputRef);
+
   const levelIdsWithTracks = useMemo(
     () =>
       new Set(
@@ -1269,32 +1279,48 @@ function ResourceFormContent(props: {
         ? t("resources.form.createExamHeroTitle")
         : t("resources.form.createAssessmentHeroTitle");
 
-  const handleSave = handleSubmit(async (values) => {
-    setErrorMessage(null);
-    try {
-      const payload: UpsertResourcePayload = {
-        kind,
-        schoolId: kind === "ASSESSMENT" ? values.schoolId : undefined,
-        academicLevelId: values.academicLevelId,
-        trackId: levelHasTracks ? values.trackId || undefined : undefined,
-        subjectId: values.subjectId,
-        examType: values.examType as ResourceExamType,
-        sequence:
-          kind === "ASSESSMENT"
-            ? (values.sequence as ResourceSequence)
-            : undefined,
-        academicYearLabel: values.academicYearLabel,
-        title: values.title.trim(),
-      };
-      await props.onSubmit(payload);
-    } catch (error) {
-      setErrorMessage(extractApiError(error));
-    }
-  });
+  const FIELD_ORDER: Array<keyof ResourceFormValues> = [
+    "title",
+    "schoolId",
+    "cycleId",
+    "academicLevelId",
+    "trackId",
+    "subjectId",
+    "examType",
+    "academicYearLabel",
+    "sequence",
+  ];
+
+  const handleSave = handleSubmit(
+    async (values) => {
+      setErrorMessage(null);
+      try {
+        const payload: UpsertResourcePayload = {
+          kind,
+          schoolId: kind === "ASSESSMENT" ? values.schoolId : undefined,
+          academicLevelId: values.academicLevelId,
+          trackId: levelHasTracks ? values.trackId || undefined : undefined,
+          subjectId: values.subjectId,
+          examType: values.examType as ResourceExamType,
+          sequence:
+            kind === "ASSESSMENT"
+              ? (values.sequence as ResourceSequence)
+              : undefined,
+          academicYearLabel: values.academicYearLabel,
+          title: values.title.trim(),
+        };
+        await props.onSubmit(payload);
+      } catch (error) {
+        setErrorMessage(extractApiError(error));
+      }
+    },
+    (formErrors) => focusFirstInvalidField(FIELD_ORDER, formErrors),
+  );
 
   return (
     <View style={styles.formsTabContent} testID="resources-form-tab">
       <ScrollView
+        ref={scrollViewRef}
         style={styles.formScroll}
         contentContainerStyle={styles.formScrollContent}
         keyboardShouldPersistTaps="handled"
@@ -1327,7 +1353,7 @@ function ResourceFormContent(props: {
           </View>
         ) : null}
 
-        <View style={styles.fieldGroup}>
+        <View style={styles.fieldGroup} onLayout={registerFieldOffset("title")}>
           <Text style={styles.fieldLabel}>
             {t("resources.form.titleLabel")}
           </Text>
@@ -1336,6 +1362,7 @@ function ResourceFormContent(props: {
             name="title"
             render={({ field: { value, onChange } }) => (
               <TextInput
+                ref={titleInputRef}
                 value={value}
                 onChangeText={onChange}
                 placeholder={t("resources.form.titlePlaceholder")}
@@ -1353,7 +1380,10 @@ function ResourceFormContent(props: {
         </View>
 
         {requiresSchool ? (
-          <View style={styles.fieldGroup}>
+          <View
+            style={styles.fieldGroup}
+            onLayout={registerFieldOffset("schoolId")}
+          >
             <Controller
               control={control}
               name="schoolId"
@@ -1402,7 +1432,10 @@ function ResourceFormContent(props: {
         ) : null}
 
         {!requiresSchool ? (
-          <View style={styles.fieldGroup}>
+          <View
+            style={styles.fieldGroup}
+            onLayout={registerFieldOffset("cycleId")}
+          >
             <Text style={styles.fieldLabel}>
               {t("resources.form.cycleLabel")}
             </Text>
@@ -1436,7 +1469,10 @@ function ResourceFormContent(props: {
           </View>
         ) : null}
 
-        <View style={styles.fieldGroup}>
+        <View
+          style={styles.fieldGroup}
+          onLayout={registerFieldOffset("academicLevelId")}
+        >
           <Text style={styles.fieldLabel}>
             {t("resources.form.levelLabel")}
           </Text>
@@ -1466,7 +1502,10 @@ function ResourceFormContent(props: {
         </View>
 
         {levelHasTracks ? (
-          <View style={styles.fieldGroup}>
+          <View
+            style={styles.fieldGroup}
+            onLayout={registerFieldOffset("trackId")}
+          >
             <Text style={styles.fieldLabel}>
               {t("resources.form.trackLabel")}
             </Text>
@@ -1498,7 +1537,10 @@ function ResourceFormContent(props: {
           </View>
         ) : null}
 
-        <View style={styles.fieldGroup}>
+        <View
+          style={styles.fieldGroup}
+          onLayout={registerFieldOffset("subjectId")}
+        >
           <Text style={styles.fieldLabel}>
             {t("resources.form.subjectLabel")}
           </Text>
@@ -1526,7 +1568,10 @@ function ResourceFormContent(props: {
           ) : null}
         </View>
 
-        <View style={styles.fieldGroup}>
+        <View
+          style={styles.fieldGroup}
+          onLayout={registerFieldOffset("examType")}
+        >
           <Text style={styles.fieldLabel}>
             {t("resources.form.examTypeLabel")}
           </Text>
@@ -1554,7 +1599,10 @@ function ResourceFormContent(props: {
           ) : null}
         </View>
 
-        <View style={styles.fieldGroup}>
+        <View
+          style={styles.fieldGroup}
+          onLayout={registerFieldOffset("academicYearLabel")}
+        >
           <Text style={styles.fieldLabel}>
             {t("resources.form.academicYearLabel")}
           </Text>
@@ -1583,7 +1631,10 @@ function ResourceFormContent(props: {
         </View>
 
         {kind === "ASSESSMENT" ? (
-          <View style={styles.fieldGroup}>
+          <View
+            style={styles.fieldGroup}
+            onLayout={registerFieldOffset("sequence")}
+          >
             <Text style={styles.fieldLabel}>
               {t("resources.form.sequenceLabel")}
             </Text>

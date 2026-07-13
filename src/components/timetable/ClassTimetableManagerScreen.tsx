@@ -51,6 +51,7 @@ import {
 } from "./TimetableCommon";
 import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 import { moduleBack } from "../../utils/moduleBack";
+import { useScrollToFirstError } from "../../hooks/useScrollToFirstError";
 
 type TabKey = "agenda" | "slots" | "oneoff" | "holidays";
 
@@ -239,6 +240,37 @@ export function ClassTimetableManagerScreen() {
       endDate: range.toDate,
     },
   });
+
+  type AnyTimetableFormField =
+    | keyof SlotValues
+    | keyof OneOffValues
+    | keyof HolidayValues;
+  const { scrollViewRef, registerFieldOffset, focusFirstInvalidField } =
+    useScrollToFirstError<AnyTimetableFormField>();
+  const SLOT_FIELD_ORDER: Array<keyof SlotValues> = [
+    "subjectId",
+    "teacherUserId",
+    "weekdays",
+    "start",
+    "end",
+    "roomId",
+    "activeFromDate",
+    "activeToDate",
+  ];
+  const ONE_OFF_FIELD_ORDER: Array<keyof OneOffValues> = [
+    "subjectId",
+    "teacherUserId",
+    "occurrenceDate",
+    "start",
+    "end",
+    "roomId",
+    "status",
+  ];
+  const HOLIDAY_FIELD_ORDER: Array<keyof HolidayValues> = [
+    "label",
+    "startDate",
+    "endDate",
+  ];
 
   const slotSubjectId = slotRhf.watch("subjectId");
   const slotWeekdays = slotRhf.watch("weekdays");
@@ -523,6 +555,7 @@ export function ClassTimetableManagerScreen() {
         });
       }
     },
+    (formErrors) => focusFirstInvalidField(SLOT_FIELD_ORDER, formErrors),
   );
 
   const handleSaveOneOffSlot = oneOffRhf.handleSubmit(
@@ -577,6 +610,7 @@ export function ClassTimetableManagerScreen() {
         });
       }
     },
+    (formErrors) => focusFirstInvalidField(ONE_OFF_FIELD_ORDER, formErrors),
   );
 
   const handleSaveHoliday = holidayRhf.handleSubmit(
@@ -620,6 +654,7 @@ export function ClassTimetableManagerScreen() {
         });
       }
     },
+    (formErrors) => focusFirstInvalidField(HOLIDAY_FIELD_ORDER, formErrors),
   );
 
   async function handleDeleteRecurringSlot(slot: TimetableRecurringSlot) {
@@ -745,6 +780,7 @@ export function ClassTimetableManagerScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView
+          ref={scrollViewRef}
           style={styles.root}
           contentContainerStyle={[
             styles.content,
@@ -833,231 +869,241 @@ export function ClassTimetableManagerScreen() {
             </SectionCard>
           ) : tab === "slots" ? (
             <>
-              <SectionCard
-                title={
-                  slotEditId
-                    ? t("timetable.classManager.slots.editTitle")
-                    : t("timetable.classManager.slots.newTitle")
+              <View
+                onLayout={(e) =>
+                  SLOT_FIELD_ORDER.forEach((name) =>
+                    registerFieldOffset(name)(e),
+                  )
                 }
-                subtitle={t("timetable.classManager.slots.subtitle")}
               >
-                <Controller
-                  control={slotRhf.control}
-                  name="subjectId"
-                  render={({ field }) => (
-                    <PillSelector
-                      label={t("timetable.classManager.fields.subject")}
-                      value={field.value}
-                      onChange={(subjectId) => {
-                        const assignment =
-                          classContext.assignments.find(
-                            (entry) => entry.subjectId === subjectId,
-                          ) ?? classContext.assignments[0];
-                        field.onChange(subjectId);
-                        slotRhf.setValue(
-                          "teacherUserId",
-                          assignment?.teacherUserId ?? field.value,
-                        );
-                      }}
-                      options={subjectOptions}
-                    />
-                  )}
-                />
-                <Controller
-                  control={slotRhf.control}
-                  name="teacherUserId"
-                  render={({ field }) => (
-                    <PillSelector
-                      label={t("timetable.classManager.fields.teacher")}
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={subjectScopedTeachers}
-                    />
-                  )}
-                />
-                <Controller
-                  control={slotRhf.control}
-                  name="weekdays"
-                  render={({ field }) => {
-                    const weekdayOptions = [
-                      {
-                        value: "1",
-                        label: t("timetable.classManager.weekdays.mon"),
-                      },
-                      {
-                        value: "2",
-                        label: t("timetable.classManager.weekdays.tue"),
-                      },
-                      {
-                        value: "3",
-                        label: t("timetable.classManager.weekdays.wed"),
-                      },
-                      {
-                        value: "4",
-                        label: t("timetable.classManager.weekdays.thu"),
-                      },
-                      {
-                        value: "5",
-                        label: t("timetable.classManager.weekdays.fri"),
-                      },
-                      {
-                        value: "6",
-                        label: t("timetable.classManager.weekdays.sat"),
-                      },
-                      {
-                        value: "7",
-                        label: t("timetable.classManager.weekdays.sun"),
-                      },
-                    ];
-                    return slotEditId ? (
+                <SectionCard
+                  title={
+                    slotEditId
+                      ? t("timetable.classManager.slots.editTitle")
+                      : t("timetable.classManager.slots.newTitle")
+                  }
+                  subtitle={t("timetable.classManager.slots.subtitle")}
+                >
+                  <Controller
+                    control={slotRhf.control}
+                    name="subjectId"
+                    render={({ field }) => (
                       <PillSelector
-                        label={t("timetable.classManager.fields.day")}
-                        value={field.value[0] ?? "1"}
-                        onChange={(v) => field.onChange([v])}
-                        options={weekdayOptions}
-                        testIDPrefix="slot-form-weekday"
+                        label={t("timetable.classManager.fields.subject")}
+                        value={field.value}
+                        onChange={(subjectId) => {
+                          const assignment =
+                            classContext.assignments.find(
+                              (entry) => entry.subjectId === subjectId,
+                            ) ?? classContext.assignments[0];
+                          field.onChange(subjectId);
+                          slotRhf.setValue(
+                            "teacherUserId",
+                            assignment?.teacherUserId ?? field.value,
+                          );
+                        }}
+                        options={subjectOptions}
                       />
-                    ) : (
-                      <MultiPillSelector
-                        label={t("timetable.classManager.fields.days")}
-                        values={field.value}
+                    )}
+                  />
+                  <Controller
+                    control={slotRhf.control}
+                    name="teacherUserId"
+                    render={({ field }) => (
+                      <PillSelector
+                        label={t("timetable.classManager.fields.teacher")}
+                        value={field.value}
                         onChange={field.onChange}
-                        options={weekdayOptions}
-                        testIDPrefix="slot-form-weekday"
+                        options={subjectScopedTeachers}
                       />
-                    );
-                  }}
-                />
-                <View style={styles.row}>
-                  <View style={styles.rowField}>
-                    <Text style={styles.rowFieldLabel}>
-                      {t("timetable.classManager.fields.start")}
-                    </Text>
-                    <Controller
-                      control={slotRhf.control}
-                      name="start"
-                      render={({ field }) => (
-                        <TimePickerField
-                          value={field.value}
-                          onChange={field.onChange}
-                          title={t(
-                            "timetable.classManager.timePicker.startTitle",
-                          )}
-                          placeholder="07:30"
-                          testID="slot-form-start"
-                        />
-                      )}
-                    />
-                  </View>
-                  <View style={styles.rowField}>
-                    <Text style={styles.rowFieldLabel}>
-                      {t("timetable.classManager.fields.end")}
-                    </Text>
-                    <Controller
-                      control={slotRhf.control}
-                      name="end"
-                      render={({ field }) => (
-                        <TimePickerField
-                          value={field.value}
-                          onChange={field.onChange}
-                          title={t(
-                            "timetable.classManager.timePicker.endTitle",
-                          )}
-                          placeholder="08:20"
-                          testID="slot-form-end"
-                        />
-                      )}
-                    />
-                  </View>
-                </View>
-                <Controller
-                  control={slotRhf.control}
-                  name="roomId"
-                  render={({ field }) => (
-                    <PillSelector
-                      label={t("timetable.classManager.fields.room")}
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={roomPillOptions(
-                        slotRoomAvailability,
-                        field.value,
-                        t,
-                      )}
-                      testIDPrefix="slot-form-room"
-                    />
-                  )}
-                />
-                <View style={styles.row}>
-                  <Controller
-                    control={slotRhf.control}
-                    name="activeFromDate"
-                    render={({ field, fieldState }) => (
-                      <View style={{ flex: 1 }}>
-                        <TextField
-                          label={t("timetable.classManager.fields.activeFrom")}
-                          value={field.value}
-                          onChangeText={field.onChange}
-                          placeholder={t(
-                            "timetable.classManager.placeholders.isoDate",
-                          )}
-                          hasError={!!fieldState.error}
-                        />
-                        {fieldState.error ? (
-                          <Text style={styles.fieldError}>
-                            {fieldState.error.message}
-                          </Text>
-                        ) : null}
-                      </View>
                     )}
                   />
                   <Controller
                     control={slotRhf.control}
-                    name="activeToDate"
-                    render={({ field, fieldState }) => (
-                      <View style={{ flex: 1 }}>
-                        <TextField
-                          label={t("timetable.classManager.fields.activeTo")}
-                          value={field.value}
-                          onChangeText={field.onChange}
-                          placeholder={t(
-                            "timetable.classManager.placeholders.isoDate",
-                          )}
-                          hasError={!!fieldState.error}
+                    name="weekdays"
+                    render={({ field }) => {
+                      const weekdayOptions = [
+                        {
+                          value: "1",
+                          label: t("timetable.classManager.weekdays.mon"),
+                        },
+                        {
+                          value: "2",
+                          label: t("timetable.classManager.weekdays.tue"),
+                        },
+                        {
+                          value: "3",
+                          label: t("timetable.classManager.weekdays.wed"),
+                        },
+                        {
+                          value: "4",
+                          label: t("timetable.classManager.weekdays.thu"),
+                        },
+                        {
+                          value: "5",
+                          label: t("timetable.classManager.weekdays.fri"),
+                        },
+                        {
+                          value: "6",
+                          label: t("timetable.classManager.weekdays.sat"),
+                        },
+                        {
+                          value: "7",
+                          label: t("timetable.classManager.weekdays.sun"),
+                        },
+                      ];
+                      return slotEditId ? (
+                        <PillSelector
+                          label={t("timetable.classManager.fields.day")}
+                          value={field.value[0] ?? "1"}
+                          onChange={(v) => field.onChange([v])}
+                          options={weekdayOptions}
+                          testIDPrefix="slot-form-weekday"
                         />
-                        {fieldState.error ? (
-                          <Text style={styles.fieldError}>
-                            {fieldState.error.message}
-                          </Text>
-                        ) : null}
-                      </View>
+                      ) : (
+                        <MultiPillSelector
+                          label={t("timetable.classManager.fields.days")}
+                          values={field.value}
+                          onChange={field.onChange}
+                          options={weekdayOptions}
+                          testIDPrefix="slot-form-weekday"
+                        />
+                      );
+                    }}
+                  />
+                  <View style={styles.row}>
+                    <View style={styles.rowField}>
+                      <Text style={styles.rowFieldLabel}>
+                        {t("timetable.classManager.fields.start")}
+                      </Text>
+                      <Controller
+                        control={slotRhf.control}
+                        name="start"
+                        render={({ field }) => (
+                          <TimePickerField
+                            value={field.value}
+                            onChange={field.onChange}
+                            title={t(
+                              "timetable.classManager.timePicker.startTitle",
+                            )}
+                            placeholder="07:30"
+                            testID="slot-form-start"
+                          />
+                        )}
+                      />
+                    </View>
+                    <View style={styles.rowField}>
+                      <Text style={styles.rowFieldLabel}>
+                        {t("timetable.classManager.fields.end")}
+                      </Text>
+                      <Controller
+                        control={slotRhf.control}
+                        name="end"
+                        render={({ field }) => (
+                          <TimePickerField
+                            value={field.value}
+                            onChange={field.onChange}
+                            title={t(
+                              "timetable.classManager.timePicker.endTitle",
+                            )}
+                            placeholder="08:20"
+                            testID="slot-form-end"
+                          />
+                        )}
+                      />
+                    </View>
+                  </View>
+                  <Controller
+                    control={slotRhf.control}
+                    name="roomId"
+                    render={({ field }) => (
+                      <PillSelector
+                        label={t("timetable.classManager.fields.room")}
+                        value={field.value}
+                        onChange={field.onChange}
+                        options={roomPillOptions(
+                          slotRoomAvailability,
+                          field.value,
+                          t,
+                        )}
+                        testIDPrefix="slot-form-room"
+                      />
                     )}
                   />
-                </View>
-                <View style={styles.actionsRow}>
-                  <TouchableOpacity
-                    style={styles.primaryButton}
-                    onPress={() => void handleSaveRecurringSlot()}
-                    disabled={isSubmitting}
-                    testID="slot-form-submit"
-                  >
-                    <Text style={styles.primaryButtonText}>
-                      {slotEditId
-                        ? t("timetable.classManager.buttons.updateSlot")
-                        : t("timetable.classManager.buttons.addSlot")}
-                    </Text>
-                  </TouchableOpacity>
-                  {slotEditId ? (
+                  <View style={styles.row}>
+                    <Controller
+                      control={slotRhf.control}
+                      name="activeFromDate"
+                      render={({ field, fieldState }) => (
+                        <View style={{ flex: 1 }}>
+                          <TextField
+                            label={t(
+                              "timetable.classManager.fields.activeFrom",
+                            )}
+                            value={field.value}
+                            onChangeText={field.onChange}
+                            placeholder={t(
+                              "timetable.classManager.placeholders.isoDate",
+                            )}
+                            hasError={!!fieldState.error}
+                          />
+                          {fieldState.error ? (
+                            <Text style={styles.fieldError}>
+                              {fieldState.error.message}
+                            </Text>
+                          ) : null}
+                        </View>
+                      )}
+                    />
+                    <Controller
+                      control={slotRhf.control}
+                      name="activeToDate"
+                      render={({ field, fieldState }) => (
+                        <View style={{ flex: 1 }}>
+                          <TextField
+                            label={t("timetable.classManager.fields.activeTo")}
+                            value={field.value}
+                            onChangeText={field.onChange}
+                            placeholder={t(
+                              "timetable.classManager.placeholders.isoDate",
+                            )}
+                            hasError={!!fieldState.error}
+                          />
+                          {fieldState.error ? (
+                            <Text style={styles.fieldError}>
+                              {fieldState.error.message}
+                            </Text>
+                          ) : null}
+                        </View>
+                      )}
+                    />
+                  </View>
+                  <View style={styles.actionsRow}>
                     <TouchableOpacity
-                      style={styles.secondaryButton}
-                      onPress={resetSlotForm}
+                      style={styles.primaryButton}
+                      onPress={() => void handleSaveRecurringSlot()}
+                      disabled={isSubmitting}
+                      testID="slot-form-submit"
                     >
-                      <Text style={styles.secondaryButtonText}>
-                        {t("timetable.common.cancel")}
+                      <Text style={styles.primaryButtonText}>
+                        {slotEditId
+                          ? t("timetable.classManager.buttons.updateSlot")
+                          : t("timetable.classManager.buttons.addSlot")}
                       </Text>
                     </TouchableOpacity>
-                  ) : null}
-                </View>
-              </SectionCard>
+                    {slotEditId ? (
+                      <TouchableOpacity
+                        style={styles.secondaryButton}
+                        onPress={resetSlotForm}
+                      >
+                        <Text style={styles.secondaryButtonText}>
+                          {t("timetable.common.cancel")}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                </SectionCard>
+              </View>
 
               <SectionCard
                 title={t("timetable.classManager.existingSlots.title")}
@@ -1122,176 +1168,184 @@ export function ClassTimetableManagerScreen() {
             </>
           ) : tab === "oneoff" ? (
             <>
-              <SectionCard
-                title={
-                  oneOffEditId
-                    ? t("timetable.classManager.oneoff.editTitle")
-                    : t("timetable.classManager.oneoff.newTitle")
+              <View
+                onLayout={(e) =>
+                  ONE_OFF_FIELD_ORDER.forEach((name) =>
+                    registerFieldOffset(name)(e),
+                  )
                 }
-                subtitle={t("timetable.classManager.oneoff.subtitle")}
               >
-                <Controller
-                  control={oneOffRhf.control}
-                  name="subjectId"
-                  render={({ field }) => (
-                    <PillSelector
-                      label={t("timetable.classManager.fields.subject")}
-                      value={field.value}
-                      onChange={(subjectId) => {
-                        const assignment =
-                          classContext.assignments.find(
-                            (entry) => entry.subjectId === subjectId,
-                          ) ?? classContext.assignments[0];
-                        field.onChange(subjectId);
-                        oneOffRhf.setValue(
-                          "teacherUserId",
-                          assignment?.teacherUserId ?? field.value,
-                        );
-                      }}
-                      options={subjectOptions}
-                    />
-                  )}
-                />
-                <Controller
-                  control={oneOffRhf.control}
-                  name="teacherUserId"
-                  render={({ field }) => (
-                    <PillSelector
-                      label={t("timetable.classManager.fields.teacher")}
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={teacherOptions}
-                    />
-                  )}
-                />
-                <Controller
-                  control={oneOffRhf.control}
-                  name="occurrenceDate"
-                  render={({ field, fieldState }) => (
-                    <>
-                      <TextField
-                        label={t("timetable.classManager.fields.date")}
+                <SectionCard
+                  title={
+                    oneOffEditId
+                      ? t("timetable.classManager.oneoff.editTitle")
+                      : t("timetable.classManager.oneoff.newTitle")
+                  }
+                  subtitle={t("timetable.classManager.oneoff.subtitle")}
+                >
+                  <Controller
+                    control={oneOffRhf.control}
+                    name="subjectId"
+                    render={({ field }) => (
+                      <PillSelector
+                        label={t("timetable.classManager.fields.subject")}
                         value={field.value}
-                        onChangeText={field.onChange}
-                        placeholder={t(
-                          "timetable.classManager.placeholders.isoDate",
-                        )}
-                        hasError={!!fieldState.error}
-                        testID="oneoff-form-date"
+                        onChange={(subjectId) => {
+                          const assignment =
+                            classContext.assignments.find(
+                              (entry) => entry.subjectId === subjectId,
+                            ) ?? classContext.assignments[0];
+                          field.onChange(subjectId);
+                          oneOffRhf.setValue(
+                            "teacherUserId",
+                            assignment?.teacherUserId ?? field.value,
+                          );
+                        }}
+                        options={subjectOptions}
                       />
-                      {fieldState.error ? (
-                        <Text style={styles.fieldError}>
-                          {fieldState.error.message}
-                        </Text>
-                      ) : null}
-                    </>
-                  )}
-                />
-                <View style={styles.row}>
-                  <View style={styles.rowField}>
-                    <Text style={styles.rowFieldLabel}>
-                      {t("timetable.classManager.fields.start")}
-                    </Text>
-                    <Controller
-                      control={oneOffRhf.control}
-                      name="start"
-                      render={({ field }) => (
-                        <TimePickerField
+                    )}
+                  />
+                  <Controller
+                    control={oneOffRhf.control}
+                    name="teacherUserId"
+                    render={({ field }) => (
+                      <PillSelector
+                        label={t("timetable.classManager.fields.teacher")}
+                        value={field.value}
+                        onChange={field.onChange}
+                        options={teacherOptions}
+                      />
+                    )}
+                  />
+                  <Controller
+                    control={oneOffRhf.control}
+                    name="occurrenceDate"
+                    render={({ field, fieldState }) => (
+                      <>
+                        <TextField
+                          label={t("timetable.classManager.fields.date")}
                           value={field.value}
-                          onChange={field.onChange}
-                          title={t(
-                            "timetable.classManager.timePicker.startTitle",
+                          onChangeText={field.onChange}
+                          placeholder={t(
+                            "timetable.classManager.placeholders.isoDate",
                           )}
-                          placeholder="10:00"
-                          testID="oneoff-form-start"
+                          hasError={!!fieldState.error}
+                          testID="oneoff-form-date"
                         />
-                      )}
-                    />
+                        {fieldState.error ? (
+                          <Text style={styles.fieldError}>
+                            {fieldState.error.message}
+                          </Text>
+                        ) : null}
+                      </>
+                    )}
+                  />
+                  <View style={styles.row}>
+                    <View style={styles.rowField}>
+                      <Text style={styles.rowFieldLabel}>
+                        {t("timetable.classManager.fields.start")}
+                      </Text>
+                      <Controller
+                        control={oneOffRhf.control}
+                        name="start"
+                        render={({ field }) => (
+                          <TimePickerField
+                            value={field.value}
+                            onChange={field.onChange}
+                            title={t(
+                              "timetable.classManager.timePicker.startTitle",
+                            )}
+                            placeholder="10:00"
+                            testID="oneoff-form-start"
+                          />
+                        )}
+                      />
+                    </View>
+                    <View style={styles.rowField}>
+                      <Text style={styles.rowFieldLabel}>
+                        {t("timetable.classManager.fields.end")}
+                      </Text>
+                      <Controller
+                        control={oneOffRhf.control}
+                        name="end"
+                        render={({ field }) => (
+                          <TimePickerField
+                            value={field.value}
+                            onChange={field.onChange}
+                            title={t(
+                              "timetable.classManager.timePicker.endTitle",
+                            )}
+                            placeholder="10:50"
+                            testID="oneoff-form-end"
+                          />
+                        )}
+                      />
+                    </View>
                   </View>
-                  <View style={styles.rowField}>
-                    <Text style={styles.rowFieldLabel}>
-                      {t("timetable.classManager.fields.end")}
-                    </Text>
-                    <Controller
-                      control={oneOffRhf.control}
-                      name="end"
-                      render={({ field }) => (
-                        <TimePickerField
-                          value={field.value}
-                          onChange={field.onChange}
-                          title={t(
-                            "timetable.classManager.timePicker.endTitle",
-                          )}
-                          placeholder="10:50"
-                          testID="oneoff-form-end"
-                        />
-                      )}
-                    />
-                  </View>
-                </View>
-                <Controller
-                  control={oneOffRhf.control}
-                  name="roomId"
-                  render={({ field }) => (
-                    <PillSelector
-                      label={t("timetable.classManager.fields.room")}
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={roomPillOptions(
-                        oneOffRoomAvailability,
-                        field.value,
-                        t,
-                      )}
-                      testIDPrefix="oneoff-form-room"
-                    />
-                  )}
-                />
-                <Controller
-                  control={oneOffRhf.control}
-                  name="status"
-                  render={({ field }) => (
-                    <PillSelector
-                      label={t("timetable.classManager.fields.status")}
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={[
-                        {
-                          value: "PLANNED",
-                          label: t("timetable.common.statusPlanned"),
-                        },
-                        {
-                          value: "CANCELLED",
-                          label: t("timetable.common.statusCancelled"),
-                        },
-                      ]}
-                    />
-                  )}
-                />
-                <View style={styles.actionsRow}>
-                  <TouchableOpacity
-                    style={styles.primaryButton}
-                    onPress={() => void handleSaveOneOffSlot()}
-                    disabled={isSubmitting}
-                    testID="oneoff-form-submit"
-                  >
-                    <Text style={styles.primaryButtonText}>
-                      {oneOffEditId
-                        ? t("timetable.classManager.buttons.updateOneOff")
-                        : t("timetable.classManager.buttons.addOneOff")}
-                    </Text>
-                  </TouchableOpacity>
-                  {oneOffEditId ? (
+                  <Controller
+                    control={oneOffRhf.control}
+                    name="roomId"
+                    render={({ field }) => (
+                      <PillSelector
+                        label={t("timetable.classManager.fields.room")}
+                        value={field.value}
+                        onChange={field.onChange}
+                        options={roomPillOptions(
+                          oneOffRoomAvailability,
+                          field.value,
+                          t,
+                        )}
+                        testIDPrefix="oneoff-form-room"
+                      />
+                    )}
+                  />
+                  <Controller
+                    control={oneOffRhf.control}
+                    name="status"
+                    render={({ field }) => (
+                      <PillSelector
+                        label={t("timetable.classManager.fields.status")}
+                        value={field.value}
+                        onChange={field.onChange}
+                        options={[
+                          {
+                            value: "PLANNED",
+                            label: t("timetable.common.statusPlanned"),
+                          },
+                          {
+                            value: "CANCELLED",
+                            label: t("timetable.common.statusCancelled"),
+                          },
+                        ]}
+                      />
+                    )}
+                  />
+                  <View style={styles.actionsRow}>
                     <TouchableOpacity
-                      style={styles.secondaryButton}
-                      onPress={resetOneOffForm}
+                      style={styles.primaryButton}
+                      onPress={() => void handleSaveOneOffSlot()}
+                      disabled={isSubmitting}
+                      testID="oneoff-form-submit"
                     >
-                      <Text style={styles.secondaryButtonText}>
-                        {t("timetable.common.cancel")}
+                      <Text style={styles.primaryButtonText}>
+                        {oneOffEditId
+                          ? t("timetable.classManager.buttons.updateOneOff")
+                          : t("timetable.classManager.buttons.addOneOff")}
                       </Text>
                     </TouchableOpacity>
-                  ) : null}
-                </View>
-              </SectionCard>
+                    {oneOffEditId ? (
+                      <TouchableOpacity
+                        style={styles.secondaryButton}
+                        onPress={resetOneOffForm}
+                      >
+                        <Text style={styles.secondaryButtonText}>
+                          {t("timetable.common.cancel")}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                </SectionCard>
+              </View>
 
               <SectionCard
                 title={t("timetable.classManager.existingOneOff.title")}
@@ -1355,120 +1409,128 @@ export function ClassTimetableManagerScreen() {
             </>
           ) : (
             <>
-              <SectionCard
-                title={
-                  holidayEditId
-                    ? t("timetable.classManager.holidays.editTitle")
-                    : t("timetable.classManager.holidays.newTitle")
+              <View
+                onLayout={(e) =>
+                  HOLIDAY_FIELD_ORDER.forEach((name) =>
+                    registerFieldOffset(name)(e),
+                  )
                 }
-                subtitle={t("timetable.classManager.holidays.subtitle")}
               >
-                <Controller
-                  control={holidayRhf.control}
-                  name="label"
-                  render={({ field, fieldState }) => (
-                    <>
-                      <TextField
-                        label={t("timetable.classManager.fields.label")}
-                        value={field.value}
-                        onChangeText={field.onChange}
-                        placeholder={t(
-                          "timetable.classManager.placeholders.holidayLabel",
+                <SectionCard
+                  title={
+                    holidayEditId
+                      ? t("timetable.classManager.holidays.editTitle")
+                      : t("timetable.classManager.holidays.newTitle")
+                  }
+                  subtitle={t("timetable.classManager.holidays.subtitle")}
+                >
+                  <Controller
+                    control={holidayRhf.control}
+                    name="label"
+                    render={({ field, fieldState }) => (
+                      <>
+                        <TextField
+                          label={t("timetable.classManager.fields.label")}
+                          value={field.value}
+                          onChangeText={field.onChange}
+                          placeholder={t(
+                            "timetable.classManager.placeholders.holidayLabel",
+                          )}
+                          hasError={!!fieldState.error}
+                          testID="holiday-form-label"
+                        />
+                        {fieldState.error ? (
+                          <Text style={styles.fieldError}>
+                            {fieldState.error.message}
+                          </Text>
+                        ) : null}
+                      </>
+                    )}
+                  />
+                  <View style={styles.row}>
+                    <View style={styles.rowField}>
+                      <Text style={styles.rowFieldLabel}>
+                        {t("timetable.classManager.validation.startLabel")}
+                      </Text>
+                      <Controller
+                        control={holidayRhf.control}
+                        name="startDate"
+                        render={({ field, fieldState }) => (
+                          <>
+                            <DatePickerField
+                              value={field.value}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              title={t(
+                                "timetable.classManager.validation.startLabel",
+                              )}
+                              hasError={!!fieldState.error}
+                              testID="holiday-form-startDate"
+                            />
+                            {fieldState.error ? (
+                              <Text style={styles.fieldError}>
+                                {fieldState.error.message}
+                              </Text>
+                            ) : null}
+                          </>
                         )}
-                        hasError={!!fieldState.error}
-                        testID="holiday-form-label"
                       />
-                      {fieldState.error ? (
-                        <Text style={styles.fieldError}>
-                          {fieldState.error.message}
-                        </Text>
-                      ) : null}
-                    </>
-                  )}
-                />
-                <View style={styles.row}>
-                  <View style={styles.rowField}>
-                    <Text style={styles.rowFieldLabel}>
-                      {t("timetable.classManager.validation.startLabel")}
-                    </Text>
-                    <Controller
-                      control={holidayRhf.control}
-                      name="startDate"
-                      render={({ field, fieldState }) => (
-                        <>
-                          <DatePickerField
-                            value={field.value}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
-                            title={t(
-                              "timetable.classManager.validation.startLabel",
-                            )}
-                            hasError={!!fieldState.error}
-                            testID="holiday-form-startDate"
-                          />
-                          {fieldState.error ? (
-                            <Text style={styles.fieldError}>
-                              {fieldState.error.message}
-                            </Text>
-                          ) : null}
-                        </>
-                      )}
-                    />
+                    </View>
+                    <View style={styles.rowField}>
+                      <Text style={styles.rowFieldLabel}>
+                        {t("timetable.classManager.validation.endLabel")}
+                      </Text>
+                      <Controller
+                        control={holidayRhf.control}
+                        name="endDate"
+                        render={({ field, fieldState }) => (
+                          <>
+                            <DatePickerField
+                              value={field.value}
+                              onChange={field.onChange}
+                              onBlur={field.onBlur}
+                              title={t(
+                                "timetable.classManager.validation.endLabel",
+                              )}
+                              hasError={!!fieldState.error}
+                              testID="holiday-form-endDate"
+                            />
+                            {fieldState.error ? (
+                              <Text style={styles.fieldError}>
+                                {fieldState.error.message}
+                              </Text>
+                            ) : null}
+                          </>
+                        )}
+                      />
+                    </View>
                   </View>
-                  <View style={styles.rowField}>
-                    <Text style={styles.rowFieldLabel}>
-                      {t("timetable.classManager.validation.endLabel")}
-                    </Text>
-                    <Controller
-                      control={holidayRhf.control}
-                      name="endDate"
-                      render={({ field, fieldState }) => (
-                        <>
-                          <DatePickerField
-                            value={field.value}
-                            onChange={field.onChange}
-                            onBlur={field.onBlur}
-                            title={t(
-                              "timetable.classManager.validation.endLabel",
-                            )}
-                            hasError={!!fieldState.error}
-                            testID="holiday-form-endDate"
-                          />
-                          {fieldState.error ? (
-                            <Text style={styles.fieldError}>
-                              {fieldState.error.message}
-                            </Text>
-                          ) : null}
-                        </>
-                      )}
-                    />
-                  </View>
-                </View>
-                <View style={styles.actionsRow}>
-                  <TouchableOpacity
-                    style={styles.primaryButton}
-                    onPress={() => void handleSaveHoliday()}
-                    disabled={isSubmitting}
-                    testID="holiday-form-submit"
-                  >
-                    <Text style={styles.primaryButtonText}>
-                      {holidayEditId
-                        ? t("timetable.classManager.buttons.updateHoliday")
-                        : t("timetable.classManager.buttons.addHoliday")}
-                    </Text>
-                  </TouchableOpacity>
-                  {holidayEditId ? (
+                  <View style={styles.actionsRow}>
                     <TouchableOpacity
-                      style={styles.secondaryButton}
-                      onPress={resetHolidayForm}
+                      style={styles.primaryButton}
+                      onPress={() => void handleSaveHoliday()}
+                      disabled={isSubmitting}
+                      testID="holiday-form-submit"
                     >
-                      <Text style={styles.secondaryButtonText}>
-                        {t("timetable.common.cancel")}
+                      <Text style={styles.primaryButtonText}>
+                        {holidayEditId
+                          ? t("timetable.classManager.buttons.updateHoliday")
+                          : t("timetable.classManager.buttons.addHoliday")}
                       </Text>
                     </TouchableOpacity>
-                  ) : null}
-                </View>
-              </SectionCard>
+                    {holidayEditId ? (
+                      <TouchableOpacity
+                        style={styles.secondaryButton}
+                        onPress={resetHolidayForm}
+                      >
+                        <Text style={styles.secondaryButtonText}>
+                          {t("timetable.common.cancel")}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                </SectionCard>
+              </View>
 
               <SectionCard
                 title={t("timetable.classManager.holidays.calendarTitle")}

@@ -68,6 +68,26 @@ type Props = {
 
 export function AssistanceFaqAdminForms({ onDone }: Props) {
   const editorRef = useRef<RichEditorFieldRef>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const faqTitleRef = useRef<TextInput>(null);
+  const themeTitleRef = useRef<TextInput>(null);
+  const itemQuestionRef = useRef<TextInput>(null);
+  const sectionOffsets = useRef<{ faq: number; theme: number; item: number }>({
+    faq: 0,
+    theme: 0,
+    item: 0,
+  });
+  function registerSectionOffset(section: "faq" | "theme" | "item") {
+    return (e: { nativeEvent: { layout: { y: number } } }) => {
+      sectionOffsets.current[section] = e.nativeEvent.layout.y;
+    };
+  }
+  function scrollToSection(section: "faq" | "theme" | "item") {
+    scrollRef.current?.scrollTo({
+      y: Math.max(0, sectionOffsets.current[section] - 12),
+      animated: true,
+    });
+  }
   const { showSuccess, showError } = useSuccessToastStore();
 
   const [adminMode, setAdminMode] = useState<"GLOBAL" | "SCHOOL" | null>(null);
@@ -362,6 +382,7 @@ export function AssistanceFaqAdminForms({ onDone }: Props) {
       testID="assistance-faq-admin-forms-mobile"
     >
       <ScrollView
+        ref={scrollRef}
         style={styles.formScroll}
         contentContainerStyle={styles.formScrollContent}
         keyboardShouldPersistTaps="handled"
@@ -408,7 +429,10 @@ export function AssistanceFaqAdminForms({ onDone }: Props) {
           </ScrollView>
         ) : null}
 
-        <Text style={styles.adminSectionTitle}>
+        <Text
+          style={styles.adminSectionTitle}
+          onLayout={registerSectionOffset("faq")}
+        >
           {adminMode === "GLOBAL" ? "FAQ Scolive" : "FAQ école"}
         </Text>
         <Controller
@@ -417,6 +441,7 @@ export function AssistanceFaqAdminForms({ onDone }: Props) {
           render={({ field: { onChange, value }, fieldState }) => (
             <>
               <TextInput
+                ref={faqTitleRef}
                 style={[styles.input, fieldState.error && styles.inputError]}
                 value={value}
                 onChangeText={onChange}
@@ -497,7 +522,15 @@ export function AssistanceFaqAdminForms({ onDone }: Props) {
         />
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={faqForm.handleSubmit((values) => void saveFaq(values))}
+          onPress={faqForm.handleSubmit(
+            (values) => void saveFaq(values),
+            (errs) => {
+              if (errs.title) {
+                scrollToSection("faq");
+                faqTitleRef.current?.focus();
+              }
+            },
+          )}
           disabled={savingFaq}
           testID="assistance-faq-admin-faq-submit"
         >
@@ -506,13 +539,19 @@ export function AssistanceFaqAdminForms({ onDone }: Props) {
           </Text>
         </TouchableOpacity>
 
-        <Text style={styles.adminSectionTitle}>Thème</Text>
+        <Text
+          style={styles.adminSectionTitle}
+          onLayout={registerSectionOffset("theme")}
+        >
+          Thème
+        </Text>
         <Controller
           control={themeForm.control}
           name="title"
           render={({ field: { onChange, value }, fieldState }) => (
             <>
               <TextInput
+                ref={themeTitleRef}
                 style={[styles.input, fieldState.error && styles.inputError]}
                 value={value}
                 onChangeText={onChange}
@@ -543,7 +582,15 @@ export function AssistanceFaqAdminForms({ onDone }: Props) {
         />
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={themeForm.handleSubmit((values) => void saveTheme(values))}
+          onPress={themeForm.handleSubmit(
+            (values) => void saveTheme(values),
+            (errs) => {
+              if (errs.title) {
+                scrollToSection("theme");
+                themeTitleRef.current?.focus();
+              }
+            },
+          )}
           disabled={savingTheme}
           testID="assistance-faq-admin-theme-submit"
         >
@@ -552,13 +599,19 @@ export function AssistanceFaqAdminForms({ onDone }: Props) {
           </Text>
         </TouchableOpacity>
 
-        <Text style={styles.adminSectionTitle}>Question / Réponse</Text>
+        <Text
+          style={styles.adminSectionTitle}
+          onLayout={registerSectionOffset("item")}
+        >
+          Question / Réponse
+        </Text>
         <Controller
           control={itemForm.control}
           name="question"
           render={({ field: { onChange, value }, fieldState }) => (
             <>
               <TextInput
+                ref={itemQuestionRef}
                 style={[styles.input, fieldState.error && styles.inputError]}
                 value={value}
                 onChangeText={onChange}
@@ -621,7 +674,17 @@ export function AssistanceFaqAdminForms({ onDone }: Props) {
         />
         <TouchableOpacity
           style={styles.primaryBtn}
-          onPress={itemForm.handleSubmit((values) => void saveItem(values))}
+          onPress={itemForm.handleSubmit(
+            (values) => void saveItem(values),
+            (errs) => {
+              if (errs.question || errs.answerHtml) {
+                scrollToSection("item");
+              }
+              if (errs.question) {
+                itemQuestionRef.current?.focus();
+              }
+            },
+          )}
           disabled={savingItem}
           testID="assistance-faq-admin-item-submit"
         >

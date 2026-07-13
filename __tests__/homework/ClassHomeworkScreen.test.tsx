@@ -1339,6 +1339,37 @@ describe("ClassHomeworkScreen — onglet formulaires", () => {
     expect(mockHomeworkApi.createHomework).not.toHaveBeenCalled();
   });
 
+  it("câblage scroll-vers-erreur : onLayout sur le groupe titre ne crashe pas", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-fab")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("class-homework-fab"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("homework-form-title")).toBeTruthy(),
+    );
+
+    const titleGroup = screen.getByTestId("homework-form-title").parent;
+    expect(() =>
+      fireEvent(titleGroup!, "layout", {
+        nativeEvent: { layout: { x: 0, y: 120, width: 320, height: 60 } },
+      }),
+    ).not.toThrow();
+
+    fireEvent.changeText(screen.getByTestId("homework-form-title"), "");
+    fireEvent.press(screen.getByTestId("homework-form-submit"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          translate("fr", "homework.form.validation.titleRequired"),
+        ),
+      ).toBeTruthy(),
+    );
+  });
+
   it("succès : appelle l'API, affiche le toast puis revient au tab d'origine après 2s", async () => {
     jest.useFakeTimers();
     mockHomeworkApi.createHomework.mockResolvedValue({

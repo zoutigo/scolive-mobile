@@ -552,6 +552,57 @@ describe("ResourcesScreen", () => {
     expect(mockResourcesApi.createResource).not.toHaveBeenCalled();
   });
 
+  it("validation : titre, école et niveau affichent tous leur erreur simultanément sur submit vide (aucun n'est masqué au-dessus du fold)", async () => {
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
+    await openCreateForm();
+    fireEvent.press(screen.getByTestId("resources-form-submit"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("resources-form-title-error")).toBeTruthy();
+      expect(screen.getByTestId("resources-form-school-error")).toBeTruthy();
+      expect(screen.getByTestId("resources-form-level-error")).toBeTruthy();
+    });
+  });
+
+  // Bug corrigé : un submit invalide ne ramenait pas le premier champ en
+  // erreur à l'écran (ni focus, ni scroll) — un champ requis hors du viewport
+  // laissait l'utilisateur croire que Save ne faisait rien. Le rendu
+  // natif (scrollTo/focus réels) est vérifié manuellement sur émulateur ;
+  // react-test-renderer ne simule pas de vrai scroll. Ici on couvre le
+  // câblage onLayout, qui ne doit jamais crasher.
+  it("câblage scroll-vers-erreur : onLayout sur les groupes de champs ne crashe pas", async () => {
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
+    await openCreateForm();
+
+    const titleGroup = screen.getByTestId("resources-form-title").parent;
+    const schoolGroup = screen.getByTestId("resources-form-school").parent;
+
+    expect(() =>
+      fireEvent(titleGroup!, "layout", {
+        nativeEvent: { layout: { x: 0, y: 60, width: 320, height: 60 } },
+      }),
+    ).not.toThrow();
+    expect(() =>
+      fireEvent(schoolGroup!, "layout", {
+        nativeEvent: { layout: { x: 0, y: 220, width: 320, height: 60 } },
+      }),
+    ).not.toThrow();
+
+    fireEvent.press(screen.getByTestId("resources-form-submit"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-form-title-error")).toBeTruthy(),
+    );
+  });
+
   it("succès : appelle l'API de création puis revient au tab d'origine après 2s", async () => {
     jest.useFakeTimers();
     mockResourcesApi.createResource.mockResolvedValue({

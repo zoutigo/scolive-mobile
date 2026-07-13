@@ -524,6 +524,7 @@ function EditSchoolFormContent(props: {
     handleSubmit,
     watch,
     setValue,
+    setFocus: focusField,
     formState: { errors },
   } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
@@ -541,15 +542,20 @@ function EditSchoolFormContent(props: {
 
   const region = watch("region");
 
-  const submit = handleSubmit((values) =>
-    props.onSubmit({
-      name: values.name,
-      country: values.country || null,
-      region: values.region || null,
-      city: values.city || null,
-      cycle: values.cycle || null,
-      languageSystem: values.languageSystem || null,
-    }),
+  const submit = handleSubmit(
+    (values) =>
+      props.onSubmit({
+        name: values.name,
+        country: values.country || null,
+        region: values.region || null,
+        city: values.city || null,
+        cycle: values.cycle || null,
+        languageSystem: values.languageSystem || null,
+      }),
+    (errs) => {
+      const first = Object.keys(errs)[0];
+      if (first) focusField(first as Parameters<typeof focusField>[0]);
+    },
   );
 
   return (

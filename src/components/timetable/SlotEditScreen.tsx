@@ -36,6 +36,7 @@ import {
 import { extractApiError } from "../../utils/api-error";
 import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 import { moduleBack } from "../../utils/moduleBack";
+import { useScrollToFirstError } from "../../hooks/useScrollToFirstError";
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
@@ -134,6 +135,10 @@ export function SlotEditScreen() {
       teacherUserId: occurrence?.teacherUser.id ?? "",
     },
   });
+
+  const { scrollViewRef, registerFieldOffset, focusFirstInvalidField } =
+    useScrollToFirstError<keyof FormValues>();
+  const FIELD_ORDER: Array<keyof FormValues> = ["start", "end"];
 
   const teacherOptions = useMemo(() => {
     if (!ctx?.adminMode || !classCtx) return [];
@@ -291,7 +296,7 @@ export function SlotEditScreen() {
         setIsSaving(false);
       }
     },
-    () => {},
+    (formErrors) => focusFirstInvalidField(FIELD_ORDER, formErrors),
   );
 
   // ── Delete ────────────────────────────────────────────────────────────────
@@ -387,6 +392,7 @@ export function SlotEditScreen() {
         style={styles.flex}
       >
         <ScrollView
+          ref={scrollViewRef}
           style={styles.flex}
           contentContainerStyle={[
             styles.content,
@@ -511,7 +517,13 @@ export function SlotEditScreen() {
             ) : null}
 
             {/* Time fields + room */}
-            <View style={styles.timeRow}>
+            <View
+              style={styles.timeRow}
+              onLayout={(e) => {
+                registerFieldOffset("start")(e);
+                registerFieldOffset("end")(e);
+              }}
+            >
               <View style={styles.timeField}>
                 <Text style={styles.fieldLabel}>
                   {t("timetable.classManager.fields.start")}

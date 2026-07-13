@@ -455,6 +455,27 @@ describe("TeacherClassDisciplineScreen — création d'événement", () => {
     ).toBeTruthy();
   });
 
+  it("câblage scroll-vers-erreur : onLayout sur le groupe élève ne crashe pas et le submit reste bloqué", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-fab"));
+
+    const studentGroup = screen.getByTestId("discipline-form-student-trigger")
+      .parent?.parent;
+    expect(() =>
+      fireEvent(studentGroup!, "layout", {
+        nativeEvent: { layout: { x: 0, y: 30, width: 320, height: 60 } },
+      }),
+    ).not.toThrow();
+
+    fireEvent.press(screen.getByTestId("discipline-form-submit"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("discipline-form-student-error")).toBeTruthy(),
+    );
+    expect(mockDisciplineApi.create).not.toHaveBeenCalled();
+  });
+
   it("erreur API : toast d'erreur et maintien sur le tab forms", async () => {
     mockDisciplineApi.create.mockRejectedValueOnce(
       new Error("Réseau indisponible"),
