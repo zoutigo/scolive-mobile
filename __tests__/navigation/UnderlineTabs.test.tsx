@@ -38,4 +38,51 @@ describe("UnderlineTabs", () => {
     fireEvent.press(screen.getByTestId("discipline-tab-carnets"));
     expect(onSelect).toHaveBeenCalledWith("carnets");
   });
+
+  it("affiche tous les onglets sans ScrollView quand fitWidth est activé", () => {
+    render(
+      <UnderlineTabs
+        items={[
+          { key: "overview", label: "Aperçu" },
+          { key: "cycles", label: "Cycles" },
+          { key: "levels", label: "Niveaux" },
+          { key: "tracks", label: "Filières" },
+          { key: "curriculums", label: "Curr." },
+          { key: "subjects", label: "Matières" },
+          { key: "help", label: "Aide" },
+        ]}
+        activeKey="overview"
+        onSelect={jest.fn()}
+        testIDPrefix="national-catalog-tab"
+        fitWidth
+      />,
+    );
+
+    expect(screen.getByTestId("national-catalog-tab-overview")).toBeTruthy();
+    expect(screen.getByTestId("national-catalog-tab-cycles")).toBeTruthy();
+    expect(screen.getByTestId("national-catalog-tab-levels")).toBeTruthy();
+    expect(screen.getByTestId("national-catalog-tab-tracks")).toBeTruthy();
+    expect(screen.getByTestId("national-catalog-tab-curriculums")).toBeTruthy();
+    expect(screen.getByTestId("national-catalog-tab-subjects")).toBeTruthy();
+    expect(screen.getByTestId("national-catalog-tab-help")).toBeTruthy();
+  });
+
+  it("appelle onSelect avec la clé sélectionnée même en mode fitWidth", () => {
+    const onSelect = jest.fn();
+    render(
+      <UnderlineTabs
+        items={[
+          { key: "overview", label: "Aperçu" },
+          { key: "help", label: "Aide" },
+        ]}
+        activeKey="overview"
+        onSelect={onSelect}
+        testIDPrefix="national-catalog-tab"
+        fitWidth
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId("national-catalog-tab-help"));
+    expect(onSelect).toHaveBeenCalledWith("help");
+  });
 });

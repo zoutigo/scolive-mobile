@@ -81,7 +81,8 @@ type NationalTabKey =
   | "levels"
   | "tracks"
   | "curriculums"
-  | "subjects";
+  | "subjects"
+  | "help";
 type NationalPaneKey = NationalTabKey | "forms";
 
 type NationalFormContext =
@@ -1200,6 +1201,60 @@ const NATIONAL_LEVEL_LANGUAGE_SYSTEM_OPTIONS = [
   { value: "BILINGUAL", label: "Bilingue" },
 ];
 
+const NATIONAL_OVERVIEW_STEPS: Array<{ title: string; body: string }> = [
+  {
+    title: "1. Cycle",
+    body: "Créez d'abord un cycle (ex: Primaire, Secondaire). C'est le grand regroupement qui accueille les niveaux nationaux.",
+  },
+  {
+    title: "2. Niveau + système linguistique",
+    body: "Ajoutez les niveaux nationaux (ex: 6ème, Form 1), rattachés au cycle et à un système linguistique : francophone, anglophone ou bilingue.",
+  },
+  {
+    title: "3. Filière (si besoin)",
+    body: "Créez une filière seulement si un niveau se scinde en parcours distincts (ex: Scientifique, Littéraire). Beaucoup de niveaux n'en ont pas.",
+  },
+  {
+    title: "4. Curriculum",
+    body: "Assemblez un niveau et, éventuellement, une filière pour produire un curriculum. Son nom est généré automatiquement.",
+  },
+  {
+    title: "5. Matières",
+    body: "Rattachez les matières à chaque curriculum avec coefficient, volume horaire et caractère obligatoire ou optionnel.",
+  },
+  {
+    title: "6. Côté école",
+    body: "Chaque école pioche ensuite dans ce catalogue commun pour construire sa propre structure, sans tout ressaisir.",
+  },
+];
+
+const NATIONAL_HELP_CARDS: Array<{ title: string; body: string }> = [
+  {
+    title: "Cycle",
+    body: "Le cycle est le premier repère (ex: Primaire, Secondaire). Il regroupe les niveaux nationaux qui appartiennent à la même grande étape scolaire, et sert de base à l'onglet Cycles.",
+  },
+  {
+    title: "Niveau académique et système linguistique",
+    body: "Chaque niveau national (ex: 6ème, Form 1) est rattaché à un cycle et à un système linguistique — francophone, anglophone ou bilingue. Ce système permet de gérer plusieurs traditions éducatives dans le même catalogue, par exemple une 6ème francophone et une Form 1 anglophone au sein du même cycle secondaire.",
+  },
+  {
+    title: "Filière (optionnelle)",
+    body: "Une filière (ex: Scientifique, Littéraire) ne s'utilise que pour les niveaux qui se scindent en parcours différents, le plus souvent en fin de secondaire. La plupart des niveaux n'en ont pas besoin : dans ce cas, le curriculum reste en tronc commun.",
+  },
+  {
+    title: "Curriculum",
+    body: "Un curriculum assemble un niveau académique et, si besoin, une filière. Son nom est généré automatiquement (ex: 6EME - TRONC_COMMUN, TLE - SCIENTIFIQUE) pour rester cohérent sur mobile comme sur le web.",
+  },
+  {
+    title: "Matières",
+    body: "Chaque curriculum reçoit ensuite ses matières, avec un coefficient, un volume horaire hebdomadaire et un caractère obligatoire ou optionnel.",
+  },
+  {
+    title: "Utilisation par les écoles",
+    body: "Ce catalogue national est commun à toutes les écoles et géré uniquement par la plateforme. Chaque établissement pioche dedans pour construire sa propre structure (ses niveaux, filières, curriculums et matières), sans avoir à ressaisir cette base pédagogique.",
+  },
+];
+
 function NationalCycleFormContent(props: {
   mode: FormMode;
   initialValues?: { code: string; label: string };
@@ -1863,16 +1918,17 @@ function NationalCurriculumSubjectFormContent(props: {
 }
 
 const NATIONAL_TAB_ITEMS: Array<{ key: NationalTabKey; label: string }> = [
-  { key: "overview", label: "Vue d'ensemble" },
+  { key: "overview", label: "Aperçu" },
   { key: "cycles", label: "Cycles" },
   { key: "levels", label: "Niveaux" },
   { key: "tracks", label: "Filières" },
-  { key: "curriculums", label: "Curriculums" },
+  { key: "curriculums", label: "Curr." },
   { key: "subjects", label: "Matières" },
+  { key: "help", label: "Aide" },
 ];
 
 const NATIONAL_TAB_STYLE_MAP: Record<
-  Exclude<NationalTabKey, "overview">,
+  Exclude<NationalTabKey, "overview" | "help">,
   Exclude<ListTabKey, "help">
 > = {
   cycles: "levels",
@@ -1882,12 +1938,12 @@ const NATIONAL_TAB_STYLE_MAP: Record<
   subjects: "subjects",
 };
 
-function nationalAccent(tab: Exclude<NationalTabKey, "overview">) {
+function nationalAccent(tab: Exclude<NationalTabKey, "overview" | "help">) {
   return accentForTab(NATIONAL_TAB_STYLE_MAP[tab]);
 }
 
 function nationalRowPalette(
-  tab: Exclude<NationalTabKey, "overview">,
+  tab: Exclude<NationalTabKey, "overview" | "help">,
   index: number,
 ) {
   return rowPaletteForTab(NATIONAL_TAB_STYLE_MAP[tab], index);
@@ -2458,7 +2514,8 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
     );
   }
 
-  const fabDisabled = pane === "overview" || pane === "forms";
+  const fabDisabled =
+    pane === "overview" || pane === "forms" || pane === "help";
 
   if (isLoading) {
     return (
@@ -2495,6 +2552,7 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
           activeKey={pane}
           onSelect={setPane}
           testIDPrefix="national-catalog-tab"
+          fitWidth
         />
       ) : null}
 
@@ -2594,6 +2652,54 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
 
             {pane === "overview" ? (
               <>
+                <FormHero
+                  icon="git-network-outline"
+                  title="Comment structurer le catalogue"
+                  subtitle="Cinq briques s'empilent dans cet ordre pour préparer une école, de la plus générale à la plus précise."
+                  palette="primary"
+                  testID="national-overview-hero"
+                />
+
+                <SectionCard
+                  title="Ordre de mise en place"
+                  subtitle="À suivre du haut vers le bas"
+                  testID="national-overview-order-card"
+                >
+                  <View style={styles.listStack}>
+                    {NATIONAL_OVERVIEW_STEPS.map((step, index) => (
+                      <View
+                        key={step.title}
+                        style={styles.hierarchyStepRow}
+                        testID={`national-overview-step-${index}`}
+                      >
+                        <View style={styles.hierarchyStepBadge}>
+                          <Text style={styles.hierarchyStepBadgeText}>
+                            {index + 1}
+                          </Text>
+                        </View>
+                        <View style={styles.hierarchyStepText}>
+                          <Text style={styles.entityTitle}>{step.title}</Text>
+                          <Text style={styles.entityMeta}>{step.body}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                  <TouchableOpacity
+                    style={styles.overviewHelpLink}
+                    onPress={() => setPane("help")}
+                    testID="national-overview-help-link"
+                  >
+                    <Text style={styles.overviewHelpLinkText}>
+                      Voir le guide complet
+                    </Text>
+                    <Ionicons
+                      name="arrow-forward"
+                      size={16}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                </SectionCard>
+
                 <View style={styles.statRow} testID="national-overview-stats">
                   <View
                     style={[styles.statTile, { backgroundColor: "#FFF2E4" }]}
@@ -2699,6 +2805,30 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
                   )}
                 </SectionCard>
               </>
+            ) : null}
+
+            {pane === "help" ? (
+              <SectionCard
+                title="Guide du catalogue national"
+                subtitle="Cycle, système linguistique, filière, curriculum, matières : comment tout s'articule"
+                testID="national-help-card"
+              >
+                <View style={styles.helpStack}>
+                  {NATIONAL_HELP_CARDS.map((card, index) => (
+                    <View
+                      key={card.title}
+                      style={[
+                        styles.helpCard,
+                        { backgroundColor: alternateCard(index) },
+                      ]}
+                      testID={`national-help-card-${index}`}
+                    >
+                      <Text style={styles.helpCardTitle}>{card.title}</Text>
+                      <Text style={styles.helpCardBody}>{card.body}</Text>
+                    </View>
+                  ))}
+                </View>
+              </SectionCard>
             ) : null}
 
             {pane === "cycles" ? (
@@ -3387,7 +3517,9 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
                 bottom: insets.bottom + 20,
                 backgroundColor: fabDisabled
                   ? colors.textSecondary
-                  : nationalAccent(pane as Exclude<NationalTabKey, "overview">),
+                  : nationalAccent(
+                      pane as Exclude<NationalTabKey, "overview" | "help">,
+                    ),
               },
             ]}
             disabled={fabDisabled}
@@ -5121,5 +5253,42 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.warmBorder,
+  },
+  hierarchyStepRow: {
+    flexDirection: "row",
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.warmBorder,
+  },
+  hierarchyStepBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  hierarchyStepBadgeText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  hierarchyStepText: {
+    flex: 1,
+    gap: 2,
+  },
+  overviewHelpLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 10,
+  },
+  overviewHelpLinkText: {
+    color: colors.primary,
+    fontSize: 13,
+    fontWeight: "700",
   },
 });
