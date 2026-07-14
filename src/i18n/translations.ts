@@ -2314,6 +2314,32 @@ export const translations: Record<Locale, Record<string, string>> = {
     "schoolsAdmin.help.title": "Mode d'emploi",
     "schoolsAdmin.help.body":
       "Créez une école avec son school admin, modifiez ses informations (cycle, système linguistique) et suivez sa répartition d'utilisateurs depuis sa fiche détaillée.",
+    "schoolsAdmin.help.example.title": "Exemple concret, de bout en bout",
+    "schoolsAdmin.help.example.intro":
+      "Cas d'un lycée francophone secondaire. Chaque étape se fait dans son propre module, dans cet ordre.",
+    "schoolsAdmin.help.example.step1.title": "1. Créer l'école",
+    "schoolsAdmin.help.example.step1.body":
+      "Ici, renseignez nom, slug, puis choisissez le Cycle (Primaire ou Secondaire) et le Système linguistique (Francophone, Anglophone ou Bilingue). Ce choix est le pivot : il détermine automatiquement quels niveaux et curriculums du catalogue national seront visibles pour cette école.",
+    "schoolsAdmin.help.example.step2.title": "2. Rien à faire (automatique)",
+    "schoolsAdmin.help.example.step2.body":
+      'Le catalogue national (Cycle > Niveaux > Filières > Curriculums > Matières) déjà en place et correspondant au cycle et à la langue apparaît automatiquement dans le module Curriculums de l\'école, marqué "national".',
+    "schoolsAdmin.help.example.step3.title": "3. Cas standard : rien de plus",
+    "schoolsAdmin.help.example.step3.body":
+      "Si le catalogue national suffit, passez directement à la création des classes (étape 6) en vous appuyant sur les niveaux, filières et curriculums nationaux.",
+    "schoolsAdmin.help.example.step4.title":
+      "4. (Optionnel) Filière propre à l'école",
+    "schoolsAdmin.help.example.step4.body":
+      "Si l'école a besoin d'une filière absente du catalogue national, créez-la dans le module Curriculums, onglet Filières. Une filière n'est rattachée à rien tant qu'elle n'est pas utilisée dans un curriculum.",
+    "schoolsAdmin.help.example.step5.title":
+      "5. (Optionnel) Curriculum propre à l'école",
+    "schoolsAdmin.help.example.step5.body":
+      "Si le curriculum national ne convient pas, créez dans Curriculums un curriculum propre combinant un niveau (national ou propre) et, si besoin, une filière. Rattachez ensuite les matières avec coefficient et volume horaire.",
+    "schoolsAdmin.help.example.step6.title": "6. Créer une année scolaire",
+    "schoolsAdmin.help.example.step6.body":
+      "Dans le module Années scolaires, créez l'année en cours pour l'école et définissez-la comme active.",
+    "schoolsAdmin.help.example.step7.title": "7. Créer une classe",
+    "schoolsAdmin.help.example.step7.body":
+      "Dans le module Classes, choisissez l'année scolaire puis le niveau, la filière (si besoin) et le curriculum : nationaux ou propres à l'école, ils sont interchangeables. C'est cette combinaison qui fixe les matières et coefficients des élèves de la classe.",
     "schoolsAdmin.empty.title": "Aucune école",
     "schoolsAdmin.empty.messageDefault":
       "Créez la première école de la plateforme.",
@@ -4702,6 +4728,32 @@ export const translations: Record<Locale, Record<string, string>> = {
     "schoolsAdmin.help.title": "How it works",
     "schoolsAdmin.help.body":
       "Create a school with its school admin, edit its information (cycle, language system) and track its user breakdown from its detail page.",
+    "schoolsAdmin.help.example.title": "Concrete end-to-end example",
+    "schoolsAdmin.help.example.intro":
+      "Case of a secondary French-speaking school. Each step happens in its own module, in this order.",
+    "schoolsAdmin.help.example.step1.title": "1. Create the school",
+    "schoolsAdmin.help.example.step1.body":
+      "Here, fill in name and slug, then choose the Cycle (Primary or Secondary) and the Language system (French-speaking, English-speaking or Bilingual). This choice is the pivot: it automatically determines which national catalog levels and curriculums will be visible for this school.",
+    "schoolsAdmin.help.example.step2.title": "2. Nothing to do (automatic)",
+    "schoolsAdmin.help.example.step2.body":
+      'The national catalog (Cycle > Levels > Tracks > Curriculums > Subjects) already in place and matching the cycle and language automatically appears in the school\'s Curriculums module, flagged "national".',
+    "schoolsAdmin.help.example.step3.title": "3. Standard case: nothing more",
+    "schoolsAdmin.help.example.step3.body":
+      "If the national catalog is enough, go straight to creating classes (step 6) using the national levels, tracks and curriculums.",
+    "schoolsAdmin.help.example.step4.title":
+      "4. (Optional) School-specific track",
+    "schoolsAdmin.help.example.step4.body":
+      "If the school needs a track missing from the national catalog, create it in the Curriculums module, Tracks tab. A track is attached to nothing until it is used in a curriculum.",
+    "schoolsAdmin.help.example.step5.title":
+      "5. (Optional) School-specific curriculum",
+    "schoolsAdmin.help.example.step5.body":
+      "If the national curriculum doesn't fit, create a school-specific curriculum in Curriculums combining a level (national or own) and, if needed, a track. Then attach subjects with coefficient and weekly hours.",
+    "schoolsAdmin.help.example.step6.title": "6. Create a school year",
+    "schoolsAdmin.help.example.step6.body":
+      "In the School years module, create the current year for the school and set it as active.",
+    "schoolsAdmin.help.example.step7.title": "7. Create a class",
+    "schoolsAdmin.help.example.step7.body":
+      "In the Classes module, choose the school year, then the level, the track (if needed) and the curriculum: national or school-specific, they are interchangeable. This combination sets the subjects and coefficients for the class's students.",
     "schoolsAdmin.empty.title": "No schools",
     "schoolsAdmin.empty.messageDefault": "Create the platform's first school.",
     "schoolsAdmin.empty.messageSearch": "No school matches your search.",

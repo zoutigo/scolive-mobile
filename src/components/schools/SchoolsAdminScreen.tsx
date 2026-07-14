@@ -1594,12 +1594,45 @@ export function SchoolsAdminScreen() {
               t={t}
             />
           ) : (
-            <SectionCard
-              title={t("schoolsAdmin.help.title")}
-              testID="schools-help-card"
-            >
-              <Text style={styles.helpText}>{t("schoolsAdmin.help.body")}</Text>
-            </SectionCard>
+            <>
+              <SectionCard
+                title={t("schoolsAdmin.help.title")}
+                testID="schools-help-card"
+              >
+                <Text style={styles.helpText}>
+                  {t("schoolsAdmin.help.body")}
+                </Text>
+              </SectionCard>
+
+              <SectionCard
+                title={t("schoolsAdmin.help.example.title")}
+                testID="schools-help-example-card"
+              >
+                <Text style={styles.helpExampleIntro}>
+                  {t("schoolsAdmin.help.example.intro")}
+                </Text>
+                {(
+                  [
+                    "step1",
+                    "step2",
+                    "step3",
+                    "step4",
+                    "step5",
+                    "step6",
+                    "step7",
+                  ] as const
+                ).map((step) => (
+                  <View key={step} style={styles.helpExampleStep}>
+                    <Text style={styles.helpExampleStepTitle}>
+                      {t(`schoolsAdmin.help.example.${step}.title`)}
+                    </Text>
+                    <Text style={styles.helpExampleStepBody}>
+                      {t(`schoolsAdmin.help.example.${step}.body`)}
+                    </Text>
+                  </View>
+                ))}
+              </SectionCard>
+            </>
           )}
         </ScrollView>
       )}
@@ -1811,6 +1844,26 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   helpText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  helpExampleIntro: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  helpExampleStep: {
+    marginBottom: 12,
+  },
+  helpExampleStepTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  helpExampleStepBody: {
     fontSize: 14,
     color: colors.textSecondary,
     lineHeight: 20,
