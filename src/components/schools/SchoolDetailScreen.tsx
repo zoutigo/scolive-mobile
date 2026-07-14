@@ -36,19 +36,8 @@ import { extractApiError } from "../../utils/api-error";
 import type { SchoolAdminRow, SchoolDetails } from "../../types/schools.types";
 import { moduleBack } from "../../utils/moduleBack";
 
-function formatAcademicDate(iso: string | null | undefined, locale: string) {
-  if (!iso) return null;
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString(locale === "en" ? "en-US" : "fr-FR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 export function SchoolDetailScreen() {
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
@@ -168,12 +157,6 @@ export function SchoolDetailScreen() {
     }
   }, [removeAdminTarget, schoolId, showSuccess, showError, t, load]);
 
-  const academicStart = formatAcademicDate(
-    details?.academicYear?.startsAt,
-    locale,
-  );
-  const academicEnd = formatAcademicDate(details?.academicYear?.endsAt, locale);
-
   return (
     <View style={styles.root}>
       <ModuleHeader
@@ -250,27 +233,79 @@ export function SchoolDetailScreen() {
             </SectionCard>
 
             <SectionCard
-              title={t("schoolsAdmin.detail.sections.academic")}
-              testID="school-detail-academic"
+              title={t("schoolsAdmin.detail.sections.schoolSystem")}
+              testID="school-detail-school-system"
+              action={
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push({
+                      pathname: "/schools/[schoolId]/curriculum",
+                      params: { schoolId },
+                    })
+                  }
+                  testID="school-detail-school-system-view-full"
+                >
+                  <Text style={styles.viewFullLink}>
+                    {t("schoolsAdmin.detail.schoolSystemViewFull")}
+                  </Text>
+                </TouchableOpacity>
+              }
             >
-              {details.academicYear ? (
-                <View style={styles.academicRow}>
-                  <Ionicons name="calendar" size={18} color={colors.primary} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.academicLabel}>
-                      {details.academicYear.label}
+              {details.tracks.length === 0 &&
+              details.curriculums.length === 0 ? (
+                <Text style={styles.mutedText}>
+                  {t("schoolsAdmin.detail.schoolSystemEmpty")}
+                </Text>
+              ) : (
+                <View style={{ gap: 10 }}>
+                  <View>
+                    <Text style={styles.schoolSystemLabel}>
+                      {t("schoolsAdmin.detail.schoolSystemTracksTitle")}
                     </Text>
-                    {academicStart || academicEnd ? (
-                      <Text style={styles.academicDates}>
-                        {academicStart ?? "—"} → {academicEnd ?? "—"}
+                    {details.tracks.length > 0 ? (
+                      <View style={styles.chipsRow}>
+                        {details.tracks.map((track) => (
+                          <View key={track.id} style={styles.chip}>
+                            <Text style={styles.chipText}>{track.label}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : (
+                      <Text style={styles.mutedText}>
+                        {t("schoolsAdmin.detail.schoolSystemNoTracks")}
                       </Text>
-                    ) : null}
+                    )}
+                  </View>
+                  <View>
+                    <Text style={styles.schoolSystemLabel}>
+                      {t("schoolsAdmin.detail.schoolSystemCurriculumsTitle")}
+                    </Text>
+                    {details.curriculums.length > 0 ? (
+                      details.curriculums.map((curriculum) => (
+                        <Text
+                          key={curriculum.id}
+                          style={styles.mutedText}
+                          testID={`school-detail-curriculum-${curriculum.id}`}
+                        >
+                          {curriculum.name}
+                          {curriculum.academicLevelLabel ||
+                          curriculum.trackLabel
+                            ? ` (${[
+                                curriculum.academicLevelLabel,
+                                curriculum.trackLabel,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")})`
+                            : ""}
+                        </Text>
+                      ))
+                    ) : (
+                      <Text style={styles.mutedText}>
+                        {t("schoolsAdmin.detail.schoolSystemNoCurriculums")}
+                      </Text>
+                    )}
                   </View>
                 </View>
-              ) : (
-                <Text style={styles.mutedText}>
-                  {t("schoolsAdmin.detail.noAcademicYear")}
-                </Text>
               )}
             </SectionCard>
 
@@ -523,20 +558,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
   },
-  academicRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  academicLabel: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  academicDates: {
+  viewFullLink: {
     fontSize: 12,
+    fontWeight: "600",
+    color: colors.primary,
+  },
+  schoolSystemLabel: {
+    fontSize: 12,
+    fontWeight: "600",
     color: colors.textSecondary,
-    marginTop: 2,
+    marginBottom: 4,
+  },
+  chipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  chip: {
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  chipText: {
+    fontSize: 13,
+    color: colors.textPrimary,
   },
   mutedText: {
     fontSize: 13,

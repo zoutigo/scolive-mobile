@@ -84,6 +84,19 @@ export type SchoolRoleBreakdown = {
   students: number;
 };
 
+export type SchoolTrack = {
+  id: string;
+  code: string;
+  label: string;
+};
+
+export type SchoolCurriculum = {
+  id: string;
+  name: string;
+  academicLevelLabel: string | null;
+  trackLabel: string | null;
+};
+
 export type SchoolDetails = {
   id: string;
   slug: string;
@@ -97,6 +110,8 @@ export type SchoolDetails = {
   createdAt: string;
   updatedAt: string;
   academicYear: SchoolAcademicYear | null;
+  tracks: SchoolTrack[];
+  curriculums: SchoolCurriculum[];
   stats: {
     usersCount: number;
     classesCount: number;
