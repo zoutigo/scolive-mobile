@@ -292,6 +292,30 @@ describe("ClassTimetableManagerScreen", () => {
     expect(mockCreateCalendarEvent).not.toHaveBeenCalled();
   });
 
+  it("câblage scroll-vers-erreur : onLayout sur la section fermeture ne crashe pas", async () => {
+    render(<ClassTimetableManagerScreen />);
+    await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
+
+    fireEvent.press(screen.getByTestId("class-timetable-tab-holidays"));
+
+    const labelGroup = screen.getByTestId("holiday-form-label").parent;
+    expect(() =>
+      fireEvent(labelGroup!, "layout", {
+        nativeEvent: { layout: { x: 0, y: 80, width: 320, height: 60 } },
+      }),
+    ).not.toThrow();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("holiday-form-submit"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Le libellé de fermeture est obligatoire."),
+      ).toBeTruthy();
+    });
+  });
+
   it("soumet une fermeture valide", async () => {
     render(<ClassTimetableManagerScreen />);
     await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());

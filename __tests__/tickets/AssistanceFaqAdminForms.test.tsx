@@ -152,6 +152,22 @@ describe("AssistanceFaqAdminForms", () => {
     ).toBeTruthy();
   });
 
+  it("câblage scroll-vers-erreur : le submit FAQ avec titre vide ne crashe pas et bloque l'appel API", async () => {
+    render(<AssistanceFaqAdminForms onDone={jest.fn()} />);
+    await waitFor(() =>
+      expect(screen.getByTestId("assistance-faq-admin-faq-title")).toBeTruthy(),
+    );
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("assistance-faq-admin-faq-submit"));
+    });
+
+    expect(mockApi.createGlobalFaq).not.toHaveBeenCalled();
+    expect(
+      screen.getByTestId("assistance-faq-admin-forms-mobile"),
+    ).toBeTruthy();
+  });
+
   it("appelle onDone au clic sur Terminé", async () => {
     const onDone = jest.fn();
     render(<AssistanceFaqAdminForms onDone={onDone} />);

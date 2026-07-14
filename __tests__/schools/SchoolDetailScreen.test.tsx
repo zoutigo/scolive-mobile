@@ -13,11 +13,13 @@ jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/schools.api");
 
 const mockBack = jest.fn();
+const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({
     back: mockBack,
     canGoBack: jest.fn(() => true),
     navigate: jest.fn(),
+    push: mockPush,
   }),
   useLocalSearchParams: () => ({ schoolId: "school-1" }),
 }));
@@ -76,6 +78,15 @@ function makeDetails(overrides?: Partial<SchoolDetails>): SchoolDetails {
       startsAt: "2025-09-01T00:00:00.000Z",
       endsAt: "2026-06-30T00:00:00.000Z",
     },
+    tracks: [{ id: "track-1", code: "S", label: "Scientifique" }],
+    curriculums: [
+      {
+        id: "curriculum-1",
+        name: "Programme Terminale C",
+        academicLevelLabel: "Terminale",
+        trackLabel: "Scientifique",
+      },
+    ],
     stats: {
       usersCount: 42,
       classesCount: 6,
@@ -130,9 +141,12 @@ describe("SchoolDetailScreen", () => {
     expect(await screen.findByTestId("school-detail-identity")).toBeTruthy();
     expect(mockSchoolsApi.getSchoolDetails).toHaveBeenCalledWith("school-1");
 
-    expect(screen.getByTestId("school-detail-academic")).toHaveTextContent(
-      /2025-2026/,
+    expect(screen.getByTestId("school-detail-school-system")).toHaveTextContent(
+      /Scientifique/,
     );
+    expect(
+      screen.getByTestId("school-detail-curriculum-curriculum-1"),
+    ).toHaveTextContent(/Programme Terminale C/);
     expect(screen.getByTestId("school-detail-stat-staff")).toHaveTextContent(
       /3/,
     );
@@ -360,16 +374,31 @@ describe("SchoolDetailScreen", () => {
     expect(mockSchoolsApi.addSchoolAdmin).not.toHaveBeenCalled();
   });
 
-  it("affiche un message adapté quand aucune année scolaire n'est active", async () => {
+  it("navigue vers le résumé complet du système scolaire au clic sur le bouton dédié", async () => {
+    mockSchoolsApi.getSchoolDetails.mockResolvedValue(makeDetails());
+
+    render(<SchoolDetailScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId("school-detail-school-system-view-full"),
+    );
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/schools/[schoolId]/curriculum",
+      params: { schoolId: "school-1" },
+    });
+  });
+
+  it("affiche un message adapté quand aucune filière ni curriculum n'est configuré", async () => {
     mockSchoolsApi.getSchoolDetails.mockResolvedValue(
-      makeDetails({ academicYear: null }),
+      makeDetails({ tracks: [], curriculums: [] }),
     );
 
     render(<SchoolDetailScreen />);
 
     expect(
-      await screen.findByTestId("school-detail-academic"),
-    ).toHaveTextContent(/Aucune année scolaire active/);
+      await screen.findByTestId("school-detail-school-system"),
+    ).toHaveTextContent(/Aucune filière ni curriculum configuré/);
   });
 
   it("affiche un état d'erreur si le chargement échoue", async () => {

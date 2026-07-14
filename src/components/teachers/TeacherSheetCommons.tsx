@@ -25,6 +25,13 @@ export function ModalFrame(props: {
   children: React.ReactNode;
   footer: React.ReactNode;
   testID: string;
+  /**
+   * Ref vers le ScrollView interne : à passer quand le formulaire utilise
+   * `useScrollToFirstError` pour ramener le premier champ en erreur à
+   * l'écran au submit invalide (voir skill improve-mobile-form, section
+   * "Focus / scroll vers le premier champ en erreur").
+   */
+  scrollRef?: React.RefObject<ScrollView | null>;
 }) {
   const { height: windowHeight } = useWindowDimensions();
 
@@ -74,6 +81,7 @@ export function ModalFrame(props: {
               </View>
             </View>
             <ScrollView
+              ref={props.scrollRef}
               style={[
                 styles.sheetScrollArea,
                 { maxHeight: windowHeight * 0.55 },

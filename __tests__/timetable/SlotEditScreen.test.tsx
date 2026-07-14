@@ -295,6 +295,17 @@ describe("SlotEditScreen — occurrence récurrente", () => {
 describe("SlotEditScreen — validation", () => {
   beforeEach(() => setupStore(EDIT_CTX_ONE_OFF));
 
+  it("câblage scroll-vers-erreur : onLayout sur le groupe horaires ne crashe pas", async () => {
+    render(<SlotEditScreen />);
+    const timeGroup = screen.getByTestId("slot-edit-start-input").parent
+      ?.parent;
+    expect(() =>
+      fireEvent(timeGroup!, "layout", {
+        nativeEvent: { layout: { x: 0, y: 200, width: 320, height: 60 } },
+      }),
+    ).not.toThrow();
+  });
+
   it("affiche erreur si fin avant début", async () => {
     render(<SlotEditScreen />);
     fireEvent.changeText(screen.getByTestId("slot-edit-start-input"), "10:00");

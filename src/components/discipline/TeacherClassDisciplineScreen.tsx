@@ -61,6 +61,7 @@ import type { NotesTeacherContext } from "../../types/notes.types";
 import type { ClassTimetableContextResponse } from "../../types/timetable.types";
 import type { CreateLifeEventPayload } from "../../types/discipline.types";
 import { moduleBack } from "../../utils/moduleBack";
+import { useScrollToFirstError } from "../../hooks/useScrollToFirstError";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -287,6 +288,17 @@ function DisciplineEventFormContent(props: {
     defaultValues,
   });
 
+  const { scrollViewRef, registerFieldOffset, scrollToField } =
+    useScrollToFirstError<keyof FormValues>();
+  const FIELD_ORDER: Array<keyof FormValues> = [
+    "studentId",
+    "type",
+    "occurredAt",
+    "reason",
+    "durationMinutes",
+    "comment",
+  ];
+
   useEffect(() => {
     reset(defaultValues);
   }, [defaultValues, reset]);
@@ -342,8 +354,10 @@ function DisciplineEventFormContent(props: {
       }
     },
     (formErrors) => {
-      const first = Object.keys(formErrors)[0];
-      if (first) setFocus(first as Parameters<typeof setFocus>[0]);
+      const first = FIELD_ORDER.find((name) => formErrors[name]);
+      if (!first) return;
+      scrollToField(first);
+      setFocus(first as Parameters<typeof setFocus>[0]);
     },
   );
 
@@ -354,6 +368,7 @@ function DisciplineEventFormContent(props: {
       testID="teacher-class-discipline-form-content"
     >
       <ScrollView
+        ref={scrollViewRef}
         style={styles.formScroll}
         contentContainerStyle={styles.formScrollContent}
         keyboardShouldPersistTaps="handled"
@@ -363,7 +378,10 @@ function DisciplineEventFormContent(props: {
           control={control}
           name="studentId"
           render={({ field: { value, onChange } }) => (
-            <View style={styles.formField}>
+            <View
+              style={styles.formField}
+              onLayout={registerFieldOffset("studentId")}
+            >
               <StudentSelectField
                 label={t("discipline.form.fields.student")}
                 value={value}
@@ -389,7 +407,10 @@ function DisciplineEventFormContent(props: {
           control={control}
           name="type"
           render={({ field: { value, onChange } }) => (
-            <View style={styles.formField}>
+            <View
+              style={styles.formField}
+              onLayout={registerFieldOffset("type")}
+            >
               <Text style={styles.formLabel}>
                 {t("discipline.form.fields.type")}
               </Text>
@@ -439,7 +460,10 @@ function DisciplineEventFormContent(props: {
             const datePart = value ? (value.split("T")[0] ?? "") : "";
             const timePart = value ? (value.split("T")[1] ?? "08:00") : "08:00";
             return (
-              <View style={styles.formField}>
+              <View
+                style={styles.formField}
+                onLayout={registerFieldOffset("occurredAt")}
+              >
                 <View style={styles.dateTimeRow}>
                   <View style={styles.dateTimeCol}>
                     <Text style={styles.formLabel}>

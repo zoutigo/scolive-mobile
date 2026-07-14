@@ -31,6 +31,7 @@ import {
   termLabel,
 } from "../../utils/notes";
 import { toIsoDateString } from "../../utils/timetable";
+import { useScrollToFirstError } from "../../hooks/useScrollToFirstError";
 import type {
   EvaluationAttachmentDraft,
   NotesTeacherContext,
@@ -270,6 +271,15 @@ export function EvaluationForm({
   const [coeffFocused, setCoeffFocused] = useState(false);
   const [maxScoreFocused, setMaxScoreFocused] = useState(false);
 
+  const titleInputRef = useRef<TextInput>(null);
+  const {
+    scrollViewRef,
+    registerFieldOffset,
+    registerFieldInputRef,
+    focusFirstInvalidField,
+  } = useScrollToFirstError<keyof FormValues>();
+  registerFieldInputRef("title", titleInputRef);
+
   const defaultType =
     teacherContext.evaluationTypes.find((et) => et.isDefault)?.id ??
     teacherContext.evaluationTypes[0]?.id ??
@@ -356,32 +366,47 @@ export function EvaluationForm({
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }
 
+  const FIELD_ORDER: Array<keyof FormValues> = [
+    "title",
+    "subjectId",
+    "evaluationTypeId",
+    "sequence",
+    "scheduledDate",
+    "scheduledTime",
+    "coefficient",
+    "maxScore",
+  ];
+
   function buildSubmitHandler(status: "DRAFT" | "PUBLISHED") {
-    return handleSubmit(async (values) => {
-      const editorHtml = await richEditorRef.current?.getContentHtml();
-      const finalHtml = editorHtml?.trim() ? editorHtml : descriptionHtml;
+    return handleSubmit(
+      async (values) => {
+        const editorHtml = await richEditorRef.current?.getContentHtml();
+        const finalHtml = editorHtml?.trim() ? editorHtml : descriptionHtml;
 
-      const payload: UpsertEvaluationPayload = {
-        subjectId: values.subjectId,
-        subjectBranchId: values.subjectBranchId || undefined,
-        evaluationTypeId: values.evaluationTypeId,
-        title: values.title.trim(),
-        description: finalHtml || undefined,
-        coefficient: Number(values.coefficient),
-        maxScore: Number(values.maxScore),
-        sequence: values.sequence as StudentNotesSequence,
-        isFinalExam: values.isFinalExam,
-        scheduledAt: combineToIso(values.scheduledDate, values.scheduledTime),
-        status,
-        attachments,
-      };
+        const payload: UpsertEvaluationPayload = {
+          subjectId: values.subjectId,
+          subjectBranchId: values.subjectBranchId || undefined,
+          evaluationTypeId: values.evaluationTypeId,
+          title: values.title.trim(),
+          description: finalHtml || undefined,
+          coefficient: Number(values.coefficient),
+          maxScore: Number(values.maxScore),
+          sequence: values.sequence as StudentNotesSequence,
+          isFinalExam: values.isFinalExam,
+          scheduledAt: combineToIso(values.scheduledDate, values.scheduledTime),
+          status,
+          attachments,
+        };
 
-      await onSubmit(payload);
-    });
+        await onSubmit(payload);
+      },
+      (formErrors) => focusFirstInvalidField(FIELD_ORDER, formErrors),
+    );
   }
 
   return (
     <ScrollView
+      ref={scrollViewRef}
       style={styles.root}
       contentContainerStyle={[
         styles.content,
@@ -408,12 +433,16 @@ export function EvaluationForm({
         control={control}
         name="title"
         render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.fieldGroup}>
+          <View
+            style={styles.fieldGroup}
+            onLayout={registerFieldOffset("title")}
+          >
             <Text style={styles.fieldLabel}>
               {t("notes.form.fields.title")}{" "}
               <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
+              ref={titleInputRef}
               style={[
                 styles.input,
                 styles.inputLarge,
@@ -448,7 +477,10 @@ export function EvaluationForm({
         control={control}
         name="subjectId"
         render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.fieldGroup}>
+          <View
+            style={styles.fieldGroup}
+            onLayout={registerFieldOffset("subjectId")}
+          >
             <Text style={styles.fieldLabel}>
               {t("notes.form.fields.subject")}{" "}
               <Text style={styles.required}>*</Text>
@@ -499,7 +531,10 @@ export function EvaluationForm({
         control={control}
         name="evaluationTypeId"
         render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.fieldGroup}>
+          <View
+            style={styles.fieldGroup}
+            onLayout={registerFieldOffset("evaluationTypeId")}
+          >
             <Text style={styles.fieldLabel}>
               {t("notes.form.fields.type")}{" "}
               <Text style={styles.required}>*</Text>
@@ -527,7 +562,10 @@ export function EvaluationForm({
         control={control}
         name="sequence"
         render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.fieldGroup}>
+          <View
+            style={styles.fieldGroup}
+            onLayout={registerFieldOffset("sequence")}
+          >
             <Text style={styles.fieldLabel}>
               {t("notes.form.fields.sequence")}{" "}
               <Text style={styles.required}>*</Text>
@@ -606,7 +644,10 @@ export function EvaluationForm({
           control={control}
           name="scheduledDate"
           render={({ field: { onChange, onBlur, value } }) => (
-            <View style={[styles.fieldGroup, { flex: 2 }]}>
+            <View
+              style={[styles.fieldGroup, { flex: 2 }]}
+              onLayout={registerFieldOffset("scheduledDate")}
+            >
               <Text style={styles.fieldLabel}>
                 {t("notes.form.fields.scheduledDate")}{" "}
                 <Text style={styles.required}>*</Text>
@@ -633,7 +674,10 @@ export function EvaluationForm({
           control={control}
           name="scheduledTime"
           render={({ field: { onChange, onBlur, value } }) => (
-            <View style={[styles.fieldGroup, { flex: 1 }]}>
+            <View
+              style={[styles.fieldGroup, { flex: 1 }]}
+              onLayout={registerFieldOffset("scheduledTime")}
+            >
               <Text style={styles.fieldLabel}>
                 {t("notes.form.fields.time")}
               </Text>
@@ -662,7 +706,10 @@ export function EvaluationForm({
           control={control}
           name="coefficient"
           render={({ field: { onChange, onBlur, value } }) => (
-            <View style={[styles.fieldGroup, { flex: 1 }]}>
+            <View
+              style={[styles.fieldGroup, { flex: 1 }]}
+              onLayout={registerFieldOffset("coefficient")}
+            >
               <Text style={styles.fieldLabel}>
                 {t("notes.form.fields.coefficient")}
               </Text>
@@ -700,7 +747,10 @@ export function EvaluationForm({
           control={control}
           name="maxScore"
           render={({ field: { onChange, onBlur, value } }) => (
-            <View style={[styles.fieldGroup, { flex: 1 }]}>
+            <View
+              style={[styles.fieldGroup, { flex: 1 }]}
+              onLayout={registerFieldOffset("maxScore")}
+            >
               <Text style={styles.fieldLabel}>
                 {t("notes.form.fields.maxScore")}
               </Text>

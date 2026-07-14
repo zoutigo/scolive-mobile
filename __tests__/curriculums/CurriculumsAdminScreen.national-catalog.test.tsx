@@ -395,6 +395,74 @@ describe("CurriculumsAdminScreen — catalogue national", () => {
     expect(cycleRow).toHaveTextContent(/1 niveau national/);
   });
 
+  it("affiche tous les onglets abrégés du catalogue national, y compris Aide", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+
+    render(<CurriculumsAdminScreen />);
+
+    expect(
+      await screen.findByTestId("national-catalog-tab-overview"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("national-catalog-tab-cycles")).toBeTruthy();
+    expect(screen.getByTestId("national-catalog-tab-levels")).toBeTruthy();
+    expect(screen.getByTestId("national-catalog-tab-tracks")).toBeTruthy();
+    expect(screen.getByTestId("national-catalog-tab-curriculums")).toBeTruthy();
+    expect(screen.getByTestId("national-catalog-tab-subjects")).toBeTruthy();
+    expect(screen.getByTestId("national-catalog-tab-help")).toBeTruthy();
+
+    expect(
+      screen.getByTestId("national-catalog-tab-overview"),
+    ).toHaveTextContent("Aperçu");
+    expect(
+      screen.getByTestId("national-catalog-tab-curriculums"),
+    ).toHaveTextContent("Curr.");
+  });
+
+  it("affiche le guide hiérarchique sur l'onglet Aperçu et permet d'accéder au guide complet", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+
+    render(<CurriculumsAdminScreen />);
+
+    expect(
+      await screen.findByTestId("national-overview-order-card"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("national-overview-step-0")).toHaveTextContent(
+      /1\. Cycle/,
+    );
+    expect(screen.getByTestId("national-overview-step-5")).toHaveTextContent(
+      /6\. Côté école/,
+    );
+
+    fireEvent.press(screen.getByTestId("national-overview-help-link"));
+
+    expect(await screen.findByTestId("national-help-card")).toBeTruthy();
+    expect(screen.getByTestId("national-help-card-0")).toHaveTextContent(
+      "Cycle",
+      { exact: false },
+    );
+    expect(screen.getByTestId("national-help-card-5")).toHaveTextContent(
+      "Utilisation par les écoles",
+      { exact: false },
+    );
+  });
+
+  it("désactive le FAB de création sur les onglets Aperçu et Aide", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+
+    render(<CurriculumsAdminScreen />);
+
+    expect(await screen.findByTestId("national-catalog-fab")).toBeDisabled();
+
+    fireEvent.press(screen.getByTestId("national-catalog-tab-help"));
+    expect(await screen.findByTestId("national-help-card")).toBeTruthy();
+    expect(screen.getByTestId("national-catalog-fab")).toBeDisabled();
+
+    fireEvent.press(screen.getByTestId("national-catalog-tab-cycles"));
+    await waitFor(() => {
+      expect(screen.getByTestId("national-catalog-fab")).toBeEnabled();
+    });
+  });
+
   it("crée un cycle national depuis l'onglet Cycles via le FAB", async () => {
     mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
 

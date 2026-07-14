@@ -49,6 +49,7 @@ import {
 } from "./ResourceCard";
 import { ResourceCreationOnboardingModal } from "./ResourceCreationOnboardingModal";
 import { moduleBack } from "../../utils/moduleBack";
+import { useScrollToFirstError } from "../../hooks/useScrollToFirstError";
 import type {
   ResourceAdminSubmission,
   ResourceCatalog,
@@ -246,6 +247,7 @@ export function ResourcesScreen() {
   const [formSchools, setFormSchools] = useState<ResourceSchoolSearchOption[]>(
     [],
   );
+  const [formSchoolsLoading, setFormSchoolsLoading] = useState(true);
 
   const [searchInput, setSearchInput] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -328,7 +330,8 @@ export function ResourcesScreen() {
     resourcesApi
       .searchSchools()
       .then(setFormSchools)
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setFormSchoolsLoading(false));
   }, []);
 
   const loadList = useCallback(
@@ -544,7 +547,9 @@ export function ResourcesScreen() {
     payload: UpsertResourcePayload,
   ): Promise<void> {
     if (formContext?.type === "edit" && formContext.item) {
-      await resourcesApi.updateResource(formContext.item.id, payload);
+      const updatePayload: Partial<UpsertResourcePayload> = { ...payload };
+      delete updatePayload.kind;
+      await resourcesApi.updateResource(formContext.item.id, updatePayload);
     } else {
       await resourcesApi.createResource(payload);
     }
@@ -555,10 +560,9 @@ export function ResourcesScreen() {
       title: t("resources.toast.successTitle"),
       message: t("resources.toast.successMessage"),
     });
-    const originTab = formContext?.originTab ?? "ASSESSMENT";
     setTimeout(() => {
       setFormContext(null);
-      setTab(originTab);
+      setTab("mine");
     }, 2000);
   }
 
@@ -1068,6 +1072,7 @@ export function ResourcesScreen() {
             formContext={formContext}
             catalog={catalog}
             schools={formSchools}
+            schoolsLoading={formSchoolsLoading}
             onSubmit={handleSubmitResource}
             onCancel={exitForms}
             isSubmitting={isSubmitting}
@@ -1099,6 +1104,7 @@ function ResourceFormContent(props: {
   formContext: FormContext;
   catalog: ResourceCatalog;
   schools: ResourceSchoolSearchOption[];
+  schoolsLoading: boolean;
   onSubmit: (payload: UpsertResourcePayload) => Promise<void>;
   onCancel: () => void;
   isSubmitting: boolean;
@@ -1109,6 +1115,15 @@ function ResourceFormContent(props: {
   const requiresSchool = kind === "ASSESSMENT";
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const titleInputRef = useRef<TextInput>(null);
+  const {
+    scrollViewRef,
+    registerFieldOffset,
+    registerFieldInputRef,
+    focusFirstInvalidField,
+  } = useScrollToFirstError<keyof ResourceFormValues>();
+  registerFieldInputRef("title", titleInputRef);
 
   const levelIdsWithTracks = useMemo(
     () =>
@@ -1265,32 +1280,48 @@ function ResourceFormContent(props: {
         ? t("resources.form.createExamHeroTitle")
         : t("resources.form.createAssessmentHeroTitle");
 
-  const handleSave = handleSubmit(async (values) => {
-    setErrorMessage(null);
-    try {
-      const payload: UpsertResourcePayload = {
-        kind,
-        schoolId: kind === "ASSESSMENT" ? values.schoolId : undefined,
-        academicLevelId: values.academicLevelId,
-        trackId: levelHasTracks ? values.trackId || undefined : undefined,
-        subjectId: values.subjectId,
-        examType: values.examType as ResourceExamType,
-        sequence:
-          kind === "ASSESSMENT"
-            ? (values.sequence as ResourceSequence)
-            : undefined,
-        academicYearLabel: values.academicYearLabel,
-        title: values.title.trim(),
-      };
-      await props.onSubmit(payload);
-    } catch (error) {
-      setErrorMessage(extractApiError(error));
-    }
-  });
+  const FIELD_ORDER: Array<keyof ResourceFormValues> = [
+    "title",
+    "schoolId",
+    "cycleId",
+    "academicLevelId",
+    "trackId",
+    "subjectId",
+    "examType",
+    "academicYearLabel",
+    "sequence",
+  ];
+
+  const handleSave = handleSubmit(
+    async (values) => {
+      setErrorMessage(null);
+      try {
+        const payload: UpsertResourcePayload = {
+          kind,
+          schoolId: kind === "ASSESSMENT" ? values.schoolId : undefined,
+          academicLevelId: values.academicLevelId,
+          trackId: levelHasTracks ? values.trackId || undefined : undefined,
+          subjectId: values.subjectId,
+          examType: values.examType as ResourceExamType,
+          sequence:
+            kind === "ASSESSMENT"
+              ? (values.sequence as ResourceSequence)
+              : undefined,
+          academicYearLabel: values.academicYearLabel,
+          title: values.title.trim(),
+        };
+        await props.onSubmit(payload);
+      } catch (error) {
+        setErrorMessage(extractApiError(error));
+      }
+    },
+    (formErrors) => focusFirstInvalidField(FIELD_ORDER, formErrors),
+  );
 
   return (
     <View style={styles.formsTabContent} testID="resources-form-tab">
       <ScrollView
+        ref={scrollViewRef}
         style={styles.formScroll}
         contentContainerStyle={styles.formScrollContent}
         keyboardShouldPersistTaps="handled"
@@ -1323,7 +1354,7 @@ function ResourceFormContent(props: {
           </View>
         ) : null}
 
-        <View style={styles.fieldGroup}>
+        <View style={styles.fieldGroup} onLayout={registerFieldOffset("title")}>
           <Text style={styles.fieldLabel}>
             {t("resources.form.titleLabel")}
           </Text>
@@ -1332,6 +1363,7 @@ function ResourceFormContent(props: {
             name="title"
             render={({ field: { value, onChange } }) => (
               <TextInput
+                ref={titleInputRef}
                 value={value}
                 onChangeText={onChange}
                 placeholder={t("resources.form.titlePlaceholder")}
@@ -1349,7 +1381,10 @@ function ResourceFormContent(props: {
         </View>
 
         {requiresSchool ? (
-          <View style={styles.fieldGroup}>
+          <View
+            style={styles.fieldGroup}
+            onLayout={registerFieldOffset("schoolId")}
+          >
             <Controller
               control={control}
               name="schoolId"
@@ -1364,7 +1399,12 @@ function ResourceFormContent(props: {
                     setValue("trackId", "");
                     setValue("subjectId", "");
                   }}
-                  placeholder={t("resources.form.schoolPlaceholder")}
+                  placeholder={
+                    props.schoolsLoading
+                      ? t("resources.form.schoolLoading")
+                      : t("resources.form.schoolPlaceholder")
+                  }
+                  loading={props.schoolsLoading}
                   onQueryChange={handleSchoolQueryChange}
                   hasError={!!errors.schoolId}
                   testID="resources-form-school"
@@ -1393,7 +1433,10 @@ function ResourceFormContent(props: {
         ) : null}
 
         {!requiresSchool ? (
-          <View style={styles.fieldGroup}>
+          <View
+            style={styles.fieldGroup}
+            onLayout={registerFieldOffset("cycleId")}
+          >
             <Text style={styles.fieldLabel}>
               {t("resources.form.cycleLabel")}
             </Text>
@@ -1427,7 +1470,10 @@ function ResourceFormContent(props: {
           </View>
         ) : null}
 
-        <View style={styles.fieldGroup}>
+        <View
+          style={styles.fieldGroup}
+          onLayout={registerFieldOffset("academicLevelId")}
+        >
           <Text style={styles.fieldLabel}>
             {t("resources.form.levelLabel")}
           </Text>
@@ -1457,7 +1503,10 @@ function ResourceFormContent(props: {
         </View>
 
         {levelHasTracks ? (
-          <View style={styles.fieldGroup}>
+          <View
+            style={styles.fieldGroup}
+            onLayout={registerFieldOffset("trackId")}
+          >
             <Text style={styles.fieldLabel}>
               {t("resources.form.trackLabel")}
             </Text>
@@ -1489,7 +1538,10 @@ function ResourceFormContent(props: {
           </View>
         ) : null}
 
-        <View style={styles.fieldGroup}>
+        <View
+          style={styles.fieldGroup}
+          onLayout={registerFieldOffset("subjectId")}
+        >
           <Text style={styles.fieldLabel}>
             {t("resources.form.subjectLabel")}
           </Text>
@@ -1517,7 +1569,10 @@ function ResourceFormContent(props: {
           ) : null}
         </View>
 
-        <View style={styles.fieldGroup}>
+        <View
+          style={styles.fieldGroup}
+          onLayout={registerFieldOffset("examType")}
+        >
           <Text style={styles.fieldLabel}>
             {t("resources.form.examTypeLabel")}
           </Text>
@@ -1545,7 +1600,10 @@ function ResourceFormContent(props: {
           ) : null}
         </View>
 
-        <View style={styles.fieldGroup}>
+        <View
+          style={styles.fieldGroup}
+          onLayout={registerFieldOffset("academicYearLabel")}
+        >
           <Text style={styles.fieldLabel}>
             {t("resources.form.academicYearLabel")}
           </Text>
@@ -1574,7 +1632,10 @@ function ResourceFormContent(props: {
         </View>
 
         {kind === "ASSESSMENT" ? (
-          <View style={styles.fieldGroup}>
+          <View
+            style={styles.fieldGroup}
+            onLayout={registerFieldOffset("sequence")}
+          >
             <Text style={styles.fieldLabel}>
               {t("resources.form.sequenceLabel")}
             </Text>

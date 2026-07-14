@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -27,6 +26,9 @@ import {
   RichEditorField,
   type RichEditorFieldRef,
 } from "../editor/RichEditorField";
+import { RichContentView } from "../editor/RichContentView";
+import { downloadAndOpenAttachment } from "../../utils/attachment-download";
+import { toAttachmentPayload } from "../../utils/resource-attachments";
 import {
   EXAM_TYPE_KEYS,
   SEQUENCE_LABELS,
@@ -43,6 +45,10 @@ function stripHtml(html: string): string {
     .replace(/<[^>]*>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function hasMeaningfulContent(html: string): boolean {
+  return stripHtml(html).length > 0 || /<img[\s>]/i.test(html);
 }
 
 const ACTIVE_STATUSES = new Set(["DRAFT", "AWAITING"]);
@@ -71,6 +77,10 @@ export function ResourceDetailScreen(props: {
     ResourceAttachment[]
   >([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [contentError, setContentError] = useState<string | null>(null);
+  const [openingAttachmentKey, setOpeningAttachmentKey] = useState<
+    string | null
+  >(null);
   const editorRef = useRef<RichEditorFieldRef>(null);
 
   const load = useCallback(async () => {
@@ -128,14 +138,17 @@ export function ResourceDetailScreen(props: {
     }
   }, [activeSubmission?.id, activeSubmission?.status]);
 
-  async function openAttachment(url?: string | null) {
-    if (!url) return;
+  async function openAttachment(attachment: ResourceAttachment, key: string) {
+    setOpeningAttachmentKey(key);
     try {
-      const supported = await Linking.canOpenURL(url);
-      if (!supported) return;
-      await Linking.openURL(url);
+      await downloadAndOpenAttachment(attachment);
     } catch {
-      // ignore, l'ouverture externe n'est pas critique
+      showError({
+        title: t("resources.toast.errorTitle"),
+        message: t("resources.errors.openAttachment"),
+      });
+    } finally {
+      setOpeningAttachmentKey(null);
     }
   }
 
@@ -172,7 +185,10 @@ export function ResourceDetailScreen(props: {
       const submission = await resourcesApi.saveSubmissionDraft(
         resourceId,
         part,
-        { content: html.trim(), attachments: draftAttachments },
+        {
+          content: html.trim(),
+          attachments: toAttachmentPayload(draftAttachments),
+        },
       );
       setMySubmissions((current) => {
         const others = current.filter((s) => s.id !== submission.id);
@@ -193,10 +209,31 @@ export function ResourceDetailScreen(props: {
   }
 
   async function handleSubmit() {
-    if (!activeSubmission || activeSubmission.status !== "DRAFT") return;
+    const html = (await editorRef.current?.getContentHtml()) ?? draftContent;
+    if (!hasMeaningfulContent(html)) {
+      setContentError(t("resources.contribution.contentRequired"));
+      editorRef.current?.focus();
+      return;
+    }
+    setContentError(null);
     setIsSaving(true);
     try {
-      await resourcesApi.submitSubmission(resourceId, activeSubmission.id);
+      const submission = await resourcesApi.saveSubmissionDraft(
+        resourceId,
+        part,
+        {
+          content: html.trim(),
+          attachments: toAttachmentPayload(draftAttachments),
+        },
+      );
+      const submitted = await resourcesApi.submitSubmission(
+        resourceId,
+        submission.id,
+      );
+      setMySubmissions((current) => {
+        const others = current.filter((s) => s.id !== submitted.id);
+        return [...others, submitted];
+      });
       showSuccess({
         title: t("resources.toast.successTitle"),
         message: t("resources.contribution.submitted"),
@@ -311,33 +348,43 @@ export function ResourceDetailScreen(props: {
             {hasApprovedContent ? (
               <>
                 <View style={styles.contentCard}>
-                  <Text
-                    style={styles.contentText}
+                  <RichContentView
+                    html={approvedContent ?? ""}
                     testID={`resources-detail-content-${part}`}
-                  >
-                    {stripHtml(approvedContent ?? "")}
-                  </Text>
+                  />
                 </View>
                 {attachments.length > 0 ? (
                   <View style={styles.attachmentsList}>
-                    {attachments.map((attachment, idx) => (
-                      <TouchableOpacity
-                        key={attachment.id ?? idx}
-                        style={styles.attachmentChip}
-                        onPress={() => openAttachment(attachment.fileUrl)}
-                        disabled={!attachment.fileUrl}
-                        testID={`resources-detail-attachment-${part}-${idx}`}
-                      >
-                        <Ionicons
-                          name="document-outline"
-                          size={16}
-                          color={colors.primary}
-                        />
-                        <Text style={styles.attachmentText} numberOfLines={1}>
-                          {attachment.fileName}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                    {attachments.map((attachment, idx) => {
+                      const key = `approved-${attachment.id ?? idx}`;
+                      return (
+                        <TouchableOpacity
+                          key={attachment.id ?? idx}
+                          style={styles.attachmentChip}
+                          onPress={() => openAttachment(attachment, key)}
+                          disabled={
+                            !attachment.fileUrl || openingAttachmentKey === key
+                          }
+                          testID={`resources-detail-attachment-${part}-${idx}`}
+                        >
+                          {openingAttachmentKey === key ? (
+                            <ActivityIndicator
+                              size="small"
+                              color={colors.primary}
+                            />
+                          ) : (
+                            <Ionicons
+                              name="document-outline"
+                              size={16}
+                              color={colors.primary}
+                            />
+                          )}
+                          <Text style={styles.attachmentText} numberOfLines={1}>
+                            {attachment.fileName}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 ) : null}
               </>
@@ -434,6 +481,14 @@ export function ResourceDetailScreen(props: {
                       toolbarTestID={`resources-detail-editor-toolbar-${part}`}
                       editorTestID={`resources-detail-editor-${part}`}
                     />
+                    {contentError ? (
+                      <Text
+                        style={styles.fieldErrorText}
+                        testID={`resources-detail-content-error-${part}`}
+                      >
+                        {contentError}
+                      </Text>
+                    ) : null}
                     <TouchableOpacity
                       style={styles.addAttachmentBtn}
                       onPress={handleAddAttachment}
@@ -513,17 +568,10 @@ export function ResourceDetailScreen(props: {
                       <TouchableOpacity
                         style={[
                           styles.submitBtn,
-                          (isSaving ||
-                            !activeSubmission ||
-                            activeSubmission.status !== "DRAFT") &&
-                            styles.btnDisabled,
+                          isSaving && styles.btnDisabled,
                         ]}
                         onPress={handleSubmit}
-                        disabled={
-                          isSaving ||
-                          !activeSubmission ||
-                          activeSubmission.status !== "DRAFT"
-                        }
+                        disabled={isSaving}
                         testID={`resources-detail-submit-${part}`}
                       >
                         {isSaving ? (
@@ -606,6 +654,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     fontStyle: "italic",
+  },
+  fieldErrorText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.notification,
   },
   lockedBanner: {
     flexDirection: "row",

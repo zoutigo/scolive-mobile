@@ -34,6 +34,7 @@ import { timeLabelToMinute, toIsoDateString } from "../../utils/timetable";
 import { extractApiError } from "../../utils/api-error";
 import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 import { moduleBack } from "../../utils/moduleBack";
+import { useScrollToFirstError } from "../../hooks/useScrollToFirstError";
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
@@ -207,6 +208,25 @@ export function SlotCreateScreen({
   const start = watch("start");
   const end = watch("end");
 
+  const { scrollViewRef, registerFieldOffset, focusFirstInvalidField } =
+    useScrollToFirstError<keyof FormValues>();
+  const ONEOFF_FIELD_ORDER: Array<keyof FormValues> = [
+    "classId",
+    "subjectId",
+    "occurrenceDate",
+    "start",
+    "end",
+  ];
+  const RECURRING_FIELD_ORDER: Array<keyof FormValues> = [
+    "classId",
+    "subjectId",
+    "weekdays",
+    "activeFromDate",
+    "activeToDate",
+    "start",
+    "end",
+  ];
+
   // Load class context when classId changes
   useEffect(() => {
     if (!classId || classId === prevLoadedClassId.current) return;
@@ -359,10 +379,11 @@ export function SlotCreateScreen({
         setIsSaving(false);
       }
     },
-    (errs) => {
-      const firstKey = Object.keys(errs)[0];
-      if (!firstKey) return;
-    },
+    (errs) =>
+      focusFirstInvalidField(
+        slotType === "oneoff" ? ONEOFF_FIELD_ORDER : RECURRING_FIELD_ORDER,
+        errs,
+      ),
   );
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -383,6 +404,7 @@ export function SlotCreateScreen({
         style={styles.flex}
       >
         <ScrollView
+          ref={scrollViewRef}
           style={styles.flex}
           contentContainerStyle={[
             styles.content,
@@ -408,7 +430,10 @@ export function SlotCreateScreen({
               control={control}
               name="classId"
               render={({ field: { value, onChange } }) => (
-                <View style={styles.section}>
+                <View
+                  style={styles.section}
+                  onLayout={registerFieldOffset("classId")}
+                >
                   <Text style={styles.label}>
                     {t("timetable.oneOffPanel.fields.class")}
                   </Text>
@@ -523,7 +548,10 @@ export function SlotCreateScreen({
                 </View>
 
                 {/* Subject */}
-                <View style={styles.section}>
+                <View
+                  style={styles.section}
+                  onLayout={registerFieldOffset("subjectId")}
+                >
                   <Text style={styles.label}>
                     {t("timetable.classManager.fields.subject")}
                   </Text>
@@ -570,7 +598,14 @@ export function SlotCreateScreen({
                 </View>
 
                 {slotType === "oneoff" ? (
-                  <View style={styles.dateTimeRow}>
+                  <View
+                    style={styles.dateTimeRow}
+                    onLayout={(e) => {
+                      registerFieldOffset("occurrenceDate")(e);
+                      registerFieldOffset("start")(e);
+                      registerFieldOffset("end")(e);
+                    }}
+                  >
                     <View style={styles.dateField}>
                       <Text style={styles.label}>
                         {t("timetable.classManager.fields.date")}
@@ -657,7 +692,15 @@ export function SlotCreateScreen({
                     </View>
                   </View>
                 ) : (
-                  <>
+                  <View
+                    onLayout={(e) => {
+                      registerFieldOffset("weekdays")(e);
+                      registerFieldOffset("activeFromDate")(e);
+                      registerFieldOffset("activeToDate")(e);
+                      registerFieldOffset("start")(e);
+                      registerFieldOffset("end")(e);
+                    }}
+                  >
                     {/* Weekday selector */}
                     <Controller
                       control={control}
@@ -855,7 +898,7 @@ export function SlotCreateScreen({
                         ) : null}
                       </View>
                     </View>
-                  </>
+                  </View>
                 )}
 
                 {/* Room */}

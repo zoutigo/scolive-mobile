@@ -4,14 +4,21 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react-native";
-import { Linking } from "react-native";
 import { ModerationReviewScreen } from "../../src/components/resources/ModerationReviewScreen";
 import { resourcesApi, resourcesAdminApi } from "../../src/api/resources.api";
+import { downloadAndOpenAttachment } from "../../src/utils/attachment-download";
 import type {
   ResourceDetail,
   ResourceSubmission,
 } from "../../src/types/resources.types";
+
+jest.mock("../../src/utils/attachment-download");
+const mockDownloadAndOpenAttachment =
+  downloadAndOpenAttachment as jest.MockedFunction<
+    typeof downloadAndOpenAttachment
+  >;
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/resources.api");
@@ -115,6 +122,7 @@ describe("ModerationReviewScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockCanGoBack.mockReturnValue(false);
+    mockDownloadAndOpenAttachment.mockResolvedValue(undefined);
   });
 
   it("affiche un message d'erreur si la soumission n'est plus trouvée", async () => {
@@ -157,12 +165,15 @@ describe("ModerationReviewScreen", () => {
       ).toBeTruthy(),
     );
     expect(
-      screen.getByTestId("resources-moderation-review-reference").props
-        .children,
-    ).toBe("Voici l'énoncé complet");
+      within(
+        screen.getByTestId("resources-moderation-review-reference"),
+      ).getByTestId("rich-editor-initial-content").props.children,
+    ).toBe("<p>Voici l'énoncé complet</p>");
     expect(
-      screen.getByTestId("resources-moderation-review-content").props.children,
-    ).toBe("Voici le corrigé proposé");
+      within(
+        screen.getByTestId("resources-moderation-review-content"),
+      ).getByTestId("rich-editor-initial-content").props.children,
+    ).toBe("<p>Voici le corrigé proposé</p>");
     expect(screen.getByText(/Léa Dupont/)).toBeTruthy();
     expect(mockResourcesApi.listSubmissions).toHaveBeenCalledWith(
       "res-1",
@@ -224,9 +235,6 @@ describe("ModerationReviewScreen", () => {
   });
 
   it("ouvre une pièce jointe au tap", async () => {
-    const openURLSpy = jest
-      .spyOn(Linking, "openURL")
-      .mockResolvedValue(true as never);
     mockResourcesApi.getResource.mockResolvedValue(BASE_DETAIL);
     mockResourcesApi.listSubmissions.mockResolvedValue([makeSubmission()]);
 
@@ -247,8 +255,12 @@ describe("ModerationReviewScreen", () => {
       screen.getByTestId("resources-moderation-review-attachment-0"),
     );
 
-    expect(openURLSpy).toHaveBeenCalledWith(
-      "https://files.example.com/correction-scanne.pdf",
+    await waitFor(() =>
+      expect(mockDownloadAndOpenAttachment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fileUrl: "https://files.example.com/correction-scanne.pdf",
+        }),
+      ),
     );
   });
 
@@ -390,7 +402,14 @@ describe("ModerationReviewScreen", () => {
         mockResourcesAdminApi.updateSubmissionContent,
       ).toHaveBeenCalledWith("sub-1", {
         content: "<p>Voici le corrigé proposé</p>",
-        attachments: makeSubmission().attachments,
+        attachments: [
+          {
+            fileName: "correction-scanne.pdf",
+            fileUrl: "https://files.example.com/correction-scanne.pdf",
+            mimeType: undefined,
+            sizeLabel: undefined,
+          },
+        ],
       }),
     );
     await waitFor(() =>
@@ -399,8 +418,10 @@ describe("ModerationReviewScreen", () => {
       ).toBeNull(),
     );
     expect(
-      screen.getByTestId("resources-moderation-review-content").props.children,
-    ).toBe("Corrigé par la plateforme");
+      within(
+        screen.getByTestId("resources-moderation-review-content"),
+      ).getByTestId("rich-editor-initial-content").props.children,
+    ).toBe("<p>Corrigé par la plateforme</p>");
   });
 
   it("annule l'édition sans appeler l'API de mise à jour", async () => {

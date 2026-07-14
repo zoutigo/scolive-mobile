@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from "react";
+import { View } from "react-native";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -15,6 +16,7 @@ import type {
   TeacherSubjectOption,
 } from "../../types/teachers.types";
 import { toLocalPhoneDisplay } from "../account/account.schemas";
+import { useScrollToFirstError } from "../../hooks/useScrollToFirstError";
 
 export const teacherAssignmentFormSchema = z.object({
   schoolYearId: z.string().trim().min(1, "L'année scolaire est obligatoire."),
@@ -52,7 +54,6 @@ export function TeacherAssignmentSheet(props: Props) {
     handleSubmit,
     watch,
     reset,
-    setFocus: focusField,
     formState: { errors },
   } = useForm<TeacherAssignmentFormValues>({
     resolver: zodResolver(teacherAssignmentFormSchema),
@@ -66,6 +67,15 @@ export function TeacherAssignmentSheet(props: Props) {
   });
 
   const schoolYearId = watch("schoolYearId");
+
+  const { scrollViewRef, registerFieldOffset, focusFirstInvalidField } =
+    useScrollToFirstError<keyof TeacherAssignmentFormValues>();
+  const FIELD_ORDER: Array<keyof TeacherAssignmentFormValues> = [
+    "schoolYearId",
+    "teacherUserId",
+    "classId",
+    "subjectId",
+  ];
 
   useEffect(() => {
     if (!props.visible) return;
@@ -145,6 +155,7 @@ export function TeacherAssignmentSheet(props: Props) {
       subtitle="Associez un enseignant, une classe, une matière et une année scolaire."
       onClose={props.onClose}
       testID="teacher-assignment-sheet"
+      scrollRef={scrollViewRef}
       footer={
         <FormActions
           submitLabel={
@@ -152,74 +163,81 @@ export function TeacherAssignmentSheet(props: Props) {
           }
           isSubmitting={props.isSubmitting}
           onCancel={props.onClose}
-          onSubmit={handleSubmit(props.onSubmit, (errs) => {
-            const first = Object.keys(errs)[0];
-            if (first) focusField(first as Parameters<typeof focusField>[0]);
-          })}
+          onSubmit={handleSubmit(props.onSubmit, (errs) =>
+            focusFirstInvalidField(FIELD_ORDER, errs),
+          )}
           testIDPrefix="teacher-assignment"
         />
       }
     >
-      <Controller
-        control={control}
-        name="schoolYearId"
-        render={({ field: { value, onChange } }) => (
-          <CompactSelectField
-            label="Année scolaire"
-            value={value}
-            options={schoolYearOptions}
-            placeholder="Choisir une année"
-            onChange={onChange}
-            error={errors.schoolYearId?.message}
-            testID="teacher-assignment-school-year"
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="teacherUserId"
-        render={({ field: { value, onChange } }) => (
-          <CompactSelectField
-            label="Enseignant"
-            value={value}
-            options={teacherOptions}
-            placeholder="Choisir un enseignant"
-            onChange={isTeacherLocked ? () => {} : onChange}
-            error={errors.teacherUserId?.message}
-            testID="teacher-assignment-teacher"
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="classId"
-        render={({ field: { value, onChange } }) => (
-          <CompactSelectField
-            label="Classe"
-            value={value}
-            options={classOptions}
-            placeholder="Choisir une classe"
-            onChange={onChange}
-            error={errors.classId?.message}
-            testID="teacher-assignment-class"
-          />
-        )}
-      />
-      <Controller
-        control={control}
-        name="subjectId"
-        render={({ field: { value, onChange } }) => (
-          <CompactSelectField
-            label="Matière"
-            value={value}
-            options={subjectOptions}
-            placeholder="Choisir une matière"
-            onChange={onChange}
-            error={errors.subjectId?.message}
-            testID="teacher-assignment-subject"
-          />
-        )}
-      />
+      <View onLayout={registerFieldOffset("schoolYearId")}>
+        <Controller
+          control={control}
+          name="schoolYearId"
+          render={({ field: { value, onChange } }) => (
+            <CompactSelectField
+              label="Année scolaire"
+              value={value}
+              options={schoolYearOptions}
+              placeholder="Choisir une année"
+              onChange={onChange}
+              error={errors.schoolYearId?.message}
+              testID="teacher-assignment-school-year"
+            />
+          )}
+        />
+      </View>
+      <View onLayout={registerFieldOffset("teacherUserId")}>
+        <Controller
+          control={control}
+          name="teacherUserId"
+          render={({ field: { value, onChange } }) => (
+            <CompactSelectField
+              label="Enseignant"
+              value={value}
+              options={teacherOptions}
+              placeholder="Choisir un enseignant"
+              onChange={isTeacherLocked ? () => {} : onChange}
+              error={errors.teacherUserId?.message}
+              testID="teacher-assignment-teacher"
+            />
+          )}
+        />
+      </View>
+      <View onLayout={registerFieldOffset("classId")}>
+        <Controller
+          control={control}
+          name="classId"
+          render={({ field: { value, onChange } }) => (
+            <CompactSelectField
+              label="Classe"
+              value={value}
+              options={classOptions}
+              placeholder="Choisir une classe"
+              onChange={onChange}
+              error={errors.classId?.message}
+              testID="teacher-assignment-class"
+            />
+          )}
+        />
+      </View>
+      <View onLayout={registerFieldOffset("subjectId")}>
+        <Controller
+          control={control}
+          name="subjectId"
+          render={({ field: { value, onChange } }) => (
+            <CompactSelectField
+              label="Matière"
+              value={value}
+              options={subjectOptions}
+              placeholder="Choisir une matière"
+              onChange={onChange}
+              error={errors.subjectId?.message}
+              testID="teacher-assignment-subject"
+            />
+          )}
+        />
+      </View>
     </ModalFrame>
   );
 }

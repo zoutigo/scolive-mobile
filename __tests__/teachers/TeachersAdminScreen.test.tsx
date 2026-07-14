@@ -932,6 +932,30 @@ describe("TeachersAdminScreen — tab forms / création affectation", () => {
     expect(mockTeachersApi.createAssignment).not.toHaveBeenCalled();
   });
 
+  it("câblage scroll-vers-erreur : onLayout sur le groupe classe ne crashe pas", async () => {
+    render(<TeachersAdminScreen />);
+    fireEvent.press(
+      await screen.findByTestId("teachers-admin-tab-assignments"),
+    );
+    fireEvent.press(screen.getByTestId("teachers-admin-fab"));
+    await screen.findByTestId("teachers-admin-assignment-form-content");
+
+    const classGroup = screen.getByTestId(
+      "teachers-admin-assignment-class",
+    ).parent;
+    expect(() =>
+      fireEvent(classGroup!, "layout", {
+        nativeEvent: { layout: { x: 0, y: 200, width: 320, height: 60 } },
+      }),
+    ).not.toThrow();
+
+    fireEvent.press(screen.getByTestId("teachers-admin-assignment-submit"));
+
+    expect(
+      await screen.findByTestId("teachers-admin-assignment-class-error"),
+    ).toBeTruthy();
+  });
+
   it("crée une affectation et affiche un toast succès", async () => {
     render(<TeachersAdminScreen />);
 

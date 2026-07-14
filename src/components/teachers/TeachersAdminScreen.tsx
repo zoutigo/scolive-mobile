@@ -54,6 +54,7 @@ import type {
   TeacherSubjectOption,
 } from "../../types/teachers.types";
 import { moduleBack } from "../../utils/moduleBack";
+import { useScrollToFirstError } from "../../hooks/useScrollToFirstError";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -567,7 +568,6 @@ function AssignmentFormContent(props: {
     control,
     handleSubmit,
     watch,
-    setFocus: focusField,
     formState: { errors },
   } = useForm<z.infer<typeof teacherAssignmentFormSchema>>({
     resolver: zodResolver(teacherAssignmentFormSchema),
@@ -580,6 +580,11 @@ function AssignmentFormContent(props: {
       subjectId: props.item?.subjectId ?? props.subjects[0]?.id ?? "",
     },
   });
+
+  const { scrollViewRef, registerFieldOffset, focusFirstInvalidField } =
+    useScrollToFirstError<keyof z.infer<typeof teacherAssignmentFormSchema>>();
+  const FIELD_ORDER: Array<keyof z.infer<typeof teacherAssignmentFormSchema>> =
+    ["schoolYearId", "teacherUserId", "classId", "subjectId"];
 
   const schoolYearId = watch("schoolYearId");
 
@@ -630,6 +635,7 @@ function AssignmentFormContent(props: {
       testID="teachers-admin-assignment-form-content"
     >
       <ScrollView
+        ref={scrollViewRef}
         style={styles.formScroll}
         contentContainerStyle={styles.formScrollContent}
         keyboardShouldPersistTaps="handled"
@@ -639,7 +645,10 @@ function AssignmentFormContent(props: {
           control={control}
           name="schoolYearId"
           render={({ field: { value, onChange } }) => (
-            <View style={styles.formField}>
+            <View
+              style={styles.formField}
+              onLayout={registerFieldOffset("schoolYearId")}
+            >
               <Text style={styles.formLabel}>Année scolaire</Text>
               <InlineSelectDropDown
                 options={schoolYearOptions}
@@ -664,7 +673,10 @@ function AssignmentFormContent(props: {
           control={control}
           name="teacherUserId"
           render={({ field: { value, onChange } }) => (
-            <View style={styles.formField}>
+            <View
+              style={styles.formField}
+              onLayout={registerFieldOffset("teacherUserId")}
+            >
               <Text style={styles.formLabel}>Enseignant</Text>
               <InlineSelectDropDown
                 options={teacherSelectOptions}
@@ -689,7 +701,10 @@ function AssignmentFormContent(props: {
           control={control}
           name="classId"
           render={({ field: { value, onChange } }) => (
-            <View style={styles.formField}>
+            <View
+              style={styles.formField}
+              onLayout={registerFieldOffset("classId")}
+            >
               <Text style={styles.formLabel}>Classe</Text>
               <InlineSelectDropDown
                 options={classOptions}
@@ -714,7 +729,10 @@ function AssignmentFormContent(props: {
           control={control}
           name="subjectId"
           render={({ field: { value, onChange } }) => (
-            <View style={styles.formField}>
+            <View
+              style={styles.formField}
+              onLayout={registerFieldOffset("subjectId")}
+            >
               <Text style={styles.formLabel}>Matière</Text>
               <InlineSelectDropDown
                 options={subjectOptions}
@@ -744,10 +762,9 @@ function AssignmentFormContent(props: {
           }
           isSubmitting={props.isSubmitting}
           onCancel={props.onCancel}
-          onSubmit={handleSubmit(props.onSubmit, (errs) => {
-            const first = Object.keys(errs)[0];
-            if (first) focusField(first as Parameters<typeof focusField>[0]);
-          })}
+          onSubmit={handleSubmit(props.onSubmit, (errs) =>
+            focusFirstInvalidField(FIELD_ORDER, errs),
+          )}
           testIDPrefix="teachers-admin-assignment"
         />
       </View>

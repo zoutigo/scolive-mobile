@@ -88,6 +88,23 @@ describe("AssistanceGuideAdminForms", () => {
     ).toBeTruthy();
   });
 
+  it("câblage scroll-vers-erreur : submit guide avec titre vide ne crashe pas et bloque l'appel API", async () => {
+    render(<AssistanceGuideAdminForms onDone={jest.fn()} />);
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("assistance-guide-admin-guide-title"),
+      ).toBeTruthy(),
+    );
+
+    await act(async () => {
+      fireEvent.press(
+        screen.getByTestId("assistance-guide-admin-create-guide-submit"),
+      );
+    });
+
+    expect(mockApi.createGlobalGuide).not.toHaveBeenCalled();
+  });
+
   it("crée un guide puis affiche un toast de succès", async () => {
     mockApi.createGlobalGuide.mockResolvedValue(
       makeGuideItem({ id: "guide-2", title: "Nouveau guide" }),

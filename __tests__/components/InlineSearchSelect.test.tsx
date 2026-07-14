@@ -97,6 +97,39 @@ describe("InlineSearchSelect", () => {
     expect(screen.queryByTestId("region-select-option-Littoral")).toBeNull();
   });
 
+  it("opens the suggestion list and focuses the input when the chevron is pressed", () => {
+    render(
+      <InlineSearchSelect
+        label="Région"
+        options={OPTIONS}
+        value=""
+        onChange={jest.fn()}
+        testID="region-select"
+      />,
+    );
+    const input = screen.getByTestId("region-select-input");
+    expect(screen.queryByTestId("region-select-suggestions")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("region-select-chevron"));
+
+    expect(input.props.value).toBe("");
+    expect(screen.getByTestId("region-select-option-Centre")).toBeTruthy();
+  });
+
+  it("does not render a pressable chevron when disabled", () => {
+    render(
+      <InlineSearchSelect
+        label="Pays"
+        options={[{ value: "Cameroun", label: "Cameroun" }]}
+        value="Cameroun"
+        onChange={jest.fn()}
+        disabled
+        testID="country-select"
+      />,
+    );
+    expect(screen.queryByTestId("country-select-chevron")).toBeNull();
+  });
+
   it("does not open the suggestion list when disabled", () => {
     render(
       <InlineSearchSelect
@@ -112,6 +145,54 @@ describe("InlineSearchSelect", () => {
     fireEvent(input, "focus");
     expect(input.props.editable).toBe(false);
     expect(screen.queryByTestId("country-select-option-Cameroun")).toBeNull();
+  });
+
+  it("shows a spinner and does not open the suggestion list while loading", () => {
+    render(
+      <InlineSearchSelect
+        label="École"
+        options={[]}
+        value=""
+        onChange={jest.fn()}
+        loading
+        placeholder="Chargement des écoles…"
+        testID="school-select"
+      />,
+    );
+    expect(screen.getByTestId("school-select-loading")).toBeTruthy();
+    const input = screen.getByTestId("school-select-input");
+    expect(input.props.editable).toBe(false);
+    fireEvent(input, "focus");
+    expect(screen.queryByTestId("school-select-suggestions")).toBeNull();
+  });
+
+  it("stops showing the spinner and opens normally once loading completes", () => {
+    const { rerender } = render(
+      <InlineSearchSelect
+        label="École"
+        options={OPTIONS}
+        value=""
+        onChange={jest.fn()}
+        loading
+        testID="school-select"
+      />,
+    );
+    expect(screen.getByTestId("school-select-loading")).toBeTruthy();
+
+    rerender(
+      <InlineSearchSelect
+        label="École"
+        options={OPTIONS}
+        value=""
+        onChange={jest.fn()}
+        loading={false}
+        testID="school-select"
+      />,
+    );
+    expect(screen.queryByTestId("school-select-loading")).toBeNull();
+    const input = screen.getByTestId("school-select-input");
+    fireEvent(input, "focus");
+    expect(screen.getByTestId("school-select-option-Centre")).toBeTruthy();
   });
 
   it("shows an empty-state message when no option matches the query", () => {

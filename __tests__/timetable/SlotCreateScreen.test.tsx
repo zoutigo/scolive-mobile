@@ -387,6 +387,35 @@ describe("SlotCreateScreen — bouton submit", () => {
   });
 });
 
+describe("SlotCreateScreen — câblage scroll-vers-erreur", () => {
+  it("onLayout sur le groupe matière ne crashe pas et n'empêche pas la validation à la frappe", async () => {
+    renderCreate();
+    fireEvent.press(screen.getByTestId("slot-create-class-cls-6eC"));
+    await waitFor(() => {
+      expect(screen.getByTestId("slot-create-subject-sub-math")).toBeTruthy();
+    });
+
+    const subjectGroup = screen.getByTestId("slot-create-subject-sub-math")
+      .parent?.parent;
+    expect(() =>
+      fireEvent(subjectGroup!, "layout", {
+        nativeEvent: { layout: { x: 0, y: 120, width: 320, height: 60 } },
+      }),
+    ).not.toThrow();
+
+    fireEvent.changeText(
+      screen.getByTestId("slot-create-start-input"),
+      "10:00",
+    );
+    fireEvent.changeText(screen.getByTestId("slot-create-end-input"), "09:00");
+    await waitFor(() => {
+      expect(screen.getByTestId("slot-create-end-error")).toHaveTextContent(
+        t("timetable.oneOffPanel.validation.endAfterStart"),
+      );
+    });
+  });
+});
+
 describe("SlotCreateScreen — soumission oneoff", () => {
   it("appelle createOneOffSlot avec les bons params et affiche le toast", async () => {
     renderCreate({ prefilledClassId: "cls-6eC", prefilledDate: "2026-05-12" });

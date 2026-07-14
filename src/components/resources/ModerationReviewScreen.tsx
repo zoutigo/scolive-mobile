@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -26,24 +25,15 @@ import {
   RichEditorField,
   type RichEditorFieldRef,
 } from "../editor/RichEditorField";
+import { RichContentView } from "../editor/RichContentView";
+import { downloadAndOpenAttachment } from "../../utils/attachment-download";
+import { toAttachmentPayload } from "../../utils/resource-attachments";
 import { EXAM_TYPE_KEYS, SEQUENCE_LABELS } from "./ResourceCard";
 import type {
   ResourceAttachment,
   ResourceDetail,
   ResourceSubmission,
 } from "../../types/resources.types";
-
-function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function openAttachment(url?: string | null) {
-  if (!url) return;
-  void Linking.openURL(url);
-}
 
 export function ModerationReviewScreen(props: {
   submissionId: string;
@@ -69,7 +59,24 @@ export function ModerationReviewScreen(props: {
     [],
   );
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [openingAttachmentKey, setOpeningAttachmentKey] = useState<
+    string | null
+  >(null);
   const editorRef = useRef<RichEditorFieldRef>(null);
+
+  async function openAttachment(attachment: ResourceAttachment, key: string) {
+    setOpeningAttachmentKey(key);
+    try {
+      await downloadAndOpenAttachment(attachment);
+    } catch {
+      showError({
+        title: t("resources.toast.errorTitle"),
+        message: t("resources.errors.openAttachment"),
+      });
+    } finally {
+      setOpeningAttachmentKey(null);
+    }
+  }
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -152,7 +159,10 @@ export function ModerationReviewScreen(props: {
       const html = (await editorRef.current?.getContentHtml()) ?? editContent;
       const updated = await resourcesAdminApi.updateSubmissionContent(
         submission.id,
-        { content: html.trim(), attachments: editAttachments },
+        {
+          content: html.trim(),
+          attachments: toAttachmentPayload(editAttachments),
+        },
       );
       setSubmission(updated);
       setIsEditing(false);
@@ -309,12 +319,10 @@ export function ModerationReviewScreen(props: {
               </Text>
               <View style={styles.contentCard}>
                 {referenceStatement ? (
-                  <Text
-                    style={styles.contentText}
+                  <RichContentView
+                    html={referenceStatement}
                     testID="resources-moderation-review-reference"
-                  >
-                    {stripHtml(referenceStatement)}
-                  </Text>
+                  />
                 ) : (
                   <Text style={styles.noContentText}>
                     {t("resources.moderation.statementNotApproved")}
@@ -323,24 +331,36 @@ export function ModerationReviewScreen(props: {
               </View>
               {referenceAttachments.length > 0 ? (
                 <View style={styles.attachmentsList}>
-                  {referenceAttachments.map((attachment, idx) => (
-                    <TouchableOpacity
-                      key={attachment.id ?? idx}
-                      style={styles.attachmentChip}
-                      onPress={() => openAttachment(attachment.fileUrl)}
-                      disabled={!attachment.fileUrl}
-                      testID={`resources-moderation-review-reference-attachment-${idx}`}
-                    >
-                      <Ionicons
-                        name="document-outline"
-                        size={16}
-                        color={colors.primary}
-                      />
-                      <Text style={styles.attachmentText} numberOfLines={1}>
-                        {attachment.fileName}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                  {referenceAttachments.map((attachment, idx) => {
+                    const key = `reference-${attachment.id ?? idx}`;
+                    return (
+                      <TouchableOpacity
+                        key={attachment.id ?? idx}
+                        style={styles.attachmentChip}
+                        onPress={() => openAttachment(attachment, key)}
+                        disabled={
+                          !attachment.fileUrl || openingAttachmentKey === key
+                        }
+                        testID={`resources-moderation-review-reference-attachment-${idx}`}
+                      >
+                        {openingAttachmentKey === key ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={colors.primary}
+                          />
+                        ) : (
+                          <Ionicons
+                            name="document-outline"
+                            size={16}
+                            color={colors.primary}
+                          />
+                        )}
+                        <Text style={styles.attachmentText} numberOfLines={1}>
+                          {attachment.fileName}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               ) : null}
             </>
@@ -473,33 +493,43 @@ export function ModerationReviewScreen(props: {
           ) : (
             <>
               <View style={styles.contentCard}>
-                <Text
-                  style={styles.contentText}
+                <RichContentView
+                  html={submission.content}
                   testID="resources-moderation-review-content"
-                >
-                  {stripHtml(submission.content)}
-                </Text>
+                />
               </View>
               {submission.attachments.length > 0 ? (
                 <View style={styles.attachmentsList}>
-                  {submission.attachments.map((attachment, idx) => (
-                    <TouchableOpacity
-                      key={attachment.id ?? idx}
-                      style={styles.attachmentChip}
-                      onPress={() => openAttachment(attachment.fileUrl)}
-                      disabled={!attachment.fileUrl}
-                      testID={`resources-moderation-review-attachment-${idx}`}
-                    >
-                      <Ionicons
-                        name="document-outline"
-                        size={16}
-                        color={colors.primary}
-                      />
-                      <Text style={styles.attachmentText} numberOfLines={1}>
-                        {attachment.fileName}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                  {submission.attachments.map((attachment, idx) => {
+                    const key = `submission-${attachment.id ?? idx}`;
+                    return (
+                      <TouchableOpacity
+                        key={attachment.id ?? idx}
+                        style={styles.attachmentChip}
+                        onPress={() => openAttachment(attachment, key)}
+                        disabled={
+                          !attachment.fileUrl || openingAttachmentKey === key
+                        }
+                        testID={`resources-moderation-review-attachment-${idx}`}
+                      >
+                        {openingAttachmentKey === key ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={colors.primary}
+                          />
+                        ) : (
+                          <Ionicons
+                            name="document-outline"
+                            size={16}
+                            color={colors.primary}
+                          />
+                        )}
+                        <Text style={styles.attachmentText} numberOfLines={1}>
+                          {attachment.fileName}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               ) : null}
             </>

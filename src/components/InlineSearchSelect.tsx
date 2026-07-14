@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
-  FlatList,
+  ActivityIndicator,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -22,6 +23,8 @@ interface InlineSearchSelectProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  /** Options are still being fetched: field is disabled and shows a spinner instead of looking unresponsive. */
+  loading?: boolean;
   hasError?: boolean;
   testID: string;
   /** Called with the raw query text as the user types, e.g. to trigger a server-side search. */
@@ -39,12 +42,15 @@ export function InlineSearchSelect({
   onChange,
   placeholder = "—",
   disabled = false,
+  loading = false,
   hasError = false,
   testID,
   onQueryChange,
 }: InlineSearchSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const isDisabled = disabled || loading;
+  const inputRef = useRef<TextInput>(null);
 
   const selected = options.find((o) => o.value === value);
 
@@ -68,10 +74,11 @@ export function InlineSearchSelect({
           style={[
             styles.inputWrapper,
             hasError && styles.inputWrapperError,
-            disabled && styles.inputWrapperDisabled,
+            isDisabled && styles.inputWrapperDisabled,
           ]}
         >
           <TextInput
+            ref={inputRef}
             value={displayedText}
             onChangeText={(text) => {
               setQuery(text);
@@ -79,7 +86,7 @@ export function InlineSearchSelect({
               onQueryChange?.(text);
             }}
             onFocus={() => {
-              if (disabled) return;
+              if (isDisabled) return;
               setOpen(true);
               setQuery("");
             }}
@@ -87,29 +94,46 @@ export function InlineSearchSelect({
               setOpen(false);
               setQuery("");
             }}
-            editable={!disabled}
+            editable={!isDisabled}
             placeholder={placeholder}
             placeholderTextColor={colors.textSecondary}
             style={styles.input}
             testID={`${testID}-input`}
           />
-          {!disabled ? (
-            <Ionicons
-              name={open ? "chevron-up" : "chevron-down"}
-              size={16}
+          {loading ? (
+            <ActivityIndicator
+              size="small"
               color={colors.textSecondary}
+              testID={`${testID}-loading`}
             />
+          ) : !disabled ? (
+            <TouchableOpacity
+              onPress={() => {
+                setOpen(true);
+                setQuery("");
+                inputRef.current?.focus();
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              testID={`${testID}-chevron`}
+            >
+              <Ionicons
+                name={open ? "chevron-up" : "chevron-down"}
+                size={16}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
           ) : null}
         </View>
         {open && filteredOptions.length > 0 ? (
           <View style={styles.suggestions} testID={`${testID}-suggestions`}>
-            <FlatList
-              data={filteredOptions}
-              keyExtractor={(o) => o.value}
+            <ScrollView
               keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
               style={styles.suggestionsList}
-              renderItem={({ item }) => (
+            >
+              {filteredOptions.map((item) => (
                 <TouchableOpacity
+                  key={item.value}
                   style={[
                     styles.suggestionOption,
                     item.value === value && styles.suggestionOptionSelected,
@@ -130,8 +154,8 @@ export function InlineSearchSelect({
                     {item.label}
                   </Text>
                 </TouchableOpacity>
-              )}
-            />
+              ))}
+            </ScrollView>
           </View>
         ) : null}
         {open && filteredOptions.length === 0 ? (

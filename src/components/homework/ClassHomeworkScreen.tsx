@@ -97,6 +97,7 @@ import type {
   MyTimetableResponse,
 } from "../../types/timetable.types";
 import { moduleBack } from "../../utils/moduleBack";
+import { useScrollToFirstError } from "../../hooks/useScrollToFirstError";
 
 type TeacherSubjectOption = {
   value: string;
@@ -637,6 +638,21 @@ function HomeworkFormContent(props: {
     },
   });
 
+  const titleInputRef = useRef<TextInput>(null);
+  const {
+    scrollViewRef,
+    registerFieldOffset,
+    registerFieldInputRef,
+    focusFirstInvalidField,
+  } = useScrollToFirstError<keyof HomeworkFormValues>();
+  registerFieldInputRef("title", titleInputRef);
+  const FIELD_ORDER: Array<keyof HomeworkFormValues> = [
+    "subjectId",
+    "title",
+    "expectedDate",
+    "expectedTime",
+  ];
+
   const watchedSubjectId = watch("subjectId");
 
   async function handleAddAttachment() {
@@ -668,29 +684,32 @@ function HomeworkFormContent(props: {
     );
   }
 
-  const handleSave = handleSubmit(async (values) => {
-    setErrorMessage(null);
-    try {
-      const contentHtml = await editorFieldRef.current?.getContentHtml();
-      const payload: UpsertHomeworkPayload = {
-        title: values.title.trim(),
-        subjectId: values.subjectId,
-        expectedAt: localInputToIso(
-          `${values.expectedDate.trim()}T${values.expectedTime.trim()}`,
-        ),
-        contentHtml: contentHtml?.trim() ? contentHtml : undefined,
-        attachments,
-      };
+  const handleSave = handleSubmit(
+    async (values) => {
+      setErrorMessage(null);
+      try {
+        const contentHtml = await editorFieldRef.current?.getContentHtml();
+        const payload: UpsertHomeworkPayload = {
+          title: values.title.trim(),
+          subjectId: values.subjectId,
+          expectedAt: localInputToIso(
+            `${values.expectedDate.trim()}T${values.expectedTime.trim()}`,
+          ),
+          contentHtml: contentHtml?.trim() ? contentHtml : undefined,
+          attachments,
+        };
 
-      await props.onSubmit(payload);
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : t("homework.toast.saveErrorMessage"),
-      );
-    }
-  });
+        await props.onSubmit(payload);
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : t("homework.toast.saveErrorMessage"),
+        );
+      }
+    },
+    (formErrors) => focusFirstInvalidField(FIELD_ORDER, formErrors),
+  );
 
   return (
     <View style={styles.formsTabContent} testID="homework-form-tab">
@@ -699,6 +718,7 @@ function HomeworkFormContent(props: {
         style={styles.formsKeyboardArea}
       >
         <ScrollView
+          ref={scrollViewRef}
           style={styles.formScroll}
           contentContainerStyle={styles.formScrollContent}
           keyboardShouldPersistTaps="handled"
@@ -712,7 +732,10 @@ function HomeworkFormContent(props: {
 
           {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
-          <View style={styles.fieldGroup}>
+          <View
+            style={styles.fieldGroup}
+            onLayout={registerFieldOffset("subjectId")}
+          >
             <View style={styles.subjectFieldInlineRow}>
               <Text style={styles.inlineFieldLabel} numberOfLines={2}>
                 {t("homework.form.subjectLabel")}
@@ -752,7 +775,10 @@ function HomeworkFormContent(props: {
             ) : null}
           </View>
 
-          <View style={styles.fieldGroup}>
+          <View
+            style={styles.fieldGroup}
+            onLayout={registerFieldOffset("title")}
+          >
             <Text style={styles.fieldLabel}>
               {t("homework.form.titleLabel")}
             </Text>
@@ -761,6 +787,7 @@ function HomeworkFormContent(props: {
               name="title"
               render={({ field: { value, onChange } }) => (
                 <TextInput
+                  ref={titleInputRef}
                   value={value}
                   onChangeText={onChange}
                   placeholder={t("homework.form.titlePlaceholder")}
@@ -775,7 +802,10 @@ function HomeworkFormContent(props: {
             ) : null}
           </View>
 
-          <View style={styles.fieldGroup}>
+          <View
+            style={styles.fieldGroup}
+            onLayout={registerFieldOffset("expectedDate")}
+          >
             <View style={styles.expectedAtInlineRow}>
               <Text style={styles.inlineFieldLabel} numberOfLines={2}>
                 {t("homework.form.expectedDateLabel")}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -27,6 +27,7 @@ import { useSuccessToastStore } from "../../store/success-toast.store";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import type { TicketType } from "../../types/tickets.types";
 import { moduleBack } from "../../utils/moduleBack";
+import { useScrollToFirstError } from "../../hooks/useScrollToFirstError";
 
 const schema = z.object({
   type: z.enum(["BUG", "FEATURE_REQUEST"]),
@@ -97,6 +98,18 @@ export function CreateTicketScreen() {
   });
 
   const selectedType = watch("type");
+
+  const titleInputRef = useRef<TextInput>(null);
+  const descriptionInputRef = useRef<TextInput>(null);
+  const {
+    scrollViewRef,
+    registerFieldOffset,
+    registerFieldInputRef,
+    focusFirstInvalidField,
+  } = useScrollToFirstError<keyof FormValues>();
+  registerFieldInputRef("title", titleInputRef);
+  registerFieldInputRef("description", descriptionInputRef);
+  const FIELD_ORDER: Array<keyof FormValues> = ["type", "title", "description"];
 
   const pickImage = async () => {
     if (attachments.length >= 5) {
@@ -193,6 +206,7 @@ export function CreateTicketScreen() {
         />
 
         <ScrollView
+          ref={scrollViewRef}
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -204,7 +218,10 @@ export function CreateTicketScreen() {
             control={control}
             name="type"
             render={({ field: { onChange, value } }) => (
-              <View style={styles.typeRow}>
+              <View
+                style={styles.typeRow}
+                onLayout={registerFieldOffset("type")}
+              >
                 {TYPE_OPTIONS.map((opt) => (
                   <TouchableOpacity
                     key={opt.value}
@@ -247,71 +264,77 @@ export function CreateTicketScreen() {
           />
 
           {/* Titre */}
-          <Text style={styles.sectionLabel}>
-            Titre <Text style={styles.required}>*</Text>
-          </Text>
-          <Controller
-            control={control}
-            name="title"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                style={[styles.input, errors.title && styles.inputError]}
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                placeholder={
-                  selectedType === "BUG"
-                    ? "Ex : Impossible de sauvegarder une note"
-                    : "Ex : Ajouter un mode sombre"
-                }
-                placeholderTextColor={colors.textSecondary}
-                maxLength={120}
-                testID="ticket-title-input"
-              />
-            )}
-          />
-          {errors.title && (
-            <Text style={styles.errorText} testID="ticket-title-error">
-              {errors.title.message}
+          <View onLayout={registerFieldOffset("title")}>
+            <Text style={styles.sectionLabel}>
+              Titre <Text style={styles.required}>*</Text>
             </Text>
-          )}
+            <Controller
+              control={control}
+              name="title"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  ref={titleInputRef}
+                  style={[styles.input, errors.title && styles.inputError]}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  placeholder={
+                    selectedType === "BUG"
+                      ? "Ex : Impossible de sauvegarder une note"
+                      : "Ex : Ajouter un mode sombre"
+                  }
+                  placeholderTextColor={colors.textSecondary}
+                  maxLength={120}
+                  testID="ticket-title-input"
+                />
+              )}
+            />
+            {errors.title && (
+              <Text style={styles.errorText} testID="ticket-title-error">
+                {errors.title.message}
+              </Text>
+            )}
+          </View>
 
           {/* Description */}
-          <Text style={styles.sectionLabel}>
-            Description <Text style={styles.required}>*</Text>
-          </Text>
-          <Text style={styles.hint}>
-            {selectedType === "BUG"
-              ? "Décrivez les étapes pour reproduire le bug, ce que vous attendiez et ce qui s'est passé."
-              : "Décrivez votre suggestion et en quoi elle améliorerait votre usage quotidien."}
-          </Text>
-          <Controller
-            control={control}
-            name="description"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <TextInput
-                style={[
-                  styles.textarea,
-                  errors.description && styles.inputError,
-                ]}
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                placeholder="Votre description…"
-                placeholderTextColor={colors.textSecondary}
-                multiline
-                numberOfLines={5}
-                textAlignVertical="top"
-                maxLength={4000}
-                testID="ticket-description-input"
-              />
-            )}
-          />
-          {errors.description && (
-            <Text style={styles.errorText} testID="ticket-description-error">
-              {errors.description.message}
+          <View onLayout={registerFieldOffset("description")}>
+            <Text style={styles.sectionLabel}>
+              Description <Text style={styles.required}>*</Text>
             </Text>
-          )}
+            <Text style={styles.hint}>
+              {selectedType === "BUG"
+                ? "Décrivez les étapes pour reproduire le bug, ce que vous attendiez et ce qui s'est passé."
+                : "Décrivez votre suggestion et en quoi elle améliorerait votre usage quotidien."}
+            </Text>
+            <Controller
+              control={control}
+              name="description"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  ref={descriptionInputRef}
+                  style={[
+                    styles.textarea,
+                    errors.description && styles.inputError,
+                  ]}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  placeholder="Votre description…"
+                  placeholderTextColor={colors.textSecondary}
+                  multiline
+                  numberOfLines={5}
+                  textAlignVertical="top"
+                  maxLength={4000}
+                  testID="ticket-description-input"
+                />
+              )}
+            />
+            {errors.description && (
+              <Text style={styles.errorText} testID="ticket-description-error">
+                {errors.description.message}
+              </Text>
+            )}
+          </View>
 
           {/* Pièces jointes */}
           <Text style={styles.sectionLabel}>
@@ -373,7 +396,9 @@ export function CreateTicketScreen() {
           {/* Bouton soumettre */}
           <TouchableOpacity
             style={[styles.submitBtn, isSubmitting && styles.submitBtnDisabled]}
-            onPress={handleSubmit(onSubmit)}
+            onPress={handleSubmit(onSubmit, (formErrors) =>
+              focusFirstInvalidField(FIELD_ORDER, formErrors),
+            )}
             disabled={isSubmitting}
             testID="create-ticket-submit"
           >
