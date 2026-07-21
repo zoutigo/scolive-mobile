@@ -423,7 +423,7 @@ export const RichEditorField = forwardRef<
   }
 
   async function pickAndInsertImage() {
-    if (!onUploadInlineImage) {
+    if (!onUploadInlineImage || isBusy) {
       return;
     }
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -465,7 +465,7 @@ export const RichEditorField = forwardRef<
   }
 
   async function pickAndInsertVideo() {
-    if (!onUploadInlineVideo) {
+    if (!onUploadInlineVideo || isBusy) {
       return;
     }
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -515,6 +515,7 @@ export const RichEditorField = forwardRef<
           editorRef={editorRef}
           onPressAddImage={onUploadInlineImage ? pickAndInsertImage : undefined}
           onPressAddVideo={onUploadInlineVideo ? pickAndInsertVideo : undefined}
+          mediaActionsDisabled={isBusy}
           onPressColor={openColorMenu}
           onPressHeading={applyHeading}
           onPressQuote={applyQuote}

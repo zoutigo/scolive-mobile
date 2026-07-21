@@ -12,6 +12,15 @@ type Props = {
   editorRef: React.RefObject<RichEditor | null>;
   onPressAddImage?: () => void;
   onPressAddVideo?: () => void;
+  /**
+   * Disables the image/video buttons while an upload is already in flight.
+   * Without this, tapping "insert image" again mid-upload fires a second
+   * concurrent ImagePicker + WebView insertImage() call, which can corrupt
+   * the editor's WebView bridge — the placeholder text swap alone isn't
+   * enough feedback because it's invisible once the editor already has
+   * content (the common case for a correction that already has text).
+   */
+  mediaActionsDisabled?: boolean;
   onPressColor: () => void;
   onPressHeading: () => void;
   onPressQuote: () => void;
@@ -27,6 +36,7 @@ export function RichTextToolbar({
   editorRef,
   onPressAddImage,
   onPressAddVideo,
+  mediaActionsDisabled = false,
   onPressColor,
   onPressHeading,
   onPressQuote,
@@ -56,7 +66,9 @@ export function RichTextToolbar({
         selectedIconTint={colors.primary}
         disabledIconTint={colors.warmBorder}
         actions={actionsList}
-        onPressAddImage={onPressAddImage}
+        onPressAddImage={
+          onPressAddImage && !mediaActionsDisabled ? onPressAddImage : undefined
+        }
         iconMap={
           onPressAddImage
             ? {
@@ -75,8 +87,12 @@ export function RichTextToolbar({
       <View style={styles.quickActions}>
         {onPressAddVideo ? (
           <TouchableOpacity
-            style={styles.quickToolBtn}
-            onPress={onPressAddVideo}
+            style={[
+              styles.quickToolBtn,
+              mediaActionsDisabled && styles.quickToolBtnDisabled,
+            ]}
+            onPress={mediaActionsDisabled ? undefined : onPressAddVideo}
+            disabled={mediaActionsDisabled}
             testID={videoButtonTestID}
             accessibilityLabel="Ajouter une vidéo"
           >
@@ -149,5 +165,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.warmBorder,
+  },
+  quickToolBtnDisabled: {
+    opacity: 0.5,
   },
 });

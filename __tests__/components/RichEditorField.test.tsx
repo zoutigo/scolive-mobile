@@ -247,6 +247,43 @@ describe("RichEditorField", () => {
       );
     });
 
+    it("ignore un second appui pendant qu'un upload est déjà en cours (évite une insertion concurrente qui corromprait le contenu de l'éditeur)", async () => {
+      let resolveUpload: ((value: { url: string }) => void) | undefined;
+      const onUploadInlineImage = jest.fn(
+        () =>
+          new Promise<{ url: string }>((resolve) => {
+            resolveUpload = resolve;
+          }),
+      );
+
+      render(
+        <RichEditorField
+          placeholder="Écrire ici…"
+          colorPresets={colorPresets}
+          labels={labels}
+          onUploadInlineImage={onUploadInlineImage}
+        />,
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("toolbar-insert-image"));
+      });
+
+      // Upload toujours en cours : un second appui ne doit rien déclencher de plus.
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("toolbar-insert-image"));
+      });
+
+      expect(mockLaunchLibrary).toHaveBeenCalledTimes(1);
+      expect(onUploadInlineImage).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        resolveUpload?.({ url: "http://localhost:9000/homework/img.jpg" });
+      });
+
+      expect(__mockEditorMethods.insertImage).toHaveBeenCalledTimes(1);
+    });
+
     it("n'insère rien si l'utilisateur annule la sélection", async () => {
       mockLaunchLibrary.mockResolvedValueOnce({ canceled: true, assets: [] });
       const onUploadInlineImage = jest.fn();
