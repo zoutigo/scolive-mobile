@@ -35,4 +35,27 @@ describe("RichTextToolbar", () => {
     expect(onPressHeading).toHaveBeenCalledTimes(1);
     expect(onPressQuote).toHaveBeenCalledTimes(1);
   });
+
+  it("désactive les boutons image/vidéo quand mediaActionsDisabled est vrai", () => {
+    const onPressAddImage = jest.fn();
+    const onPressAddVideo = jest.fn();
+
+    render(
+      <RichTextToolbar
+        editorRef={{ current: null }}
+        onPressAddImage={onPressAddImage}
+        onPressAddVideo={onPressAddVideo}
+        mediaActionsDisabled
+        onPressColor={jest.fn()}
+        onPressHeading={jest.fn()}
+        onPressQuote={jest.fn()}
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId("toolbar-insert-image"));
+    fireEvent.press(screen.getByTestId("editor-video-btn"));
+
+    expect(onPressAddImage).not.toHaveBeenCalled();
+    expect(onPressAddVideo).not.toHaveBeenCalled();
+  });
 });
