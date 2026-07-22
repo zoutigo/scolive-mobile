@@ -16,10 +16,9 @@ function renderTabs(activeTab: NotesTabKey = "evaluations") {
 // ── Rendu ─────────────────────────────────────────────────────────────────────
 
 describe("Rendu des onglets", () => {
-  it("affiche les 4 onglets", () => {
+  it("affiche les 3 onglets", () => {
     renderTabs();
     expect(screen.getByTestId("notes-tab-evaluations")).toBeTruthy();
-    expect(screen.getByTestId("notes-tab-scores")).toBeTruthy();
     expect(screen.getByTestId("notes-tab-notes")).toBeTruthy();
     expect(screen.getByTestId("notes-tab-council")).toBeTruthy();
   });
@@ -27,7 +26,6 @@ describe("Rendu des onglets", () => {
   it("affiche les labels en français", () => {
     renderTabs();
     expect(screen.getByText("Évaluations")).toBeTruthy();
-    expect(screen.getByText("Saisie notes")).toBeTruthy();
     expect(screen.getByText("Notes")).toBeTruthy();
     expect(screen.getByText("Conseil classe")).toBeTruthy();
   });
@@ -36,12 +34,6 @@ describe("Rendu des onglets", () => {
 // ── Sélection ─────────────────────────────────────────────────────────────────
 
 describe("Sélection d'onglet", () => {
-  it("appelle onSelect avec 'scores' quand on presse Saisie notes", () => {
-    renderTabs();
-    fireEvent.press(screen.getByTestId("notes-tab-scores"));
-    expect(onSelect).toHaveBeenCalledWith("scores");
-  });
-
   it("appelle onSelect avec 'notes' quand on presse Notes", () => {
     renderTabs();
     fireEvent.press(screen.getByTestId("notes-tab-notes"));
@@ -55,7 +47,7 @@ describe("Sélection d'onglet", () => {
   });
 
   it("appelle onSelect avec 'evaluations' quand on presse Évaluations", () => {
-    renderTabs("scores");
+    renderTabs("notes");
     fireEvent.press(screen.getByTestId("notes-tab-evaluations"));
     expect(onSelect).toHaveBeenCalledWith("evaluations");
   });

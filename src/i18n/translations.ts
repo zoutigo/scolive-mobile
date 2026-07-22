@@ -1853,7 +1853,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.comments.summaryMany": "{count} commentaires",
 
     "notes.tabs.evaluations": "Évaluations",
-    "notes.tabs.scores": "Saisie notes",
     "notes.tabs.notes": "Notes",
     "notes.tabs.council": "Conseil classe",
 
@@ -2028,13 +2027,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.scores.emptyTitle": "Aucun élève",
     "notes.manager.scores.emptyMessage":
       "Sélectionnez un élève dans le filtre ou vérifiez le chargement.",
-    "notes.manager.scoresTab.sectionTitle": "Saisie des notes",
-    "notes.manager.scoresTab.subtitle":
-      "Choisissez une évaluation puis renseignez note, statut et commentaire.",
-    "notes.manager.scoresTab.evalLabel": "Évaluation",
-    "notes.manager.scoresTab.emptyTitle": "Aucune évaluation sélectionnée",
-    "notes.manager.scoresTab.emptyMessage":
-      "Créez ou sélectionnez une évaluation pour commencer la saisie.",
     "notes.manager.council.sectionTitle": "Conseil de classe",
     "notes.manager.council.subtitle":
       "Saisissez les appréciations générales et par matière pour chaque élève.",
@@ -4284,7 +4276,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.comments.summaryMany": "{count} comments",
 
     "notes.tabs.evaluations": "Evaluations",
-    "notes.tabs.scores": "Score entry",
     "notes.tabs.notes": "Notes",
     "notes.tabs.council": "Class council",
 
@@ -4458,13 +4449,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.scores.emptyTitle": "No student",
     "notes.manager.scores.emptyMessage":
       "Select a student in the filter or check loading.",
-    "notes.manager.scoresTab.sectionTitle": "Score entry",
-    "notes.manager.scoresTab.subtitle":
-      "Choose an evaluation then fill in the grade, status and comment.",
-    "notes.manager.scoresTab.evalLabel": "Evaluation",
-    "notes.manager.scoresTab.emptyTitle": "No evaluation selected",
-    "notes.manager.scoresTab.emptyMessage":
-      "Create or select an evaluation to start entering grades.",
     "notes.manager.council.sectionTitle": "Class council",
     "notes.manager.council.subtitle":
       "Enter general and subject-level comments for each student.",

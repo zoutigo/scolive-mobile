@@ -184,13 +184,12 @@ beforeEach(() => {
 // ─── Rendu général ───────────────────────────────────────────────────────────
 
 describe("Rendu général", () => {
-  it("affiche le header, les 4 onglets et la liste d'évaluations", async () => {
+  it("affiche le header, les 3 onglets et la liste d'évaluations", async () => {
     render(<ClassNotesManagerScreen />);
     await flushAsync();
 
     expect(screen.getByTestId("class-notes-header")).toBeTruthy();
     expect(screen.getByTestId("notes-tab-evaluations")).toBeTruthy();
-    expect(screen.getByTestId("notes-tab-scores")).toBeTruthy();
     expect(screen.getByTestId("notes-tab-notes")).toBeTruthy();
     expect(screen.getByTestId("notes-tab-council")).toBeTruthy();
     expect(screen.getByText("6e A")).toBeTruthy();

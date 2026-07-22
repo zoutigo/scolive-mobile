@@ -1446,51 +1446,6 @@ export function ClassNotesManagerScreen({
 
           {teacherContext ? (
             <>
-              {tab === "scores" ? (
-                <SectionCard
-                  title={t("notes.manager.scoresTab.sectionTitle")}
-                  subtitle={t("notes.manager.scoresTab.subtitle")}
-                >
-                  {sortedEvaluations.length > 0 ? (
-                    <PillSelector
-                      label={t("notes.manager.scoresTab.evalLabel")}
-                      value={selectedEvaluationId}
-                      options={sortedEvaluations.map((entry) => ({
-                        value: entry.id,
-                        label:
-                          entry.title.length > 18
-                            ? `${entry.title.slice(0, 18)}…`
-                            : entry.title,
-                      }))}
-                      onChange={setSelectedEvaluationId}
-                      testIDPrefix="class-notes-score-evaluation"
-                    />
-                  ) : null}
-
-                  {isLoadingEvaluationDetail && !selectedEvaluation ? (
-                    <LoadingBlock label={t("notes.manager.loading.detail")} />
-                  ) : selectedEvaluation ? (
-                    <View style={styles.studentList}>
-                      {sortedScoreStudents.map((student) => (
-                        <StudentScoreCard
-                          key={`tab-${selectedEvaluationId}-${student.id}`}
-                          student={student}
-                          maxScore={selectedEvaluation.maxScore}
-                          onSave={handleSaveSingleScore}
-                          testID={`class-notes-score-card-${student.id}`}
-                        />
-                      ))}
-                    </View>
-                  ) : (
-                    <EmptyState
-                      icon="create-outline"
-                      title={t("notes.manager.scoresTab.emptyTitle")}
-                      message={t("notes.manager.scoresTab.emptyMessage")}
-                    />
-                  )}
-                </SectionCard>
-              ) : null}
-
               {tab === "council" ? (
                 <SectionCard
                   title={t("notes.manager.council.sectionTitle")}
