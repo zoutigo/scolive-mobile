@@ -23,6 +23,7 @@ import { useNotesStore } from "../../store/notes.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import type {
   EvaluationRow,
+  StudentNotesSequence,
   StudentNotesTerm,
   TermReport,
   UpsertEvaluationPayload,
@@ -32,10 +33,13 @@ import {
   type StudentScoreSaveData,
 } from "./StudentScoreCard";
 import {
+  ALL_SEQUENCES,
   buildEvaluationProgress,
   formatEvaluationDate,
   formatScore,
+  isEvaluationComplete,
   sequenceLabel,
+  sequenceShortLabel,
   sortEvaluations,
 } from "../../utils/notes";
 import { getViewType } from "../navigation/nav-config";
@@ -72,6 +76,28 @@ const TERM_OPTIONS: Array<{ value: StudentNotesTerm; label: string }> = [
   { value: "TERM_2", label: "T2" },
   { value: "TERM_3", label: "T3" },
 ];
+
+type EvalCompletionFilter = "all" | "complete" | "incomplete";
+
+type EvalFilters = {
+  evaluationTypeId: string | null;
+  sequence: StudentNotesSequence | null;
+  completion: EvalCompletionFilter;
+};
+
+const NO_EVAL_FILTERS: EvalFilters = {
+  evaluationTypeId: null,
+  sequence: null,
+  completion: "all",
+};
+
+function hasActiveEvalFilters(filters: EvalFilters) {
+  return (
+    filters.evaluationTypeId != null ||
+    filters.sequence != null ||
+    filters.completion !== "all"
+  );
+}
 
 function createEmptyEvaluationForm(): UpsertEvaluationPayload {
   return {
@@ -143,6 +169,11 @@ export function ClassNotesManagerScreen({
     "list" | "form" | "detail" | "scores"
   >("list");
   const [evalSearchQuery, setEvalSearchQuery] = useState("");
+  const [evalFiltersOpen, setEvalFiltersOpen] = useState(false);
+  const [draftEvalFilters, setDraftEvalFilters] =
+    useState<EvalFilters>(NO_EVAL_FILTERS);
+  const [appliedEvalFilters, setAppliedEvalFilters] =
+    useState<EvalFilters>(NO_EVAL_FILTERS);
   const [scoresFilterStudentId, setScoresFilterStudentId] = useState<
     string | null
   >(preStudentId);
@@ -168,13 +199,38 @@ export function ClassNotesManagerScreen({
   );
   const filteredEvaluations = useMemo(() => {
     const q = evalSearchQuery.trim().toLowerCase();
-    if (!q) return sortedEvaluations;
-    return sortedEvaluations.filter(
-      (e) =>
-        e.title.toLowerCase().includes(q) ||
-        e.subject.name.toLowerCase().includes(q),
-    );
-  }, [sortedEvaluations, evalSearchQuery]);
+    const studentCount = teacherContext?.students.length ?? 0;
+    return sortedEvaluations.filter((e) => {
+      if (q) {
+        const matchesSearch =
+          e.title.toLowerCase().includes(q) ||
+          e.subject.name.toLowerCase().includes(q);
+        if (!matchesSearch) return false;
+      }
+      if (
+        appliedEvalFilters.evaluationTypeId &&
+        e.evaluationType.id !== appliedEvalFilters.evaluationTypeId
+      ) {
+        return false;
+      }
+      if (
+        appliedEvalFilters.sequence &&
+        e.sequence !== appliedEvalFilters.sequence
+      ) {
+        return false;
+      }
+      if (appliedEvalFilters.completion !== "all") {
+        const complete = isEvaluationComplete(e, studentCount);
+        if (appliedEvalFilters.completion === "complete" && !complete) {
+          return false;
+        }
+        if (appliedEvalFilters.completion === "incomplete" && complete) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [sortedEvaluations, evalSearchQuery, appliedEvalFilters, teacherContext]);
 
   const selectedEvalRow = useMemo(
     () => sortedEvaluations.find((e) => e.id === selectedEvaluationId) ?? null,
@@ -275,6 +331,27 @@ export function ClassNotesManagerScreen({
     if (!report) return;
     hydrateCouncilState([report]);
   }, [councilTerm, termReports]);
+
+  function openEvalFilters() {
+    setDraftEvalFilters(appliedEvalFilters);
+    setEvalFiltersOpen(true);
+  }
+  function closeEvalFilters() {
+    setDraftEvalFilters(appliedEvalFilters);
+    setEvalFiltersOpen(false);
+  }
+  function toggleEvalFilters() {
+    if (evalFiltersOpen) closeEvalFilters();
+    else openEvalFilters();
+  }
+  function applyEvalFilters() {
+    setAppliedEvalFilters(draftEvalFilters);
+    setEvalFiltersOpen(false);
+  }
+  function resetEvalFilters() {
+    setDraftEvalFilters(NO_EVAL_FILTERS);
+    setAppliedEvalFilters(NO_EVAL_FILTERS);
+  }
 
   function resetEvaluationForm() {
     setEvaluationMode("create");
@@ -428,33 +505,277 @@ export function ClassNotesManagerScreen({
           {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
           <View style={styles.searchRow} testID="class-notes-search-bar">
-            <Ionicons
-              name="search-outline"
-              size={18}
-              color={colors.textSecondary}
-            />
-            <TextInput
-              style={styles.searchInput}
-              value={evalSearchQuery}
-              onChangeText={setEvalSearchQuery}
-              placeholder={t("notes.manager.search.placeholder")}
-              placeholderTextColor={colors.textSecondary}
-              clearButtonMode="while-editing"
-              testID="class-notes-search-input"
-            />
-            {evalSearchQuery.length > 0 ? (
-              <TouchableOpacity
-                onPress={() => setEvalSearchQuery("")}
-                testID="class-notes-search-clear"
-              >
-                <Ionicons
-                  name="close-circle"
-                  size={18}
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
-            ) : null}
+            <View style={styles.searchBox}>
+              <Ionicons name="search" size={16} color={colors.textSecondary} />
+              <TextInput
+                style={styles.searchInput}
+                value={evalSearchQuery}
+                onChangeText={setEvalSearchQuery}
+                placeholder={t("notes.manager.search.placeholder")}
+                placeholderTextColor={colors.textSecondary}
+                returnKeyType="search"
+                autoCapitalize="none"
+                accessibilityLabel={t(
+                  "notes.manager.search.accessibilityLabel",
+                )}
+                testID="class-notes-search-input"
+              />
+              {evalSearchQuery.length > 0 ? (
+                <TouchableOpacity
+                  onPress={() => setEvalSearchQuery("")}
+                  testID="class-notes-search-clear"
+                >
+                  <Ionicons
+                    name="close-circle"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.filterToggle,
+                hasActiveEvalFilters(appliedEvalFilters) &&
+                  styles.filterToggleActive,
+              ]}
+              onPress={toggleEvalFilters}
+              testID="class-notes-filter-toggle"
+              accessibilityLabel={t(
+                "notes.manager.filters.toggleAccessibilityLabel",
+              )}
+            >
+              <Ionicons
+                name={
+                  hasActiveEvalFilters(appliedEvalFilters)
+                    ? "filter"
+                    : "filter-outline"
+                }
+                size={18}
+                color={
+                  hasActiveEvalFilters(appliedEvalFilters)
+                    ? colors.white
+                    : colors.accentTeal
+                }
+              />
+            </TouchableOpacity>
           </View>
+
+          {evalFiltersOpen ? (
+            <View style={styles.filterPanel} testID="class-notes-filter-panel">
+              <View style={styles.filterPanelHeader}>
+                <View style={styles.filterPanelHeaderIcon}>
+                  <Ionicons
+                    name="options-outline"
+                    size={16}
+                    color={colors.accentTealDark}
+                  />
+                </View>
+                <Text style={styles.filterPanelHeaderTitle}>
+                  {t("notes.manager.filters.toggleAccessibilityLabel")}
+                </Text>
+              </View>
+
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupLabel}>
+                  {t("notes.manager.filters.typeLabel")}
+                </Text>
+                <View style={styles.filterChipsRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      draftEvalFilters.evaluationTypeId == null &&
+                        styles.filterChipActive,
+                    ]}
+                    onPress={() =>
+                      setDraftEvalFilters((current) => ({
+                        ...current,
+                        evaluationTypeId: null,
+                      }))
+                    }
+                    testID="class-notes-filter-type-all"
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipLabel,
+                        draftEvalFilters.evaluationTypeId == null &&
+                          styles.filterChipLabelActive,
+                      ]}
+                    >
+                      {t("notes.manager.filters.allOption")}
+                    </Text>
+                  </TouchableOpacity>
+                  {(teacherContext?.evaluationTypes ?? []).map((type) => (
+                    <TouchableOpacity
+                      key={type.id}
+                      style={[
+                        styles.filterChip,
+                        draftEvalFilters.evaluationTypeId === type.id &&
+                          styles.filterChipActive,
+                      ]}
+                      onPress={() =>
+                        setDraftEvalFilters((current) => ({
+                          ...current,
+                          evaluationTypeId: type.id,
+                        }))
+                      }
+                      testID={`class-notes-filter-type-${type.id}`}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipLabel,
+                          draftEvalFilters.evaluationTypeId === type.id &&
+                            styles.filterChipLabelActive,
+                        ]}
+                      >
+                        {type.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupLabel}>
+                  {t("notes.manager.filters.sequenceLabel")}
+                </Text>
+                <View style={styles.filterChipsRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      draftEvalFilters.sequence == null &&
+                        styles.filterChipActive,
+                    ]}
+                    onPress={() =>
+                      setDraftEvalFilters((current) => ({
+                        ...current,
+                        sequence: null,
+                      }))
+                    }
+                    testID="class-notes-filter-sequence-all"
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipLabel,
+                        draftEvalFilters.sequence == null &&
+                          styles.filterChipLabelActive,
+                      ]}
+                    >
+                      {t("notes.manager.filters.allOption")}
+                    </Text>
+                  </TouchableOpacity>
+                  {ALL_SEQUENCES.map((seq) => (
+                    <TouchableOpacity
+                      key={seq}
+                      style={[
+                        styles.filterChip,
+                        draftEvalFilters.sequence === seq &&
+                          styles.filterChipActive,
+                      ]}
+                      onPress={() =>
+                        setDraftEvalFilters((current) => ({
+                          ...current,
+                          sequence: seq,
+                        }))
+                      }
+                      testID={`class-notes-filter-sequence-${seq}`}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipLabel,
+                          draftEvalFilters.sequence === seq &&
+                            styles.filterChipLabelActive,
+                        ]}
+                      >
+                        {sequenceShortLabel(seq)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupLabel}>
+                  {t("notes.manager.filters.completionLabel")}
+                </Text>
+                <View style={styles.filterChipsRow}>
+                  {(
+                    [
+                      {
+                        value: "all",
+                        label: t("notes.manager.filters.allOption"),
+                      },
+                      {
+                        value: "complete",
+                        label: t("notes.manager.filters.completionComplete"),
+                      },
+                      {
+                        value: "incomplete",
+                        label: t("notes.manager.filters.completionIncomplete"),
+                      },
+                    ] as Array<{ value: EvalCompletionFilter; label: string }>
+                  ).map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.filterChip,
+                        draftEvalFilters.completion === option.value &&
+                          styles.filterChipActive,
+                      ]}
+                      onPress={() =>
+                        setDraftEvalFilters((current) => ({
+                          ...current,
+                          completion: option.value,
+                        }))
+                      }
+                      testID={`class-notes-filter-completion-${option.value}`}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipLabel,
+                          draftEvalFilters.completion === option.value &&
+                            styles.filterChipLabelActive,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.filterActionsRow}>
+                <TouchableOpacity
+                  style={styles.filterActionReset}
+                  onPress={resetEvalFilters}
+                  testID="class-notes-filter-reset"
+                >
+                  <Text style={styles.filterActionResetLabel}>
+                    {t("notes.manager.filters.reset")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.filterActionClose}
+                  onPress={closeEvalFilters}
+                  testID="class-notes-filter-close"
+                >
+                  <Text style={styles.filterActionCloseLabel}>
+                    {t("notes.manager.filters.close")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.filterActionApply}
+                  onPress={applyEvalFilters}
+                  testID="class-notes-filter-apply"
+                >
+                  <Ionicons name="checkmark" size={15} color={colors.white} />
+                  <Text style={styles.filterActionApplyLabel}>
+                    {t("notes.manager.filters.apply")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
 
           {isLoadingTeacherContext && !teacherContext ? (
             <View style={styles.centered}>
@@ -548,9 +869,27 @@ export function ClassNotesManagerScreen({
                       <Ionicons
                         name="document-text-outline"
                         size={16}
-                        color={colors.primary}
+                        color={
+                          isEvaluationComplete(
+                            item,
+                            teacherContext?.students.length ?? 0,
+                          )
+                            ? styles.cardActionScoresComplete.color
+                            : styles.cardActionScoresIncomplete.color
+                        }
                       />
-                      <Text style={styles.cardActionLabel}>
+                      <Text
+                        style={[
+                          styles.cardActionLabel,
+                          isEvaluationComplete(
+                            item,
+                            teacherContext?.students.length ?? 0,
+                          )
+                            ? styles.cardActionScoresComplete
+                            : styles.cardActionScoresIncomplete,
+                        ]}
+                        testID={`eval-action-scores-label-${item.id}`}
+                      >
                         {t("notes.manager.evalList.actionScores")}
                       </Text>
                     </TouchableOpacity>
@@ -607,19 +946,21 @@ export function ClassNotesManagerScreen({
             />
           )}
 
-          <TouchableOpacity
-            style={[
-              styles.fab,
-              { bottom: insets.bottom + 16 + BOTTOM_TAB_BAR_HEIGHT },
-            ]}
-            onPress={() => {
-              resetEvaluationForm();
-              setEvaluationView("form");
-            }}
-            testID="class-notes-fab-create"
-          >
-            <Ionicons name="add" size={28} color={colors.white} />
-          </TouchableOpacity>
+          {!evalFiltersOpen ? (
+            <TouchableOpacity
+              style={[
+                styles.fab,
+                { bottom: insets.bottom + 16 + BOTTOM_TAB_BAR_HEIGHT },
+              ]}
+              onPress={() => {
+                resetEvaluationForm();
+                setEvaluationView("form");
+              }}
+              testID="class-notes-fab-create"
+            >
+              <Ionicons name="add" size={28} color={colors.white} />
+            </TouchableOpacity>
+          ) : null}
         </View>
       ) : null}
 
@@ -1298,18 +1639,165 @@ const styles = StyleSheet.create({
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.warmBorder,
   },
+  searchBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.background,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
   searchInput: {
     flex: 1,
     fontSize: 14,
     color: colors.textPrimary,
-    paddingVertical: 0,
+    padding: 0,
+  },
+  filterToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}55`,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterToggleActive: {
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.accentTeal,
+  },
+  filterPanel: {
+    marginHorizontal: 16,
+    marginTop: 10,
+    padding: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}33`,
+    backgroundColor: colors.surface,
+    gap: 14,
+  },
+  filterPanelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  filterPanelHeaderIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: `${colors.accentTeal}1F`,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterPanelHeaderTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.accentTealDark,
+  },
+  filterGroup: {
+    gap: 8,
+  },
+  filterGroupLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  filterChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  filterChip: {
+    width: 104,
+    minHeight: 40,
+    paddingHorizontal: 6,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterChipActive: {
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.accentTeal,
+  },
+  filterChipLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
+    textAlign: "center",
+  },
+  filterChipLabelActive: {
+    color: colors.white,
+  },
+  filterActionsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 2,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  filterActionReset: {
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.warmSurface,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 11,
+  },
+  filterActionResetLabel: {
+    color: colors.warmAccent,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  filterActionClose: {
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 11,
+  },
+  filterActionCloseLabel: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  filterActionApply: {
+    flex: 1.3,
+    borderRadius: 8,
+    backgroundColor: colors.accentTeal,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+    paddingVertical: 11,
+  },
+  filterActionApplyLabel: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: "700",
   },
   draftBanner: {
     flexDirection: "row",
@@ -1492,6 +1980,8 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   cardActionDanger: { color: DANGER_COLOR },
+  cardActionScoresComplete: { color: colors.accentTeal },
+  cardActionScoresIncomplete: { color: colors.warmAccent },
   scoresInfoBar: {
     paddingHorizontal: 16,
     paddingTop: 8,

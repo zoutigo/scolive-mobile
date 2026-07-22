@@ -43,6 +43,7 @@ const TEACHER_CONTEXT = {
   ],
   evaluationTypes: [
     { id: "type-1", code: "COMP", label: "Composition", isDefault: true },
+    { id: "type-2", code: "INTERRO", label: "Interrogation", isDefault: false },
   ],
   students: [
     { id: "stu-1", firstName: "Lisa", lastName: "Ntamack" },
@@ -56,6 +57,7 @@ const EVAL_1 = {
   description: "Exercices chapitres 1-3",
   coefficient: 2,
   maxScore: 20,
+  sequence: "SEQ_1",
   term: "TERM_1",
   status: "PUBLISHED",
   scheduledAt: "2026-04-12T08:00:00.000Z",
@@ -73,7 +75,22 @@ const EVAL_2 = {
   id: "eval-2",
   title: "DS Algèbre",
   status: "DRAFT",
+  sequence: "SEQ_3",
+  scheduledAt: "2026-02-01T08:00:00.000Z",
+  createdAt: "2026-02-01T08:00:00.000Z",
   _count: { scores: 0 },
+};
+
+const EVAL_3 = {
+  ...EVAL_1,
+  id: "eval-3",
+  title: "Interrogation orale",
+  status: "PUBLISHED",
+  sequence: "SEQ_5",
+  evaluationType: { id: "type-2", code: "INTERRO", label: "Interrogation" },
+  scheduledAt: "2026-05-20T08:00:00.000Z",
+  createdAt: "2026-05-18T08:00:00.000Z",
+  _count: { scores: 2 },
 };
 
 const EVAL_DETAIL = {
@@ -126,7 +143,7 @@ function setupStore(
 
   useNotesStore.setState({
     teacherContext: TEACHER_CONTEXT,
-    evaluations: [EVAL_1, EVAL_2],
+    evaluations: [EVAL_1, EVAL_2, EVAL_3],
     // Pre-populate le détail pour que selectedEvaluation soit disponible dès le mount
     evaluationDetails: { "eval-1": EVAL_DETAIL },
     termReports: { TERM_1: null, TERM_2: null, TERM_3: null },
@@ -137,7 +154,7 @@ function setupStore(
     isSubmitting: false,
     errorMessage: null,
     loadTeacherContext: jest.fn().mockResolvedValue(TEACHER_CONTEXT),
-    loadEvaluations: jest.fn().mockResolvedValue([EVAL_1, EVAL_2]),
+    loadEvaluations: jest.fn().mockResolvedValue([EVAL_1, EVAL_2, EVAL_3]),
     loadEvaluationDetail: jest
       .fn()
       .mockImplementation((_slug, _classId, evalId) => {
@@ -251,6 +268,222 @@ describe("Vue liste évaluations", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId("class-evaluation-row-eval-1")).toBeTruthy(),
+    );
+  });
+});
+
+// ─── Tri — plus récente en premier ──────────────────────────────────────────
+
+describe("Tri des évaluations", () => {
+  it("affiche la liste triée de la plus récente à la plus ancienne", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    const list = await screen.findByTestId("class-evaluations-list");
+    const ids = list.props.data.map(
+      (item: { id: string }) => item.id,
+    ) as string[];
+    // eval-3 (2026-05-20) > eval-1 (2026-04-12) > eval-2 (2026-02-01)
+    expect(ids).toEqual(["eval-3", "eval-1", "eval-2"]);
+  });
+});
+
+// ─── Filtres évaluations ─────────────────────────────────────────────────────
+
+describe("Filtres évaluations", () => {
+  it("le bouton filtre est inactif par défaut", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    const toggle = await screen.findByTestId("class-notes-filter-toggle");
+    const flatStyle = [toggle.props.style].flat();
+    expect(flatStyle).not.toContainEqual(
+      expect.objectContaining({ backgroundColor: "#247C72" }),
+    );
+  });
+
+  it("ouvre et ferme le panneau de filtres via le bouton toggle", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("class-notes-filter-panel")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-notes-filter-toggle"));
+    await waitFor(() =>
+      expect(screen.queryByTestId("class-notes-filter-panel")).toBeNull(),
+    );
+  });
+
+  it("masque le FAB de création tant que le panneau de filtres est ouvert", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-notes-fab-create")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-notes-filter-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("class-notes-filter-panel")).toBeTruthy(),
+    );
+    expect(screen.queryByTestId("class-notes-fab-create")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("class-notes-filter-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("class-notes-fab-create")).toBeTruthy(),
+    );
+  });
+
+  it("filtre par type d'évaluation après Appliquer", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-type-type-2"),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("class-evaluation-row-eval-3")).toBeTruthy();
+      expect(screen.queryByTestId("class-evaluation-row-eval-1")).toBeNull();
+      expect(screen.queryByTestId("class-evaluation-row-eval-2")).toBeNull();
+    });
+
+    // Le bouton filtre devient actif (teal plein)
+    const toggle = screen.getByTestId("class-notes-filter-toggle");
+    const flatStyle = [toggle.props.style].flat();
+    expect(flatStyle).toContainEqual(
+      expect.objectContaining({ backgroundColor: "#247C72" }),
+    );
+  });
+
+  it("filtre par séquence après Appliquer", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-sequence-SEQ_3"),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("class-evaluation-row-eval-2")).toBeTruthy();
+      expect(screen.queryByTestId("class-evaluation-row-eval-1")).toBeNull();
+      expect(screen.queryByTestId("class-evaluation-row-eval-3")).toBeNull();
+    });
+  });
+
+  it("filtre par notes complètes / incomplètes après Appliquer", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-completion-complete"),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("class-evaluation-row-eval-3")).toBeTruthy();
+      expect(screen.queryByTestId("class-evaluation-row-eval-1")).toBeNull();
+      expect(screen.queryByTestId("class-evaluation-row-eval-2")).toBeNull();
+    });
+  });
+
+  it("Reset vide les filtres appliqués et laisse le panneau ouvert", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-completion-incomplete"),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+    await waitFor(() =>
+      expect(screen.queryByTestId("class-evaluation-row-eval-3")).toBeNull(),
+    );
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(screen.getByTestId("class-notes-filter-reset"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("class-evaluation-row-eval-1")).toBeTruthy();
+      expect(screen.getByTestId("class-evaluation-row-eval-2")).toBeTruthy();
+      expect(screen.getByTestId("class-evaluation-row-eval-3")).toBeTruthy();
+    });
+    // Le panneau reste ouvert après Reset
+    expect(screen.getByTestId("class-notes-filter-panel")).toBeTruthy();
+  });
+
+  it("Close abandonne le brouillon en cours sans appliquer de filtre", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-type-type-2"),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-close"));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("class-notes-filter-panel")).toBeNull(),
+    );
+    // Aucun filtre n'a été appliqué : les 3 évaluations restent visibles
+    expect(screen.getByTestId("class-evaluation-row-eval-1")).toBeTruthy();
+    expect(screen.getByTestId("class-evaluation-row-eval-2")).toBeTruthy();
+    expect(screen.getByTestId("class-evaluation-row-eval-3")).toBeTruthy();
+  });
+
+  it("recherche et filtres se combinent", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-type-type-1"),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+
+    fireEvent.changeText(
+      screen.getByTestId("class-notes-search-input"),
+      "DS Algèbre",
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("class-evaluation-row-eval-2")).toBeTruthy();
+      expect(screen.queryByTestId("class-evaluation-row-eval-1")).toBeNull();
+      expect(screen.queryByTestId("class-evaluation-row-eval-3")).toBeNull();
+    });
+  });
+});
+
+// ─── Bouton Notes du footer — couleur selon complétion ───────────────────────
+
+describe("Couleur du bouton Notes selon la complétion des scores", () => {
+  it("colore le bouton en teal quand toutes les notes sont saisies", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    const label = await screen.findByTestId("eval-action-scores-label-eval-3");
+    const flatStyle = [label.props.style].flat();
+    expect(flatStyle).toContainEqual(
+      expect.objectContaining({ color: "#247C72" }),
+    );
+  });
+
+  it("colore le bouton en orange quand des notes manquent", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    const label = await screen.findByTestId("eval-action-scores-label-eval-1");
+    const flatStyle = [label.props.style].flat();
+    expect(flatStyle).toContainEqual(
+      expect.objectContaining({ color: "#D89B5B" }),
     );
   });
 });

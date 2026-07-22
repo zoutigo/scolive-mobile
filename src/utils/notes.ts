@@ -87,6 +87,19 @@ export function sequenceLabel(
   return t(SEQUENCE_KEY_MAP[sequence]);
 }
 
+const SEQUENCE_SHORT_LABEL_MAP: Record<StudentNotesSequence, string> = {
+  SEQ_1: "T1-Seq1",
+  SEQ_2: "T1-Seq2",
+  SEQ_3: "T2-Seq3",
+  SEQ_4: "T2-Seq4",
+  SEQ_5: "T3-Seq5",
+  SEQ_6: "T3-Seq6",
+};
+
+export function sequenceShortLabel(sequence: StudentNotesSequence) {
+  return SEQUENCE_SHORT_LABEL_MAP[sequence];
+}
+
 export function sequenceToTerm(
   sequence: StudentNotesSequence,
 ): StudentNotesTerm {
@@ -299,4 +312,11 @@ export function buildEvaluationProgress(
   studentCount: number,
 ) {
   return `${evaluation._count.scores}/${studentCount}`;
+}
+
+export function isEvaluationComplete(
+  evaluation: Pick<EvaluationRow, "_count">,
+  studentCount: number,
+) {
+  return studentCount > 0 && evaluation._count.scores >= studentCount;
 }
