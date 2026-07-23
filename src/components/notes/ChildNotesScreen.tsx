@@ -659,7 +659,11 @@ function EvaluationsView(props: {
   );
 }
 
-function PeriodHero({ snapshot }: { snapshot: StudentNotesTermSnapshot }) {
+export function PeriodHero({
+  snapshot,
+}: {
+  snapshot: StudentNotesTermSnapshot;
+}) {
   const { t } = useTranslation();
   const bestSubject = getBestSubject(snapshot.subjects);
   const watchSubject = getWatchSubject(snapshot.subjects);

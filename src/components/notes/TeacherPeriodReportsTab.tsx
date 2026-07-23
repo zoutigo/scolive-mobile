@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -9,9 +9,11 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
-import { useTranslation } from "../../i18n/useTranslation";
-import { EmptyState } from "../timetable/TimetableCommon";
-import { StudentNotesPanel } from "./ChildNotesScreen";
+import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
+import { useNotesStore } from "../../store/notes.store";
+import { EmptyState, LoadingBlock } from "../timetable/TimetableCommon";
+import { PeriodHero } from "./ChildNotesScreen";
+import { formatScore, termLabel } from "../../utils/notes";
 import type {
   CouncilDrafts,
   NotesTeacherContext,
@@ -37,11 +39,9 @@ type Props = {
   isSubmitting: boolean;
 };
 
-const TERM_KEYS: Record<StudentNotesTerm, string> = {
-  TERM_1: "notes.terms.term1",
-  TERM_2: "notes.terms.term2",
-  TERM_3: "notes.terms.term3",
-};
+type DetailTarget = { studentId: string; term: StudentNotesTerm };
+
+const ALL_TERMS: StudentNotesTerm[] = ["TERM_1", "TERM_2", "TERM_3"];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -49,13 +49,15 @@ export function TeacherPeriodReportsTab({
   teacherContext,
   schoolSlug,
   bottomInset,
-  term,
   onTermChange,
   drafts,
   onSaveAppreciation,
   isSubmitting,
 }: Props) {
   const { t } = useTranslation();
+  const { studentNotes, isLoadingStudentNotes, loadStudentNotes } =
+    useNotesStore();
+
   const sortedStudents = useMemo(
     () =>
       [...teacherContext.students].sort(
@@ -67,15 +69,27 @@ export function TeacherPeriodReportsTab({
   );
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [draftTerm, setDraftTerm] = useState<StudentNotesTerm>(term);
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
+  const [expandedStudentId, setExpandedStudentId] = useState<string | null>(
     null,
   );
+  const [detail, setDetail] = useState<DetailTarget | null>(null);
   const [editingGeneral, setEditingGeneral] = useState(false);
   const [generalDraft, setGeneralDraft] = useState("");
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
   const [subjectDraft, setSubjectDraft] = useState("");
+
+  const loadFor = useCallback(
+    async (studentId: string) => {
+      if (!schoolSlug || !studentId) return;
+      await loadStudentNotes(schoolSlug, studentId);
+    },
+    [schoolSlug, loadStudentNotes],
+  );
+
+  useEffect(() => {
+    if (!expandedStudentId) return;
+    void loadFor(expandedStudentId).catch(() => {});
+  }, [expandedStudentId, loadFor]);
 
   const filteredStudents = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -86,44 +100,35 @@ export function TeacherPeriodReportsTab({
   }, [sortedStudents, searchQuery]);
 
   const selectedStudent = useMemo(
-    () => sortedStudents.find((s) => s.id === selectedStudentId) ?? null,
-    [sortedStudents, selectedStudentId],
+    () => sortedStudents.find((s) => s.id === detail?.studentId) ?? null,
+    [sortedStudents, detail],
   );
 
-  function openFilters() {
-    setDraftTerm(term);
-    setFiltersOpen(true);
-  }
-  function closeFilters() {
-    setFiltersOpen(false);
-  }
-  function applyFilters() {
-    onTermChange(draftTerm);
-    setFiltersOpen(false);
-  }
-  function resetFilters() {
-    setDraftTerm(term);
-    setFiltersOpen(false);
+  function toggleStudent(studentId: string) {
+    setExpandedStudentId((current) =>
+      current === studentId ? null : studentId,
+    );
   }
 
-  function openStudent(studentId: string) {
-    setSelectedStudentId(studentId);
+  function openBulletin(studentId: string, term: StudentNotesTerm) {
+    setDetail({ studentId, term });
+    onTermChange(term);
     setEditingGeneral(false);
     setEditingSubjectId(null);
   }
   function backToList() {
-    setSelectedStudentId(null);
+    setDetail(null);
     setEditingGeneral(false);
     setEditingSubjectId(null);
   }
 
   function startEditGeneral() {
-    setGeneralDraft(drafts[selectedStudentId ?? ""]?.generalAppreciation ?? "");
+    setGeneralDraft(drafts[detail?.studentId ?? ""]?.generalAppreciation ?? "");
     setEditingGeneral(true);
   }
   async function saveGeneral() {
-    if (!selectedStudentId) return;
-    await onSaveAppreciation(selectedStudentId, {
+    if (!detail) return;
+    await onSaveAppreciation(detail.studentId, {
       generalAppreciation: generalDraft,
     });
     setEditingGeneral(false);
@@ -131,13 +136,13 @@ export function TeacherPeriodReportsTab({
 
   function startEditSubject(subjectId: string) {
     setSubjectDraft(
-      drafts[selectedStudentId ?? ""]?.subjects?.[subjectId] ?? "",
+      drafts[detail?.studentId ?? ""]?.subjects?.[subjectId] ?? "",
     );
     setEditingSubjectId(subjectId);
   }
   async function saveSubject(subjectId: string) {
-    if (!selectedStudentId) return;
-    await onSaveAppreciation(selectedStudentId, {
+    if (!detail) return;
+    await onSaveAppreciation(detail.studentId, {
       subject: { subjectId, value: subjectDraft },
     });
     setEditingSubjectId(null);
@@ -155,9 +160,13 @@ export function TeacherPeriodReportsTab({
     );
   }
 
-  // ── Vue détail : bulletin + appréciations inline ──────────────────
-  if (selectedStudent) {
-    const generalText = drafts[selectedStudent.id]?.generalAppreciation ?? "";
+  // ── Vue détail : bulletin complet + appréciations inline ──────────
+  if (detail && selectedStudent) {
+    const snapshots = studentNotes[detail.studentId] ?? [];
+    const snapshot =
+      snapshots.find((entry) => entry.term === detail.term) ?? null;
+    const generalText = drafts[detail.studentId]?.generalAppreciation ?? "";
+
     return (
       <ScrollView
         style={styles.container}
@@ -179,57 +188,134 @@ export function TeacherPeriodReportsTab({
           </Text>
         </TouchableOpacity>
 
-        <StudentNotesPanel
-          studentId={selectedStudent.id}
-          schoolSlug={schoolSlug}
-          bottomInset={0}
-          term={term}
-          onTermChange={onTermChange}
-        />
+        <Text style={styles.detailStudentName}>
+          {selectedStudent.lastName} {selectedStudent.firstName}
+        </Text>
 
-        <View style={styles.appreciationsBlock}>
-          <Text style={styles.appreciationsTitle}>
-            {t("notes.reports.detail.generalTitle")}
-          </Text>
-          <AppreciationEditor
-            value={generalText}
-            editing={editingGeneral}
-            draft={generalDraft}
-            onDraftChange={setGeneralDraft}
-            onStartEdit={startEditGeneral}
-            onCancel={() => setEditingGeneral(false)}
-            onSave={saveGeneral}
-            isSaving={isSubmitting}
-            t={t}
-            testIDPrefix="teacher-reports-general"
-          />
+        {isLoadingStudentNotes && !snapshot ? (
+          <LoadingBlock label={t("notes.panel.loading")} />
+        ) : snapshot ? (
+          <>
+            <PeriodHero snapshot={snapshot} />
 
-          <Text style={styles.appreciationsTitle}>
-            {t("notes.reports.detail.subjectsTitle")}
-          </Text>
-          {teacherContext.subjects.map((subject) => (
-            <View key={subject.id} style={styles.subjectAppreciationRow}>
-              <Text style={styles.subjectName}>{subject.name}</Text>
+            <View style={styles.appreciationsBlock}>
+              <Text style={styles.appreciationsTitle}>
+                {t("notes.reports.detail.generalTitle")}
+              </Text>
               <AppreciationEditor
-                value={drafts[selectedStudent.id]?.subjects?.[subject.id] ?? ""}
-                editing={editingSubjectId === subject.id}
-                draft={subjectDraft}
-                onDraftChange={setSubjectDraft}
-                onStartEdit={() => startEditSubject(subject.id)}
-                onCancel={() => setEditingSubjectId(null)}
-                onSave={() => saveSubject(subject.id)}
+                value={generalText}
+                editing={editingGeneral}
+                draft={generalDraft}
+                onDraftChange={setGeneralDraft}
+                onStartEdit={startEditGeneral}
+                onCancel={() => setEditingGeneral(false)}
+                onSave={saveGeneral}
                 isSaving={isSubmitting}
                 t={t}
-                testIDPrefix={`teacher-reports-subject-${subject.id}`}
+                testIDPrefix="teacher-reports-general"
               />
             </View>
-          ))}
-        </View>
+
+            <View
+              style={styles.subjectsBlock}
+              testID="teacher-reports-subjects"
+            >
+              {snapshot.subjects.map((subject) => {
+                const sequenceRows = snapshot.sequences
+                  .map((seq) => ({
+                    sequence: seq.sequence,
+                    label: seq.sequenceLabel,
+                    data: seq.subjects.find((s) => s.id === subject.id),
+                  }))
+                  .filter((row) => row.data);
+
+                return (
+                  <View
+                    key={subject.id}
+                    style={styles.subjectCard}
+                    testID={`teacher-reports-subject-card-${subject.id}`}
+                  >
+                    <View style={styles.subjectCardHeader}>
+                      <Text style={styles.subjectCardName}>
+                        {subject.subjectLabel.toUpperCase()}
+                      </Text>
+                      <Text style={styles.subjectCardCoeff}>
+                        {t("notes.avgs.coef")} {subject.coefficient}
+                      </Text>
+                    </View>
+
+                    {sequenceRows.map((row) => (
+                      <View
+                        key={row.sequence}
+                        style={styles.sequenceBlock}
+                        testID={`teacher-reports-subject-${subject.id}-sequence-${row.sequence}`}
+                      >
+                        <Text style={styles.sequenceLabel}>{row.label}</Text>
+                        <View style={styles.sequenceEvalRow}>
+                          {row.data && row.data.evaluations.length > 0 ? (
+                            row.data.evaluations.map((evaluation) => (
+                              <Text
+                                key={evaluation.id}
+                                style={styles.sequenceEvalChip}
+                              >
+                                {formatScore(evaluation.score)}
+                              </Text>
+                            ))
+                          ) : (
+                            <Text style={styles.sequenceEvalEmpty}>
+                              {t("notes.evals.inlineEmpty")}
+                            </Text>
+                          )}
+                        </View>
+                        <Text style={styles.sequenceAverage}>
+                          {t("notes.reports.detail.sequenceAverage")}{" "}
+                          <Text style={styles.sequenceAverageValue}>
+                            {formatScore(row.data?.studentAverage ?? null)}
+                          </Text>
+                        </Text>
+                      </View>
+                    ))}
+
+                    <View style={styles.termAverageRow}>
+                      <Text style={styles.termAverageLabel}>
+                        {t("notes.reports.detail.termAverage")}
+                      </Text>
+                      <Text style={styles.termAverageValue}>
+                        {formatScore(subject.studentAverage)}
+                      </Text>
+                    </View>
+
+                    <AppreciationEditor
+                      value={
+                        drafts[detail.studentId]?.subjects?.[subject.id] ?? ""
+                      }
+                      editing={editingSubjectId === subject.id}
+                      draft={subjectDraft}
+                      onDraftChange={setSubjectDraft}
+                      onStartEdit={() => startEditSubject(subject.id)}
+                      onCancel={() => setEditingSubjectId(null)}
+                      onSave={() => saveSubject(subject.id)}
+                      isSaving={isSubmitting}
+                      t={t}
+                      testIDPrefix={`teacher-reports-subject-${subject.id}`}
+                    />
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        ) : (
+          <EmptyState
+            icon="document-text-outline"
+            title={t("notes.reports.empty.title")}
+            message={t("notes.reports.empty.message")}
+          />
+        )}
       </ScrollView>
     );
   }
 
-  // ── Vue liste : recherche + filtre ─────────────────────────────────
+  // ── Vue liste : recherche + accordéon des 3 bulletins ──────────────
   return (
     <View style={styles.container} testID="teacher-reports-tab">
       <View style={styles.searchRow} testID="teacher-reports-search-bar">
@@ -259,89 +345,7 @@ export function TeacherPeriodReportsTab({
             </TouchableOpacity>
           ) : null}
         </View>
-        <TouchableOpacity
-          style={[
-            styles.filterToggle,
-            filtersOpen && styles.filterToggleActive,
-          ]}
-          onPress={filtersOpen ? closeFilters : openFilters}
-          testID="teacher-reports-filter-toggle"
-          accessibilityLabel={t(
-            "notes.reports.filter.toggleAccessibilityLabel",
-          )}
-        >
-          <Ionicons
-            name={filtersOpen ? "filter" : "filter-outline"}
-            size={18}
-            color={filtersOpen ? colors.white : colors.accentTeal}
-          />
-        </TouchableOpacity>
       </View>
-
-      {filtersOpen ? (
-        <View style={styles.filterPanel} testID="teacher-reports-filter-panel">
-          <View style={styles.filterGroup}>
-            <Text style={styles.filterGroupLabel}>
-              {t("notes.reports.filter.termLabel")}
-            </Text>
-            <View style={styles.filterChipsRow}>
-              {(["TERM_1", "TERM_2", "TERM_3"] as StudentNotesTerm[]).map(
-                (value) => (
-                  <TouchableOpacity
-                    key={value}
-                    style={[
-                      styles.filterChip,
-                      draftTerm === value && styles.filterChipActive,
-                    ]}
-                    onPress={() => setDraftTerm(value)}
-                    testID={`teacher-reports-filter-term-${value}`}
-                  >
-                    <Text
-                      style={[
-                        styles.filterChipLabel,
-                        draftTerm === value && styles.filterChipLabelActive,
-                      ]}
-                    >
-                      {t(TERM_KEYS[value])}
-                    </Text>
-                  </TouchableOpacity>
-                ),
-              )}
-            </View>
-          </View>
-
-          <View style={styles.filterActionsRow}>
-            <TouchableOpacity
-              style={styles.filterActionReset}
-              onPress={resetFilters}
-              testID="teacher-reports-filter-reset"
-            >
-              <Text style={styles.filterActionResetLabel}>
-                {t("notes.manager.filters.reset")}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.filterActionClose}
-              onPress={closeFilters}
-              testID="teacher-reports-filter-close"
-            >
-              <Text style={styles.filterActionCloseLabel}>
-                {t("notes.manager.filters.close")}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.filterActionApply}
-              onPress={applyFilters}
-              testID="teacher-reports-filter-apply"
-            >
-              <Ionicons name="checkmark" size={15} color={colors.white} />
-              <Text style={styles.filterActionApplyLabel}>
-                {t("notes.manager.filters.apply")}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : null}
 
       <ScrollView
         style={styles.list}
@@ -359,23 +363,57 @@ export function TeacherPeriodReportsTab({
             message={t("notes.reports.empty.message")}
           />
         ) : (
-          filteredStudents.map((student) => (
-            <TouchableOpacity
-              key={student.id}
-              style={styles.studentRow}
-              onPress={() => openStudent(student.id)}
-              testID={`teacher-reports-row-${student.id}`}
-            >
-              <Text style={styles.studentRowName}>
-                {student.lastName} {student.firstName}
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          ))
+          filteredStudents.map((student) => {
+            const expanded = expandedStudentId === student.id;
+            const snapshots = studentNotes[student.id] ?? [];
+            return (
+              <View key={student.id} style={styles.studentBlock}>
+                <TouchableOpacity
+                  style={styles.studentRow}
+                  onPress={() => toggleStudent(student.id)}
+                  testID={`teacher-reports-row-${student.id}`}
+                >
+                  <Text style={styles.studentRowName}>
+                    {student.lastName} {student.firstName}
+                  </Text>
+                  <Ionicons
+                    name={expanded ? "chevron-up" : "chevron-down"}
+                    size={18}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+
+                {expanded ? (
+                  <View
+                    style={styles.bulletinsRow}
+                    testID={`teacher-reports-bulletins-${student.id}`}
+                  >
+                    {ALL_TERMS.map((term) => {
+                      const snapshot =
+                        snapshots.find((entry) => entry.term === term) ?? null;
+                      return (
+                        <TouchableOpacity
+                          key={term}
+                          style={styles.bulletinCard}
+                          onPress={() => openBulletin(student.id, term)}
+                          testID={`teacher-reports-bulletin-${student.id}-${term}`}
+                        >
+                          <Text style={styles.bulletinCardTerm}>
+                            {termLabel(term, t)}
+                          </Text>
+                          <Text style={styles.bulletinCardAverage}>
+                            {formatScore(
+                              snapshot?.generalAverage.student ?? null,
+                            )}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ) : null}
+              </View>
+            );
+          })
         )}
       </ScrollView>
     </View>
@@ -391,7 +429,7 @@ function AppreciationEditor(props: {
   onCancel: () => void;
   onSave: () => void | Promise<void>;
   isSaving: boolean;
-  t: ReturnType<typeof useTranslation>["t"];
+  t: TranslateFn;
   testIDPrefix: string;
 }) {
   const { t } = props;
@@ -476,116 +514,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   searchInput: { flex: 1, fontSize: 14, color: colors.textPrimary, padding: 0 },
-  filterToggle: {
-    width: 40,
-    height: 40,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: `${colors.accentTeal}55`,
-    backgroundColor: colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  filterToggleActive: {
-    backgroundColor: colors.accentTeal,
-    borderColor: colors.accentTeal,
-  },
-  filterPanel: {
-    marginHorizontal: 16,
-    marginTop: 10,
-    padding: 16,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: `${colors.accentTeal}33`,
-    backgroundColor: colors.surface,
-    gap: 14,
-  },
-  filterGroup: { gap: 8 },
-  filterGroupLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: colors.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-  filterChipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  filterChip: {
-    minWidth: 90,
-    minHeight: 40,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  filterChipActive: {
-    backgroundColor: colors.accentTeal,
-    borderColor: colors.accentTeal,
-  },
-  filterChipLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.textSecondary,
-    textAlign: "center",
-  },
-  filterChipLabelActive: { color: colors.white },
-  filterActionsRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 2,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  filterActionReset: {
-    flex: 1,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    backgroundColor: colors.warmSurface,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 11,
-  },
-  filterActionResetLabel: {
-    color: colors.warmAccent,
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  filterActionClose: {
-    flex: 1,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 11,
-  },
-  filterActionCloseLabel: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  filterActionApply: {
-    flex: 1.3,
-    borderRadius: 8,
-    backgroundColor: colors.accentTeal,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-    gap: 6,
-    paddingVertical: 11,
-  },
-  filterActionApplyLabel: {
-    color: colors.white,
-    fontSize: 13,
-    fontWeight: "700",
-  },
   list: { flex: 1 },
+  studentBlock: { gap: 8 },
   studentRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -602,6 +532,32 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.textPrimary,
   },
+  bulletinsRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  bulletinCard: {
+    flex: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}55`,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    gap: 4,
+  },
+  bulletinCardTerm: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    textAlign: "center",
+  },
+  bulletinCardAverage: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: colors.primary,
+  },
   backRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -610,6 +566,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   backText: { color: colors.primary, fontSize: 14, fontWeight: "600" },
+  detailStudentName: {
+    paddingHorizontal: 16,
+    fontSize: 18,
+    fontWeight: "800",
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
   appreciationsBlock: { paddingHorizontal: 16, gap: 10, marginTop: 4 },
   appreciationsTitle: {
     fontSize: 13,
@@ -617,14 +580,89 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginTop: 8,
   },
-  subjectAppreciationRow: { gap: 6 },
-  subjectName: {
-    fontSize: 12,
+  subjectsBlock: { paddingHorizontal: 16, gap: 12, marginTop: 12 },
+  subjectCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    padding: 14,
+    gap: 10,
+  },
+  subjectCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  subjectCardName: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.textPrimary,
+  },
+  subjectCardCoeff: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.textSecondary,
+  },
+  sequenceBlock: {
+    gap: 6,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.warmBorder,
+  },
+  sequenceLabel: {
+    fontSize: 11,
     fontWeight: "700",
     color: colors.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },
+  sequenceEvalRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  sequenceEvalChip: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: colors.primaryDark,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  sequenceEvalEmpty: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  sequenceAverage: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  sequenceAverageValue: {
+    fontWeight: "800",
+    color: colors.textPrimary,
+  },
+  termAverageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderTopWidth: 1,
+    borderTopColor: colors.warmBorder,
+    paddingTop: 10,
+  },
+  termAverageLabel: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: colors.textPrimary,
+  },
+  termAverageValue: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: colors.primary,
+  },
+  subjectAppreciationRow: { gap: 6 },
   appreciationRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -633,7 +671,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },

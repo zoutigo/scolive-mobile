@@ -25,6 +25,64 @@ const TEACHER_CONTEXT = {
   ],
 };
 
+const SNAPSHOT_TERM_1 = {
+  term: "TERM_1" as const,
+  label: "1er trimestre",
+  councilLabel: "6e A • 1er trimestre",
+  generatedAtLabel: "12/12/2025",
+  generalAverage: { student: 14.5, class: 12.3, min: 6, max: 18 },
+  sequences: [
+    {
+      sequence: "SEQ_1" as const,
+      sequenceLabel: "Séquence 1",
+      isFirstSeq: true,
+      generalAverage: { student: 14, class: 12, min: 5, max: 17 },
+      subjects: [
+        {
+          id: "sub-1",
+          subjectLabel: "Mathématiques",
+          teachers: ["M. Dupont"],
+          coefficient: 4,
+          studentAverage: 15,
+          classAverage: 12,
+          classMin: 5,
+          classMax: 18,
+          evaluations: [
+            {
+              id: "ev-1",
+              label: "Contrôle 1",
+              score: 15,
+              maxScore: 20,
+              recordedAt: "2025-10-01",
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  subjects: [
+    {
+      id: "sub-1",
+      subjectLabel: "Mathématiques",
+      teachers: ["M. Dupont"],
+      coefficient: 4,
+      studentAverage: 14.5,
+      classAverage: 12,
+      classMin: 5,
+      classMax: 18,
+      evaluations: [
+        {
+          id: "ev-1",
+          label: "Contrôle 1",
+          score: 15,
+          maxScore: 20,
+          recordedAt: "2025-10-01",
+        },
+      ],
+    },
+  ],
+};
+
 async function flushAsync() {
   await act(async () => {
     await Promise.resolve();
@@ -32,10 +90,10 @@ async function flushAsync() {
   });
 }
 
-function setupStore() {
+function setupStore(overrides: Record<string, unknown> = {}) {
   useNotesStore.setState({
     studentNotes: {
-      "stu-1": [],
+      "stu-1": [SNAPSHOT_TERM_1],
       "stu-2": [],
     },
     scoresVersion: 0,
@@ -43,6 +101,7 @@ function setupStore() {
     errorMessage: null,
     loadStudentNotes: jest.fn().mockResolvedValue([]),
     clearError: jest.fn(),
+    ...overrides,
   } as never);
 }
 
@@ -66,7 +125,7 @@ beforeEach(() => {
   setupStore();
 });
 
-describe("Liste des bulletins", () => {
+describe("Liste des élèves", () => {
   it("affiche les élèves triés alphabétiquement", async () => {
     render(<TeacherPeriodReportsTab {...baseProps()} />);
     await flushAsync();
@@ -88,32 +147,6 @@ describe("Liste des bulletins", () => {
     expect(screen.queryByTestId("teacher-reports-row-stu-2")).toBeNull();
   });
 
-  it("ouvre le panneau de filtre trimestre", async () => {
-    render(<TeacherPeriodReportsTab {...baseProps()} />);
-    await flushAsync();
-
-    fireEvent.press(screen.getByTestId("teacher-reports-filter-toggle"));
-
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-reports-filter-panel")).toBeTruthy(),
-    );
-    expect(
-      screen.getByTestId("teacher-reports-filter-term-TERM_2"),
-    ).toBeTruthy();
-  });
-
-  it("applique le changement de trimestre via onTermChange", async () => {
-    const props = baseProps();
-    render(<TeacherPeriodReportsTab {...props} />);
-    await flushAsync();
-
-    fireEvent.press(screen.getByTestId("teacher-reports-filter-toggle"));
-    fireEvent.press(screen.getByTestId("teacher-reports-filter-term-TERM_2"));
-    fireEvent.press(screen.getByTestId("teacher-reports-filter-apply"));
-
-    expect(props.onTermChange).toHaveBeenCalledWith("TERM_2");
-  });
-
   it("affiche EmptyState quand la classe n'a pas d'élève", async () => {
     render(
       <TeacherPeriodReportsTab
@@ -127,30 +160,91 @@ describe("Liste des bulletins", () => {
   });
 });
 
-describe("Détail bulletin + appréciations inline", () => {
-  it("ouvre le bulletin d'un élève au tap", async () => {
+describe("Accordéon des 3 bulletins", () => {
+  it("déplie les 3 bulletins au tap sur un élève", async () => {
     render(<TeacherPeriodReportsTab {...baseProps()} />);
     await flushAsync();
 
-    fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    expect(screen.queryByTestId("teacher-reports-bulletins-stu-1")).toBeNull();
 
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-reports-detail")).toBeTruthy(),
-    );
+    fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+
+    expect(screen.getByTestId("teacher-reports-bulletins-stu-1")).toBeTruthy();
+    expect(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_1"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_2"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_3"),
+    ).toBeTruthy();
   });
 
-  it("revient à la liste via le bouton retour", async () => {
+  it("replie l'accordéon si on tape à nouveau sur l'élève", async () => {
     render(<TeacherPeriodReportsTab {...baseProps()} />);
     await flushAsync();
 
     fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-reports-detail")).toBeTruthy(),
+    await flushAsync();
+    fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+
+    expect(screen.queryByTestId("teacher-reports-bulletins-stu-1")).toBeNull();
+  });
+});
+
+describe("Détail bulletin + appréciations inline", () => {
+  async function openDetail() {
+    render(<TeacherPeriodReportsTab {...baseProps()} />);
+    await flushAsync();
+    fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_1"),
     );
+    await flushAsync();
+  }
+
+  it("ouvre le bulletin complet au tap sur un bulletin", async () => {
+    await openDetail();
+
+    expect(screen.getByTestId("teacher-reports-detail")).toBeTruthy();
+    expect(screen.getByTestId("notes-period-hero")).toBeTruthy();
+    expect(
+      screen.getByTestId("teacher-reports-subject-card-sub-1"),
+    ).toBeTruthy();
+  });
+
+  it("informe le parent du changement de trimestre via onTermChange", async () => {
+    const props = baseProps();
+    render(<TeacherPeriodReportsTab {...props} />);
+    await flushAsync();
+    fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_2"),
+    );
+
+    expect(props.onTermChange).toHaveBeenCalledWith("TERM_2");
+  });
+
+  it("affiche les notes groupées par séquence avec la moyenne de séquence", async () => {
+    await openDetail();
+
+    expect(
+      screen.getByTestId("teacher-reports-subject-sub-1-sequence-SEQ_1"),
+    ).toBeTruthy();
+    expect(screen.getByText("Séquence 1")).toBeTruthy();
+  });
+
+  it("revient à la liste (élève toujours déplié) via le bouton retour", async () => {
+    await openDetail();
 
     fireEvent.press(screen.getByTestId("teacher-reports-detail-back"));
 
     expect(screen.getByTestId("teacher-reports-list")).toBeTruthy();
+    expect(screen.getByTestId("teacher-reports-bulletins-stu-1")).toBeTruthy();
   });
 
   it("affiche l'appréciation générale existante", async () => {
@@ -167,6 +261,10 @@ describe("Détail bulletin + appréciations inline", () => {
     );
     await flushAsync();
     fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_1"),
+    );
 
     expect(screen.getByText("Très bon élève")).toBeTruthy();
   });
@@ -176,6 +274,10 @@ describe("Détail bulletin + appréciations inline", () => {
     render(<TeacherPeriodReportsTab {...props} />);
     await flushAsync();
     fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_1"),
+    );
 
     fireEvent.press(screen.getByTestId("teacher-reports-general-display"));
     await waitFor(() =>
@@ -199,6 +301,10 @@ describe("Détail bulletin + appréciations inline", () => {
     render(<TeacherPeriodReportsTab {...props} />);
     await flushAsync();
     fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_1"),
+    );
 
     fireEvent.press(
       screen.getByTestId("teacher-reports-subject-sub-1-display"),
@@ -226,6 +332,10 @@ describe("Détail bulletin + appréciations inline", () => {
     render(<TeacherPeriodReportsTab {...props} />);
     await flushAsync();
     fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_1"),
+    );
 
     fireEvent.press(screen.getByTestId("teacher-reports-general-display"));
     fireEvent.changeText(

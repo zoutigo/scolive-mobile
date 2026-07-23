@@ -1902,6 +1902,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.reports.detail.saveField": "Enregistrer",
     "notes.reports.detail.cancel": "Annuler",
     "notes.reports.detail.noAppreciation": "Aucune appréciation renseignée",
+    "notes.reports.detail.sequenceAverage": "Moyenne séquence :",
+    "notes.reports.detail.termAverage": "Moyenne du trimestre",
     "notes.reports.meta.saveMeta": "Enregistrer",
 
     "notes.child.tabs.notes": "Notes",
@@ -4351,6 +4353,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.reports.detail.saveField": "Save",
     "notes.reports.detail.cancel": "Cancel",
     "notes.reports.detail.noAppreciation": "No assessment yet",
+    "notes.reports.detail.sequenceAverage": "Sequence average:",
+    "notes.reports.detail.termAverage": "Term average",
     "notes.reports.meta.saveMeta": "Save",
 
     "notes.child.tabs.notes": "Notes",
