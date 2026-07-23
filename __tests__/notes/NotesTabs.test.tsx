@@ -20,14 +20,14 @@ describe("Rendu des onglets", () => {
     renderTabs();
     expect(screen.getByTestId("notes-tab-evaluations")).toBeTruthy();
     expect(screen.getByTestId("notes-tab-notes")).toBeTruthy();
-    expect(screen.getByTestId("notes-tab-council")).toBeTruthy();
+    expect(screen.getByTestId("notes-tab-reports")).toBeTruthy();
   });
 
   it("affiche les labels en français", () => {
     renderTabs();
     expect(screen.getByText("Évaluations")).toBeTruthy();
     expect(screen.getByText("Notes")).toBeTruthy();
-    expect(screen.getByText("Conseil classe")).toBeTruthy();
+    expect(screen.getByText("Bulletins")).toBeTruthy();
   });
 });
 
@@ -40,10 +40,10 @@ describe("Sélection d'onglet", () => {
     expect(onSelect).toHaveBeenCalledWith("notes");
   });
 
-  it("appelle onSelect avec 'council' quand on presse Conseil classe", () => {
+  it("appelle onSelect avec 'reports' quand on presse Bulletins", () => {
     renderTabs();
-    fireEvent.press(screen.getByTestId("notes-tab-council"));
-    expect(onSelect).toHaveBeenCalledWith("council");
+    fireEvent.press(screen.getByTestId("notes-tab-reports"));
+    expect(onSelect).toHaveBeenCalledWith("reports");
   });
 
   it("appelle onSelect avec 'evaluations' quand on presse Évaluations", () => {

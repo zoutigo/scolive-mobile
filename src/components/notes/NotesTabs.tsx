@@ -9,7 +9,7 @@ import {
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
 
-export type NotesTabKey = "evaluations" | "notes" | "council";
+export type NotesTabKey = "evaluations" | "notes" | "reports";
 
 interface NotesTab {
   key: NotesTabKey;
@@ -24,7 +24,7 @@ interface Props {
 const TABS: NotesTab[] = [
   { key: "evaluations", labelKey: "notes.tabs.evaluations" },
   { key: "notes", labelKey: "notes.tabs.notes" },
-  { key: "council", labelKey: "notes.tabs.council" },
+  { key: "reports", labelKey: "notes.tabs.reports" },
 ];
 
 export function NotesTabs({ activeTab, onSelect }: Props) {

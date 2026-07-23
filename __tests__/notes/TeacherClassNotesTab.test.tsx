@@ -117,91 +117,77 @@ beforeEach(() => {
 // ─── Rendu initial ───────────────────────────────────────────────────────────
 
 describe("Rendu initial", () => {
-  it("affiche le picker avec le nom du 1er élève trié (Abega avant Ntamack)", async () => {
+  it("affiche la recherche avec le nom du 1er élève trié (Abega avant Ntamack)", async () => {
     render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
     await flushAsync();
 
     // Abega (stu-2) comes before Ntamack (stu-1) alphabetically
-    expect(screen.getByTestId("teacher-notes-student-picker")).toBeTruthy();
-    expect(screen.getByText("Abega Paul")).toBeTruthy();
+    const input = screen.getByTestId("teacher-notes-search-input");
+    expect(input.props.value).toBe("Abega Paul");
   });
 
-  it("affiche le panel de notes pour le 1er élève", async () => {
+  it("affiche le panel de notes pour le 1er élève sans les sélecteurs internes", async () => {
     render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
     await flushAsync();
 
-    // StudentNotesPanel is rendered with its term selectors
-    await waitFor(() =>
-      expect(screen.getByTestId("child-notes-term-TERM_1")).toBeTruthy(),
-    );
+    // The switcher/term pills are hidden — filters live in the teal panel now
+    expect(screen.queryByTestId("child-notes-term-TERM_1")).toBeNull();
   });
 
-  it("affiche les sélecteurs de période du panel (child-notes-term-*)", async () => {
+  it("affiche le bouton de filtre", async () => {
     render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
     await flushAsync();
 
-    await waitFor(() => {
-      expect(screen.getByTestId("child-notes-term-TERM_1")).toBeTruthy();
-      expect(screen.getByTestId("child-notes-term-TERM_2")).toBeTruthy();
-      expect(screen.getByTestId("child-notes-term-TERM_3")).toBeTruthy();
-    });
+    expect(screen.getByTestId("teacher-notes-filter-toggle")).toBeTruthy();
   });
 });
 
-// ─── Sélection d'élève ───────────────────────────────────────────────────────
+// ─── Recherche élève ─────────────────────────────────────────────────────────
 
-describe("Sélection d'élève", () => {
-  it("ouvre le modal au clic sur le picker", async () => {
+describe("Recherche élève", () => {
+  it("affiche la liste de résultats quand on tape dans la recherche", async () => {
     render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
     await flushAsync();
 
-    fireEvent.press(screen.getByTestId("teacher-notes-student-picker"));
-
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-notes-picker-modal")).toBeTruthy(),
+    fireEvent.changeText(
+      screen.getByTestId("teacher-notes-search-input"),
+      "Nt",
     );
-  });
-
-  it("liste les élèves triés dans le modal", async () => {
-    render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
-    await flushAsync();
-
-    fireEvent.press(screen.getByTestId("teacher-notes-student-picker"));
-
-    await waitFor(() => {
-      expect(
-        screen.getByTestId("teacher-notes-picker-student-stu-1"),
-      ).toBeTruthy();
-      expect(
-        screen.getByTestId("teacher-notes-picker-student-stu-2"),
-      ).toBeTruthy();
-    });
-  });
-
-  it("ferme le modal et met à jour le picker après sélection", async () => {
-    render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
-    await flushAsync();
-
-    fireEvent.press(screen.getByTestId("teacher-notes-student-picker"));
 
     await waitFor(() =>
       expect(
-        screen.getByTestId("teacher-notes-picker-student-stu-1"),
+        screen.getByTestId("teacher-notes-search-result-stu-1"),
       ).toBeTruthy(),
     );
+    expect(
+      screen.queryByTestId("teacher-notes-search-result-stu-2"),
+    ).toBeNull();
+  });
 
-    fireEvent.press(screen.getByTestId("teacher-notes-picker-student-stu-1"));
+  it("sélectionne un élève depuis les résultats de recherche", async () => {
+    render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
+    await flushAsync();
+
+    fireEvent.changeText(
+      screen.getByTestId("teacher-notes-search-input"),
+      "Nt",
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-notes-search-result-stu-1"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("teacher-notes-search-result-stu-1"));
 
     await waitFor(() =>
-      expect(screen.queryByTestId("teacher-notes-picker-list")).toBeNull(),
+      expect(screen.queryByTestId("teacher-notes-search-results")).toBeNull(),
     );
-
-    // Now Ntamack Lisa should be shown in the picker
-    expect(screen.getByText("Ntamack Lisa")).toBeTruthy();
+    expect(screen.getByTestId("teacher-notes-search-input").props.value).toBe(
+      "Ntamack Lisa",
+    );
   });
 
   it("charge les notes pour le nouvel élève via StudentNotesPanel", async () => {
-    // Start with empty store so loadStudentNotes is called
     const mockLoad = jest.fn().mockResolvedValue([]);
     setupStore({
       studentNotes: {},
@@ -234,199 +220,92 @@ describe("État vide", () => {
   });
 });
 
-// ─── Fermeture modal ─────────────────────────────────────────────────────────
+// ─── Panneau de filtres ────────────────────────────────────────────────────
 
-describe("Fermeture modal", () => {
-  it("ferme le modal via l'overlay", async () => {
+describe("Panneau de filtres", () => {
+  it("ouvre le panneau au clic sur le bouton filtre", async () => {
     render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
     await flushAsync();
 
-    fireEvent.press(screen.getByTestId("teacher-notes-student-picker"));
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-toggle"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("teacher-notes-picker-overlay")).toBeTruthy(),
-    );
-
-    fireEvent.press(screen.getByTestId("teacher-notes-picker-overlay"));
-
-    await waitFor(() =>
-      expect(screen.queryByTestId("teacher-notes-picker-list")).toBeNull(),
+      expect(screen.getByTestId("teacher-notes-filter-panel")).toBeTruthy(),
     );
   });
 
-  it("ferme le modal via le bouton close", async () => {
+  it("liste les options matière dans le panneau", async () => {
     render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
     await flushAsync();
 
-    fireEvent.press(screen.getByTestId("teacher-notes-student-picker"));
-
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-notes-picker-close")).toBeTruthy(),
-    );
-
-    fireEvent.press(screen.getByTestId("teacher-notes-picker-close"));
-
-    await waitFor(() =>
-      expect(screen.queryByTestId("teacher-notes-picker-list")).toBeNull(),
-    );
-  });
-});
-
-// ─── Filtre matière ───────────────────────────────────────────────────────────
-
-describe("Filtre matière", () => {
-  it("affiche le picker matière avec 'Toutes les matières' par défaut", async () => {
-    render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
-    await flushAsync();
-
-    expect(screen.getByTestId("teacher-notes-subject-picker")).toBeTruthy();
-    expect(screen.getByText("Toutes les matières")).toBeTruthy();
-  });
-
-  it("ouvre le modal matière au clic sur le picker matière", async () => {
-    render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
-    await flushAsync();
-
-    fireEvent.press(screen.getByTestId("teacher-notes-subject-picker"));
-
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-notes-subject-picker-modal"),
-      ).toBeTruthy(),
-    );
-  });
-
-  it("liste les options matière dans le modal", async () => {
-    render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
-    await flushAsync();
-
-    fireEvent.press(screen.getByTestId("teacher-notes-subject-picker"));
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-toggle"));
 
     await waitFor(() => {
       expect(
-        screen.getByTestId("teacher-notes-subject-picker-option-all"),
+        screen.getByTestId("teacher-notes-filter-subject-all"),
       ).toBeTruthy();
       expect(
-        screen.getByTestId("teacher-notes-subject-picker-option-sub-1"),
+        screen.getByTestId("teacher-notes-filter-subject-sub-1"),
       ).toBeTruthy();
       expect(
-        screen.getByTestId("teacher-notes-subject-picker-option-sub-2"),
+        screen.getByTestId("teacher-notes-filter-subject-sub-2"),
       ).toBeTruthy();
     });
   });
 
-  it("ferme le modal et met à jour l'affichage après sélection d'une matière", async () => {
+  it("liste les options de trimestre et de vue", async () => {
     render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
     await flushAsync();
 
-    fireEvent.press(screen.getByTestId("teacher-notes-subject-picker"));
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-toggle"));
 
-    await waitFor(() =>
+    await waitFor(() => {
       expect(
-        screen.getByTestId("teacher-notes-subject-picker-option-sub-1"),
-      ).toBeTruthy(),
-    );
-
-    fireEvent.press(
-      screen.getByTestId("teacher-notes-subject-picker-option-sub-1"),
-    );
-
-    await waitFor(() =>
+        screen.getByTestId("teacher-notes-filter-term-TERM_1"),
+      ).toBeTruthy();
       expect(
-        screen.queryByTestId("teacher-notes-subject-picker-list"),
-      ).toBeNull(),
-    );
-
-    // "Mathématiques" appears in the filter button (at least once)
-    expect(screen.getAllByText("Mathématiques").length).toBeGreaterThanOrEqual(
-      1,
-    );
+        screen.getByTestId("teacher-notes-filter-view-evaluations"),
+      ).toBeTruthy();
+      expect(
+        screen.getByTestId("teacher-notes-filter-view-averages"),
+      ).toBeTruthy();
+      expect(
+        screen.getByTestId("teacher-notes-filter-view-charts"),
+      ).toBeTruthy();
+    });
   });
 
-  it("ferme le modal matière via l'overlay", async () => {
+  it("applique un filtre matière et ferme le panneau", async () => {
     render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
     await flushAsync();
 
-    fireEvent.press(screen.getByTestId("teacher-notes-subject-picker"));
-
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-toggle"));
     await waitFor(() =>
       expect(
-        screen.getByTestId("teacher-notes-subject-picker-overlay"),
+        screen.getByTestId("teacher-notes-filter-subject-sub-1"),
       ).toBeTruthy(),
     );
-
-    fireEvent.press(screen.getByTestId("teacher-notes-subject-picker-overlay"));
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-subject-sub-1"));
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-apply"));
 
     await waitFor(() =>
-      expect(
-        screen.queryByTestId("teacher-notes-subject-picker-list"),
-      ).toBeNull(),
+      expect(screen.queryByTestId("teacher-notes-filter-panel")).toBeNull(),
     );
+    expect(screen.getByTestId("teacher-notes-filter-toggle")).toBeTruthy();
   });
 
-  it("ferme le modal matière via le bouton close", async () => {
+  it("réinitialise les filtres (le panneau reste ouvert)", async () => {
     render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
     await flushAsync();
 
-    fireEvent.press(screen.getByTestId("teacher-notes-subject-picker"));
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-toggle"));
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-subject-sub-1"));
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-apply"));
 
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-notes-subject-picker-close"),
-      ).toBeTruthy(),
-    );
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-toggle"));
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-reset"));
 
-    fireEvent.press(screen.getByTestId("teacher-notes-subject-picker-close"));
-
-    await waitFor(() =>
-      expect(
-        screen.queryByTestId("teacher-notes-subject-picker-list"),
-      ).toBeNull(),
-    );
-  });
-});
-
-// ─── Filtres combinés ─────────────────────────────────────────────────────────
-
-describe("Filtres combinés", () => {
-  it("sélectionner un élève et une matière affiche les deux pickers à jour simultanément", async () => {
-    render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
-    await flushAsync();
-
-    // Select student Ntamack (stu-1)
-    fireEvent.press(screen.getByTestId("teacher-notes-student-picker"));
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-notes-picker-student-stu-1"),
-      ).toBeTruthy(),
-    );
-    fireEvent.press(screen.getByTestId("teacher-notes-picker-student-stu-1"));
-    await waitFor(() =>
-      expect(screen.queryByTestId("teacher-notes-picker-list")).toBeNull(),
-    );
-
-    // Select subject Mathématiques (sub-1)
-    fireEvent.press(screen.getByTestId("teacher-notes-subject-picker"));
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-notes-subject-picker-option-sub-1"),
-      ).toBeTruthy(),
-    );
-    fireEvent.press(
-      screen.getByTestId("teacher-notes-subject-picker-option-sub-1"),
-    );
-    await waitFor(() =>
-      expect(
-        screen.queryByTestId("teacher-notes-subject-picker-list"),
-      ).toBeNull(),
-    );
-
-    // Both pickers should show correct values
-    expect(screen.getByText("Ntamack Lisa")).toBeTruthy();
-    // "Mathématiques" appears in the filter button (at least once)
-    expect(screen.getAllByText("Mathématiques").length).toBeGreaterThanOrEqual(
-      1,
-    );
+    expect(screen.getByTestId("teacher-notes-filter-toggle")).toBeTruthy();
   });
 });
 
@@ -434,17 +313,14 @@ describe("Filtres combinés", () => {
 
 describe("initialStudentId — Pré-sélection depuis Par élève", () => {
   it("sélectionne l'élève fourni via initialStudentId au lieu du premier trié", async () => {
-    // Par défaut sans initialStudentId : Abega (stu-2) serait sélectionné (1er trié)
-    // Avec initialStudentId="stu-1" : Ntamack Lisa doit être affiché dans le picker
     render(
       <TeacherClassNotesTab {...DEFAULT_PROPS} initialStudentId="stu-1" />,
     );
     await flushAsync();
 
-    // Le picker doit afficher Ntamack (stu-1) et non Abega (stu-2)
-    expect(screen.getByText("Ntamack Lisa")).toBeTruthy();
-    // Abega ne doit pas être affiché dans le picker
-    expect(screen.queryByText("Abega Paul")).toBeNull();
+    expect(screen.getByTestId("teacher-notes-search-input").props.value).toBe(
+      "Ntamack Lisa",
+    );
   });
 
   it("charge les notes de l'élève pré-sélectionné (initialStudentId)", async () => {
@@ -465,8 +341,8 @@ describe("initialStudentId — Pré-sélection depuis Par élève", () => {
     render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
     await flushAsync();
 
-    // Abega (stu-2) est le premier trié alphabétiquement
-    expect(screen.getByText("Abega Paul")).toBeTruthy();
-    expect(screen.queryByText("Ntamack Lisa")).toBeNull();
+    expect(screen.getByTestId("teacher-notes-search-input").props.value).toBe(
+      "Abega Paul",
+    );
   });
 });

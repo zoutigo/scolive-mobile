@@ -194,6 +194,14 @@ export type UpsertEvaluationScorePayload = {
   }>;
 };
 
+export type CouncilDrafts = Record<
+  string,
+  {
+    generalAppreciation: string;
+    subjects: Record<string, string>;
+  }
+>;
+
 export type UpsertTermReportsPayload = {
   status: "DRAFT" | "PUBLISHED";
   councilHeldAt?: string | null;

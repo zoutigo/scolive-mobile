@@ -4,7 +4,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -22,6 +21,7 @@ import { useAuthStore } from "../../store/auth.store";
 import { useNotesStore } from "../../store/notes.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import type {
+  CouncilDrafts,
   EvaluationRow,
   StudentNotesSequence,
   StudentNotesTerm,
@@ -49,33 +49,18 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { NotesTabs } from "./NotesTabs";
 import type { NotesTabKey } from "./NotesTabs";
 import { TeacherClassNotesTab } from "./TeacherClassNotesTab";
+import { TeacherPeriodReportsTab } from "./TeacherPeriodReportsTab";
 import { EvaluationForm } from "./EvaluationForm";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import {
   EmptyState,
   ErrorBanner,
   LoadingBlock,
-  PillSelector,
   SectionCard,
-  TextField,
 } from "../timetable/TimetableCommon";
 import { moduleBack } from "../../utils/moduleBack";
 
 const DANGER_COLOR = "#DC3545";
-
-type CouncilDrafts = Record<
-  string,
-  {
-    generalAppreciation: string;
-    subjects: Record<string, string>;
-  }
->;
-
-const TERM_OPTIONS: Array<{ value: StudentNotesTerm; label: string }> = [
-  { value: "TERM_1", label: "T1" },
-  { value: "TERM_2", label: "T2" },
-  { value: "TERM_3", label: "T3" },
-];
 
 type EvalCompletionFilter = "all" | "complete" | "incomplete";
 
@@ -142,7 +127,6 @@ export function ClassNotesManagerScreen({
     isLoadingTeacherContext,
     isLoadingEvaluations,
     isLoadingEvaluationDetail,
-    isLoadingTermReports,
     isSubmitting,
     errorMessage,
     loadTeacherContext,
@@ -432,8 +416,30 @@ export function ClassNotesManagerScreen({
     }
   }
 
-  async function handleSaveCouncil() {
+  async function saveAppreciation(
+    studentId: string,
+    patch: {
+      generalAppreciation?: string;
+      subject?: { subjectId: string; value: string };
+    },
+  ) {
     if (!schoolSlug || !classId || !teacherContext) return;
+    const nextDrafts: CouncilDrafts = {
+      ...councilDrafts,
+      [studentId]: {
+        generalAppreciation:
+          patch.generalAppreciation ??
+          councilDrafts[studentId]?.generalAppreciation ??
+          "",
+        subjects: {
+          ...(councilDrafts[studentId]?.subjects ?? {}),
+          ...(patch.subject
+            ? { [patch.subject.subjectId]: patch.subject.value }
+            : {}),
+        },
+      },
+    };
+    setCouncilDrafts(nextDrafts);
     try {
       await saveTermReports(schoolSlug, classId, councilTerm, {
         status: councilStatus,
@@ -441,11 +447,10 @@ export function ClassNotesManagerScreen({
         students: teacherContext.students.map((student) => ({
           studentId: student.id,
           generalAppreciation:
-            councilDrafts[student.id]?.generalAppreciation?.trim() || null,
+            nextDrafts[student.id]?.generalAppreciation?.trim() || null,
           subjects: teacherContext.subjects.map((subject) => ({
             subjectId: subject.id,
-            appreciation:
-              councilDrafts[student.id]?.subjects?.[subject.id] ?? "",
+            appreciation: nextDrafts[student.id]?.subjects?.[subject.id] ?? "",
           })),
         })),
       });
@@ -461,6 +466,7 @@ export function ClassNotesManagerScreen({
             ? error.message
             : t("notes.manager.toast.councilErrorMessage"),
       });
+      throw error;
     }
   }
 
@@ -1412,175 +1418,28 @@ export function ClassNotesManagerScreen({
         />
       ) : null}
 
-      {/* ── Autres tabs : ScrollView partagé ──────────────────── */}
-      {tab !== "evaluations" && tab !== "notes" ? (
-        <ScrollView
-          style={styles.root}
-          contentContainerStyle={[
-            styles.content,
-            { paddingTop: 8, paddingBottom: insets.bottom + 24 },
-          ]}
-          refreshControl={
-            <RefreshControl
-              refreshing={
-                isLoadingTeacherContext ||
-                isLoadingEvaluations ||
-                isLoadingTermReports
-              }
-              onRefresh={() => {
-                clearError();
-                void load().catch(() => {});
-              }}
-              tintColor={colors.primary}
-            />
-          }
-          showsVerticalScrollIndicator={false}
-        >
-          {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
-
-          {isLoadingTeacherContext && !teacherContext ? (
-            <SectionCard title={t("notes.manager.loading.section")}>
-              <LoadingBlock label={t("notes.manager.loading.notebook")} />
-            </SectionCard>
-          ) : null}
-
-          {teacherContext ? (
-            <>
-              {tab === "council" ? (
-                <SectionCard
-                  title={t("notes.manager.council.sectionTitle")}
-                  subtitle={t("notes.manager.council.subtitle")}
-                >
-                  <PillSelector
-                    label={t("notes.manager.council.periodLabel")}
-                    value={councilTerm}
-                    options={TERM_OPTIONS}
-                    onChange={(value) =>
-                      setCouncilTerm(value as StudentNotesTerm)
-                    }
-                    testIDPrefix="class-notes-council-term"
-                  />
-                  <PillSelector
-                    label={t("notes.manager.council.statusLabel")}
-                    value={councilStatus}
-                    options={[
-                      {
-                        value: "DRAFT",
-                        label: t("notes.manager.council.statusDraft"),
-                      },
-                      {
-                        value: "PUBLISHED",
-                        label: t("notes.manager.council.statusPublished"),
-                      },
-                    ]}
-                    onChange={(value) =>
-                      setCouncilStatus(value as "DRAFT" | "PUBLISHED")
-                    }
-                    testIDPrefix="class-notes-council-status"
-                  />
-                  <TextField
-                    label={t("notes.manager.council.dateLabel")}
-                    value={councilHeldAt}
-                    onChangeText={setCouncilHeldAt}
-                    placeholder="2026-04-18T15:00:00.000Z"
-                    testID="class-notes-council-heldAt"
-                  />
-
-                  {teacherContext.students.map((student) => (
-                    <View key={student.id} style={styles.studentCard}>
-                      <Text style={styles.studentName}>
-                        {student.lastName} {student.firstName}
-                      </Text>
-                      <View style={styles.fieldBlock}>
-                        <Text style={styles.fieldLabel}>
-                          {t("notes.manager.council.generalAppreciation")}
-                        </Text>
-                        <TextInput
-                          value={
-                            councilDrafts[student.id]?.generalAppreciation ?? ""
-                          }
-                          onChangeText={(value) =>
-                            setCouncilDrafts((current) => ({
-                              ...current,
-                              [student.id]: {
-                                generalAppreciation: value,
-                                subjects: current[student.id]?.subjects ?? {},
-                              },
-                            }))
-                          }
-                          placeholder={t(
-                            "notes.manager.council.generalPlaceholder",
-                          )}
-                          placeholderTextColor={colors.textSecondary}
-                          multiline
-                          style={[
-                            styles.compactTextArea,
-                            styles.textInputShared,
-                          ]}
-                          testID={`class-notes-council-general-${student.id}`}
-                        />
-                      </View>
-
-                      {teacherContext.subjects.map((subject) => (
-                        <View
-                          key={`${student.id}-${subject.id}`}
-                          style={styles.fieldBlock}
-                        >
-                          <Text style={styles.fieldLabel}>{subject.name}</Text>
-                          <TextInput
-                            value={
-                              councilDrafts[student.id]?.subjects?.[
-                                subject.id
-                              ] ?? ""
-                            }
-                            onChangeText={(value) =>
-                              setCouncilDrafts((current) => ({
-                                ...current,
-                                [student.id]: {
-                                  generalAppreciation:
-                                    current[student.id]?.generalAppreciation ??
-                                    "",
-                                  subjects: {
-                                    ...(current[student.id]?.subjects ?? {}),
-                                    [subject.id]: value,
-                                  },
-                                },
-                              }))
-                            }
-                            placeholder={t(
-                              "notes.manager.council.subjectPlaceholder",
-                            )}
-                            placeholderTextColor={colors.textSecondary}
-                            multiline
-                            style={[
-                              styles.compactTextArea,
-                              styles.textInputShared,
-                            ]}
-                            testID={`class-notes-council-subject-${student.id}-${subject.id}`}
-                          />
-                        </View>
-                      ))}
-                    </View>
-                  ))}
-
-                  <TouchableOpacity
-                    style={[
-                      styles.submitBtn,
-                      isSubmitting && styles.submitBtnDisabled,
-                    ]}
-                    onPress={() => void handleSaveCouncil()}
-                    disabled={isSubmitting}
-                    testID="class-notes-save-council"
-                  >
-                    <Text style={styles.submitBtnText}>
-                      {t("notes.manager.council.save")}
-                    </Text>
-                  </TouchableOpacity>
-                </SectionCard>
-              ) : null}
-            </>
-          ) : null}
-        </ScrollView>
+      {/* ── Tab Bulletins ──────────────────────────────────────── */}
+      {tab === "reports" && errorMessage ? (
+        <View style={styles.content}>
+          <ErrorBanner message={errorMessage} />
+        </View>
+      ) : null}
+      {tab === "reports" && teacherContext ? (
+        <TeacherPeriodReportsTab
+          teacherContext={teacherContext}
+          schoolSlug={schoolSlug ?? ""}
+          bottomInset={insets.bottom}
+          term={councilTerm}
+          onTermChange={setCouncilTerm}
+          drafts={councilDrafts}
+          onSaveAppreciation={saveAppreciation}
+          isSubmitting={isSubmitting}
+        />
+      ) : null}
+      {tab === "reports" && !teacherContext ? (
+        <View style={styles.centered}>
+          <LoadingBlock label={t("notes.manager.loading.notebook")} />
+        </View>
       ) : null}
     </KeyboardAvoidingView>
   );
@@ -1861,25 +1720,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  fieldBlock: { gap: 6 },
-  fieldLabel: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  textInputShared: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.white,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: colors.textPrimary,
-    fontSize: 14,
-  },
-  compactTextArea: { minHeight: 84, textAlignVertical: "top" },
   evaluationRow: {
     borderRadius: 18,
     borderWidth: 1,
@@ -1990,29 +1830,4 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   detailActionTextPrimary: { color: colors.white },
-  studentList: { gap: 12 },
-  studentCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    backgroundColor: colors.warmSurface,
-    padding: 14,
-    gap: 10,
-    shadowColor: "#0C5FA8",
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
-  },
-  studentName: { color: colors.textPrimary, fontSize: 15, fontWeight: "800" },
-  submitBtn: {
-    borderRadius: 18,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  submitBtnDisabled: { opacity: 0.6 },
-  submitBtnText: { color: colors.white, fontSize: 14, fontWeight: "800" },
 });

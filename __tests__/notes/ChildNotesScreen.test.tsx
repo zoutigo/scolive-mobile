@@ -361,4 +361,42 @@ describe("ChildNotesScreen", () => {
 
     expect(mockPush).toHaveBeenCalledTimes(1);
   });
+
+  describe("Onglets Notes / Bulletins", () => {
+    it("affiche les deux onglets, Notes actif par défaut", () => {
+      render(<ChildNotesScreen />);
+
+      expect(screen.getByTestId("child-notes-tab-notes")).toBeTruthy();
+      expect(screen.getByTestId("child-notes-tab-reports")).toBeTruthy();
+      // Le panel Notes (inchangé) est affiché par défaut
+      expect(screen.getByText("MATHÉMATIQUES")).toBeTruthy();
+    });
+
+    it("bascule vers l'onglet Bulletins et affiche le bulletin de période", () => {
+      render(<ChildNotesScreen />);
+
+      fireEvent.press(screen.getByTestId("child-notes-tab-reports"));
+
+      expect(screen.getByTestId("child-reports-tab")).toBeTruthy();
+      expect(screen.getByTestId("notes-period-hero")).toBeTruthy();
+      expect(screen.getByText("Année scolaire en cours")).toBeTruthy();
+    });
+
+    it("l'onglet Bulletins n'affiche pas la grille d'évaluations de l'onglet Notes", () => {
+      render(<ChildNotesScreen />);
+
+      fireEvent.press(screen.getByTestId("child-notes-tab-reports"));
+
+      expect(screen.queryByTestId("child-notes-evaluation-eval-1")).toBeNull();
+    });
+
+    it("revient à l'onglet Notes inchangé après être passé par Bulletins", () => {
+      render(<ChildNotesScreen />);
+
+      fireEvent.press(screen.getByTestId("child-notes-tab-reports"));
+      fireEvent.press(screen.getByTestId("child-notes-tab-notes"));
+
+      expect(screen.getByTestId("child-notes-evaluation-eval-1")).toBeTruthy();
+    });
+  });
 });

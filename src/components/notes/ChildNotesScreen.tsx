@@ -73,6 +73,15 @@ export type StudentNotesPanelProps = {
   schoolSlug: string;
   bottomInset?: number;
   subjectFilter?: string; // subject id, "" ou undefined = toutes les matières
+  // ── Contrôle externe optionnel (utilisé par l'onglet Notes enseignant) ──
+  // Non fourni = comportement inchangé (vue parent/élève).
+  term?: StudentNotesTerm;
+  onTermChange?: (term: StudentNotesTerm) => void;
+  view?: StudentNotesView;
+  onViewChange?: (view: StudentNotesView) => void;
+  sequence?: StudentNotesSequence | null;
+  onSequenceChange?: (sequence: StudentNotesSequence) => void;
+  hideSwitcher?: boolean;
 };
 
 // ─── StudentNotesPanel ───────────────────────────────────────────────────────
@@ -82,6 +91,13 @@ export function StudentNotesPanel({
   schoolSlug,
   bottomInset = 0,
   subjectFilter,
+  term,
+  onTermChange,
+  view: controlledView,
+  onViewChange,
+  sequence,
+  onSequenceChange,
+  hideSwitcher = false,
 }: StudentNotesPanelProps) {
   const { t } = useTranslation();
   const {
@@ -92,9 +108,14 @@ export function StudentNotesPanel({
     loadStudentNotes,
     clearError,
   } = useNotesStore();
-  const [selectedTerm, setSelectedTerm] =
+  const [internalTerm, setInternalTerm] =
     useState<StudentNotesTerm>(getCurrentTerm());
-  const [view, setView] = useState<StudentNotesView>("evaluations");
+  const selectedTerm = term ?? internalTerm;
+  const setSelectedTerm = onTermChange ?? setInternalTerm;
+  const [internalView, setInternalView] =
+    useState<StudentNotesView>("evaluations");
+  const view = controlledView ?? internalView;
+  const setView = onViewChange ?? setInternalView;
   const [detail, setDetail] = useState<DetailState>(null);
 
   const load = useCallback(async () => {
@@ -157,27 +178,29 @@ export function StudentNotesPanel({
       >
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
-        <View style={styles.switcherCard}>
-          <CompactSelector
-            value={selectedTerm}
-            options={(snapshots.length > 0
-              ? snapshots
-              : buildDefaultSnapshots(t)
-            ).map((entry) => ({
-              value: entry.term,
-              label: termLabel(entry.term, t),
-            }))}
-            onChange={(value) => setSelectedTerm(value as StudentNotesTerm)}
-            testIDPrefix="child-notes-term"
-          />
-          <CompactSelector
-            value={view}
-            options={buildViewOptions(t)}
-            onChange={(value) => setView(value as StudentNotesView)}
-            testIDPrefix="child-notes-view"
-            compact
-          />
-        </View>
+        {hideSwitcher ? null : (
+          <View style={styles.switcherCard}>
+            <CompactSelector
+              value={selectedTerm}
+              options={(snapshots.length > 0
+                ? snapshots
+                : buildDefaultSnapshots(t)
+              ).map((entry) => ({
+                value: entry.term,
+                label: termLabel(entry.term, t),
+              }))}
+              onChange={(value) => setSelectedTerm(value as StudentNotesTerm)}
+              testIDPrefix="child-notes-term"
+            />
+            <CompactSelector
+              value={view}
+              options={buildViewOptions(t)}
+              onChange={(value) => setView(value as StudentNotesView)}
+              testIDPrefix="child-notes-view"
+              compact
+            />
+          </View>
+        )}
 
         {isLoadingStudentNotes && snapshots.length === 0 ? (
           <SectionCard title={t("notes.panel.notes")}>
@@ -189,6 +212,9 @@ export function StudentNotesPanel({
               <EvaluationsView
                 snapshot={filteredSnapshot}
                 onOpenDetail={setDetail}
+                sequence={sequence}
+                onSequenceChange={onSequenceChange}
+                hideSequenceSelector={hideSwitcher}
               />
             ) : null}
             {view === "averages" && filteredSnapshot ? (
@@ -220,6 +246,8 @@ export function StudentNotesPanel({
 
 // ─── ChildNotesScreen ────────────────────────────────────────────────────────
 
+type ChildNotesTabKey = "notes" | "reports";
+
 export function ChildNotesScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -229,6 +257,7 @@ export function ChildNotesScreen() {
   const { schoolSlug } = useAuthStore();
   const { children, setActiveChild, updateChild } = useFamilyStore();
   const { studentNotes } = useNotesStore();
+  const [childTab, setChildTab] = useState<ChildNotesTabKey>("notes");
 
   useEffect(() => {
     if (!childId) return;
@@ -263,12 +292,180 @@ export function ChildNotesScreen() {
         subtitleTestID="child-notes-header-subtitle"
         topInset={insets.top}
       />
-      <StudentNotesPanel
-        studentId={childId}
-        schoolSlug={schoolSlug ?? ""}
-        bottomInset={insets.bottom}
-      />
+
+      <View style={styles.childTabsBar} testID="child-notes-tabs">
+        <TouchableOpacity
+          style={[
+            styles.childTabButton,
+            childTab === "notes" && styles.childTabButtonActive,
+          ]}
+          onPress={() => setChildTab("notes")}
+          testID="child-notes-tab-notes"
+        >
+          <Text
+            style={[
+              styles.childTabLabel,
+              childTab === "notes" && styles.childTabLabelActive,
+            ]}
+          >
+            {t("notes.child.tabs.notes")}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.childTabButton,
+            childTab === "reports" && styles.childTabButtonActive,
+          ]}
+          onPress={() => setChildTab("reports")}
+          testID="child-notes-tab-reports"
+        >
+          <Text
+            style={[
+              styles.childTabLabel,
+              childTab === "reports" && styles.childTabLabelActive,
+            ]}
+          >
+            {t("notes.child.tabs.reports")}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {childTab === "notes" ? (
+        <StudentNotesPanel
+          studentId={childId}
+          schoolSlug={schoolSlug ?? ""}
+          bottomInset={insets.bottom}
+        />
+      ) : (
+        <ChildPeriodReportTab
+          studentId={childId}
+          schoolSlug={schoolSlug ?? ""}
+          bottomInset={insets.bottom}
+        />
+      )}
     </KeyboardAvoidingView>
+  );
+}
+
+function ChildPeriodReportTab({
+  studentId,
+  schoolSlug,
+  bottomInset,
+}: {
+  studentId: string;
+  schoolSlug: string;
+  bottomInset: number;
+}) {
+  const { t } = useTranslation();
+  const {
+    studentNotes,
+    scoresVersion,
+    isLoadingStudentNotes,
+    errorMessage,
+    loadStudentNotes,
+    clearError,
+  } = useNotesStore();
+  const [selectedTerm, setSelectedTerm] =
+    useState<StudentNotesTerm>(getCurrentTerm());
+  const [detail, setDetail] = useState<DetailState>(null);
+
+  const load = useCallback(async () => {
+    if (!schoolSlug || !studentId) return;
+    await loadStudentNotes(schoolSlug, studentId);
+  }, [studentId, loadStudentNotes, schoolSlug]);
+
+  useEffect(() => {
+    void load().catch(() => {});
+  }, [load, scoresVersion]);
+
+  const snapshots = studentNotes[studentId] ?? [];
+  const currentSnapshot =
+    snapshots.find((entry) => entry.term === selectedTerm) ??
+    snapshots[0] ??
+    null;
+
+  useEffect(() => {
+    if (
+      snapshots.length > 0 &&
+      !snapshots.some((entry) => entry.term === selectedTerm)
+    ) {
+      setSelectedTerm(snapshots[0].term);
+    }
+  }, [selectedTerm, snapshots]);
+
+  return (
+    <>
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: 0, paddingBottom: bottomInset + 24 },
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoadingStudentNotes}
+            onRefresh={() => {
+              clearError();
+              void load().catch(() => {});
+            }}
+            tintColor={colors.primary}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+        testID="child-reports-tab"
+      >
+        {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
+
+        <View style={styles.yearBadgeRow}>
+          <View style={styles.yearBadge}>
+            <Ionicons
+              name="calendar-outline"
+              size={12}
+              color={colors.primary}
+            />
+            <Text style={styles.yearBadgeText}>
+              {t("notes.child.reports.yearBadge")}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.switcherCard}>
+          <CompactSelector
+            value={selectedTerm}
+            options={(snapshots.length > 0
+              ? snapshots
+              : buildDefaultSnapshots(t)
+            ).map((entry) => ({
+              value: entry.term,
+              label: termLabel(entry.term, t),
+            }))}
+            onChange={(value) => setSelectedTerm(value as StudentNotesTerm)}
+            testIDPrefix="child-reports-term"
+          />
+        </View>
+
+        {isLoadingStudentNotes && snapshots.length === 0 ? (
+          <SectionCard title={t("notes.panel.notes")}>
+            <LoadingBlock label={t("notes.panel.loading")} />
+          </SectionCard>
+        ) : currentSnapshot ? (
+          <>
+            <PeriodHero snapshot={currentSnapshot} />
+            <AveragesView snapshot={currentSnapshot} onOpenDetail={setDetail} />
+          </>
+        ) : (
+          <SectionCard title={t("notes.panel.notes")}>
+            <EmptyState
+              icon="ribbon-outline"
+              title={t("notes.panel.emptyTitle")}
+              message={t("notes.panel.emptyMessage")}
+            />
+          </SectionCard>
+        )}
+      </ScrollView>
+
+      <DetailModal detail={detail} onClose={() => setDetail(null)} />
+    </>
   );
 }
 
@@ -324,15 +521,20 @@ function extractClassLabel(value: string) {
 function EvaluationsView(props: {
   snapshot: StudentNotesTermSnapshot;
   onOpenDetail: (value: DetailState) => void;
+  sequence?: StudentNotesSequence | null;
+  onSequenceChange?: (sequence: StudentNotesSequence) => void;
+  hideSequenceSelector?: boolean;
 }) {
   const { t } = useTranslation();
-  const [activeSequence, setActiveSequence] =
+  const [internalSequence, setInternalSequence] =
     useState<StudentNotesSequence | null>(
       props.snapshot.sequences[0]?.sequence ?? null,
     );
+  const activeSequence = props.sequence ?? internalSequence;
+  const setActiveSequence = props.onSequenceChange ?? setInternalSequence;
 
   useEffect(() => {
-    setActiveSequence(props.snapshot.sequences[0]?.sequence ?? null);
+    setInternalSequence(props.snapshot.sequences[0]?.sequence ?? null);
   }, [props.snapshot.term]);
 
   const hasSequences = props.snapshot.sequences.length > 0;
@@ -349,7 +551,7 @@ function EvaluationsView(props: {
 
   return (
     <>
-      {props.snapshot.sequences.length > 1 ? (
+      {!props.hideSequenceSelector && props.snapshot.sequences.length > 1 ? (
         <CompactSelector
           value={activeSequence ?? ""}
           options={props.snapshot.sequences.map((seq) => ({
@@ -1211,6 +1413,27 @@ function ModalStat(props: { label: string; value: string; suffix?: string }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, gap: 14 },
+  childTabsBar: {
+    flexDirection: "row",
+    gap: 4,
+    paddingHorizontal: 12,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.warmBorder,
+  },
+  childTabButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  childTabButtonActive: { borderBottomColor: colors.primary },
+  childTabLabel: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: colors.textSecondary,
+  },
+  childTabLabelActive: { color: colors.primary, fontWeight: "700" },
   switcherCard: {
     borderRadius: 18,
     backgroundColor: colors.surface,

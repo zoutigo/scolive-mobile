@@ -191,7 +191,7 @@ describe("Rendu général", () => {
     expect(screen.getByTestId("class-notes-header")).toBeTruthy();
     expect(screen.getByTestId("notes-tab-evaluations")).toBeTruthy();
     expect(screen.getByTestId("notes-tab-notes")).toBeTruthy();
-    expect(screen.getByTestId("notes-tab-council")).toBeTruthy();
+    expect(screen.getByTestId("notes-tab-reports")).toBeTruthy();
     expect(screen.getByText("6e A")).toBeTruthy();
   });
 

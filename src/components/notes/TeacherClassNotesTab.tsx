@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -13,6 +13,16 @@ import { useTranslation } from "../../i18n/useTranslation";
 import { EmptyState } from "../timetable/TimetableCommon";
 import { StudentNotesPanel } from "./ChildNotesScreen";
 import type { NotesTeacherContext } from "../../types/notes.types";
+import type {
+  StudentNotesSequence,
+  StudentNotesTerm,
+  StudentNotesView,
+} from "../../types/notes.types";
+import {
+  ALL_SEQUENCES,
+  getCurrentTerm,
+  sequenceShortLabel,
+} from "../../utils/notes";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,6 +32,16 @@ type Props = {
   bottomInset: number;
   initialStudentId?: string;
 };
+
+function buildViewOptions(
+  t: ReturnType<typeof useTranslation>["t"],
+): Array<{ value: StudentNotesView; label: string }> {
+  return [
+    { value: "evaluations", label: t("notes.panel.viewEval") },
+    { value: "averages", label: t("notes.panel.viewAvg") },
+    { value: "charts", label: t("notes.panel.viewChart") },
+  ];
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -43,24 +63,29 @@ export function TeacherClassNotesTab({
   );
 
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
-    initialStudentId ?? null,
+    initialStudentId ??
+      (sortedStudents.length > 0 ? sortedStudents[0].id : null),
   );
-  const [pickerVisible, setPickerVisible] = useState(false);
-  const [selectedSubjectId, setSelectedSubjectId] = useState("");
-  const [subjectPickerVisible, setSubjectPickerVisible] = useState(false);
-
-  // Select first student (sorted alphabetically) on mount
-  useEffect(() => {
-    if (sortedStudents.length > 0 && selectedStudentId === null) {
-      setSelectedStudentId(sortedStudents[0].id);
-    }
-  }, [sortedStudents, selectedStudentId]);
-
   const selectedStudent = useMemo(
     () => sortedStudents.find((s) => s.id === selectedStudentId) ?? null,
     [sortedStudents, selectedStudentId],
   );
 
+  const [searchQuery, setSearchQuery] = useState(
+    selectedStudent
+      ? `${selectedStudent.lastName} ${selectedStudent.firstName}`
+      : "",
+  );
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return sortedStudents;
+    return sortedStudents.filter((s) =>
+      `${s.lastName} ${s.firstName}`.toLowerCase().includes(q),
+    );
+  }, [sortedStudents, searchQuery]);
+
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const subjectOptions = useMemo(
     () => [
       { id: "", name: t("notes.teacher.filters.allSubjects") },
@@ -68,13 +93,57 @@ export function TeacherClassNotesTab({
     ],
     [teacherContext.subjects, t],
   );
+  const [draftSubjectId, setDraftSubjectId] = useState("");
+  const [draftTerm, setDraftTerm] =
+    useState<StudentNotesTerm>(getCurrentTerm());
+  const [draftSequence, setDraftSequence] =
+    useState<StudentNotesSequence | null>(null);
+  const [draftView, setDraftView] = useState<StudentNotesView>("evaluations");
 
-  const selectedSubject = useMemo(
-    () =>
-      subjectOptions.find((s) => s.id === selectedSubjectId) ??
-      subjectOptions[0],
-    [subjectOptions, selectedSubjectId],
-  );
+  const [subjectId, setSubjectId] = useState("");
+  const [term, setTerm] = useState<StudentNotesTerm>(getCurrentTerm());
+  const [sequence, setSequence] = useState<StudentNotesSequence | null>(null);
+  const [view, setView] = useState<StudentNotesView>("evaluations");
+
+  function selectStudent(id: string, label: string) {
+    setSelectedStudentId(id);
+    setSearchQuery(label);
+    setSearchOpen(false);
+  }
+
+  function openFilters() {
+    setDraftSubjectId(subjectId);
+    setDraftTerm(term);
+    setDraftSequence(sequence);
+    setDraftView(view);
+    setFiltersOpen(true);
+  }
+  function closeFilters() {
+    setFiltersOpen(false);
+  }
+  function applyFilters() {
+    setSubjectId(draftSubjectId);
+    setTerm(draftTerm);
+    setSequence(draftSequence);
+    setView(draftView);
+    setFiltersOpen(false);
+  }
+  function resetFilters() {
+    setDraftSubjectId("");
+    setDraftTerm(getCurrentTerm());
+    setDraftSequence(null);
+    setDraftView("evaluations");
+    setSubjectId("");
+    setTerm(getCurrentTerm());
+    setSequence(null);
+    setView("evaluations");
+  }
+
+  const hasActiveFilters =
+    subjectId !== "" ||
+    term !== getCurrentTerm() ||
+    sequence !== null ||
+    view !== "evaluations";
 
   if (teacherContext.students.length === 0) {
     return (
@@ -90,201 +159,310 @@ export function TeacherClassNotesTab({
 
   return (
     <View style={styles.container} testID="teacher-notes-tab">
-      {/* ── Barre de filtres ──────────────────────────────── */}
-      <View style={styles.filtersRow}>
-        {/* Picker élève */}
-        <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => setPickerVisible(true)}
-          testID="teacher-notes-student-picker"
-        >
-          <Text style={styles.filterLabel}>
-            {t("notes.teacher.filters.studentLabel")}
-          </Text>
-          {selectedStudent ? (
-            <Text style={styles.filterValue} numberOfLines={1}>
-              {selectedStudent.lastName} {selectedStudent.firstName}
-            </Text>
-          ) : null}
-          <Ionicons
-            name="chevron-down"
-            size={14}
-            color={colors.textSecondary}
+      {/* ── Recherche élève + filtre ──────────────────────────────── */}
+      <View style={styles.searchRow} testID="teacher-notes-search-bar">
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={16} color={colors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={(value) => {
+              setSearchQuery(value);
+              setSearchOpen(true);
+            }}
+            onFocus={() => setSearchOpen(true)}
+            placeholder={t("notes.teacher.search.placeholder")}
+            placeholderTextColor={colors.textSecondary}
+            returnKeyType="search"
+            autoCapitalize="none"
+            accessibilityLabel={t("notes.teacher.search.accessibilityLabel")}
+            testID="teacher-notes-search-input"
           />
-        </TouchableOpacity>
-
-        <View style={styles.filterDivider} />
-
-        {/* Picker matière */}
+          {searchQuery.length > 0 ? (
+            <TouchableOpacity
+              onPress={() => {
+                setSearchQuery("");
+                setSearchOpen(true);
+              }}
+              testID="teacher-notes-search-clear"
+            >
+              <Ionicons
+                name="close-circle"
+                size={16}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          ) : null}
+        </View>
         <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => setSubjectPickerVisible(true)}
-          testID="teacher-notes-subject-picker"
+          style={[
+            styles.filterToggle,
+            hasActiveFilters && styles.filterToggleActive,
+          ]}
+          onPress={filtersOpen ? closeFilters : openFilters}
+          testID="teacher-notes-filter-toggle"
+          accessibilityLabel={t(
+            "notes.teacher.filters.toggleAccessibilityLabel",
+          )}
         >
-          <Text style={styles.filterLabel}>
-            {t("notes.teacher.filters.subjectLabel")}
-          </Text>
-          <Text style={styles.filterValue} numberOfLines={1}>
-            {selectedSubject.name}
-          </Text>
           <Ionicons
-            name="chevron-down"
-            size={14}
-            color={colors.textSecondary}
+            name={hasActiveFilters ? "filter" : "filter-outline"}
+            size={18}
+            color={hasActiveFilters ? colors.white : colors.accentTeal}
           />
         </TouchableOpacity>
       </View>
 
-      {/* ── Vue notes de l'élève sélectionné ─────────────── */}
-      {selectedStudent ? (
-        <StudentNotesPanel
-          studentId={selectedStudent.id}
-          schoolSlug={schoolSlug}
-          bottomInset={bottomInset}
-          subjectFilter={selectedSubjectId}
-        />
-      ) : null}
-
-      {/* ── Modal de sélection ────────────────────────────── */}
-      <Modal
-        visible={pickerVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setPickerVisible(false)}
-        testID="teacher-notes-picker-modal"
-      >
-        <TouchableOpacity
-          style={styles.overlay}
-          activeOpacity={1}
-          onPress={() => setPickerVisible(false)}
-          testID="teacher-notes-picker-overlay"
-        />
-        <View style={styles.bottomSheet}>
-          {/* Header */}
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>
-              {t("notes.teacher.picker.selectStudent")}
-            </Text>
-            <TouchableOpacity
-              onPress={() => setPickerVisible(false)}
-              style={styles.closeButton}
-              testID="teacher-notes-picker-close"
-            >
-              <Ionicons name="close" size={20} color={colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Liste des élèves */}
+      {searchOpen ? (
+        <View
+          style={styles.searchResults}
+          testID="teacher-notes-search-results"
+        >
           <ScrollView
-            style={styles.pickerList}
-            showsVerticalScrollIndicator={false}
-            testID="teacher-notes-picker-list"
+            keyboardShouldPersistTaps="handled"
+            style={styles.searchResultsList}
           >
-            {sortedStudents.map((student) => {
-              const isSelected = student.id === selectedStudentId;
-              return (
-                <TouchableOpacity
-                  key={student.id}
-                  style={[
-                    styles.pickerStudentRow,
-                    isSelected && styles.pickerStudentRowSelected,
-                  ]}
-                  onPress={() => {
-                    setSelectedStudentId(student.id);
-                    setPickerVisible(false);
-                  }}
-                  testID={`teacher-notes-picker-student-${student.id}`}
-                >
-                  <Text
+            {searchResults.length === 0 ? (
+              <Text style={styles.searchNoResults}>
+                {t("notes.teacher.search.noResults")}
+              </Text>
+            ) : (
+              searchResults.map((student) => {
+                const label = `${student.lastName} ${student.firstName}`;
+                const isSelected = student.id === selectedStudentId;
+                return (
+                  <TouchableOpacity
+                    key={student.id}
                     style={[
-                      styles.pickerStudentName,
-                      isSelected && styles.pickerStudentNameSelected,
+                      styles.searchResultRow,
+                      isSelected && styles.searchResultRowSelected,
                     ]}
+                    onPress={() => selectStudent(student.id, label)}
+                    testID={`teacher-notes-search-result-${student.id}`}
                   >
-                    {student.lastName} {student.firstName}
-                  </Text>
-                  {isSelected ? (
-                    <Ionicons
-                      name="checkmark"
-                      size={18}
-                      color={colors.primary}
-                    />
-                  ) : null}
-                </TouchableOpacity>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.searchResultText,
+                        isSelected && styles.searchResultTextSelected,
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                    {isSelected ? (
+                      <Ionicons
+                        name="checkmark"
+                        size={16}
+                        color={colors.primary}
+                      />
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })
+            )}
           </ScrollView>
         </View>
-      </Modal>
+      ) : null}
 
-      {/* ── Modal sélection matière ───────────────────────── */}
-      <Modal
-        visible={subjectPickerVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setSubjectPickerVisible(false)}
-        testID="teacher-notes-subject-picker-modal"
-      >
-        <TouchableOpacity
-          style={styles.overlay}
-          activeOpacity={1}
-          onPress={() => setSubjectPickerVisible(false)}
-          testID="teacher-notes-subject-picker-overlay"
-        />
-        <View style={styles.bottomSheet}>
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>
-              {t("notes.teacher.picker.filterBySubject")}
+      {/* ── Panneau de filtres ──────────────────────────────── */}
+      {filtersOpen ? (
+        <View style={styles.filterPanel} testID="teacher-notes-filter-panel">
+          <View style={styles.filterPanelHeader}>
+            <View style={styles.filterPanelHeaderIcon}>
+              <Ionicons
+                name="options-outline"
+                size={16}
+                color={colors.accentTealDark}
+              />
+            </View>
+            <Text style={styles.filterPanelHeaderTitle}>
+              {t("notes.teacher.filters.toggleAccessibilityLabel")}
             </Text>
-            <TouchableOpacity
-              onPress={() => setSubjectPickerVisible(false)}
-              style={styles.closeButton}
-              testID="teacher-notes-subject-picker-close"
-            >
-              <Ionicons name="close" size={20} color={colors.textPrimary} />
-            </TouchableOpacity>
           </View>
-          <ScrollView
-            style={styles.pickerList}
-            showsVerticalScrollIndicator={false}
-            testID="teacher-notes-subject-picker-list"
-          >
-            {subjectOptions.map((subject) => {
-              const isSelected = subject.id === selectedSubjectId;
-              return (
+
+          <View style={styles.filterGroup}>
+            <Text style={styles.filterGroupLabel}>
+              {t("notes.teacher.filters.subjectLabel")}
+            </Text>
+            <View style={styles.filterChipsRow}>
+              {subjectOptions.map((subject) => (
                 <TouchableOpacity
                   key={subject.id || "all"}
                   style={[
-                    styles.pickerStudentRow,
-                    isSelected && styles.pickerStudentRowSelected,
+                    styles.filterChip,
+                    draftSubjectId === subject.id && styles.filterChipActive,
                   ]}
-                  onPress={() => {
-                    setSelectedSubjectId(subject.id);
-                    setSubjectPickerVisible(false);
-                  }}
-                  testID={`teacher-notes-subject-picker-option-${subject.id || "all"}`}
+                  onPress={() => setDraftSubjectId(subject.id)}
+                  testID={`teacher-notes-filter-subject-${subject.id || "all"}`}
                 >
                   <Text
                     style={[
-                      styles.pickerStudentName,
-                      isSelected && styles.pickerStudentNameSelected,
+                      styles.filterChipLabel,
+                      draftSubjectId === subject.id &&
+                        styles.filterChipLabelActive,
                     ]}
                   >
                     {subject.name}
                   </Text>
-                  {isSelected ? (
-                    <Ionicons
-                      name="checkmark"
-                      size={18}
-                      color={colors.primary}
-                    />
-                  ) : null}
                 </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.filterGroup}>
+            <Text style={styles.filterGroupLabel}>
+              {t("notes.teacher.filters.termLabel")}
+            </Text>
+            <View style={styles.filterChipsRow}>
+              {(["TERM_1", "TERM_2", "TERM_3"] as StudentNotesTerm[]).map(
+                (value) => (
+                  <TouchableOpacity
+                    key={value}
+                    style={[
+                      styles.filterChip,
+                      draftTerm === value && styles.filterChipActive,
+                    ]}
+                    onPress={() => setDraftTerm(value)}
+                    testID={`teacher-notes-filter-term-${value}`}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipLabel,
+                        draftTerm === value && styles.filterChipLabelActive,
+                      ]}
+                    >
+                      {t(
+                        `notes.terms.${value === "TERM_1" ? "term1" : value === "TERM_2" ? "term2" : "term3"}`,
+                      )}
+                    </Text>
+                  </TouchableOpacity>
+                ),
+              )}
+            </View>
+          </View>
+
+          <View style={styles.filterGroup}>
+            <Text style={styles.filterGroupLabel}>
+              {t("notes.manager.filters.sequenceLabel")}
+            </Text>
+            <View style={styles.filterChipsRow}>
+              <TouchableOpacity
+                style={[
+                  styles.filterChip,
+                  draftSequence == null && styles.filterChipActive,
+                ]}
+                onPress={() => setDraftSequence(null)}
+                testID="teacher-notes-filter-sequence-all"
+              >
+                <Text
+                  style={[
+                    styles.filterChipLabel,
+                    draftSequence == null && styles.filterChipLabelActive,
+                  ]}
+                >
+                  {t("notes.manager.filters.allOption")}
+                </Text>
+              </TouchableOpacity>
+              {ALL_SEQUENCES.map((seq) => (
+                <TouchableOpacity
+                  key={seq}
+                  style={[
+                    styles.filterChip,
+                    draftSequence === seq && styles.filterChipActive,
+                  ]}
+                  onPress={() => setDraftSequence(seq)}
+                  testID={`teacher-notes-filter-sequence-${seq}`}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipLabel,
+                      draftSequence === seq && styles.filterChipLabelActive,
+                    ]}
+                  >
+                    {sequenceShortLabel(seq)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.filterGroup}>
+            <Text style={styles.filterGroupLabel}>
+              {t("notes.teacher.filters.viewLabel")}
+            </Text>
+            <View style={styles.filterChipsRow}>
+              {buildViewOptions(t).map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.filterChip,
+                    draftView === option.value && styles.filterChipActive,
+                  ]}
+                  onPress={() => setDraftView(option.value)}
+                  testID={`teacher-notes-filter-view-${option.value}`}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipLabel,
+                      draftView === option.value &&
+                        styles.filterChipLabelActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.filterActionsRow}>
+            <TouchableOpacity
+              style={styles.filterActionReset}
+              onPress={resetFilters}
+              testID="teacher-notes-filter-reset"
+            >
+              <Text style={styles.filterActionResetLabel}>
+                {t("notes.manager.filters.reset")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.filterActionClose}
+              onPress={closeFilters}
+              testID="teacher-notes-filter-close"
+            >
+              <Text style={styles.filterActionCloseLabel}>
+                {t("notes.manager.filters.close")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.filterActionApply}
+              onPress={applyFilters}
+              testID="teacher-notes-filter-apply"
+            >
+              <Ionicons name="checkmark" size={15} color={colors.white} />
+              <Text style={styles.filterActionApplyLabel}>
+                {t("notes.manager.filters.apply")}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </Modal>
+      ) : null}
+
+      {/* ── Vue notes de l'élève sélectionné ─────────────── */}
+      {selectedStudent && !searchOpen ? (
+        <StudentNotesPanel
+          studentId={selectedStudent.id}
+          schoolSlug={schoolSlug}
+          bottomInset={bottomInset}
+          subjectFilter={subjectId}
+          term={term}
+          onTermChange={setTerm}
+          view={view}
+          onViewChange={setView}
+          sequence={sequence}
+          onSequenceChange={setSequence}
+          hideSwitcher
+        />
+      ) : null}
     </View>
   );
 }
@@ -298,95 +476,200 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 16,
   },
-  // Filters row
-  filtersRow: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  filterButton: {
-    flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    gap: 2,
-  },
-  filterLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: colors.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  filterValue: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: colors.textPrimary,
-  },
-  filterDivider: {
-    width: 1,
-    backgroundColor: colors.border,
-    marginVertical: 10,
-  },
-  // Modal overlay
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(31,41,51,0.45)",
-  },
-  // Bottom sheet
-  bottomSheet: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: "60%",
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  sheetHeader: {
+  searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 8,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 10,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.warmBorder,
   },
-  sheetTitle: {
-    fontSize: 16,
-    fontWeight: "700",
+  searchBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.background,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
     color: colors.textPrimary,
+    padding: 0,
   },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.warmSurface,
+  filterToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}55`,
+    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
   },
-  pickerList: {
-    flexGrow: 0,
+  filterToggleActive: {
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.accentTeal,
   },
-  pickerStudentRow: {
+  searchResults: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    maxHeight: 260,
+    overflow: "hidden",
+  },
+  searchResultsList: { flexGrow: 0 },
+  searchNoResults: {
+    padding: 14,
+    color: colors.textSecondary,
+    fontSize: 13,
+  },
+  searchResultRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.warmBorder,
   },
-  pickerStudentRowSelected: {
+  searchResultRowSelected: {
     backgroundColor: "#eef5fd",
   },
-  pickerStudentName: {
-    fontSize: 15,
+  searchResultText: {
+    fontSize: 14,
     fontWeight: "600",
     color: colors.textPrimary,
   },
-  pickerStudentNameSelected: {
+  searchResultTextSelected: {
     color: colors.primary,
+    fontWeight: "700",
+  },
+  filterPanel: {
+    marginHorizontal: 16,
+    marginTop: 10,
+    padding: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}33`,
+    backgroundColor: colors.surface,
+    gap: 14,
+  },
+  filterPanelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  filterPanelHeaderIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: `${colors.accentTeal}1F`,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterPanelHeaderTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.accentTealDark,
+  },
+  filterGroup: { gap: 8 },
+  filterGroupLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  filterChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  filterChip: {
+    minWidth: 90,
+    minHeight: 40,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterChipActive: {
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.accentTeal,
+  },
+  filterChipLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
+    textAlign: "center",
+  },
+  filterChipLabelActive: { color: colors.white },
+  filterActionsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 2,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  filterActionReset: {
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.warmSurface,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 11,
+  },
+  filterActionResetLabel: {
+    color: colors.warmAccent,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  filterActionClose: {
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 11,
+  },
+  filterActionCloseLabel: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  filterActionApply: {
+    flex: 1.3,
+    borderRadius: 8,
+    backgroundColor: colors.accentTeal,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+    paddingVertical: 11,
+  },
+  filterActionApplyLabel: {
+    color: colors.white,
+    fontSize: 13,
     fontWeight: "700",
   },
 });
