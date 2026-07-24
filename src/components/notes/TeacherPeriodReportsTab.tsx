@@ -224,11 +224,14 @@ export const TeacherPeriodReportsTab = forwardRef<
           <LoadingBlock label={t("notes.panel.loading")} />
         ) : snapshot ? (
           <>
-            <PeriodHero
-              snapshot={snapshot}
-              compactStats
-              showPublished={false}
-            />
+            <View style={styles.heroWrapper}>
+              <PeriodHero
+                snapshot={snapshot}
+                compactStats
+                showPublished={false}
+                inlineHeader
+              />
+            </View>
 
             <View style={styles.appreciationsBlock}>
               <Text style={styles.appreciationsTitle}>
@@ -513,7 +516,13 @@ function AppreciationEditor(props: {
       <Text style={styles.appreciationText} numberOfLines={2}>
         {props.value || t("notes.reports.detail.noAppreciation")}
       </Text>
-      <Ionicons name="create-outline" size={18} color={colors.primary} />
+      <View style={styles.appreciationIconWrap}>
+        <Ionicons
+          name="chatbox-ellipses-outline"
+          size={22}
+          color={colors.primary}
+        />
+      </View>
     </TouchableOpacity>
   );
 }
@@ -590,6 +599,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: colors.primary,
   },
+  heroWrapper: { marginHorizontal: 16, marginTop: 12 },
   appreciationsBlock: { paddingHorizontal: 16, gap: 10, marginTop: 12 },
   appreciationsTitle: {
     fontSize: 13,
@@ -659,6 +669,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   appreciationText: { flex: 1, fontSize: 13, color: colors.textPrimary },
+  appreciationIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.background,
+  },
   editorBlock: {
     borderRadius: 12,
     borderWidth: 1,

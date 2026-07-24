@@ -663,10 +663,12 @@ export function PeriodHero({
   snapshot,
   compactStats = false,
   showPublished = true,
+  inlineHeader = false,
 }: {
   snapshot: StudentNotesTermSnapshot;
   compactStats?: boolean;
   showPublished?: boolean;
+  inlineHeader?: boolean;
 }) {
   const { t } = useTranslation();
   const bestSubject = getBestSubject(snapshot.subjects);
@@ -717,11 +719,37 @@ export function PeriodHero({
       <View style={styles.heroTintPrimary} />
       <View style={styles.heroTintAccent} />
       <View style={styles.heroHeader}>
-        <View style={styles.heroBadge}>
-          <Ionicons name="calendar-outline" size={14} color={colors.primary} />
-          <Text style={styles.heroBadgeText}>{t("notes.period.badge")}</Text>
-        </View>
-        <Text style={styles.heroTitle}>{snapshot.label}</Text>
+        {inlineHeader ? (
+          <View style={styles.heroHeaderRow}>
+            <View style={styles.heroBadge}>
+              <Ionicons
+                name="calendar-outline"
+                size={14}
+                color={colors.primary}
+              />
+              <Text style={styles.heroBadgeText}>
+                {t("notes.period.badge")}
+              </Text>
+            </View>
+            <Text style={styles.heroTitleInline} numberOfLines={1}>
+              {snapshot.label}
+            </Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.heroBadge}>
+              <Ionicons
+                name="calendar-outline"
+                size={14}
+                color={colors.primary}
+              />
+              <Text style={styles.heroBadgeText}>
+                {t("notes.period.badge")}
+              </Text>
+            </View>
+            <Text style={styles.heroTitle}>{snapshot.label}</Text>
+          </>
+        )}
         <Text style={styles.heroSubtitle}>{snapshot.councilLabel}</Text>
       </View>
 
@@ -1721,6 +1749,19 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(36,124,114,0.06)",
   },
   heroHeader: { gap: 5 },
+  heroHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  heroTitleInline: {
+    flexShrink: 1,
+    textAlign: "right",
+    color: colors.warmAccent,
+    fontSize: 15,
+    fontWeight: "800",
+  },
   heroBadge: {
     alignSelf: "flex-start",
     flexDirection: "row",
@@ -1779,10 +1820,10 @@ const styles = StyleSheet.create({
     minHeight: 92,
   },
   heroStatCardCompact: {
-    flexBasis: "23%",
+    flexBasis: "47%",
     flexGrow: 1,
     minHeight: 74,
-    paddingHorizontal: 6,
+    paddingHorizontal: 10,
     paddingVertical: 8,
     gap: 3,
   },
