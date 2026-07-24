@@ -45,7 +45,11 @@ type Props = {
   ) => Promise<void>;
   isSubmitting: boolean;
   onDetailChange?: (
-    info: { studentName: string; className: string; term: StudentNotesTerm } | null,
+    info: {
+      studentName: string;
+      className: string;
+      term: StudentNotesTerm;
+    } | null,
   ) => void;
 };
 
@@ -220,7 +224,11 @@ export const TeacherPeriodReportsTab = forwardRef<
           <LoadingBlock label={t("notes.panel.loading")} />
         ) : snapshot ? (
           <>
-            <PeriodHero snapshot={snapshot} compactStats showPublished={false} />
+            <PeriodHero
+              snapshot={snapshot}
+              compactStats
+              showPublished={false}
+            />
 
             <View style={styles.appreciationsBlock}>
               <Text style={styles.appreciationsTitle}>

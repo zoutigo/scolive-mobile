@@ -730,9 +730,7 @@ export function PeriodHero({
           <Text style={styles.publishedLabel}>
             {t("notes.period.published")}
           </Text>
-          <Text style={styles.publishedValue}>
-            {snapshot.generatedAtLabel}
-          </Text>
+          <Text style={styles.publishedValue}>{snapshot.generatedAtLabel}</Text>
         </View>
       ) : null}
 
