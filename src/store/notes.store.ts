@@ -46,6 +46,10 @@ type NotesState = {
     schoolSlug: string,
     classId: string,
   ) => Promise<EvaluationRow[]>;
+  loadSchoolEvaluations: (
+    schoolSlug: string,
+    filters?: { academicLevelId?: string; classId?: string },
+  ) => Promise<EvaluationRow[]>;
   loadEvaluationDetail: (
     schoolSlug: string,
     classId: string,
@@ -198,6 +202,25 @@ export const useNotesStore = create<NotesState>((set) => ({
         errorMessage: toMessage(
           error,
           "Impossible de charger les évaluations de la classe.",
+        ),
+      });
+      throw error;
+    } finally {
+      set({ isLoadingEvaluations: false });
+    }
+  },
+
+  async loadSchoolEvaluations(schoolSlug, filters) {
+    set({ isLoadingEvaluations: true, errorMessage: null });
+    try {
+      const payload = await notesApi.listSchoolEvaluations(schoolSlug, filters);
+      set({ evaluations: payload });
+      return payload;
+    } catch (error) {
+      set({
+        errorMessage: toMessage(
+          error,
+          "Impossible de charger les évaluations de l'école.",
         ),
       });
       throw error;

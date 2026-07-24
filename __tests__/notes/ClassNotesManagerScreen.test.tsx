@@ -161,6 +161,9 @@ function setupStore(
     errorMessage: null,
     loadTeacherContext: jest.fn().mockResolvedValue(TEACHER_CONTEXT),
     loadEvaluations: jest.fn().mockResolvedValue([EVAL_1, EVAL_2, EVAL_3]),
+    loadSchoolEvaluations: jest
+      .fn()
+      .mockResolvedValue([EVAL_1, EVAL_2, EVAL_3]),
     loadEvaluationDetail: jest
       .fn()
       .mockImplementation((_slug, _classId, evalId) => {
@@ -993,12 +996,16 @@ describe("Mode admin — arrivée sans classId", () => {
     ] as never);
   });
 
-  it("n'affiche aucun contexte de classe et ne charge rien tant qu'aucune classe n'est choisie", async () => {
+  it("ne charge pas le contexte enseignant tant qu'aucune classe n'est choisie, mais charge les évaluations de toute l'école", async () => {
     render(<ClassNotesManagerScreen />);
     await flushAsync();
 
     expect(screen.queryByTestId("class-notes-subtitle")).toBeNull();
     expect(useNotesStore.getState().loadTeacherContext).not.toHaveBeenCalled();
+    expect(useNotesStore.getState().loadSchoolEvaluations).toHaveBeenCalledWith(
+      "college-vogt",
+      { academicLevelId: undefined },
+    );
   });
 
   it("ouvre automatiquement le panneau de filtres à l'arrivée", async () => {
@@ -1010,12 +1017,54 @@ describe("Mode admin — arrivée sans classId", () => {
     expect(screen.getByTestId("class-notes-filter-class-trigger")).toBeTruthy();
   });
 
-  it("affiche une invite à choisir une classe si le panneau de filtres est fermé sans sélection", async () => {
+  it("affiche la liste de toute l'école (pas de blocage) si le panneau de filtres est fermé sans sélection", async () => {
     render(<ClassNotesManagerScreen />);
     await flushAsync();
     fireEvent.press(await screen.findByTestId("class-notes-filter-close"));
 
-    expect(await screen.findByText("Aucune classe sélectionnée")).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByTestId("class-evaluation-row-eval-1")).toBeTruthy();
+      expect(screen.getByTestId("class-evaluation-row-eval-2")).toBeTruthy();
+      expect(screen.getByTestId("class-evaluation-row-eval-3")).toBeTruthy();
+    });
+    // Créer une évaluation exige une classe précise : le FAB reste masqué.
+    expect(screen.queryByTestId("class-notes-fab-create")).toBeNull();
+  });
+
+  it("propose Toutes les classes dans le sélecteur de classe (pas de choix forcé)", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-class-trigger"),
+    );
+    expect(
+      screen.getByTestId("class-notes-filter-class-option-empty"),
+    ).toBeTruthy();
+  });
+
+  it("narrowing par niveau seul reste en navigation école entière (pas de contexte enseignant chargé)", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-level-trigger"),
+    );
+    fireEvent.press(
+      await screen.findByTestId(
+        `class-notes-filter-level-option-${LEVEL_6E.id}`,
+      ),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+
+    await waitFor(() => {
+      expect(
+        useNotesStore.getState().loadSchoolEvaluations,
+      ).toHaveBeenCalledWith("college-vogt", {
+        academicLevelId: LEVEL_6E.id,
+      });
+    });
+    expect(useNotesStore.getState().loadTeacherContext).not.toHaveBeenCalled();
     expect(screen.queryByTestId("class-notes-fab-create")).toBeNull();
   });
 
@@ -1071,6 +1120,111 @@ describe("Mode admin — arrivée sans classId", () => {
     expect(
       useNotesStore.getState().loadTeacherContext,
     ).not.toHaveBeenCalledWith("college-vogt", "class-1");
+  });
+
+  it("Reset ramène en navigation école entière après avoir engagé une classe via le filtre", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    // Engage la classe 6e B via le filtre.
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-class-trigger"),
+    );
+    fireEvent.press(
+      await screen.findByTestId(
+        `class-notes-filter-class-option-${CLASSROOM_6B.id}`,
+      ),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+    await waitFor(() => {
+      expect(useNotesStore.getState().loadTeacherContext).toHaveBeenCalledWith(
+        "college-vogt",
+        "class-2",
+      );
+    });
+
+    (useNotesStore.getState().loadSchoolEvaluations as jest.Mock).mockClear();
+
+    // Reset : les dropdowns doivent revenir à "Tous/Toutes" et la navigation
+    // école entière doit reprendre.
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(screen.getByTestId("class-notes-filter-reset"));
+
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-class-trigger"),
+    );
+    expect(
+      screen.getByTestId("class-notes-filter-class-option-empty"),
+    ).toBeTruthy();
+
+    fireEvent.press(
+      screen.getByTestId("class-notes-filter-class-option-empty"),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+
+    await waitFor(() => {
+      expect(
+        useNotesStore.getState().loadSchoolEvaluations,
+      ).toHaveBeenCalledWith("college-vogt", { academicLevelId: undefined });
+    });
+  });
+
+  it("résout la classe depuis la ligne pour Modifier une évaluation d'une autre classe que celle engagée", async () => {
+    const OTHER_CLASS_EVAL = {
+      ...EVAL_1,
+      id: "eval-9",
+      title: "Contrôle 6e B",
+      class: { id: "class-2", name: "6e B" },
+    };
+    useNotesStore.setState({
+      evaluations: [EVAL_1, OTHER_CLASS_EVAL],
+    } as never);
+
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+    fireEvent.press(await screen.findByTestId("class-notes-filter-close"));
+
+    fireEvent.press(await screen.findByTestId("eval-action-edit-eval-9"));
+
+    await waitFor(() => {
+      expect(useNotesStore.getState().loadTeacherContext).toHaveBeenCalledWith(
+        "college-vogt",
+        "class-2",
+      );
+    });
+  });
+
+  it("résout la classe depuis la ligne pour Supprimer une évaluation d'une autre classe que celle engagée", async () => {
+    const OTHER_CLASS_EVAL = {
+      ...EVAL_1,
+      id: "eval-9",
+      title: "Contrôle 6e B",
+      class: { id: "class-2", name: "6e B" },
+    };
+    useNotesStore.setState({
+      evaluations: [EVAL_1, OTHER_CLASS_EVAL],
+    } as never);
+
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+    fireEvent.press(await screen.findByTestId("class-notes-filter-close"));
+
+    fireEvent.press(await screen.findByTestId("eval-action-delete-eval-9"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("confirm-dialog-confirm")).toBeTruthy(),
+    );
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(useNotesStore.getState().deleteEvaluation).toHaveBeenCalledWith(
+      "college-vogt",
+      "class-2",
+      "eval-9",
+    );
   });
 });
 

@@ -168,6 +168,7 @@ export function ClassNotesManagerScreen({
     errorMessage,
     loadTeacherContext,
     loadEvaluations,
+    loadSchoolEvaluations,
     loadEvaluationDetail,
     createEvaluation,
     updateEvaluation,
@@ -197,6 +198,7 @@ export function ClassNotesManagerScreen({
     useState<EvalFilters>(NO_EVAL_FILTERS);
   const [draftLevelId, setDraftLevelId] = useState("");
   const [draftClassId, setDraftClassId] = useState(classId);
+  const [appliedLevelId, setAppliedLevelId] = useState("");
   const [filterScrollOverflowing, setFilterScrollOverflowing] = useState(false);
   const [filterScrollNearBottom, setFilterScrollNearBottom] = useState(false);
   const filterScrollLayoutHeightRef = useRef(0);
@@ -281,7 +283,9 @@ export function ClassNotesManagerScreen({
       ) {
         return false;
       }
-      if (appliedEvalFilters.completion !== "all") {
+      // Le décompte d'élèves n'est connu que pour la classe engagée : ce
+      // filtre n'a pas de sens en navigation "toute l'école" sans classe choisie.
+      if (teacherContext && appliedEvalFilters.completion !== "all") {
         const complete = isEvaluationComplete(e, studentCount);
         if (appliedEvalFilters.completion === "complete" && !complete) {
           return false;
@@ -356,6 +360,28 @@ export function ClassNotesManagerScreen({
   useEffect(() => {
     void load().catch(() => {});
   }, [load]);
+
+  // Un school admin n'est jamais scopé sur une classe : tant qu'il n'a pas
+  // engagé une classe précise (via le filtre ou une action sur une ligne),
+  // la liste montre les évaluations les plus récentes de toute l'école,
+  // éventuellement restreintes par niveau.
+  const loadSchoolWideEvaluations = useCallback(async () => {
+    if (!schoolSlug || !isAdminBrowsing || classId || !canManage) return;
+    await loadSchoolEvaluations(schoolSlug, {
+      academicLevelId: appliedLevelId || undefined,
+    });
+  }, [
+    appliedLevelId,
+    canManage,
+    classId,
+    isAdminBrowsing,
+    loadSchoolEvaluations,
+    schoolSlug,
+  ]);
+
+  useEffect(() => {
+    void loadSchoolWideEvaluations().catch(() => {});
+  }, [loadSchoolWideEvaluations]);
 
   const loadAdminClassrooms = useCallback(async () => {
     if (!schoolSlug || !isAdminBrowsing) return;
@@ -436,7 +462,8 @@ export function ClassNotesManagerScreen({
     setDraftEvalFilters(appliedEvalFilters);
     setDraftClassId(classId);
     setDraftLevelId(
-      adminClassrooms.find((c) => c.id === classId)?.academicLevel?.id ?? "",
+      adminClassrooms.find((c) => c.id === classId)?.academicLevel?.id ??
+        appliedLevelId,
     );
     filterScrollLayoutHeightRef.current = 0;
     filterScrollContentHeightRef.current = 0;
@@ -447,6 +474,10 @@ export function ClassNotesManagerScreen({
   function closeEvalFilters() {
     setDraftEvalFilters(appliedEvalFilters);
     setDraftClassId(classId);
+    setDraftLevelId(
+      adminClassrooms.find((c) => c.id === classId)?.academicLevel?.id ??
+        appliedLevelId,
+    );
     setEvalFiltersOpen(false);
   }
   function toggleEvalFilters() {
@@ -455,14 +486,26 @@ export function ClassNotesManagerScreen({
   }
   function applyEvalFilters() {
     setAppliedEvalFilters(draftEvalFilters);
-    if (isAdminBrowsing && draftClassId && draftClassId !== classId) {
-      setClassId(draftClassId);
+    if (isAdminBrowsing) {
+      setAppliedLevelId(draftLevelId);
+      if (draftClassId) {
+        if (draftClassId !== classId) setClassId(draftClassId);
+      } else if (classId) {
+        // Retour en navigation "toute l'école" (éventuellement filtrée par niveau).
+        setClassId("");
+      }
     }
     setEvalFiltersOpen(false);
   }
   function resetEvalFilters() {
     setDraftEvalFilters(NO_EVAL_FILTERS);
     setAppliedEvalFilters(NO_EVAL_FILTERS);
+    if (isAdminBrowsing) {
+      setDraftLevelId("");
+      setDraftClassId("");
+      setAppliedLevelId("");
+      if (classId) setClassId("");
+    }
   }
   function recomputeFilterScrollOverflow() {
     setFilterScrollOverflowing(
@@ -495,7 +538,18 @@ export function ClassNotesManagerScreen({
     });
   }
 
+  // En navigation "toute l'école" (school admin sans classe engagée), chaque
+  // ligne connaît déjà sa propre classe : on l'engage à la demande, au moment
+  // où l'utilisateur agit dessus (détail/édition/notes/suppression), plutôt
+  // que d'exiger un choix de classe préalable.
+  function engageEvaluationClass(entry: EvaluationRow) {
+    if (isAdminBrowsing && classId !== entry.class.id) {
+      setClassId(entry.class.id);
+    }
+  }
+
   function startEditEvaluation(entry: EvaluationRow) {
+    engageEvaluationClass(entry);
     setEvaluationMode("edit");
     setTab("evaluations");
     setEvaluationView("form");
@@ -785,7 +839,8 @@ export function ClassNotesManagerScreen({
                           value={draftClassId}
                           options={adminClassOptions}
                           onChange={setDraftClassId}
-                          allowEmpty={false}
+                          allowEmpty
+                          emptyOptionLabel={t("notes.admin.filters.allClasses")}
                           placeholder={t(
                             "notes.admin.filters.classPlaceholder",
                           )}
@@ -1017,15 +1072,7 @@ export function ClassNotesManagerScreen({
                 </TouchableOpacity>
               </View>
             </View>
-          ) : isAdminBrowsing && !classId ? (
-            <View style={styles.centered}>
-              <EmptyState
-                icon="funnel-outline"
-                title={t("notes.manager.evalList.selectClass.title")}
-                message={t("notes.manager.evalList.selectClass.message")}
-              />
-            </View>
-          ) : isLoadingTeacherContext && !teacherContext ? (
+          ) : classId && isLoadingTeacherContext && !teacherContext ? (
             <View style={styles.centered}>
               <LoadingBlock label={t("notes.manager.loading.notebook")} />
             </View>
@@ -1080,6 +1127,7 @@ export function ClassNotesManagerScreen({
                     <TouchableOpacity
                       style={styles.cardAction}
                       onPress={() => {
+                        engageEvaluationClass(item);
                         setSelectedEvaluationId(item.id);
                         setEvaluationView("detail");
                       }}
@@ -1113,6 +1161,7 @@ export function ClassNotesManagerScreen({
                     <TouchableOpacity
                       style={styles.cardAction}
                       onPress={() => {
+                        engageEvaluationClass(item);
                         setSelectedEvaluationId(item.id);
                         setEvaluationView("scores");
                       }}
@@ -1148,7 +1197,10 @@ export function ClassNotesManagerScreen({
                     <View style={styles.cardActionSeparator} />
                     <TouchableOpacity
                       style={styles.cardAction}
-                      onPress={() => setDeleteConfirmId(item.id)}
+                      onPress={() => {
+                        engageEvaluationClass(item);
+                        setDeleteConfirmId(item.id);
+                      }}
                       testID={`eval-action-delete-${item.id}`}
                     >
                       <Ionicons

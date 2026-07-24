@@ -46,6 +46,60 @@ describe("notesApi", () => {
     );
   });
 
+  it("charge les évaluations d'une classe", async () => {
+    apiFetch.mockResolvedValueOnce([]);
+
+    await notesApi.listClassEvaluations("college-vogt", "class-1");
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/classes/class-1/evaluations",
+      {},
+      true,
+    );
+  });
+
+  it("charge les évaluations de toute l'école sans filtre", async () => {
+    apiFetch.mockResolvedValueOnce([]);
+
+    await notesApi.listSchoolEvaluations("college-vogt");
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/evaluations",
+      {},
+      true,
+    );
+  });
+
+  it("charge les évaluations de l'école avec filtres niveau et classe", async () => {
+    apiFetch.mockResolvedValueOnce([]);
+
+    await notesApi.listSchoolEvaluations("college-vogt", {
+      academicLevelId: "level-1",
+      classId: "class-9",
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/evaluations?academicLevelId=level-1&classId=class-9",
+      {},
+      true,
+    );
+  });
+
+  it("omet les filtres vides de la query école entière", async () => {
+    apiFetch.mockResolvedValueOnce([]);
+
+    await notesApi.listSchoolEvaluations("college-vogt", {
+      academicLevelId: "",
+      classId: undefined,
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/evaluations",
+      {},
+      true,
+    );
+  });
+
   it("crée une évaluation en JSON", async () => {
     apiFetch.mockResolvedValueOnce({});
 

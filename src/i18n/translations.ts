@@ -2041,9 +2041,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.evalList.empty.title": "Aucune évaluation",
     "notes.manager.evalList.empty.message":
       "Appuyez sur + pour créer la première évaluation de cette classe.",
-    "notes.manager.evalList.selectClass.title": "Aucune classe sélectionnée",
-    "notes.manager.evalList.selectClass.message":
-      "Choisissez un niveau et une classe dans les filtres pour afficher ses évaluations.",
     "notes.manager.detail.sectionTitle": "Détails de l'évaluation",
     "notes.manager.detail.labelTitle": "Titre",
     "notes.manager.detail.labelStatus": "Statut",
@@ -4501,9 +4498,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.evalList.empty.title": "No evaluation",
     "notes.manager.evalList.empty.message":
       "Tap + to create the first evaluation for this class.",
-    "notes.manager.evalList.selectClass.title": "No class selected",
-    "notes.manager.evalList.selectClass.message":
-      "Choose a level and a class in the filters to view its evaluations.",
     "notes.manager.detail.sectionTitle": "Evaluation details",
     "notes.manager.detail.labelTitle": "Title",
     "notes.manager.detail.labelStatus": "Status",
