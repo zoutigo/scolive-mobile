@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -37,6 +44,14 @@ type Props = {
     },
   ) => Promise<void>;
   isSubmitting: boolean;
+  onDetailChange?: (
+    info: { studentName: string; className: string; term: StudentNotesTerm } | null,
+  ) => void;
+};
+
+export type TeacherPeriodReportsHandle = {
+  /** Returns true if the tab consumed the back action (closed the bulletin detail). */
+  goBackFromDetail: () => boolean;
 };
 
 type DetailTarget = { studentId: string; term: StudentNotesTerm };
@@ -45,15 +60,22 @@ const ALL_TERMS: StudentNotesTerm[] = ["TERM_1", "TERM_2", "TERM_3"];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function TeacherPeriodReportsTab({
-  teacherContext,
-  schoolSlug,
-  bottomInset,
-  onTermChange,
-  drafts,
-  onSaveAppreciation,
-  isSubmitting,
-}: Props) {
+export const TeacherPeriodReportsTab = forwardRef<
+  TeacherPeriodReportsHandle,
+  Props
+>(function TeacherPeriodReportsTab(
+  {
+    teacherContext,
+    schoolSlug,
+    bottomInset,
+    onTermChange,
+    drafts,
+    onSaveAppreciation,
+    isSubmitting,
+    onDetailChange,
+  },
+  ref,
+) {
   const { t } = useTranslation();
   const { studentNotes, isLoadingStudentNotes, loadStudentNotes } =
     useNotesStore();
@@ -115,12 +137,33 @@ export function TeacherPeriodReportsTab({
     onTermChange(term);
     setEditingGeneral(false);
     setEditingSubjectId(null);
+    const student = sortedStudents.find((s) => s.id === studentId);
+    if (student) {
+      onDetailChange?.({
+        studentName: `${student.lastName} ${student.firstName}`,
+        className: teacherContext.class.name,
+        term,
+      });
+    }
   }
   function backToList() {
     setDetail(null);
     setEditingGeneral(false);
     setEditingSubjectId(null);
+    onDetailChange?.(null);
   }
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      goBackFromDetail: () => {
+        if (!detail) return false;
+        backToList();
+        return true;
+      },
+    }),
+    [detail],
+  );
 
   function startEditGeneral() {
     setGeneralDraft(drafts[detail?.studentId ?? ""]?.generalAppreciation ?? "");
@@ -173,30 +216,11 @@ export function TeacherPeriodReportsTab({
         contentContainerStyle={{ paddingBottom: bottomInset + 24 }}
         testID="teacher-reports-detail"
       >
-        <TouchableOpacity
-          style={styles.backRow}
-          onPress={backToList}
-          testID="teacher-reports-detail-back"
-        >
-          <Ionicons
-            name="arrow-back-outline"
-            size={16}
-            color={colors.primary}
-          />
-          <Text style={styles.backText}>
-            {t("notes.reports.detail.backToList")}
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={styles.detailStudentName}>
-          {selectedStudent.lastName} {selectedStudent.firstName}
-        </Text>
-
         {isLoadingStudentNotes && !snapshot ? (
           <LoadingBlock label={t("notes.panel.loading")} />
         ) : snapshot ? (
           <>
-            <PeriodHero snapshot={snapshot} />
+            <PeriodHero snapshot={snapshot} compactStats showPublished={false} />
 
             <View style={styles.appreciationsBlock}>
               <Text style={styles.appreciationsTitle}>
@@ -244,45 +268,31 @@ export function TeacherPeriodReportsTab({
                       </Text>
                     </View>
 
-                    {sequenceRows.map((row) => (
-                      <View
-                        key={row.sequence}
-                        style={styles.sequenceBlock}
-                        testID={`teacher-reports-subject-${subject.id}-sequence-${row.sequence}`}
-                      >
-                        <Text style={styles.sequenceLabel}>{row.label}</Text>
-                        <View style={styles.sequenceEvalRow}>
-                          {row.data && row.data.evaluations.length > 0 ? (
-                            row.data.evaluations.map((evaluation) => (
-                              <Text
-                                key={evaluation.id}
-                                style={styles.sequenceEvalChip}
-                              >
-                                {formatScore(evaluation.score)}
-                              </Text>
-                            ))
-                          ) : (
-                            <Text style={styles.sequenceEvalEmpty}>
-                              {t("notes.evals.inlineEmpty")}
-                            </Text>
-                          )}
-                        </View>
-                        <Text style={styles.sequenceAverage}>
-                          {t("notes.reports.detail.sequenceAverage")}{" "}
-                          <Text style={styles.sequenceAverageValue}>
+                    <View style={styles.metricsRow}>
+                      {sequenceRows.map((row) => (
+                        <View
+                          key={row.sequence}
+                          style={styles.metricCell}
+                          testID={`teacher-reports-subject-${subject.id}-sequence-${row.sequence}`}
+                        >
+                          <Text style={styles.metricLabel} numberOfLines={1}>
+                            {row.label}
+                          </Text>
+                          <Text style={styles.metricValue}>
                             {formatScore(row.data?.studentAverage ?? null)}
                           </Text>
+                        </View>
+                      ))}
+                      <View style={[styles.metricCell, styles.metricCellEnd]}>
+                        <Text style={styles.metricLabel} numberOfLines={1}>
+                          {t("notes.reports.detail.termAverage")}
+                        </Text>
+                        <Text
+                          style={[styles.metricValue, styles.metricValueStrong]}
+                        >
+                          {formatScore(subject.studentAverage)}
                         </Text>
                       </View>
-                    ))}
-
-                    <View style={styles.termAverageRow}>
-                      <Text style={styles.termAverageLabel}>
-                        {t("notes.reports.detail.termAverage")}
-                      </Text>
-                      <Text style={styles.termAverageValue}>
-                        {formatScore(subject.studentAverage)}
-                      </Text>
                     </View>
 
                     <AppreciationEditor
@@ -303,6 +313,20 @@ export function TeacherPeriodReportsTab({
                 );
               })}
             </View>
+
+            {snapshot.generatedAtLabel ? (
+              <View
+                style={styles.publishedFooter}
+                testID="teacher-reports-published"
+              >
+                <Text style={styles.publishedFooterLabel}>
+                  {t("notes.period.published")}
+                </Text>
+                <Text style={styles.publishedFooterValue}>
+                  {snapshot.generatedAtLabel}
+                </Text>
+              </View>
+            ) : null}
           </>
         ) : (
           <EmptyState
@@ -418,7 +442,7 @@ export function TeacherPeriodReportsTab({
       </ScrollView>
     </View>
   );
-}
+});
 
 function AppreciationEditor(props: {
   value: string;
@@ -558,27 +582,11 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: colors.primary,
   },
-  backRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  backText: { color: colors.primary, fontSize: 14, fontWeight: "600" },
-  detailStudentName: {
-    paddingHorizontal: 16,
-    fontSize: 18,
-    fontWeight: "800",
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  appreciationsBlock: { paddingHorizontal: 16, gap: 10, marginTop: 4 },
+  appreciationsBlock: { paddingHorizontal: 16, gap: 10, marginTop: 12 },
   appreciationsTitle: {
     fontSize: 13,
     fontWeight: "800",
     color: colors.textPrimary,
-    marginTop: 8,
   },
   subjectsBlock: { paddingHorizontal: 16, gap: 12, marginTop: 12 },
   subjectCard: {
@@ -604,65 +612,32 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.textSecondary,
   },
-  sequenceBlock: {
-    gap: 6,
-    paddingVertical: 8,
+  metricsRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: colors.warmBorder,
   },
-  sequenceLabel: {
-    fontSize: 11,
+  metricCell: { alignItems: "center", gap: 3 },
+  metricCellEnd: { alignItems: "flex-end" },
+  metricLabel: {
+    fontSize: 10,
     fontWeight: "700",
     color: colors.textSecondary,
     textTransform: "uppercase",
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
-  sequenceEvalRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  sequenceEvalChip: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: colors.primaryDark,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  sequenceEvalEmpty: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  sequenceAverage: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  sequenceAverageValue: {
+  metricValue: {
+    fontSize: 14,
     fontWeight: "800",
     color: colors.textPrimary,
   },
-  termAverageRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderTopWidth: 1,
-    borderTopColor: colors.warmBorder,
-    paddingTop: 10,
-  },
-  termAverageLabel: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: colors.textPrimary,
-  },
-  termAverageValue: {
+  metricValueStrong: {
     fontSize: 16,
-    fontWeight: "800",
     color: colors.primary,
   },
-  subjectAppreciationRow: { gap: 6 },
   appreciationRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -715,4 +690,27 @@ const styles = StyleSheet.create({
   },
   editorSaveBtnDisabled: { opacity: 0.6 },
   editorSaveText: { fontSize: 13, fontWeight: "700", color: colors.white },
+  publishedFooter: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 3,
+  },
+  publishedFooterLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 1.1,
+  },
+  publishedFooterValue: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
 });

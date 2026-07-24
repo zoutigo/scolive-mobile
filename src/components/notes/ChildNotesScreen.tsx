@@ -661,8 +661,12 @@ function EvaluationsView(props: {
 
 export function PeriodHero({
   snapshot,
+  compactStats = false,
+  showPublished = true,
 }: {
   snapshot: StudentNotesTermSnapshot;
+  compactStats?: boolean;
+  showPublished?: boolean;
 }) {
   const { t } = useTranslation();
   const bestSubject = getBestSubject(snapshot.subjects);
@@ -721,26 +725,58 @@ export function PeriodHero({
         <Text style={styles.heroSubtitle}>{snapshot.councilLabel}</Text>
       </View>
 
-      <View style={styles.publishedCard}>
-        <Text style={styles.publishedLabel}>{t("notes.period.published")}</Text>
-        <Text style={styles.publishedValue}>{snapshot.generatedAtLabel}</Text>
-      </View>
+      {showPublished ? (
+        <View style={styles.publishedCard}>
+          <Text style={styles.publishedLabel}>
+            {t("notes.period.published")}
+          </Text>
+          <Text style={styles.publishedValue}>
+            {snapshot.generatedAtLabel}
+          </Text>
+        </View>
+      ) : null}
 
-      <View style={styles.heroStatsGrid}>
+      <View
+        style={[
+          styles.heroStatsGrid,
+          compactStats && styles.heroStatsGridCompact,
+        ]}
+      >
         {stats.map((stat) => (
           <View
             key={stat.id}
-            style={styles.heroStatCard}
+            style={[
+              styles.heroStatCard,
+              compactStats && styles.heroStatCardCompact,
+            ]}
             testID={`notes-period-stat-${stat.id}`}
           >
             <View style={styles.heroStatHeader}>
-              <Text style={styles.heroStatLabel}>{stat.label}</Text>
-              <View style={styles.heroStatIcon}>
-                <Ionicons name={stat.icon} size={16} color={colors.primary} />
+              <Text style={styles.heroStatLabel} numberOfLines={1}>
+                {stat.label}
+              </Text>
+              <View
+                style={[
+                  styles.heroStatIcon,
+                  compactStats && styles.heroStatIconCompact,
+                ]}
+              >
+                <Ionicons
+                  name={stat.icon}
+                  size={compactStats ? 12 : 16}
+                  color={colors.primary}
+                />
               </View>
             </View>
-            <Text style={styles.heroStatValue}>{stat.value}</Text>
-            <Text style={styles.heroStatHint}>{stat.hint ?? "-"}</Text>
+            <Text style={styles.heroStatValue} numberOfLines={1}>
+              {stat.value}
+            </Text>
+            <Text
+              style={styles.heroStatHint}
+              numberOfLines={compactStats ? 2 : undefined}
+            >
+              {stat.hint ?? "-"}
+            </Text>
           </View>
         ))}
       </View>
@@ -1729,6 +1765,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   heroStatsGrid: { gap: 10 },
+  heroStatsGridCompact: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
   heroStatCard: {
     borderRadius: 18,
     backgroundColor: "rgba(255,255,255,0.76)",
@@ -1738,6 +1779,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 5,
     minHeight: 92,
+  },
+  heroStatCardCompact: {
+    flexBasis: "23%",
+    flexGrow: 1,
+    minHeight: 74,
+    paddingHorizontal: 6,
+    paddingVertical: 8,
+    gap: 3,
+  },
+  heroStatIconCompact: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
   },
   heroStatHeader: {
     flexDirection: "row",

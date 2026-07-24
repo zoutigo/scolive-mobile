@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -41,6 +47,7 @@ import {
   sequenceLabel,
   sequenceShortLabel,
   sortEvaluations,
+  termLabel,
 } from "../../utils/notes";
 import { getViewType } from "../navigation/nav-config";
 import { ModuleHeader } from "../navigation/ModuleHeader";
@@ -49,7 +56,10 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { NotesTabs } from "./NotesTabs";
 import type { NotesTabKey } from "./NotesTabs";
 import { TeacherClassNotesTab } from "./TeacherClassNotesTab";
-import { TeacherPeriodReportsTab } from "./TeacherPeriodReportsTab";
+import {
+  TeacherPeriodReportsTab,
+  type TeacherPeriodReportsHandle,
+} from "./TeacherPeriodReportsTab";
 import { EvaluationForm } from "./EvaluationForm";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import {
@@ -177,6 +187,19 @@ export function ClassNotesManagerScreen({
   );
   const [councilHeldAt, setCouncilHeldAt] = useState("");
   const [councilDrafts, setCouncilDrafts] = useState<CouncilDrafts>({});
+  const [reportsDetailHeader, setReportsDetailHeader] = useState<{
+    studentName: string;
+    className: string;
+    term: StudentNotesTerm;
+  } | null>(null);
+  const reportsTabRef = useRef<TeacherPeriodReportsHandle>(null);
+
+  function handleTabSelect(next: NotesTabKey) {
+    setTab(next);
+    if (next !== "reports") {
+      setReportsDetailHeader(null);
+    }
+  }
   const sortedEvaluations = useMemo(
     () => sortEvaluations(evaluations),
     [evaluations],
@@ -489,21 +512,35 @@ export function ClassNotesManagerScreen({
     >
       {showHeader ? (
         <ModuleHeader
-          title={t("notes.manager.header.title")}
-          subtitle={
-            teacherContext?.class.name ??
-            (classId
-              ? `${t("notes.manager.header.classPrefix")} ${classId}`
-              : undefined)
+          title={
+            reportsDetailHeader
+              ? t("notes.period.badge")
+              : t("notes.manager.header.title")
           }
-          onBack={() => moduleBack(router)}
+          titleHighlight={
+            reportsDetailHeader
+              ? ` • ${termLabel(reportsDetailHeader.term, t)}`
+              : undefined
+          }
+          subtitle={
+            reportsDetailHeader
+              ? `${reportsDetailHeader.studentName} • ${reportsDetailHeader.className}`
+              : (teacherContext?.class.name ??
+                (classId
+                  ? `${t("notes.manager.header.classPrefix")} ${classId}`
+                  : undefined))
+          }
+          onBack={() => {
+            if (reportsTabRef.current?.goBackFromDetail()) return;
+            moduleBack(router);
+          }}
           testID="class-notes-header"
           backTestID="class-notes-back"
           titleTestID="class-notes-title"
           subtitleTestID="class-notes-subtitle"
         />
       ) : null}
-      <NotesTabs activeTab={tab} onSelect={setTab} />
+      <NotesTabs activeTab={tab} onSelect={handleTabSelect} />
 
       {/* ── Évaluations — vue liste ────────────────────────────── */}
       {tab === "evaluations" && evaluationView === "list" ? (
@@ -1426,6 +1463,7 @@ export function ClassNotesManagerScreen({
       ) : null}
       {tab === "reports" && teacherContext ? (
         <TeacherPeriodReportsTab
+          ref={reportsTabRef}
           teacherContext={teacherContext}
           schoolSlug={schoolSlug ?? ""}
           bottomInset={insets.bottom}
@@ -1434,6 +1472,7 @@ export function ClassNotesManagerScreen({
           drafts={councilDrafts}
           onSaveAppreciation={saveAppreciation}
           isSubmitting={isSubmitting}
+          onDetailChange={setReportsDetailHeader}
         />
       ) : null}
       {tab === "reports" && !teacherContext ? (

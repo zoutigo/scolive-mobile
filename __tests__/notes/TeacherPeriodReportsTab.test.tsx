@@ -6,7 +6,10 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
-import { TeacherPeriodReportsTab } from "../../src/components/notes/TeacherPeriodReportsTab";
+import {
+  TeacherPeriodReportsTab,
+  type TeacherPeriodReportsHandle,
+} from "../../src/components/notes/TeacherPeriodReportsTab";
 import { useNotesStore } from "../../src/store/notes.store";
 import type { CouncilDrafts } from "../../src/types/notes.types";
 
@@ -229,6 +232,26 @@ describe("Détail bulletin + appréciations inline", () => {
     expect(props.onTermChange).toHaveBeenCalledWith("TERM_2");
   });
 
+  it("informe le parent via onDetailChange à l'ouverture et à la fermeture", async () => {
+    const props = baseProps();
+    const onDetailChange = jest.fn();
+    render(
+      <TeacherPeriodReportsTab {...props} onDetailChange={onDetailChange} />,
+    );
+    await flushAsync();
+    fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_1"),
+    );
+
+    expect(onDetailChange).toHaveBeenCalledWith({
+      studentName: "Ntamack Lisa",
+      className: "6e A",
+      term: "TERM_1",
+    });
+  });
+
   it("affiche les notes groupées par séquence avec la moyenne de séquence", async () => {
     await openDetail();
 
@@ -238,13 +261,38 @@ describe("Détail bulletin + appréciations inline", () => {
     expect(screen.getByText("Séquence 1")).toBeTruthy();
   });
 
-  it("revient à la liste (élève toujours déplié) via le bouton retour", async () => {
-    await openDetail();
+  it("revient à la liste (élève toujours déplié) via goBackFromDetail (fleche du header module)", async () => {
+    const ref = React.createRef<TeacherPeriodReportsHandle>();
+    render(<TeacherPeriodReportsTab ref={ref} {...baseProps()} />);
+    await flushAsync();
+    fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_1"),
+    );
+    await flushAsync();
 
-    fireEvent.press(screen.getByTestId("teacher-reports-detail-back"));
+    let handled = false;
+    act(() => {
+      handled = ref.current!.goBackFromDetail();
+    });
 
+    expect(handled).toBe(true);
     expect(screen.getByTestId("teacher-reports-list")).toBeTruthy();
     expect(screen.getByTestId("teacher-reports-bulletins-stu-1")).toBeTruthy();
+  });
+
+  it("goBackFromDetail renvoie false quand on est déjà sur la liste", async () => {
+    const ref = React.createRef<TeacherPeriodReportsHandle>();
+    render(<TeacherPeriodReportsTab ref={ref} {...baseProps()} />);
+    await flushAsync();
+
+    let handled = true;
+    act(() => {
+      handled = ref.current!.goBackFromDetail();
+    });
+
+    expect(handled).toBe(false);
   });
 
   it("affiche l'appréciation générale existante", async () => {
