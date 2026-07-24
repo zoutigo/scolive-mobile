@@ -78,6 +78,45 @@ const PANEL_PROPS = {
   schoolSlug: "college-vogt",
 };
 
+function openFilters() {
+  fireEvent.press(screen.getByTestId("child-notes-filter-toggle"));
+}
+
+function applyFilters() {
+  fireEvent.press(screen.getByTestId("child-notes-filter-apply"));
+}
+
+async function selectSequenceViaPanel(sequence: string) {
+  openFilters();
+  await waitFor(() => {
+    expect(
+      screen.getByTestId(`child-notes-filter-sequence-${sequence}`),
+    ).toBeTruthy();
+  });
+  fireEvent.press(
+    screen.getByTestId(`child-notes-filter-sequence-${sequence}`),
+  );
+  applyFilters();
+}
+
+async function selectViewViaPanel(view: string) {
+  openFilters();
+  await waitFor(() => {
+    expect(screen.getByTestId(`child-notes-filter-view-${view}`)).toBeTruthy();
+  });
+  fireEvent.press(screen.getByTestId(`child-notes-filter-view-${view}`));
+  applyFilters();
+}
+
+async function selectTermViaPanel(term: string) {
+  openFilters();
+  await waitFor(() => {
+    expect(screen.getByTestId(`child-notes-filter-term-${term}`)).toBeTruthy();
+  });
+  fireEvent.press(screen.getByTestId(`child-notes-filter-term-${term}`));
+  applyFilters();
+}
+
 function setupPanel(snapshots: StudentNotesTermSnapshot[]) {
   useAuthStore.setState({ schoolSlug: "college-vogt" } as never);
   useNotesStore.setState({
@@ -106,7 +145,7 @@ describe("EvaluationsView — sans séquences (fallback)", () => {
     });
   });
 
-  it("n'affiche pas le sélecteur de séquence quand sequences est vide", async () => {
+  it("n'affiche pas le groupe séquence dans le panneau de filtres quand sequences est vide", async () => {
     const snapshot = makeTermSnapshot("TERM_1", []);
     snapshot.subjects = [makeSubject()];
     setupPanel([snapshot]);
@@ -114,15 +153,23 @@ describe("EvaluationsView — sans séquences (fallback)", () => {
     render(<StudentNotesPanel {...PANEL_PROPS} />);
 
     await waitFor(() => {
-      expect(screen.queryByTestId("child-notes-sequence-SEQ_1")).toBeNull();
+      expect(screen.getByTestId("child-notes-filter-toggle")).toBeTruthy();
     });
+    openFilters();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("child-notes-filter-panel")).toBeTruthy();
+    });
+    expect(
+      screen.queryByTestId("child-notes-filter-sequence-SEQ_1"),
+    ).toBeNull();
   });
 });
 
 // ─── EvaluationsView — avec une seule séquence ───────────────────────────────
 
 describe("EvaluationsView — avec une seule séquence", () => {
-  it("n'affiche pas le sélecteur de séquence quand il y en a une seule", async () => {
+  it("n'affiche pas le groupe séquence dans le panneau de filtres quand il y en a une seule", async () => {
     const subj = makeSubject({ id: "maths" });
     const snapshot = makeTermSnapshot("TERM_1", [
       makeSequenceSnapshot("SEQ_1", [subj]),
@@ -132,8 +179,16 @@ describe("EvaluationsView — avec une seule séquence", () => {
     render(<StudentNotesPanel {...PANEL_PROPS} />);
 
     await waitFor(() => {
-      expect(screen.queryByTestId("child-notes-sequence-SEQ_1")).toBeNull();
+      expect(screen.getByTestId("child-notes-filter-toggle")).toBeTruthy();
     });
+    openFilters();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("child-notes-filter-panel")).toBeTruthy();
+    });
+    expect(
+      screen.queryByTestId("child-notes-filter-sequence-SEQ_1"),
+    ).toBeNull();
   });
 
   it("affiche les matières de la séquence unique", async () => {
@@ -190,14 +245,23 @@ describe("EvaluationsView — avec plusieurs séquences", () => {
     ]);
   }
 
-  it("affiche le sélecteur de séquence quand il y en a plusieurs", async () => {
+  it("affiche les options de séquence dans le panneau de filtres quand il y en a plusieurs", async () => {
     setupPanel([makeMultiSeqSnapshot()]);
 
     render(<StudentNotesPanel {...PANEL_PROPS} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("child-notes-sequence-SEQ_1")).toBeTruthy();
-      expect(screen.getByTestId("child-notes-sequence-SEQ_2")).toBeTruthy();
+      expect(screen.getByTestId("child-notes-filter-toggle")).toBeTruthy();
+    });
+    openFilters();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("child-notes-filter-sequence-SEQ_1"),
+      ).toBeTruthy();
+      expect(
+        screen.getByTestId("child-notes-filter-sequence-SEQ_2"),
+      ).toBeTruthy();
     });
   });
 
@@ -218,10 +282,10 @@ describe("EvaluationsView — avec plusieurs séquences", () => {
     render(<StudentNotesPanel {...PANEL_PROPS} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("child-notes-sequence-SEQ_2")).toBeTruthy();
+      expect(screen.getByTestId("child-notes-evaluation-eval-1")).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId("child-notes-sequence-SEQ_2"));
+    await selectSequenceViaPanel("SEQ_2");
 
     await waitFor(() => {
       expect(screen.getByTestId("child-notes-evaluation-eval-2")).toBeTruthy();
@@ -272,11 +336,13 @@ describe("EvaluationsView — avec plusieurs séquences", () => {
       expect(screen.getByTestId("child-notes-evaluation-eval-t1")).toBeTruthy();
     });
 
-    // Switch to SEQ_2
-    fireEvent.press(screen.getByTestId("child-notes-sequence-SEQ_2"));
+    // Switch to SEQ_2 (still TERM_1)
+    await selectSequenceViaPanel("SEQ_2");
 
-    // Switch term to TERM_2
-    fireEvent.press(screen.getByTestId("child-notes-term-TERM_2"));
+    // Switch term to TERM_2 via the same filter panel: the draft sequence
+    // must auto-correct to TERM_2's own first sequence (SEQ_3), not stay on
+    // the stale SEQ_2 of TERM_1.
+    await selectTermViaPanel("TERM_2");
 
     // Should now show TERM_2's SEQ_3 (the first sequence of that term), not SEQ_2
     await waitFor(() => {
@@ -311,7 +377,10 @@ describe("ChartsView — données annuelles", () => {
 
     render(<StudentNotesPanel {...PANEL_PROPS} />);
 
-    fireEvent.press(screen.getByTestId("child-notes-view-charts"));
+    await waitFor(() => {
+      expect(screen.getByTestId("child-notes-filter-toggle")).toBeTruthy();
+    });
+    await selectViewViaPanel("charts");
 
     await waitFor(() => {
       expect(screen.getByText("ANNÉE SCOLAIRE")).toBeTruthy();
@@ -327,7 +396,10 @@ describe("ChartsView — données annuelles", () => {
 
     render(<StudentNotesPanel {...PANEL_PROPS} />);
 
-    fireEvent.press(screen.getByTestId("child-notes-view-charts"));
+    await waitFor(() => {
+      expect(screen.getByTestId("child-notes-filter-toggle")).toBeTruthy();
+    });
+    await selectViewViaPanel("charts");
 
     await waitFor(() => {
       expect(screen.getByText("Graphiques indisponibles")).toBeTruthy();

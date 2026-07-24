@@ -27,6 +27,26 @@ jest.mock("../../src/components/navigation/drawer-context", () => ({
 const mockUseDrawer = useDrawer as jest.MockedFunction<typeof useDrawer>;
 const mockOpenDrawer = jest.fn();
 
+function openNotesFilters() {
+  fireEvent.press(screen.getByTestId("child-notes-filter-toggle"));
+}
+
+function applyNotesFilters() {
+  fireEvent.press(screen.getByTestId("child-notes-filter-apply"));
+}
+
+function selectNotesViewViaPanel(view: string) {
+  openNotesFilters();
+  fireEvent.press(screen.getByTestId(`child-notes-filter-view-${view}`));
+  applyNotesFilters();
+}
+
+function selectNotesTermViaPanel(term: string) {
+  openNotesFilters();
+  fireEvent.press(screen.getByTestId(`child-notes-filter-term-${term}`));
+  applyNotesFilters();
+}
+
 describe("ChildNotesScreen", () => {
   afterEach(() => {
     jest.useRealTimers();
@@ -73,6 +93,8 @@ describe("ChildNotesScreen", () => {
                 classAverage: 11.5,
                 classMin: 6,
                 classMax: 17,
+                rank: 1,
+                classSize: 24,
                 appreciation: "Bonne régularité.",
                 evaluations: [
                   {
@@ -125,7 +147,10 @@ describe("ChildNotesScreen", () => {
     expect(screen.getByTestId("child-notes-header")).toBeTruthy();
     expect(screen.getByText("Évaluations et moyennes")).toBeTruthy();
     expect(screen.getByText("Lisa Ntamack • 6e A")).toBeTruthy();
-    expect(screen.getAllByText("Trimestre 1").length).toBeGreaterThan(0);
+    expect(screen.getByTestId("child-notes-filter-summary")).toHaveTextContent(
+      "Trimestre 1",
+      { exact: false },
+    );
     expect(screen.getByText("MATHÉMATIQUES")).toBeTruthy();
   });
 
@@ -138,6 +163,62 @@ describe("ChildNotesScreen", () => {
       pathname: "/(home)/children/[childId]",
       params: { childId: "child-1" },
     });
+  });
+
+  it("change de trimestre via le panneau de filtres", () => {
+    useNotesStore.setState({
+      studentNotes: {
+        "child-1": [
+          {
+            term: "TERM_1",
+            label: "Trimestre 1",
+            councilLabel: "6e A • Conseil du 12 avril",
+            generatedAtLabel: "Données publiées le 12/04/2026",
+            generalAverage: { student: 13.5, class: 12.2, min: 7, max: 18 },
+            sequences: [],
+            subjects: [],
+          },
+          {
+            term: "TERM_2",
+            label: "Trimestre 2",
+            councilLabel: "6e A • Conseil du 20 janvier",
+            generatedAtLabel: "Données publiées le 20/01/2026",
+            generalAverage: { student: 12, class: 11, min: 5, max: 17 },
+            sequences: [],
+            subjects: [
+              {
+                id: "term-2-math",
+                subjectLabel: "Mathématiques",
+                teachers: [],
+                coefficient: 4,
+                studentAverage: 12,
+                classAverage: 11,
+                classMin: 5,
+                classMax: 17,
+                appreciation: null,
+                evaluations: [],
+              },
+            ],
+          },
+        ],
+      },
+      isLoadingStudentNotes: false,
+      errorMessage: null,
+      loadStudentNotes: jest.fn().mockResolvedValue(undefined),
+      clearError: jest.fn(),
+    } as never);
+
+    render(<ChildNotesScreen />);
+
+    selectNotesTermViaPanel("TERM_2");
+
+    expect(screen.getByTestId("child-notes-filter-summary")).toHaveTextContent(
+      "Trimestre 2",
+      { exact: false },
+    );
+    expect(
+      screen.getByTestId("child-notes-subject-row-term-2-math"),
+    ).toBeTruthy();
   });
 
   it("selectionne au premier affichage le trimestre courant et la vue eval", () => {
@@ -204,15 +285,21 @@ describe("ChildNotesScreen", () => {
 
     render(<ChildNotesScreen />);
 
-    const activeTerm = screen.getByTestId("child-notes-term-TERM_3");
-    const activeView = screen.getByTestId("child-notes-view-evaluations");
+    expect(screen.getByTestId("child-notes-filter-summary")).toHaveTextContent(
+      "Trimestre 3",
+      { exact: false },
+    );
+
+    openNotesFilters();
+    const activeTerm = screen.getByTestId("child-notes-filter-term-TERM_3");
+    const activeView = screen.getByTestId(
+      "child-notes-filter-view-evaluations",
+    );
     const activeTermStyle = StyleSheet.flatten(activeTerm.props.style);
     const activeViewStyle = StyleSheet.flatten(activeView.props.style);
 
-    expect(screen.getAllByText("Trimestre 3").length).toBeGreaterThan(0);
-    expect(activeTermStyle.backgroundColor).toBe(colors.primary);
-    expect(activeViewStyle.backgroundColor).toBe("#f4f8fd");
-    expect(screen.getByText("Données publiées le 13/04/2026")).toBeTruthy();
+    expect(activeTermStyle.backgroundColor).toBe(colors.accentTeal);
+    expect(activeViewStyle.backgroundColor).toBe(colors.accentTeal);
   });
 
   it("affiche une entete concise avec le nom et la classe", () => {
@@ -242,28 +329,25 @@ describe("ChildNotesScreen", () => {
     expect(subtitleStyle.fontSize).toBe(11);
   });
 
-  it("verrouille la hiérarchie visuelle entre trimestres et tabs de vue", () => {
+  it("distingue visuellement les puces actives/inactives du panneau de filtres", () => {
     render(<ChildNotesScreen />);
 
-    const activeTerm = screen.getByTestId("child-notes-term-TERM_1");
-    const activeView = screen.getByTestId("child-notes-view-evaluations");
-    const inactiveView = screen.getByTestId("child-notes-view-averages");
+    openNotesFilters();
+
+    const activeTerm = screen.getByTestId("child-notes-filter-term-TERM_1");
+    const activeView = screen.getByTestId(
+      "child-notes-filter-view-evaluations",
+    );
+    const inactiveView = screen.getByTestId("child-notes-filter-view-averages");
 
     const activeTermStyle = StyleSheet.flatten(activeTerm.props.style);
     const activeViewStyle = StyleSheet.flatten(activeView.props.style);
     const inactiveViewStyle = StyleSheet.flatten(inactiveView.props.style);
 
-    expect(activeTermStyle.borderRadius).toBe(10);
-    expect(activeTermStyle.backgroundColor).toBe(colors.primary);
-    expect(activeTermStyle.elevation).toBe(4);
-    expect(activeViewStyle.borderRadius).toBe(8);
-    expect(activeViewStyle.backgroundColor).toBe("#f4f8fd");
-    expect(activeViewStyle.borderColor).toBe(colors.primary);
-    expect(inactiveViewStyle.backgroundColor).toBe(colors.white);
+    expect(activeTermStyle.backgroundColor).toBe(colors.accentTeal);
+    expect(activeViewStyle.backgroundColor).toBe(colors.accentTeal);
+    expect(inactiveViewStyle.backgroundColor).toBe(colors.background);
     expect(inactiveViewStyle.borderColor).toBe(colors.border);
-    expect(activeTermStyle.elevation).toBeGreaterThan(
-      activeViewStyle.elevation,
-    );
   });
 
   it("ouvre le détail d'une évaluation", () => {
@@ -298,8 +382,10 @@ describe("ChildNotesScreen", () => {
     expect(secondRowStyle.backgroundColor).toBe("#fffaf4");
   });
 
-  it("affiche le bloc bulletin de période et les données publiées", () => {
+  it("affiche le bloc bulletin de période et les données publiées dans l'onglet Bulletins", () => {
     render(<ChildNotesScreen />);
+
+    fireEvent.press(screen.getByTestId("child-notes-tab-reports"));
 
     expect(screen.getByTestId("notes-period-hero")).toBeTruthy();
     expect(screen.getByText("BULLETIN DE PÉRIODE")).toBeTruthy();
@@ -307,8 +393,10 @@ describe("ChildNotesScreen", () => {
     expect(screen.getByText("Données publiées le 12/04/2026")).toBeTruthy();
   });
 
-  it("affiche les cartes de synthèse du bulletin", () => {
+  it("affiche les cartes de synthèse du bulletin dans l'onglet Bulletins", () => {
     render(<ChildNotesScreen />);
+
+    fireEvent.press(screen.getByTestId("child-notes-tab-reports"));
 
     expect(screen.getByTestId("notes-period-stat-student-avg")).toBeTruthy();
     expect(screen.getByTestId("notes-period-stat-class-avg")).toBeTruthy();
@@ -319,7 +407,7 @@ describe("ChildNotesScreen", () => {
   it("affiche la vue moyennes proche du tableau web mobile", () => {
     render(<ChildNotesScreen />);
 
-    fireEvent.press(screen.getByTestId("child-notes-view-averages"));
+    selectNotesViewViaPanel("averages");
 
     expect(screen.getByTestId("child-notes-averages-board")).toBeTruthy();
     expect(screen.getByTestId("child-notes-average-math")).toBeTruthy();
@@ -335,7 +423,7 @@ describe("ChildNotesScreen", () => {
   it("affiche les panneaux graphiques de comparaison et radar", () => {
     render(<ChildNotesScreen />);
 
-    fireEvent.press(screen.getByTestId("child-notes-view-charts"));
+    selectNotesViewViaPanel("charts");
 
     expect(screen.getByText("Comparaison par matière")).toBeTruthy();
     expect(screen.getByText("Radar des moyennes")).toBeTruthy();
@@ -379,7 +467,9 @@ describe("ChildNotesScreen", () => {
 
       expect(screen.getByTestId("child-reports-tab")).toBeTruthy();
       expect(screen.getByTestId("notes-period-hero")).toBeTruthy();
-      expect(screen.getByText("Année scolaire en cours")).toBeTruthy();
+      expect(
+        screen.getByTestId("child-reports-subject-card-math"),
+      ).toBeTruthy();
     });
 
     it("l'onglet Bulletins n'affiche pas la grille d'évaluations de l'onglet Notes", () => {
@@ -397,6 +487,43 @@ describe("ChildNotesScreen", () => {
       fireEvent.press(screen.getByTestId("child-notes-tab-notes"));
 
       expect(screen.getByTestId("child-notes-evaluation-eval-1")).toBeTruthy();
+    });
+  });
+
+  describe("Onglet Bulletins — bulletin en lecture seule", () => {
+    it("affiche le rang, la moyenne de classe et l'appréciation sans aucun bouton d'action", () => {
+      render(<ChildNotesScreen />);
+
+      fireEvent.press(screen.getByTestId("child-notes-tab-reports"));
+
+      expect(
+        screen.getByTestId("child-reports-subject-card-math"),
+      ).toBeTruthy();
+      expect(
+        screen.getByTestId("child-reports-subject-math-rank"),
+      ).toHaveTextContent("Rang 1/24", { exact: false });
+      expect(
+        screen.getByTestId("child-reports-subject-math-readonly"),
+      ).toHaveTextContent("Bonne régularité.");
+
+      // Aucun élément d'édition (réservé à la vue enseignant) ne doit exister
+      expect(
+        screen.queryByTestId("child-reports-subject-math-display"),
+      ).toBeNull();
+      expect(
+        screen.queryByTestId("child-reports-subject-math-editor"),
+      ).toBeNull();
+      expect(
+        screen.queryByTestId("child-reports-subject-math-save"),
+      ).toBeNull();
+    });
+
+    it("n'affiche plus le badge 'année scolaire en cours'", () => {
+      render(<ChildNotesScreen />);
+
+      fireEvent.press(screen.getByTestId("child-notes-tab-reports"));
+
+      expect(screen.queryByText("Année scolaire en cours")).toBeNull();
     });
   });
 });

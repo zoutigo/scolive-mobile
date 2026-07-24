@@ -1913,7 +1913,6 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "notes.child.tabs.notes": "Notes",
     "notes.child.tabs.reports": "Bulletins",
-    "notes.child.reports.yearBadge": "Année scolaire en cours",
 
     "notes.terms.term1": "Trimestre 1",
     "notes.terms.term2": "Trimestre 2",
@@ -2112,6 +2111,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.panel.viewEval": "Eval",
     "notes.panel.viewAvg": "Moy",
     "notes.panel.viewChart": "Graph",
+    "notes.panel.filters.toggleAccessibilityLabel": "Filtres",
     "notes.evals.emptyTitle": "Aucune évaluation",
     "notes.evals.emptyMessage":
       "Les notes publiées pour cette période apparaîtront ici.",
@@ -4369,7 +4369,6 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "notes.child.tabs.notes": "Notes",
     "notes.child.tabs.reports": "Reports",
-    "notes.child.reports.yearBadge": "Current school year",
 
     "notes.terms.term1": "Term 1",
     "notes.terms.term2": "Term 2",
@@ -4566,6 +4565,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.panel.viewEval": "Eval",
     "notes.panel.viewAvg": "Avg",
     "notes.panel.viewChart": "Chart",
+    "notes.panel.filters.toggleAccessibilityLabel": "Filters",
     "notes.evals.emptyTitle": "No evaluation",
     "notes.evals.emptyMessage":
       "Published grades for this period will appear here.",
