@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -53,7 +54,6 @@ export function TeacherClassNotesTab({
   initialStudentId,
 }: Props) {
   const { t } = useTranslation();
-  const { height: windowHeight } = useWindowDimensions();
   const sortedStudents = useMemo(
     () =>
       [...teacherContext.students].sort(
@@ -88,6 +88,13 @@ export function TeacherClassNotesTab({
   }, [sortedStudents, searchQuery]);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filterScrollOverflowing, setFilterScrollOverflowing] =
+    useState(false);
+  const [filterScrollNearBottom, setFilterScrollNearBottom] = useState(false);
+  const filterScrollLayoutHeightRef = useRef(0);
+  const filterScrollContentHeightRef = useRef(0);
+  const showFilterScrollHint =
+    filterScrollOverflowing && !filterScrollNearBottom;
   const subjectOptions = useMemo(
     () => [
       { id: "", name: t("notes.teacher.filters.allSubjects") },
@@ -118,10 +125,36 @@ export function TeacherClassNotesTab({
     setDraftTerm(term);
     setDraftSequence(sequence);
     setDraftView(view);
+    filterScrollLayoutHeightRef.current = 0;
+    filterScrollContentHeightRef.current = 0;
+    setFilterScrollOverflowing(false);
+    setFilterScrollNearBottom(false);
     setFiltersOpen(true);
   }
   function closeFilters() {
     setFiltersOpen(false);
+  }
+  function recomputeFilterScrollOverflow() {
+    setFilterScrollOverflowing(
+      filterScrollContentHeightRef.current >
+        filterScrollLayoutHeightRef.current + 4,
+    );
+  }
+  function handleFilterScrollLayout(height: number) {
+    filterScrollLayoutHeightRef.current = height;
+    recomputeFilterScrollOverflow();
+  }
+  function handleFilterScrollContentSize(height: number) {
+    filterScrollContentHeightRef.current = height;
+    recomputeFilterScrollOverflow();
+  }
+  function handleFilterScroll(
+    event: NativeSyntheticEvent<NativeScrollEvent>,
+  ) {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const distanceFromBottom =
+      contentSize.height - (contentOffset.y + layoutMeasurement.height);
+    setFilterScrollNearBottom(distanceFromBottom < 12);
   }
   function applyFilters() {
     setSubjectId(draftSubjectId);
@@ -267,17 +300,21 @@ export function TeacherClassNotesTab({
 
       {/* ── Panneau de filtres ──────────────────────────────── */}
       {filtersOpen ? (
-        <View
-          style={[styles.filterPanel, { maxHeight: windowHeight - 170 }]}
-          testID="teacher-notes-filter-panel"
-        >
-          <ScrollView
-            style={styles.filterScrollArea}
-            contentContainerStyle={styles.filterScrollContent}
-            nestedScrollEnabled
-            showsVerticalScrollIndicator
-            testID="teacher-notes-filter-scroll"
-          >
+        <View style={styles.filterPanel} testID="teacher-notes-filter-panel">
+          <View style={styles.filterScrollWrapper}>
+            <ScrollView
+              style={styles.filterScrollArea}
+              contentContainerStyle={styles.filterScrollContent}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator
+              onLayout={(e) =>
+                handleFilterScrollLayout(e.nativeEvent.layout.height)
+              }
+              onContentSizeChange={(_w, h) => handleFilterScrollContentSize(h)}
+              onScroll={handleFilterScroll}
+              scrollEventThrottle={16}
+              testID="teacher-notes-filter-scroll"
+            >
             <View style={styles.filterGroup}>
               <Text style={styles.filterGroupLabel}>
                 {t("notes.teacher.filters.subjectLabel")}
@@ -412,7 +449,22 @@ export function TeacherClassNotesTab({
                 ))}
               </View>
             </View>
-          </ScrollView>
+            </ScrollView>
+            {showFilterScrollHint ? (
+              <View
+                style={styles.filterScrollHint}
+                pointerEvents="none"
+                testID="teacher-notes-filter-scroll-hint"
+              >
+                <View style={styles.filterScrollHintFade} />
+                <Ionicons
+                  name="chevron-down"
+                  size={16}
+                  color={colors.accentTeal}
+                />
+              </View>
+            ) : null}
+          </View>
 
           <View style={styles.filterActionsRow}>
             <TouchableOpacity
@@ -448,7 +500,7 @@ export function TeacherClassNotesTab({
       ) : null}
 
       {/* ── Vue notes de l'élève sélectionné ─────────────── */}
-      {selectedStudent && !searchOpen ? (
+      {selectedStudent && !searchOpen && !filtersOpen ? (
         <StudentNotesPanel
           studentId={selectedStudent.id}
           schoolSlug={schoolSlug}
@@ -556,6 +608,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   filterPanel: {
+    flex: 1,
     marginHorizontal: 16,
     marginTop: 10,
     padding: 16,
@@ -564,13 +617,35 @@ const styles = StyleSheet.create({
     borderColor: `${colors.accentTeal}33`,
     backgroundColor: colors.surface,
     gap: 14,
-    flexShrink: 1,
+  },
+  filterScrollWrapper: {
+    flex: 1,
+    position: "relative",
   },
   filterScrollArea: {
-    flexShrink: 1,
+    flex: 1,
   },
   filterScrollContent: {
     gap: 14,
+    paddingBottom: 12,
+  },
+  filterScrollHint: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterScrollHintFade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: colors.surface,
+    opacity: 0.85,
   },
   filterGroup: { gap: 8 },
   filterGroupLabel: {

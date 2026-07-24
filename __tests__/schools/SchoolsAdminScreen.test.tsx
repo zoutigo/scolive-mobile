@@ -582,6 +582,7 @@ describe("SchoolsAdminScreen", () => {
 
     fireEvent.press(screen.getByTestId("schools-filter-toggle"));
     fireEvent.press(screen.getByTestId("schools-filter-reset"));
+    fireEvent.press(screen.getByTestId("schools-filter-close"));
 
     await new Promise((resolve) => setTimeout(resolve, 350));
 

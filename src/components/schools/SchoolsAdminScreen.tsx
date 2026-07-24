@@ -7,6 +7,8 @@ import React, {
 } from "react";
 import {
   KeyboardAvoidingView,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Platform,
   RefreshControl,
   ScrollView,
@@ -14,7 +16,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -924,7 +925,6 @@ export function SchoolsAdminScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
   const { user } = useAuthStore();
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
@@ -954,6 +954,13 @@ export function SchoolsAdminScreen() {
   const [draftFilters, setDraftFilters] = useState<SchoolsFilters>(NO_FILTERS);
   const [appliedFilters, setAppliedFilters] =
     useState<SchoolsFilters>(NO_FILTERS);
+  const [filterScrollOverflowing, setFilterScrollOverflowing] =
+    useState(false);
+  const [filterScrollNearBottom, setFilterScrollNearBottom] = useState(false);
+  const filterScrollLayoutHeightRef = useRef(0);
+  const filterScrollContentHeightRef = useRef(0);
+  const showFilterScrollHint =
+    filterScrollOverflowing && !filterScrollNearBottom;
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const role = user?.activeRole ?? user?.role ?? null;
@@ -1059,6 +1066,10 @@ export function SchoolsAdminScreen() {
 
   function openFilters() {
     setDraftFilters(appliedFilters);
+    filterScrollLayoutHeightRef.current = 0;
+    filterScrollContentHeightRef.current = 0;
+    setFilterScrollOverflowing(false);
+    setFilterScrollNearBottom(false);
     setFiltersOpen(true);
   }
 
@@ -1080,6 +1091,29 @@ export function SchoolsAdminScreen() {
   function resetFilters() {
     setDraftFilters(NO_FILTERS);
     setAppliedFilters(NO_FILTERS);
+  }
+
+  function recomputeFilterScrollOverflow() {
+    setFilterScrollOverflowing(
+      filterScrollContentHeightRef.current >
+        filterScrollLayoutHeightRef.current + 4,
+    );
+  }
+  function handleFilterScrollLayout(height: number) {
+    filterScrollLayoutHeightRef.current = height;
+    recomputeFilterScrollOverflow();
+  }
+  function handleFilterScrollContentSize(height: number) {
+    filterScrollContentHeightRef.current = height;
+    recomputeFilterScrollOverflow();
+  }
+  function handleFilterScroll(
+    event: NativeSyntheticEvent<NativeScrollEvent>,
+  ) {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const distanceFromBottom =
+      contentSize.height - (contentOffset.y + layoutMeasurement.height);
+    setFilterScrollNearBottom(distanceFromBottom < 12);
   }
 
   function exitForms() {
@@ -1304,20 +1338,7 @@ export function SchoolsAdminScreen() {
       ) : null}
 
       {tab === "list" && filtersOpen ? (
-        <View
-          style={[
-            styles.filterPanel,
-            {
-              maxHeight:
-                windowHeight -
-                insets.top -
-                insets.bottom -
-                BOTTOM_TAB_BAR_HEIGHT -
-                170,
-            },
-          ]}
-          testID="schools-filter-panel"
-        >
+        <View style={styles.filterPanel} testID="schools-filter-panel">
           <View style={styles.filterPanelHeader}>
             <View style={styles.filterPanelHeaderIcon}>
               <Ionicons
@@ -1331,13 +1352,22 @@ export function SchoolsAdminScreen() {
             </Text>
           </View>
 
-          <ScrollView
-            style={styles.filterScrollArea}
-            contentContainerStyle={styles.filterScrollContent}
-            nestedScrollEnabled
-            showsVerticalScrollIndicator
-            testID="schools-filter-scroll"
-          >
+          <View style={styles.filterScrollWrapper}>
+            <ScrollView
+              style={styles.filterScrollArea}
+              contentContainerStyle={styles.filterScrollContent}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator
+              onLayout={(e) =>
+                handleFilterScrollLayout(e.nativeEvent.layout.height)
+              }
+              onContentSizeChange={(_w, h) =>
+                handleFilterScrollContentSize(h)
+              }
+              onScroll={handleFilterScroll}
+              scrollEventThrottle={16}
+              testID="schools-filter-scroll"
+            >
             <View style={styles.filterGroup}>
               <Text style={styles.filterGroupLabel}>
                 {t("schoolsAdmin.filters.cycleLabel")}
@@ -1447,7 +1477,22 @@ export function SchoolsAdminScreen() {
                 ))}
               </View>
             </View>
-          </ScrollView>
+            </ScrollView>
+            {showFilterScrollHint ? (
+              <View
+                style={styles.filterScrollHint}
+                pointerEvents="none"
+                testID="schools-filter-scroll-hint"
+              >
+                <View style={styles.filterScrollHintFade} />
+                <Ionicons
+                  name="chevron-down"
+                  size={16}
+                  color={colors.accentTeal}
+                />
+              </View>
+            ) : null}
+          </View>
 
           <View style={styles.filterActionsRow}>
             <TouchableOpacity
@@ -1531,7 +1576,7 @@ export function SchoolsAdminScreen() {
             )}
           </ScrollView>
         </KeyboardAvoidingView>
-      ) : tab === "list" ? (
+      ) : tab === "list" && !filtersOpen ? (
         isListLoading && schools.length === 0 ? (
           <View style={styles.stateWrap}>
             <LoadingBlock label={t("schoolsAdmin.detail.loading")} />
@@ -1752,21 +1797,44 @@ const styles = StyleSheet.create({
     borderColor: colors.accentTeal,
   },
   filterPanel: {
+    flex: 1,
     marginHorizontal: 16,
-    marginBottom: 12,
+    marginTop: 10,
     padding: 16,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: `${colors.accentTeal}33`,
     backgroundColor: colors.surface,
     gap: 14,
-    flexShrink: 1,
+  },
+  filterScrollWrapper: {
+    flex: 1,
+    position: "relative",
   },
   filterScrollArea: {
-    flexShrink: 1,
+    flex: 1,
   },
   filterScrollContent: {
     gap: 14,
+    paddingBottom: 12,
+  },
+  filterScrollHint: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterScrollHintFade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: colors.surface,
+    opacity: 0.85,
   },
   filterPanelHeader: {
     flexDirection: "row",

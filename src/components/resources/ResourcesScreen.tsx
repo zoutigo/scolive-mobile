@@ -8,12 +8,13 @@ import React, {
 import {
   ActivityIndicator,
   Alert,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -225,7 +226,6 @@ type ResourceFormValues = {
 export function ResourcesScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
   const router = useRouter();
   const { user } = useAuthStore();
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
@@ -257,6 +257,13 @@ export function ResourcesScreen() {
   const [draftFilters, setDraftFilters] = useState<ResourceFilters>(NO_FILTERS);
   const [appliedFilters, setAppliedFilters] =
     useState<ResourceFilters>(NO_FILTERS);
+  const [filterScrollOverflowing, setFilterScrollOverflowing] =
+    useState(false);
+  const [filterScrollNearBottom, setFilterScrollNearBottom] = useState(false);
+  const filterScrollLayoutHeightRef = useRef(0);
+  const filterScrollContentHeightRef = useRef(0);
+  const showFilterScrollHint =
+    filterScrollOverflowing && !filterScrollNearBottom;
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -271,6 +278,10 @@ export function ResourcesScreen() {
 
   function openFilters() {
     setDraftFilters(appliedFilters);
+    filterScrollLayoutHeightRef.current = 0;
+    filterScrollContentHeightRef.current = 0;
+    setFilterScrollOverflowing(false);
+    setFilterScrollNearBottom(false);
     setFiltersOpen(true);
   }
 
@@ -292,6 +303,29 @@ export function ResourcesScreen() {
   function resetFilters() {
     setDraftFilters(NO_FILTERS);
     setAppliedFilters(NO_FILTERS);
+  }
+
+  function recomputeFilterScrollOverflow() {
+    setFilterScrollOverflowing(
+      filterScrollContentHeightRef.current >
+        filterScrollLayoutHeightRef.current + 4,
+    );
+  }
+  function handleFilterScrollLayout(height: number) {
+    filterScrollLayoutHeightRef.current = height;
+    recomputeFilterScrollOverflow();
+  }
+  function handleFilterScrollContentSize(height: number) {
+    filterScrollContentHeightRef.current = height;
+    recomputeFilterScrollOverflow();
+  }
+  function handleFilterScroll(
+    event: NativeSyntheticEvent<NativeScrollEvent>,
+  ) {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const distanceFromBottom =
+      contentSize.height - (contentOffset.y + layoutMeasurement.height);
+    setFilterScrollNearBottom(distanceFromBottom < 12);
   }
 
   const [lists, setLists] = useState<
@@ -773,20 +807,7 @@ export function ResourcesScreen() {
         ) : null}
 
         {isSearchableTab && filtersOpen ? (
-          <View
-            style={[
-              styles.filterPanel,
-              {
-                maxHeight:
-                  windowHeight -
-                  insets.top -
-                  insets.bottom -
-                  BOTTOM_TAB_BAR_HEIGHT -
-                  170,
-              },
-            ]}
-            testID="resources-filter-panel"
-          >
+          <View style={styles.filterPanel} testID="resources-filter-panel">
             <View style={styles.filterPanelHeader}>
               <View style={styles.filterPanelHeaderIcon}>
                 <Ionicons
@@ -800,11 +821,18 @@ export function ResourcesScreen() {
               </Text>
             </View>
 
+            <View style={styles.filterScrollWrapper}>
             <ScrollView
               style={styles.filterScrollArea}
               contentContainerStyle={styles.filterScrollContent}
               nestedScrollEnabled
               showsVerticalScrollIndicator
+              onLayout={(e) =>
+                handleFilterScrollLayout(e.nativeEvent.layout.height)
+              }
+              onContentSizeChange={(_w, h) => handleFilterScrollContentSize(h)}
+              onScroll={handleFilterScroll}
+              scrollEventThrottle={16}
               testID="resources-filter-scroll"
             >
               <View style={styles.filterFieldRow}>
@@ -914,6 +942,21 @@ export function ResourcesScreen() {
                 </View>
               </View>
             </ScrollView>
+            {showFilterScrollHint ? (
+              <View
+                style={styles.filterScrollHint}
+                pointerEvents="none"
+                testID="resources-filter-scroll-hint"
+              >
+                <View style={styles.filterScrollHintFade} />
+                <Ionicons
+                  name="chevron-down"
+                  size={16}
+                  color={colors.accentTeal}
+                />
+              </View>
+            ) : null}
+            </View>
 
             <View style={styles.filterActionsRow}>
               <TouchableOpacity
@@ -965,10 +1008,11 @@ export function ResourcesScreen() {
           <ActivityIndicator style={styles.loader} color={colors.primary} />
         ) : null}
 
-        {tab === "ASSESSMENT" ||
-        tab === "EXAM" ||
-        tab === "mine" ||
-        tab === "favorites" ? (
+        {!filtersOpen &&
+        (tab === "ASSESSMENT" ||
+          tab === "EXAM" ||
+          tab === "mine" ||
+          tab === "favorites") ? (
           <InfiniteScrollList
             data={lists[tab]}
             keyExtractor={(item) => item.id}
@@ -1784,20 +1828,42 @@ const styles = StyleSheet.create({
     borderColor: colors.accentTeal,
   },
   filterPanel: {
-    marginBottom: 10,
+    flex: 1,
     padding: 16,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: `${colors.accentTeal}33`,
     backgroundColor: colors.surface,
     gap: 14,
-    flexShrink: 1,
+  },
+  filterScrollWrapper: {
+    flex: 1,
+    position: "relative",
   },
   filterScrollArea: {
-    flexShrink: 1,
+    flex: 1,
   },
   filterScrollContent: {
     gap: 14,
+    paddingBottom: 12,
+  },
+  filterScrollHint: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterScrollHintFade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: colors.surface,
+    opacity: 0.85,
   },
   filterPanelHeader: {
     flexDirection: "row",
