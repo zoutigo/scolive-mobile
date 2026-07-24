@@ -88,8 +88,7 @@ export function TeacherClassNotesTab({
   }, [sortedStudents, searchQuery]);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [filterScrollOverflowing, setFilterScrollOverflowing] =
-    useState(false);
+  const [filterScrollOverflowing, setFilterScrollOverflowing] = useState(false);
   const [filterScrollNearBottom, setFilterScrollNearBottom] = useState(false);
   const filterScrollLayoutHeightRef = useRef(0);
   const filterScrollContentHeightRef = useRef(0);
@@ -148,9 +147,7 @@ export function TeacherClassNotesTab({
     filterScrollContentHeightRef.current = height;
     recomputeFilterScrollOverflow();
   }
-  function handleFilterScroll(
-    event: NativeSyntheticEvent<NativeScrollEvent>,
-  ) {
+  function handleFilterScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     const distanceFromBottom =
       contentSize.height - (contentOffset.y + layoutMeasurement.height);
@@ -315,140 +312,141 @@ export function TeacherClassNotesTab({
               scrollEventThrottle={16}
               testID="teacher-notes-filter-scroll"
             >
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterGroupLabel}>
-                {t("notes.teacher.filters.subjectLabel")}
-              </Text>
-              <View style={styles.filterChipsRow}>
-                {subjectOptions.map((subject) => (
-                  <TouchableOpacity
-                    key={subject.id || "all"}
-                    style={[
-                      styles.filterChip,
-                      draftSubjectId === subject.id && styles.filterChipActive,
-                    ]}
-                    onPress={() => setDraftSubjectId(subject.id)}
-                    testID={`teacher-notes-filter-subject-${subject.id || "all"}`}
-                  >
-                    <Text
-                      style={[
-                        styles.filterChipLabel,
-                        draftSubjectId === subject.id &&
-                          styles.filterChipLabelActive,
-                      ]}
-                    >
-                      {subject.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterGroupLabel}>
-                {t("notes.teacher.filters.termLabel")}
-              </Text>
-              <View style={styles.filterChipsRow}>
-                {(["TERM_1", "TERM_2", "TERM_3"] as StudentNotesTerm[]).map(
-                  (value) => (
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupLabel}>
+                  {t("notes.teacher.filters.subjectLabel")}
+                </Text>
+                <View style={styles.filterChipsRow}>
+                  {subjectOptions.map((subject) => (
                     <TouchableOpacity
-                      key={value}
+                      key={subject.id || "all"}
                       style={[
                         styles.filterChip,
-                        draftTerm === value && styles.filterChipActive,
+                        draftSubjectId === subject.id &&
+                          styles.filterChipActive,
                       ]}
-                      onPress={() => setDraftTerm(value)}
-                      testID={`teacher-notes-filter-term-${value}`}
+                      onPress={() => setDraftSubjectId(subject.id)}
+                      testID={`teacher-notes-filter-subject-${subject.id || "all"}`}
                     >
                       <Text
                         style={[
                           styles.filterChipLabel,
-                          draftTerm === value && styles.filterChipLabelActive,
+                          draftSubjectId === subject.id &&
+                            styles.filterChipLabelActive,
                         ]}
                       >
-                        {t(
-                          `notes.terms.${value === "TERM_1" ? "term1" : value === "TERM_2" ? "term2" : "term3"}`,
-                        )}
+                        {subject.name}
                       </Text>
                     </TouchableOpacity>
-                  ),
-                )}
+                  ))}
+                </View>
               </View>
-            </View>
 
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterGroupLabel}>
-                {t("notes.manager.filters.sequenceLabel")}
-              </Text>
-              <View style={styles.filterChipsRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.filterChip,
-                    draftSequence == null && styles.filterChipActive,
-                  ]}
-                  onPress={() => setDraftSequence(null)}
-                  testID="teacher-notes-filter-sequence-all"
-                >
-                  <Text
-                    style={[
-                      styles.filterChipLabel,
-                      draftSequence == null && styles.filterChipLabelActive,
-                    ]}
-                  >
-                    {t("notes.manager.filters.allOption")}
-                  </Text>
-                </TouchableOpacity>
-                {ALL_SEQUENCES.map((seq) => (
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupLabel}>
+                  {t("notes.teacher.filters.termLabel")}
+                </Text>
+                <View style={styles.filterChipsRow}>
+                  {(["TERM_1", "TERM_2", "TERM_3"] as StudentNotesTerm[]).map(
+                    (value) => (
+                      <TouchableOpacity
+                        key={value}
+                        style={[
+                          styles.filterChip,
+                          draftTerm === value && styles.filterChipActive,
+                        ]}
+                        onPress={() => setDraftTerm(value)}
+                        testID={`teacher-notes-filter-term-${value}`}
+                      >
+                        <Text
+                          style={[
+                            styles.filterChipLabel,
+                            draftTerm === value && styles.filterChipLabelActive,
+                          ]}
+                        >
+                          {t(
+                            `notes.terms.${value === "TERM_1" ? "term1" : value === "TERM_2" ? "term2" : "term3"}`,
+                          )}
+                        </Text>
+                      </TouchableOpacity>
+                    ),
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupLabel}>
+                  {t("notes.manager.filters.sequenceLabel")}
+                </Text>
+                <View style={styles.filterChipsRow}>
                   <TouchableOpacity
-                    key={seq}
                     style={[
                       styles.filterChip,
-                      draftSequence === seq && styles.filterChipActive,
+                      draftSequence == null && styles.filterChipActive,
                     ]}
-                    onPress={() => setDraftSequence(seq)}
-                    testID={`teacher-notes-filter-sequence-${seq}`}
+                    onPress={() => setDraftSequence(null)}
+                    testID="teacher-notes-filter-sequence-all"
                   >
                     <Text
                       style={[
                         styles.filterChipLabel,
-                        draftSequence === seq && styles.filterChipLabelActive,
+                        draftSequence == null && styles.filterChipLabelActive,
                       ]}
                     >
-                      {sequenceShortLabel(seq)}
+                      {t("notes.manager.filters.allOption")}
                     </Text>
                   </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterGroupLabel}>
-                {t("notes.teacher.filters.viewLabel")}
-              </Text>
-              <View style={styles.filterChipsRow}>
-                {buildViewOptions(t).map((option) => (
-                  <TouchableOpacity
-                    key={option.value}
-                    style={[
-                      styles.filterChip,
-                      draftView === option.value && styles.filterChipActive,
-                    ]}
-                    onPress={() => setDraftView(option.value)}
-                    testID={`teacher-notes-filter-view-${option.value}`}
-                  >
-                    <Text
+                  {ALL_SEQUENCES.map((seq) => (
+                    <TouchableOpacity
+                      key={seq}
                       style={[
-                        styles.filterChipLabel,
-                        draftView === option.value &&
-                          styles.filterChipLabelActive,
+                        styles.filterChip,
+                        draftSequence === seq && styles.filterChipActive,
                       ]}
+                      onPress={() => setDraftSequence(seq)}
+                      testID={`teacher-notes-filter-sequence-${seq}`}
                     >
-                      {option.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        style={[
+                          styles.filterChipLabel,
+                          draftSequence === seq && styles.filterChipLabelActive,
+                        ]}
+                      >
+                        {sequenceShortLabel(seq)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </View>
+
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupLabel}>
+                  {t("notes.teacher.filters.viewLabel")}
+                </Text>
+                <View style={styles.filterChipsRow}>
+                  {buildViewOptions(t).map((option) => (
+                    <TouchableOpacity
+                      key={option.value}
+                      style={[
+                        styles.filterChip,
+                        draftView === option.value && styles.filterChipActive,
+                      ]}
+                      onPress={() => setDraftView(option.value)}
+                      testID={`teacher-notes-filter-view-${option.value}`}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipLabel,
+                          draftView === option.value &&
+                            styles.filterChipLabelActive,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
             </ScrollView>
             {showFilterScrollHint ? (
               <View

@@ -257,8 +257,7 @@ export function ResourcesScreen() {
   const [draftFilters, setDraftFilters] = useState<ResourceFilters>(NO_FILTERS);
   const [appliedFilters, setAppliedFilters] =
     useState<ResourceFilters>(NO_FILTERS);
-  const [filterScrollOverflowing, setFilterScrollOverflowing] =
-    useState(false);
+  const [filterScrollOverflowing, setFilterScrollOverflowing] = useState(false);
   const [filterScrollNearBottom, setFilterScrollNearBottom] = useState(false);
   const filterScrollLayoutHeightRef = useRef(0);
   const filterScrollContentHeightRef = useRef(0);
@@ -319,9 +318,7 @@ export function ResourcesScreen() {
     filterScrollContentHeightRef.current = height;
     recomputeFilterScrollOverflow();
   }
-  function handleFilterScroll(
-    event: NativeSyntheticEvent<NativeScrollEvent>,
-  ) {
+  function handleFilterScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     const distanceFromBottom =
       contentSize.height - (contentOffset.y + layoutMeasurement.height);
@@ -822,140 +819,142 @@ export function ResourcesScreen() {
             </View>
 
             <View style={styles.filterScrollWrapper}>
-            <ScrollView
-              style={styles.filterScrollArea}
-              contentContainerStyle={styles.filterScrollContent}
-              nestedScrollEnabled
-              showsVerticalScrollIndicator
-              onLayout={(e) =>
-                handleFilterScrollLayout(e.nativeEvent.layout.height)
-              }
-              onContentSizeChange={(_w, h) => handleFilterScrollContentSize(h)}
-              onScroll={handleFilterScroll}
-              scrollEventThrottle={16}
-              testID="resources-filter-scroll"
-            >
-              <View style={styles.filterFieldRow}>
-                <Text style={styles.filterFieldRowLabel}>
-                  {t("resources.filters.academicYear")}
-                </Text>
-                <View style={styles.filterFieldInputWrap}>
-                  <SelectField
-                    options={academicYearFilterOptions}
-                    value={draftFilters.academicYear}
-                    onChange={(value) =>
-                      setDraftFilters((current) => ({
-                        ...current,
-                        academicYear: value,
-                      }))
-                    }
-                    placeholder={t("resources.filters.allYears")}
-                    closeLabel={t("resources.filters.close")}
-                    testIDPrefix="resources-filter-academic-year"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.filterFieldRow}>
-                <Text style={styles.filterFieldRowLabel}>
-                  {t("resources.filters.school")}
-                </Text>
-                <View style={styles.filterFieldInputWrap}>
-                  <SelectField
-                    options={schoolOptions}
-                    value={draftFilters.schoolId}
-                    onChange={(value) =>
-                      setDraftFilters((current) => ({
-                        ...current,
-                        schoolId: value,
-                      }))
-                    }
-                    placeholder={t("resources.filters.allSchools")}
-                    closeLabel={t("resources.filters.close")}
-                    testIDPrefix="resources-filter-school"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.filterFieldRow}>
-                <Text style={styles.filterFieldRowLabel}>
-                  {t("resources.filters.level")}
-                </Text>
-                <View style={styles.filterFieldInputWrap}>
-                  <SelectField
-                    options={levelFilterOptions}
-                    value={draftFilters.academicLevelId}
-                    onChange={(value) =>
-                      setDraftFilters((current) => ({
-                        ...current,
-                        academicLevelId: value,
-                      }))
-                    }
-                    placeholder={t("resources.filters.allLevels")}
-                    closeLabel={t("resources.filters.close")}
-                    testIDPrefix="resources-filter-level"
-                  />
-                </View>
-              </View>
-
-              {tab === "ASSESSMENT" ? (
+              <ScrollView
+                style={styles.filterScrollArea}
+                contentContainerStyle={styles.filterScrollContent}
+                nestedScrollEnabled
+                showsVerticalScrollIndicator
+                onLayout={(e) =>
+                  handleFilterScrollLayout(e.nativeEvent.layout.height)
+                }
+                onContentSizeChange={(_w, h) =>
+                  handleFilterScrollContentSize(h)
+                }
+                onScroll={handleFilterScroll}
+                scrollEventThrottle={16}
+                testID="resources-filter-scroll"
+              >
                 <View style={styles.filterFieldRow}>
                   <Text style={styles.filterFieldRowLabel}>
-                    {t("resources.filters.sequence")}
+                    {t("resources.filters.academicYear")}
                   </Text>
                   <View style={styles.filterFieldInputWrap}>
                     <SelectField
-                      options={sequenceFilterOptions}
-                      value={draftFilters.sequence}
+                      options={academicYearFilterOptions}
+                      value={draftFilters.academicYear}
                       onChange={(value) =>
                         setDraftFilters((current) => ({
                           ...current,
-                          sequence: value,
+                          academicYear: value,
                         }))
                       }
-                      placeholder={t("resources.filters.allSequences")}
+                      placeholder={t("resources.filters.allYears")}
                       closeLabel={t("resources.filters.close")}
-                      testIDPrefix="resources-filter-sequence"
+                      testIDPrefix="resources-filter-academic-year"
                     />
                   </View>
                 </View>
-              ) : null}
 
-              <View style={styles.filterFieldRow}>
-                <Text style={styles.filterFieldRowLabel}>
-                  {t("resources.filters.examType")}
-                </Text>
-                <View style={styles.filterFieldInputWrap}>
-                  <SelectField
-                    options={examTypeFilterOptions}
-                    value={draftFilters.examType}
-                    onChange={(value) =>
-                      setDraftFilters((current) => ({
-                        ...current,
-                        examType: value,
-                      }))
-                    }
-                    placeholder={t("resources.filters.allExamTypes")}
-                    closeLabel={t("resources.filters.close")}
-                    testIDPrefix="resources-filter-exam-type"
+                <View style={styles.filterFieldRow}>
+                  <Text style={styles.filterFieldRowLabel}>
+                    {t("resources.filters.school")}
+                  </Text>
+                  <View style={styles.filterFieldInputWrap}>
+                    <SelectField
+                      options={schoolOptions}
+                      value={draftFilters.schoolId}
+                      onChange={(value) =>
+                        setDraftFilters((current) => ({
+                          ...current,
+                          schoolId: value,
+                        }))
+                      }
+                      placeholder={t("resources.filters.allSchools")}
+                      closeLabel={t("resources.filters.close")}
+                      testIDPrefix="resources-filter-school"
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.filterFieldRow}>
+                  <Text style={styles.filterFieldRowLabel}>
+                    {t("resources.filters.level")}
+                  </Text>
+                  <View style={styles.filterFieldInputWrap}>
+                    <SelectField
+                      options={levelFilterOptions}
+                      value={draftFilters.academicLevelId}
+                      onChange={(value) =>
+                        setDraftFilters((current) => ({
+                          ...current,
+                          academicLevelId: value,
+                        }))
+                      }
+                      placeholder={t("resources.filters.allLevels")}
+                      closeLabel={t("resources.filters.close")}
+                      testIDPrefix="resources-filter-level"
+                    />
+                  </View>
+                </View>
+
+                {tab === "ASSESSMENT" ? (
+                  <View style={styles.filterFieldRow}>
+                    <Text style={styles.filterFieldRowLabel}>
+                      {t("resources.filters.sequence")}
+                    </Text>
+                    <View style={styles.filterFieldInputWrap}>
+                      <SelectField
+                        options={sequenceFilterOptions}
+                        value={draftFilters.sequence}
+                        onChange={(value) =>
+                          setDraftFilters((current) => ({
+                            ...current,
+                            sequence: value,
+                          }))
+                        }
+                        placeholder={t("resources.filters.allSequences")}
+                        closeLabel={t("resources.filters.close")}
+                        testIDPrefix="resources-filter-sequence"
+                      />
+                    </View>
+                  </View>
+                ) : null}
+
+                <View style={styles.filterFieldRow}>
+                  <Text style={styles.filterFieldRowLabel}>
+                    {t("resources.filters.examType")}
+                  </Text>
+                  <View style={styles.filterFieldInputWrap}>
+                    <SelectField
+                      options={examTypeFilterOptions}
+                      value={draftFilters.examType}
+                      onChange={(value) =>
+                        setDraftFilters((current) => ({
+                          ...current,
+                          examType: value,
+                        }))
+                      }
+                      placeholder={t("resources.filters.allExamTypes")}
+                      closeLabel={t("resources.filters.close")}
+                      testIDPrefix="resources-filter-exam-type"
+                    />
+                  </View>
+                </View>
+              </ScrollView>
+              {showFilterScrollHint ? (
+                <View
+                  style={styles.filterScrollHint}
+                  pointerEvents="none"
+                  testID="resources-filter-scroll-hint"
+                >
+                  <View style={styles.filterScrollHintFade} />
+                  <Ionicons
+                    name="chevron-down"
+                    size={16}
+                    color={colors.accentTeal}
                   />
                 </View>
-              </View>
-            </ScrollView>
-            {showFilterScrollHint ? (
-              <View
-                style={styles.filterScrollHint}
-                pointerEvents="none"
-                testID="resources-filter-scroll-hint"
-              >
-                <View style={styles.filterScrollHintFade} />
-                <Ionicons
-                  name="chevron-down"
-                  size={16}
-                  color={colors.accentTeal}
-                />
-              </View>
-            ) : null}
+              ) : null}
             </View>
 
             <View style={styles.filterActionsRow}>
