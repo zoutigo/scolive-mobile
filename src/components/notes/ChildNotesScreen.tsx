@@ -1739,7 +1739,7 @@ const styles = StyleSheet.create({
   filterActionApply: {
     flex: 1.3,
     borderRadius: 8,
-    backgroundColor: colors.accentTeal,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",

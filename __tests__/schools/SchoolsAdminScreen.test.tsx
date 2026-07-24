@@ -495,6 +495,62 @@ describe("SchoolsAdminScreen", () => {
     );
   });
 
+  it("masque le FAB de création tant que le panneau de filtres est ouvert", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+    schoolsState = [makeSchool({ cycle: "SECONDARY" })];
+
+    render(<SchoolsAdminScreen />);
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
+    await screen.findByTestId("schools-card-school-1");
+
+    expect(await screen.findByTestId("schools-fab")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("schools-filter-toggle"));
+    expect(await screen.findByTestId("schools-filter-panel")).toBeTruthy();
+    expect(screen.queryByTestId("schools-fab")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("schools-filter-toggle"));
+    await waitFor(() =>
+      expect(screen.queryByTestId("schools-filter-panel")).toBeNull(),
+    );
+    expect(await screen.findByTestId("schools-fab")).toBeTruthy();
+  });
+
+  it("le bouton Appliquer a une couleur distincte des puces actives", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+    schoolsState = [
+      makeSchool({ cycle: "SECONDARY" }),
+      makeSchool({
+        id: "school-2",
+        slug: "ecole-primaire",
+        name: "École primaire",
+        cycle: "PRIMARY",
+      }),
+    ];
+
+    render(<SchoolsAdminScreen />);
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
+    await screen.findByTestId("schools-card-school-1");
+
+    fireEvent.press(screen.getByTestId("schools-filter-toggle"));
+    fireEvent.press(await screen.findByTestId("schools-filter-cycle-PRIMARY"));
+
+    const activeChip = screen.getByTestId("schools-filter-cycle-PRIMARY");
+    const chipStyles = [activeChip.props.style].flat();
+    const chipBg = chipStyles.find(
+      (s) => s && s.backgroundColor,
+    )?.backgroundColor;
+
+    const applyButton = screen.getByTestId("schools-filter-apply");
+    const applyStyles = [applyButton.props.style].flat();
+    const applyBg = applyStyles.find(
+      (s) => s && s.backgroundColor,
+    )?.backgroundColor;
+
+    expect(applyBg).toBe(colors.primary);
+    expect(applyBg).not.toBe(chipBg);
+  });
+
   it("réinitialise les filtres appliqués via le bouton Réinitialiser", async () => {
     mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
     schoolsState = [

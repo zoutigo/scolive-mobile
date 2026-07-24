@@ -131,6 +131,8 @@ export type EvaluationRow = {
   subject: { id: string; name: string };
   subjectBranch?: { id: string; name: string } | null;
   evaluationType: { id: string; code: string; label: string };
+  class: { id: string; name: string };
+  author: { id: string; firstName: string; lastName: string };
   attachments: EvaluationAttachmentDraft[];
   _count: { scores: number };
 };

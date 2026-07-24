@@ -2186,25 +2186,25 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.detail.noComparison": "Aucune comparaison disponible",
 
     "notes.admin.title": "Notes",
-    "notes.admin.tabs.byStudent": "Par élève",
-    "notes.admin.tabs.byClass": "Par classe",
     "notes.admin.filters.year": "Année",
-    "notes.admin.filters.yearPlaceholder": "Choisir une année",
+    "notes.admin.filters.allYears": "Toutes les années",
+    "notes.admin.filters.level": "Niveau",
+    "notes.admin.filters.allLevels": "Tous les niveaux",
     "notes.admin.filters.class": "Classe",
     "notes.admin.filters.allClasses": "Toutes les classes",
-    "notes.admin.search.placeholder": "Rechercher un élève…",
-    "notes.admin.loading.students": "Chargement des élèves…",
+    "notes.admin.search.placeholder": "Rechercher une évaluation…",
+    "notes.admin.loading.evaluations": "Chargement des évaluations…",
     "notes.admin.loading.classes": "Chargement des classes…",
     "notes.admin.error.loadFailed": "Impossible de charger les classes.",
     "notes.admin.error.title": "Erreur",
-    "notes.admin.students.emptyTitle": "Aucun élève",
-    "notes.admin.students.emptyMessage":
-      "Aucun élève disponible pour les filtres sélectionnés.",
-    "notes.admin.students.noResultTitle": "Aucun résultat",
-    "notes.admin.students.noResultMessage": "Modifiez votre recherche.",
-    "notes.admin.classes.emptyTitle": "Aucune classe",
-    "notes.admin.classes.emptyMessage":
-      "Aucune classe disponible pour cette année scolaire.",
+    "notes.admin.evaluations.emptyTitle": "Aucune évaluation",
+    "notes.admin.evaluations.emptyMessage":
+      "Aucune évaluation disponible pour les filtres sélectionnés.",
+    "notes.admin.evaluations.noResultTitle": "Aucun résultat",
+    "notes.admin.evaluations.noResultMessage": "Modifiez votre recherche.",
+    "notes.admin.fab.create": "Créer une évaluation",
+    "notes.admin.fab.selectClassFirst":
+      "Choisissez une classe dans les filtres pour créer une évaluation.",
 
     // App index — session expirée
     "app.sessionExpired.title": "Session expirée",
@@ -4639,25 +4639,25 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.detail.noComparison": "No comparison available",
 
     "notes.admin.title": "Grades",
-    "notes.admin.tabs.byStudent": "By student",
-    "notes.admin.tabs.byClass": "By class",
     "notes.admin.filters.year": "Year",
-    "notes.admin.filters.yearPlaceholder": "Choose a year",
+    "notes.admin.filters.allYears": "All years",
+    "notes.admin.filters.level": "Level",
+    "notes.admin.filters.allLevels": "All levels",
     "notes.admin.filters.class": "Class",
     "notes.admin.filters.allClasses": "All classes",
-    "notes.admin.search.placeholder": "Search for a student…",
-    "notes.admin.loading.students": "Loading students…",
+    "notes.admin.search.placeholder": "Search for an evaluation…",
+    "notes.admin.loading.evaluations": "Loading evaluations…",
     "notes.admin.loading.classes": "Loading classes…",
     "notes.admin.error.loadFailed": "Unable to load classes.",
     "notes.admin.error.title": "Error",
-    "notes.admin.students.emptyTitle": "No student",
-    "notes.admin.students.emptyMessage":
-      "No student available for the selected filters.",
-    "notes.admin.students.noResultTitle": "No result",
-    "notes.admin.students.noResultMessage": "Try adjusting your search.",
-    "notes.admin.classes.emptyTitle": "No class",
-    "notes.admin.classes.emptyMessage":
-      "No class available for this school year.",
+    "notes.admin.evaluations.emptyTitle": "No evaluation",
+    "notes.admin.evaluations.emptyMessage":
+      "No evaluation available for the selected filters.",
+    "notes.admin.evaluations.noResultTitle": "No result",
+    "notes.admin.evaluations.noResultMessage": "Try adjusting your search.",
+    "notes.admin.fab.create": "Create an evaluation",
+    "notes.admin.fab.selectClassFirst":
+      "Pick a class in the filters to create an evaluation.",
 
     // App index — session expired
     "app.sessionExpired.title": "Session expired",

@@ -19,6 +19,11 @@ export type TeacherClassroomOption = {
     id: string;
     label: string;
   };
+  academicLevel?: {
+    id: string;
+    code: string;
+    label: string;
+  } | null;
 };
 
 export type TeacherSubjectOption = {

@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react-native";
 import { TeacherClassNotesTab } from "../../src/components/notes/TeacherClassNotesTab";
 import { useNotesStore } from "../../src/store/notes.store";
+import { colors } from "../../src/theme";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
@@ -278,6 +279,34 @@ describe("Panneau de filtres", () => {
         screen.getByTestId("teacher-notes-filter-view-charts"),
       ).toBeTruthy();
     });
+  });
+
+  it("le bouton Appliquer a une couleur distincte des puces actives", async () => {
+    render(<TeacherClassNotesTab {...DEFAULT_PROPS} />);
+    await flushAsync();
+
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-toggle"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-notes-filter-subject-sub-1"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-subject-sub-1"));
+
+    const activeChip = screen.getByTestId("teacher-notes-filter-subject-sub-1");
+    const chipStyles = [activeChip.props.style].flat();
+    const chipBg = chipStyles.find(
+      (s) => s && s.backgroundColor,
+    )?.backgroundColor;
+
+    const applyButton = screen.getByTestId("teacher-notes-filter-apply");
+    const applyStyles = [applyButton.props.style].flat();
+    const applyBg = applyStyles.find(
+      (s) => s && s.backgroundColor,
+    )?.backgroundColor;
+
+    expect(applyBg).toBe(colors.primary);
+    expect(applyBg).not.toBe(chipBg);
   });
 
   it("applique un filtre matière et ferme le panneau", async () => {

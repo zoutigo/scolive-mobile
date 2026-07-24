@@ -14,6 +14,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -923,6 +924,7 @@ export function SchoolsAdminScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const { user } = useAuthStore();
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
@@ -1302,7 +1304,20 @@ export function SchoolsAdminScreen() {
       ) : null}
 
       {tab === "list" && filtersOpen ? (
-        <View style={styles.filterPanel} testID="schools-filter-panel">
+        <View
+          style={[
+            styles.filterPanel,
+            {
+              maxHeight:
+                windowHeight -
+                insets.top -
+                insets.bottom -
+                BOTTOM_TAB_BAR_HEIGHT -
+                170,
+            },
+          ]}
+          testID="schools-filter-panel"
+        >
           <View style={styles.filterPanelHeader}>
             <View style={styles.filterPanelHeaderIcon}>
               <Ionicons
@@ -1316,114 +1331,123 @@ export function SchoolsAdminScreen() {
             </Text>
           </View>
 
-          <View style={styles.filterGroup}>
-            <Text style={styles.filterGroupLabel}>
-              {t("schoolsAdmin.filters.cycleLabel")}
-            </Text>
-            <View style={styles.filterChipsRow}>
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  draftFilters.cycle == null && styles.filterChipActive,
-                ]}
-                onPress={() =>
-                  setDraftFilters((current) => ({ ...current, cycle: null }))
-                }
-                testID="schools-filter-cycle-all"
-              >
-                <Text
-                  style={[
-                    styles.filterChipLabel,
-                    draftFilters.cycle == null && styles.filterChipLabelActive,
-                  ]}
-                >
-                  {t("schoolsAdmin.filters.allOption")}
-                </Text>
-              </TouchableOpacity>
-              {CYCLE_KEYS.map((key) => (
+          <ScrollView
+            style={styles.filterScrollArea}
+            contentContainerStyle={styles.filterScrollContent}
+            nestedScrollEnabled
+            showsVerticalScrollIndicator
+            testID="schools-filter-scroll"
+          >
+            <View style={styles.filterGroup}>
+              <Text style={styles.filterGroupLabel}>
+                {t("schoolsAdmin.filters.cycleLabel")}
+              </Text>
+              <View style={styles.filterChipsRow}>
                 <TouchableOpacity
-                  key={key}
                   style={[
                     styles.filterChip,
-                    draftFilters.cycle === key && styles.filterChipActive,
+                    draftFilters.cycle == null && styles.filterChipActive,
                   ]}
                   onPress={() =>
-                    setDraftFilters((current) => ({ ...current, cycle: key }))
+                    setDraftFilters((current) => ({ ...current, cycle: null }))
                   }
-                  testID={`schools-filter-cycle-${key}`}
+                  testID="schools-filter-cycle-all"
                 >
                   <Text
                     style={[
                       styles.filterChipLabel,
-                      draftFilters.cycle === key &&
+                      draftFilters.cycle == null &&
                         styles.filterChipLabelActive,
                     ]}
                   >
-                    {t(`schoolsAdmin.cycle.${key}`)}
+                    {t("schoolsAdmin.filters.allOption")}
                   </Text>
                 </TouchableOpacity>
-              ))}
+                {CYCLE_KEYS.map((key) => (
+                  <TouchableOpacity
+                    key={key}
+                    style={[
+                      styles.filterChip,
+                      draftFilters.cycle === key && styles.filterChipActive,
+                    ]}
+                    onPress={() =>
+                      setDraftFilters((current) => ({ ...current, cycle: key }))
+                    }
+                    testID={`schools-filter-cycle-${key}`}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipLabel,
+                        draftFilters.cycle === key &&
+                          styles.filterChipLabelActive,
+                      ]}
+                    >
+                      {t(`schoolsAdmin.cycle.${key}`)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          </View>
 
-          <View style={styles.filterGroup}>
-            <Text style={styles.filterGroupLabel}>
-              {t("schoolsAdmin.filters.languageLabel")}
-            </Text>
-            <View style={styles.filterChipsRow}>
-              <TouchableOpacity
-                style={[
-                  styles.filterChip,
-                  draftFilters.languageSystem == null &&
-                    styles.filterChipActive,
-                ]}
-                onPress={() =>
-                  setDraftFilters((current) => ({
-                    ...current,
-                    languageSystem: null,
-                  }))
-                }
-                testID="schools-filter-language-all"
-              >
-                <Text
-                  style={[
-                    styles.filterChipLabel,
-                    draftFilters.languageSystem == null &&
-                      styles.filterChipLabelActive,
-                  ]}
-                >
-                  {t("schoolsAdmin.filters.allOption")}
-                </Text>
-              </TouchableOpacity>
-              {LANGUAGE_KEYS.map((key) => (
+            <View style={styles.filterGroup}>
+              <Text style={styles.filterGroupLabel}>
+                {t("schoolsAdmin.filters.languageLabel")}
+              </Text>
+              <View style={styles.filterChipsRow}>
                 <TouchableOpacity
-                  key={key}
                   style={[
                     styles.filterChip,
-                    draftFilters.languageSystem === key &&
+                    draftFilters.languageSystem == null &&
                       styles.filterChipActive,
                   ]}
                   onPress={() =>
                     setDraftFilters((current) => ({
                       ...current,
-                      languageSystem: key,
+                      languageSystem: null,
                     }))
                   }
-                  testID={`schools-filter-language-${key}`}
+                  testID="schools-filter-language-all"
                 >
                   <Text
                     style={[
                       styles.filterChipLabel,
-                      draftFilters.languageSystem === key &&
+                      draftFilters.languageSystem == null &&
                         styles.filterChipLabelActive,
                     ]}
                   >
-                    {t(`schoolsAdmin.language.${key}`)}
+                    {t("schoolsAdmin.filters.allOption")}
                   </Text>
                 </TouchableOpacity>
-              ))}
+                {LANGUAGE_KEYS.map((key) => (
+                  <TouchableOpacity
+                    key={key}
+                    style={[
+                      styles.filterChip,
+                      draftFilters.languageSystem === key &&
+                        styles.filterChipActive,
+                    ]}
+                    onPress={() =>
+                      setDraftFilters((current) => ({
+                        ...current,
+                        languageSystem: key,
+                      }))
+                    }
+                    testID={`schools-filter-language-${key}`}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipLabel,
+                        draftFilters.languageSystem === key &&
+                          styles.filterChipLabelActive,
+                      ]}
+                    >
+                      {t(`schoolsAdmin.language.${key}`)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          </View>
+          </ScrollView>
 
           <View style={styles.filterActionsRow}>
             <TouchableOpacity
@@ -1637,7 +1661,7 @@ export function SchoolsAdminScreen() {
         </ScrollView>
       )}
 
-      {!isFormsTab && (tab === "list" || tab === "synthese") ? (
+      {!isFormsTab && !filtersOpen && (tab === "list" || tab === "synthese") ? (
         <TouchableOpacity
           style={[
             styles.fab,
@@ -1736,6 +1760,13 @@ const styles = StyleSheet.create({
     borderColor: `${colors.accentTeal}33`,
     backgroundColor: colors.surface,
     gap: 14,
+    flexShrink: 1,
+  },
+  filterScrollArea: {
+    flexShrink: 1,
+  },
+  filterScrollContent: {
+    gap: 14,
   },
   filterPanelHeader: {
     flexDirection: "row",
@@ -1831,7 +1862,7 @@ const styles = StyleSheet.create({
   filterActionApply: {
     flex: 1.3,
     borderRadius: 8,
-    backgroundColor: colors.accentTeal,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",

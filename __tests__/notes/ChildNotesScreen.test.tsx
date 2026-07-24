@@ -350,6 +350,23 @@ describe("ChildNotesScreen", () => {
     expect(inactiveViewStyle.borderColor).toBe(colors.border);
   });
 
+  it("le bouton Appliquer a une couleur distincte des puces actives", () => {
+    render(<ChildNotesScreen />);
+
+    openNotesFilters();
+
+    const activeTerm = screen.getByTestId("child-notes-filter-term-TERM_1");
+    const applyButton = screen.getByTestId("child-notes-filter-apply");
+
+    const activeTermStyle = StyleSheet.flatten(activeTerm.props.style);
+    const applyStyle = StyleSheet.flatten(applyButton.props.style);
+
+    expect(applyStyle.backgroundColor).toBe(colors.primary);
+    expect(applyStyle.backgroundColor).not.toBe(
+      activeTermStyle.backgroundColor,
+    );
+  });
+
   it("ouvre le détail d'une évaluation", () => {
     render(<ChildNotesScreen />);
 

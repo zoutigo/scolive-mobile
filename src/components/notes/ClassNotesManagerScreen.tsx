@@ -15,6 +15,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,6 +24,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
 import { notesApi } from "../../api/notes.api";
+import { teachersApi } from "../../api/teachers.api";
 import { useAuthStore } from "../../store/auth.store";
 import { useNotesStore } from "../../store/notes.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
@@ -34,6 +36,11 @@ import type {
   TermReport,
   UpsertEvaluationPayload,
 } from "../../types/notes.types";
+import type { TeacherClassroomOption } from "../../types/teachers.types";
+import {
+  StudentSelectField,
+  type StudentSelectOption,
+} from "../discipline/StudentSelectField";
 import {
   StudentScoreCard,
   type StudentScoreSaveData,
@@ -117,17 +124,37 @@ export function ClassNotesManagerScreen({
   showHeader?: boolean;
 } = {}) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const router = useRouter();
   const params = useLocalSearchParams<{
     classId?: string;
     schoolYearId?: string;
     preStudentId?: string;
+    preEvaluationId?: string;
+    openCreate?: string;
   }>();
-  const classId = typeof params.classId === "string" ? params.classId : "";
+  const routeClassId = typeof params.classId === "string" ? params.classId : "";
+  const [classId, setClassId] = useState(routeClassId);
+  useEffect(() => {
+    if (routeClassId && routeClassId !== classId) {
+      setClassId(routeClassId);
+    }
+  }, [routeClassId, classId]);
+  const isAdminBrowsing = !routeClassId;
+  const [adminClassrooms, setAdminClassrooms] = useState<
+    TeacherClassroomOption[]
+  >([]);
+  const [isLoadingAdminClassrooms, setIsLoadingAdminClassrooms] =
+    useState(false);
   const preStudentId =
     typeof params.preStudentId === "string" && params.preStudentId
       ? params.preStudentId
       : null;
+  const preEvaluationId =
+    typeof params.preEvaluationId === "string" && params.preEvaluationId
+      ? params.preEvaluationId
+      : null;
+  const openCreate = params.openCreate === "1";
   const { schoolSlug, user } = useAuthStore();
   const {
     teacherContext,
@@ -168,6 +195,8 @@ export function ClassNotesManagerScreen({
     useState<EvalFilters>(NO_EVAL_FILTERS);
   const [appliedEvalFilters, setAppliedEvalFilters] =
     useState<EvalFilters>(NO_EVAL_FILTERS);
+  const [draftLevelId, setDraftLevelId] = useState("");
+  const [draftClassId, setDraftClassId] = useState(classId);
   const [scoresFilterStudentId, setScoresFilterStudentId] = useState<
     string | null
   >(preStudentId);
@@ -179,7 +208,9 @@ export function ClassNotesManagerScreen({
   const [evaluationForm, setEvaluationForm] = useState<UpsertEvaluationPayload>(
     createEmptyEvaluationForm(),
   );
-  const [selectedEvaluationId, setSelectedEvaluationId] = useState("");
+  const [selectedEvaluationId, setSelectedEvaluationId] = useState(
+    preEvaluationId ?? "",
+  );
   const selectedEvaluation = evaluationDetails[selectedEvaluationId] ?? null;
   const [councilTerm, setCouncilTerm] = useState<StudentNotesTerm>("TERM_1");
   const [councilStatus, setCouncilStatus] = useState<"DRAFT" | "PUBLISHED">(
@@ -204,6 +235,24 @@ export function ClassNotesManagerScreen({
     () => sortEvaluations(evaluations),
     [evaluations],
   );
+  const adminLevelOptions = useMemo<StudentSelectOption[]>(() => {
+    const seen = new Map<string, string>();
+    adminClassrooms.forEach((c) => {
+      if (c.academicLevel && !seen.has(c.academicLevel.id)) {
+        seen.set(c.academicLevel.id, c.academicLevel.label);
+      }
+    });
+    return Array.from(seen.entries()).map(([value, label]) => ({
+      value,
+      label,
+    }));
+  }, [adminClassrooms]);
+  const adminClassOptions = useMemo<StudentSelectOption[]>(() => {
+    const filtered = draftLevelId
+      ? adminClassrooms.filter((c) => c.academicLevel?.id === draftLevelId)
+      : adminClassrooms;
+    return filtered.map((c) => ({ value: c.id, label: c.name }));
+  }, [adminClassrooms, draftLevelId]);
   const filteredEvaluations = useMemo(() => {
     const q = evalSearchQuery.trim().toLowerCase();
     const studentCount = teacherContext?.students.length ?? 0;
@@ -302,12 +351,48 @@ export function ClassNotesManagerScreen({
     void load().catch(() => {});
   }, [load]);
 
+  const loadAdminClassrooms = useCallback(async () => {
+    if (!schoolSlug || !isAdminBrowsing) return;
+    setIsLoadingAdminClassrooms(true);
+    try {
+      const rows = await teachersApi.listClassrooms(schoolSlug);
+      setAdminClassrooms(rows);
+    } catch {
+      // le panneau de filtres restera simplement vide en cas d'échec
+    } finally {
+      setIsLoadingAdminClassrooms(false);
+    }
+  }, [schoolSlug, isAdminBrowsing]);
+
+  useEffect(() => {
+    void loadAdminClassrooms();
+  }, [loadAdminClassrooms]);
+
+  useEffect(() => {
+    if (isAdminBrowsing && !classId && adminClassrooms.length > 0) {
+      setClassId(adminClassrooms[0].id);
+    }
+  }, [isAdminBrowsing, classId, adminClassrooms]);
+
   useEffect(() => {
     if (!schoolSlug || !classId || !selectedEvaluationId) return;
     void loadEvaluationDetail(schoolSlug, classId, selectedEvaluationId).catch(
       () => {},
     );
   }, [classId, loadEvaluationDetail, schoolSlug, selectedEvaluationId]);
+
+  useEffect(() => {
+    if (preEvaluationId && evaluationDetails[preEvaluationId]) {
+      setEvaluationView("detail");
+    }
+  }, [preEvaluationId, evaluationDetails]);
+
+  useEffect(() => {
+    if (openCreate) {
+      resetEvaluationForm();
+      setEvaluationView("form");
+    }
+  }, [openCreate]);
 
   function hydrateCouncilState(reports: TermReport[]) {
     const report =
@@ -341,10 +426,15 @@ export function ClassNotesManagerScreen({
 
   function openEvalFilters() {
     setDraftEvalFilters(appliedEvalFilters);
+    setDraftClassId(classId);
+    setDraftLevelId(
+      adminClassrooms.find((c) => c.id === classId)?.academicLevel?.id ?? "",
+    );
     setEvalFiltersOpen(true);
   }
   function closeEvalFilters() {
     setDraftEvalFilters(appliedEvalFilters);
+    setDraftClassId(classId);
     setEvalFiltersOpen(false);
   }
   function toggleEvalFilters() {
@@ -353,6 +443,9 @@ export function ClassNotesManagerScreen({
   }
   function applyEvalFilters() {
     setAppliedEvalFilters(draftEvalFilters);
+    if (isAdminBrowsing && draftClassId && draftClassId !== classId) {
+      setClassId(draftClassId);
+    }
     setEvalFiltersOpen(false);
   }
   function resetEvalFilters() {
@@ -605,187 +698,240 @@ export function ClassNotesManagerScreen({
           </View>
 
           {evalFiltersOpen ? (
-            <View style={styles.filterPanel} testID="class-notes-filter-panel">
-              <View style={styles.filterPanelHeader}>
-                <View style={styles.filterPanelHeaderIcon}>
-                  <Ionicons
-                    name="options-outline"
-                    size={16}
-                    color={colors.accentTealDark}
-                  />
-                </View>
-                <Text style={styles.filterPanelHeaderTitle}>
-                  {t("notes.manager.filters.toggleAccessibilityLabel")}
-                </Text>
-              </View>
-
-              <View style={styles.filterGroup}>
-                <Text style={styles.filterGroupLabel}>
-                  {t("notes.manager.filters.typeLabel")}
-                </Text>
-                <View style={styles.filterChipsRow}>
-                  <TouchableOpacity
-                    style={[
-                      styles.filterChip,
-                      draftEvalFilters.evaluationTypeId == null &&
-                        styles.filterChipActive,
-                    ]}
-                    onPress={() =>
-                      setDraftEvalFilters((current) => ({
-                        ...current,
-                        evaluationTypeId: null,
-                      }))
-                    }
-                    testID="class-notes-filter-type-all"
+            <View
+              style={[
+                styles.filterPanel,
+                {
+                  maxHeight:
+                    windowHeight -
+                    insets.top -
+                    insets.bottom -
+                    BOTTOM_TAB_BAR_HEIGHT -
+                    170,
+                },
+              ]}
+              testID="class-notes-filter-panel"
+            >
+              <ScrollView
+                style={styles.filterScrollArea}
+                contentContainerStyle={styles.filterScrollContent}
+                nestedScrollEnabled
+                showsVerticalScrollIndicator
+                testID="class-notes-filter-scroll"
+              >
+                {isAdminBrowsing && isLoadingAdminClassrooms ? (
+                  <Text
+                    style={styles.filterGroupLabel}
+                    testID="class-notes-filter-classrooms-loading"
                   >
-                    <Text
+                    {t("notes.admin.loading.classes")}
+                  </Text>
+                ) : null}
+
+                {isAdminBrowsing && adminClassrooms.length > 0 ? (
+                  <>
+                    <View style={styles.filterGroup}>
+                      <StudentSelectField
+                        label={t("notes.admin.filters.level")}
+                        value={draftLevelId}
+                        options={adminLevelOptions}
+                        onChange={(value) => {
+                          setDraftLevelId(value);
+                          setDraftClassId((current) => {
+                            const stillValid = adminClassrooms.find(
+                              (c) => c.id === current,
+                            )?.academicLevel?.id;
+                            return value && stillValid !== value ? "" : current;
+                          });
+                        }}
+                        allowEmpty
+                        emptyOptionLabel={t("notes.admin.filters.allLevels")}
+                        testIDPrefix="class-notes-filter-level"
+                      />
+                    </View>
+                    <View style={styles.filterGroup}>
+                      <StudentSelectField
+                        label={t("notes.admin.filters.class")}
+                        value={draftClassId}
+                        options={adminClassOptions}
+                        onChange={setDraftClassId}
+                        allowEmpty={false}
+                        testIDPrefix="class-notes-filter-class"
+                      />
+                    </View>
+                  </>
+                ) : null}
+
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterGroupLabel}>
+                    {t("notes.manager.filters.typeLabel")}
+                  </Text>
+                  <View style={styles.filterChipsRow}>
+                    <TouchableOpacity
                       style={[
-                        styles.filterChipLabel,
+                        styles.filterChip,
                         draftEvalFilters.evaluationTypeId == null &&
-                          styles.filterChipLabelActive,
-                      ]}
-                    >
-                      {t("notes.manager.filters.allOption")}
-                    </Text>
-                  </TouchableOpacity>
-                  {(teacherContext?.evaluationTypes ?? []).map((type) => (
-                    <TouchableOpacity
-                      key={type.id}
-                      style={[
-                        styles.filterChip,
-                        draftEvalFilters.evaluationTypeId === type.id &&
                           styles.filterChipActive,
                       ]}
                       onPress={() =>
                         setDraftEvalFilters((current) => ({
                           ...current,
-                          evaluationTypeId: type.id,
+                          evaluationTypeId: null,
                         }))
                       }
-                      testID={`class-notes-filter-type-${type.id}`}
+                      testID="class-notes-filter-type-all"
                     >
                       <Text
                         style={[
                           styles.filterChipLabel,
+                          draftEvalFilters.evaluationTypeId == null &&
+                            styles.filterChipLabelActive,
+                        ]}
+                      >
+                        {t("notes.manager.filters.allOption")}
+                      </Text>
+                    </TouchableOpacity>
+                    {(teacherContext?.evaluationTypes ?? []).map((type) => (
+                      <TouchableOpacity
+                        key={type.id}
+                        style={[
+                          styles.filterChip,
                           draftEvalFilters.evaluationTypeId === type.id &&
-                            styles.filterChipLabelActive,
+                            styles.filterChipActive,
                         ]}
+                        onPress={() =>
+                          setDraftEvalFilters((current) => ({
+                            ...current,
+                            evaluationTypeId: type.id,
+                          }))
+                        }
+                        testID={`class-notes-filter-type-${type.id}`}
                       >
-                        {type.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text
+                          style={[
+                            styles.filterChipLabel,
+                            draftEvalFilters.evaluationTypeId === type.id &&
+                              styles.filterChipLabelActive,
+                          ]}
+                        >
+                          {type.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.filterGroup}>
-                <Text style={styles.filterGroupLabel}>
-                  {t("notes.manager.filters.sequenceLabel")}
-                </Text>
-                <View style={styles.filterChipsRow}>
-                  <TouchableOpacity
-                    style={[
-                      styles.filterChip,
-                      draftEvalFilters.sequence == null &&
-                        styles.filterChipActive,
-                    ]}
-                    onPress={() =>
-                      setDraftEvalFilters((current) => ({
-                        ...current,
-                        sequence: null,
-                      }))
-                    }
-                    testID="class-notes-filter-sequence-all"
-                  >
-                    <Text
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterGroupLabel}>
+                    {t("notes.manager.filters.sequenceLabel")}
+                  </Text>
+                  <View style={styles.filterChipsRow}>
+                    <TouchableOpacity
                       style={[
-                        styles.filterChipLabel,
+                        styles.filterChip,
                         draftEvalFilters.sequence == null &&
-                          styles.filterChipLabelActive,
-                      ]}
-                    >
-                      {t("notes.manager.filters.allOption")}
-                    </Text>
-                  </TouchableOpacity>
-                  {ALL_SEQUENCES.map((seq) => (
-                    <TouchableOpacity
-                      key={seq}
-                      style={[
-                        styles.filterChip,
-                        draftEvalFilters.sequence === seq &&
                           styles.filterChipActive,
                       ]}
                       onPress={() =>
                         setDraftEvalFilters((current) => ({
                           ...current,
-                          sequence: seq,
+                          sequence: null,
                         }))
                       }
-                      testID={`class-notes-filter-sequence-${seq}`}
+                      testID="class-notes-filter-sequence-all"
                     >
                       <Text
                         style={[
                           styles.filterChipLabel,
+                          draftEvalFilters.sequence == null &&
+                            styles.filterChipLabelActive,
+                        ]}
+                      >
+                        {t("notes.manager.filters.allOption")}
+                      </Text>
+                    </TouchableOpacity>
+                    {ALL_SEQUENCES.map((seq) => (
+                      <TouchableOpacity
+                        key={seq}
+                        style={[
+                          styles.filterChip,
                           draftEvalFilters.sequence === seq &&
-                            styles.filterChipLabelActive,
+                            styles.filterChipActive,
                         ]}
+                        onPress={() =>
+                          setDraftEvalFilters((current) => ({
+                            ...current,
+                            sequence: seq,
+                          }))
+                        }
+                        testID={`class-notes-filter-sequence-${seq}`}
                       >
-                        {sequenceShortLabel(seq)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text
+                          style={[
+                            styles.filterChipLabel,
+                            draftEvalFilters.sequence === seq &&
+                              styles.filterChipLabelActive,
+                          ]}
+                        >
+                          {sequenceShortLabel(seq)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.filterGroup}>
-                <Text style={styles.filterGroupLabel}>
-                  {t("notes.manager.filters.completionLabel")}
-                </Text>
-                <View style={styles.filterChipsRow}>
-                  {(
-                    [
-                      {
-                        value: "all",
-                        label: t("notes.manager.filters.allOption"),
-                      },
-                      {
-                        value: "complete",
-                        label: t("notes.manager.filters.completionComplete"),
-                      },
-                      {
-                        value: "incomplete",
-                        label: t("notes.manager.filters.completionIncomplete"),
-                      },
-                    ] as Array<{ value: EvalCompletionFilter; label: string }>
-                  ).map((option) => (
-                    <TouchableOpacity
-                      key={option.value}
-                      style={[
-                        styles.filterChip,
-                        draftEvalFilters.completion === option.value &&
-                          styles.filterChipActive,
-                      ]}
-                      onPress={() =>
-                        setDraftEvalFilters((current) => ({
-                          ...current,
-                          completion: option.value,
-                        }))
-                      }
-                      testID={`class-notes-filter-completion-${option.value}`}
-                    >
-                      <Text
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterGroupLabel}>
+                    {t("notes.manager.filters.completionLabel")}
+                  </Text>
+                  <View style={styles.filterChipsRow}>
+                    {(
+                      [
+                        {
+                          value: "all",
+                          label: t("notes.manager.filters.allOption"),
+                        },
+                        {
+                          value: "complete",
+                          label: t("notes.manager.filters.completionComplete"),
+                        },
+                        {
+                          value: "incomplete",
+                          label: t(
+                            "notes.manager.filters.completionIncomplete",
+                          ),
+                        },
+                      ] as Array<{ value: EvalCompletionFilter; label: string }>
+                    ).map((option) => (
+                      <TouchableOpacity
+                        key={option.value}
                         style={[
-                          styles.filterChipLabel,
+                          styles.filterChip,
                           draftEvalFilters.completion === option.value &&
-                            styles.filterChipLabelActive,
+                            styles.filterChipActive,
                         ]}
+                        onPress={() =>
+                          setDraftEvalFilters((current) => ({
+                            ...current,
+                            completion: option.value,
+                          }))
+                        }
+                        testID={`class-notes-filter-completion-${option.value}`}
                       >
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                        <Text
+                          style={[
+                            styles.filterChipLabel,
+                            draftEvalFilters.completion === option.value &&
+                              styles.filterChipLabelActive,
+                          ]}
+                        >
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
-              </View>
+              </ScrollView>
 
               <View style={styles.filterActionsRow}>
                 <TouchableOpacity
@@ -849,6 +995,10 @@ export function ClassNotesManagerScreen({
                     {item.subject.name}
                     {item.subjectBranch?.name
                       ? ` • ${item.subjectBranch.name}`
+                      : ""}
+                    {item.class?.name ? ` • ${item.class.name}` : ""}
+                    {item.author
+                      ? ` • ${item.author.firstName} ${item.author.lastName}`
                       : ""}
                   </Text>
                   <Text style={styles.evaluationMeta}>
@@ -1540,24 +1690,13 @@ const styles = StyleSheet.create({
     borderColor: `${colors.accentTeal}33`,
     backgroundColor: colors.surface,
     gap: 14,
+    flexShrink: 1,
   },
-  filterPanelHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+  filterScrollArea: {
+    flexShrink: 1,
   },
-  filterPanelHeaderIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: `${colors.accentTeal}1F`,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  filterPanelHeaderTitle: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: colors.accentTealDark,
+  filterScrollContent: {
+    gap: 14,
   },
   filterGroup: {
     gap: 8,
@@ -1640,7 +1779,7 @@ const styles = StyleSheet.create({
   filterActionApply: {
     flex: 1.3,
     borderRadius: 8,
-    backgroundColor: colors.accentTeal,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",

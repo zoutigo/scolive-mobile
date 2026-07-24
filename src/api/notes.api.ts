@@ -139,6 +139,17 @@ export const notesApi = {
     );
   },
 
+  listSchoolEvaluations(
+    schoolSlug: string,
+    filters: { academicLevelId?: string; classId?: string } = {},
+  ): Promise<EvaluationRow[]> {
+    return apiFetch(
+      `/schools/${schoolSlug}/evaluations${toQuery(filters)}`,
+      {},
+      true,
+    );
+  },
+
   createEvaluation(
     schoolSlug: string,
     classId: string,
