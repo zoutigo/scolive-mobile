@@ -454,13 +454,15 @@ describe("Filtres évaluations", () => {
     fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
     fireEvent.press(screen.getByTestId("class-notes-filter-reset"));
 
+    // Le panneau reste ouvert après Reset
+    expect(screen.getByTestId("class-notes-filter-panel")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("class-notes-filter-close"));
     await waitFor(() => {
       expect(screen.getByTestId("class-evaluation-row-eval-1")).toBeTruthy();
       expect(screen.getByTestId("class-evaluation-row-eval-2")).toBeTruthy();
       expect(screen.getByTestId("class-evaluation-row-eval-3")).toBeTruthy();
     });
-    // Le panneau reste ouvert après Reset
-    expect(screen.getByTestId("class-notes-filter-panel")).toBeTruthy();
   });
 
   it("Close abandonne le brouillon en cours sans appliquer de filtre", async () => {
@@ -991,36 +993,36 @@ describe("Mode admin — arrivée sans classId", () => {
     ] as never);
   });
 
-  it("sélectionne automatiquement la première classe disponible", async () => {
+  it("n'affiche aucun contexte de classe et ne charge rien tant qu'aucune classe n'est choisie", async () => {
     render(<ClassNotesManagerScreen />);
     await flushAsync();
 
-    await waitFor(() => {
-      const { loadTeacherContext } = useNotesStore.getState();
-      expect(loadTeacherContext).toHaveBeenCalledWith(
-        "college-vogt",
-        "class-1",
-      );
-    });
+    expect(screen.queryByTestId("class-notes-subtitle")).toBeNull();
+    expect(useNotesStore.getState().loadTeacherContext).not.toHaveBeenCalled();
   });
 
-  it("affiche les filtres Niveau et Classe dans le panneau de filtres", async () => {
+  it("ouvre automatiquement le panneau de filtres à l'arrivée", async () => {
     render(<ClassNotesManagerScreen />);
     await flushAsync();
 
-    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
-
-    expect(
-      await screen.findByTestId("class-notes-filter-level-trigger"),
-    ).toBeTruthy();
+    expect(await screen.findByTestId("class-notes-filter-panel")).toBeTruthy();
+    expect(screen.getByTestId("class-notes-filter-level-trigger")).toBeTruthy();
     expect(screen.getByTestId("class-notes-filter-class-trigger")).toBeTruthy();
+  });
+
+  it("affiche une invite à choisir une classe si le panneau de filtres est fermé sans sélection", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+    fireEvent.press(await screen.findByTestId("class-notes-filter-close"));
+
+    expect(await screen.findByText("Aucune classe sélectionnée")).toBeTruthy();
+    expect(screen.queryByTestId("class-notes-fab-create")).toBeNull();
   });
 
   it("limite les classes proposées au niveau sélectionné", async () => {
     render(<ClassNotesManagerScreen />);
     await flushAsync();
 
-    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
     fireEvent.press(
       await screen.findByTestId("class-notes-filter-level-trigger"),
     );
@@ -1046,18 +1048,10 @@ describe("Mode admin — arrivée sans classId", () => {
     ).toBeNull();
   });
 
-  it("change de classe via le filtre et recharge le contexte de la nouvelle classe", async () => {
+  it("charge le contexte de la classe choisie via le filtre, et uniquement celle-ci", async () => {
     render(<ClassNotesManagerScreen />);
     await flushAsync();
 
-    await waitFor(() => {
-      expect(useNotesStore.getState().loadTeacherContext).toHaveBeenCalledWith(
-        "college-vogt",
-        "class-1",
-      );
-    });
-
-    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
     fireEvent.press(
       await screen.findByTestId("class-notes-filter-class-trigger"),
     );
@@ -1074,6 +1068,9 @@ describe("Mode admin — arrivée sans classId", () => {
         "class-2",
       );
     });
+    expect(
+      useNotesStore.getState().loadTeacherContext,
+    ).not.toHaveBeenCalledWith("college-vogt", "class-1");
   });
 });
 
