@@ -116,7 +116,12 @@ beforeEach(() => {
   useTeacherClassDisciplineDraftStore.getState().reset();
 
   mockNotesApi.getTeacherContext.mockResolvedValue({
-    class: { id: "class-1", name: "6e A", schoolYearId: "sy-1" },
+    class: {
+      id: "class-1",
+      name: "6e A",
+      schoolYearId: "sy-1",
+      isReferentTeacher: false,
+    },
     subjects: [],
     evaluationTypes: [],
     students: [student1, student2],

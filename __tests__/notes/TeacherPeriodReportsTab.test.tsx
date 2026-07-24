@@ -16,7 +16,12 @@ import type { CouncilDrafts } from "../../src/types/notes.types";
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
 const TEACHER_CONTEXT = {
-  class: { id: "c1", name: "6e A", schoolYearId: "y1" },
+  class: {
+    id: "c1",
+    name: "6e A",
+    schoolYearId: "y1",
+    isReferentTeacher: true,
+  },
   subjects: [
     { id: "sub-1", name: "Mathématiques", branches: [] },
     { id: "sub-2", name: "Physique", branches: [] },
@@ -73,6 +78,8 @@ const SNAPSHOT_TERM_1 = {
       classAverage: 12,
       classMin: 5,
       classMax: 18,
+      rank: 3,
+      classSize: 24,
       evaluations: [
         {
           id: "ev-1",
@@ -394,5 +401,181 @@ describe("Détail bulletin + appréciations inline", () => {
 
     expect(screen.queryByTestId("teacher-reports-general-input")).toBeNull();
     expect(props.onSaveAppreciation).not.toHaveBeenCalled();
+  });
+
+  it("affiche le rang de l'élève et la moyenne de classe pour la matière", async () => {
+    await openDetail();
+
+    expect(
+      screen.getByTestId("teacher-reports-subject-sub-1-rank"),
+    ).toBeTruthy();
+    expect(screen.getByText("Rang 3/24 · Moy. classe 12/20")).toBeTruthy();
+  });
+
+  it("ne bloque pas le submit tant que le champ n'est pas vide, mais affiche une erreur sur un champ vide", async () => {
+    const props = baseProps();
+    render(<TeacherPeriodReportsTab {...props} />);
+    await flushAsync();
+    fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_1"),
+    );
+
+    fireEvent.press(screen.getByTestId("teacher-reports-general-display"));
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-reports-general-input")).toBeTruthy(),
+    );
+    fireEvent.changeText(
+      screen.getByTestId("teacher-reports-general-input"),
+      "   ",
+    );
+    fireEvent.press(screen.getByTestId("teacher-reports-general-save"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-reports-general-error")).toBeTruthy(),
+    );
+    expect(props.onSaveAppreciation).not.toHaveBeenCalled();
+    // Le formulaire reste ouvert, prêt pour une correction.
+    expect(screen.getByTestId("teacher-reports-general-input")).toBeTruthy();
+  });
+
+  it("garde le formulaire ouvert quand l'enregistrement échoue", async () => {
+    const props = baseProps();
+    props.onSaveAppreciation.mockRejectedValueOnce(new Error("network"));
+    render(<TeacherPeriodReportsTab {...props} />);
+    await flushAsync();
+    fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_1"),
+    );
+
+    fireEvent.press(screen.getByTestId("teacher-reports-general-display"));
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-reports-general-input")).toBeTruthy(),
+    );
+    fireEvent.changeText(
+      screen.getByTestId("teacher-reports-general-input"),
+      "Tentative en échec",
+    );
+    fireEvent.press(screen.getByTestId("teacher-reports-general-save"));
+
+    await waitFor(() => expect(props.onSaveAppreciation).toHaveBeenCalled());
+    // Le formulaire reste ouvert après un échec (pas de fermeture silencieuse).
+    expect(screen.getByTestId("teacher-reports-general-input")).toBeTruthy();
+  });
+
+  it("ferme le formulaire d'appréciation générale après un succès", async () => {
+    const props = baseProps();
+    render(<TeacherPeriodReportsTab {...props} />);
+    await flushAsync();
+    fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_1"),
+    );
+
+    fireEvent.press(screen.getByTestId("teacher-reports-general-display"));
+    await waitFor(() =>
+      expect(screen.getByTestId("teacher-reports-general-input")).toBeTruthy(),
+    );
+    fireEvent.changeText(
+      screen.getByTestId("teacher-reports-general-input"),
+      "Excellent trimestre",
+    );
+    fireEvent.press(screen.getByTestId("teacher-reports-general-save"));
+
+    await waitFor(() => expect(props.onSaveAppreciation).toHaveBeenCalled());
+    await flushAsync();
+
+    expect(screen.queryByTestId("teacher-reports-general-input")).toBeNull();
+    expect(screen.getByTestId("teacher-reports-general-display")).toBeTruthy();
+  });
+});
+
+describe("Permissions — appréciations", () => {
+  async function openDetailWith(context: typeof TEACHER_CONTEXT, drafts = {}) {
+    render(
+      <TeacherPeriodReportsTab
+        {...baseProps(drafts)}
+        teacherContext={context}
+      />,
+    );
+    await flushAsync();
+    fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_1"),
+    );
+    await flushAsync();
+  }
+
+  it("n'affiche pas le bouton d'appréciation pour une matière que l'enseignant ne donne pas", async () => {
+    const context = {
+      ...TEACHER_CONTEXT,
+      subjects: [{ id: "sub-2", name: "Physique", branches: [] }],
+    };
+    await openDetailWith(context);
+
+    expect(
+      screen.queryByTestId("teacher-reports-subject-sub-1-display"),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId("teacher-reports-subject-sub-1-readonly"),
+    ).toBeNull();
+  });
+
+  it("affiche l'appréciation en lecture seule pour une matière non enseignée, si elle existe", async () => {
+    const context = {
+      ...TEACHER_CONTEXT,
+      subjects: [{ id: "sub-2", name: "Physique", branches: [] }],
+    };
+    await openDetailWith(context, {
+      "stu-1": {
+        generalAppreciation: "",
+        subjects: { "sub-1": "Bon travail" },
+      },
+    });
+
+    expect(
+      screen.queryByTestId("teacher-reports-subject-sub-1-display"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("teacher-reports-subject-sub-1-readonly"),
+    ).toBeTruthy();
+    expect(screen.getByText("Bon travail")).toBeTruthy();
+  });
+
+  it("n'affiche pas le bloc d'appréciation générale pour un enseignant non référent sans appréciation existante", async () => {
+    const context = {
+      ...TEACHER_CONTEXT,
+      class: { ...TEACHER_CONTEXT.class, isReferentTeacher: false },
+    };
+    await openDetailWith(context);
+
+    expect(screen.queryByTestId("teacher-reports-general-display")).toBeNull();
+    expect(screen.queryByTestId("teacher-reports-general-readonly")).toBeNull();
+    expect(screen.queryByText("Appréciation générale")).toBeNull();
+  });
+
+  it("affiche l'appréciation générale en lecture seule pour un enseignant non référent quand elle existe", async () => {
+    const context = {
+      ...TEACHER_CONTEXT,
+      class: { ...TEACHER_CONTEXT.class, isReferentTeacher: false },
+    };
+    await openDetailWith(context, {
+      "stu-1": { generalAppreciation: "Élève sérieux", subjects: {} },
+    });
+
+    expect(screen.queryByTestId("teacher-reports-general-display")).toBeNull();
+    expect(screen.getByTestId("teacher-reports-general-readonly")).toBeTruthy();
+    expect(screen.getByText("Élève sérieux")).toBeTruthy();
+  });
+
+  it("affiche le bouton d'appréciation générale pour l'enseignant référent, même sans appréciation existante", async () => {
+    await openDetailWith(TEACHER_CONTEXT);
+
+    expect(screen.getByTestId("teacher-reports-general-display")).toBeTruthy();
   });
 });

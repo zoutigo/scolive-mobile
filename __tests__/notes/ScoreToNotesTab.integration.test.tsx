@@ -35,7 +35,12 @@ jest.mock("react-native-safe-area-context", () => ({
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 const TEACHER_CONTEXT = {
-  class: { id: "class-1", name: "6e A", schoolYearId: "y1" },
+  class: {
+    id: "class-1",
+    name: "6e A",
+    schoolYearId: "y1",
+    isReferentTeacher: false,
+  },
   subjects: [
     {
       id: "sub-math",

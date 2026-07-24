@@ -14,7 +14,12 @@ jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
 const TEACHER_CONTEXT = {
-  class: { id: "c1", name: "6e A", schoolYearId: "y1" },
+  class: {
+    id: "c1",
+    name: "6e A",
+    schoolYearId: "y1",
+    isReferentTeacher: false,
+  },
   subjects: [
     {
       id: "sub-1",

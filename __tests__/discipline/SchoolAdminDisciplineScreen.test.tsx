@@ -113,7 +113,12 @@ function setupDefaultMocks() {
     CLASS_OLD,
   ]);
   mockNotesApi.getTeacherContext.mockResolvedValue({
-    class: { id: "class-6a", name: "6e A", schoolYearId: "sy-2026" },
+    class: {
+      id: "class-6a",
+      name: "6e A",
+      schoolYearId: "sy-2026",
+      isReferentTeacher: false,
+    },
     subjects: [],
     evaluationTypes: [],
     students: [STUDENT_MBELE, STUDENT_NTAMACK],

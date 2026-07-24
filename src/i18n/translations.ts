@@ -1905,6 +1905,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.reports.detail.sequenceAverage": "Moyenne séquence :",
     "notes.reports.detail.termAverage": "Moyenne du trimestre",
     "notes.reports.meta.saveMeta": "Enregistrer",
+    "notes.reports.detail.rankAndClassAverage":
+      "Rang {rank}/{total} · Moy. classe {classAverage}/20",
+    "notes.reports.detail.appreciationPlaceholder": "Saisir une appréciation…",
+    "notes.reports.detail.appreciationRequired":
+      "L'appréciation ne peut pas être vide.",
 
     "notes.child.tabs.notes": "Notes",
     "notes.child.tabs.reports": "Bulletins",
@@ -4356,6 +4361,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.reports.detail.sequenceAverage": "Sequence average:",
     "notes.reports.detail.termAverage": "Term average",
     "notes.reports.meta.saveMeta": "Save",
+    "notes.reports.detail.rankAndClassAverage":
+      "Rank {rank}/{total} · Class avg. {classAverage}/20",
+    "notes.reports.detail.appreciationPlaceholder": "Enter an assessment…",
+    "notes.reports.detail.appreciationRequired":
+      "The assessment cannot be empty.",
 
     "notes.child.tabs.notes": "Notes",
     "notes.child.tabs.reports": "Reports",

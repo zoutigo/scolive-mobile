@@ -15,6 +15,9 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { colors } from "../../theme";
 import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 import { useNotesStore } from "../../store/notes.store";
@@ -26,6 +29,16 @@ import type {
   NotesTeacherContext,
   StudentNotesTerm,
 } from "../../types/notes.types";
+
+function createAppreciationSchema(t: TranslateFn) {
+  return z.object({
+    value: z
+      .string()
+      .trim()
+      .min(1, t("notes.reports.detail.appreciationRequired")),
+  });
+}
+type AppreciationFormInput = { value: string };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -100,9 +113,7 @@ export const TeacherPeriodReportsTab = forwardRef<
   );
   const [detail, setDetail] = useState<DetailTarget | null>(null);
   const [editingGeneral, setEditingGeneral] = useState(false);
-  const [generalDraft, setGeneralDraft] = useState("");
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
-  const [subjectDraft, setSubjectDraft] = useState("");
 
   const loadFor = useCallback(
     async (studentId: string) => {
@@ -169,28 +180,18 @@ export const TeacherPeriodReportsTab = forwardRef<
     [detail],
   );
 
-  function startEditGeneral() {
-    setGeneralDraft(drafts[detail?.studentId ?? ""]?.generalAppreciation ?? "");
-    setEditingGeneral(true);
-  }
-  async function saveGeneral() {
+  async function saveGeneral(value: string) {
     if (!detail) return;
     await onSaveAppreciation(detail.studentId, {
-      generalAppreciation: generalDraft,
+      generalAppreciation: value,
     });
     setEditingGeneral(false);
   }
 
-  function startEditSubject(subjectId: string) {
-    setSubjectDraft(
-      drafts[detail?.studentId ?? ""]?.subjects?.[subjectId] ?? "",
-    );
-    setEditingSubjectId(subjectId);
-  }
-  async function saveSubject(subjectId: string) {
+  async function saveSubject(subjectId: string, value: string) {
     if (!detail) return;
     await onSaveAppreciation(detail.studentId, {
-      subject: { subjectId, value: subjectDraft },
+      subject: { subjectId, value },
     });
     setEditingSubjectId(null);
   }
@@ -213,6 +214,7 @@ export const TeacherPeriodReportsTab = forwardRef<
     const snapshot =
       snapshots.find((entry) => entry.term === detail.term) ?? null;
     const generalText = drafts[detail.studentId]?.generalAppreciation ?? "";
+    const isReferentTeacher = teacherContext.class.isReferentTeacher;
 
     return (
       <ScrollView
@@ -233,23 +235,32 @@ export const TeacherPeriodReportsTab = forwardRef<
               />
             </View>
 
-            <View style={styles.appreciationsBlock}>
-              <Text style={styles.appreciationsTitle}>
-                {t("notes.reports.detail.generalTitle")}
-              </Text>
-              <AppreciationEditor
-                value={generalText}
-                editing={editingGeneral}
-                draft={generalDraft}
-                onDraftChange={setGeneralDraft}
-                onStartEdit={startEditGeneral}
-                onCancel={() => setEditingGeneral(false)}
-                onSave={saveGeneral}
-                isSaving={isSubmitting}
-                t={t}
-                testIDPrefix="teacher-reports-general"
-              />
-            </View>
+            {isReferentTeacher || generalText ? (
+              <View style={styles.appreciationsBlock}>
+                <Text style={styles.appreciationsTitle}>
+                  {t("notes.reports.detail.generalTitle")}
+                </Text>
+                {isReferentTeacher ? (
+                  <AppreciationEditor
+                    value={generalText}
+                    editing={editingGeneral}
+                    onStartEdit={() => setEditingGeneral(true)}
+                    onCancel={() => setEditingGeneral(false)}
+                    onSave={saveGeneral}
+                    isSaving={isSubmitting}
+                    t={t}
+                    testIDPrefix="teacher-reports-general"
+                  />
+                ) : (
+                  <Text
+                    style={styles.appreciationReadOnlyText}
+                    testID="teacher-reports-general-readonly"
+                  >
+                    {generalText}
+                  </Text>
+                )}
+              </View>
+            ) : null}
 
             <View
               style={styles.subjectsBlock}
@@ -263,6 +274,11 @@ export const TeacherPeriodReportsTab = forwardRef<
                     data: seq.subjects.find((s) => s.id === subject.id),
                   }))
                   .filter((row) => row.data);
+                const isSubjectTeacher = teacherContext.subjects.some(
+                  (s) => s.id === subject.id,
+                );
+                const subjectAppreciationValue =
+                  drafts[detail.studentId]?.subjects?.[subject.id] ?? "";
 
                 return (
                   <View
@@ -278,6 +294,21 @@ export const TeacherPeriodReportsTab = forwardRef<
                         {t("notes.avgs.coef")} {subject.coefficient}
                       </Text>
                     </View>
+
+                    {subject.rank != null && subject.classSize != null ? (
+                      <Text
+                        style={styles.subjectRankLine}
+                        testID={`teacher-reports-subject-${subject.id}-rank`}
+                      >
+                        {t("notes.reports.detail.rankAndClassAverage")
+                          .replace("{rank}", String(subject.rank))
+                          .replace("{total}", String(subject.classSize))
+                          .replace(
+                            "{classAverage}",
+                            formatScore(subject.classAverage),
+                          )}
+                      </Text>
+                    ) : null}
 
                     <View style={styles.metricsRow}>
                       {sequenceRows.map((row) => (
@@ -306,20 +337,25 @@ export const TeacherPeriodReportsTab = forwardRef<
                       </View>
                     </View>
 
-                    <AppreciationEditor
-                      value={
-                        drafts[detail.studentId]?.subjects?.[subject.id] ?? ""
-                      }
-                      editing={editingSubjectId === subject.id}
-                      draft={subjectDraft}
-                      onDraftChange={setSubjectDraft}
-                      onStartEdit={() => startEditSubject(subject.id)}
-                      onCancel={() => setEditingSubjectId(null)}
-                      onSave={() => saveSubject(subject.id)}
-                      isSaving={isSubmitting}
-                      t={t}
-                      testIDPrefix={`teacher-reports-subject-${subject.id}`}
-                    />
+                    {isSubjectTeacher ? (
+                      <AppreciationEditor
+                        value={subjectAppreciationValue}
+                        editing={editingSubjectId === subject.id}
+                        onStartEdit={() => setEditingSubjectId(subject.id)}
+                        onCancel={() => setEditingSubjectId(null)}
+                        onSave={(value) => saveSubject(subject.id, value)}
+                        isSaving={isSubmitting}
+                        t={t}
+                        testIDPrefix={`teacher-reports-subject-${subject.id}`}
+                      />
+                    ) : subjectAppreciationValue ? (
+                      <Text
+                        style={styles.appreciationReadOnlyText}
+                        testID={`teacher-reports-subject-${subject.id}-readonly`}
+                      >
+                        {subjectAppreciationValue}
+                      </Text>
+                    ) : null}
                   </View>
                 );
               })}
@@ -458,27 +494,75 @@ export const TeacherPeriodReportsTab = forwardRef<
 function AppreciationEditor(props: {
   value: string;
   editing: boolean;
-  draft: string;
-  onDraftChange: (value: string) => void;
   onStartEdit: () => void;
   onCancel: () => void;
-  onSave: () => void | Promise<void>;
+  onSave: (value: string) => void | Promise<void>;
   isSaving: boolean;
   t: TranslateFn;
   testIDPrefix: string;
 }) {
   const { t } = props;
+  const schema = useMemo(() => createAppreciationSchema(t), [t]);
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<AppreciationFormInput>({
+    resolver: zodResolver(schema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: { value: props.value },
+  });
+
+  const editing = props.editing;
+  const value = props.value;
+  useEffect(() => {
+    if (editing) {
+      reset({ value });
+    }
+  }, [editing, reset]);
+
+  const onSubmit = handleSubmit(async (data) => {
+    try {
+      await props.onSave(data.value.trim());
+    } catch {
+      // L'erreur est déjà notifiée via le toast global côté écran parent ;
+      // on garde le formulaire ouvert pour permettre une nouvelle tentative.
+    }
+  });
+
   if (props.editing) {
     return (
       <View style={styles.editorBlock} testID={`${props.testIDPrefix}-editor`}>
-        <TextInput
-          value={props.draft}
-          onChangeText={props.onDraftChange}
-          multiline
-          style={styles.editorInput}
-          placeholderTextColor={colors.textSecondary}
-          testID={`${props.testIDPrefix}-input`}
+        <Controller
+          control={control}
+          name="value"
+          render={({ field, fieldState }) => (
+            <TextInput
+              ref={field.ref}
+              value={field.value}
+              onChangeText={field.onChange}
+              onBlur={field.onBlur}
+              multiline
+              style={[
+                styles.editorInput,
+                fieldState.error && styles.editorInputError,
+              ]}
+              placeholder={t("notes.reports.detail.appreciationPlaceholder")}
+              placeholderTextColor={colors.textSecondary}
+              testID={`${props.testIDPrefix}-input`}
+            />
+          )}
         />
+        {errors.value?.message ? (
+          <Text
+            style={styles.editorFieldError}
+            testID={`${props.testIDPrefix}-error`}
+          >
+            {errors.value.message}
+          </Text>
+        ) : null}
         <View style={styles.editorActionsRow}>
           <TouchableOpacity
             style={styles.editorCancelBtn}
@@ -494,7 +578,7 @@ function AppreciationEditor(props: {
               styles.editorSaveBtn,
               props.isSaving && styles.editorSaveBtnDisabled,
             ]}
-            onPress={() => void props.onSave()}
+            onPress={() => void onSubmit()}
             disabled={props.isSaving}
             testID={`${props.testIDPrefix}-save`}
           >
@@ -630,6 +714,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.textSecondary,
   },
+  subjectRankLine: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    opacity: 0.75,
+    marginTop: -4,
+  },
   metricsRow: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -669,6 +759,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   appreciationText: { flex: 1, fontSize: 13, color: colors.textPrimary },
+  appreciationReadOnlyText: {
+    fontSize: 13,
+    color: colors.textPrimary,
+    lineHeight: 18,
+  },
   appreciationIconWrap: {
     width: 34,
     height: 34,
@@ -690,6 +785,16 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
     fontSize: 13,
     color: colors.textPrimary,
+  },
+  editorInputError: {
+    borderWidth: 1,
+    borderColor: colors.notification,
+    borderRadius: 8,
+    padding: 6,
+  },
+  editorFieldError: {
+    fontSize: 11,
+    color: colors.notification,
   },
   editorActionsRow: {
     flexDirection: "row",

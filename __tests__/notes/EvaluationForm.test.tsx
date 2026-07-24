@@ -101,7 +101,12 @@ jest.mock("../../src/components/TimePickerField", () => {
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 const TEACHER_CONTEXT: NotesTeacherContext = {
-  class: { id: "class-1", name: "6e A", schoolYearId: "y1" },
+  class: {
+    id: "class-1",
+    name: "6e A",
+    schoolYearId: "y1",
+    isReferentTeacher: false,
+  },
   subjects: [
     {
       id: "sub-1",

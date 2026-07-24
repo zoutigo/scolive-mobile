@@ -42,6 +42,10 @@ export type StudentSubjectNotes = {
   classAverage: number | null;
   classMin: number | null;
   classMax: number | null;
+  /** Rang de l'élève dans la matière pour la période (1 = meilleure moyenne). */
+  rank?: number | null;
+  /** Nombre d'élèves ayant une moyenne dans la matière pour la période. */
+  classSize?: number | null;
   appreciation?: string | null;
   evaluations: StudentEvaluation[];
 };
@@ -89,6 +93,8 @@ export type NotesTeacherContext = {
     id: string;
     name: string;
     schoolYearId: string;
+    /** true si l'utilisateur courant est l'enseignant référent de cette classe. */
+    isReferentTeacher: boolean;
   };
   subjects: Array<{
     id: string;
