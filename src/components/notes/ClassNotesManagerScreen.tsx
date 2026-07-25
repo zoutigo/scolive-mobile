@@ -1134,7 +1134,10 @@ export function ClassNotesManagerScreen({
                     {formatEvaluationDate(item.scheduledAt, t)}
                   </Text>
                   <Text style={styles.evaluationMeta}>
-                    {buildEvaluationProgress(item, item.class.studentsCount ?? 0)}{" "}
+                    {buildEvaluationProgress(
+                      item,
+                      item.class.studentsCount ?? 0,
+                    )}{" "}
                     {t("notes.manager.evalList.scoresSaisies")}{" "}
                     {formatScore(item.coefficient)}
                   </Text>
