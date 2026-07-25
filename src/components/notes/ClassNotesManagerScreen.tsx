@@ -66,13 +66,17 @@ import type { NotesTabKey } from "./NotesTabs";
 import { TeacherClassNotesTab } from "./TeacherClassNotesTab";
 import {
   StudentNotesSearchTab,
-  type StudentNotesSearchEntry,
   type StudentNotesSearchSubject,
 } from "./StudentNotesSearchTab";
 import {
   TeacherPeriodReportsTab,
   type TeacherPeriodReportsHandle,
 } from "./TeacherPeriodReportsTab";
+import {
+  SchoolPeriodReportsTab,
+  type SchoolPeriodReportsHandle,
+  type SchoolWideReportsStudent,
+} from "./SchoolPeriodReportsTab";
 import { EvaluationForm } from "./EvaluationForm";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import {
@@ -237,6 +241,7 @@ export function ClassNotesManagerScreen({
     term: StudentNotesTerm;
   } | null>(null);
   const reportsTabRef = useRef<TeacherPeriodReportsHandle>(null);
+  const schoolReportsTabRef = useRef<SchoolPeriodReportsHandle>(null);
 
   function handleTabSelect(next: NotesTabKey) {
     setTab(next);
@@ -423,12 +428,14 @@ export function ClassNotesManagerScreen({
     void loadAdminClassrooms();
   }, [loadAdminClassrooms]);
 
-  // Onglet "notes" du school admin : élève cherché sur toute l'école (pas de
-  // contexte de classe), avec la classe affichée à côté du nom pour
-  // désambiguïser les homonymes. On agrège les élèves + matières de toutes
-  // les classes de l'école, comme pour la vue Discipline du school admin.
+  // Onglets "notes" et "reports" du school admin : élève cherché sur toute
+  // l'école (pas de contexte de classe), avec la classe affichée à côté du
+  // nom pour désambiguïser les homonymes. On agrège les élèves + matières de
+  // toutes les classes de l'école, comme pour la vue Discipline du school
+  // admin. `classId`/`academicLevelId` alimentent les filtres niveau/classe
+  // de l'onglet "reports".
   const [schoolWideStudents, setSchoolWideStudents] = useState<
-    StudentNotesSearchEntry[]
+    SchoolWideReportsStudent[]
   >([]);
   const [schoolWideSubjects, setSchoolWideSubjects] = useState<
     StudentNotesSearchSubject[]
@@ -440,7 +447,7 @@ export function ClassNotesManagerScreen({
     if (
       !schoolSlug ||
       !isAdminBrowsing ||
-      tab !== "notes" ||
+      (tab !== "notes" && tab !== "reports") ||
       adminClassrooms.length === 0
     ) {
       return;
@@ -455,11 +462,13 @@ export function ClassNotesManagerScreen({
             students: ctx.students.map((s) => ({
               ...s,
               className: classroom.name,
+              classId: classroom.id,
+              academicLevelId: classroom.academicLevel?.id,
             })),
             subjects: ctx.subjects.map((s) => ({ id: s.id, name: s.name })),
           }))
           .catch(() => ({
-            students: [] as StudentNotesSearchEntry[],
+            students: [] as SchoolWideReportsStudent[],
             subjects: [] as StudentNotesSearchSubject[],
           })),
       ),
@@ -804,6 +813,7 @@ export function ClassNotesManagerScreen({
           }
           onBack={() => {
             if (reportsTabRef.current?.goBackFromDetail()) return;
+            if (schoolReportsTabRef.current?.goBackFromDetail()) return;
             if (tab === "evaluations" && evaluationView === "scores") {
               setEvaluationView("list");
               return;
@@ -1823,12 +1833,23 @@ export function ClassNotesManagerScreen({
       ) : null}
 
       {/* ── Tab Bulletins ──────────────────────────────────────── */}
-      {tab === "reports" && errorMessage ? (
+      {tab === "reports" && isAdminBrowsing ? (
+        <SchoolPeriodReportsTab
+          ref={schoolReportsTabRef}
+          students={schoolWideStudents}
+          classrooms={adminClassrooms}
+          schoolSlug={schoolSlug ?? ""}
+          bottomInset={insets.bottom}
+          isLoadingStudents={isLoadingSchoolWideStudents}
+          onDetailChange={setReportsDetailHeader}
+        />
+      ) : null}
+      {tab === "reports" && !isAdminBrowsing && errorMessage ? (
         <View style={styles.content}>
           <ErrorBanner message={errorMessage} />
         </View>
       ) : null}
-      {tab === "reports" && teacherContext ? (
+      {tab === "reports" && !isAdminBrowsing && teacherContext ? (
         <TeacherPeriodReportsTab
           ref={reportsTabRef}
           teacherContext={teacherContext}
@@ -1842,7 +1863,7 @@ export function ClassNotesManagerScreen({
           onDetailChange={setReportsDetailHeader}
         />
       ) : null}
-      {tab === "reports" && !teacherContext ? (
+      {tab === "reports" && !isAdminBrowsing && !teacherContext ? (
         <View style={styles.centered}>
           <LoadingBlock label={t("notes.manager.loading.notebook")} />
         </View>

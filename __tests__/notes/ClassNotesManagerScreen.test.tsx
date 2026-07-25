@@ -1400,6 +1400,163 @@ describe("Mode admin — arrivée sans classId", () => {
       });
     });
   });
+
+  describe("Onglet Reports — bulletins à l'échelle de l'école", () => {
+    beforeEach(() => {
+      mockNotesApi.getTeacherContext.mockImplementation(
+        (_slug, classId: string) => {
+          if (classId === "class-1") {
+            return Promise.resolve({
+              class: {
+                id: "class-1",
+                name: "6e A",
+                schoolYearId: "y1",
+                isReferentTeacher: false,
+              },
+              subjects: [{ id: "sub-1", name: "Mathématiques", branches: [] }],
+              evaluationTypes: [],
+              students: [
+                { id: "stu-1", firstName: "Kevin", lastName: "Fouda" },
+              ],
+            } as never);
+          }
+          if (classId === "class-2") {
+            return Promise.resolve({
+              class: {
+                id: "class-2",
+                name: "6e B",
+                schoolYearId: "y1",
+                isReferentTeacher: false,
+              },
+              subjects: [{ id: "sub-2", name: "Anglais", branches: [] }],
+              evaluationTypes: [],
+              students: [
+                { id: "stu-2", firstName: "Kevin", lastName: "Fouda" },
+              ],
+            } as never);
+          }
+          return Promise.resolve({
+            class: {
+              id: "class-3",
+              name: "5e A",
+              schoolYearId: "y1",
+              isReferentTeacher: false,
+            },
+            subjects: [],
+            evaluationTypes: [],
+            students: [{ id: "stu-3", firstName: "Alice", lastName: "Owona" }],
+          } as never);
+        },
+      );
+    });
+
+    it("ne charge rien pour l'onglet reports tant qu'il n'est pas ouvert", async () => {
+      render(<ClassNotesManagerScreen />);
+      await flushAsync();
+
+      expect(mockNotesApi.getTeacherContext).not.toHaveBeenCalled();
+    });
+
+    it("agrège les élèves de toutes les classes avec leur classe affichée en face du nom", async () => {
+      render(<ClassNotesManagerScreen />);
+      await flushAsync();
+
+      fireEvent.press(screen.getByTestId("notes-tab-reports"));
+      await flushAsync();
+
+      await waitFor(() => {
+        expect(mockNotesApi.getTeacherContext).toHaveBeenCalledWith(
+          "college-vogt",
+          "class-1",
+        );
+        expect(mockNotesApi.getTeacherContext).toHaveBeenCalledWith(
+          "college-vogt",
+          "class-2",
+        );
+        expect(mockNotesApi.getTeacherContext).toHaveBeenCalledWith(
+          "college-vogt",
+          "class-3",
+        );
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("school-reports-row-stu-1")).toBeTruthy();
+        expect(screen.getByTestId("school-reports-row-stu-2")).toBeTruthy();
+        expect(screen.getByTestId("school-reports-row-stu-3")).toBeTruthy();
+      });
+      expect(
+        screen.getByTestId("school-reports-row-class-stu-1"),
+      ).toHaveTextContent("6e A");
+      expect(
+        screen.getByTestId("school-reports-row-class-stu-2"),
+      ).toHaveTextContent("6e B");
+    });
+
+    it("propose les filtres Niveau/Classe en listes liées dans l'onglet reports", async () => {
+      render(<ClassNotesManagerScreen />);
+      await flushAsync();
+
+      fireEvent.press(screen.getByTestId("notes-tab-reports"));
+      await flushAsync();
+      await waitFor(() => {
+        expect(screen.getByTestId("school-reports-row-stu-1")).toBeTruthy();
+      });
+
+      fireEvent.press(screen.getByTestId("school-reports-filter-toggle"));
+      fireEvent.press(
+        screen.getByTestId("school-reports-filter-level-trigger"),
+      );
+      fireEvent.press(
+        screen.getByTestId(`school-reports-filter-level-option-${LEVEL_6E.id}`),
+      );
+
+      fireEvent.press(
+        screen.getByTestId("school-reports-filter-class-trigger"),
+      );
+      expect(
+        screen.getByTestId(
+          `school-reports-filter-class-option-${CLASSROOM_6A.id}`,
+        ),
+      ).toBeTruthy();
+      expect(
+        screen.getByTestId(
+          `school-reports-filter-class-option-${CLASSROOM_6B.id}`,
+        ),
+      ).toBeTruthy();
+      expect(
+        screen.queryByTestId(
+          `school-reports-filter-class-option-${CLASSROOM_5A.id}`,
+        ),
+      ).toBeNull();
+    });
+
+    it("bascule le header sur le bulletin sélectionné, et le back revient à la liste", async () => {
+      render(<ClassNotesManagerScreen />);
+      await flushAsync();
+
+      fireEvent.press(screen.getByTestId("notes-tab-reports"));
+      await flushAsync();
+      await waitFor(() => {
+        expect(screen.getByTestId("school-reports-row-stu-1")).toBeTruthy();
+      });
+
+      fireEvent.press(screen.getByTestId("school-reports-row-stu-1"));
+      await flushAsync();
+      fireEvent.press(
+        screen.getByTestId("school-reports-bulletin-stu-1-TERM_1"),
+      );
+
+      expect(await screen.findByTestId("school-reports-detail")).toBeTruthy();
+      expect(screen.getByTestId("class-notes-subtitle")).toHaveTextContent(
+        /6e A/,
+      );
+
+      fireEvent.press(screen.getByTestId("class-notes-back"));
+      await waitFor(() => {
+        expect(screen.getByTestId("school-reports-tab")).toBeTruthy();
+      });
+    });
+  });
 });
 
 describe("Mode enseignant — classId fourni par la route", () => {
