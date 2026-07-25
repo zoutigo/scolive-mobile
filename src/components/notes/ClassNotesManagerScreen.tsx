@@ -261,9 +261,23 @@ export function ClassNotesManagerScreen({
       : adminClassrooms;
     return filtered.map((c) => ({ value: c.id, label: c.name }));
   }, [adminClassrooms, draftLevelId]);
+  const availableEvaluationTypes = useMemo(() => {
+    const seen = new Map<string, { id: string; label: string }>();
+    sortedEvaluations.forEach((e) => {
+      if (!seen.has(e.evaluationType.id)) {
+        seen.set(e.evaluationType.id, {
+          id: e.evaluationType.id,
+          label: e.evaluationType.label,
+        });
+      }
+    });
+    return Array.from(seen.values()).sort((a, b) =>
+      a.label.localeCompare(b.label),
+    );
+  }, [sortedEvaluations]);
+
   const filteredEvaluations = useMemo(() => {
     const q = evalSearchQuery.trim().toLowerCase();
-    const studentCount = teacherContext?.students.length ?? 0;
     return sortedEvaluations.filter((e) => {
       if (q) {
         const matchesSearch =
@@ -283,10 +297,8 @@ export function ClassNotesManagerScreen({
       ) {
         return false;
       }
-      // Le décompte d'élèves n'est connu que pour la classe engagée : ce
-      // filtre n'a pas de sens en navigation "toute l'école" sans classe choisie.
-      if (teacherContext && appliedEvalFilters.completion !== "all") {
-        const complete = isEvaluationComplete(e, studentCount);
+      if (appliedEvalFilters.completion !== "all") {
+        const complete = isEvaluationComplete(e, e.class.studentsCount ?? 0);
         if (appliedEvalFilters.completion === "complete" && !complete) {
           return false;
         }
@@ -296,7 +308,7 @@ export function ClassNotesManagerScreen({
       }
       return true;
     });
-  }, [sortedEvaluations, evalSearchQuery, appliedEvalFilters, teacherContext]);
+  }, [sortedEvaluations, evalSearchQuery, appliedEvalFilters]);
 
   const selectedEvalRow = useMemo(
     () => sortedEvaluations.find((e) => e.id === selectedEvaluationId) ?? null,
@@ -316,6 +328,12 @@ export function ClassNotesManagerScreen({
     if (!scoresFilterStudentId) return sortedScoreStudents;
     return sortedScoreStudents.filter((s) => s.id === scoresFilterStudentId);
   }, [sortedScoreStudents, scoresFilterStudentId]);
+
+  const ungradedScoreCount = useMemo(
+    () =>
+      sortedScoreStudents.filter((s) => s.scoreStatus === "NOT_GRADED").length,
+    [sortedScoreStudents],
+  );
 
   const filterStudentLabel = useMemo(() => {
     if (!scoresFilterStudentId) return t("notes.manager.scores.allStudents");
@@ -711,6 +729,10 @@ export function ClassNotesManagerScreen({
           }
           onBack={() => {
             if (reportsTabRef.current?.goBackFromDetail()) return;
+            if (tab === "evaluations" && evaluationView === "scores") {
+              setEvaluationView("list");
+              return;
+            }
             moduleBack(router);
           }}
           testID="class-notes-header"
@@ -879,7 +901,7 @@ export function ClassNotesManagerScreen({
                           {t("notes.manager.filters.allOption")}
                         </Text>
                       </TouchableOpacity>
-                      {(teacherContext?.evaluationTypes ?? []).map((type) => (
+                      {availableEvaluationTypes.map((type) => (
                         <TouchableOpacity
                           key={type.id}
                           style={[
@@ -1111,16 +1133,11 @@ export function ClassNotesManagerScreen({
                     {sequenceLabel(item.sequence, t)} •{" "}
                     {formatEvaluationDate(item.scheduledAt, t)}
                   </Text>
-                  {teacherContext ? (
-                    <Text style={styles.evaluationMeta}>
-                      {buildEvaluationProgress(
-                        item,
-                        teacherContext.students.length,
-                      )}{" "}
-                      {t("notes.manager.evalList.scoresSaisies")}{" "}
-                      {formatScore(item.coefficient)}
-                    </Text>
-                  ) : null}
+                  <Text style={styles.evaluationMeta}>
+                    {buildEvaluationProgress(item, item.class.studentsCount ?? 0)}{" "}
+                    {t("notes.manager.evalList.scoresSaisies")}{" "}
+                    {formatScore(item.coefficient)}
+                  </Text>
 
                   {/* ── Footer actions ── */}
                   <View style={styles.cardFooter}>
@@ -1173,7 +1190,7 @@ export function ClassNotesManagerScreen({
                         color={
                           isEvaluationComplete(
                             item,
-                            teacherContext?.students.length ?? 0,
+                            item.class.studentsCount ?? 0,
                           )
                             ? styles.cardActionScoresComplete.color
                             : styles.cardActionScoresIncomplete.color
@@ -1184,7 +1201,7 @@ export function ClassNotesManagerScreen({
                           styles.cardActionLabel,
                           isEvaluationComplete(
                             item,
-                            teacherContext?.students.length ?? 0,
+                            item.class.studentsCount ?? 0,
                           )
                             ? styles.cardActionScoresComplete
                             : styles.cardActionScoresIncomplete,
@@ -1430,20 +1447,18 @@ export function ClassNotesManagerScreen({
                     </Text>
                   </View>
                 ) : null}
-                {teacherContext ? (
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>
-                      {t("notes.manager.detail.labelProgress")}
-                    </Text>
-                    <Text style={styles.detailValue}>
-                      {buildEvaluationProgress(
-                        selectedEvalRow,
-                        teacherContext.students.length,
-                      )}{" "}
-                      {t("notes.manager.detail.scoresSaisies")}
-                    </Text>
-                  </View>
-                ) : null}
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>
+                    {t("notes.manager.detail.labelProgress")}
+                  </Text>
+                  <Text style={styles.detailValue}>
+                    {buildEvaluationProgress(
+                      selectedEvalRow,
+                      selectedEvalRow.class.studentsCount ?? 0,
+                    )}{" "}
+                    {t("notes.manager.detail.scoresSaisies")}
+                  </Text>
+                </View>
               </SectionCard>
 
               <View style={styles.detailActions}>
@@ -1492,31 +1507,34 @@ export function ClassNotesManagerScreen({
       {/* ── Évaluations — vue saisie notes ────────────────────── */}
       {tab === "evaluations" && evaluationView === "scores" ? (
         <View style={styles.listContainer}>
-          {/* Info bar */}
-          <View style={styles.scoresInfoBar}>
-            <TouchableOpacity
-              style={styles.backRow}
-              onPress={() => setEvaluationView("list")}
-              testID="class-notes-scores-back"
-            >
-              <Ionicons
-                name="arrow-back-outline"
-                size={16}
-                color={colors.primary}
-              />
-              <Text style={styles.backText}>
-                {t("notes.manager.evalList.backToList")}
-              </Text>
-            </TouchableOpacity>
+          {/* Hero évaluation */}
+          <View style={styles.scoresHero} testID="class-notes-scores-hero">
             {selectedEvalRow ? (
               <>
-                <Text style={styles.scoresInfoTitle}>
-                  {selectedEvalRow.title}
-                </Text>
-                <Text style={styles.scoresInfoMeta}>
-                  {selectedEvalRow.subject.name} •{" "}
-                  {t("notes.manager.detail.labelMaxScore")} /
-                  {selectedEvalRow.maxScore}
+                <View style={styles.scoresHeroTopRow}>
+                  <Text style={styles.scoresHeroTitle} numberOfLines={1}>
+                    {selectedEvalRow.title}
+                  </Text>
+                  {ungradedScoreCount > 0 ? (
+                    <Text
+                      style={styles.scoresHeroBadge}
+                      testID="class-notes-scores-ungraded-count"
+                    >
+                      {ungradedScoreCount}{" "}
+                      {t("notes.manager.scores.ungradedSuffix")}
+                    </Text>
+                  ) : null}
+                </View>
+                <Text style={styles.scoresHeroSubtitle} numberOfLines={1}>
+                  {selectedEvalRow.subject.name}
+                  {selectedEvalRow.subjectBranch?.name
+                    ? ` — ${selectedEvalRow.subjectBranch.name}`
+                    : ""}
+                  {" • "}
+                  {selectedEvalRow.class.name}
+                  {" • "}
+                  {selectedEvalRow.author.firstName}{" "}
+                  {selectedEvalRow.author.lastName}
                 </Text>
               </>
             ) : null}
@@ -1945,11 +1963,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingHorizontal: 14,
     paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
     backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.warmBorder,
   },
   filterDropdown: {
     flex: 1,
@@ -2088,21 +2109,33 @@ const styles = StyleSheet.create({
   cardActionDanger: { color: DANGER_COLOR },
   cardActionScoresComplete: { color: colors.accentTeal },
   cardActionScoresIncomplete: { color: colors.warmAccent },
-  scoresInfoBar: {
+  scoresHero: {
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 10,
+    paddingTop: 10,
+    paddingBottom: 12,
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.warmBorder,
-    gap: 2,
+    gap: 3,
   },
-  scoresInfoTitle: {
-    fontSize: 14,
-    fontWeight: "700",
+  scoresHeroTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  scoresHeroTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "800",
     color: colors.textPrimary,
   },
-  scoresInfoMeta: { fontSize: 12, color: colors.textSecondary },
+  scoresHeroBadge: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.warmAccent,
+  },
+  scoresHeroSubtitle: { fontSize: 12, color: colors.textSecondary },
   detailRow: {
     flexDirection: "row",
     alignItems: "flex-start",

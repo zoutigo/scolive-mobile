@@ -70,7 +70,7 @@ const EVAL_1 = {
   subject: { id: "sub-1", name: "Mathématiques" },
   subjectBranch: { id: "branch-1", name: "Algèbre" },
   evaluationType: { id: "type-1", code: "COMP", label: "Composition" },
-  class: { id: "class-1", name: "6e A" },
+  class: { id: "class-1", name: "6e A", studentsCount: 2 },
   author: { id: "u1", firstName: "Valery", lastName: "Mbele" },
   attachments: [],
   _count: { scores: 1 },
@@ -596,7 +596,7 @@ describe("Vue détail", () => {
     fireEvent.press(screen.getByTestId("class-notes-detail-scores"));
     await flushAsync();
     await waitFor(() =>
-      expect(screen.getByTestId("class-notes-scores-back")).toBeTruthy(),
+      expect(screen.getByTestId("class-notes-scores-hero")).toBeTruthy(),
     );
   });
 
@@ -671,12 +671,12 @@ describe("Vue saisie notes", () => {
     });
   });
 
-  it("revient à la liste via le bouton retour", async () => {
+  it("revient à la liste via le bouton retour du header module", async () => {
     await openScoresView();
     await waitFor(() =>
-      expect(screen.getByTestId("class-notes-scores-back")).toBeTruthy(),
+      expect(screen.getByTestId("class-notes-scores-hero")).toBeTruthy(),
     );
-    fireEvent.press(screen.getByTestId("class-notes-scores-back"));
+    fireEvent.press(screen.getByTestId("class-notes-back"));
     await flushAsync();
     await waitFor(() =>
       expect(screen.getByTestId("class-evaluations-list")).toBeTruthy(),
@@ -1225,6 +1225,44 @@ describe("Mode admin — arrivée sans classId", () => {
       "class-2",
       "eval-9",
     );
+  });
+
+  it("affiche tous les chips de type d'évaluation même sans classe engagée (dérivés des évaluations chargées)", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    expect(await screen.findByTestId("class-notes-filter-panel")).toBeTruthy();
+    // EVAL_1/EVAL_2 sont de type "type-1", EVAL_3 de type "type-2" : les deux
+    // chips doivent apparaître, alors qu'aucun contexte enseignant (qui les
+    // fournirait normalement) n'est chargé en navigation "toute l'école".
+    expect(screen.getByTestId("class-notes-filter-type-type-1")).toBeTruthy();
+    expect(screen.getByTestId("class-notes-filter-type-type-2")).toBeTruthy();
+    expect(useNotesStore.getState().loadTeacherContext).not.toHaveBeenCalled();
+  });
+
+  it("propose aussi le filtre de complétion des notes sans classe engagée, et il filtre correctement", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    expect(await screen.findByTestId("class-notes-filter-panel")).toBeTruthy();
+    expect(
+      screen.getByTestId("class-notes-filter-completion-complete"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("class-notes-filter-completion-incomplete"),
+    ).toBeTruthy();
+
+    fireEvent.press(
+      screen.getByTestId("class-notes-filter-completion-complete"),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+
+    // eval-3 a 2/2 notes saisies (complet), eval-1 et eval-2 sont incomplets.
+    await waitFor(() => {
+      expect(screen.getByTestId("class-evaluation-row-eval-3")).toBeTruthy();
+      expect(screen.queryByTestId("class-evaluation-row-eval-1")).toBeNull();
+      expect(screen.queryByTestId("class-evaluation-row-eval-2")).toBeNull();
+    });
   });
 });
 

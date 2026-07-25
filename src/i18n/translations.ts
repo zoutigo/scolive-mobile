@@ -2056,6 +2056,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.detail.editEval": "Modifier l'évaluation",
     "notes.manager.detail.enterScores": "Saisir les notes",
     "notes.manager.scores.allStudents": "Tous les élèves",
+    "notes.manager.scores.ungradedSuffix": "non saisies",
     "notes.manager.scores.draftBanner":
       "Brouillon — les notes ne seront visibles dans l'onglet Notes qu'après publication de l'évaluation.",
     "notes.manager.scores.emptyTitle": "Aucun élève",
@@ -4513,6 +4514,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.detail.editEval": "Edit evaluation",
     "notes.manager.detail.enterScores": "Enter grades",
     "notes.manager.scores.allStudents": "All students",
+    "notes.manager.scores.ungradedSuffix": "not graded",
     "notes.manager.scores.draftBanner":
       "Draft — grades will only be visible in the Grades tab once the evaluation is published.",
     "notes.manager.scores.emptyTitle": "No student",
