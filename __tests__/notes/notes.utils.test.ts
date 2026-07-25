@@ -303,13 +303,19 @@ describe("buildRadarData — données pour le radar", () => {
   it("mappe correctement student/classroom", () => {
     const subjects = [
       makeSubject({
+        id: "subj-physique",
         subjectLabel: "Physique",
         studentAverage: 16,
         classAverage: 13,
       }),
     ];
     const data = buildRadarData(subjects);
-    expect(data[0]).toEqual({ label: "Physique", student: 16, classroom: 13 });
+    expect(data[0]).toEqual({
+      id: "subj-physique",
+      label: "Physique",
+      student: 16,
+      classroom: 13,
+    });
   });
 });
 
@@ -344,5 +350,30 @@ describe("buildRadarChart — géométrie du radar", () => {
     const chart = buildRadarChart(subjects);
     expect(chart.center).toBe(110);
     expect(chart.radius).toBe(78);
+  });
+
+  it("garde des identifiants d'axe uniques même si deux matières partagent le même libellé affiché", () => {
+    const subjects = [
+      makeSubject({
+        id: "subj-anglais-general",
+        subjectLabel: "Anglais",
+        studentAverage: 14,
+        classAverage: 12,
+      }),
+      makeSubject({
+        id: "subj-anglais-renforce",
+        subjectLabel: "Anglais",
+        studentAverage: 17,
+        classAverage: 15,
+      }),
+    ];
+    const chart = buildRadarChart(subjects);
+    expect(chart.axes.map((axis) => axis.label)).toEqual([
+      "Anglais",
+      "Anglais",
+    ]);
+    const axisIds = chart.axes.map((axis) => axis.id);
+    expect(new Set(axisIds).size).toBe(axisIds.length);
+    expect(axisIds).toEqual(["subj-anglais-general", "subj-anglais-renforce"]);
   });
 });

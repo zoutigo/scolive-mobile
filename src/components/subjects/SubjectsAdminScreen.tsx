@@ -100,12 +100,17 @@ function curriculumLabel(curriculum: CurriculumRow) {
     : curriculum.academicLevel.label;
 }
 
-function subjectNiveauxLabels(subject: SubjectRow) {
-  return subject.curriculumSubjects.map((entry) =>
-    entry.curriculum.track
+function subjectNiveaux(subject: SubjectRow) {
+  return subject.curriculumSubjects.map((entry) => ({
+    id: entry.id,
+    label: entry.curriculum.track
       ? `${entry.curriculum.academicLevel.label} · ${entry.curriculum.track.label}`
       : entry.curriculum.academicLevel.label,
-  );
+  }));
+}
+
+function subjectNiveauxLabels(subject: SubjectRow) {
+  return subjectNiveaux(subject).map((niveau) => niveau.label);
 }
 
 function subjectSearchText(subject: SubjectRow) {
@@ -1058,7 +1063,7 @@ export function SubjectsAdminScreen() {
                   data={visibleSubjects}
                   keyExtractor={(item) => item.id}
                   renderItem={({ item, index }) => {
-                    const niveaux = subjectNiveauxLabels(item);
+                    const niveaux = subjectNiveaux(item);
                     return (
                       <View
                         style={[
@@ -1081,9 +1086,11 @@ export function SubjectsAdminScreen() {
                             <Text style={styles.entityTitle}>{item.name}</Text>
                             {niveaux.length > 0 ? (
                               <View style={styles.chipsRow}>
-                                {niveaux.map((label) => (
-                                  <View key={label} style={styles.chip}>
-                                    <Text style={styles.chipText}>{label}</Text>
+                                {niveaux.map((niveau) => (
+                                  <View key={niveau.id} style={styles.chip}>
+                                    <Text style={styles.chipText}>
+                                      {niveau.label}
+                                    </Text>
                                   </View>
                                 ))}
                               </View>

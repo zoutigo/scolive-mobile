@@ -1232,7 +1232,7 @@ function RadarPanel(props: { radar: ReturnType<typeof buildRadarChart> }) {
         })}
 
         {props.radar.axes.map((axis) => (
-          <React.Fragment key={axis.label}>
+          <React.Fragment key={axis.id}>
             <View
               style={[
                 styles.radarAxis,

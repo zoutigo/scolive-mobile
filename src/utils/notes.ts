@@ -195,6 +195,7 @@ export function buildRadarData(subjects: StudentSubjectNotes[]) {
   );
 
   return eligibleSubjects.map((subject) => ({
+    id: subject.id,
     label: subject.subjectLabel,
     student: subject.studentAverage ?? 0,
     classroom: subject.classAverage ?? 0,
@@ -217,6 +218,7 @@ export function buildRadarChart(subjects: StudentSubjectNotes[]) {
       (endX - center) * (endX - center) + (endY - center) * (endY - center),
     );
     return {
+      id: item.id,
       label: item.label,
       angle,
       endX,
