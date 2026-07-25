@@ -150,6 +150,8 @@ const baseEvaluation: EvaluationRow = {
   subject: { id: "subj-1", name: "Maths" },
   subjectBranch: null,
   evaluationType: { id: "et-1", code: "EXAM", label: "Examen" },
+  class: { id: "cls-A", name: "3e A" },
+  author: { id: "teacher-1", firstName: "Awa", lastName: "Diallo" },
   attachments: [],
   _count: { scores: 10 }, // 10/25 saisis → non complet
 };

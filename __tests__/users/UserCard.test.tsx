@@ -36,49 +36,62 @@ describe("UserCard", () => {
     expect(screen.queryByText(/@/)).toBeNull();
   });
 
-  it("affiche le badge du role TEACHER", () => {
+  // ── Pastilles de rôle (remplacent les badges texte) ──────────────────────────
+
+  it("affiche une pastille de rôle avec le bon accessibilityLabel pour TEACHER", () => {
     render(<UserCard user={TEACHER_USER} onPress={jest.fn()} />);
-    expect(screen.getByText("Enseignant")).toBeOnTheScreen();
+    expect(
+      screen.getByTestId(`user-card-primary-role-${TEACHER_USER.id}`),
+    ).toHaveProp("accessibilityLabel", "Enseignant");
   });
 
-  it("affiche le badge du role PARENT", () => {
+  it("affiche une pastille de rôle avec le bon accessibilityLabel pour PARENT", () => {
     render(<UserCard user={PARENT_USER} onPress={jest.fn()} />);
-    expect(screen.getByText("Parent")).toBeOnTheScreen();
+    expect(
+      screen.getByTestId(`user-card-primary-role-${PARENT_USER.id}`),
+    ).toHaveProp("accessibilityLabel", "Parent");
   });
 
-  it("affiche le badge du role STUDENT", () => {
+  it("affiche une pastille de rôle avec le bon accessibilityLabel pour STUDENT", () => {
     render(<UserCard user={STUDENT_USER} onPress={jest.fn()} />);
-    expect(screen.getByText("Élève")).toBeOnTheScreen();
+    expect(
+      screen.getByTestId(`user-card-primary-role-${STUDENT_USER.id}`),
+    ).toHaveProp("accessibilityLabel", "Élève");
   });
 
-  it("affiche tous les badges pour un utilisateur multi-roles (2 roles)", () => {
+  it("affiche une pastille par rôle pour un utilisateur multi-roles (2 roles)", () => {
     const multiRole = makeSchoolUser({
       id: "multi",
       roles: ["TEACHER", "SCHOOL_ADMIN"],
     });
     render(<UserCard user={multiRole} onPress={jest.fn()} />);
-    expect(screen.getByText("Enseignant")).toBeOnTheScreen();
-    expect(screen.getByText("Admin")).toBeOnTheScreen();
+    expect(screen.getByTestId("user-card-primary-role-multi")).toHaveProp(
+      "accessibilityLabel",
+      "Enseignant",
+    );
+    expect(
+      screen.getByTestId("user-card-role-dot-SCHOOL_ADMIN-multi"),
+    ).toHaveProp("accessibilityLabel", "Admin");
   });
 
-  it("affiche les 3 badges pour un utilisateur avec 3 roles", () => {
+  it("affiche 3 pastilles pour un utilisateur avec 3 rôles", () => {
     const threeRoles = makeSchoolUser({
       id: "tri",
       roles: ["SCHOOL_ADMIN", "TEACHER", "PARENT"],
     });
     render(<UserCard user={threeRoles} onPress={jest.fn()} />);
-    expect(screen.getByText("Admin")).toBeOnTheScreen();
-    expect(screen.getByText("Enseignant")).toBeOnTheScreen();
-    expect(screen.getByText("Parent")).toBeOnTheScreen();
+    const row = screen.getByTestId("user-card-role-dots-tri");
+    expect(row.children).toHaveLength(3);
   });
 
-  it("n'affiche pas de compteur +N", () => {
-    const multiRole = makeSchoolUser({
-      id: "multi2",
-      roles: ["TEACHER", "SCHOOL_ADMIN", "PARENT"],
+  it("dédoublonne les pastilles quand un rôle apparaît deux fois", () => {
+    const dupRoles = makeSchoolUser({
+      id: "dup",
+      roles: ["TEACHER", "TEACHER"],
     });
-    render(<UserCard user={multiRole} onPress={jest.fn()} />);
-    expect(screen.queryByText(/^\+[1-9]$/)).toBeNull();
+    render(<UserCard user={dupRoles} onPress={jest.fn()} />);
+    const row = screen.getByTestId("user-card-role-dots-dup");
+    expect(row.children).toHaveLength(1);
   });
 
   it("appelle onPress avec l'utilisateur quand on clique", () => {
@@ -126,50 +139,59 @@ describe("UserCard", () => {
     );
   });
 
-  it("rend la colonne de role avec testID", () => {
+  // ── Bordure d'accent = statut de compte/activation ───────────────────────────
+
+  it("n'applique pas de bordure d'accent pour un utilisateur actif avec compte", () => {
     render(<UserCard user={TEACHER_USER} onPress={jest.fn()} />);
-    expect(
-      screen.getByTestId(`user-card-role-column-${TEACHER_USER.id}`),
-    ).toBeOnTheScreen();
+    const card = screen.getByTestId(`user-card-${TEACHER_USER.id}`);
+    expect(card.props.style.borderLeftWidth).toBeUndefined();
   });
 
-  it("rend le badge du role principal avec testID", () => {
-    render(<UserCard user={TEACHER_USER} onPress={jest.fn()} />);
-    expect(
-      screen.getByTestId(`user-card-primary-role-${TEACHER_USER.id}`),
-    ).toBeOnTheScreen();
-  });
-
-  // ── hasAccount: true → chip de statut ────────────────────────────────────────
-
-  it("affiche le chip de statut (point de couleur) pour un utilisateur avec compte", () => {
-    render(<UserCard user={TEACHER_USER} onPress={jest.fn()} />);
-    // StatusDot est rendu → pas de badge "Sans compte"
-    expect(screen.queryByText("Sans compte")).toBeNull();
-  });
-
-  it("affiche le chip de statut pour un utilisateur PENDING", () => {
+  it("applique une bordure ambre pour un utilisateur PENDING", () => {
     render(<UserCard user={PENDING_USER} onPress={jest.fn()} />);
+    const card = screen.getByTestId(`user-card-${PENDING_USER.id}`);
+    expect(card.props.style).toEqual(
+      expect.objectContaining({ borderLeftWidth: 3 }),
+    );
+  });
+
+  it("applique une bordure rouge pour un utilisateur SUSPENDED", () => {
+    const suspended = makeSchoolUser({
+      id: "susp-1",
+      activationStatus: "SUSPENDED",
+    });
+    render(<UserCard user={suspended} onPress={jest.fn()} />);
+    const card = screen.getByTestId("user-card-susp-1");
+    expect(card.props.style).toEqual(
+      expect.objectContaining({ borderLeftWidth: 3 }),
+    );
+  });
+
+  it("applique une bordure rouge distinctive pour un utilisateur sans compte", () => {
+    const studentOnly = makeStudentOnlyUser({ id: "so-border" });
+    render(<UserCard user={studentOnly} onPress={jest.fn()} />);
+    const card = screen.getByTestId("user-card-so-border");
+    expect(card.props.style).toEqual(
+      expect.objectContaining({
+        borderLeftWidth: 3,
+        borderLeftColor: "#C0392B",
+      }),
+    );
+  });
+
+  it("n'affiche plus de badge texte 'Sans compte' (remplacé par la bordure)", () => {
+    const studentOnly = makeStudentOnlyUser({ id: "so-1" });
+    render(<UserCard user={studentOnly} onPress={jest.fn()} />);
     expect(screen.queryByText("Sans compte")).toBeNull();
   });
 
-  // ── hasAccount: false → badge "Sans compte" gris ─────────────────────────────
-
-  it("affiche le badge 'Sans compte' pour un student-only", () => {
-    const studentOnly = makeStudentOnlyUser({
-      id: "so-1",
-      firstName: "Amina",
-      lastName: "Fouda",
-    });
-    render(<UserCard user={studentOnly} onPress={jest.fn()} />);
-    expect(screen.getByText("Sans compte")).toBeOnTheScreen();
-  });
-
-  it("n'affiche pas de StatusDot pour un student-only (hasAccount: false)", () => {
+  it("affiche quand même la pastille de rôle STUDENT pour un student-only", () => {
     const studentOnly = makeStudentOnlyUser({ id: "so-2" });
     render(<UserCard user={studentOnly} onPress={jest.fn()} />);
-    // Aucun dot de statut de couleur → seul indicateur = badge "Sans compte"
-    expect(screen.getByText("Sans compte")).toBeOnTheScreen();
+    expect(screen.getByTestId("user-card-primary-role-so-2")).toHaveProp(
+      "accessibilityLabel",
+      "Élève",
+    );
   });
 
   // ── firstName + lastName affichés correctement ────────────────────────────────

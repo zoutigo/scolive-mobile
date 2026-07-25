@@ -7,6 +7,8 @@ import {
   formatPlainEvaluationScore,
   formatScore,
   getCurrentTerm,
+  isEvaluationComplete,
+  sequenceShortLabel,
   termLabel,
 } from "../../src/utils/notes";
 import { translate } from "../../src/i18n/useTranslation";
@@ -114,6 +116,39 @@ describe("notes utils", () => {
     expect(buildEvaluationProgress({ _count: { scores: 18 } }, 32)).toBe(
       "18/32",
     );
+  });
+});
+
+// ─── isEvaluationComplete ────────────────────────────────────────────────────
+
+describe("isEvaluationComplete", () => {
+  it("retourne true quand toutes les notes sont saisies", () => {
+    expect(isEvaluationComplete({ _count: { scores: 32 } }, 32)).toBe(true);
+  });
+
+  it("retourne true même si le compte serveur dépasse l'effectif attendu", () => {
+    expect(isEvaluationComplete({ _count: { scores: 33 } }, 32)).toBe(true);
+  });
+
+  it("retourne false quand des notes manquent", () => {
+    expect(isEvaluationComplete({ _count: { scores: 18 } }, 32)).toBe(false);
+  });
+
+  it("retourne false quand aucun élève n'est inscrit (division par zéro évitée)", () => {
+    expect(isEvaluationComplete({ _count: { scores: 0 } }, 0)).toBe(false);
+  });
+});
+
+// ─── sequenceShortLabel ───────────────────────────────────────────────────────
+
+describe("sequenceShortLabel", () => {
+  it("retourne un libellé compact pour chaque séquence", () => {
+    expect(sequenceShortLabel("SEQ_1")).toBe("T1-Seq1");
+    expect(sequenceShortLabel("SEQ_2")).toBe("T1-Seq2");
+    expect(sequenceShortLabel("SEQ_3")).toBe("T2-Seq3");
+    expect(sequenceShortLabel("SEQ_4")).toBe("T2-Seq4");
+    expect(sequenceShortLabel("SEQ_5")).toBe("T3-Seq5");
+    expect(sequenceShortLabel("SEQ_6")).toBe("T3-Seq6");
   });
 });
 
@@ -268,13 +303,19 @@ describe("buildRadarData — données pour le radar", () => {
   it("mappe correctement student/classroom", () => {
     const subjects = [
       makeSubject({
+        id: "subj-physique",
         subjectLabel: "Physique",
         studentAverage: 16,
         classAverage: 13,
       }),
     ];
     const data = buildRadarData(subjects);
-    expect(data[0]).toEqual({ label: "Physique", student: 16, classroom: 13 });
+    expect(data[0]).toEqual({
+      id: "subj-physique",
+      label: "Physique",
+      student: 16,
+      classroom: 13,
+    });
   });
 });
 
@@ -309,5 +350,30 @@ describe("buildRadarChart — géométrie du radar", () => {
     const chart = buildRadarChart(subjects);
     expect(chart.center).toBe(110);
     expect(chart.radius).toBe(78);
+  });
+
+  it("garde des identifiants d'axe uniques même si deux matières partagent le même libellé affiché", () => {
+    const subjects = [
+      makeSubject({
+        id: "subj-anglais-general",
+        subjectLabel: "Anglais",
+        studentAverage: 14,
+        classAverage: 12,
+      }),
+      makeSubject({
+        id: "subj-anglais-renforce",
+        subjectLabel: "Anglais",
+        studentAverage: 17,
+        classAverage: 15,
+      }),
+    ];
+    const chart = buildRadarChart(subjects);
+    expect(chart.axes.map((axis) => axis.label)).toEqual([
+      "Anglais",
+      "Anglais",
+    ]);
+    const axisIds = chart.axes.map((axis) => axis.id);
+    expect(new Set(axisIds).size).toBe(axisIds.length);
+    expect(axisIds).toEqual(["subj-anglais-general", "subj-anglais-renforce"]);
   });
 });

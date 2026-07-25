@@ -6,6 +6,7 @@ jest.mock("../../src/api/notes.api", () => ({
     getClassOptions: jest.fn(),
     getTeacherContext: jest.fn(),
     listClassEvaluations: jest.fn(),
+    listSchoolEvaluations: jest.fn(),
     getEvaluation: jest.fn(),
     createEvaluation: jest.fn(),
     updateEvaluation: jest.fn(),
@@ -83,6 +84,65 @@ describe("useNotesStore", () => {
     });
 
     expect(useNotesStore.getState().evaluations[0]?.id).toBe("eval-1");
+  });
+
+  it("charge les évaluations de toute l'école sans classId", async () => {
+    notesApi.listSchoolEvaluations.mockResolvedValueOnce([
+      {
+        id: "eval-school-1",
+        title: "Contrôle histoire",
+        description: null,
+        coefficient: 1,
+        maxScore: 20,
+        term: "TERM_1",
+        status: "PUBLISHED",
+        scheduledAt: "2026-04-01T08:00:00.000Z",
+        createdAt: "2026-04-01T08:00:00.000Z",
+        updatedAt: "2026-04-01T08:00:00.000Z",
+        subject: { id: "hist", name: "Histoire" },
+        subjectBranch: null,
+        evaluationType: { id: "type-1", code: "INT", label: "Interro" },
+        class: { id: "class-9", name: "5e B" },
+        author: { id: "teacher-1", firstName: "Léa", lastName: "Diop" },
+        attachments: [],
+        _count: { scores: 0 },
+      },
+    ]);
+
+    const result = await useNotesStore
+      .getState()
+      .loadSchoolEvaluations("college-vogt");
+
+    expect(notesApi.listSchoolEvaluations).toHaveBeenCalledWith(
+      "college-vogt",
+      undefined,
+    );
+    expect(result).toHaveLength(1);
+    expect(useNotesStore.getState().evaluations[0]?.id).toBe("eval-school-1");
+  });
+
+  it("transmet les filtres niveau/classe à l'appel école entière", async () => {
+    notesApi.listSchoolEvaluations.mockResolvedValueOnce([]);
+
+    await useNotesStore.getState().loadSchoolEvaluations("college-vogt", {
+      academicLevelId: "level-1",
+      classId: "class-9",
+    });
+
+    expect(notesApi.listSchoolEvaluations).toHaveBeenCalledWith(
+      "college-vogt",
+      { academicLevelId: "level-1", classId: "class-9" },
+    );
+  });
+
+  it("consigne une erreur si le chargement école entière échoue", async () => {
+    notesApi.listSchoolEvaluations.mockRejectedValueOnce(new Error("boom"));
+
+    await expect(
+      useNotesStore.getState().loadSchoolEvaluations("college-vogt"),
+    ).rejects.toThrow("boom");
+    expect(useNotesStore.getState().errorMessage).toBe("boom");
+    expect(useNotesStore.getState().isLoadingEvaluations).toBe(false);
   });
 
   it("alimente le cache de détail après chargement d'une évaluation", async () => {

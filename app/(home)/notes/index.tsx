@@ -1,6 +1,6 @@
 import { AppShell } from "../../../src/components/navigation/AppShell";
 import { NotesClassesScreen } from "../../../src/components/notes/NotesClassesScreen";
-import { SchoolAdminNotesScreen } from "../../../src/components/notes/SchoolAdminNotesScreen";
+import { ClassNotesManagerScreen } from "../../../src/components/notes/ClassNotesManagerScreen";
 import { useAuthStore } from "../../../src/store/auth.store";
 import { getViewType } from "../../../src/components/navigation/nav-config";
 
@@ -11,7 +11,7 @@ export default function NotesIndexRoute() {
   return (
     <AppShell showHeader={false}>
       {viewType === "school" ? (
-        <SchoolAdminNotesScreen />
+        <ClassNotesManagerScreen />
       ) : (
         <NotesClassesScreen />
       )}

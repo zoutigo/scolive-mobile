@@ -102,11 +102,27 @@ export type SchoolUserRoleFilter =
   | "STUDENT"
   | "SCHOOL_ADMIN"
   | "SCHOOL_MANAGER"
+  | "SUPERVISOR"
+  | "SCHOOL_ACCOUNTANT"
   | "SCHOOL_STAFF";
+
+export type SchoolUserAccountFilter =
+  | "ALL"
+  | "WITH_ACCOUNT"
+  | "WITHOUT_ACCOUNT";
 
 export interface SchoolUsersFilters {
   search: string;
   role: SchoolUserRoleFilter;
+  hasAccount: SchoolUserAccountFilter;
+  /** "" means no year filter (all years) — matches SelectField's convention. */
+  schoolYearId: string;
+}
+
+export interface SchoolYearOption {
+  id: string;
+  label: string;
+  isActive: boolean;
 }
 
 export interface PaginatedSchoolUsers {

@@ -72,6 +72,20 @@ const DEFAULT_PROPS = {
   bottomInset: 0,
 };
 
+function openFilters() {
+  fireEvent.press(screen.getByTestId("child-notes-filter-toggle"));
+}
+
+function applyFilters() {
+  fireEvent.press(screen.getByTestId("child-notes-filter-apply"));
+}
+
+function selectViewViaPanel(view: string) {
+  openFilters();
+  fireEvent.press(screen.getByTestId(`child-notes-filter-view-${view}`));
+  applyFilters();
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
   setupStore();
@@ -94,19 +108,23 @@ describe("Rendu de base", () => {
 
     render(<StudentNotesPanel {...DEFAULT_PROPS} />);
     await flushAsync();
+    openFilters();
 
-    expect(screen.getByTestId("child-notes-term-TERM_1")).toBeTruthy();
-    expect(screen.getByTestId("child-notes-term-TERM_2")).toBeTruthy();
-    expect(screen.getByTestId("child-notes-term-TERM_3")).toBeTruthy();
+    expect(screen.getByTestId("child-notes-filter-term-TERM_1")).toBeTruthy();
+    expect(screen.getByTestId("child-notes-filter-term-TERM_2")).toBeTruthy();
+    expect(screen.getByTestId("child-notes-filter-term-TERM_3")).toBeTruthy();
   });
 
   it("affiche les sélecteurs de vue (eval/moy/graph)", async () => {
     render(<StudentNotesPanel {...DEFAULT_PROPS} />);
     await flushAsync();
+    openFilters();
 
-    expect(screen.getByTestId("child-notes-view-evaluations")).toBeTruthy();
-    expect(screen.getByTestId("child-notes-view-averages")).toBeTruthy();
-    expect(screen.getByTestId("child-notes-view-charts")).toBeTruthy();
+    expect(
+      screen.getByTestId("child-notes-filter-view-evaluations"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("child-notes-filter-view-averages")).toBeTruthy();
+    expect(screen.getByTestId("child-notes-filter-view-charts")).toBeTruthy();
   });
 
   it("affiche les notes de la matière", async () => {
@@ -165,7 +183,7 @@ describe("Navigation vue", () => {
     render(<StudentNotesPanel {...DEFAULT_PROPS} />);
     await flushAsync();
 
-    fireEvent.press(screen.getByTestId("child-notes-view-averages"));
+    selectViewViaPanel("averages");
 
     await waitFor(() =>
       expect(screen.getByTestId("child-notes-averages-board")).toBeTruthy(),
@@ -176,7 +194,7 @@ describe("Navigation vue", () => {
     render(<StudentNotesPanel {...DEFAULT_PROPS} />);
     await flushAsync();
 
-    fireEvent.press(screen.getByTestId("child-notes-view-charts"));
+    selectViewViaPanel("charts");
 
     await waitFor(() =>
       expect(screen.getByText("Comparaison par matière")).toBeTruthy(),
@@ -221,7 +239,7 @@ describe("Changement d'élève", () => {
     await flushAsync();
 
     // Switch to averages view
-    fireEvent.press(screen.getByTestId("child-notes-view-averages"));
+    selectViewViaPanel("averages");
     await waitFor(() =>
       expect(screen.getByTestId("child-notes-averages-board")).toBeTruthy(),
     );

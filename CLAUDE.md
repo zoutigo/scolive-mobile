@@ -1,5 +1,13 @@
 # scolive-mobile — Contexte projet
 
+## Parité mobile ↔ web — règle absolue
+
+Toute modification ou nouvelle fonctionnalité apportée sur mobile doit être répliquée sur `scolive-web`.
+
+- Si les vues `sm` et `xm` (mobile/petit écran) correspondantes n'existent pas encore côté web, les créer.
+- Ces vues `sm`/`xm` doivent être fidèles aux vues mobile (comportement, contenu, règles métier), pas de simple portage approximatif.
+- Ajouter les tests nécessaires côté web pour consolider (unitaires/fonctionnels selon la nature du changement), en plus des tests mobile habituels.
+
 ## Agents — règle absolue
 
 Ne jamais utiliser le tool `Agent` (sous-agents/Task) pour réaliser le travail demandé.

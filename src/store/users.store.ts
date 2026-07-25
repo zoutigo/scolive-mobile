@@ -30,6 +30,8 @@ interface UsersState {
 const INITIAL_FILTERS: SchoolUsersFilters = {
   search: "",
   role: "ALL",
+  hasAccount: "ALL",
+  schoolYearId: "",
 };
 
 export const useUsersStore = create<UsersState>((set) => ({

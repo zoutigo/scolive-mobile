@@ -264,6 +264,53 @@ describe("SubjectsAdminScreen — chargement et liste", () => {
     expect(screen.getByText("Aucun niveau affecté")).toBeTruthy();
   });
 
+  it("affiche un chip distinct par niveau même si deux niveaux partagent le même libellé (pas de clé React dupliquée)", async () => {
+    const consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    subjectsState = [
+      {
+        ...subjectsState[0],
+        curriculumSubjects: [
+          ...subjectsState[0].curriculumSubjects,
+          {
+            id: "cs-2",
+            curriculumId: "curriculum-6e-bilingue",
+            isMandatory: true,
+            coefficient: null,
+            weeklyHours: null,
+            curriculum: {
+              id: "curriculum-6e-bilingue",
+              name: "6ème",
+              academicLevel: {
+                id: "level-6e-bilingue",
+                code: "6e",
+                label: "6ème",
+              },
+              track: null,
+            },
+          },
+        ],
+      },
+      subjectsState[1],
+    ];
+
+    render(<SubjectsAdminScreen />);
+
+    expect(
+      await screen.findByTestId("subjects-admin-subject-row-subject-1"),
+    ).toBeTruthy();
+    expect(screen.getAllByText("6ème")).toHaveLength(2);
+
+    const duplicateKeyWarning = consoleErrorSpy.mock.calls.some((call) =>
+      String(call[0]).includes("same key"),
+    );
+    expect(duplicateKeyWarning).toBe(false);
+
+    consoleErrorSpy.mockRestore();
+  });
+
   it("affiche un banner d'erreur si le chargement initial échoue", async () => {
     mockSubjectsApi.listSubjects.mockRejectedValueOnce(
       new Error("Erreur réseau"),

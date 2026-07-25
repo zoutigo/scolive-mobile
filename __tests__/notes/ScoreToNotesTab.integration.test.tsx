@@ -35,7 +35,12 @@ jest.mock("react-native-safe-area-context", () => ({
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 const TEACHER_CONTEXT = {
-  class: { id: "class-1", name: "6e A", schoolYearId: "y1" },
+  class: {
+    id: "class-1",
+    name: "6e A",
+    schoolYearId: "y1",
+    isReferentTeacher: false,
+  },
   subjects: [
     {
       id: "sub-math",
@@ -422,20 +427,29 @@ describe("Flux complet : saisie note → onglet Notes au bon trimestre", () => {
     );
     await flushAsync();
 
-    // Sélectionne Lisa Ntamack dans le picker
-    fireEvent.press(screen.getByTestId("teacher-notes-student-picker"));
+    // Sélectionne Lisa Ntamack via la recherche
+    fireEvent.changeText(
+      screen.getByTestId("teacher-notes-search-input"),
+      "Ntamack",
+    );
     await waitFor(() =>
       expect(
-        screen.getByTestId("teacher-notes-picker-student-stu-1"),
+        screen.getByTestId("teacher-notes-search-result-stu-1"),
       ).toBeTruthy(),
     );
-    fireEvent.press(screen.getByTestId("teacher-notes-picker-student-stu-1"));
+    fireEvent.press(screen.getByTestId("teacher-notes-search-result-stu-1"));
     await flushAsync();
 
-    // Le sélecteur de période affiche TERM_2
+    // Force le trimestre TERM_2 via le panneau de filtres
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-toggle"));
     await waitFor(() =>
-      expect(screen.getByTestId("child-notes-term-TERM_2")).toBeTruthy(),
+      expect(
+        screen.getByTestId("teacher-notes-filter-term-TERM_2"),
+      ).toBeTruthy(),
     );
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-term-TERM_2"));
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-apply"));
+    await flushAsync();
 
     // La card d'évaluation de l'eval-term2 est visible
     await waitFor(() =>
@@ -462,26 +476,31 @@ describe("Flux complet : saisie note → onglet Notes au bon trimestre", () => {
     );
     await flushAsync();
 
-    // Sélectionne Lisa
-    fireEvent.press(screen.getByTestId("teacher-notes-student-picker"));
+    // Sélectionne Lisa via la recherche
+    fireEvent.changeText(
+      screen.getByTestId("teacher-notes-search-input"),
+      "Ntamack",
+    );
     await waitFor(() =>
       expect(
-        screen.getByTestId("teacher-notes-picker-student-stu-1"),
+        screen.getByTestId("teacher-notes-search-result-stu-1"),
       ).toBeTruthy(),
     );
-    fireEvent.press(screen.getByTestId("teacher-notes-picker-student-stu-1"));
+    fireEvent.press(screen.getByTestId("teacher-notes-search-result-stu-1"));
     await flushAsync();
 
-    // Filtre par Mathématiques
-    fireEvent.press(screen.getByTestId("teacher-notes-subject-picker"));
+    // Filtre par Mathématiques + force TERM_2 via le panneau de filtres
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-toggle"));
     await waitFor(() =>
       expect(
-        screen.getByTestId("teacher-notes-subject-picker-option-sub-math"),
+        screen.getByTestId("teacher-notes-filter-subject-sub-math"),
       ).toBeTruthy(),
     );
     fireEvent.press(
-      screen.getByTestId("teacher-notes-subject-picker-option-sub-math"),
+      screen.getByTestId("teacher-notes-filter-subject-sub-math"),
     );
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-term-TERM_2"));
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-apply"));
     await flushAsync();
 
     // La row de la matière Mathématiques est visible
@@ -536,24 +555,28 @@ describe("Flux complet : saisie note → onglet Notes au bon trimestre", () => {
     );
     await flushAsync();
 
-    // Sélectionne Lisa
-    fireEvent.press(screen.getByTestId("teacher-notes-student-picker"));
+    // Sélectionne Lisa via la recherche
+    fireEvent.changeText(
+      screen.getByTestId("teacher-notes-search-input"),
+      "Ntamack",
+    );
     await waitFor(() =>
       expect(
-        screen.getByTestId("teacher-notes-picker-student-stu-1"),
+        screen.getByTestId("teacher-notes-search-result-stu-1"),
       ).toBeTruthy(),
     );
-    fireEvent.press(screen.getByTestId("teacher-notes-picker-student-stu-1"));
+    fireEvent.press(screen.getByTestId("teacher-notes-search-result-stu-1"));
     await flushAsync();
 
-    // Les deux trimestres sont affichés dans le sélecteur
+    // Passe sur TERM_1 via le panneau de filtres
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-toggle"));
     await waitFor(() =>
-      expect(screen.getByTestId("child-notes-term-TERM_1")).toBeTruthy(),
+      expect(
+        screen.getByTestId("teacher-notes-filter-term-TERM_1"),
+      ).toBeTruthy(),
     );
-    expect(screen.getByTestId("child-notes-term-TERM_2")).toBeTruthy();
-
-    // Passe sur TERM_1
-    fireEvent.press(screen.getByTestId("child-notes-term-TERM_1"));
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-term-TERM_1"));
+    fireEvent.press(screen.getByTestId("teacher-notes-filter-apply"));
     await flushAsync();
 
     // L'évaluation du T2 ne doit PAS être visible dans T1

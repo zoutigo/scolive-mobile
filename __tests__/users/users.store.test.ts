@@ -24,6 +24,8 @@ describe("useUsersStore", () => {
     expect(state.error).toBeNull();
     expect(state.filters.search).toBe("");
     expect(state.filters.role).toBe("ALL");
+    expect(state.filters.hasAccount).toBe("ALL");
+    expect(state.filters.schoolYearId).toBe("");
   });
 
   describe("setUsers", () => {
@@ -80,6 +82,18 @@ describe("useUsersStore", () => {
       });
       expect(useUsersStore.getState().filters.search).toBe("kouam");
       expect(useUsersStore.getState().filters.role).toBe("TEACHER");
+    });
+
+    it("met a jour hasAccount et schoolYearId de facon independante", () => {
+      act(() => {
+        useUsersStore
+          .getState()
+          .setFilters({ hasAccount: "WITHOUT_ACCOUNT", schoolYearId: "sy-1" });
+      });
+      const state = useUsersStore.getState();
+      expect(state.filters.hasAccount).toBe("WITHOUT_ACCOUNT");
+      expect(state.filters.schoolYearId).toBe("sy-1");
+      expect(state.filters.role).toBe("ALL");
     });
   });
 

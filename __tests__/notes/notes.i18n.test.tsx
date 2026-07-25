@@ -1,5 +1,10 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import { DEFAULT_LOCALE, translations } from "../../src/i18n/translations";
 import { useLocaleStore } from "../../src/store/locale.store";
 import { useAuthStore } from "../../src/store/auth.store";
@@ -84,29 +89,41 @@ describe("Notes — traduction selon la locale du compte", () => {
   });
 
   describe("StudentNotesPanel — selecteur de trimestre", () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
     it("affiche les trimestres en francais par defaut", async () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date("2026-10-13T10:00:00Z"));
       setupEmptyPanel();
 
       render(<StudentNotesPanel {...PANEL_PROPS} />);
 
       await waitFor(() => {
-        expect(screen.getByText("Trimestre 1")).toBeTruthy();
+        expect(
+          screen.getByTestId("child-notes-filter-summary"),
+        ).toHaveTextContent("Trimestre 1", { exact: false });
       });
 
-      expect(screen.queryByText("Term 1")).toBeNull();
+      expect(screen.queryByText("Term 1", { exact: false })).toBeNull();
     });
 
     it("affiche les trimestres en anglais quand locale=en", async () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date("2026-10-13T10:00:00Z"));
       useLocaleStore.setState({ locale: "en" });
       setupEmptyPanel();
 
       render(<StudentNotesPanel {...PANEL_PROPS} />);
 
       await waitFor(() => {
-        expect(screen.getByText("Term 1")).toBeTruthy();
+        expect(
+          screen.getByTestId("child-notes-filter-summary"),
+        ).toHaveTextContent("Term 1", { exact: false });
       });
 
-      expect(screen.queryByText("Trimestre 1")).toBeNull();
+      expect(screen.queryByText("Trimestre 1", { exact: false })).toBeNull();
     });
   });
 
@@ -117,13 +134,19 @@ describe("Notes — traduction selon la locale du compte", () => {
       render(<StudentNotesPanel {...PANEL_PROPS} />);
 
       await waitFor(() => {
-        expect(screen.getByText("Eval")).toBeTruthy();
-        expect(screen.getByText("Moy")).toBeTruthy();
-        expect(screen.getByText("Graph")).toBeTruthy();
+        expect(screen.getByTestId("child-notes-filter-toggle")).toBeTruthy();
       });
+      fireEvent.press(screen.getByTestId("child-notes-filter-toggle"));
 
-      expect(screen.queryByText("Avg")).toBeNull();
-      expect(screen.queryByText("Chart")).toBeNull();
+      expect(
+        screen.getByTestId("child-notes-filter-view-evaluations"),
+      ).toHaveTextContent("Eval");
+      expect(
+        screen.getByTestId("child-notes-filter-view-averages"),
+      ).toHaveTextContent("Moy");
+      expect(
+        screen.getByTestId("child-notes-filter-view-charts"),
+      ).toHaveTextContent("Graph");
     });
 
     it("affiche les onglets de vue en anglais quand locale=en", async () => {
@@ -133,13 +156,19 @@ describe("Notes — traduction selon la locale du compte", () => {
       render(<StudentNotesPanel {...PANEL_PROPS} />);
 
       await waitFor(() => {
-        expect(screen.getByText("Eval")).toBeTruthy();
-        expect(screen.getByText("Avg")).toBeTruthy();
-        expect(screen.getByText("Chart")).toBeTruthy();
+        expect(screen.getByTestId("child-notes-filter-toggle")).toBeTruthy();
       });
+      fireEvent.press(screen.getByTestId("child-notes-filter-toggle"));
 
-      expect(screen.queryByText("Moy")).toBeNull();
-      expect(screen.queryByText("Graph")).toBeNull();
+      expect(
+        screen.getByTestId("child-notes-filter-view-evaluations"),
+      ).toHaveTextContent("Eval");
+      expect(
+        screen.getByTestId("child-notes-filter-view-averages"),
+      ).toHaveTextContent("Avg");
+      expect(
+        screen.getByTestId("child-notes-filter-view-charts"),
+      ).toHaveTextContent("Chart");
     });
   });
 });

@@ -162,7 +162,12 @@ beforeEach(() => {
   mockTimetableApi.getClassContext.mockResolvedValue(CLASS_CONTEXT);
   mockTimetableApi.getMyTimetable.mockResolvedValue(MY_TIMETABLE);
   mockNotesApi.getTeacherContext.mockResolvedValue({
-    class: { id: "class-1", name: "6e A", schoolYearId: "sy-1" },
+    class: {
+      id: "class-1",
+      name: "6e A",
+      schoolYearId: "sy-1",
+      isReferentTeacher: false,
+    },
     subjects: [{ id: "math", name: "Mathématiques", branches: [] }],
     evaluationTypes: [],
     students: [],

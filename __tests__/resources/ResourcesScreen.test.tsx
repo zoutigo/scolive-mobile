@@ -1117,6 +1117,43 @@ describe("ResourcesScreen — recherche et filtres", () => {
     );
   });
 
+  it("masque le FAB de création tant que le panneau de filtres est ouvert", async () => {
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("resources-filter-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-filter-panel")).toBeTruthy(),
+    );
+    expect(screen.queryByTestId("resources-fab")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("resources-filter-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-fab")).toBeTruthy(),
+    );
+  });
+
+  it("le bouton Appliquer du panneau de filtres a une couleur distincte du teal actif", async () => {
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-filter-toggle")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("resources-filter-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-filter-apply")).toBeTruthy(),
+    );
+
+    const applyButton = screen.getByTestId("resources-filter-apply");
+    const applyStyle = StyleSheet.flatten(applyButton.props.style);
+
+    expect(applyStyle.backgroundColor).toBe(colors.primary);
+    expect(applyStyle.backgroundColor).not.toBe(colors.accentTeal);
+  });
+
   it("le filtre séquence est visible sur Évaluations mais pas sur Examens", async () => {
     render(<ResourcesScreen />);
 

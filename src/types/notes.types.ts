@@ -42,6 +42,10 @@ export type StudentSubjectNotes = {
   classAverage: number | null;
   classMin: number | null;
   classMax: number | null;
+  /** Rang de l'élève dans la matière pour la période (1 = meilleure moyenne). */
+  rank?: number | null;
+  /** Nombre d'élèves ayant une moyenne dans la matière pour la période. */
+  classSize?: number | null;
   appreciation?: string | null;
   evaluations: StudentEvaluation[];
 };
@@ -89,6 +93,8 @@ export type NotesTeacherContext = {
     id: string;
     name: string;
     schoolYearId: string;
+    /** true si l'utilisateur courant est l'enseignant référent de cette classe. */
+    isReferentTeacher: boolean;
   };
   subjects: Array<{
     id: string;
@@ -125,6 +131,8 @@ export type EvaluationRow = {
   subject: { id: string; name: string };
   subjectBranch?: { id: string; name: string } | null;
   evaluationType: { id: string; code: string; label: string };
+  class: { id: string; name: string; studentsCount?: number };
+  author: { id: string; firstName: string; lastName: string };
   attachments: EvaluationAttachmentDraft[];
   _count: { scores: number };
 };
@@ -193,6 +201,14 @@ export type UpsertEvaluationScorePayload = {
     status: StudentEvaluationStatus;
   }>;
 };
+
+export type CouncilDrafts = Record<
+  string,
+  {
+    generalAppreciation: string;
+    subjects: Record<string, string>;
+  }
+>;
 
 export type UpsertTermReportsPayload = {
   status: "DRAFT" | "PUBLISHED";

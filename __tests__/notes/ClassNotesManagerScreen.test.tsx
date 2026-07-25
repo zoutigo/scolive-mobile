@@ -9,9 +9,16 @@ import {
 import { ClassNotesManagerScreen } from "../../src/components/notes/ClassNotesManagerScreen";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useNotesStore } from "../../src/store/notes.store";
+import { teachersApi } from "../../src/api/teachers.api";
+import { notesApi } from "../../src/api/notes.api";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-document-picker", () => ({ getDocumentAsync: jest.fn() }));
+jest.mock("../../src/api/teachers.api");
+jest.mock("../../src/api/notes.api");
+
+const mockTeachersApi = teachersApi as jest.Mocked<typeof teachersApi>;
+const mockNotesApi = notesApi as jest.Mocked<typeof notesApi>;
 
 const mockBack = jest.fn();
 let mockSearchParams: Record<string, string> = {
@@ -43,6 +50,7 @@ const TEACHER_CONTEXT = {
   ],
   evaluationTypes: [
     { id: "type-1", code: "COMP", label: "Composition", isDefault: true },
+    { id: "type-2", code: "INTERRO", label: "Interrogation", isDefault: false },
   ],
   students: [
     { id: "stu-1", firstName: "Lisa", lastName: "Ntamack" },
@@ -56,6 +64,7 @@ const EVAL_1 = {
   description: "Exercices chapitres 1-3",
   coefficient: 2,
   maxScore: 20,
+  sequence: "SEQ_1",
   term: "TERM_1",
   status: "PUBLISHED",
   scheduledAt: "2026-04-12T08:00:00.000Z",
@@ -64,6 +73,8 @@ const EVAL_1 = {
   subject: { id: "sub-1", name: "Mathématiques" },
   subjectBranch: { id: "branch-1", name: "Algèbre" },
   evaluationType: { id: "type-1", code: "COMP", label: "Composition" },
+  class: { id: "class-1", name: "6e A", studentsCount: 2 },
+  author: { id: "u1", firstName: "Valery", lastName: "Mbele" },
   attachments: [],
   _count: { scores: 1 },
 };
@@ -73,7 +84,22 @@ const EVAL_2 = {
   id: "eval-2",
   title: "DS Algèbre",
   status: "DRAFT",
+  sequence: "SEQ_3",
+  scheduledAt: "2026-02-01T08:00:00.000Z",
+  createdAt: "2026-02-01T08:00:00.000Z",
   _count: { scores: 0 },
+};
+
+const EVAL_3 = {
+  ...EVAL_1,
+  id: "eval-3",
+  title: "Interrogation orale",
+  status: "PUBLISHED",
+  sequence: "SEQ_5",
+  evaluationType: { id: "type-2", code: "INTERRO", label: "Interrogation" },
+  scheduledAt: "2026-05-20T08:00:00.000Z",
+  createdAt: "2026-05-18T08:00:00.000Z",
+  _count: { scores: 2 },
 };
 
 const EVAL_DETAIL = {
@@ -126,7 +152,7 @@ function setupStore(
 
   useNotesStore.setState({
     teacherContext: TEACHER_CONTEXT,
-    evaluations: [EVAL_1, EVAL_2],
+    evaluations: [EVAL_1, EVAL_2, EVAL_3],
     // Pre-populate le détail pour que selectedEvaluation soit disponible dès le mount
     evaluationDetails: { "eval-1": EVAL_DETAIL },
     termReports: { TERM_1: null, TERM_2: null, TERM_3: null },
@@ -137,7 +163,10 @@ function setupStore(
     isSubmitting: false,
     errorMessage: null,
     loadTeacherContext: jest.fn().mockResolvedValue(TEACHER_CONTEXT),
-    loadEvaluations: jest.fn().mockResolvedValue([EVAL_1, EVAL_2]),
+    loadEvaluations: jest.fn().mockResolvedValue([EVAL_1, EVAL_2, EVAL_3]),
+    loadSchoolEvaluations: jest
+      .fn()
+      .mockResolvedValue([EVAL_1, EVAL_2, EVAL_3]),
     loadEvaluationDetail: jest
       .fn()
       .mockImplementation((_slug, _classId, evalId) => {
@@ -167,15 +196,14 @@ beforeEach(() => {
 // ─── Rendu général ───────────────────────────────────────────────────────────
 
 describe("Rendu général", () => {
-  it("affiche le header, les 4 onglets et la liste d'évaluations", async () => {
+  it("affiche le header, les 3 onglets et la liste d'évaluations", async () => {
     render(<ClassNotesManagerScreen />);
     await flushAsync();
 
     expect(screen.getByTestId("class-notes-header")).toBeTruthy();
     expect(screen.getByTestId("notes-tab-evaluations")).toBeTruthy();
-    expect(screen.getByTestId("notes-tab-scores")).toBeTruthy();
     expect(screen.getByTestId("notes-tab-notes")).toBeTruthy();
-    expect(screen.getByTestId("notes-tab-council")).toBeTruthy();
+    expect(screen.getByTestId("notes-tab-reports")).toBeTruthy();
     expect(screen.getByText("6e A")).toBeTruthy();
   });
 
@@ -221,6 +249,19 @@ describe("Vue liste évaluations", () => {
     expect(screen.getByTestId("class-notes-fab-create")).toBeTruthy();
   });
 
+  it("affiche la classe et l'enseignant sur la même ligne que la matière", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-evaluation-row-eval-1")).toBeTruthy(),
+    );
+    expect(
+      screen.getAllByText("Mathématiques • Algèbre • 6e A • Valery Mbele")
+        .length,
+    ).toBeGreaterThan(0);
+  });
+
   it("filtre par titre", async () => {
     render(<ClassNotesManagerScreen />);
     await flushAsync();
@@ -251,6 +292,249 @@ describe("Vue liste évaluations", () => {
 
     await waitFor(() =>
       expect(screen.getByTestId("class-evaluation-row-eval-1")).toBeTruthy(),
+    );
+  });
+});
+
+// ─── Tri — plus récente en premier ──────────────────────────────────────────
+
+describe("Tri des évaluations", () => {
+  it("affiche la liste triée de la plus récente à la plus ancienne", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    const list = await screen.findByTestId("class-evaluations-list");
+    const ids = list.props.data.map(
+      (item: { id: string }) => item.id,
+    ) as string[];
+    // eval-3 (2026-05-20) > eval-1 (2026-04-12) > eval-2 (2026-02-01)
+    expect(ids).toEqual(["eval-3", "eval-1", "eval-2"]);
+  });
+});
+
+// ─── Filtres évaluations ─────────────────────────────────────────────────────
+
+describe("Filtres évaluations", () => {
+  it("le bouton filtre est inactif par défaut", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    const toggle = await screen.findByTestId("class-notes-filter-toggle");
+    const flatStyle = [toggle.props.style].flat();
+    expect(flatStyle).not.toContainEqual(
+      expect.objectContaining({ backgroundColor: "#247C72" }),
+    );
+  });
+
+  it("ouvre et ferme le panneau de filtres via le bouton toggle", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("class-notes-filter-panel")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-notes-filter-toggle"));
+    await waitFor(() =>
+      expect(screen.queryByTestId("class-notes-filter-panel")).toBeNull(),
+    );
+  });
+
+  it("le bouton Appliquer a une couleur distincte des chips actifs", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-type-type-2"),
+    );
+
+    const activeChip = screen.getByTestId("class-notes-filter-type-type-2");
+    const chipStyles = [activeChip.props.style].flat();
+    const chipBg = chipStyles.find(
+      (s) => s && s.backgroundColor,
+    )?.backgroundColor;
+
+    const applyButton = screen.getByTestId("class-notes-filter-apply");
+    const applyStyles = [applyButton.props.style].flat();
+    const applyBg = applyStyles.find(
+      (s) => s && s.backgroundColor,
+    )?.backgroundColor;
+
+    expect(applyBg).toBe("#08467D");
+    expect(applyBg).not.toBe(chipBg);
+  });
+
+  it("masque le FAB de création tant que le panneau de filtres est ouvert", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-notes-fab-create")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-notes-filter-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("class-notes-filter-panel")).toBeTruthy(),
+    );
+    expect(screen.queryByTestId("class-notes-fab-create")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("class-notes-filter-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("class-notes-fab-create")).toBeTruthy(),
+    );
+  });
+
+  it("filtre par type d'évaluation après Appliquer", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-type-type-2"),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("class-evaluation-row-eval-3")).toBeTruthy();
+      expect(screen.queryByTestId("class-evaluation-row-eval-1")).toBeNull();
+      expect(screen.queryByTestId("class-evaluation-row-eval-2")).toBeNull();
+    });
+
+    // Le bouton filtre devient actif (teal plein)
+    const toggle = screen.getByTestId("class-notes-filter-toggle");
+    const flatStyle = [toggle.props.style].flat();
+    expect(flatStyle).toContainEqual(
+      expect.objectContaining({ backgroundColor: "#247C72" }),
+    );
+  });
+
+  it("filtre par séquence après Appliquer", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-sequence-SEQ_3"),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("class-evaluation-row-eval-2")).toBeTruthy();
+      expect(screen.queryByTestId("class-evaluation-row-eval-1")).toBeNull();
+      expect(screen.queryByTestId("class-evaluation-row-eval-3")).toBeNull();
+    });
+  });
+
+  it("filtre par notes complètes / incomplètes après Appliquer", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-completion-complete"),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("class-evaluation-row-eval-3")).toBeTruthy();
+      expect(screen.queryByTestId("class-evaluation-row-eval-1")).toBeNull();
+      expect(screen.queryByTestId("class-evaluation-row-eval-2")).toBeNull();
+    });
+  });
+
+  it("Reset vide les filtres appliqués et laisse le panneau ouvert", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-completion-incomplete"),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+    await waitFor(() =>
+      expect(screen.queryByTestId("class-evaluation-row-eval-3")).toBeNull(),
+    );
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(screen.getByTestId("class-notes-filter-reset"));
+
+    // Le panneau reste ouvert après Reset
+    expect(screen.getByTestId("class-notes-filter-panel")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("class-notes-filter-close"));
+    await waitFor(() => {
+      expect(screen.getByTestId("class-evaluation-row-eval-1")).toBeTruthy();
+      expect(screen.getByTestId("class-evaluation-row-eval-2")).toBeTruthy();
+      expect(screen.getByTestId("class-evaluation-row-eval-3")).toBeTruthy();
+    });
+  });
+
+  it("Close abandonne le brouillon en cours sans appliquer de filtre", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-type-type-2"),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-close"));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("class-notes-filter-panel")).toBeNull(),
+    );
+    // Aucun filtre n'a été appliqué : les 3 évaluations restent visibles
+    expect(screen.getByTestId("class-evaluation-row-eval-1")).toBeTruthy();
+    expect(screen.getByTestId("class-evaluation-row-eval-2")).toBeTruthy();
+    expect(screen.getByTestId("class-evaluation-row-eval-3")).toBeTruthy();
+  });
+
+  it("recherche et filtres se combinent", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-type-type-1"),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+
+    fireEvent.changeText(
+      screen.getByTestId("class-notes-search-input"),
+      "DS Algèbre",
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("class-evaluation-row-eval-2")).toBeTruthy();
+      expect(screen.queryByTestId("class-evaluation-row-eval-1")).toBeNull();
+      expect(screen.queryByTestId("class-evaluation-row-eval-3")).toBeNull();
+    });
+  });
+});
+
+// ─── Bouton Notes du footer — couleur selon complétion ───────────────────────
+
+describe("Couleur du bouton Notes selon la complétion des scores", () => {
+  it("colore le bouton en teal quand toutes les notes sont saisies", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    const label = await screen.findByTestId("eval-action-scores-label-eval-3");
+    const flatStyle = [label.props.style].flat();
+    expect(flatStyle).toContainEqual(
+      expect.objectContaining({ color: "#247C72" }),
+    );
+  });
+
+  it("colore le bouton en orange quand des notes manquent", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    const label = await screen.findByTestId("eval-action-scores-label-eval-1");
+    const flatStyle = [label.props.style].flat();
+    expect(flatStyle).toContainEqual(
+      expect.objectContaining({ color: "#D89B5B" }),
     );
   });
 });
@@ -315,7 +599,7 @@ describe("Vue détail", () => {
     fireEvent.press(screen.getByTestId("class-notes-detail-scores"));
     await flushAsync();
     await waitFor(() =>
-      expect(screen.getByTestId("class-notes-scores-back")).toBeTruthy(),
+      expect(screen.getByTestId("class-notes-scores-hero")).toBeTruthy(),
     );
   });
 
@@ -390,12 +674,12 @@ describe("Vue saisie notes", () => {
     });
   });
 
-  it("revient à la liste via le bouton retour", async () => {
+  it("revient à la liste via le bouton retour du header module", async () => {
     await openScoresView();
     await waitFor(() =>
-      expect(screen.getByTestId("class-notes-scores-back")).toBeTruthy(),
+      expect(screen.getByTestId("class-notes-scores-hero")).toBeTruthy(),
     );
-    fireEvent.press(screen.getByTestId("class-notes-scores-back"));
+    fireEvent.press(screen.getByTestId("class-notes-back"));
     await flushAsync();
     await waitFor(() =>
       expect(screen.getByTestId("class-evaluations-list")).toBeTruthy(),
@@ -641,5 +925,654 @@ describe("preStudentId — Arrivée depuis le module Par élève", () => {
       expect(screen.getByTestId("class-evaluations-list")).toBeTruthy(),
     );
     expect(screen.queryByTestId("teacher-notes-tab")).toBeNull();
+  });
+});
+
+// ─── preEvaluationId / openCreate — Arrivée depuis la vue école ──────────────
+
+describe("preEvaluationId — Arrivée depuis la liste multi-classes", () => {
+  it("ouvre directement le détail de l'évaluation fournie via preEvaluationId", async () => {
+    mockSearchParams = {
+      classId: "class-1",
+      schoolYearId: "y1",
+      preEvaluationId: "eval-1",
+    };
+
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-notes-detail-back")).toBeTruthy(),
+    );
+    expect(screen.getByText("Composition 1")).toBeTruthy();
+  });
+});
+
+describe("openCreate — Création directe depuis la liste multi-classes", () => {
+  it("ouvre directement le formulaire de création quand openCreate=1", async () => {
+    mockSearchParams = {
+      classId: "class-1",
+      schoolYearId: "y1",
+      openCreate: "1",
+    };
+
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("eval-form-back")).toBeTruthy(),
+    );
+  });
+});
+
+// ─── Mode admin (arrivée directe, sans classId) ──────────────────────────────
+
+const LEVEL_6E = { id: "level-6e", code: "6E", label: "6ème" };
+const LEVEL_5E = { id: "level-5e", code: "5E", label: "5ème" };
+
+const CLASSROOM_6A = {
+  id: "class-1",
+  name: "6e A",
+  schoolYear: { id: "y1", label: "2025-2026" },
+  academicLevel: LEVEL_6E,
+};
+const CLASSROOM_6B = {
+  id: "class-2",
+  name: "6e B",
+  schoolYear: { id: "y1", label: "2025-2026" },
+  academicLevel: LEVEL_6E,
+};
+const CLASSROOM_5A = {
+  id: "class-3",
+  name: "5e A",
+  schoolYear: { id: "y1", label: "2025-2026" },
+  academicLevel: LEVEL_5E,
+};
+
+describe("Mode admin — arrivée sans classId", () => {
+  beforeEach(() => {
+    mockSearchParams = { schoolYearId: "y1" };
+    mockTeachersApi.listClassrooms.mockResolvedValue([
+      CLASSROOM_6A,
+      CLASSROOM_6B,
+      CLASSROOM_5A,
+    ] as never);
+  });
+
+  it("ne charge pas le contexte enseignant tant qu'aucune classe n'est choisie, mais charge les évaluations de toute l'école", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    expect(screen.queryByTestId("class-notes-subtitle")).toBeNull();
+    expect(useNotesStore.getState().loadTeacherContext).not.toHaveBeenCalled();
+    expect(useNotesStore.getState().loadSchoolEvaluations).toHaveBeenCalledWith(
+      "college-vogt",
+      { academicLevelId: undefined },
+    );
+  });
+
+  it("ouvre automatiquement le panneau de filtres à l'arrivée", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    expect(await screen.findByTestId("class-notes-filter-panel")).toBeTruthy();
+    expect(screen.getByTestId("class-notes-filter-level-trigger")).toBeTruthy();
+    expect(screen.getByTestId("class-notes-filter-class-trigger")).toBeTruthy();
+  });
+
+  it("affiche la liste de toute l'école (pas de blocage) si le panneau de filtres est fermé sans sélection", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+    fireEvent.press(await screen.findByTestId("class-notes-filter-close"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("class-evaluation-row-eval-1")).toBeTruthy();
+      expect(screen.getByTestId("class-evaluation-row-eval-2")).toBeTruthy();
+      expect(screen.getByTestId("class-evaluation-row-eval-3")).toBeTruthy();
+    });
+    // Créer une évaluation exige une classe précise : le FAB reste masqué.
+    expect(screen.queryByTestId("class-notes-fab-create")).toBeNull();
+  });
+
+  it("propose Toutes les classes dans le sélecteur de classe (pas de choix forcé)", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-class-trigger"),
+    );
+    expect(
+      screen.getByTestId("class-notes-filter-class-option-empty"),
+    ).toBeTruthy();
+  });
+
+  it("narrowing par niveau seul reste en navigation école entière (pas de contexte enseignant chargé)", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-level-trigger"),
+    );
+    fireEvent.press(
+      await screen.findByTestId(
+        `class-notes-filter-level-option-${LEVEL_6E.id}`,
+      ),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+
+    await waitFor(() => {
+      expect(
+        useNotesStore.getState().loadSchoolEvaluations,
+      ).toHaveBeenCalledWith("college-vogt", {
+        academicLevelId: LEVEL_6E.id,
+      });
+    });
+    expect(useNotesStore.getState().loadTeacherContext).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("class-notes-fab-create")).toBeNull();
+  });
+
+  it("limite les classes proposées au niveau sélectionné", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-level-trigger"),
+    );
+    fireEvent.press(
+      await screen.findByTestId(
+        `class-notes-filter-level-option-${LEVEL_6E.id}`,
+      ),
+    );
+
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-class-trigger"),
+    );
+    expect(
+      screen.getByTestId(`class-notes-filter-class-option-${CLASSROOM_6A.id}`),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId(`class-notes-filter-class-option-${CLASSROOM_6B.id}`),
+    ).toBeTruthy();
+    expect(
+      screen.queryByTestId(
+        `class-notes-filter-class-option-${CLASSROOM_5A.id}`,
+      ),
+    ).toBeNull();
+  });
+
+  it("charge le contexte de la classe choisie via le filtre, et uniquement celle-ci", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-class-trigger"),
+    );
+    fireEvent.press(
+      await screen.findByTestId(
+        `class-notes-filter-class-option-${CLASSROOM_6B.id}`,
+      ),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+
+    await waitFor(() => {
+      expect(useNotesStore.getState().loadTeacherContext).toHaveBeenCalledWith(
+        "college-vogt",
+        "class-2",
+      );
+    });
+    expect(
+      useNotesStore.getState().loadTeacherContext,
+    ).not.toHaveBeenCalledWith("college-vogt", "class-1");
+  });
+
+  it("Reset ramène en navigation école entière après avoir engagé une classe via le filtre", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    // Engage la classe 6e B via le filtre.
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-class-trigger"),
+    );
+    fireEvent.press(
+      await screen.findByTestId(
+        `class-notes-filter-class-option-${CLASSROOM_6B.id}`,
+      ),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+    await waitFor(() => {
+      expect(useNotesStore.getState().loadTeacherContext).toHaveBeenCalledWith(
+        "college-vogt",
+        "class-2",
+      );
+    });
+
+    (useNotesStore.getState().loadSchoolEvaluations as jest.Mock).mockClear();
+
+    // Reset : les dropdowns doivent revenir à "Tous/Toutes" et la navigation
+    // école entière doit reprendre.
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    fireEvent.press(screen.getByTestId("class-notes-filter-reset"));
+
+    fireEvent.press(
+      await screen.findByTestId("class-notes-filter-class-trigger"),
+    );
+    expect(
+      screen.getByTestId("class-notes-filter-class-option-empty"),
+    ).toBeTruthy();
+
+    fireEvent.press(
+      screen.getByTestId("class-notes-filter-class-option-empty"),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+
+    await waitFor(() => {
+      expect(
+        useNotesStore.getState().loadSchoolEvaluations,
+      ).toHaveBeenCalledWith("college-vogt", { academicLevelId: undefined });
+    });
+  });
+
+  it("résout la classe depuis la ligne pour Modifier une évaluation d'une autre classe que celle engagée", async () => {
+    const OTHER_CLASS_EVAL = {
+      ...EVAL_1,
+      id: "eval-9",
+      title: "Contrôle 6e B",
+      class: { id: "class-2", name: "6e B" },
+    };
+    useNotesStore.setState({
+      evaluations: [EVAL_1, OTHER_CLASS_EVAL],
+    } as never);
+
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+    fireEvent.press(await screen.findByTestId("class-notes-filter-close"));
+
+    fireEvent.press(await screen.findByTestId("eval-action-edit-eval-9"));
+
+    await waitFor(() => {
+      expect(useNotesStore.getState().loadTeacherContext).toHaveBeenCalledWith(
+        "college-vogt",
+        "class-2",
+      );
+    });
+  });
+
+  it("résout la classe depuis la ligne pour Supprimer une évaluation d'une autre classe que celle engagée", async () => {
+    const OTHER_CLASS_EVAL = {
+      ...EVAL_1,
+      id: "eval-9",
+      title: "Contrôle 6e B",
+      class: { id: "class-2", name: "6e B" },
+    };
+    useNotesStore.setState({
+      evaluations: [EVAL_1, OTHER_CLASS_EVAL],
+    } as never);
+
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+    fireEvent.press(await screen.findByTestId("class-notes-filter-close"));
+
+    fireEvent.press(await screen.findByTestId("eval-action-delete-eval-9"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("confirm-dialog-confirm")).toBeTruthy(),
+    );
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(useNotesStore.getState().deleteEvaluation).toHaveBeenCalledWith(
+      "college-vogt",
+      "class-2",
+      "eval-9",
+    );
+  });
+
+  it("affiche tous les chips de type d'évaluation même sans classe engagée (dérivés des évaluations chargées)", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    expect(await screen.findByTestId("class-notes-filter-panel")).toBeTruthy();
+    // EVAL_1/EVAL_2 sont de type "type-1", EVAL_3 de type "type-2" : les deux
+    // chips doivent apparaître, alors qu'aucun contexte enseignant (qui les
+    // fournirait normalement) n'est chargé en navigation "toute l'école".
+    expect(screen.getByTestId("class-notes-filter-type-type-1")).toBeTruthy();
+    expect(screen.getByTestId("class-notes-filter-type-type-2")).toBeTruthy();
+    expect(useNotesStore.getState().loadTeacherContext).not.toHaveBeenCalled();
+  });
+
+  it("propose aussi le filtre de complétion des notes sans classe engagée, et il filtre correctement", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    expect(await screen.findByTestId("class-notes-filter-panel")).toBeTruthy();
+    expect(
+      screen.getByTestId("class-notes-filter-completion-complete"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("class-notes-filter-completion-incomplete"),
+    ).toBeTruthy();
+
+    fireEvent.press(
+      screen.getByTestId("class-notes-filter-completion-complete"),
+    );
+    fireEvent.press(screen.getByTestId("class-notes-filter-apply"));
+
+    // eval-3 a 2/2 notes saisies (complet), eval-1 et eval-2 sont incomplets.
+    await waitFor(() => {
+      expect(screen.getByTestId("class-evaluation-row-eval-3")).toBeTruthy();
+      expect(screen.queryByTestId("class-evaluation-row-eval-1")).toBeNull();
+      expect(screen.queryByTestId("class-evaluation-row-eval-2")).toBeNull();
+    });
+  });
+
+  describe("Onglet Notes — recherche élève sur toute l'école", () => {
+    beforeEach(() => {
+      mockNotesApi.getTeacherContext.mockImplementation(
+        (_slug, classId: string) => {
+          if (classId === "class-1") {
+            return Promise.resolve({
+              class: {
+                id: "class-1",
+                name: "6e A",
+                schoolYearId: "y1",
+                isReferentTeacher: false,
+              },
+              subjects: [{ id: "sub-1", name: "Mathématiques", branches: [] }],
+              evaluationTypes: [],
+              students: [
+                { id: "stu-1", firstName: "Kevin", lastName: "Fouda" },
+              ],
+            } as never);
+          }
+          if (classId === "class-2") {
+            return Promise.resolve({
+              class: {
+                id: "class-2",
+                name: "6e B",
+                schoolYearId: "y1",
+                isReferentTeacher: false,
+              },
+              subjects: [{ id: "sub-2", name: "Anglais", branches: [] }],
+              evaluationTypes: [],
+              // Homonyme du stu-1 de la classe 6e A : c'est exactement le cas
+              // que le school admin doit pouvoir désambiguïser.
+              students: [
+                { id: "stu-2", firstName: "Kevin", lastName: "Fouda" },
+              ],
+            } as never);
+          }
+          return Promise.resolve({
+            class: {
+              id: "class-3",
+              name: "5e A",
+              schoolYearId: "y1",
+              isReferentTeacher: false,
+            },
+            subjects: [],
+            evaluationTypes: [],
+            students: [],
+          } as never);
+        },
+      );
+    });
+
+    it("ne charge rien pour la recherche élève tant que l'onglet Notes n'est pas ouvert", async () => {
+      render(<ClassNotesManagerScreen />);
+      await flushAsync();
+
+      expect(mockNotesApi.getTeacherContext).not.toHaveBeenCalled();
+    });
+
+    it("agrège les élèves de toutes les classes de l'école avec leur classe respective", async () => {
+      render(<ClassNotesManagerScreen />);
+      await flushAsync();
+
+      fireEvent.press(screen.getByTestId("notes-tab-notes"));
+      await flushAsync();
+
+      await waitFor(() => {
+        expect(mockNotesApi.getTeacherContext).toHaveBeenCalledWith(
+          "college-vogt",
+          "class-1",
+        );
+        expect(mockNotesApi.getTeacherContext).toHaveBeenCalledWith(
+          "college-vogt",
+          "class-2",
+        );
+        expect(mockNotesApi.getTeacherContext).toHaveBeenCalledWith(
+          "college-vogt",
+          "class-3",
+        );
+      });
+
+      fireEvent.changeText(
+        screen.getByTestId("teacher-notes-search-input"),
+        "Fouda",
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("teacher-notes-search-result-stu-1"),
+        ).toBeTruthy();
+        expect(
+          screen.getByTestId("teacher-notes-search-result-stu-2"),
+        ).toBeTruthy();
+      });
+      expect(
+        screen.getByTestId("teacher-notes-search-result-class-stu-1"),
+      ).toHaveTextContent("6e A");
+      expect(
+        screen.getByTestId("teacher-notes-search-result-class-stu-2"),
+      ).toHaveTextContent("6e B");
+    });
+
+    it("affiche un état de chargement pendant l'agrégation multi-classes", async () => {
+      let resolveContext: (value: unknown) => void = () => {};
+      mockNotesApi.getTeacherContext.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveContext = resolve;
+          }) as never,
+      );
+
+      render(<ClassNotesManagerScreen />);
+      await flushAsync();
+      fireEvent.press(screen.getByTestId("notes-tab-notes"));
+
+      expect(screen.getByText("Chargement des élèves…")).toBeTruthy();
+
+      await act(async () => {
+        resolveContext({
+          class: {
+            id: "class-1",
+            name: "6e A",
+            schoolYearId: "y1",
+            isReferentTeacher: false,
+          },
+          subjects: [],
+          evaluationTypes: [],
+          students: [],
+        });
+        await Promise.resolve();
+      });
+    });
+  });
+
+  describe("Onglet Reports — bulletins à l'échelle de l'école", () => {
+    beforeEach(() => {
+      mockNotesApi.getTeacherContext.mockImplementation(
+        (_slug, classId: string) => {
+          if (classId === "class-1") {
+            return Promise.resolve({
+              class: {
+                id: "class-1",
+                name: "6e A",
+                schoolYearId: "y1",
+                isReferentTeacher: false,
+              },
+              subjects: [{ id: "sub-1", name: "Mathématiques", branches: [] }],
+              evaluationTypes: [],
+              students: [
+                { id: "stu-1", firstName: "Kevin", lastName: "Fouda" },
+              ],
+            } as never);
+          }
+          if (classId === "class-2") {
+            return Promise.resolve({
+              class: {
+                id: "class-2",
+                name: "6e B",
+                schoolYearId: "y1",
+                isReferentTeacher: false,
+              },
+              subjects: [{ id: "sub-2", name: "Anglais", branches: [] }],
+              evaluationTypes: [],
+              students: [
+                { id: "stu-2", firstName: "Kevin", lastName: "Fouda" },
+              ],
+            } as never);
+          }
+          return Promise.resolve({
+            class: {
+              id: "class-3",
+              name: "5e A",
+              schoolYearId: "y1",
+              isReferentTeacher: false,
+            },
+            subjects: [],
+            evaluationTypes: [],
+            students: [{ id: "stu-3", firstName: "Alice", lastName: "Owona" }],
+          } as never);
+        },
+      );
+    });
+
+    it("ne charge rien pour l'onglet reports tant qu'il n'est pas ouvert", async () => {
+      render(<ClassNotesManagerScreen />);
+      await flushAsync();
+
+      expect(mockNotesApi.getTeacherContext).not.toHaveBeenCalled();
+    });
+
+    it("agrège les élèves de toutes les classes avec leur classe affichée en face du nom", async () => {
+      render(<ClassNotesManagerScreen />);
+      await flushAsync();
+
+      fireEvent.press(screen.getByTestId("notes-tab-reports"));
+      await flushAsync();
+
+      await waitFor(() => {
+        expect(mockNotesApi.getTeacherContext).toHaveBeenCalledWith(
+          "college-vogt",
+          "class-1",
+        );
+        expect(mockNotesApi.getTeacherContext).toHaveBeenCalledWith(
+          "college-vogt",
+          "class-2",
+        );
+        expect(mockNotesApi.getTeacherContext).toHaveBeenCalledWith(
+          "college-vogt",
+          "class-3",
+        );
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("school-reports-row-stu-1")).toBeTruthy();
+        expect(screen.getByTestId("school-reports-row-stu-2")).toBeTruthy();
+        expect(screen.getByTestId("school-reports-row-stu-3")).toBeTruthy();
+      });
+      expect(
+        screen.getByTestId("school-reports-row-class-stu-1"),
+      ).toHaveTextContent("6e A");
+      expect(
+        screen.getByTestId("school-reports-row-class-stu-2"),
+      ).toHaveTextContent("6e B");
+    });
+
+    it("propose les filtres Niveau/Classe en listes liées dans l'onglet reports", async () => {
+      render(<ClassNotesManagerScreen />);
+      await flushAsync();
+
+      fireEvent.press(screen.getByTestId("notes-tab-reports"));
+      await flushAsync();
+      await waitFor(() => {
+        expect(screen.getByTestId("school-reports-row-stu-1")).toBeTruthy();
+      });
+
+      fireEvent.press(screen.getByTestId("school-reports-filter-toggle"));
+      fireEvent.press(
+        screen.getByTestId("school-reports-filter-level-trigger"),
+      );
+      fireEvent.press(
+        screen.getByTestId(`school-reports-filter-level-option-${LEVEL_6E.id}`),
+      );
+
+      fireEvent.press(
+        screen.getByTestId("school-reports-filter-class-trigger"),
+      );
+      expect(
+        screen.getByTestId(
+          `school-reports-filter-class-option-${CLASSROOM_6A.id}`,
+        ),
+      ).toBeTruthy();
+      expect(
+        screen.getByTestId(
+          `school-reports-filter-class-option-${CLASSROOM_6B.id}`,
+        ),
+      ).toBeTruthy();
+      expect(
+        screen.queryByTestId(
+          `school-reports-filter-class-option-${CLASSROOM_5A.id}`,
+        ),
+      ).toBeNull();
+    });
+
+    it("bascule le header sur le bulletin sélectionné, et le back revient à la liste", async () => {
+      render(<ClassNotesManagerScreen />);
+      await flushAsync();
+
+      fireEvent.press(screen.getByTestId("notes-tab-reports"));
+      await flushAsync();
+      await waitFor(() => {
+        expect(screen.getByTestId("school-reports-row-stu-1")).toBeTruthy();
+      });
+
+      fireEvent.press(screen.getByTestId("school-reports-row-stu-1"));
+      await flushAsync();
+      fireEvent.press(
+        screen.getByTestId("school-reports-bulletin-stu-1-TERM_1"),
+      );
+
+      expect(await screen.findByTestId("school-reports-detail")).toBeTruthy();
+      expect(screen.getByTestId("class-notes-subtitle")).toHaveTextContent(
+        /6e A/,
+      );
+
+      fireEvent.press(screen.getByTestId("class-notes-back"));
+      await waitFor(() => {
+        expect(screen.getByTestId("school-reports-tab")).toBeTruthy();
+      });
+    });
+  });
+});
+
+describe("Mode enseignant — classId fourni par la route", () => {
+  it("ne montre pas les filtres Niveau/Classe (réservés au mode admin)", async () => {
+    mockSearchParams = { classId: "class-1", schoolYearId: "y1" };
+
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("class-notes-filter-toggle"));
+    await waitFor(() =>
+      expect(screen.getByTestId("class-notes-filter-panel")).toBeTruthy(),
+    );
+
+    expect(screen.queryByTestId("class-notes-filter-level-trigger")).toBeNull();
+    expect(screen.queryByTestId("class-notes-filter-class-trigger")).toBeNull();
+    expect(mockTeachersApi.listClassrooms).not.toHaveBeenCalled();
   });
 });
