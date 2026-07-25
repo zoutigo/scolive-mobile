@@ -186,7 +186,7 @@ describe("SchoolAdminUsersScreen — Fonctionnels", () => {
     expect(screen.getByText("Atangana Pierre")).toBeOnTheScreen();
   });
 
-  it("affiche le compteur d'utilisateurs", async () => {
+  it("affiche le compteur d'utilisateurs sur le bouton de filtre", async () => {
     mockUsersApi.list.mockResolvedValueOnce(
       makeUsersPage(SAMPLE_USERS, { total: 5 }),
     );
@@ -194,10 +194,10 @@ describe("SchoolAdminUsersScreen — Fonctionnels", () => {
     await waitFor(() => {
       expect(screen.getByTestId("users-total")).toBeOnTheScreen();
     });
-    expect(screen.getByText("5 utilisateurs")).toBeOnTheScreen();
+    expect(screen.getByText("5")).toBeOnTheScreen();
   });
 
-  it("affiche la légende des pastilles de rôle à côté du compteur", async () => {
+  it("affiche la légende des pastilles de rôle avec des libellés courts", async () => {
     mockUsersApi.list.mockResolvedValueOnce(
       makeUsersPage(SAMPLE_USERS, { total: 5 }),
     );
@@ -205,9 +205,9 @@ describe("SchoolAdminUsersScreen — Fonctionnels", () => {
     await waitFor(() => {
       expect(screen.getByTestId("users-role-legend")).toBeOnTheScreen();
     });
-    expect(screen.getByText("Enseignant")).toBeOnTheScreen();
-    expect(screen.getByText("Superviseur")).toBeOnTheScreen();
-    expect(screen.getByText("Comptable")).toBeOnTheScreen();
+    expect(screen.getByText("ENS")).toBeOnTheScreen();
+    expect(screen.getByText("SUP")).toBeOnTheScreen();
+    expect(screen.getByText("CPT")).toBeOnTheScreen();
   });
 
   it("n'affiche pas la légende quand la liste est vide", async () => {

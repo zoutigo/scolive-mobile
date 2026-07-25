@@ -23,7 +23,7 @@ import { ModuleHeader } from "../navigation/ModuleHeader";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { EmptyState, LoadingBlock } from "../timetable/TimetableCommon";
 import { SelectField } from "../tests-admin/SelectField";
-import { ROLE_COLORS, ROLE_LABELS, UserCard } from "./UserCard";
+import { ROLE_COLORS, UserCard } from "./UserCard";
 import { UserDetailModal } from "./UserDetailModal";
 import type {
   SchoolRole,
@@ -417,18 +417,18 @@ export function SchoolAdminUsersScreen() {
             size={18}
             color={hasActiveFilters(filters) ? colors.white : colors.accentTeal}
           />
+          {total > 0 ? (
+            <View style={styles.filterToggleBadge} testID="users-total">
+              <Text style={styles.filterToggleBadgeLabel}>
+                {total > 99 ? "99+" : total}
+              </Text>
+            </View>
+          ) : null}
         </TouchableOpacity>
       </View>
 
       {total > 0 && !filtersOpen ? (
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel} testID="users-total">
-            {t(
-              total > 1
-                ? "users.totalCount.plural"
-                : "users.totalCount.singular",
-            ).replace("{count}", String(total))}
-          </Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -443,7 +443,9 @@ export function SchoolAdminUsersScreen() {
                     { backgroundColor: ROLE_COLORS[role].bg },
                   ]}
                 />
-                <Text style={styles.legendLabel}>{ROLE_LABELS[role]}</Text>
+                <Text style={styles.legendLabel}>
+                  {t(`users.role.short.${role}`)}
+                </Text>
               </View>
             ))}
           </ScrollView>
@@ -696,6 +698,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   filterToggle: {
+    position: "relative",
     width: 40,
     height: 40,
     borderRadius: 6,
@@ -709,16 +712,27 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentTeal,
     borderColor: colors.accentTeal,
   },
+  filterToggleBadge: {
+    position: "absolute",
+    bottom: -6,
+    alignSelf: "center",
+    minWidth: 16,
+    height: 14,
+    borderRadius: 7,
+    paddingHorizontal: 3,
+    backgroundColor: colors.warmAccent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterToggleBadgeLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: colors.white,
+  },
   totalRow: {
     paddingTop: 8,
     paddingBottom: 4,
     gap: 6,
-  },
-  totalLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: "500",
-    paddingHorizontal: 16,
   },
   legendContent: {
     flexDirection: "row",
