@@ -99,6 +99,77 @@ describe("usersApi", () => {
 
       await expect(usersApi.list(SLUG, {})).rejects.toThrow("Network error");
     });
+
+    it("traduit hasAccount=WITH_ACCOUNT en hasAccount=true", async () => {
+      mockApiFetch.mockResolvedValueOnce(makeUsersPage([]));
+
+      await usersApi.list(SLUG, { hasAccount: "WITH_ACCOUNT" });
+
+      const [url] = mockApiFetch.mock.calls[0];
+      expect(url).toContain("hasAccount=true");
+    });
+
+    it("traduit hasAccount=WITHOUT_ACCOUNT en hasAccount=false", async () => {
+      mockApiFetch.mockResolvedValueOnce(makeUsersPage([]));
+
+      await usersApi.list(SLUG, { hasAccount: "WITHOUT_ACCOUNT" });
+
+      const [url] = mockApiFetch.mock.calls[0];
+      expect(url).toContain("hasAccount=false");
+    });
+
+    it("n'inclut pas hasAccount quand ALL", async () => {
+      mockApiFetch.mockResolvedValueOnce(makeUsersPage([]));
+
+      await usersApi.list(SLUG, { hasAccount: "ALL" });
+
+      const [url] = mockApiFetch.mock.calls[0];
+      expect(url).not.toContain("hasAccount=");
+    });
+
+    it("inclut schoolYearId quand fourni", async () => {
+      mockApiFetch.mockResolvedValueOnce(makeUsersPage([]));
+
+      await usersApi.list(SLUG, { schoolYearId: "sy-1" });
+
+      const [url] = mockApiFetch.mock.calls[0];
+      expect(url).toContain("schoolYearId=sy-1");
+    });
+
+    it("n'inclut pas schoolYearId quand vide", async () => {
+      mockApiFetch.mockResolvedValueOnce(makeUsersPage([]));
+
+      await usersApi.list(SLUG, { schoolYearId: "" });
+
+      const [url] = mockApiFetch.mock.calls[0];
+      expect(url).not.toContain("schoolYearId=");
+    });
+  });
+
+  describe("listSchoolYears", () => {
+    it("appelle le bon endpoint", async () => {
+      mockApiFetch.mockResolvedValueOnce([]);
+
+      await usersApi.listSchoolYears(SLUG);
+
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        `/schools/${SLUG}/admin/school-years`,
+        {},
+        true,
+      );
+    });
+
+    it("retourne la liste des années", async () => {
+      const years = [
+        { id: "sy-1", label: "2025-2026", isActive: true },
+        { id: "sy-2", label: "2024-2025", isActive: false },
+      ];
+      mockApiFetch.mockResolvedValueOnce(years);
+
+      const result = await usersApi.listSchoolYears(SLUG);
+
+      expect(result).toEqual(years);
+    });
   });
 
   describe("get", () => {

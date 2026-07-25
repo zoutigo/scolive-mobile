@@ -32,7 +32,7 @@ import {
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/users.api");
 jest.mock("../../src/api/users.api", () => ({
-  usersApi: { list: jest.fn(), get: jest.fn() },
+  usersApi: { list: jest.fn(), get: jest.fn(), listSchoolYears: jest.fn() },
 }));
 jest.mock("../../src/store/auth.store", () => ({
   useAuthStore: () => ({
@@ -68,6 +68,7 @@ beforeEach(() => {
 
   // Détail vide par défaut
   mockUsersApi.get.mockResolvedValue(makeSchoolUserDetail(TEACHER_USER));
+  mockUsersApi.listSchoolYears.mockResolvedValue([]);
 });
 
 function renderScreen() {
@@ -118,12 +119,57 @@ describe("SchoolAdminUsersScreen — Unitaires", () => {
     });
   });
 
-  it("affiche la barre de filtres par role", async () => {
+  it("affiche le bouton de filtres (panneau fermé par défaut)", async () => {
     mockUsersApi.list.mockResolvedValueOnce(makeUsersPage([]));
     renderScreen();
     await waitFor(() => {
-      expect(screen.getByTestId("users-role-filter")).toBeOnTheScreen();
+      expect(screen.getByTestId("users-filter-toggle")).toBeOnTheScreen();
     });
+    expect(screen.queryByTestId("users-filter-panel")).toBeNull();
+  });
+
+  it("le panneau de filtres liste tous les types d'utilisateurs, y compris Superviseur et Comptable", async () => {
+    mockUsersApi.list.mockResolvedValueOnce(makeUsersPage([]));
+    renderScreen();
+    await waitFor(() => {
+      expect(screen.getByTestId("users-filter-toggle")).toBeOnTheScreen();
+    });
+
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+
+    expect(screen.getByTestId("users-filter-role-all")).toBeOnTheScreen();
+    expect(screen.getByTestId("users-filter-role-teacher")).toBeOnTheScreen();
+    expect(screen.getByTestId("users-filter-role-parent")).toBeOnTheScreen();
+    expect(screen.getByTestId("users-filter-role-student")).toBeOnTheScreen();
+    expect(
+      screen.getByTestId("users-filter-role-school_admin"),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByTestId("users-filter-role-school_manager"),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByTestId("users-filter-role-supervisor"),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByTestId("users-filter-role-school_accountant"),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByTestId("users-filter-role-school_staff"),
+    ).toBeOnTheScreen();
+  });
+
+  it("ouvre le panneau de filtres au clic sur le bouton filtre", async () => {
+    mockUsersApi.list.mockResolvedValueOnce(makeUsersPage([]));
+    renderScreen();
+    await waitFor(() => {
+      expect(screen.getByTestId("users-filter-toggle")).toBeOnTheScreen();
+    });
+
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+
+    expect(screen.getByTestId("users-filter-panel")).toBeOnTheScreen();
+    // La liste et le panneau sont mutuellement exclusifs.
+    expect(screen.queryByTestId("users-list")).toBeNull();
   });
 });
 
@@ -151,7 +197,29 @@ describe("SchoolAdminUsersScreen — Fonctionnels", () => {
     expect(screen.getByText("5 utilisateurs")).toBeOnTheScreen();
   });
 
-  it("filtre par role quand on clique sur un chip", async () => {
+  it("affiche la légende des pastilles de rôle à côté du compteur", async () => {
+    mockUsersApi.list.mockResolvedValueOnce(
+      makeUsersPage(SAMPLE_USERS, { total: 5 }),
+    );
+    renderScreen();
+    await waitFor(() => {
+      expect(screen.getByTestId("users-role-legend")).toBeOnTheScreen();
+    });
+    expect(screen.getByText("Enseignant")).toBeOnTheScreen();
+    expect(screen.getByText("Superviseur")).toBeOnTheScreen();
+    expect(screen.getByText("Comptable")).toBeOnTheScreen();
+  });
+
+  it("n'affiche pas la légende quand la liste est vide", async () => {
+    mockUsersApi.list.mockResolvedValueOnce(makeUsersPage([], { total: 0 }));
+    renderScreen();
+    await waitFor(() => {
+      expect(screen.getByTestId("users-search-input")).toBeOnTheScreen();
+    });
+    expect(screen.queryByTestId("users-role-legend")).toBeNull();
+  });
+
+  it("filtre par role via le panneau de filtres (chip + Appliquer)", async () => {
     mockUsersApi.list
       .mockResolvedValueOnce(makeUsersPage(SAMPLE_USERS))
       .mockResolvedValueOnce(makeUsersPage([TEACHER_USER]));
@@ -161,8 +229,11 @@ describe("SchoolAdminUsersScreen — Fonctionnels", () => {
       expect(screen.getByTestId("users-list")).toBeOnTheScreen();
     });
 
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+    fireEvent.press(screen.getByTestId("users-filter-role-teacher"));
+
     await act(async () => {
-      fireEvent.press(screen.getByTestId("role-filter-teacher"));
+      fireEvent.press(screen.getByTestId("users-filter-apply"));
     });
 
     await waitFor(() => {
@@ -171,6 +242,103 @@ describe("SchoolAdminUsersScreen — Fonctionnels", () => {
         expect.objectContaining({ role: "TEACHER" }),
       );
     });
+    // Le panneau se referme après Appliquer.
+    expect(screen.queryByTestId("users-filter-panel")).toBeNull();
+  });
+
+  it("le bouton filtre devient teal plein quand un filtre est appliqué", async () => {
+    mockUsersApi.list.mockResolvedValue(makeUsersPage([]));
+    renderScreen();
+    await waitFor(() => {
+      expect(screen.getByTestId("users-filter-toggle")).toBeOnTheScreen();
+    });
+
+    const toggleBefore = screen.getByTestId("users-filter-toggle");
+    expect(toggleBefore.props.style).not.toEqual(
+      expect.objectContaining({ backgroundColor: "#247C72" }),
+    );
+
+    fireEvent.press(toggleBefore);
+    fireEvent.press(screen.getByTestId("users-filter-account-without_account"));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("users-filter-apply"));
+    });
+
+    const toggleAfter = screen.getByTestId("users-filter-toggle");
+    expect(toggleAfter.props.style).toEqual(
+      expect.objectContaining({ backgroundColor: "#247C72" }),
+    );
+  });
+
+  it("Reset vide les filtres et Fermer abandonne le brouillon", async () => {
+    mockUsersApi.list.mockResolvedValue(makeUsersPage([]));
+    renderScreen();
+    await waitFor(() => {
+      expect(screen.getByTestId("users-filter-toggle")).toBeOnTheScreen();
+    });
+
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+    fireEvent.press(screen.getByTestId("users-filter-role-parent"));
+    fireEvent.press(screen.getByTestId("users-filter-close"));
+
+    expect(useUsersStore.getState().filters.role).toBe("ALL");
+
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+    fireEvent.press(screen.getByTestId("users-filter-role-parent"));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("users-filter-apply"));
+    });
+    expect(useUsersStore.getState().filters.role).toBe("PARENT");
+
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("users-filter-reset"));
+    });
+    expect(useUsersStore.getState().filters.role).toBe("ALL");
+  });
+
+  it("affiche l'indice de désactivation du filtre Année pour un rôle qui n'a pas d'année (ALL)", async () => {
+    mockUsersApi.list.mockResolvedValue(makeUsersPage([]));
+    renderScreen();
+    await waitFor(() => {
+      expect(screen.getByTestId("users-filter-toggle")).toBeOnTheScreen();
+    });
+
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+    expect(
+      screen.getByText(
+        "Disponible uniquement pour les rôles Élève et Enseignant.",
+      ),
+    ).toBeOnTheScreen();
+  });
+
+  it("masque l'indice de désactivation du filtre Année pour le rôle Enseignant", async () => {
+    mockUsersApi.list.mockResolvedValue(makeUsersPage([]));
+    renderScreen();
+    await waitFor(() => {
+      expect(screen.getByTestId("users-filter-toggle")).toBeOnTheScreen();
+    });
+
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+    fireEvent.press(screen.getByTestId("users-filter-role-teacher"));
+
+    expect(
+      screen.queryByText(
+        "Disponible uniquement pour les rôles Élève et Enseignant.",
+      ),
+    ).toBeNull();
+  });
+
+  it("n'envoie pas schoolYearId à l'API quand le rôle appliqué n'est ni Élève ni Enseignant", async () => {
+    mockUsersApi.list.mockResolvedValue(makeUsersPage([]));
+    renderScreen();
+    await waitFor(() => {
+      expect(mockUsersApi.list).toHaveBeenCalled();
+    });
+
+    const lastCall =
+      mockUsersApi.list.mock.calls[mockUsersApi.list.mock.calls.length - 1];
+    expect(lastCall[1].schoolYearId).toBeUndefined();
   });
 
   it("efface le bouton de recherche quand le champ est vide", async () => {
@@ -301,7 +469,7 @@ describe("SchoolAdminUsersScreen — Intégration store", () => {
     expect(useUsersStore.getState().hasMore).toBe(false);
   });
 
-  it("le filtre de role est conserve dans le store", async () => {
+  it("le filtre de role est conserve dans le store apres Appliquer", async () => {
     mockUsersApi.list.mockResolvedValue(makeUsersPage([]));
     renderScreen();
 
@@ -309,12 +477,113 @@ describe("SchoolAdminUsersScreen — Intégration store", () => {
       expect(useUsersStore.getState().isLoading).toBe(false);
     });
 
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+    fireEvent.press(screen.getByTestId("users-filter-role-parent"));
+
     await act(async () => {
-      fireEvent.press(screen.getByTestId("role-filter-parent"));
+      fireEvent.press(screen.getByTestId("users-filter-apply"));
     });
 
     await waitFor(() => {
       expect(useUsersStore.getState().filters.role).toBe("PARENT");
+    });
+  });
+});
+
+describe("SchoolAdminUsersScreen — Pagination", () => {
+  it("charge la page 2 quand onEndReached est déclenché", async () => {
+    const page1 = Array.from({ length: 20 }, (_, i) =>
+      makeSchoolUser({ id: `u-${i}` }),
+    );
+    const page2 = [makeSchoolUser({ id: "u-page2" })];
+
+    mockUsersApi.list
+      .mockResolvedValueOnce(makeUsersPage(page1, { hasMore: true, total: 21 }))
+      .mockResolvedValueOnce(
+        makeUsersPage(page2, { hasMore: false, total: 21 }),
+      );
+
+    renderScreen();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("users-list")).toBeOnTheScreen();
+    });
+
+    await act(async () => {
+      fireEvent(screen.getByTestId("users-list"), "onEndReached", {
+        distanceFromEnd: 0,
+      });
+    });
+
+    await waitFor(() => {
+      expect(mockUsersApi.list).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({ page: 2 }),
+      );
+    });
+  });
+
+  it("ne relance pas de chargement si hasMore est false", async () => {
+    mockUsersApi.list.mockResolvedValueOnce(
+      makeUsersPage([TEACHER_USER], { hasMore: false, total: 1 }),
+    );
+    renderScreen();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("users-list")).toBeOnTheScreen();
+    });
+
+    mockUsersApi.list.mockClear();
+
+    await act(async () => {
+      fireEvent(screen.getByTestId("users-list"), "onEndReached", {
+        distanceFromEnd: 0,
+      });
+    });
+
+    expect(mockUsersApi.list).not.toHaveBeenCalled();
+  });
+
+  it("revient en page 1 quand le filtre change après un load-more", async () => {
+    const page1 = Array.from({ length: 20 }, (_, i) =>
+      makeSchoolUser({ id: `u-${i}` }),
+    );
+    const page2 = [makeSchoolUser({ id: "u-page2" })];
+
+    mockUsersApi.list
+      .mockResolvedValueOnce(makeUsersPage(page1, { hasMore: true, total: 21 }))
+      .mockResolvedValueOnce(
+        makeUsersPage(page2, { hasMore: false, total: 21 }),
+      )
+      .mockResolvedValueOnce(makeUsersPage([TEACHER_USER], { total: 1 }));
+
+    renderScreen();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("users-list")).toBeOnTheScreen();
+    });
+
+    await act(async () => {
+      fireEvent(screen.getByTestId("users-list"), "onEndReached", {
+        distanceFromEnd: 0,
+      });
+    });
+
+    await waitFor(() => {
+      expect(useUsersStore.getState().page).toBe(2);
+    });
+
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+    fireEvent.press(screen.getByTestId("users-filter-role-teacher"));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("users-filter-apply"));
+    });
+
+    await waitFor(() => {
+      expect(mockUsersApi.list).toHaveBeenLastCalledWith(
+        "college-vogt",
+        expect.objectContaining({ page: 1, role: "TEACHER" }),
+      );
     });
   });
 });

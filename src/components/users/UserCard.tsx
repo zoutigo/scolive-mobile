@@ -30,21 +30,41 @@ const ROLE_COLORS: Record<SchoolRole, { bg: string; text: string }> = {
   STUDENT: { bg: "#B85C2E", text: "#FFFFFF" },
 };
 
-function StatusDot({ status }: { status: UserActivationStatus }) {
-  const dotColor =
-    status === "ACTIVE"
-      ? colors.accentTeal
-      : status === "PENDING"
-        ? colors.warmAccent
-        : colors.notification;
-  return <View style={[styles.statusDot, { backgroundColor: dotColor }]} />;
+const NO_ACCOUNT_ACCENT = "#C0392B";
+
+// Card left-edge accent: sole signal for account/activation status — no
+// account gets a red-leaning border, distinct from the amber used for a
+// pending account, so the two states never look alike at a glance.
+function getStatusAccentColor(
+  hasAccount: boolean,
+  activationStatus: UserActivationStatus | null,
+): string | null {
+  if (!hasAccount) return NO_ACCOUNT_ACCENT;
+  if (activationStatus === "PENDING") return colors.warmAccent;
+  if (activationStatus === "SUSPENDED") return colors.notification;
+  return null;
 }
 
-function NoAccountBadge() {
+function RoleDot({
+  role,
+  userId,
+  isPrimary,
+}: {
+  role: SchoolRole;
+  userId: string;
+  isPrimary: boolean;
+}) {
+  const badge = ROLE_COLORS[role] ?? { bg: colors.primary, text: "#FFFFFF" };
   return (
-    <View style={styles.noAccountBadge}>
-      <Text style={styles.noAccountBadgeText}>Sans compte</Text>
-    </View>
+    <View
+      style={[styles.roleDot, { backgroundColor: badge.bg }]}
+      accessibilityLabel={ROLE_LABELS[role] ?? role}
+      testID={
+        isPrimary
+          ? `user-card-primary-role-${userId}`
+          : `user-card-role-dot-${role}-${userId}`
+      }
+    />
   );
 }
 
@@ -58,49 +78,44 @@ interface UserCardProps {
 export function UserCard({ user, onPress, index = 0, testID }: UserCardProps) {
   const fullName = `${user.lastName} ${user.firstName}`.trim();
   const cardBg = index % 2 === 1 ? colors.warmSurface : colors.surface;
+  const accentColor = getStatusAccentColor(
+    user.hasAccount,
+    user.activationStatus,
+  );
+  const uniqueRoles = Array.from(new Set(user.roles)) as SchoolRole[];
 
   return (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: cardBg }]}
+      style={[
+        styles.card,
+        { backgroundColor: cardBg },
+        accentColor
+          ? { borderLeftWidth: 3, borderLeftColor: accentColor }
+          : null,
+      ]}
       onPress={() => onPress(user)}
       activeOpacity={0.75}
       testID={testID ?? `user-card-${user.id}`}
     >
-      {/* Colonne de badges rôles à gauche */}
-      <View
-        style={styles.rolesLeft}
-        testID={`user-card-role-column-${user.id}`}
-      >
-        {user.roles.map((role, i) => {
-          const badge = ROLE_COLORS[role as SchoolRole] ?? {
-            bg: colors.primary,
-            text: "#FFFFFF",
-          };
-          return (
-            <View
-              key={role}
-              style={[styles.roleBadge, { backgroundColor: badge.bg }]}
-              testID={i === 0 ? `user-card-primary-role-${user.id}` : undefined}
-            >
-              <Text style={styles.roleBadgeText} numberOfLines={1}>
-                {ROLE_LABELS[role as SchoolRole] ?? role}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
-
-      {/* Infos */}
       <View style={styles.info}>
         <View style={styles.nameRow}>
           <Text style={styles.name} numberOfLines={1}>
             {fullName}
           </Text>
-          {user.hasAccount ? (
-            <StatusDot status={user.activationStatus} />
-          ) : (
-            <NoAccountBadge />
-          )}
+
+          <View
+            style={styles.roleDotsRow}
+            testID={`user-card-role-dots-${user.id}`}
+          >
+            {uniqueRoles.map((role, i) => (
+              <RoleDot
+                key={role}
+                role={role}
+                userId={user.id}
+                isPrimary={i === 0}
+              />
+            ))}
+          </View>
         </View>
 
         {user.email ? (
@@ -143,28 +158,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 12,
   },
-  rolesLeft: {
-    width: 66,
-    alignItems: "stretch",
-    gap: 3,
-    flexShrink: 0,
-  },
-  roleBadge: {
-    width: 66,
-    paddingVertical: 3,
-    paddingHorizontal: 4,
-    borderRadius: 5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  roleBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 9,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.3,
-    textAlign: "center",
-  },
   info: {
     flex: 1,
     gap: 3,
@@ -180,25 +173,16 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     flex: 1,
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  roleDotsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     flexShrink: 0,
   },
-  noAccountBadge: {
-    backgroundColor: "#C0B6AC",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    flexShrink: 0,
-  },
-  noAccountBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 9,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.3,
+  roleDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
   },
   contactRow: {
     flexDirection: "row",

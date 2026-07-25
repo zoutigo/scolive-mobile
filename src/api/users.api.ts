@@ -1,9 +1,11 @@
 import { apiFetch } from "./client";
 import type {
   PaginatedSchoolUsers,
+  SchoolUserAccountFilter,
   SchoolUserDetail,
   SchoolUserRoleFilter,
   SchoolRole,
+  SchoolYearOption,
   StudentOnlyDetail,
   PromoteStudentResponse,
   ResetStudentPasswordResponse,
@@ -14,11 +16,16 @@ const USERS_PAGE_LIMIT = 20;
 function buildUsersQuery(params: {
   search?: string;
   role?: SchoolUserRoleFilter;
+  hasAccount?: SchoolUserAccountFilter;
+  schoolYearId?: string | null;
   page?: number;
 }): string {
   const q = new URLSearchParams();
   if (params.search?.trim()) q.set("search", params.search.trim());
   if (params.role && params.role !== "ALL") q.set("role", params.role);
+  if (params.hasAccount === "WITH_ACCOUNT") q.set("hasAccount", "true");
+  if (params.hasAccount === "WITHOUT_ACCOUNT") q.set("hasAccount", "false");
+  if (params.schoolYearId) q.set("schoolYearId", params.schoolYearId);
   q.set("page", String(params.page ?? 1));
   q.set("limit", String(USERS_PAGE_LIMIT));
   return `?${q.toString()}`;
@@ -27,10 +34,20 @@ function buildUsersQuery(params: {
 export const usersApi = {
   async list(
     schoolSlug: string,
-    params: { search?: string; role?: SchoolUserRoleFilter; page?: number },
+    params: {
+      search?: string;
+      role?: SchoolUserRoleFilter;
+      hasAccount?: SchoolUserAccountFilter;
+      schoolYearId?: string | null;
+      page?: number;
+    },
   ): Promise<PaginatedSchoolUsers> {
     const query = buildUsersQuery(params);
     return apiFetch(`/schools/${schoolSlug}/users${query}`, {}, true);
+  },
+
+  async listSchoolYears(schoolSlug: string): Promise<SchoolYearOption[]> {
+    return apiFetch(`/schools/${schoolSlug}/admin/school-years`, {}, true);
   },
 
   async get(schoolSlug: string, userId: string): Promise<SchoolUserDetail> {
