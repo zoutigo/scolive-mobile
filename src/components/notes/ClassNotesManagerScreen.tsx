@@ -65,6 +65,11 @@ import { NotesTabs } from "./NotesTabs";
 import type { NotesTabKey } from "./NotesTabs";
 import { TeacherClassNotesTab } from "./TeacherClassNotesTab";
 import {
+  StudentNotesSearchTab,
+  type StudentNotesSearchEntry,
+  type StudentNotesSearchSubject,
+} from "./StudentNotesSearchTab";
+import {
   TeacherPeriodReportsTab,
   type TeacherPeriodReportsHandle,
 } from "./TeacherPeriodReportsTab";
@@ -417,6 +422,76 @@ export function ClassNotesManagerScreen({
   useEffect(() => {
     void loadAdminClassrooms();
   }, [loadAdminClassrooms]);
+
+  // Onglet "notes" du school admin : élève cherché sur toute l'école (pas de
+  // contexte de classe), avec la classe affichée à côté du nom pour
+  // désambiguïser les homonymes. On agrège les élèves + matières de toutes
+  // les classes de l'école, comme pour la vue Discipline du school admin.
+  const [schoolWideStudents, setSchoolWideStudents] = useState<
+    StudentNotesSearchEntry[]
+  >([]);
+  const [schoolWideSubjects, setSchoolWideSubjects] = useState<
+    StudentNotesSearchSubject[]
+  >([]);
+  const [isLoadingSchoolWideStudents, setIsLoadingSchoolWideStudents] =
+    useState(false);
+
+  useEffect(() => {
+    if (
+      !schoolSlug ||
+      !isAdminBrowsing ||
+      tab !== "notes" ||
+      adminClassrooms.length === 0
+    ) {
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingSchoolWideStudents(true);
+    Promise.all(
+      adminClassrooms.map((classroom) =>
+        notesApi
+          .getTeacherContext(schoolSlug, classroom.id)
+          .then((ctx) => ({
+            students: ctx.students.map((s) => ({
+              ...s,
+              className: classroom.name,
+            })),
+            subjects: ctx.subjects.map((s) => ({ id: s.id, name: s.name })),
+          }))
+          .catch(() => ({
+            students: [] as StudentNotesSearchEntry[],
+            subjects: [] as StudentNotesSearchSubject[],
+          })),
+      ),
+    )
+      .then((results) => {
+        if (cancelled) return;
+        const seenStudents = new Set<string>();
+        const students = results
+          .flatMap((r) => r.students)
+          .filter((s) => {
+            if (seenStudents.has(s.id)) return false;
+            seenStudents.add(s.id);
+            return true;
+          });
+        const seenSubjects = new Map<string, string>();
+        results.forEach((r) =>
+          r.subjects.forEach((s) => {
+            if (!seenSubjects.has(s.id)) seenSubjects.set(s.id, s.name);
+          }),
+        );
+        setSchoolWideStudents(students);
+        setSchoolWideSubjects(
+          Array.from(seenSubjects, ([id, name]) => ({ id, name })),
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingSchoolWideStudents(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolSlug, isAdminBrowsing, tab, adminClassrooms]);
 
   const hasAutoOpenedFiltersRef = useRef(false);
   useEffect(() => {
@@ -1728,7 +1803,17 @@ export function ClassNotesManagerScreen({
       />
 
       {/* ── Tab Notes : vue synthétique par élève ─────────────── */}
-      {tab === "notes" && teacherContext ? (
+      {tab === "notes" && isAdminBrowsing ? (
+        <StudentNotesSearchTab
+          students={schoolWideStudents}
+          subjects={schoolWideSubjects}
+          schoolSlug={schoolSlug ?? ""}
+          bottomInset={insets.bottom}
+          initialStudentId={preStudentId ?? undefined}
+          isLoadingStudents={isLoadingSchoolWideStudents}
+        />
+      ) : null}
+      {tab === "notes" && !isAdminBrowsing && teacherContext ? (
         <TeacherClassNotesTab
           teacherContext={teacherContext}
           schoolSlug={schoolSlug ?? ""}

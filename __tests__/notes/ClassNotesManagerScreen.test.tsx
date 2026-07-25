@@ -10,12 +10,15 @@ import { ClassNotesManagerScreen } from "../../src/components/notes/ClassNotesMa
 import { useAuthStore } from "../../src/store/auth.store";
 import { useNotesStore } from "../../src/store/notes.store";
 import { teachersApi } from "../../src/api/teachers.api";
+import { notesApi } from "../../src/api/notes.api";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-document-picker", () => ({ getDocumentAsync: jest.fn() }));
 jest.mock("../../src/api/teachers.api");
+jest.mock("../../src/api/notes.api");
 
 const mockTeachersApi = teachersApi as jest.Mocked<typeof teachersApi>;
+const mockNotesApi = notesApi as jest.Mocked<typeof notesApi>;
 
 const mockBack = jest.fn();
 let mockSearchParams: Record<string, string> = {
@@ -1262,6 +1265,139 @@ describe("Mode admin — arrivée sans classId", () => {
       expect(screen.getByTestId("class-evaluation-row-eval-3")).toBeTruthy();
       expect(screen.queryByTestId("class-evaluation-row-eval-1")).toBeNull();
       expect(screen.queryByTestId("class-evaluation-row-eval-2")).toBeNull();
+    });
+  });
+
+  describe("Onglet Notes — recherche élève sur toute l'école", () => {
+    beforeEach(() => {
+      mockNotesApi.getTeacherContext.mockImplementation(
+        (_slug, classId: string) => {
+          if (classId === "class-1") {
+            return Promise.resolve({
+              class: {
+                id: "class-1",
+                name: "6e A",
+                schoolYearId: "y1",
+                isReferentTeacher: false,
+              },
+              subjects: [{ id: "sub-1", name: "Mathématiques", branches: [] }],
+              evaluationTypes: [],
+              students: [
+                { id: "stu-1", firstName: "Kevin", lastName: "Fouda" },
+              ],
+            } as never);
+          }
+          if (classId === "class-2") {
+            return Promise.resolve({
+              class: {
+                id: "class-2",
+                name: "6e B",
+                schoolYearId: "y1",
+                isReferentTeacher: false,
+              },
+              subjects: [{ id: "sub-2", name: "Anglais", branches: [] }],
+              evaluationTypes: [],
+              // Homonyme du stu-1 de la classe 6e A : c'est exactement le cas
+              // que le school admin doit pouvoir désambiguïser.
+              students: [
+                { id: "stu-2", firstName: "Kevin", lastName: "Fouda" },
+              ],
+            } as never);
+          }
+          return Promise.resolve({
+            class: {
+              id: "class-3",
+              name: "5e A",
+              schoolYearId: "y1",
+              isReferentTeacher: false,
+            },
+            subjects: [],
+            evaluationTypes: [],
+            students: [],
+          } as never);
+        },
+      );
+    });
+
+    it("ne charge rien pour la recherche élève tant que l'onglet Notes n'est pas ouvert", async () => {
+      render(<ClassNotesManagerScreen />);
+      await flushAsync();
+
+      expect(mockNotesApi.getTeacherContext).not.toHaveBeenCalled();
+    });
+
+    it("agrège les élèves de toutes les classes de l'école avec leur classe respective", async () => {
+      render(<ClassNotesManagerScreen />);
+      await flushAsync();
+
+      fireEvent.press(screen.getByTestId("notes-tab-notes"));
+      await flushAsync();
+
+      await waitFor(() => {
+        expect(mockNotesApi.getTeacherContext).toHaveBeenCalledWith(
+          "college-vogt",
+          "class-1",
+        );
+        expect(mockNotesApi.getTeacherContext).toHaveBeenCalledWith(
+          "college-vogt",
+          "class-2",
+        );
+        expect(mockNotesApi.getTeacherContext).toHaveBeenCalledWith(
+          "college-vogt",
+          "class-3",
+        );
+      });
+
+      fireEvent.changeText(
+        screen.getByTestId("teacher-notes-search-input"),
+        "Fouda",
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("teacher-notes-search-result-stu-1"),
+        ).toBeTruthy();
+        expect(
+          screen.getByTestId("teacher-notes-search-result-stu-2"),
+        ).toBeTruthy();
+      });
+      expect(
+        screen.getByTestId("teacher-notes-search-result-class-stu-1"),
+      ).toHaveTextContent("6e A");
+      expect(
+        screen.getByTestId("teacher-notes-search-result-class-stu-2"),
+      ).toHaveTextContent("6e B");
+    });
+
+    it("affiche un état de chargement pendant l'agrégation multi-classes", async () => {
+      let resolveContext: (value: unknown) => void = () => {};
+      mockNotesApi.getTeacherContext.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveContext = resolve;
+          }) as never,
+      );
+
+      render(<ClassNotesManagerScreen />);
+      await flushAsync();
+      fireEvent.press(screen.getByTestId("notes-tab-notes"));
+
+      expect(screen.getByText("Chargement des élèves…")).toBeTruthy();
+
+      await act(async () => {
+        resolveContext({
+          class: {
+            id: "class-1",
+            name: "6e A",
+            schoolYearId: "y1",
+            isReferentTeacher: false,
+          },
+          subjects: [],
+          evaluationTypes: [],
+          students: [],
+        });
+        await Promise.resolve();
+      });
     });
   });
 });

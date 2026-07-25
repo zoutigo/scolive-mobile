@@ -1875,6 +1875,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.teacher.empty.title": "Aucun élève",
     "notes.teacher.empty.message":
       "Aucun élève n'est inscrit dans cette classe.",
+    "notes.teacher.loading.students": "Chargement des élèves…",
     "notes.teacher.filters.studentLabel": "ÉLÈVE",
     "notes.teacher.filters.subjectLabel": "MATIÈRE",
     "notes.teacher.filters.allSubjects": "Toutes les matières",
@@ -4334,6 +4335,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "notes.teacher.empty.title": "No student",
     "notes.teacher.empty.message": "No student is enrolled in this class.",
+    "notes.teacher.loading.students": "Loading students…",
     "notes.teacher.filters.studentLabel": "STUDENT",
     "notes.teacher.filters.subjectLabel": "SUBJECT",
     "notes.teacher.filters.allSubjects": "All subjects",
