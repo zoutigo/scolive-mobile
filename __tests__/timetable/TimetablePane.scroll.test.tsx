@@ -177,7 +177,13 @@ beforeEach(() => {
   mockLoadMyTimetable.mockResolvedValue(MY_TIMETABLE);
   mockLoadClassOptions.mockResolvedValue(CLASS_OPTIONS);
   mockLoadClassTimetable.mockResolvedValue(MY_TIMETABLE);
-  api.getAdminClassList?.mockResolvedValue(CLASS_OPTIONS);
+  api.getAdminClassList?.mockResolvedValue({
+    data: CLASS_OPTIONS.classes,
+    total: CLASS_OPTIONS.classes.length,
+    page: 1,
+    limit: 100,
+    hasMore: false,
+  });
   setupStores();
 });
 

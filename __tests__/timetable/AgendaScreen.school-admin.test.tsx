@@ -1,16 +1,15 @@
 /**
  * Tests — AgendaScreen en mode SCHOOL_ADMIN
  *
- * Couvre :
- * - Structure : tabs "Users" / "Classes" (pas "Mon agenda" / "Mes classes")
- * - Sous-titre : uniquement le nom de l'école
- * - Tab Users : chargement des enseignants via class options + contexts
- * - Tab Users : filtrage par recherche texte
- * - Tab Users : sélection d'un enseignant → chargement de son agenda
- * - Tab Users : FAB de création présent, panneau créé avec prefilledTeacherId
- * - Tab Users : modal d'édition ouverte (toute occurrence est éditable)
- * - Tab Classes : toute occurrence est éditable en admin (isAdminMode)
- * - Tab Classes : modal d'édition en mode admin (picker enseignant visible)
+ * Couvre le panneau de filtres centralisé (AdminSchedulePane) :
+ * - Structure : pas de tabs Users/Classes, recherche + bouton filtre
+ * - Panneau de filtres : radio Users/Classes, Reset/Close/Apply
+ * - Mode Users : recherche paginée via usersApi.list, sélection d'un
+ *   enseignant → getTeacherMyTimetable, d'un élève → getMyTimetable(studentId),
+ *   d'un staff → aucun agenda (empty state dédié)
+ * - Mode Classes : niveaux via curriculumsApi.listAcademicLevels, classes
+ *   paginées via getAdminClassList (search + academicLevelId), sélection →
+ *   getClassTimetable
  * - Navigation : SCHOOL_NAV contient l'entrée Agenda
  */
 
@@ -20,18 +19,24 @@ import {
   render,
   screen,
   waitFor,
+  act,
 } from "@testing-library/react-native";
 import { useWindowDimensions } from "react-native";
 import { TeacherAgendaScreen } from "../../src/components/timetable/TeacherAgendaScreen";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useTimetableStore } from "../../src/store/timetable.store";
 import { timetableApi } from "../../src/api/timetable.api";
+import { usersApi } from "../../src/api/users.api";
+import { curriculumsApi } from "../../src/api/curriculums.api";
 import { getNavItems } from "../../src/components/navigation/nav-config";
 import type { AuthUser } from "../../src/types/auth.types";
+import type { UserItem } from "../../src/types/users.types";
 
 // ── Mocks ───────────────────────────────────────────────────────────────────
 
 jest.mock("../../src/api/timetable.api");
+jest.mock("../../src/api/users.api");
+jest.mock("../../src/api/curriculums.api");
 jest.mock("../../src/store/success-toast.store", () => ({
   useSuccessToastStore: jest.fn(() => ({
     showSuccess: jest.fn(),
@@ -92,77 +97,68 @@ function makeUser(overrides: Partial<AuthUser>): AuthUser {
 
 const ADMIN_USER = makeUser({});
 
-const CLASS_OPTIONS = {
-  selectedSchoolYearId: "sy1",
-  schoolYears: [{ id: "sy1", label: "2025-2026", isActive: true }],
-  classes: [
-    {
-      classId: "class-6eC",
-      className: "6eC",
-      schoolYearId: "sy1",
-      schoolYearLabel: "2025-2026",
-      studentCount: 28,
-      subjects: [{ id: "ang", name: "Anglais" }],
-    },
-    {
-      classId: "class-5eB",
-      className: "5eB",
-      schoolYearId: "sy1",
-      schoolYearLabel: "2025-2026",
-      studentCount: 30,
-      subjects: [{ id: "math", name: "Mathématiques" }],
-    },
-  ],
+const TEACHER_MEMBER: UserItem = {
+  type: "user" as const,
+  id: "u1",
+  studentId: null,
+  hasAccount: true as const,
+  firstName: "Albert",
+  lastName: "Mvondo",
+  email: "albert@school.cm",
+  phone: null,
+  gender: null,
+  avatarUrl: null,
+  roles: ["TEACHER"],
+  activationStatus: "ACTIVE" as const,
+  profileCompleted: true,
+  createdAt: "2025-01-01T00:00:00Z",
 };
 
-// Contexte classe 6eC : Albert (u1) enseigne l'Anglais
-const CTX_6EC = {
-  class: {
-    id: "class-6eC",
-    name: "6eC",
-    schoolId: "s1",
-    schoolYearId: "sy1",
-    academicLevelId: null,
-    curriculumId: null,
-    referentTeacherUserId: "u1",
-  },
-  allowedSubjects: [{ id: "ang", name: "Anglais" }],
-  assignments: [
-    {
-      teacherUserId: "u1",
-      subjectId: "ang",
-      subject: { id: "ang", name: "Anglais" },
-      teacherUser: { id: "u1", firstName: "Albert", lastName: "Mvondo" },
-    },
-  ],
-  subjectStyles: [],
-  schoolYears: [{ id: "sy1", label: "2025-2026", isActive: true }],
-  selectedSchoolYearId: "sy1",
+const STUDENT_MEMBER: UserItem = {
+  type: "user" as const,
+  id: "u3",
+  studentId: "student-3",
+  hasAccount: true as const,
+  firstName: "Chloé",
+  lastName: "Fotso",
+  email: null,
+  phone: null,
+  gender: null,
+  avatarUrl: null,
+  roles: ["STUDENT"],
+  activationStatus: "ACTIVE" as const,
+  profileCompleted: true,
+  createdAt: "2025-01-01T00:00:00Z",
 };
 
-// Contexte classe 5eB : Guy (u2) enseigne les Maths
-const CTX_5EB = {
-  class: {
-    id: "class-5eB",
-    name: "5eB",
-    schoolId: "s1",
-    schoolYearId: "sy1",
-    academicLevelId: null,
-    curriculumId: null,
-    referentTeacherUserId: "u2",
-  },
-  allowedSubjects: [{ id: "math", name: "Mathématiques" }],
-  assignments: [
-    {
-      teacherUserId: "u2",
-      subjectId: "math",
-      subject: { id: "math", name: "Mathématiques" },
-      teacherUser: { id: "u2", firstName: "Guy", lastName: "Ndem" },
-    },
-  ],
-  subjectStyles: [],
-  schoolYears: [{ id: "sy1", label: "2025-2026", isActive: true }],
-  selectedSchoolYearId: "sy1",
+const STAFF_MEMBER: UserItem = {
+  type: "user" as const,
+  id: "u4",
+  studentId: null,
+  hasAccount: true as const,
+  firstName: "Bella",
+  lastName: "Owona",
+  email: null,
+  phone: null,
+  gender: null,
+  avatarUrl: null,
+  roles: ["SCHOOL_STAFF"],
+  activationStatus: "ACTIVE" as const,
+  profileCompleted: true,
+  createdAt: "2025-01-01T00:00:00Z",
+};
+
+const LEVEL_6E = { id: "lvl-6e", code: "6E", label: "6ème" };
+
+const CLASS_6EC = {
+  classId: "class-6eC",
+  className: "6eC",
+  schoolYearId: "sy1",
+  schoolYearLabel: "2025-2026",
+  studentCount: 28,
+  subjects: [{ id: "ang", name: "Anglais" }],
+  academicLevelId: "lvl-6e",
+  academicLevelName: "6ème",
 };
 
 // Occurrence pour Albert (u1) le TODAY
@@ -180,9 +176,9 @@ const OCC_ALBERT = {
   teacherUser: { id: "u1", firstName: "Albert", lastName: "Mvondo" },
 };
 
-// Occurrence pour Guy (u2) le TODAY
-const OCC_GUY = {
-  id: "occ-guy-14",
+// Occurrence pour Chloé (élève) le TODAY
+const OCC_CHLOE = {
+  id: "occ-chloe-14",
   source: "RECURRING" as const,
   status: "PLANNED" as const,
   occurrenceDate: TODAY,
@@ -207,9 +203,9 @@ const SLOT_STUB = {
   teacherUser: { id: "u1", firstName: "Albert", lastName: "Mvondo" },
 };
 
-function makeTimetable(occs: (typeof OCC_ALBERT)[], slots = [SLOT_STUB]) {
+function makeClassTimetable(occs: unknown[], slots = [SLOT_STUB]) {
   return {
-    class: { id: "class-6eC", schoolYearId: "sy1", academicLevelId: null },
+    class: { id: "class-6eC", schoolYearId: "sy1", academicLevelId: "lvl-6e" },
     slots,
     oneOffSlots: [],
     slotExceptions: [],
@@ -219,14 +215,56 @@ function makeTimetable(occs: (typeof OCC_ALBERT)[], slots = [SLOT_STUB]) {
   };
 }
 
-const mockLoadClassOptions = jest.fn();
-const mockLoadClassTimetable = jest.fn();
-const mockClearError = jest.fn();
-const api = timetableApi as jest.Mocked<typeof timetableApi>;
+function makeTeacherTimetable() {
+  return {
+    teacher: { id: "u1", firstName: "Albert", lastName: "Mvondo" },
+    classes: [
+      {
+        id: "class-6eC",
+        name: "6eC",
+        schoolYearId: "sy1",
+        academicLevelId: "lvl-6e",
+      },
+    ],
+    slots: [SLOT_STUB],
+    oneOffSlots: [],
+    slotExceptions: [],
+    occurrences: [OCC_ALBERT],
+    occurrenceContexts: [
+      {
+        occurrenceId: "occ-albert-14",
+        classId: "class-6eC",
+        className: "6eC",
+        schoolYearId: "sy1",
+      },
+    ],
+    subjectStyles: [{ subjectId: "ang", colorHex: "#11C5C6" }],
+  };
+}
 
-function setupAdminStores(
-  classTimetable = makeTimetable([OCC_ALBERT, OCC_GUY]),
-) {
+function makeStudentTimetable() {
+  return {
+    student: { id: "student-3", firstName: "Chloé", lastName: "Fotso" },
+    class: {
+      id: "class-5eB",
+      name: "5eB",
+      schoolYearId: "sy1",
+      academicLevelId: "lvl-5e",
+    },
+    slots: [{ ...SLOT_STUB, subject: { id: "math", name: "Mathématiques" } }],
+    oneOffSlots: [],
+    slotExceptions: [],
+    occurrences: [OCC_CHLOE],
+    calendarEvents: [],
+    subjectStyles: [{ subjectId: "math", colorHex: "#AA5522" }],
+  };
+}
+
+const api = timetableApi as jest.Mocked<typeof timetableApi>;
+const usersApiMock = usersApi as jest.Mocked<typeof usersApi>;
+const curriculumsApiMock = curriculumsApi as jest.Mocked<typeof curriculumsApi>;
+
+function setupAdminStores() {
   useAuthStore.setState({
     user: ADMIN_USER,
     schoolSlug: "lycee-einstein",
@@ -237,8 +275,8 @@ function setupAdminStores(
   });
   useTimetableStore.setState({
     myTimetable: null,
-    classTimetable,
-    classOptions: CLASS_OPTIONS,
+    classTimetable: null,
+    classOptions: null,
     isLoadingMyTimetable: false,
     isLoadingClassOptions: false,
     isLoadingClassTimetable: false,
@@ -246,10 +284,16 @@ function setupAdminStores(
     isSubmitting: false,
     classContext: null,
     errorMessage: null,
-    loadClassOptions: mockLoadClassOptions,
-    loadClassTimetable: mockLoadClassTimetable,
-    clearError: mockClearError,
+    loadClassOptions: jest.fn(),
+    loadClassTimetable: jest.fn(),
+    clearError: jest.fn(),
   } as never);
+}
+
+async function flushDebounce() {
+  await act(async () => {
+    jest.advanceTimersByTime(350);
+  });
 }
 
 beforeEach(() => {
@@ -260,21 +304,25 @@ beforeEach(() => {
     scale: 2,
     fontScale: 1,
   });
-  mockLoadClassOptions.mockResolvedValue(CLASS_OPTIONS);
-  mockLoadClassTimetable.mockResolvedValue(
-    makeTimetable([OCC_ALBERT, OCC_GUY]),
-  );
-  // Admin mode : getAdminClassList retourne toutes les classes de l'école
-  api.getAdminClassList.mockResolvedValue(CLASS_OPTIONS);
-  api.getClassContext.mockImplementation((_slug, classId) =>
-    Promise.resolve(classId === "class-6eC" ? CTX_6EC : CTX_5EB),
-  );
-  api.getClassTimetable.mockImplementation((_slug, classId) =>
-    Promise.resolve(
-      classId === "class-6eC"
-        ? makeTimetable([OCC_ALBERT])
-        : makeTimetable([OCC_GUY], []),
-    ),
+  usersApiMock.list.mockResolvedValue({
+    data: [TEACHER_MEMBER, STUDENT_MEMBER, STAFF_MEMBER],
+    total: 3,
+    page: 1,
+    limit: 20,
+    hasMore: false,
+  });
+  curriculumsApiMock.listAcademicLevels.mockResolvedValue([LEVEL_6E]);
+  api.getAdminClassList.mockResolvedValue({
+    data: [CLASS_6EC],
+    total: 1,
+    page: 1,
+    limit: 20,
+    hasMore: false,
+  });
+  api.getTeacherMyTimetable.mockResolvedValue(makeTeacherTimetable() as never);
+  api.getMyTimetable.mockResolvedValue(makeStudentTimetable() as never);
+  api.getClassTimetable.mockResolvedValue(
+    makeClassTimetable([OCC_ALBERT]) as never,
   );
   api.createOneOffSlot.mockResolvedValue(undefined as never);
   setupAdminStores();
@@ -283,21 +331,23 @@ beforeEach(() => {
 // ── Tests — Structure de l'écran admin ───────────────────────────────────────
 
 describe("AgendaScreen — SCHOOL_ADMIN — structure", () => {
-  it("affiche les onglets 'Users' et 'Classes' (pas Mon agenda / Mes classes)", async () => {
+  it("n'affiche plus les onglets Users/Classes : recherche + bouton filtre à la place", () => {
     render(<TeacherAgendaScreen />);
-    expect(screen.getByTestId("teacher-agenda-tab-users")).toBeTruthy();
-    expect(screen.getByTestId("teacher-agenda-tab-classes")).toBeTruthy();
-    expect(screen.queryByTestId("teacher-agenda-tab-mine")).toBeNull();
+    expect(screen.queryByTestId("teacher-agenda-tab-users")).toBeNull();
+    expect(screen.queryByTestId("teacher-agenda-tab-classes")).toBeNull();
+    expect(
+      screen.getByTestId("teacher-agenda-admin-search-input"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("teacher-agenda-admin-filter-toggle"),
+    ).toBeTruthy();
   });
 
-  it("l'onglet 'Users' est actif par défaut pour un SCHOOL_ADMIN", async () => {
+  it("affiche un état vide invitant à ouvrir les filtres tant que rien n'est sélectionné", () => {
     render(<TeacherAgendaScreen />);
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-agenda-users-teacher-picker"),
-      ).toBeTruthy(),
-    );
-    expect(screen.queryByTestId("teacher-agenda-class-picker")).toBeNull();
+    expect(
+      screen.getByText("Choisissez un utilisateur ou une classe"),
+    ).toBeTruthy();
   });
 
   it("affiche le sous-titre = nom de l'école uniquement (pas de classe référente)", () => {
@@ -307,307 +357,340 @@ describe("AgendaScreen — SCHOOL_ADMIN — structure", () => {
     );
   });
 
-  it("pas de sous-titre si schoolName est absent", () => {
-    useAuthStore.setState((s) => ({
-      ...s,
-      user: s.user ? { ...s.user, schoolName: null } : null,
-    }));
+  it("le panneau de filtres est fermé par défaut, s'ouvre au tap sur le bouton filtre", () => {
     render(<TeacherAgendaScreen />);
-    expect(screen.queryByTestId("module-header-subtitle")).toBeNull();
-  });
-
-  it("switche vers l'onglet 'Classes' et affiche le dropdown de classe admin", async () => {
-    render(<TeacherAgendaScreen />);
-    fireEvent.press(screen.getByTestId("teacher-agenda-tab-classes"));
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-agenda-class-dropdown")).toBeTruthy(),
-    );
     expect(
-      screen.queryByTestId("teacher-agenda-users-teacher-picker"),
+      screen.queryByTestId("teacher-agenda-admin-filter-panel"),
     ).toBeNull();
-  });
-
-  it("revient sur l'onglet 'Users' depuis 'Classes'", async () => {
-    render(<TeacherAgendaScreen />);
-    fireEvent.press(screen.getByTestId("teacher-agenda-tab-classes"));
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-agenda-class-dropdown")).toBeTruthy(),
-    );
-    fireEvent.press(screen.getByTestId("teacher-agenda-tab-users"));
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-agenda-users-teacher-picker"),
-      ).toBeTruthy(),
-    );
-  });
-});
-
-// ── Tests — Tab Users : chargement des enseignants ──────────────────────────
-
-describe("AgendaScreen — SCHOOL_ADMIN — tab Users : chargement enseignants", () => {
-  it("appelle loadClassOptions + getClassContext pour chaque classe", async () => {
-    render(<TeacherAgendaScreen />);
-    await waitFor(() =>
-      expect(mockLoadClassOptions).toHaveBeenCalledWith("lycee-einstein"),
-    );
-    await waitFor(() =>
-      expect(api.getClassContext).toHaveBeenCalledWith(
-        "lycee-einstein",
-        "class-6eC",
-      ),
-    );
-    await waitFor(() =>
-      expect(api.getClassContext).toHaveBeenCalledWith(
-        "lycee-einstein",
-        "class-5eB",
-      ),
-    );
-  });
-
-  it("affiche un bouton par enseignant découvert dans les contextes", async () => {
-    render(<TeacherAgendaScreen />);
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-agenda-users-teacher-btn-u1"),
-      ).toBeTruthy(),
-    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
     expect(
-      screen.getByTestId("teacher-agenda-users-teacher-btn-u2"),
+      screen.getByTestId("teacher-agenda-admin-filter-panel"),
     ).toBeTruthy();
-    expect(screen.getByText("Mvondo Albert")).toBeTruthy();
-    expect(screen.getByText("Ndem Guy")).toBeTruthy();
   });
-});
 
-// ── Tests — Tab Users : filtrage par recherche ───────────────────────────────
-
-describe("AgendaScreen — SCHOOL_ADMIN — tab Users : recherche", () => {
-  async function waitForTeachers() {
+  it("le mode 'Users' est actif par défaut à l'ouverture du panneau", () => {
     render(<TeacherAgendaScreen />);
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-agenda-users-teacher-btn-u1"),
-      ).toBeTruthy(),
-    );
-  }
-
-  it("affiche le champ de recherche", async () => {
-    await waitForTeachers();
-    expect(screen.getByTestId("teacher-agenda-users-search")).toBeTruthy();
-  });
-
-  it("filtre les enseignants par recherche texte (insensible à la casse)", async () => {
-    await waitForTeachers();
-    fireEvent.changeText(
-      screen.getByTestId("teacher-agenda-users-search"),
-      "albert",
-    );
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-agenda-users-teacher-btn-u1"),
-      ).toBeTruthy(),
-    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
     expect(
-      screen.queryByTestId("teacher-agenda-users-teacher-btn-u2"),
-    ).toBeNull();
-  });
-
-  it("recherche vide = tous les enseignants", async () => {
-    await waitForTeachers();
-    fireEvent.changeText(
-      screen.getByTestId("teacher-agenda-users-search"),
-      "albert",
-    );
-    fireEvent.changeText(screen.getByTestId("teacher-agenda-users-search"), "");
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-agenda-users-teacher-btn-u2"),
-      ).toBeTruthy(),
-    );
+      screen.getByTestId("teacher-agenda-admin-user-picker-trigger"),
+    ).toBeTruthy();
   });
 });
 
-// ── Tests — Tab Users : sélection d'un enseignant ───────────────────────────
+// ── Tests — Mode Users : sélection enseignant ────────────────────────────────
 
-describe("AgendaScreen — SCHOOL_ADMIN — tab Users : sélection enseignant", () => {
-  async function selectTeacher(teacherId: string) {
+describe("AgendaScreen — SCHOOL_ADMIN — mode Users : enseignant", () => {
+  async function applyTeacherFilter() {
     render(<TeacherAgendaScreen />);
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
+    await waitFor(() => expect(usersApiMock.list).toHaveBeenCalled());
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-trigger"),
+    );
     await waitFor(() =>
       expect(
-        screen.getByTestId(`teacher-agenda-users-teacher-btn-${teacherId}`),
+        screen.getByTestId("teacher-agenda-admin-user-picker-item-u1"),
       ).toBeTruthy(),
     );
     fireEvent.press(
-      screen.getByTestId(`teacher-agenda-users-teacher-btn-${teacherId}`),
+      screen.getByTestId("teacher-agenda-admin-user-picker-item-u1"),
     );
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-apply"));
   }
 
-  it("sélectionner Albert charge getClassTimetable filtré par u1", async () => {
-    await selectTeacher("u1");
+  it("sélectionner un enseignant appelle getTeacherMyTimetable avec son id", async () => {
+    await applyTeacherFilter();
     await waitFor(() =>
-      expect(api.getClassTimetable).toHaveBeenCalledWith(
+      expect(api.getTeacherMyTimetable).toHaveBeenCalledWith(
         "lycee-einstein",
-        expect.any(String),
-        expect.any(Object),
+        expect.objectContaining({ teacherUserId: "u1" }),
       ),
     );
   });
 
-  it("affiche les cours d'Albert après sélection", async () => {
-    await selectTeacher("u1");
+  it("affiche les cours de l'enseignant sélectionné avec bouton d'édition", async () => {
+    await applyTeacherFilter();
     await waitFor(() =>
       expect(
-        screen.getByTestId("teacher-agenda-users-day-card-occ-albert-14"),
+        screen.getByTestId(
+          "teacher-agenda-admin-agenda-day-card-occ-albert-14",
+        ),
       ).toBeTruthy(),
-    );
-    expect(screen.getByText("08:45 - 10:00 · Anglais")).toBeTruthy();
-  });
-
-  it("les créneaux d'un autre enseignant ne sont pas affichés", async () => {
-    // Toutes classes retournent OCC_ALBERT seulement → OCC_GUY absent
-    api.getClassTimetable.mockResolvedValue(makeTimetable([OCC_ALBERT]));
-    await selectTeacher("u1");
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-agenda-users-day-list")).toBeTruthy(),
     );
     expect(
-      screen.queryByTestId("teacher-agenda-users-day-card-occ-guy-14"),
-    ).toBeNull();
+      screen.getByTestId(
+        "teacher-agenda-admin-agenda-day-card-edit-occ-albert-14",
+      ),
+    ).toBeTruthy();
   });
 
-  it("passe en vue Semaine depuis le tab Users", async () => {
-    await selectTeacher("u1");
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-agenda-users-mode-week")).toBeTruthy(),
-    );
-    fireEvent.press(screen.getByTestId("teacher-agenda-users-mode-week"));
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-agenda-users-week-grid")).toBeTruthy(),
-    );
-  });
-
-  it("passe en vue Mois depuis le tab Users", async () => {
-    await selectTeacher("u1");
+  it("le FAB de création pré-remplit teacherId dans l'URL", async () => {
+    await applyTeacherFilter();
     await waitFor(() =>
       expect(
-        screen.getByTestId("teacher-agenda-users-mode-month"),
+        screen.getByTestId("teacher-agenda-admin-agenda-fab-create"),
       ).toBeTruthy(),
     );
-    fireEvent.press(screen.getByTestId("teacher-agenda-users-mode-month"));
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-agenda-users-month-grid"),
-      ).toBeTruthy(),
-    );
-  });
-
-  it("affiche un empty state avant la sélection d'un enseignant", async () => {
-    render(<TeacherAgendaScreen />);
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-agenda-users-teacher-btn-u1"),
-      ).toBeTruthy(),
-    );
-    expect(screen.getByText("Sélectionnez un enseignant")).toBeTruthy();
-  });
-});
-
-// ── Tests — Tab Users : navigation vers slot-create ──────────────────────────
-
-describe("AgendaScreen — SCHOOL_ADMIN — tab Users : navigation vers slot-create", () => {
-  it("FAB navigue vers slot-create avec prefilledTeacherId quand un enseignant est sélectionné", async () => {
-    render(<TeacherAgendaScreen />);
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-agenda-users-teacher-btn-u1"),
-      ).toBeTruthy(),
-    );
-    fireEvent.press(screen.getByTestId("teacher-agenda-users-teacher-btn-u1"));
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-agenda-users-fab-create"),
-      ).toBeTruthy(),
-    );
-    fireEvent.press(screen.getByTestId("teacher-agenda-users-fab-create"));
-    expect(mockPush).toHaveBeenCalledWith(
-      expect.stringContaining("/(home)/agenda/slot-create"),
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-agenda-fab-create"),
     );
     expect(mockPush.mock.calls[0][0]).toContain("teacherId=u1");
   });
+
+  it("le bouton filtre devient teal actif après application", async () => {
+    await applyTeacherFilter();
+    await waitFor(() => {
+      const style = screen.getByTestId("teacher-agenda-admin-filter-toggle")
+        .props.style;
+      expect([style].flat()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ backgroundColor: "#247C72" }),
+        ]),
+      );
+    });
+  });
 });
 
-// ── Tests — Tab Users : navigation vers slot-edit ───────────────────────────
+// ── Tests — Mode Users : sélection élève ─────────────────────────────────────
 
-describe("AgendaScreen — SCHOOL_ADMIN — tab Users : navigation vers slot-edit", () => {
-  it("clic Edit d'une occurrence navigue vers slot-edit et stocke pendingSlotEdit", async () => {
+describe("AgendaScreen — SCHOOL_ADMIN — mode Users : élève", () => {
+  it("sélectionner un élève appelle getMyTimetable avec son studentId", async () => {
     render(<TeacherAgendaScreen />);
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("teacher-agenda-users-teacher-btn-u1"),
-      ).toBeTruthy(),
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
+    await waitFor(() => expect(usersApiMock.list).toHaveBeenCalled());
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-trigger"),
     );
-    fireEvent.press(screen.getByTestId("teacher-agenda-users-teacher-btn-u1"));
     await waitFor(() =>
       expect(
-        screen.getByTestId("teacher-agenda-users-day-card-edit-occ-albert-14"),
+        screen.getByTestId("teacher-agenda-admin-user-picker-item-u3"),
       ).toBeTruthy(),
     );
     fireEvent.press(
-      screen.getByTestId("teacher-agenda-users-day-card-edit-occ-albert-14"),
+      screen.getByTestId("teacher-agenda-admin-user-picker-item-u3"),
     );
-    expect(mockPush).toHaveBeenCalledWith("/(home)/agenda/slot-edit");
-    expect(useTimetableStore.getState().pendingSlotEdit).not.toBeNull();
-    expect(useTimetableStore.getState().pendingSlotEdit?.occurrence.id).toBe(
-      "occ-albert-14",
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-apply"));
+
+    await waitFor(() =>
+      expect(api.getMyTimetable).toHaveBeenCalledWith(
+        "lycee-einstein",
+        expect.objectContaining({ studentId: "student-3" }),
+      ),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-agenda-day-card-occ-chloe-14"),
+      ).toBeTruthy(),
     );
   });
 });
 
-// ── Tests — Tab Classes : toutes les occurrences sont éditables (admin) ─────
+// ── Tests — Mode Users : staff sans agenda ───────────────────────────────────
 
-describe("AgendaScreen — SCHOOL_ADMIN — tab Classes : mode admin", () => {
-  async function openClassesTab() {
+describe("AgendaScreen — SCHOOL_ADMIN — mode Users : staff sans agenda", () => {
+  it("sélectionner un membre du staff n'appelle aucun endpoint d'agenda et affiche un message dédié", async () => {
     render(<TeacherAgendaScreen />);
-    fireEvent.press(screen.getByTestId("teacher-agenda-tab-classes"));
-    // Attendre le dropdown (getAdminClassList résolu)
-    await waitFor(() =>
-      expect(screen.getByTestId("teacher-agenda-class-dropdown")).toBeTruthy(),
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
+    await waitFor(() => expect(usersApiMock.list).toHaveBeenCalled());
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-trigger"),
     );
-    // La première classe est auto-sélectionnée → loadClassTimetable appelé
-    await waitFor(() => expect(mockLoadClassTimetable).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-user-picker-item-u4"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-item-u4"),
+    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-apply"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "Ce profil ne dispose pas d'emploi du temps (personnel administratif).",
+        ),
+      ).toBeTruthy(),
+    );
+    expect(api.getTeacherMyTimetable).not.toHaveBeenCalled();
+    expect(api.getMyTimetable).not.toHaveBeenCalled();
+    expect(api.getClassTimetable).not.toHaveBeenCalled();
+  });
+});
+
+// ── Tests — Mode Classes ──────────────────────────────────────────────────────
+
+describe("AgendaScreen — SCHOOL_ADMIN — mode Classes", () => {
+  async function applyClassFilter() {
+    render(<TeacherAgendaScreen />);
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-mode-class"));
+    await waitFor(() =>
+      expect(curriculumsApiMock.listAcademicLevels).toHaveBeenCalledWith(
+        "lycee-einstein",
+      ),
+    );
+    await waitFor(() => expect(api.getAdminClassList).toHaveBeenCalled());
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-class-picker-trigger"),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-class-picker-item-class-6eC"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-class-picker-item-class-6eC"),
+    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-apply"));
   }
 
-  it("appelle getAdminClassList pour charger toutes les classes (pas seulement celles avec assignments)", async () => {
-    await openClassesTab();
-    expect(api.getAdminClassList).toHaveBeenCalledWith("lycee-einstein");
+  it("switcher vers Classes charge les niveaux et les classes", async () => {
+    await applyClassFilter();
+    expect(curriculumsApiMock.listAcademicLevels).toHaveBeenCalledWith(
+      "lycee-einstein",
+    );
   });
 
-  it("toutes les occurrences ont un bouton d'édition (y compris celles d'un autre enseignant)", async () => {
-    // classTimetable contient OCC_GUY dont teacherUser.id !== admin1
-    await openClassesTab();
+  it("sélectionner un niveau relance getAdminClassList avec academicLevelId", async () => {
+    render(<TeacherAgendaScreen />);
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-mode-class"));
     await waitFor(() =>
       expect(
-        screen.getByTestId("teacher-agenda-class-day-card-edit-occ-guy-14"),
+        screen.getByTestId("teacher-agenda-admin-level-lvl-6e"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-level-lvl-6e"));
+    await waitFor(() =>
+      expect(api.getAdminClassList).toHaveBeenCalledWith(
+        "lycee-einstein",
+        expect.objectContaining({ academicLevelId: "lvl-6e" }),
+      ),
+    );
+  });
+
+  it("sélectionner une classe appelle getClassTimetable et toutes les occurrences sont éditables", async () => {
+    await applyClassFilter();
+    await waitFor(() =>
+      expect(api.getClassTimetable).toHaveBeenCalledWith(
+        "lycee-einstein",
+        "class-6eC",
+        expect.any(Object),
+      ),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(
+          "teacher-agenda-admin-agenda-day-card-edit-occ-albert-14",
+        ),
       ).toBeTruthy(),
     );
   });
 
-  it("clic Edit navigue vers slot-edit et stocke pendingSlotEdit avec adminMode=true", async () => {
-    await openClassesTab();
+  it("clic Edit navigue vers slot-edit avec adminMode=true", async () => {
+    await applyClassFilter();
     await waitFor(() =>
       expect(
-        screen.getByTestId("teacher-agenda-class-day-card-edit-occ-guy-14"),
+        screen.getByTestId(
+          "teacher-agenda-admin-agenda-day-card-edit-occ-albert-14",
+        ),
       ).toBeTruthy(),
     );
     fireEvent.press(
-      screen.getByTestId("teacher-agenda-class-day-card-edit-occ-guy-14"),
+      screen.getByTestId(
+        "teacher-agenda-admin-agenda-day-card-edit-occ-albert-14",
+      ),
     );
     expect(mockPush).toHaveBeenCalledWith("/(home)/agenda/slot-edit");
-    expect(useTimetableStore.getState().pendingSlotEdit).not.toBeNull();
-    expect(useTimetableStore.getState().pendingSlotEdit?.occurrence.id).toBe(
-      "occ-guy-14",
-    );
     expect(useTimetableStore.getState().pendingSlotEdit?.adminMode).toBe(true);
+  });
+});
+
+// ── Tests — Recherche (debounce) ─────────────────────────────────────────────
+
+describe("AgendaScreen — SCHOOL_ADMIN — recherche", () => {
+  it("la saisie dans le search principal relance usersApi.list après le debounce", async () => {
+    render(<TeacherAgendaScreen />);
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
+    await waitFor(() => expect(usersApiMock.list).toHaveBeenCalled());
+    usersApiMock.list.mockClear();
+
+    fireEvent.changeText(
+      screen.getByTestId("teacher-agenda-admin-search-input"),
+      "albert",
+    );
+    await flushDebounce();
+
+    await waitFor(() =>
+      expect(usersApiMock.list).toHaveBeenCalledWith(
+        "lycee-einstein",
+        expect.objectContaining({ search: "albert", page: 1 }),
+      ),
+    );
+  });
+});
+
+// ── Tests — Reset / Close / Apply ────────────────────────────────────────────
+
+describe("AgendaScreen — SCHOOL_ADMIN — Reset / Close / Apply", () => {
+  it("Close referme le panneau sans appliquer la sélection en cours", async () => {
+    render(<TeacherAgendaScreen />);
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
+    await waitFor(() => expect(usersApiMock.list).toHaveBeenCalled());
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-trigger"),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-user-picker-item-u1"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-item-u1"),
+    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-close"));
+
+    expect(
+      screen.queryByTestId("teacher-agenda-admin-filter-panel"),
+    ).toBeNull();
+    expect(api.getTeacherMyTimetable).not.toHaveBeenCalled();
+    expect(
+      screen.getByText("Choisissez un utilisateur ou une classe"),
+    ).toBeTruthy();
+  });
+
+  it("Reset vide draft ET applied, le panneau reste ouvert", async () => {
+    render(<TeacherAgendaScreen />);
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
+    await waitFor(() => expect(usersApiMock.list).toHaveBeenCalled());
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-trigger"),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-user-picker-item-u1"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-item-u1"),
+    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-apply"));
+    await waitFor(() => expect(api.getTeacherMyTimetable).toHaveBeenCalled());
+
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-reset"));
+
+    expect(
+      screen.getByTestId("teacher-agenda-admin-filter-panel"),
+    ).toBeTruthy();
+    const style = screen.getByTestId("teacher-agenda-admin-filter-toggle").props
+      .style;
+    expect([style].flat()).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ backgroundColor: "#247C72" }),
+      ]),
+    );
   });
 });
 

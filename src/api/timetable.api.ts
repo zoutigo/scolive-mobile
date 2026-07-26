@@ -7,6 +7,7 @@ import type {
   MyTimetableResponse,
   TeacherMyTimetableResponse,
   TimetableClassOptionsResponse,
+  PaginatedTimetableClassesResponse,
   TimetableCalendarEvent,
   TimetableOneOffSlot,
   TimetableRecurringSlot,
@@ -30,6 +31,7 @@ export const timetableApi = {
     schoolSlug: string,
     input: {
       childId?: string;
+      studentId?: string;
       schoolYearId?: string;
       fromDate?: string;
       toDate?: string;
@@ -39,6 +41,7 @@ export const timetableApi = {
     return apiFetch(
       `/schools/${schoolSlug}/timetable/me${toQuery({
         childId: input.childId,
+        studentId: input.studentId,
         schoolYearId: input.schoolYearId,
         fromDate: input.fromDate ?? range.fromDate,
         toDate: input.toDate ?? range.toDate,
@@ -79,10 +82,22 @@ export const timetableApi = {
 
   async getAdminClassList(
     schoolSlug: string,
-    schoolYearId?: string,
-  ): Promise<TimetableClassOptionsResponse> {
+    params: {
+      schoolYearId?: string;
+      academicLevelId?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+    } = {},
+  ): Promise<PaginatedTimetableClassesResponse> {
     return apiFetch(
-      `/schools/${schoolSlug}/timetable/classes${toQuery({ schoolYearId })}`,
+      `/schools/${schoolSlug}/timetable/classes${toQuery({
+        schoolYearId: params.schoolYearId,
+        academicLevelId: params.academicLevelId,
+        search: params.search,
+        page: params.page !== undefined ? String(params.page) : undefined,
+        limit: params.limit !== undefined ? String(params.limit) : undefined,
+      })}`,
       {},
       true,
     );
