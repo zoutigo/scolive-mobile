@@ -981,6 +981,35 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.teacherAgenda.selectClassPlaceholder": "Sélectionner une classe",
     "timetable.teacherAgenda.chooseClassTitle": "Choisir une classe",
 
+    "timetable.teacherAgenda.admin.modeLabel": "Rechercher par",
+    "timetable.teacherAgenda.admin.userLabel": "Utilisateur",
+    "timetable.teacherAgenda.admin.userPlaceholder": "Choisir un utilisateur",
+    "timetable.teacherAgenda.admin.levelLabel": "Niveau",
+    "timetable.teacherAgenda.admin.allLevels": "Tous les niveaux",
+    "timetable.teacherAgenda.admin.classLabel": "Classe",
+    "timetable.teacherAgenda.admin.classPlaceholder": "Choisir une classe",
+    "timetable.teacherAgenda.admin.searchClassPlaceholder":
+      "Rechercher une classe...",
+    "timetable.teacherAgenda.admin.roleTeacher": "Enseignant",
+    "timetable.teacherAgenda.admin.roleStudent": "Élève",
+    "timetable.teacherAgenda.admin.roleStaff": "Personnel",
+    "timetable.teacherAgenda.admin.filters.reset": "Réinitialiser",
+    "timetable.teacherAgenda.admin.filters.close": "Fermer",
+    "timetable.teacherAgenda.admin.filters.apply": "Appliquer",
+    "timetable.teacherAgenda.admin.emptySelectionTitle":
+      "Choisissez un utilisateur ou une classe",
+    "timetable.teacherAgenda.admin.emptySelectionMessage":
+      "Ouvrez les filtres pour rechercher un utilisateur ou une classe et afficher son emploi du temps.",
+    "timetable.teacherAgenda.admin.noAgendaTitle": "Aucun emploi du temps",
+    "timetable.teacherAgenda.admin.noAgendaMessage":
+      "Ce profil ne dispose pas d'emploi du temps (personnel administratif).",
+    "timetable.teacherAgenda.admin.emptyMessageStudent":
+      "Aucun créneau planifié pour cet élève sur cette période.",
+    "timetable.teacherAgenda.admin.selectionBanner.userPrefix": "Agenda de",
+    "timetable.teacherAgenda.admin.selectionBanner.classPrefix": "Classe",
+    "timetable.teacherAgenda.admin.selectionBanner.clear":
+      "Effacer la sélection",
+
     "timetable.classManager.defaultTitle": "Emploi du temps",
     "timetable.classManager.headerSubtitle": "Emploi du temps de la classe",
     "timetable.classManager.dateRangeTo": "au",
@@ -3516,6 +3545,33 @@ export const translations: Record<Locale, Record<string, string>> = {
       "No assignment found for this profile.",
     "timetable.teacherAgenda.selectClassPlaceholder": "Select a class",
     "timetable.teacherAgenda.chooseClassTitle": "Choose a class",
+
+    "timetable.teacherAgenda.admin.modeLabel": "Search by",
+    "timetable.teacherAgenda.admin.userLabel": "User",
+    "timetable.teacherAgenda.admin.userPlaceholder": "Choose a user",
+    "timetable.teacherAgenda.admin.levelLabel": "Level",
+    "timetable.teacherAgenda.admin.allLevels": "All levels",
+    "timetable.teacherAgenda.admin.classLabel": "Class",
+    "timetable.teacherAgenda.admin.classPlaceholder": "Choose a class",
+    "timetable.teacherAgenda.admin.searchClassPlaceholder": "Search a class...",
+    "timetable.teacherAgenda.admin.roleTeacher": "Teacher",
+    "timetable.teacherAgenda.admin.roleStudent": "Student",
+    "timetable.teacherAgenda.admin.roleStaff": "Staff",
+    "timetable.teacherAgenda.admin.filters.reset": "Reset",
+    "timetable.teacherAgenda.admin.filters.close": "Close",
+    "timetable.teacherAgenda.admin.filters.apply": "Apply",
+    "timetable.teacherAgenda.admin.emptySelectionTitle":
+      "Choose a user or a class",
+    "timetable.teacherAgenda.admin.emptySelectionMessage":
+      "Open the filters to search for a user or a class and display their schedule.",
+    "timetable.teacherAgenda.admin.noAgendaTitle": "No schedule",
+    "timetable.teacherAgenda.admin.noAgendaMessage":
+      "This profile has no schedule (administrative staff).",
+    "timetable.teacherAgenda.admin.emptyMessageStudent":
+      "No slot scheduled for this student during this period.",
+    "timetable.teacherAgenda.admin.selectionBanner.userPrefix": "Schedule for",
+    "timetable.teacherAgenda.admin.selectionBanner.classPrefix": "Class",
+    "timetable.teacherAgenda.admin.selectionBanner.clear": "Clear selection",
 
     "timetable.classManager.defaultTitle": "Timetable",
     "timetable.classManager.headerSubtitle": "Class timetable",

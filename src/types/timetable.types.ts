@@ -172,12 +172,22 @@ export type TimetableClassOption = {
   schoolYearLabel: string;
   subjects: TimetableSubjectRef[];
   studentCount: number;
+  academicLevelId?: string | null;
+  academicLevelName?: string | null;
 };
 
 export type TimetableClassOptionsResponse = {
   schoolYears: TimetableSchoolYear[];
   selectedSchoolYearId: string | null;
   classes: TimetableClassOption[];
+};
+
+export type PaginatedTimetableClassesResponse = {
+  data: TimetableClassOption[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
 };
 
 export type TimetableClassOptionsContext = {

@@ -66,13 +66,14 @@ import {
   WeekSelection,
 } from "./ChildTimetableScreen";
 import { EmptyState, ErrorBanner, LoadingBlock } from "./TimetableCommon";
+import { AdminSchedulePane } from "./AdminSchedulePane";
 import { useTranslation } from "../../i18n/useTranslation";
 import { moduleBack } from "../../utils/moduleBack";
 
 const P = "teacher-agenda";
 
 // Context metadata attached to each occurrence at aggregation time
-type OccurrenceContext = {
+export type OccurrenceContext = {
   classId: string;
   className: string;
   schoolYearId: string;
@@ -140,6 +141,11 @@ export function TeacherAgendaScreenInner({
   const { t } = useTranslation();
   const admin = isSchoolAdmin(user);
   const isLockedClassView = !admin && Boolean(lockedClassId);
+  /** Écran "Schedule" listé au menu admin : filtres Users/Classes centralisés,
+   * pas de tabs. Ne s'applique pas quand une classe est déjà verrouillée
+   * (embarqué depuis AdminClassDetailScreen), qui garde son comportement
+   * existant inchangé. */
+  const isAdminBrowsing = admin && !lockedClassId;
   const subtitle = viewAsTeacherName
     ? viewAsTeacherName
     : user
@@ -178,126 +184,130 @@ export function TeacherAgendaScreenInner({
       ) : null}
 
       {/* Tab switcher */}
-      <View style={styles.tabRow} testID={`${P}-tabs`}>
-        {admin ? (
-          <>
-            <TouchableOpacity
-              style={[
-                styles.tabBtn,
-                activeTab === "users" && styles.tabBtnActive,
-              ]}
-              onPress={() => setActiveTab("users")}
-              testID={`${P}-tab-users`}
-            >
-              <Text
+      {isAdminBrowsing ? null : (
+        <View style={styles.tabRow} testID={`${P}-tabs`}>
+          {admin ? (
+            <>
+              <TouchableOpacity
                 style={[
-                  styles.tabBtnText,
-                  activeTab === "users" && styles.tabBtnTextActive,
+                  styles.tabBtn,
+                  activeTab === "users" && styles.tabBtnActive,
                 ]}
+                onPress={() => setActiveTab("users")}
+                testID={`${P}-tab-users`}
               >
-                {t("timetable.teacherAgenda.tabs.users")}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.tabBtn,
-                activeTab === "classes" && styles.tabBtnActive,
-              ]}
-              onPress={() => setActiveTab("classes")}
-              testID={`${P}-tab-classes`}
-            >
-              <Text
+                <Text
+                  style={[
+                    styles.tabBtnText,
+                    activeTab === "users" && styles.tabBtnTextActive,
+                  ]}
+                >
+                  {t("timetable.teacherAgenda.tabs.users")}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={[
-                  styles.tabBtnText,
-                  activeTab === "classes" && styles.tabBtnTextActive,
+                  styles.tabBtn,
+                  activeTab === "classes" && styles.tabBtnActive,
                 ]}
+                onPress={() => setActiveTab("classes")}
+                testID={`${P}-tab-classes`}
               >
-                {t("timetable.teacherAgenda.tabs.classes")}
-              </Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            {isLockedClassView ? (
-              <>
-                <TouchableOpacity
+                <Text
                   style={[
-                    styles.tabBtn,
-                    activeTab === "classes" && styles.tabBtnActive,
+                    styles.tabBtnText,
+                    activeTab === "classes" && styles.tabBtnTextActive,
                   ]}
-                  onPress={() => setActiveTab("classes")}
-                  testID={`${P}-tab-classes`}
                 >
-                  <Text
+                  {t("timetable.teacherAgenda.tabs.classes")}
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              {isLockedClassView ? (
+                <>
+                  <TouchableOpacity
                     style={[
-                      styles.tabBtnText,
-                      activeTab === "classes" && styles.tabBtnTextActive,
+                      styles.tabBtn,
+                      activeTab === "classes" && styles.tabBtnActive,
                     ]}
+                    onPress={() => setActiveTab("classes")}
+                    testID={`${P}-tab-classes`}
                   >
-                    {classTabLabel}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.tabBtn,
-                    activeTab === "mine" && styles.tabBtnActive,
-                  ]}
-                  onPress={() => setActiveTab("mine")}
-                  testID={`${P}-tab-mine`}
-                >
-                  <Text
+                    <Text
+                      style={[
+                        styles.tabBtnText,
+                        activeTab === "classes" && styles.tabBtnTextActive,
+                      ]}
+                    >
+                      {classTabLabel}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     style={[
-                      styles.tabBtnText,
-                      activeTab === "mine" && styles.tabBtnTextActive,
+                      styles.tabBtn,
+                      activeTab === "mine" && styles.tabBtnActive,
                     ]}
+                    onPress={() => setActiveTab("mine")}
+                    testID={`${P}-tab-mine`}
                   >
-                    {t("timetable.teacherAgenda.tabs.mine")}
-                  </Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <TouchableOpacity
-                  style={[
-                    styles.tabBtn,
-                    activeTab === "mine" && styles.tabBtnActive,
-                  ]}
-                  onPress={() => setActiveTab("mine")}
-                  testID={`${P}-tab-mine`}
-                >
-                  <Text
+                    <Text
+                      style={[
+                        styles.tabBtnText,
+                        activeTab === "mine" && styles.tabBtnTextActive,
+                      ]}
+                    >
+                      {t("timetable.teacherAgenda.tabs.mine")}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <TouchableOpacity
                     style={[
-                      styles.tabBtnText,
-                      activeTab === "mine" && styles.tabBtnTextActive,
+                      styles.tabBtn,
+                      activeTab === "mine" && styles.tabBtnActive,
                     ]}
+                    onPress={() => setActiveTab("mine")}
+                    testID={`${P}-tab-mine`}
                   >
-                    {t("timetable.teacherAgenda.tabs.mine")}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.tabBtn,
-                    activeTab === "classes" && styles.tabBtnActive,
-                  ]}
-                  onPress={() => setActiveTab("classes")}
-                  testID={`${P}-tab-classes`}
-                >
-                  <Text
+                    <Text
+                      style={[
+                        styles.tabBtnText,
+                        activeTab === "mine" && styles.tabBtnTextActive,
+                      ]}
+                    >
+                      {t("timetable.teacherAgenda.tabs.mine")}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     style={[
-                      styles.tabBtnText,
-                      activeTab === "classes" && styles.tabBtnTextActive,
+                      styles.tabBtn,
+                      activeTab === "classes" && styles.tabBtnActive,
                     ]}
+                    onPress={() => setActiveTab("classes")}
+                    testID={`${P}-tab-classes`}
                   >
-                    {t("timetable.teacherAgenda.tabs.myClasses")}
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </>
-        )}
-      </View>
+                    <Text
+                      style={[
+                        styles.tabBtnText,
+                        activeTab === "classes" && styles.tabBtnTextActive,
+                      ]}
+                    >
+                      {t("timetable.teacherAgenda.tabs.myClasses")}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </>
+          )}
+        </View>
+      )}
 
-      {activeTab === "mine" ? (
+      {isAdminBrowsing ? (
+        <AdminSchedulePane insetBottom={insets.bottom} />
+      ) : activeTab === "mine" ? (
         <TeacherMyAgendaPane
           insetBottom={insets.bottom}
           viewAsTeacherId={viewAsTeacherId}
@@ -847,11 +857,11 @@ function TeacherClassAgendaPane({
     if (isAdminMode) {
       setIsLoadingAdminClasses(true);
       timetableApi
-        .getAdminClassList(schoolSlug)
+        .getAdminClassList(schoolSlug, { limit: 100 })
         .then((res) => {
-          setAdminClasses(res.classes);
-          if (!selectedClassId && res.classes.length > 0) {
-            setSelectedClassId(res.classes[0]?.classId ?? null);
+          setAdminClasses(res.data);
+          if (!selectedClassId && res.data.length > 0) {
+            setSelectedClassId(res.data[0]?.classId ?? null);
           }
         })
         .catch(() => {})
@@ -1139,7 +1149,7 @@ function TeacherClassAgendaPane({
 
 // ─── Shared day/week/month pane ───────────────────────────────────────────────
 
-interface TimetablePaneProps {
+export interface TimetablePaneProps {
   testIDPrefix: string;
   isLoading: boolean;
   hasData: boolean;
@@ -1173,7 +1183,7 @@ interface TimetablePaneProps {
   prefilledTeacherId?: string;
 }
 
-function TimetablePane({
+export function TimetablePane({
   testIDPrefix,
   isLoading,
   hasData,
