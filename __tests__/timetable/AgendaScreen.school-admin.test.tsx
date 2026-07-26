@@ -694,6 +694,192 @@ describe("AgendaScreen — SCHOOL_ADMIN — Reset / Close / Apply", () => {
   });
 });
 
+// ── Tests — Bandeau de sélection contextuel ──────────────────────────────────
+
+describe("AgendaScreen — SCHOOL_ADMIN — bandeau de sélection", () => {
+  it("n'affiche aucun bandeau tant qu'aucune sélection n'est appliquée", () => {
+    render(<TeacherAgendaScreen />);
+    expect(
+      screen.queryByTestId("teacher-agenda-admin-selection-banner"),
+    ).toBeNull();
+  });
+
+  it("affiche 'Agenda de : <nom> · <rôle>' après sélection d'un enseignant", async () => {
+    render(<TeacherAgendaScreen />);
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
+    await waitFor(() => expect(usersApiMock.list).toHaveBeenCalled());
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-trigger"),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-user-picker-item-u1"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-item-u1"),
+    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-apply"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-selection-banner-label").props
+          .children,
+      ).toBe("Agenda de : Mvondo Albert · Enseignant"),
+    );
+  });
+
+  it("affiche 'Classe : <nom> · <niveau>' après sélection d'une classe", async () => {
+    render(<TeacherAgendaScreen />);
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-mode-class"));
+    await waitFor(() => expect(api.getAdminClassList).toHaveBeenCalled());
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-class-picker-trigger"),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-class-picker-item-class-6eC"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-class-picker-item-class-6eC"),
+    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-apply"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-selection-banner-label").props
+          .children,
+      ).toBe("Classe : 6eC · 6ème"),
+    );
+  });
+
+  it("le bandeau reste visible et affiche la sélection même quand le profil n'a pas d'agenda (staff)", async () => {
+    render(<TeacherAgendaScreen />);
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
+    await waitFor(() => expect(usersApiMock.list).toHaveBeenCalled());
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-trigger"),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-user-picker-item-u4"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-item-u4"),
+    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-apply"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-selection-banner-label").props
+          .children,
+      ).toBe("Agenda de : Owona Bella · Personnel"),
+    );
+  });
+
+  it("le bandeau est masqué pendant que le panneau de filtres est ouvert", async () => {
+    render(<TeacherAgendaScreen />);
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
+    await waitFor(() => expect(usersApiMock.list).toHaveBeenCalled());
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-trigger"),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-user-picker-item-u1"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-item-u1"),
+    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-apply"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-selection-banner"),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
+    expect(
+      screen.queryByTestId("teacher-agenda-admin-selection-banner"),
+    ).toBeNull();
+  });
+
+  it("taper sur le bandeau rouvre le panneau de filtres pré-rempli avec la sélection", async () => {
+    render(<TeacherAgendaScreen />);
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
+    await waitFor(() => expect(usersApiMock.list).toHaveBeenCalled());
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-trigger"),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-user-picker-item-u1"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-item-u1"),
+    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-apply"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-selection-banner"),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-selection-banner"),
+    );
+
+    expect(
+      screen.getByTestId("teacher-agenda-admin-filter-panel"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("teacher-agenda-admin-user-picker-trigger"),
+    ).toBeTruthy();
+  });
+
+  it("taper sur le bouton d'effacement du bandeau réinitialise la sélection sans ouvrir le panneau", async () => {
+    render(<TeacherAgendaScreen />);
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-toggle"));
+    await waitFor(() => expect(usersApiMock.list).toHaveBeenCalled());
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-trigger"),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-user-picker-item-u1"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-user-picker-item-u1"),
+    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-admin-filter-apply"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-admin-selection-banner"),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.press(
+      screen.getByTestId("teacher-agenda-admin-selection-banner-clear"),
+    );
+
+    expect(
+      screen.queryByTestId("teacher-agenda-admin-selection-banner"),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId("teacher-agenda-admin-filter-panel"),
+    ).toBeNull();
+    expect(
+      screen.getByText("Choisissez un utilisateur ou une classe"),
+    ).toBeTruthy();
+  });
+});
+
 // ── Tests — Navigation : SCHOOL_ADMIN a l'entrée Agenda ─────────────────────
 
 describe("nav-config — SCHOOL_ADMIN", () => {

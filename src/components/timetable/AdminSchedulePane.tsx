@@ -495,6 +495,57 @@ export function AdminSchedulePane({ insetBottom }: { insetBottom: number }) {
         </TouchableOpacity>
       </View>
 
+      {hasSelection && !filtersOpen ? (
+        <TouchableOpacity
+          style={styles.selectionBanner}
+          onPress={openFilters}
+          testID={`${P}-selection-banner`}
+        >
+          <Ionicons
+            name={
+              appliedFilters.mode === "CLASS"
+                ? "school-outline"
+                : "person-circle-outline"
+            }
+            size={16}
+            color={colors.accentTeal}
+          />
+          <Text
+            style={styles.selectionBannerLabel}
+            numberOfLines={1}
+            testID={`${P}-selection-banner-label`}
+          >
+            {appliedFilters.mode === "CLASS" && appliedFilters.classOption
+              ? `${t("timetable.teacherAgenda.admin.selectionBanner.classPrefix")} : ${
+                  appliedFilters.classOption.className
+                }${
+                  appliedFilters.classOption.academicLevelName
+                    ? ` · ${appliedFilters.classOption.academicLevelName}`
+                    : ""
+                }`
+              : appliedFilters.member
+                ? `${t("timetable.teacherAgenda.admin.selectionBanner.userPrefix")} : ${fullMemberName(
+                    appliedFilters.member,
+                  )} · ${memberRoleLabel(appliedFilters.member, t)}`
+                : ""}
+          </Text>
+          <TouchableOpacity
+            onPress={resetFilters}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            testID={`${P}-selection-banner-clear`}
+            accessibilityLabel={t(
+              "timetable.teacherAgenda.admin.selectionBanner.clear",
+            )}
+          >
+            <Ionicons
+              name="close-circle"
+              size={16}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      ) : null}
+
       {filtersOpen ? (
         <View style={styles.filterPanel} testID={`${P}-filter-panel`}>
           <View style={styles.filterScrollWrapper}>
@@ -837,6 +888,25 @@ const styles = StyleSheet.create({
   filterToggleActive: {
     backgroundColor: colors.accentTeal,
     borderColor: colors.accentTeal,
+  },
+  selectionBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}55`,
+    backgroundColor: `${colors.accentTeal}14`,
+  },
+  selectionBannerLabel: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.accentTeal,
   },
   filterPanel: {
     flex: 1,

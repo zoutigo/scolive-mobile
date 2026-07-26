@@ -1005,6 +1005,10 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Ce profil ne dispose pas d'emploi du temps (personnel administratif).",
     "timetable.teacherAgenda.admin.emptyMessageStudent":
       "Aucun créneau planifié pour cet élève sur cette période.",
+    "timetable.teacherAgenda.admin.selectionBanner.userPrefix": "Agenda de",
+    "timetable.teacherAgenda.admin.selectionBanner.classPrefix": "Classe",
+    "timetable.teacherAgenda.admin.selectionBanner.clear":
+      "Effacer la sélection",
 
     "timetable.classManager.defaultTitle": "Emploi du temps",
     "timetable.classManager.headerSubtitle": "Emploi du temps de la classe",
@@ -3565,6 +3569,9 @@ export const translations: Record<Locale, Record<string, string>> = {
       "This profile has no schedule (administrative staff).",
     "timetable.teacherAgenda.admin.emptyMessageStudent":
       "No slot scheduled for this student during this period.",
+    "timetable.teacherAgenda.admin.selectionBanner.userPrefix": "Schedule for",
+    "timetable.teacherAgenda.admin.selectionBanner.classPrefix": "Class",
+    "timetable.teacherAgenda.admin.selectionBanner.clear": "Clear selection",
 
     "timetable.classManager.defaultTitle": "Timetable",
     "timetable.classManager.headerSubtitle": "Class timetable",
