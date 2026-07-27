@@ -49,8 +49,7 @@ export function AdminClassDetailScreen() {
   }, [schoolSlug, classOptions, classId, loadClassOptions]);
 
   const className =
-    classOptions?.classes.find((c) => c.classId === classId)?.className ??
-    null;
+    classOptions?.classes.find((c) => c.classId === classId)?.className ?? null;
 
   const viewStudentsAction: FabAction[] = classId
     ? [

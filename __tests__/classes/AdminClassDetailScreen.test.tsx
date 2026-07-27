@@ -79,7 +79,11 @@ jest.mock(
       extraFabActions = [],
     }: {
       showHeader?: boolean;
-      extraFabActions?: Array<{ key: string; testID: string; onPress: () => void }>;
+      extraFabActions?: Array<{
+        key: string;
+        testID: string;
+        onPress: () => void;
+      }>;
     }) => {
       const { Text, TouchableOpacity, View } = require("react-native");
       return (
@@ -127,7 +131,11 @@ jest.mock("../../src/components/homework/ClassHomeworkScreen", () => ({
     extraFabActions = [],
   }: {
     showHeader?: boolean;
-    extraFabActions?: Array<{ key: string; testID: string; onPress: () => void }>;
+    extraFabActions?: Array<{
+      key: string;
+      testID: string;
+      onPress: () => void;
+    }>;
   }) => {
     const { Text, TouchableOpacity, View } = require("react-native");
     return (
@@ -155,7 +163,11 @@ jest.mock("../../src/components/notes/ClassNotesManagerScreen", () => ({
     extraFabActions = [],
   }: {
     showHeader?: boolean;
-    extraFabActions?: Array<{ key: string; testID: string; onPress: () => void }>;
+    extraFabActions?: Array<{
+      key: string;
+      testID: string;
+      onPress: () => void;
+    }>;
   }) => {
     const { Text, TouchableOpacity, View } = require("react-native");
     return (
