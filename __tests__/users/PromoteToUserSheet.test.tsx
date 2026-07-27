@@ -308,3 +308,47 @@ describe("PromoteToUserSheet — bouton annuler", () => {
     expect(onClose).toHaveBeenCalled();
   });
 });
+
+describe("PromoteToUserSheet — affichage des identifiants après fermeture du formulaire", () => {
+  // Reproduit l'usage réel (UserDetailModal) : `visible` est piloté par le
+  // parent et bascule à `false` dans `onClose`, exactement comme au submit
+  // réussi (setCredentials -> onClose -> setCredSheetVisible). Régression :
+  // les identifiants générés ne devaient jamais s'afficher car l'effet de
+  // nettoyage sur `!visible` remettait `credentials` à `null` avant que
+  // CredentialDisplaySheet ait pu être visible pour l'utilisateur.
+  function PromoteHarness() {
+    const [visible, setVisible] = React.useState(true);
+    return (
+      <PromoteToUserSheet
+        {...DEFAULT_PROPS}
+        visible={visible}
+        onClose={() => setVisible(false)}
+      />
+    );
+  }
+
+  it("affiche et conserve les identifiants générés une fois le formulaire refermé", async () => {
+    mockUsersApi.promoteStudent.mockResolvedValueOnce({
+      username: "amina42",
+      temporaryPassword: "TmpPwd123",
+    });
+
+    render(<PromoteHarness />);
+
+    await waitFor(() => screen.getByTestId("input-username-promote"));
+    fireEvent.changeText(
+      screen.getByTestId("input-username-promote"),
+      "amina42",
+    );
+    fireEvent.press(screen.getByTestId("promote-student-submit"));
+
+    await waitFor(() => expect(screen.getByText("amina42")).toBeOnTheScreen());
+    expect(screen.getByText("TmpPwd123")).toBeOnTheScreen();
+
+    // Les identifiants doivent rester affichés après le re-render déclenché
+    // par la fermeture du formulaire (visible: true -> false), pas disparaître.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.getByText("amina42")).toBeOnTheScreen();
+    expect(screen.getByText("TmpPwd123")).toBeOnTheScreen();
+  });
+});

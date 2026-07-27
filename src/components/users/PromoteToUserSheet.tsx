@@ -89,7 +89,6 @@ export function PromoteToUserSheet({
     if (!visible) {
       reset({ username: "" });
       setSuggestionError(null);
-      setCredentials(null);
       return;
     }
 
@@ -223,7 +222,10 @@ export function PromoteToUserSheet({
       {credentials ? (
         <CredentialDisplaySheet
           visible={credSheetVisible}
-          onClose={() => setCredSheetVisible(false)}
+          onClose={() => {
+            setCredSheetVisible(false);
+            setCredentials(null);
+          }}
           username={credentials.username}
           temporaryPassword={credentials.temporaryPassword}
           title="Accès créé"

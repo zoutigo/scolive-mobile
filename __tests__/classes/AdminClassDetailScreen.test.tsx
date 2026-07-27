@@ -1,10 +1,5 @@
 import React from "react";
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 import { AdminClassDetailScreen } from "../../src/components/classes/AdminClassDetailScreen";
 import { useTeacherClassNavStore } from "../../src/store/teacher-class-nav.store";
 
@@ -15,8 +10,15 @@ jest.mock("react-native-safe-area-context", () => ({
 
 const mockReplace = jest.fn();
 const mockBack = jest.fn();
+const mockCanGoBack = jest.fn().mockReturnValue(true);
+const mockNavigate = jest.fn();
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ replace: mockReplace, back: mockBack }),
+  useRouter: () => ({
+    replace: mockReplace,
+    back: mockBack,
+    canGoBack: mockCanGoBack,
+    navigate: mockNavigate,
+  }),
   useLocalSearchParams: () => ({ classId: "class-1" }),
 }));
 
@@ -43,18 +45,25 @@ jest.mock("../../src/components/navigation/ModuleHeader", () => ({
     title,
     subtitle,
     testID,
+    onBack,
+    backTestID,
   }: {
     title: string;
     subtitle?: string | null;
     testID?: string;
+    onBack?: () => void;
+    backTestID?: string;
   }) => {
-    const { Text, View } = require("react-native");
+    const { Text, TouchableOpacity, View } = require("react-native");
     return (
       <View testID={testID}>
         <Text testID="admin-class-detail-title">{title}</Text>
         {subtitle ? (
           <Text testID="admin-class-detail-subtitle">{subtitle}</Text>
         ) : null}
+        <TouchableOpacity testID={backTestID} onPress={onBack}>
+          <Text>back</Text>
+        </TouchableOpacity>
       </View>
     );
   },
@@ -215,48 +224,16 @@ describe("AdminClassDetailScreen", () => {
     expect(screen.getByTestId("feed-screen-showHeader-false")).toBeTruthy();
   });
 
-  it("affiche le FAB pour changer de classe", () => {
+  it("n'affiche plus de FAB de changement de classe (retour à la liste via la flèche du header)", () => {
     render(<AdminClassDetailScreen />);
-    expect(screen.getByTestId("admin-class-detail-fab")).toBeTruthy();
+    expect(screen.queryByTestId("admin-class-detail-fab")).toBeNull();
+    expect(screen.queryByTestId("class-select-modal")).toBeNull();
   });
 
-  it("ouvre la modale de sélection au clic sur le FAB", () => {
+  it("la flèche du header revient à l'écran précédent (liste des classes)", () => {
     render(<AdminClassDetailScreen />);
-    fireEvent.press(screen.getByTestId("admin-class-detail-fab"));
-    expect(screen.getByTestId("class-select-modal")).toBeTruthy();
-    expect(screen.getByText("5e B")).toBeTruthy();
-  });
-
-  it("navigue via router.replace vers le nouveau classId après changement de classe", async () => {
-    render(<AdminClassDetailScreen />);
-    fireEvent.press(screen.getByTestId("admin-class-detail-fab"));
-    fireEvent.press(screen.getByTestId("class-select-item-class-2"));
-    await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith({
-        pathname: "/(home)/admin-classes/[classId]",
-        params: { classId: "class-2" },
-      });
-    });
-  });
-
-  it("réinitialise l'onglet actif à 'discipline' après changement de classe", async () => {
-    render(<AdminClassDetailScreen />);
-    fireEvent.press(screen.getByTestId("admin-class-detail-tab-notes"));
-    expect(screen.getByTestId("notes-screen-showHeader-false")).toBeTruthy();
-
-    fireEvent.press(screen.getByTestId("admin-class-detail-fab"));
-    fireEvent.press(screen.getByTestId("class-select-item-class-2"));
-    await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalled();
-    });
-  });
-
-  it("ferme la modale sans changer de classe au clic sur 'close'", () => {
-    render(<AdminClassDetailScreen />);
-    fireEvent.press(screen.getByTestId("admin-class-detail-fab"));
-    expect(screen.getByTestId("class-select-sheet")).toBeTruthy();
-    fireEvent.press(screen.getByTestId("class-select-close"));
-    expect(screen.queryByTestId("class-select-sheet")).toBeNull();
+    fireEvent.press(screen.getByTestId("admin-class-detail-back"));
+    expect(mockBack).toHaveBeenCalled();
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
