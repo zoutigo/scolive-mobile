@@ -1,6 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   KeyboardAvoidingView,
+  Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   RefreshControl,
   ScrollView,
@@ -8,6 +17,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,14 +29,17 @@ import { z } from "zod";
 import { roomsApi } from "../../api/rooms.api";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { DatePickerField } from "../DatePickerField";
+import { TimePickerField } from "../TimePickerField";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { NavBadge } from "../navigation/NavBadge";
 import { FormHero } from "../forms/FormHero";
 import { InlineSelectDropDown } from "../InlineSelectDropDown";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { useAuthStore } from "../../store/auth.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
+import { useTranslation } from "../../i18n/useTranslation";
 import {
   buildAdminSubtitle,
   getPortalLabel,
@@ -39,6 +52,7 @@ import {
   formatDateInput,
   minuteToTimeLabel,
   startOfWeek,
+  timeLabelToMinute,
 } from "../../utils/timetable";
 import {
   EmptyState,
@@ -46,7 +60,14 @@ import {
   LoadingBlock,
   SectionCard,
 } from "../timetable/TimetableCommon";
-import type { RoomCalendarEntry, RoomRow } from "../../types/room.types";
+import type {
+  RoomCalendarEntry,
+  RoomRow,
+  RoomsListFilters,
+  RoomsListMeta,
+  RoomSimultaneity,
+  RoomStatus,
+} from "../../types/room.types";
 import { moduleBack } from "../../utils/moduleBack";
 
 // ---------------------------------------------------------------------------
@@ -66,8 +87,6 @@ type FormContext = {
 // Constants
 // ---------------------------------------------------------------------------
 
-const PAGE_SIZE = 20;
-
 const BASE_TAB_ITEMS: Array<{ key: ListTabKey; label: string }> = [
   { key: "list", label: "Salles" },
   { key: "calendar", label: "Calendrier" },
@@ -85,6 +104,33 @@ const STATUS_LABELS: Record<RoomRow["status"], string> = {
   UNAVAILABLE: "Indisponible",
   MAINTENANCE: "Maintenance",
 };
+
+const STATUS_FILTER_KEYS: RoomStatus[] = [
+  "AVAILABLE",
+  "UNAVAILABLE",
+  "MAINTENANCE",
+];
+
+const SIMULTANEITY_FILTER_KEYS: RoomSimultaneity[] = ["SINGLE", "MULTIPLE"];
+
+const NO_ROOM_FILTERS: RoomsListFilters = {
+  status: null,
+  simultaneity: null,
+  availabilityFromDate: null,
+  availabilityToDate: null,
+  availabilityStartMinute: null,
+  availabilityEndMinute: null,
+};
+
+const SEARCH_DEBOUNCE_MS = 300;
+
+function hasActiveRoomFilters(filters: RoomsListFilters) {
+  return (
+    filters.status != null ||
+    filters.simultaneity != null ||
+    filters.availabilityFromDate != null
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Schema (exported for tests)
@@ -120,12 +166,6 @@ function buildRoomPayload(values: z.infer<typeof roomFormSchema>) {
     maxConcurrentSlots: Number(values.maxConcurrentSlots),
     status: values.status,
   };
-}
-
-function roomSearchText(entry: RoomRow) {
-  return [entry.name, entry.description ?? "", STATUS_LABELS[entry.status]]
-    .join(" ")
-    .toLowerCase();
 }
 
 function roleAllowsAdmin(role: string | null | undefined) {
@@ -395,15 +435,36 @@ export function RoomsAdminScreen() {
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
 
+  const { t } = useTranslation();
+
   const [tab, setTab] = useState<TabKey>("list");
   const [formContext, setFormContext] = useState<FormContext | null>(null);
   const [rooms, setRooms] = useState<RoomRow[]>([]);
+  const [listMeta, setListMeta] = useState<RoomsListMeta | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  const [allRoomOptions, setAllRoomOptions] = useState<RoomRow[]>([]);
+
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftFilters, setDraftFilters] =
+    useState<RoomsListFilters>(NO_ROOM_FILTERS);
+  const [appliedFilters, setAppliedFilters] =
+    useState<RoomsListFilters>(NO_ROOM_FILTERS);
+  const [filterScrollOverflowing, setFilterScrollOverflowing] = useState(false);
+  const [filterScrollNearBottom, setFilterScrollNearBottom] = useState(false);
+  const filterScrollLayoutHeightRef = useRef(0);
+  const filterScrollContentHeightRef = useRef(0);
+  const showFilterScrollHint =
+    filterScrollOverflowing && !filterScrollNearBottom;
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [deleteTarget, setDeleteTarget] = useState<RoomRow | null>(null);
+  const [menuTarget, setMenuTarget] = useState<RoomRow | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -423,55 +484,68 @@ export function RoomsAdminScreen() {
   const subtitle = user ? buildAdminSubtitle(user) : null;
   const canAccessModule = roleAllowsAdmin(effectiveRole);
 
-  const roomCountLabel = `${rooms.length} salle${rooms.length > 1 ? "s" : ""}`;
-
-  const filteredRooms = useMemo(() => {
-    const search = query.trim().toLowerCase();
-    const sorted = [...rooms].sort((a, b) => a.name.localeCompare(b.name));
-    if (!search) return sorted;
-    return sorted.filter((entry) => roomSearchText(entry).includes(search));
-  }, [query, rooms]);
-
-  const visibleRooms = useMemo(
-    () => filteredRooms.slice(0, visibleCount),
-    [filteredRooms, visibleCount],
-  );
-
   const roomSelectOptions = useMemo(
-    () => rooms.map((entry) => ({ value: entry.id, label: entry.name })),
-    [rooms],
+    () =>
+      allRoomOptions.map((entry) => ({ value: entry.id, label: entry.name })),
+    [allRoomOptions],
   );
 
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [query, rooms.length]);
-
-  useEffect(() => {
-    if (!calendarRoomId && rooms.length > 0) {
-      setCalendarRoomId(rooms[0].id);
+    if (!calendarRoomId && allRoomOptions.length > 0) {
+      setCalendarRoomId(allRoomOptions[0].id);
     }
-  }, [rooms, calendarRoomId]);
+  }, [allRoomOptions, calendarRoomId]);
 
-  const loadRooms = useCallback(
-    async (refresh = false) => {
+  const loadAllRoomOptions = useCallback(async () => {
+    if (!schoolSlug) return;
+    try {
+      const result = await roomsApi.listRooms(schoolSlug, { limit: 200 });
+      setAllRoomOptions(result.items);
+    } catch {
+      // Le sélecteur du tab calendrier reste vide, non bloquant.
+    }
+  }, [schoolSlug]);
+
+  const loadList = useCallback(
+    async (
+      page: number,
+      filters: RoomsListFilters,
+      searchQuery: string,
+      mode: "reset" | "append" | "refresh",
+    ) => {
       if (!schoolSlug) {
         setErrorMessage("Aucun établissement actif.");
         setIsLoading(false);
         return;
       }
-      if (refresh) {
-        setIsRefreshing(true);
-      } else {
-        setIsLoading(true);
-      }
+      if (mode === "append") setIsLoadingMore(true);
+      else if (mode === "refresh") setIsRefreshing(true);
+      else setIsLoading(true);
       setErrorMessage(null);
       try {
-        const rows = await roomsApi.listRooms(schoolSlug);
-        setRooms(rows);
+        const result = await roomsApi.listRooms(schoolSlug, {
+          page,
+          search: searchQuery || undefined,
+          status: filters.status ?? undefined,
+          simultaneity: filters.simultaneity ?? undefined,
+          availabilityFromDate: filters.availabilityFromDate ?? undefined,
+          availabilityToDate: filters.availabilityToDate ?? undefined,
+          availabilityStartMinute: filters.availabilityStartMinute ?? undefined,
+          availabilityEndMinute: filters.availabilityEndMinute ?? undefined,
+        });
+        setRooms((prev) =>
+          mode === "append" ? [...prev, ...result.items] : result.items,
+        );
+        setListMeta({
+          page: result.page,
+          limit: result.limit,
+          total: result.total,
+        });
       } catch (error) {
         setErrorMessage(extractApiError(error));
       } finally {
         setIsLoading(false);
+        setIsLoadingMore(false);
         setIsRefreshing(false);
       }
     },
@@ -479,9 +553,92 @@ export function RoomsAdminScreen() {
   );
 
   useEffect(() => {
+    if (!canAccessModule) {
+      setIsLoading(false);
+      return;
+    }
+    void loadList(1, appliedFilters, appliedSearch, "reset");
+  }, [canAccessModule, appliedFilters, appliedSearch, loadList]);
+
+  useEffect(() => {
     if (!canAccessModule) return;
-    void loadRooms(false);
-  }, [canAccessModule, loadRooms]);
+    void loadAllRoomOptions();
+  }, [canAccessModule, loadAllRoomOptions]);
+
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setAppliedSearch(searchInput.trim());
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [searchInput]);
+
+  const handleLoadMoreRooms = useCallback(() => {
+    if (!listMeta) return;
+    const totalPages = Math.max(1, Math.ceil(listMeta.total / listMeta.limit));
+    if (listMeta.page >= totalPages) return;
+    if (isLoadingMore) return;
+    void loadList(listMeta.page + 1, appliedFilters, appliedSearch, "append");
+  }, [listMeta, isLoadingMore, appliedFilters, appliedSearch, loadList]);
+
+  const handleListRefresh = useCallback(async () => {
+    await Promise.all([
+      loadList(1, appliedFilters, appliedSearch, "refresh"),
+      loadAllRoomOptions(),
+    ]);
+  }, [loadList, appliedFilters, appliedSearch, loadAllRoomOptions]);
+
+  function openFilters() {
+    setDraftFilters(appliedFilters);
+    filterScrollLayoutHeightRef.current = 0;
+    filterScrollContentHeightRef.current = 0;
+    setFilterScrollOverflowing(false);
+    setFilterScrollNearBottom(false);
+    setFiltersOpen(true);
+  }
+
+  function closeFilters() {
+    setDraftFilters(appliedFilters);
+    setFiltersOpen(false);
+  }
+
+  function toggleFilters() {
+    if (filtersOpen) closeFilters();
+    else openFilters();
+  }
+
+  function applyFilters() {
+    setAppliedFilters(draftFilters);
+    setFiltersOpen(false);
+  }
+
+  function resetFilters() {
+    setDraftFilters(NO_ROOM_FILTERS);
+    setAppliedFilters(NO_ROOM_FILTERS);
+  }
+
+  function recomputeFilterScrollOverflow() {
+    setFilterScrollOverflowing(
+      filterScrollContentHeightRef.current >
+        filterScrollLayoutHeightRef.current + 4,
+    );
+  }
+  function handleFilterScrollLayout(height: number) {
+    filterScrollLayoutHeightRef.current = height;
+    recomputeFilterScrollOverflow();
+  }
+  function handleFilterScrollContentSize(height: number) {
+    filterScrollContentHeightRef.current = height;
+    recomputeFilterScrollOverflow();
+  }
+  function handleFilterScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const distanceFromBottom =
+      contentSize.height - (contentOffset.y + layoutMeasurement.height);
+    setFilterScrollNearBottom(distanceFromBottom < 12);
+  }
 
   const loadCalendar = useCallback(async () => {
     if (!schoolSlug || !calendarRoomId) return;
@@ -507,10 +664,6 @@ export function RoomsAdminScreen() {
     void loadCalendar();
   }, [tab, calendarRoomId, calendarFromDate, calendarToDate, loadCalendar]);
 
-  const handleRefresh = useCallback(async () => {
-    await loadRooms(true);
-  }, [loadRooms]);
-
   function exitForms() {
     const origin = formContext?.originTab ?? "list";
     setFormContext(null);
@@ -535,7 +688,7 @@ export function RoomsAdminScreen() {
       } else {
         await roomsApi.createRoom(schoolSlug, payload);
       }
-      await loadRooms(true);
+      await handleListRefresh();
       const originTab = formContext.originTab;
       showSuccess({
         title: isEdit ? "Salle modifiée" : "Salle créée",
@@ -563,7 +716,7 @@ export function RoomsAdminScreen() {
     try {
       await roomsApi.deleteRoom(schoolSlug, deleteTarget.id);
       setDeleteTarget(null);
-      await loadRooms(true);
+      await handleListRefresh();
       showSuccess({
         title: "Salle supprimée",
         message: "La salle a été retirée de l'établissement.",
@@ -659,8 +812,370 @@ export function RoomsAdminScreen() {
       ) : null}
 
       {/* ── Tabs liste (list / calendar / help) ────────────────────────────── */}
-      {tab !== "forms" ? (
-        isLoading ? (
+      {tab === "list" ? (
+        <View style={styles.searchRow} testID="rooms-admin-search-row">
+          <View style={styles.searchBox}>
+            <Ionicons name="search" size={16} color={colors.textSecondary} />
+            <TextInput
+              style={styles.searchInput}
+              value={searchInput}
+              onChangeText={setSearchInput}
+              placeholder={t("rooms.search.placeholder")}
+              placeholderTextColor={colors.textSecondary}
+              returnKeyType="search"
+              autoCapitalize="none"
+              accessibilityLabel={t("rooms.search.accessibilityLabel")}
+              testID="rooms-admin-search"
+            />
+            {searchInput.length > 0 ? (
+              <TouchableOpacity
+                onPress={() => setSearchInput("")}
+                testID="rooms-admin-search-clear"
+              >
+                <Ionicons
+                  name="close-circle"
+                  size={16}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.filterToggle,
+              hasActiveRoomFilters(appliedFilters) && styles.filterToggleActive,
+            ]}
+            onPress={toggleFilters}
+            testID="rooms-admin-filter-toggle"
+            accessibilityLabel={t("rooms.filters.toggleAccessibilityLabel")}
+          >
+            <Ionicons
+              name={
+                hasActiveRoomFilters(appliedFilters)
+                  ? "filter"
+                  : "filter-outline"
+              }
+              size={18}
+              color={
+                hasActiveRoomFilters(appliedFilters)
+                  ? colors.white
+                  : colors.accentTeal
+              }
+            />
+            <View style={styles.filterToggleBadgeAnchor}>
+              <NavBadge
+                count={listMeta?.total}
+                testID="rooms-admin-filter-count-badge"
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
+      {tab === "list" && filtersOpen ? (
+        <View style={styles.filterPanel} testID="rooms-admin-filter-panel">
+          <View style={styles.filterPanelHeader}>
+            <View style={styles.filterPanelHeaderIcon}>
+              <Ionicons
+                name="options-outline"
+                size={16}
+                color={colors.accentTealDark}
+              />
+            </View>
+            <Text style={styles.filterPanelHeaderTitle}>
+              {t("rooms.filters.toggleAccessibilityLabel")}
+            </Text>
+          </View>
+
+          <View style={styles.filterScrollWrapper}>
+            <ScrollView
+              style={styles.filterScrollArea}
+              contentContainerStyle={styles.filterScrollContent}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator
+              onLayout={(e) =>
+                handleFilterScrollLayout(e.nativeEvent.layout.height)
+              }
+              onContentSizeChange={(_w, h) => handleFilterScrollContentSize(h)}
+              onScroll={handleFilterScroll}
+              scrollEventThrottle={16}
+              testID="rooms-admin-filter-scroll"
+            >
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupLabel}>
+                  {t("rooms.filters.statusLabel")}
+                </Text>
+                <View style={styles.filterChipsRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      draftFilters.status == null && styles.filterChipActive,
+                    ]}
+                    onPress={() =>
+                      setDraftFilters((current) => ({
+                        ...current,
+                        status: null,
+                      }))
+                    }
+                    testID="rooms-admin-filter-status-all"
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipLabel,
+                        draftFilters.status == null &&
+                          styles.filterChipLabelActive,
+                      ]}
+                    >
+                      {t("rooms.filters.allOption")}
+                    </Text>
+                  </TouchableOpacity>
+                  {STATUS_FILTER_KEYS.map((key) => (
+                    <TouchableOpacity
+                      key={key}
+                      style={[
+                        styles.filterChip,
+                        draftFilters.status === key && styles.filterChipActive,
+                      ]}
+                      onPress={() =>
+                        setDraftFilters((current) => ({
+                          ...current,
+                          status: key,
+                        }))
+                      }
+                      testID={`rooms-admin-filter-status-${key}`}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipLabel,
+                          draftFilters.status === key &&
+                            styles.filterChipLabelActive,
+                        ]}
+                      >
+                        {t(`rooms.filters.status.${key}`)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupLabel}>
+                  {t("rooms.filters.simultaneityLabel")}
+                </Text>
+                <View style={styles.filterChipsRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      draftFilters.simultaneity == null &&
+                        styles.filterChipActive,
+                    ]}
+                    onPress={() =>
+                      setDraftFilters((current) => ({
+                        ...current,
+                        simultaneity: null,
+                      }))
+                    }
+                    testID="rooms-admin-filter-simultaneity-all"
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipLabel,
+                        draftFilters.simultaneity == null &&
+                          styles.filterChipLabelActive,
+                      ]}
+                    >
+                      {t("rooms.filters.allOption")}
+                    </Text>
+                  </TouchableOpacity>
+                  {SIMULTANEITY_FILTER_KEYS.map((key) => (
+                    <TouchableOpacity
+                      key={key}
+                      style={[
+                        styles.filterChip,
+                        draftFilters.simultaneity === key &&
+                          styles.filterChipActive,
+                      ]}
+                      onPress={() =>
+                        setDraftFilters((current) => ({
+                          ...current,
+                          simultaneity: key,
+                        }))
+                      }
+                      testID={`rooms-admin-filter-simultaneity-${key}`}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipLabel,
+                          draftFilters.simultaneity === key &&
+                            styles.filterChipLabelActive,
+                        ]}
+                      >
+                        {t(`rooms.filters.simultaneity.${key}`)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.filterGroup}>
+                <View style={styles.filterGroupHeaderRow}>
+                  <Text style={styles.filterGroupLabel}>
+                    {t("rooms.filters.availabilityLabel")}
+                  </Text>
+                  {draftFilters.availabilityFromDate != null ? (
+                    <TouchableOpacity
+                      onPress={() =>
+                        setDraftFilters((current) => ({
+                          ...current,
+                          availabilityFromDate: null,
+                          availabilityToDate: null,
+                          availabilityStartMinute: null,
+                          availabilityEndMinute: null,
+                        }))
+                      }
+                      testID="rooms-admin-filter-availability-clear"
+                    >
+                      <Ionicons
+                        name="close-circle"
+                        size={16}
+                        color={colors.textSecondary}
+                      />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+                <View style={styles.calendarDateRow}>
+                  <View style={[styles.formField, styles.calendarDateField]}>
+                    <Text style={styles.formLabel}>
+                      {t("rooms.filters.availabilityFromDate")}
+                    </Text>
+                    <DatePickerField
+                      value={draftFilters.availabilityFromDate ?? ""}
+                      onChange={(value) =>
+                        setDraftFilters((current) => ({
+                          ...current,
+                          availabilityFromDate: value,
+                        }))
+                      }
+                      testID="rooms-admin-filter-availability-from-date"
+                    />
+                  </View>
+                  <View style={[styles.formField, styles.calendarDateField]}>
+                    <Text style={styles.formLabel}>
+                      {t("rooms.filters.availabilityToDate")}
+                    </Text>
+                    <DatePickerField
+                      value={
+                        draftFilters.availabilityToDate ??
+                        draftFilters.availabilityFromDate ??
+                        ""
+                      }
+                      onChange={(value) =>
+                        setDraftFilters((current) => ({
+                          ...current,
+                          availabilityToDate: value,
+                        }))
+                      }
+                      testID="rooms-admin-filter-availability-to-date"
+                    />
+                  </View>
+                </View>
+                <View style={styles.calendarDateRow}>
+                  <View style={[styles.formField, styles.calendarDateField]}>
+                    <Text style={styles.formLabel}>
+                      {t("rooms.filters.availabilityStartTime")}
+                    </Text>
+                    <TimePickerField
+                      value={
+                        draftFilters.availabilityStartMinute != null
+                          ? minuteToTimeLabel(
+                              draftFilters.availabilityStartMinute,
+                            )
+                          : ""
+                      }
+                      onChange={(value) =>
+                        setDraftFilters((current) => ({
+                          ...current,
+                          availabilityStartMinute: timeLabelToMinute(value),
+                        }))
+                      }
+                      placeholder="00:00"
+                      testID="rooms-admin-filter-availability-start-time"
+                    />
+                  </View>
+                  <View style={[styles.formField, styles.calendarDateField]}>
+                    <Text style={styles.formLabel}>
+                      {t("rooms.filters.availabilityEndTime")}
+                    </Text>
+                    <TimePickerField
+                      value={
+                        draftFilters.availabilityEndMinute != null
+                          ? minuteToTimeLabel(
+                              draftFilters.availabilityEndMinute,
+                            )
+                          : ""
+                      }
+                      onChange={(value) =>
+                        setDraftFilters((current) => ({
+                          ...current,
+                          availabilityEndMinute: timeLabelToMinute(value),
+                        }))
+                      }
+                      placeholder="23:59"
+                      testID="rooms-admin-filter-availability-end-time"
+                    />
+                  </View>
+                </View>
+              </View>
+            </ScrollView>
+            {showFilterScrollHint ? (
+              <View
+                style={styles.filterScrollHint}
+                pointerEvents="none"
+                testID="rooms-admin-filter-scroll-hint"
+              >
+                <View style={styles.filterScrollHintFade} />
+                <Ionicons
+                  name="chevron-down"
+                  size={16}
+                  color={colors.accentTeal}
+                />
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.filterActionsRow}>
+            <TouchableOpacity
+              style={styles.filterActionReset}
+              onPress={resetFilters}
+              testID="rooms-admin-filter-reset"
+            >
+              <Text style={styles.filterActionResetLabel}>
+                {t("rooms.filters.reset")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.filterActionClose}
+              onPress={closeFilters}
+              testID="rooms-admin-filter-close"
+            >
+              <Text style={styles.filterActionCloseLabel}>
+                {t("rooms.filters.close")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.filterActionApply}
+              onPress={applyFilters}
+              testID="rooms-admin-filter-apply"
+            >
+              <Ionicons name="checkmark" size={15} color={colors.white} />
+              <Text style={styles.filterActionApplyLabel}>
+                {t("rooms.filters.apply")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : tab === "list" ? (
+        isLoading && rooms.length === 0 ? (
           <View style={styles.loadingWrap}>
             <LoadingBlock label="Chargement du module salles..." />
           </View>
@@ -673,272 +1188,249 @@ export function RoomsAdminScreen() {
                 testID="rooms-admin-error-banner"
               />
             ) : null}
-
-            {tab === "list" ? (
-              <>
-                <View style={styles.summaryStrip} testID="rooms-admin-summary">
-                  <View style={styles.summaryStatChip}>
-                    <Ionicons
-                      name="business-outline"
-                      size={14}
-                      color={colors.accentTeal}
-                    />
-                    <Text style={styles.summaryStatText}>{roomCountLabel}</Text>
-                  </View>
-                </View>
-                <InfiniteScrollList
-                  data={visibleRooms}
-                  keyExtractor={(item) => item.id}
-                  renderItem={({ item, index }) => (
+            <InfiniteScrollList
+              data={rooms}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item, index }) => (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(home)/salles/[roomId]",
+                      params: { roomId: item.id },
+                    })
+                  }
+                  testID={`rooms-admin-room-row-${item.id}`}
+                >
+                  <View
+                    style={[
+                      styles.entityRow,
+                      {
+                        backgroundColor:
+                          index % 2 === 0 ? "#FFF9F3" : "#FFF2E4",
+                      },
+                    ]}
+                  >
                     <View
                       style={[
-                        styles.entityRow,
+                        styles.entityAccent,
                         {
                           backgroundColor:
-                            index % 2 === 0 ? "#FFF9F3" : "#FFF2E4",
+                            item.status === "AVAILABLE"
+                              ? "#D89B5B"
+                              : colors.notification,
                         },
                       ]}
-                      testID={`rooms-admin-room-row-${item.id}`}
-                    >
-                      <View
-                        style={[
-                          styles.entityAccent,
-                          { backgroundColor: "#D89B5B" },
-                        ]}
-                      />
-                      <View style={styles.entityMain}>
-                        <View style={styles.entityTextWrap}>
-                          <Text style={styles.entityTitle}>{item.name}</Text>
-                          <Text style={styles.entityMeta}>
-                            {item.description ?? "Aucune description"}
-                          </Text>
-                          <Text style={styles.entityMeta}>
-                            Capacité {item.capacity ?? "-"} · Créneaux simult.{" "}
-                            {item.maxConcurrentSlots} ·{" "}
-                            {STATUS_LABELS[item.status]}
-                          </Text>
-                        </View>
-                      </View>
-                      <View style={styles.iconActions}>
-                        <TouchableOpacity
-                          style={styles.iconButton}
-                          onPress={() => {
-                            setFormContext({
-                              type: "edit-room",
-                              originTab: "list",
-                              item,
-                            });
-                            setTab("forms");
-                          }}
-                          testID={`rooms-admin-room-edit-${item.id}`}
-                        >
-                          <Ionicons
-                            name="create-outline"
-                            size={18}
-                            color={colors.primary}
-                          />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.iconButton}
-                          onPress={() => setDeleteTarget(item)}
-                          testID={`rooms-admin-room-delete-${item.id}`}
-                        >
-                          <Ionicons
-                            name="trash-outline"
-                            size={18}
-                            color={colors.notification}
-                          />
-                        </TouchableOpacity>
+                      testID={`rooms-admin-room-accent-${item.id}`}
+                    />
+                    <View style={styles.entityMain}>
+                      <View style={styles.entityTextWrap}>
+                        <Text style={styles.entityTitle}>{item.name}</Text>
+                        <Text style={styles.entityMeta}>
+                          {item.description ?? "Aucune description"}
+                        </Text>
+                        <Text style={styles.entityMeta}>
+                          Capacité {item.capacity ?? "-"} · Créneaux simult.{" "}
+                          {item.maxConcurrentSlots} ·{" "}
+                          {STATUS_LABELS[item.status]}
+                        </Text>
                       </View>
                     </View>
-                  )}
-                  onRefresh={handleRefresh}
-                  refreshing={isRefreshing}
-                  onLoadMore={() =>
-                    setVisibleCount((current) => current + PAGE_SIZE)
-                  }
-                  hasMore={visibleRooms.length < filteredRooms.length}
-                  isLoadingMore={false}
-                  testID="rooms-admin-list"
-                  contentContainerStyle={styles.listContent}
-                  ListHeaderComponent={
-                    <View style={styles.listHeader}>
-                      <TextInput
-                        value={query}
-                        onChangeText={setQuery}
-                        placeholder="Rechercher une salle"
-                        placeholderTextColor={colors.textSecondary}
-                        style={styles.searchInput}
-                        testID="rooms-admin-search"
-                      />
-                    </View>
-                  }
-                  emptyComponent={
-                    <View style={styles.emptyListWrap}>
-                      <EmptyState
-                        icon="business-outline"
-                        title={
-                          query.trim() ? "Aucune salle trouvée" : "Aucune salle"
-                        }
-                        message={
-                          query.trim()
-                            ? "Ajustez votre recherche pour retrouver une salle."
-                            : "Ajoutez une première salle depuis le bouton flottant."
-                        }
-                      />
-                    </View>
-                  }
-                />
-              </>
-            ) : null}
-
-            {tab === "calendar" ? (
-              <ScrollView
-                style={styles.calendarScroll}
-                contentContainerStyle={styles.calendarContent}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={isCalendarLoading}
-                    onRefresh={() => {
-                      void loadCalendar();
-                    }}
-                    tintColor={colors.primary}
-                  />
-                }
-                showsVerticalScrollIndicator={false}
-                testID="rooms-admin-calendar-scroll"
-              >
-                {calendarError ? (
-                  <ErrorBanner
-                    message={calendarError}
-                    onDismiss={() => setCalendarError(null)}
-                    testID="rooms-admin-calendar-error"
-                  />
-                ) : null}
-
-                <SectionCard
-                  title="Filtres"
-                  testID="rooms-admin-calendar-filters-card"
-                >
-                  <View style={styles.formField}>
-                    <Text style={styles.formLabel}>Salle</Text>
-                    <InlineSelectDropDown
-                      options={roomSelectOptions}
-                      value={calendarRoomId}
-                      onChange={setCalendarRoomId}
-                      placeholder="Choisir une salle"
-                      testID="rooms-admin-calendar-room"
-                    />
-                  </View>
-                  <View style={styles.calendarDateRow}>
-                    <View style={[styles.formField, styles.calendarDateField]}>
-                      <Text style={styles.formLabel}>Du</Text>
-                      <DatePickerField
-                        value={calendarFromDate}
-                        onChange={setCalendarFromDate}
-                        testID="rooms-admin-calendar-from"
-                      />
-                    </View>
-                    <View style={[styles.formField, styles.calendarDateField]}>
-                      <Text style={styles.formLabel}>Au</Text>
-                      <DatePickerField
-                        value={calendarToDate}
-                        onChange={setCalendarToDate}
-                        testID="rooms-admin-calendar-to"
-                      />
+                    <View style={styles.iconActions}>
+                      <TouchableOpacity
+                        style={styles.iconButton}
+                        onPress={() => setMenuTarget(item)}
+                        testID={`rooms-admin-room-menu-${item.id}`}
+                      >
+                        <Ionicons
+                          name="ellipsis-vertical"
+                          size={18}
+                          color={colors.textSecondary}
+                        />
+                      </TouchableOpacity>
                     </View>
                   </View>
-                </SectionCard>
-
-                <SectionCard
-                  title="Occupations"
-                  subtitle={`${calendarEntries.length} créneau(x)`}
-                  testID="rooms-admin-calendar-card"
-                >
-                  {isCalendarLoading ? (
-                    <LoadingBlock label="Chargement du calendrier..." />
-                  ) : calendarEntries.length === 0 ? (
-                    <EmptyState
-                      icon="calendar-outline"
-                      title="Aucune occupation"
-                      message="Aucun créneau n'est planifié pour cette salle sur la période choisie."
-                    />
-                  ) : (
-                    <View style={styles.listStack}>
-                      {calendarEntries.map((entry) => (
-                        <View
-                          key={entry.id}
-                          style={styles.calendarEntryRow}
-                          testID={`rooms-admin-calendar-entry-${entry.id}`}
-                        >
-                          <Text style={styles.calendarEntryDate}>
-                            {entry.occurrenceDate}
-                          </Text>
-                          <Text style={styles.calendarEntryTime}>
-                            {minuteToTimeLabel(entry.startMinute)} -{" "}
-                            {minuteToTimeLabel(entry.endMinute)}
-                          </Text>
-                          <Text style={styles.calendarEntryMeta}>
-                            {entry.className} · {entry.subjectName} ·{" "}
-                            {entry.teacherName}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                </SectionCard>
-              </ScrollView>
-            ) : null}
-
-            {tab === "help" ? (
-              <ScrollView
-                style={styles.helpScroll}
-                contentContainerStyle={styles.helpContent}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={isRefreshing}
-                    onRefresh={() => {
-                      void handleRefresh();
-                    }}
+                </TouchableOpacity>
+              )}
+              onRefresh={handleListRefresh}
+              refreshing={isRefreshing}
+              onLoadMore={handleLoadMoreRooms}
+              hasMore={
+                listMeta
+                  ? listMeta.page <
+                    Math.max(1, Math.ceil(listMeta.total / listMeta.limit))
+                  : false
+              }
+              isLoadingMore={isLoadingMore}
+              testID="rooms-admin-list"
+              contentContainerStyle={styles.listContent}
+              emptyComponent={
+                <View style={styles.emptyListWrap}>
+                  <EmptyState
+                    icon="business-outline"
+                    title={t("rooms.empty.title")}
+                    message={
+                      appliedSearch || hasActiveRoomFilters(appliedFilters)
+                        ? t("rooms.empty.messageSearch")
+                        : t("rooms.empty.messageDefault")
+                    }
                   />
-                }
-                showsVerticalScrollIndicator={false}
-                testID="rooms-admin-help-scroll"
-              >
-                <SectionCard
-                  title="Parcours recommandé"
-                  testID="rooms-admin-help-card"
-                >
-                  <Text style={styles.helpLine}>
-                    1. Créez les salles disponibles dans l'établissement.
-                  </Text>
-                  <Text style={styles.helpLine}>
-                    2. Définissez leur capacité et le nombre de créneaux
-                    simultanés autorisés.
-                  </Text>
-                  <Text style={styles.helpLine}>
-                    3. Consultez le calendrier pour vérifier l'occupation d'une
-                    salle sur une période donnée.
-                  </Text>
-                </SectionCard>
-                <SectionCard title="Rappels métier">
-                  <Text style={styles.helpLine}>
-                    Une salle en statut "Indisponible" ou "Maintenance" reste
-                    visible mais ne doit plus être proposée pour de nouveaux
-                    créneaux.
-                  </Text>
-                  <Text style={styles.helpLine}>
-                    Le nombre de créneaux simultanés permet de partager une
-                    salle entre plusieurs classes (ex. gymnase).
-                  </Text>
-                </SectionCard>
-              </ScrollView>
-            ) : null}
+                </View>
+              }
+            />
           </View>
         )
       ) : null}
 
-      {tab === "list" ? (
+      {/* ── Tabs calendrier / aide ──────────────────────────────────────────── */}
+      {tab === "calendar" || tab === "help" ? (
+        <View style={styles.content}>
+          {tab === "calendar" ? (
+            <ScrollView
+              style={styles.calendarScroll}
+              contentContainerStyle={styles.calendarContent}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isCalendarLoading}
+                  onRefresh={() => {
+                    void loadCalendar();
+                  }}
+                  tintColor={colors.primary}
+                />
+              }
+              showsVerticalScrollIndicator={false}
+              testID="rooms-admin-calendar-scroll"
+            >
+              {calendarError ? (
+                <ErrorBanner
+                  message={calendarError}
+                  onDismiss={() => setCalendarError(null)}
+                  testID="rooms-admin-calendar-error"
+                />
+              ) : null}
+
+              <SectionCard
+                title="Filtres"
+                testID="rooms-admin-calendar-filters-card"
+              >
+                <View style={styles.formField}>
+                  <Text style={styles.formLabel}>Salle</Text>
+                  <InlineSelectDropDown
+                    options={roomSelectOptions}
+                    value={calendarRoomId}
+                    onChange={setCalendarRoomId}
+                    placeholder="Choisir une salle"
+                    testID="rooms-admin-calendar-room"
+                  />
+                </View>
+                <View style={styles.calendarDateRow}>
+                  <View style={[styles.formField, styles.calendarDateField]}>
+                    <Text style={styles.formLabel}>Du</Text>
+                    <DatePickerField
+                      value={calendarFromDate}
+                      onChange={setCalendarFromDate}
+                      testID="rooms-admin-calendar-from"
+                    />
+                  </View>
+                  <View style={[styles.formField, styles.calendarDateField]}>
+                    <Text style={styles.formLabel}>Au</Text>
+                    <DatePickerField
+                      value={calendarToDate}
+                      onChange={setCalendarToDate}
+                      testID="rooms-admin-calendar-to"
+                    />
+                  </View>
+                </View>
+              </SectionCard>
+
+              <SectionCard
+                title="Occupations"
+                subtitle={`${calendarEntries.length} créneau(x)`}
+                testID="rooms-admin-calendar-card"
+              >
+                {isCalendarLoading ? (
+                  <LoadingBlock label="Chargement du calendrier..." />
+                ) : calendarEntries.length === 0 ? (
+                  <EmptyState
+                    icon="calendar-outline"
+                    title="Aucune occupation"
+                    message="Aucun créneau n'est planifié pour cette salle sur la période choisie."
+                  />
+                ) : (
+                  <View style={styles.listStack}>
+                    {calendarEntries.map((entry) => (
+                      <View
+                        key={entry.id}
+                        style={styles.calendarEntryRow}
+                        testID={`rooms-admin-calendar-entry-${entry.id}`}
+                      >
+                        <Text style={styles.calendarEntryDate}>
+                          {entry.occurrenceDate}
+                        </Text>
+                        <Text style={styles.calendarEntryTime}>
+                          {minuteToTimeLabel(entry.startMinute)} -{" "}
+                          {minuteToTimeLabel(entry.endMinute)}
+                        </Text>
+                        <Text style={styles.calendarEntryMeta}>
+                          {entry.className} · {entry.subjectName} ·{" "}
+                          {entry.teacherName}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </SectionCard>
+            </ScrollView>
+          ) : null}
+
+          {tab === "help" ? (
+            <ScrollView
+              style={styles.helpScroll}
+              contentContainerStyle={styles.helpContent}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isRefreshing}
+                  onRefresh={() => {
+                    void handleListRefresh();
+                  }}
+                />
+              }
+              showsVerticalScrollIndicator={false}
+              testID="rooms-admin-help-scroll"
+            >
+              <SectionCard
+                title="Parcours recommandé"
+                testID="rooms-admin-help-card"
+              >
+                <Text style={styles.helpLine}>
+                  1. Créez les salles disponibles dans l'établissement.
+                </Text>
+                <Text style={styles.helpLine}>
+                  2. Définissez leur capacité et le nombre de créneaux
+                  simultanés autorisés.
+                </Text>
+                <Text style={styles.helpLine}>
+                  3. Consultez le calendrier pour vérifier l'occupation d'une
+                  salle sur une période donnée.
+                </Text>
+              </SectionCard>
+              <SectionCard title="Rappels métier">
+                <Text style={styles.helpLine}>
+                  Une salle en statut "Indisponible" ou "Maintenance" reste
+                  visible mais ne doit plus être proposée pour de nouveaux
+                  créneaux.
+                </Text>
+                <Text style={styles.helpLine}>
+                  Le nombre de créneaux simultanés permet de partager une salle
+                  entre plusieurs classes (ex. gymnase).
+                </Text>
+              </SectionCard>
+            </ScrollView>
+          ) : null}
+        </View>
+      ) : null}
+
+      {tab === "list" && !filtersOpen ? (
         <TouchableOpacity
           style={styles.fab}
           onPress={openFab}
@@ -947,6 +1439,68 @@ export function RoomsAdminScreen() {
           <Ionicons name="add" size={26} color={colors.white} />
         </TouchableOpacity>
       ) : null}
+
+      <Modal
+        transparent
+        visible={menuTarget != null}
+        animationType="fade"
+        onRequestClose={() => setMenuTarget(null)}
+      >
+        <TouchableWithoutFeedback onPress={() => setMenuTarget(null)}>
+          <View style={styles.rowMenuBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={styles.rowMenuPanel}>
+                <Text style={styles.rowMenuTitle}>{menuTarget?.name}</Text>
+                <TouchableOpacity
+                  style={styles.rowMenuItem}
+                  onPress={() => {
+                    if (!menuTarget) return;
+                    setFormContext({
+                      type: "edit-room",
+                      originTab: "list",
+                      item: menuTarget,
+                    });
+                    setTab("forms");
+                    setMenuTarget(null);
+                  }}
+                  testID={
+                    menuTarget
+                      ? `rooms-admin-room-menu-edit-${menuTarget.id}`
+                      : undefined
+                  }
+                >
+                  <Ionicons
+                    name="create-outline"
+                    size={18}
+                    color={colors.primary}
+                  />
+                  <Text style={styles.rowMenuItemLabel}>Modifier</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.rowMenuItem}
+                  onPress={() => {
+                    if (!menuTarget) return;
+                    setDeleteTarget(menuTarget);
+                    setMenuTarget(null);
+                  }}
+                  testID={
+                    menuTarget
+                      ? `rooms-admin-room-menu-delete-${menuTarget.id}`
+                      : undefined
+                  }
+                >
+                  <Ionicons
+                    name="trash-outline"
+                    size={18}
+                    color={colors.notification}
+                  />
+                  <Text style={styles.rowMenuItemLabelDanger}>Supprimer</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
       <ConfirmDialog
         visible={deleteTarget != null}
@@ -994,45 +1548,210 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
   },
-  summaryStrip: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  summaryStatChip: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#EAF7F4",
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  summaryStatText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.accentTeal,
-  },
   listContent: {
     paddingBottom: 108,
     gap: 8,
   },
-  listHeader: {
-    paddingTop: 2,
-    paddingBottom: 4,
-  },
-  searchInput: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    color: colors.textPrimary,
-    fontSize: 14,
-  },
   emptyListWrap: {
     paddingTop: 36,
+  },
+  // ── Recherche + filtres (pattern improve-mobile-search) ────────────────
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  searchBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.textPrimary,
+    padding: 0,
+  },
+  filterToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}55`,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+  },
+  filterToggleActive: {
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.accentTeal,
+  },
+  filterToggleBadgeAnchor: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+  },
+  filterPanel: {
+    flex: 1,
+    marginHorizontal: 16,
+    marginTop: 10,
+    padding: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}33`,
+    backgroundColor: colors.surface,
+    gap: 14,
+  },
+  filterScrollWrapper: {
+    flex: 1,
+    position: "relative",
+  },
+  filterScrollArea: {
+    flex: 1,
+  },
+  filterScrollContent: {
+    gap: 14,
+    paddingBottom: 12,
+  },
+  filterScrollHint: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterScrollHintFade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: colors.surface,
+    opacity: 0.85,
+  },
+  filterPanelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  filterPanelHeaderIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: `${colors.accentTeal}1F`,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterPanelHeaderTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.accentTealDark,
+  },
+  filterGroup: {
+    gap: 8,
+  },
+  filterGroupHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  filterGroupLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  filterChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  filterChipActive: {
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.accentTeal,
+  },
+  filterChipLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
+  filterChipLabelActive: {
+    color: colors.white,
+  },
+  filterActionsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 2,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  filterActionReset: {
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.warmSurface,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 11,
+  },
+  filterActionResetLabel: {
+    color: colors.warmAccent,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  filterActionClose: {
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 11,
+  },
+  filterActionCloseLabel: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  filterActionApply: {
+    flex: 1.3,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+    paddingVertical: 11,
+  },
+  filterActionApplyLabel: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: "700",
   },
   entityRow: {
     position: "relative",
@@ -1085,6 +1804,45 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFFE0",
     alignItems: "center",
     justifyContent: "center",
+  },
+  rowMenuBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    justifyContent: "flex-end",
+  },
+  rowMenuPanel: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingTop: 10,
+    paddingBottom: 24,
+  },
+  rowMenuTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    marginBottom: 4,
+  },
+  rowMenuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  rowMenuItemLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+  rowMenuItemLabelDanger: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.notification,
   },
   calendarScroll: {
     flex: 1,
