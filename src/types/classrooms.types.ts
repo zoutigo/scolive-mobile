@@ -22,4 +22,22 @@ export type ClassroomAdminRow = {
     lastName: string;
     email: string | null;
   } | null;
+  _count?: { enrollments: number };
+};
+
+export type UpdateClassroomPayload = Partial<CreateClassroomPayload>;
+
+export type CreateEnrollmentPayload = {
+  classId: string;
+  status?: "ACTIVE" | "TRANSFERRED" | "WITHDRAWN" | "GRADUATED";
+};
+
+export type EnrollmentRow = {
+  id: string;
+  schoolYearId: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  schoolYear: { id: string; label: string };
+  class: { id: string; name: string };
 };

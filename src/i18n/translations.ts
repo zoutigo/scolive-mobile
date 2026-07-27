@@ -2422,6 +2422,30 @@ export const translations: Record<Locale, Record<string, string>> = {
     "classesAdmin.form.successMessage": "La classe a été créée avec succès.",
     "classesAdmin.form.errorTitle": "Erreur",
     "classesAdmin.detail.fabViewStudents": "Voir les élèves",
+    "classesAdmin.referent.headerTitle": "Enseignant référent",
+    "classesAdmin.referent.heroTitle": "Définir l'enseignant référent",
+    "classesAdmin.referent.submit": "Enregistrer",
+    "classesAdmin.referent.successTitle": "Enseignant référent défini",
+    "classesAdmin.referent.successMessage":
+      "L'enseignant référent de la classe a été mis à jour.",
+    "classesAdmin.addStudent.headerTitle": "Ajouter un élève",
+    "classesAdmin.addStudent.searchPlaceholder":
+      "Rechercher un élève par nom...",
+    "classesAdmin.addStudent.loading": "Chargement des élèves…",
+    "classesAdmin.addStudent.empty.title": "Aucun élève",
+    "classesAdmin.addStudent.empty.message":
+      "Aucun élève ne correspond à votre recherche.",
+    "classesAdmin.addStudent.successTitle": "Élève ajouté",
+    "classesAdmin.addStudent.successMessageSuffix":
+      "a été ajouté(e) à la classe.",
+    "classesAdmin.students.headerTitle": "Élèves",
+    "classesAdmin.students.fabAdd": "Ajouter un élève",
+    "classesAdmin.students.fabReferent": "Enseignant référent",
+    "classesAdmin.students.loading": "Chargement…",
+    "classesAdmin.students.studentsSuffix": "élèves",
+    "classesAdmin.students.empty.title": "Aucun élève",
+    "classesAdmin.students.empty.message":
+      "Aucun élève n'est encore inscrit dans cette classe.",
     "schoolsAdmin.access.deniedTitle": "Accès non autorisé",
     "schoolsAdmin.access.deniedMessage":
       "Ce module est réservé aux administrateurs de la plateforme.",
@@ -5090,6 +5114,29 @@ export const translations: Record<Locale, Record<string, string>> = {
     "classesAdmin.form.successMessage": "The class was created successfully.",
     "classesAdmin.form.errorTitle": "Error",
     "classesAdmin.detail.fabViewStudents": "View students",
+    "classesAdmin.referent.headerTitle": "Referent teacher",
+    "classesAdmin.referent.heroTitle": "Set the referent teacher",
+    "classesAdmin.referent.submit": "Save",
+    "classesAdmin.referent.successTitle": "Referent teacher set",
+    "classesAdmin.referent.successMessage":
+      "The class referent teacher has been updated.",
+    "classesAdmin.addStudent.headerTitle": "Add a student",
+    "classesAdmin.addStudent.searchPlaceholder": "Search a student by name...",
+    "classesAdmin.addStudent.loading": "Loading students…",
+    "classesAdmin.addStudent.empty.title": "No students",
+    "classesAdmin.addStudent.empty.message":
+      "No student matches your search.",
+    "classesAdmin.addStudent.successTitle": "Student added",
+    "classesAdmin.addStudent.successMessageSuffix":
+      "was added to the class.",
+    "classesAdmin.students.headerTitle": "Students",
+    "classesAdmin.students.fabAdd": "Add a student",
+    "classesAdmin.students.fabReferent": "Referent teacher",
+    "classesAdmin.students.loading": "Loading…",
+    "classesAdmin.students.studentsSuffix": "students",
+    "classesAdmin.students.empty.title": "No students",
+    "classesAdmin.students.empty.message":
+      "No student is enrolled in this class yet.",
     "schoolsAdmin.access.deniedTitle": "Access denied",
     "schoolsAdmin.access.deniedMessage":
       "This module is restricted to platform administrators.",
