@@ -1,4 +1,5 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import {
   act,
   fireEvent,
@@ -11,6 +12,7 @@ import {
   roomFormSchema,
   RoomsAdminScreen,
 } from "../../src/components/rooms/RoomsAdminScreen";
+import { colors } from "../../src/theme";
 import type { AuthUser } from "../../src/types/auth.types";
 import type { RoomCalendarEntry, RoomRow } from "../../src/types/room.types";
 
@@ -19,11 +21,13 @@ jest.mock("../../src/api/rooms.api");
 
 const mockBack = jest.fn();
 const mockNavigate = jest.fn();
+const mockPush = jest.fn();
 const mockCanGoBack = jest.fn().mockReturnValue(true);
 jest.mock("expo-router", () => ({
   useRouter: () => ({
     back: mockBack,
     navigate: mockNavigate,
+    push: mockPush,
     canGoBack: mockCanGoBack,
   }),
 }));
@@ -107,7 +111,15 @@ beforeEach(() => {
     user: makeSchoolAdminUser(),
   };
 
-  mockRoomsApi.listRooms.mockImplementation(async () => roomsState);
+  mockRoomsApi.listRooms.mockImplementation(async () => ({
+    items: roomsState,
+    page: 1,
+    limit: 20,
+    total: roomsState.length,
+  }));
+  mockRoomsApi.getRoom.mockImplementation(
+    async (_slug, roomId) => roomsState.find((entry) => entry.id === roomId)!,
+  );
   mockRoomsApi.getRoomCalendar.mockImplementation(async () => calendarState);
   mockRoomsApi.createRoom.mockImplementation(async (_slug, payload) => {
     const created: RoomRow = {
@@ -204,11 +216,12 @@ describe("RoomsAdminScreen — chargement et liste", () => {
     render(<RoomsAdminScreen />);
 
     expect(await screen.findByTestId("rooms-admin-header")).toBeTruthy();
-    expect(screen.getByText("2 salles")).toBeTruthy();
     expect(
       await screen.findByTestId("rooms-admin-room-row-room-1"),
     ).toBeTruthy();
     expect(screen.getByTestId("rooms-admin-room-row-room-2")).toBeTruthy();
+    expect(screen.getByTestId("rooms-admin-filter-count-badge")).toBeTruthy();
+    expect(screen.getByText("2")).toBeTruthy();
   });
 
   it("affiche un banner d'erreur si le chargement initial échoue", async () => {
@@ -443,11 +456,33 @@ describe("RoomsAdminScreen — tab forms / création salle", () => {
 // Tab forms — édition
 // ---------------------------------------------------------------------------
 
-describe("RoomsAdminScreen — édition d'une salle", () => {
-  it("bouton édition → tab forms pré-rempli avec le nom existant", async () => {
+async function openRoomMenu(roomId: string) {
+  fireEvent.press(await screen.findByTestId(`rooms-admin-room-menu-${roomId}`));
+}
+
+describe("RoomsAdminScreen — menu contextuel (trois points) d'une salle", () => {
+  it("ouvre un menu avec Modifier et Supprimer au clic sur les trois points", async () => {
     render(<RoomsAdminScreen />);
 
-    fireEvent.press(await screen.findByTestId("rooms-admin-room-edit-room-1"));
+    await openRoomMenu("room-1");
+
+    expect(
+      await screen.findByTestId("rooms-admin-room-menu-edit-room-1"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("rooms-admin-room-menu-delete-room-1"),
+    ).toBeTruthy();
+  });
+});
+
+describe("RoomsAdminScreen — édition d'une salle", () => {
+  it("menu → Modifier → tab forms pré-rempli avec le nom existant", async () => {
+    render(<RoomsAdminScreen />);
+
+    await openRoomMenu("room-1");
+    fireEvent.press(
+      await screen.findByTestId("rooms-admin-room-menu-edit-room-1"),
+    );
 
     expect(await screen.findByTestId("rooms-admin-forms-tab")).toBeTruthy();
     expect(screen.getByText("Modifier la salle")).toBeTruthy();
@@ -457,7 +492,10 @@ describe("RoomsAdminScreen — édition d'une salle", () => {
   it("modifie une salle et affiche un toast succès", async () => {
     render(<RoomsAdminScreen />);
 
-    fireEvent.press(await screen.findByTestId("rooms-admin-room-edit-room-1"));
+    await openRoomMenu("room-1");
+    fireEvent.press(
+      await screen.findByTestId("rooms-admin-room-menu-edit-room-1"),
+    );
     await screen.findByTestId("rooms-admin-form-content");
 
     fireEvent.changeText(
@@ -481,7 +519,10 @@ describe("RoomsAdminScreen — édition d'une salle", () => {
   it("annuler depuis édition → retour au tab liste sans appel API", async () => {
     render(<RoomsAdminScreen />);
 
-    fireEvent.press(await screen.findByTestId("rooms-admin-room-edit-room-1"));
+    await openRoomMenu("room-1");
+    fireEvent.press(
+      await screen.findByTestId("rooms-admin-room-menu-edit-room-1"),
+    );
     await screen.findByTestId("rooms-admin-form-content");
 
     fireEvent.press(screen.getByTestId("rooms-admin-form-cancel"));
@@ -501,8 +542,9 @@ describe("RoomsAdminScreen — suppression d'une salle", () => {
   it("supprime une salle et affiche un toast succès", async () => {
     render(<RoomsAdminScreen />);
 
+    await openRoomMenu("room-1");
     fireEvent.press(
-      await screen.findByTestId("rooms-admin-room-delete-room-1"),
+      await screen.findByTestId("rooms-admin-room-menu-delete-room-1"),
     );
     fireEvent.press(await screen.findByTestId("confirm-dialog-confirm"));
 
@@ -515,5 +557,259 @@ describe("RoomsAdminScreen — suppression d'une salle", () => {
     expect(mockShowSuccess).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Salle supprimée" }),
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Recherche, filtres, pagination, navigation (pattern improve-mobile-search)
+// ---------------------------------------------------------------------------
+
+describe("RoomsAdminScreen — recherche live", () => {
+  it("recherche live : relance listRooms avec le terme après le debounce", async () => {
+    render(<RoomsAdminScreen />);
+    await screen.findByTestId("rooms-admin-room-row-room-1");
+    mockRoomsApi.listRooms.mockClear();
+
+    fireEvent.changeText(screen.getByTestId("rooms-admin-search"), "gym");
+    await new Promise((resolve) => setTimeout(resolve, 650));
+
+    await waitFor(() => {
+      expect(mockRoomsApi.listRooms).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({ search: "gym" }),
+      );
+    });
+  });
+
+  it("bouton clear vide la recherche et relance sans terme", async () => {
+    render(<RoomsAdminScreen />);
+    await screen.findByTestId("rooms-admin-room-row-room-1");
+
+    fireEvent.changeText(screen.getByTestId("rooms-admin-search"), "gym");
+    await new Promise((resolve) => setTimeout(resolve, 650));
+    await waitFor(() =>
+      expect(mockRoomsApi.listRooms).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({ search: "gym" }),
+      ),
+    );
+
+    mockRoomsApi.listRooms.mockClear();
+    fireEvent.press(screen.getByTestId("rooms-admin-search-clear"));
+    await new Promise((resolve) => setTimeout(resolve, 650));
+
+    await waitFor(() => {
+      expect(mockRoomsApi.listRooms).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({ search: undefined }),
+      );
+    });
+  });
+});
+
+describe("RoomsAdminScreen — panneau de filtres", () => {
+  it("le bouton filtre devient actif (teal plein) seulement après Apply", async () => {
+    render(<RoomsAdminScreen />);
+    await screen.findByTestId("rooms-admin-room-row-room-1");
+
+    const toggle = screen.getByTestId("rooms-admin-filter-toggle");
+    expect(StyleSheet.flatten(toggle.props.style).backgroundColor).not.toBe(
+      colors.accentTeal,
+    );
+
+    fireEvent.press(toggle);
+    fireEvent.press(
+      await screen.findByTestId("rooms-admin-filter-status-MAINTENANCE"),
+    );
+    expect(StyleSheet.flatten(toggle.props.style).backgroundColor).not.toBe(
+      colors.accentTeal,
+    );
+
+    fireEvent.press(screen.getByTestId("rooms-admin-filter-apply"));
+
+    await waitFor(() => {
+      expect(
+        StyleSheet.flatten(
+          screen.getByTestId("rooms-admin-filter-toggle").props.style,
+        ).backgroundColor,
+      ).toBe(colors.accentTeal);
+    });
+  });
+
+  it("Apply ferme le panneau et relance la liste avec le filtre de statut appliqué, page 1", async () => {
+    render(<RoomsAdminScreen />);
+    await screen.findByTestId("rooms-admin-room-row-room-1");
+    mockRoomsApi.listRooms.mockClear();
+
+    fireEvent.press(screen.getByTestId("rooms-admin-filter-toggle"));
+    fireEvent.press(
+      await screen.findByTestId("rooms-admin-filter-status-MAINTENANCE"),
+    );
+    fireEvent.press(screen.getByTestId("rooms-admin-filter-apply"));
+
+    expect(screen.queryByTestId("rooms-admin-filter-panel")).toBeNull();
+    await waitFor(() => {
+      expect(mockRoomsApi.listRooms).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({ status: "MAINTENANCE", page: 1 }),
+      );
+    });
+  });
+
+  it("Reset vide le brouillon et le filtre appliqué, le panneau reste ouvert", async () => {
+    render(<RoomsAdminScreen />);
+    await screen.findByTestId("rooms-admin-room-row-room-1");
+
+    fireEvent.press(screen.getByTestId("rooms-admin-filter-toggle"));
+    fireEvent.press(
+      await screen.findByTestId("rooms-admin-filter-status-MAINTENANCE"),
+    );
+    fireEvent.press(screen.getByTestId("rooms-admin-filter-apply"));
+    await waitFor(() =>
+      expect(
+        StyleSheet.flatten(
+          screen.getByTestId("rooms-admin-filter-toggle").props.style,
+        ).backgroundColor,
+      ).toBe(colors.accentTeal),
+    );
+
+    fireEvent.press(screen.getByTestId("rooms-admin-filter-toggle"));
+    fireEvent.press(await screen.findByTestId("rooms-admin-filter-reset"));
+
+    expect(screen.getByTestId("rooms-admin-filter-panel")).toBeTruthy();
+    await waitFor(() => {
+      expect(
+        StyleSheet.flatten(
+          screen.getByTestId("rooms-admin-filter-toggle").props.style,
+        ).backgroundColor,
+      ).not.toBe(colors.accentTeal);
+    });
+  });
+
+  it("Close abandonne le brouillon sans appeler l'API avec le filtre en cours", async () => {
+    render(<RoomsAdminScreen />);
+    await screen.findByTestId("rooms-admin-room-row-room-1");
+    mockRoomsApi.listRooms.mockClear();
+
+    fireEvent.press(screen.getByTestId("rooms-admin-filter-toggle"));
+    fireEvent.press(
+      await screen.findByTestId("rooms-admin-filter-status-MAINTENANCE"),
+    );
+    fireEvent.press(screen.getByTestId("rooms-admin-filter-close"));
+
+    expect(screen.queryByTestId("rooms-admin-filter-panel")).toBeNull();
+    expect(mockRoomsApi.listRooms).not.toHaveBeenCalledWith(
+      "college-vogt",
+      expect.objectContaining({ status: "MAINTENANCE" }),
+    );
+  });
+
+  it("le FAB est masqué pendant que le panneau de filtres est ouvert", async () => {
+    render(<RoomsAdminScreen />);
+    await screen.findByTestId("rooms-admin-fab");
+
+    fireEvent.press(screen.getByTestId("rooms-admin-filter-toggle"));
+    expect(screen.queryByTestId("rooms-admin-fab")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("rooms-admin-filter-close"));
+    expect(await screen.findByTestId("rooms-admin-fab")).toBeTruthy();
+  });
+});
+
+describe("RoomsAdminScreen — pagination serveur", () => {
+  it("charge la page 1 par défaut", async () => {
+    render(<RoomsAdminScreen />);
+    await screen.findByTestId("rooms-admin-room-row-room-1");
+
+    expect(mockRoomsApi.listRooms).toHaveBeenCalledWith(
+      "college-vogt",
+      expect.objectContaining({ page: 1 }),
+    );
+  });
+
+  it("onEndReached charge la page suivante quand hasMore est vrai", async () => {
+    mockRoomsApi.listRooms.mockImplementation(async () => ({
+      items: roomsState,
+      page: 1,
+      limit: 1,
+      total: 5,
+    }));
+
+    render(<RoomsAdminScreen />);
+    await screen.findByTestId("rooms-admin-room-row-room-1");
+    mockRoomsApi.listRooms.mockClear();
+    mockRoomsApi.listRooms.mockImplementation(async () => ({
+      items: [
+        {
+          id: "room-3",
+          schoolId: "school-1",
+          name: "Salle 3",
+          description: null,
+          capacity: null,
+          maxConcurrentSlots: 1,
+          status: "AVAILABLE",
+          createdAt: "2026-01-12T08:00:00.000Z",
+          updatedAt: "2026-01-12T08:00:00.000Z",
+        },
+      ],
+      page: 2,
+      limit: 1,
+      total: 5,
+    }));
+
+    fireEvent(screen.getByTestId("rooms-admin-list"), "onEndReached", {
+      distanceFromEnd: 0,
+    });
+
+    await waitFor(() => {
+      expect(mockRoomsApi.listRooms).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({ page: 2 }),
+      );
+    });
+  });
+
+  it("ne relance pas onLoadMore si hasMore est faux", async () => {
+    render(<RoomsAdminScreen />);
+    await screen.findByTestId("rooms-admin-room-row-room-1");
+    mockRoomsApi.listRooms.mockClear();
+
+    fireEvent(screen.getByTestId("rooms-admin-list"), "onEndReached", {
+      distanceFromEnd: 0,
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(mockRoomsApi.listRooms).not.toHaveBeenCalled();
+  });
+});
+
+describe("RoomsAdminScreen — carte salle : navigation et accent visuel", () => {
+  it("clique sur la carte → navigation vers la page détail de la salle", async () => {
+    render(<RoomsAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("rooms-admin-room-row-room-1"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/salles/[roomId]",
+      params: { roomId: "room-1" },
+    });
+  });
+
+  it("la barre d'accent est rouge pour une salle non fonctionnelle (statut != AVAILABLE)", async () => {
+    render(<RoomsAdminScreen />);
+
+    const accentAvailable = await screen.findByTestId(
+      "rooms-admin-room-accent-room-1",
+    );
+    const accentMaintenance = await screen.findByTestId(
+      "rooms-admin-room-accent-room-2",
+    );
+
+    expect(
+      StyleSheet.flatten(accentAvailable.props.style).backgroundColor,
+    ).not.toBe(colors.notification);
+    expect(
+      StyleSheet.flatten(accentMaintenance.props.style).backgroundColor,
+    ).toBe(colors.notification);
   });
 });

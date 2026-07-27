@@ -4,7 +4,11 @@ import type {
   RoomCalendarEntry,
   RoomPayload,
   RoomRow,
+  RoomsListParams,
+  RoomsListResult,
 } from "../types/room.types";
+
+export const ROOMS_PAGE_SIZE = 20;
 
 function toQuery(params: Record<string, string | number | undefined | null>) {
   const query = new URLSearchParams();
@@ -17,8 +21,29 @@ function toQuery(params: Record<string, string | number | undefined | null>) {
 }
 
 export const roomsApi = {
-  listRooms(schoolSlug: string): Promise<RoomRow[]> {
-    return apiFetch(`/schools/${schoolSlug}/admin/rooms`, {}, true);
+  listRooms(
+    schoolSlug: string,
+    params: RoomsListParams = {},
+  ): Promise<RoomsListResult> {
+    return apiFetch(
+      `/schools/${schoolSlug}/admin/rooms${toQuery({
+        search: params.search?.trim() || undefined,
+        status: params.status,
+        simultaneity: params.simultaneity,
+        availabilityFromDate: params.availabilityFromDate,
+        availabilityToDate: params.availabilityToDate,
+        availabilityStartMinute: params.availabilityStartMinute,
+        availabilityEndMinute: params.availabilityEndMinute,
+        page: params.page ?? 1,
+        limit: params.limit ?? ROOMS_PAGE_SIZE,
+      })}`,
+      {},
+      true,
+    );
+  },
+
+  getRoom(schoolSlug: string, roomId: string): Promise<RoomRow> {
+    return apiFetch(`/schools/${schoolSlug}/admin/rooms/${roomId}`, {}, true);
   },
 
   createRoom(schoolSlug: string, payload: RoomPayload): Promise<RoomRow> {

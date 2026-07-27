@@ -17,6 +17,9 @@ import {
 } from "@testing-library/react-native";
 import { SchoolAdminUsersScreen } from "../../src/components/users/SchoolAdminUsersScreen";
 import { usersApi } from "../../src/api/users.api";
+import { teachersApi } from "../../src/api/teachers.api";
+import { familyApi } from "../../src/api/family.api";
+import { staffFunctionsApi } from "../../src/api/staff-functions.api";
 import { useUsersStore } from "../../src/store/users.store";
 import {
   SAMPLE_USERS,
@@ -30,9 +33,40 @@ import {
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
-jest.mock("../../src/api/users.api");
 jest.mock("../../src/api/users.api", () => ({
-  usersApi: { list: jest.fn(), get: jest.fn(), listSchoolYears: jest.fn() },
+  usersApi: {
+    list: jest.fn(),
+    get: jest.fn(),
+    listSchoolYears: jest.fn(),
+    createStaffMember: jest.fn(),
+  },
+}));
+jest.mock("../../src/api/teachers.api", () => ({
+  teachersApi: {
+    createTeacher: jest.fn(),
+    listClassrooms: jest.fn(),
+  },
+}));
+jest.mock("../../src/api/family.api", () => ({
+  familyApi: {
+    listAdminStudents: jest.fn(),
+    createStudent: jest.fn(),
+    createParent: jest.fn(),
+  },
+}));
+jest.mock("../../src/api/staff-functions.api", () => ({
+  staffFunctionsApi: {
+    listStaffFunctions: jest.fn(),
+  },
+}));
+const mockShowSuccess = jest.fn();
+const mockShowError = jest.fn();
+jest.mock("../../src/store/success-toast.store", () => ({
+  useSuccessToastStore: (selector: (state: unknown) => unknown) =>
+    selector({
+      showSuccess: mockShowSuccess,
+      showError: mockShowError,
+    }),
 }));
 jest.mock("../../src/store/auth.store", () => ({
   useAuthStore: () => ({
@@ -59,6 +93,11 @@ jest.mock("../../src/components/navigation/drawer-context", () => ({
 }));
 
 const mockUsersApi = usersApi as jest.Mocked<typeof usersApi>;
+const mockTeachersApi = teachersApi as jest.Mocked<typeof teachersApi>;
+const mockFamilyApi = familyApi as jest.Mocked<typeof familyApi>;
+const mockStaffFunctionsApi = staffFunctionsApi as jest.Mocked<
+  typeof staffFunctionsApi
+>;
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
@@ -69,6 +108,14 @@ beforeEach(() => {
   // Détail vide par défaut
   mockUsersApi.get.mockResolvedValue(makeSchoolUserDetail(TEACHER_USER));
   mockUsersApi.listSchoolYears.mockResolvedValue([]);
+  mockTeachersApi.listClassrooms.mockResolvedValue([]);
+  mockFamilyApi.listAdminStudents.mockResolvedValue({
+    students: [],
+    total: 0,
+    page: 1,
+    hasMore: false,
+  });
+  mockStaffFunctionsApi.listStaffFunctions.mockResolvedValue([]);
 });
 
 function renderScreen() {
@@ -584,6 +631,239 @@ describe("SchoolAdminUsersScreen — Pagination", () => {
         "college-vogt",
         expect.objectContaining({ page: 1, role: "TEACHER" }),
       );
+    });
+  });
+});
+
+describe("SchoolAdminUsersScreen — Création d'utilisateur (FAB)", () => {
+  beforeEach(() => {
+    mockUsersApi.list.mockResolvedValue(makeUsersPage([]));
+  });
+
+  it("affiche le FAB de création sur la liste", async () => {
+    renderScreen();
+    expect(await screen.findByTestId("users-create-fab")).toBeOnTheScreen();
+  });
+
+  it("ouvre le sélecteur de type au clic sur le FAB, sans SCHOOL_ADMIN", async () => {
+    renderScreen();
+    fireEvent.press(await screen.findByTestId("users-create-fab"));
+
+    expect(
+      await screen.findByTestId("users-create-type-teacher"),
+    ).toBeOnTheScreen();
+    expect(screen.getByTestId("users-create-type-student")).toBeOnTheScreen();
+    expect(screen.getByTestId("users-create-type-parent")).toBeOnTheScreen();
+    expect(
+      screen.getByTestId("users-create-type-school_manager"),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByTestId("users-create-type-supervisor"),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByTestId("users-create-type-school_accountant"),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByTestId("users-create-type-school_staff"),
+    ).toBeOnTheScreen();
+    expect(screen.queryByTestId("users-create-type-school_admin")).toBeNull();
+    // Liste masquée pendant la création.
+    expect(screen.queryByTestId("users-list")).toBeNull();
+  });
+
+  it("crée un enseignant par téléphone puis affiche sa fiche détail", async () => {
+    mockTeachersApi.createTeacher.mockResolvedValueOnce({
+      user: { id: "new-teacher-1" },
+      userExisted: false,
+    });
+    mockUsersApi.get.mockResolvedValueOnce(
+      makeSchoolUserDetail({ ...TEACHER_USER, id: "new-teacher-1" }),
+    );
+
+    renderScreen();
+    fireEvent.press(await screen.findByTestId("users-create-fab"));
+    fireEvent.press(await screen.findByTestId("users-create-type-teacher"));
+    await screen.findByTestId("users-create-teacher-form-content");
+
+    fireEvent.changeText(
+      screen.getByTestId("users-create-teacher-phone"),
+      "699001122",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("users-create-teacher-pin"),
+      "123456",
+    );
+    fireEvent.press(screen.getByTestId("users-create-teacher-submit"));
+
+    await waitFor(() => {
+      expect(mockTeachersApi.createTeacher).toHaveBeenCalledWith(
+        "college-vogt",
+        { phone: "699001122", pin: "123456" },
+      );
+    });
+    expect(mockShowSuccess).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.getByTestId("users-detail-modal")).toBeOnTheScreen();
+    });
+    expect(mockUsersApi.get).toHaveBeenCalledWith(
+      "college-vogt",
+      "new-teacher-1",
+    );
+  });
+
+  it("erreur de création enseignant → showError, formulaire toujours visible", async () => {
+    mockTeachersApi.createTeacher.mockRejectedValueOnce(
+      new Error("Teacher already exists"),
+    );
+
+    renderScreen();
+    fireEvent.press(await screen.findByTestId("users-create-fab"));
+    fireEvent.press(await screen.findByTestId("users-create-type-teacher"));
+    await screen.findByTestId("users-create-teacher-form-content");
+
+    fireEvent.changeText(
+      screen.getByTestId("users-create-teacher-phone"),
+      "699001122",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("users-create-teacher-pin"),
+      "123456",
+    );
+    fireEvent.press(screen.getByTestId("users-create-teacher-submit"));
+
+    await waitFor(() => {
+      expect(mockShowError).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Teacher already exists" }),
+      );
+    });
+    expect(
+      screen.getByTestId("users-create-teacher-form-content"),
+    ).toBeOnTheScreen();
+  });
+
+  it("charge les classes au choix du type Élève et crée l'élève sans compte", async () => {
+    mockTeachersApi.listClassrooms.mockResolvedValueOnce([
+      {
+        id: "class-1",
+        name: "6eC",
+        schoolYear: { id: "sy-1", label: "2025-2026" },
+        academicLevel: { id: "level-1", code: "6E", label: "6ème" },
+      },
+    ]);
+    mockFamilyApi.createStudent.mockResolvedValueOnce({
+      id: "student-new-1",
+    });
+    mockUsersApi.get.mockResolvedValueOnce(
+      makeSchoolUserDetail({ ...TEACHER_USER, id: "student-new-1" }),
+    );
+
+    renderScreen();
+    fireEvent.press(await screen.findByTestId("users-create-fab"));
+    fireEvent.press(await screen.findByTestId("users-create-type-student"));
+    await screen.findByTestId("users-create-student-form-content");
+
+    await waitFor(() => {
+      expect(mockTeachersApi.listClassrooms).toHaveBeenCalledWith(
+        "college-vogt",
+      );
+    });
+
+    fireEvent.changeText(
+      screen.getByTestId("users-create-student-first-name"),
+      "Jean",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("users-create-student-last-name"),
+      "Dupont",
+    );
+    fireEvent.press(screen.getByTestId("users-create-student-level"));
+    fireEvent.press(
+      screen.getByTestId("users-create-student-level-option-level-1"),
+    );
+    fireEvent.press(screen.getByTestId("users-create-student-class"));
+    fireEvent.press(
+      screen.getByTestId("users-create-student-class-option-class-1"),
+    );
+
+    fireEvent.press(screen.getByTestId("users-create-student-submit"));
+
+    await waitFor(() => {
+      expect(mockFamilyApi.createStudent).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({
+          firstName: "Jean",
+          lastName: "Dupont",
+          classId: "class-1",
+        }),
+      );
+    });
+    expect(mockShowSuccess).toHaveBeenCalled();
+  });
+
+  it("charge les fonctions au choix d'un type personnel et crée le membre", async () => {
+    mockStaffFunctionsApi.listStaffFunctions.mockResolvedValueOnce([
+      { id: "fn-1", name: "Économe", description: null },
+    ]);
+    mockUsersApi.createStaffMember.mockResolvedValueOnce({
+      user: { id: "staff-new-1" },
+      userExisted: false,
+      onboardingEmailSent: false,
+      activationRequired: true,
+    });
+    mockUsersApi.get.mockResolvedValueOnce(
+      makeSchoolUserDetail({ ...TEACHER_USER, id: "staff-new-1" }),
+    );
+
+    renderScreen();
+    fireEvent.press(await screen.findByTestId("users-create-fab"));
+    fireEvent.press(
+      await screen.findByTestId("users-create-type-school_accountant"),
+    );
+    await screen.findByTestId("users-create-staff-form-content");
+
+    await waitFor(() => {
+      expect(mockStaffFunctionsApi.listStaffFunctions).toHaveBeenCalledWith(
+        "college-vogt",
+      );
+    });
+
+    fireEvent.changeText(
+      screen.getByTestId("users-create-staff-phone"),
+      "699001122",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("users-create-staff-pin"),
+      "123456",
+    );
+    fireEvent.press(screen.getByTestId("users-create-staff-submit"));
+
+    await waitFor(() => {
+      expect(mockUsersApi.createStaffMember).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({
+          role: "SCHOOL_ACCOUNTANT",
+          phone: "699001122",
+          pin: "123456",
+        }),
+      );
+    });
+    expect(mockShowSuccess).toHaveBeenCalled();
+  });
+
+  it("revient au sélecteur de type puis à la liste via le bouton retour", async () => {
+    renderScreen();
+    fireEvent.press(await screen.findByTestId("users-create-fab"));
+    fireEvent.press(await screen.findByTestId("users-create-type-teacher"));
+    await screen.findByTestId("users-create-teacher-form-content");
+
+    fireEvent.press(screen.getByTestId("users-back"));
+    expect(
+      await screen.findByTestId("users-create-type-teacher"),
+    ).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByTestId("users-back"));
+    await waitFor(() => {
+      expect(screen.getByTestId("users-list")).toBeOnTheScreen();
     });
   });
 });

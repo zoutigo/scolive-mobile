@@ -11,6 +11,29 @@ import type {
   ResetStudentPasswordResponse,
 } from "../types/users.types";
 
+export type CreatableStaffRole =
+  | "SCHOOL_MANAGER"
+  | "SUPERVISOR"
+  | "SCHOOL_ACCOUNTANT"
+  | "SCHOOL_STAFF";
+
+export interface CreateStaffMemberPayload {
+  role: CreatableStaffRole;
+  email?: string;
+  phone?: string;
+  password?: string;
+  pin?: string;
+  functionId?: string;
+}
+
+export interface CreateStaffMemberResponse {
+  user: { id: string };
+  userExisted: boolean;
+  onboardingEmailSent: boolean;
+  activationRequired: boolean;
+  activationCode?: string;
+}
+
 const USERS_PAGE_LIMIT = 20;
 
 function buildUsersQuery(params: {
@@ -110,6 +133,17 @@ export const usersApi = {
     return apiFetch(
       `/schools/${schoolSlug}/students/${studentId}/profile`,
       {},
+      true,
+    );
+  },
+
+  async createStaffMember(
+    schoolSlug: string,
+    payload: CreateStaffMemberPayload,
+  ): Promise<CreateStaffMemberResponse> {
+    return apiFetch(
+      `/schools/${schoolSlug}/admin/staff-members`,
+      { method: "POST", body: JSON.stringify(payload) },
       true,
     );
   },
