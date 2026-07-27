@@ -18,13 +18,34 @@ import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
 import { useAuthStore } from "../../store/auth.store";
 import { useUsersStore } from "../../store/users.store";
-import { usersApi } from "../../api/users.api";
+import { useSuccessToastStore } from "../../store/success-toast.store";
+import { usersApi, type CreatableStaffRole } from "../../api/users.api";
+import { teachersApi } from "../../api/teachers.api";
+import { familyApi } from "../../api/family.api";
+import {
+  staffFunctionsApi,
+  type StaffFunctionOption,
+} from "../../api/staff-functions.api";
+import { extractApiError } from "../../utils/api-error";
+import { normalizePhoneInput } from "../account/account.schemas";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { EmptyState, LoadingBlock } from "../timetable/TimetableCommon";
 import { SelectField } from "../tests-admin/SelectField";
+import { FormHero } from "../forms/FormHero";
+import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { ROLE_COLORS, UserCard } from "./UserCard";
 import { UserDetailModal } from "./UserDetailModal";
+import {
+  TeacherCreateFormContent,
+  StudentCreateFormContent,
+  ParentCreateFormContent,
+  StaffCreateFormContent,
+  type ContactOnlyCreateFormValues,
+  type StudentCreateFormValues,
+  type ParentCreateFormValues,
+  type StaffCreateFormValues,
+} from "./UserCreateForms";
 import type {
   SchoolRole,
   SchoolUser,
@@ -32,8 +53,71 @@ import type {
   SchoolUserRoleFilter,
   SchoolUsersFilters,
   SchoolYearOption,
+  UserItem,
+  StudentOnlyItem,
 } from "../../types/users.types";
+import type { TeacherClassroomOption } from "../../types/teachers.types";
 import { moduleBack } from "../../utils/moduleBack";
+
+type CreatableUserType =
+  | "TEACHER"
+  | "STUDENT"
+  | "PARENT"
+  | "SCHOOL_MANAGER"
+  | "SUPERVISOR"
+  | "SCHOOL_ACCOUNTANT"
+  | "SCHOOL_STAFF";
+
+const CREATABLE_USER_TYPES: Array<{
+  type: CreatableUserType;
+  icon: keyof typeof Ionicons.glyphMap;
+}> = [
+  { type: "TEACHER", icon: "school-outline" },
+  { type: "STUDENT", icon: "person-outline" },
+  { type: "PARENT", icon: "people-outline" },
+  { type: "SCHOOL_MANAGER", icon: "briefcase-outline" },
+  { type: "SUPERVISOR", icon: "eye-outline" },
+  { type: "SCHOOL_ACCOUNTANT", icon: "calculator-outline" },
+  { type: "SCHOOL_STAFF", icon: "id-card-outline" },
+];
+
+function buildMinimalUserItem(id: string, role: SchoolRole): UserItem {
+  return {
+    type: "user",
+    id,
+    studentId: null,
+    hasAccount: true,
+    firstName: "",
+    lastName: "",
+    email: null,
+    phone: null,
+    gender: null,
+    avatarUrl: null,
+    roles: [role],
+    activationStatus: "PENDING",
+    profileCompleted: false,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function buildMinimalStudentOnlyItem(studentId: string): StudentOnlyItem {
+  return {
+    type: "student-only",
+    id: studentId,
+    studentId,
+    hasAccount: false,
+    firstName: "",
+    lastName: "",
+    email: null,
+    phone: null,
+    gender: null,
+    avatarUrl: null,
+    roles: ["STUDENT"],
+    activationStatus: null,
+    profileCompleted: false,
+    createdAt: new Date().toISOString(),
+  };
+}
 
 const SEARCH_DEBOUNCE_MS = 400;
 
@@ -134,6 +218,177 @@ export function SchoolAdminUsersScreen() {
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInput = filters.search;
+
+  const showSuccess = useSuccessToastStore((s) => s.showSuccess);
+  const showCreateError = useSuccessToastStore((s) => s.showError);
+
+  const [screenTab, setScreenTab] = useState<"list" | "forms">("list");
+  const [createType, setCreateType] = useState<CreatableUserType | null>(null);
+  const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
+  const [classroomOptions, setClassroomOptions] = useState<
+    TeacherClassroomOption[]
+  >([]);
+  const [staffFunctionOptions, setStaffFunctionOptions] = useState<
+    StaffFunctionOption[]
+  >([]);
+
+  function openCreateForms() {
+    setCreateType(null);
+    setScreenTab("forms");
+  }
+
+  function exitCreateForms() {
+    setCreateType(null);
+    setScreenTab("list");
+  }
+
+  function selectCreateType(type: CreatableUserType) {
+    setCreateType(type);
+    if (!schoolSlug) return;
+    if (type === "STUDENT" && classroomOptions.length === 0) {
+      teachersApi
+        .listClassrooms(schoolSlug)
+        .then(setClassroomOptions)
+        .catch(() => setClassroomOptions([]));
+    }
+    if (
+      (type === "SCHOOL_MANAGER" ||
+        type === "SUPERVISOR" ||
+        type === "SCHOOL_ACCOUNTANT" ||
+        type === "SCHOOL_STAFF") &&
+      staffFunctionOptions.length === 0
+    ) {
+      staffFunctionsApi
+        .listStaffFunctions(schoolSlug)
+        .then(setStaffFunctionOptions)
+        .catch(() => setStaffFunctionOptions([]));
+    }
+  }
+
+  function afterCreateSuccess(minimalUser: SchoolUser) {
+    showSuccess({
+      title: t("users.create.success.title"),
+      message: t("users.create.success.message"),
+    });
+    exitCreateForms();
+    setSelectedUser(minimalUser);
+    void loadFirstPage(true);
+  }
+
+  async function handleCreateTeacher(values: ContactOnlyCreateFormValues) {
+    if (!schoolSlug) return;
+    setIsSubmittingCreate(true);
+    try {
+      const payload =
+        values.mode === "phone"
+          ? {
+              phone: normalizePhoneInput(values.phone ?? ""),
+              pin: (values.pin ?? "").trim(),
+            }
+          : {
+              email: values.email.trim().toLowerCase(),
+              password: (values.password ?? "").trim(),
+            };
+      const result = (await teachersApi.createTeacher(schoolSlug, payload)) as {
+        user: { id: string };
+      };
+      afterCreateSuccess(buildMinimalUserItem(result.user.id, "TEACHER"));
+    } catch (err) {
+      showCreateError({
+        title: t("users.create.errors.title"),
+        message: extractApiError(err),
+      });
+    } finally {
+      setIsSubmittingCreate(false);
+    }
+  }
+
+  async function handleCreateStudent(values: StudentCreateFormValues) {
+    if (!schoolSlug) return;
+    setIsSubmittingCreate(true);
+    try {
+      const response = await familyApi.createStudent(schoolSlug, {
+        firstName: values.firstName.trim(),
+        lastName: values.lastName.trim(),
+        classId: values.classId,
+        email: values.email.trim() || undefined,
+        password: (values.password ?? "").trim() || undefined,
+      });
+      afterCreateSuccess(
+        response.user
+          ? buildMinimalUserItem(response.user.id, "STUDENT")
+          : buildMinimalStudentOnlyItem(response.id),
+      );
+    } catch (err) {
+      showCreateError({
+        title: t("users.create.errors.title"),
+        message: extractApiError(err),
+      });
+    } finally {
+      setIsSubmittingCreate(false);
+    }
+  }
+
+  async function handleCreateParent(values: ParentCreateFormValues) {
+    if (!schoolSlug) return;
+    setIsSubmittingCreate(true);
+    try {
+      const contact =
+        values.mode === "phone"
+          ? {
+              phone: normalizePhoneInput(values.phone ?? ""),
+              pin: (values.pin ?? "").trim(),
+            }
+          : {
+              email: values.email.trim().toLowerCase(),
+              password: (values.password ?? "").trim(),
+            };
+      const response = await familyApi.createParent(schoolSlug, {
+        studentId: values.studentId,
+        ...contact,
+      });
+      afterCreateSuccess(buildMinimalUserItem(response.parentUserId, "PARENT"));
+    } catch (err) {
+      showCreateError({
+        title: t("users.create.errors.title"),
+        message: extractApiError(err),
+      });
+    } finally {
+      setIsSubmittingCreate(false);
+    }
+  }
+
+  async function handleCreateStaffMember(values: StaffCreateFormValues) {
+    if (!schoolSlug || !createType) return;
+    setIsSubmittingCreate(true);
+    try {
+      const contact =
+        values.mode === "phone"
+          ? {
+              phone: normalizePhoneInput(values.phone ?? ""),
+              pin: (values.pin ?? "").trim(),
+            }
+          : {
+              email: values.email.trim().toLowerCase(),
+              password: (values.password ?? "").trim(),
+            };
+      const result = await usersApi.createStaffMember(schoolSlug, {
+        role: createType as CreatableStaffRole,
+        functionId: values.functionId || undefined,
+        ...contact,
+      });
+      afterCreateSuccess(
+        buildMinimalUserItem(result.user.id, createType as SchoolRole),
+      );
+    } catch (err) {
+      showCreateError({
+        title: t("users.create.errors.title"),
+        message: extractApiError(err),
+      });
+    } finally {
+      setIsSubmittingCreate(false);
+    }
+  }
 
   // ── Load first page ───────────────────────────────────────────────────────────
   // Reads filters from getState() to avoid stale-closure issues with debounced
@@ -364,7 +619,14 @@ export function SchoolAdminUsersScreen() {
         <ModuleHeader
           title={t("users.header.title")}
           subtitle={user?.schoolName}
-          onBack={() => moduleBack(router)}
+          onBack={() => {
+            if (screenTab === "forms") {
+              if (createType) setCreateType(null);
+              else exitCreateForms();
+              return;
+            }
+            moduleBack(router);
+          }}
           testID="users-header"
           backTestID="users-back"
           titleTestID="users-title"
@@ -373,291 +635,395 @@ export function SchoolAdminUsersScreen() {
         />
       </View>
 
-      {/* Search + filter toggle */}
-      <View style={styles.searchRow} testID="users-search-row">
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={16} color={colors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            value={searchInput}
-            onChangeText={handleSearchChange}
-            placeholder={t("users.search.placeholder")}
-            placeholderTextColor={colors.textSecondary}
-            returnKeyType="search"
-            autoCorrect={false}
-            autoCapitalize="none"
-            accessibilityLabel={t("users.search.accessibilityLabel")}
-            testID="users-search-input"
-          />
-          {searchInput.length > 0 ? (
-            <TouchableOpacity
-              onPress={handleClearSearch}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              testID="users-search-clear"
-            >
-              <Ionicons
-                name="close-circle"
-                size={16}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-        <TouchableOpacity
-          style={[
-            styles.filterToggle,
-            hasActiveFilters(filters) && styles.filterToggleActive,
-          ]}
-          onPress={toggleFilters}
-          testID="users-filter-toggle"
-          accessibilityLabel={t("users.filters.toggleAccessibilityLabel")}
-        >
-          <Ionicons
-            name={hasActiveFilters(filters) ? "filter" : "filter-outline"}
-            size={18}
-            color={hasActiveFilters(filters) ? colors.white : colors.accentTeal}
-          />
-          {total > 0 ? (
-            <View style={styles.filterToggleBadge} testID="users-total">
-              <Text style={styles.filterToggleBadgeLabel}>
-                {total > 99 ? "99+" : total}
+      {screenTab === "forms" ? (
+        <View style={styles.formsTabContent} testID="users-create-forms-tab">
+          {!createType ? (
+            <View style={styles.createTypePanel}>
+              <Text style={styles.createTypeTitle}>
+                {t("users.create.chooseType.title")}
               </Text>
+              <Text style={styles.createTypeSubtitle}>
+                {t("users.create.chooseType.subtitle")}
+              </Text>
+              <View style={styles.createTypeChipsRow}>
+                {CREATABLE_USER_TYPES.map(({ type, icon }) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={styles.createTypeChip}
+                    onPress={() => selectCreateType(type)}
+                    testID={`users-create-type-${type.toLowerCase()}`}
+                  >
+                    <Ionicons name={icon} size={20} color={colors.accentTeal} />
+                    <Text style={styles.createTypeChipLabel}>
+                      {t(`users.role.${type}`)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          ) : null}
-        </TouchableOpacity>
-      </View>
-
-      {total > 0 && !filtersOpen ? (
-        <View style={styles.totalRow}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.legendContent}
-            testID="users-role-legend"
-          >
-            {ROLE_LEGEND_KEYS.map((role) => (
-              <View key={role} style={styles.legendItem}>
-                <View
-                  style={[
-                    styles.legendDot,
-                    { backgroundColor: ROLE_COLORS[role].bg },
-                  ]}
-                />
-                <Text style={styles.legendLabel}>
-                  {t(`users.role.short.${role}`)}
-                </Text>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
-
-      {/* Error */}
-      {error ? (
-        <View style={styles.errorBanner} testID="users-error">
-          <Ionicons name="alert-circle" size={16} color={colors.notification} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : null}
-
-      {/* Filters panel — exclusive of the list below */}
-      {filtersOpen ? (
-        <View style={styles.filterPanel} testID="users-filter-panel">
-          <View style={styles.filterPanelHeader}>
-            <View style={styles.filterPanelHeaderIcon}>
-              <Ionicons
-                name="options-outline"
-                size={16}
-                color={colors.accentTealDark}
-              />
-            </View>
-            <Text style={styles.filterPanelHeaderTitle}>
-              {t("users.filters.toggleAccessibilityLabel")}
-            </Text>
-          </View>
-
-          <View style={styles.filterScrollWrapper}>
-            <ScrollView
-              style={styles.filterScrollArea}
-              contentContainerStyle={styles.filterScrollContent}
-              nestedScrollEnabled
-              showsVerticalScrollIndicator
-              onLayout={(e) =>
-                handleFilterScrollLayout(e.nativeEvent.layout.height)
-              }
-              onContentSizeChange={(_w, h) => handleFilterScrollContentSize(h)}
-              onScroll={handleFilterScroll}
-              scrollEventThrottle={16}
-              testID="users-filter-scroll"
-            >
-              <View style={styles.filterGroup}>
-                <Text style={styles.filterGroupLabel}>
-                  {t("users.filters.roleLabel")}
-                </Text>
-                <View style={styles.filterChipsRow}>
-                  {ROLE_FILTER_KEYS.map((key) => (
-                    <TouchableOpacity
-                      key={key}
-                      style={[
-                        styles.filterChip,
-                        draftFilters.role === key && styles.filterChipActive,
-                      ]}
-                      onPress={() =>
-                        setDraftFilters((current) => ({
-                          ...current,
-                          role: key,
-                        }))
-                      }
-                      testID={`users-filter-role-${key.toLowerCase()}`}
-                    >
-                      <Text
-                        style={[
-                          styles.filterChipLabel,
-                          draftFilters.role === key &&
-                            styles.filterChipLabelActive,
-                        ]}
-                      >
-                        {t(`users.role.${key}`)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.filterGroup}>
-                <Text style={styles.filterGroupLabel}>
-                  {t("users.filters.accountLabel")}
-                </Text>
-                <View style={styles.filterChipsRow}>
-                  {ACCOUNT_FILTER_KEYS.map((key) => (
-                    <TouchableOpacity
-                      key={key}
-                      style={[
-                        styles.filterChip,
-                        draftFilters.hasAccount === key &&
-                          styles.filterChipActive,
-                      ]}
-                      onPress={() =>
-                        setDraftFilters((current) => ({
-                          ...current,
-                          hasAccount: key,
-                        }))
-                      }
-                      testID={`users-filter-account-${key.toLowerCase()}`}
-                    >
-                      <Text
-                        style={[
-                          styles.filterChipLabel,
-                          draftFilters.hasAccount === key &&
-                            styles.filterChipLabelActive,
-                        ]}
-                      >
-                        {t(`users.account.${key}`)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.filterGroup}>
-                <Text style={styles.filterGroupLabel}>
-                  {t("users.filters.yearLabel")}
-                </Text>
-                <View
-                  style={yearFieldDisabled ? styles.filterFieldDisabled : null}
-                  pointerEvents={yearFieldDisabled ? "none" : "auto"}
-                >
-                  <SelectField
-                    options={yearOptions}
-                    value={draftFilters.schoolYearId}
-                    onChange={(value) =>
-                      setDraftFilters((current) => ({
-                        ...current,
-                        schoolYearId: value,
-                      }))
-                    }
-                    placeholder={t("users.filters.allYears")}
-                    closeLabel={t("users.filters.close")}
-                    testIDPrefix="users-filter-year"
-                  />
-                </View>
-                {yearFieldDisabled ? (
-                  <Text style={styles.filterFieldHint}>
-                    {t("users.filters.yearHint")}
-                  </Text>
-                ) : null}
-              </View>
-            </ScrollView>
-            {showFilterScrollHint ? (
-              <View
-                style={styles.filterScrollHint}
-                pointerEvents="none"
-                testID="users-filter-scroll-hint"
-              >
-                <View style={styles.filterScrollHintFade} />
-                <Ionicons
-                  name="chevron-down"
-                  size={16}
-                  color={colors.accentTeal}
+          ) : (
+            <>
+              <View style={styles.heroWrapper}>
+                <FormHero
+                  icon={
+                    CREATABLE_USER_TYPES.find((t) => t.type === createType)
+                      ?.icon ?? "person-add-outline"
+                  }
+                  title={t(`users.create.hero.${createType}.title`)}
+                  subtitle={t(`users.create.hero.${createType}.subtitle`)}
+                  palette="teal"
+                  testID="users-create-form-hero"
                 />
               </View>
-            ) : null}
-          </View>
-
-          <View style={styles.filterActionsRow}>
-            <TouchableOpacity
-              style={styles.filterActionReset}
-              onPress={resetFilters}
-              testID="users-filter-reset"
-            >
-              <Text style={styles.filterActionResetLabel}>
-                {t("users.filters.reset")}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.filterActionClose}
-              onPress={closeFilters}
-              testID="users-filter-close"
-            >
-              <Text style={styles.filterActionCloseLabel}>
-                {t("users.filters.close")}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.filterActionApply}
-              onPress={applyFilters}
-              testID="users-filter-apply"
-            >
-              <Ionicons name="checkmark" size={15} color={colors.white} />
-              <Text style={styles.filterActionApplyLabel}>
-                {t("users.filters.apply")}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : isLoading ? (
-        <View style={styles.centered}>
-          <LoadingBlock label={t("users.loading")} />
+              {createType === "TEACHER" ? (
+                <TeacherCreateFormContent
+                  isSubmitting={isSubmittingCreate}
+                  onCancel={() => setCreateType(null)}
+                  onSubmit={handleCreateTeacher}
+                />
+              ) : null}
+              {createType === "STUDENT" ? (
+                <StudentCreateFormContent
+                  classrooms={classroomOptions}
+                  isSubmitting={isSubmittingCreate}
+                  onCancel={() => setCreateType(null)}
+                  onSubmit={handleCreateStudent}
+                />
+              ) : null}
+              {createType === "PARENT" ? (
+                <ParentCreateFormContent
+                  schoolSlug={schoolSlug ?? ""}
+                  isSubmitting={isSubmittingCreate}
+                  onCancel={() => setCreateType(null)}
+                  onSubmit={handleCreateParent}
+                />
+              ) : null}
+              {createType === "SCHOOL_MANAGER" ||
+              createType === "SUPERVISOR" ||
+              createType === "SCHOOL_ACCOUNTANT" ||
+              createType === "SCHOOL_STAFF" ? (
+                <StaffCreateFormContent
+                  role={createType}
+                  functionOptions={staffFunctionOptions}
+                  isSubmitting={isSubmittingCreate}
+                  onCancel={() => setCreateType(null)}
+                  onSubmit={handleCreateStaffMember}
+                />
+              ) : null}
+            </>
+          )}
         </View>
       ) : (
-        <InfiniteScrollList
-          data={users}
-          renderItem={renderUser}
-          keyExtractor={keyExtractor}
-          onRefresh={() => void loadFirstPage(true)}
-          refreshing={isRefreshing}
-          onLoadMore={() => void loadMore()}
-          hasMore={hasMore}
-          isLoadingMore={isLoadingMore}
-          emptyComponent={emptyComponent}
-          contentContainerStyle={
-            users.length === 0 ? styles.emptyList : undefined
-          }
-          endOfListLabel={t("users.endOfList")}
-          ItemSeparatorComponent={UserSeparator}
-          testID="users-list"
-        />
+        <>
+          {/* Search + filter toggle */}
+          <View style={styles.searchRow} testID="users-search-row">
+            <View style={styles.searchBox}>
+              <Ionicons name="search" size={16} color={colors.textSecondary} />
+              <TextInput
+                style={styles.searchInput}
+                value={searchInput}
+                onChangeText={handleSearchChange}
+                placeholder={t("users.search.placeholder")}
+                placeholderTextColor={colors.textSecondary}
+                returnKeyType="search"
+                autoCorrect={false}
+                autoCapitalize="none"
+                accessibilityLabel={t("users.search.accessibilityLabel")}
+                testID="users-search-input"
+              />
+              {searchInput.length > 0 ? (
+                <TouchableOpacity
+                  onPress={handleClearSearch}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  testID="users-search-clear"
+                >
+                  <Ionicons
+                    name="close-circle"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.filterToggle,
+                hasActiveFilters(filters) && styles.filterToggleActive,
+              ]}
+              onPress={toggleFilters}
+              testID="users-filter-toggle"
+              accessibilityLabel={t("users.filters.toggleAccessibilityLabel")}
+            >
+              <Ionicons
+                name={hasActiveFilters(filters) ? "filter" : "filter-outline"}
+                size={18}
+                color={
+                  hasActiveFilters(filters) ? colors.white : colors.accentTeal
+                }
+              />
+              {total > 0 ? (
+                <View style={styles.filterToggleBadge} testID="users-total">
+                  <Text style={styles.filterToggleBadgeLabel}>
+                    {total > 99 ? "99+" : total}
+                  </Text>
+                </View>
+              ) : null}
+            </TouchableOpacity>
+          </View>
+
+          {total > 0 && !filtersOpen ? (
+            <View style={styles.totalRow}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.legendContent}
+                testID="users-role-legend"
+              >
+                {ROLE_LEGEND_KEYS.map((role) => (
+                  <View key={role} style={styles.legendItem}>
+                    <View
+                      style={[
+                        styles.legendDot,
+                        { backgroundColor: ROLE_COLORS[role].bg },
+                      ]}
+                    />
+                    <Text style={styles.legendLabel}>
+                      {t(`users.role.short.${role}`)}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
+
+          {/* Error */}
+          {error ? (
+            <View style={styles.errorBanner} testID="users-error">
+              <Ionicons
+                name="alert-circle"
+                size={16}
+                color={colors.notification}
+              />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
+
+          {/* Filters panel — exclusive of the list below */}
+          {filtersOpen ? (
+            <View style={styles.filterPanel} testID="users-filter-panel">
+              <View style={styles.filterPanelHeader}>
+                <View style={styles.filterPanelHeaderIcon}>
+                  <Ionicons
+                    name="options-outline"
+                    size={16}
+                    color={colors.accentTealDark}
+                  />
+                </View>
+                <Text style={styles.filterPanelHeaderTitle}>
+                  {t("users.filters.toggleAccessibilityLabel")}
+                </Text>
+              </View>
+
+              <View style={styles.filterScrollWrapper}>
+                <ScrollView
+                  style={styles.filterScrollArea}
+                  contentContainerStyle={styles.filterScrollContent}
+                  nestedScrollEnabled
+                  showsVerticalScrollIndicator
+                  onLayout={(e) =>
+                    handleFilterScrollLayout(e.nativeEvent.layout.height)
+                  }
+                  onContentSizeChange={(_w, h) =>
+                    handleFilterScrollContentSize(h)
+                  }
+                  onScroll={handleFilterScroll}
+                  scrollEventThrottle={16}
+                  testID="users-filter-scroll"
+                >
+                  <View style={styles.filterGroup}>
+                    <Text style={styles.filterGroupLabel}>
+                      {t("users.filters.roleLabel")}
+                    </Text>
+                    <View style={styles.filterChipsRow}>
+                      {ROLE_FILTER_KEYS.map((key) => (
+                        <TouchableOpacity
+                          key={key}
+                          style={[
+                            styles.filterChip,
+                            draftFilters.role === key &&
+                              styles.filterChipActive,
+                          ]}
+                          onPress={() =>
+                            setDraftFilters((current) => ({
+                              ...current,
+                              role: key,
+                            }))
+                          }
+                          testID={`users-filter-role-${key.toLowerCase()}`}
+                        >
+                          <Text
+                            style={[
+                              styles.filterChipLabel,
+                              draftFilters.role === key &&
+                                styles.filterChipLabelActive,
+                            ]}
+                          >
+                            {t(`users.role.${key}`)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.filterGroup}>
+                    <Text style={styles.filterGroupLabel}>
+                      {t("users.filters.accountLabel")}
+                    </Text>
+                    <View style={styles.filterChipsRow}>
+                      {ACCOUNT_FILTER_KEYS.map((key) => (
+                        <TouchableOpacity
+                          key={key}
+                          style={[
+                            styles.filterChip,
+                            draftFilters.hasAccount === key &&
+                              styles.filterChipActive,
+                          ]}
+                          onPress={() =>
+                            setDraftFilters((current) => ({
+                              ...current,
+                              hasAccount: key,
+                            }))
+                          }
+                          testID={`users-filter-account-${key.toLowerCase()}`}
+                        >
+                          <Text
+                            style={[
+                              styles.filterChipLabel,
+                              draftFilters.hasAccount === key &&
+                                styles.filterChipLabelActive,
+                            ]}
+                          >
+                            {t(`users.account.${key}`)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.filterGroup}>
+                    <Text style={styles.filterGroupLabel}>
+                      {t("users.filters.yearLabel")}
+                    </Text>
+                    <View
+                      style={
+                        yearFieldDisabled ? styles.filterFieldDisabled : null
+                      }
+                      pointerEvents={yearFieldDisabled ? "none" : "auto"}
+                    >
+                      <SelectField
+                        options={yearOptions}
+                        value={draftFilters.schoolYearId}
+                        onChange={(value) =>
+                          setDraftFilters((current) => ({
+                            ...current,
+                            schoolYearId: value,
+                          }))
+                        }
+                        placeholder={t("users.filters.allYears")}
+                        closeLabel={t("users.filters.close")}
+                        testIDPrefix="users-filter-year"
+                      />
+                    </View>
+                    {yearFieldDisabled ? (
+                      <Text style={styles.filterFieldHint}>
+                        {t("users.filters.yearHint")}
+                      </Text>
+                    ) : null}
+                  </View>
+                </ScrollView>
+                {showFilterScrollHint ? (
+                  <View
+                    style={styles.filterScrollHint}
+                    pointerEvents="none"
+                    testID="users-filter-scroll-hint"
+                  >
+                    <View style={styles.filterScrollHintFade} />
+                    <Ionicons
+                      name="chevron-down"
+                      size={16}
+                      color={colors.accentTeal}
+                    />
+                  </View>
+                ) : null}
+              </View>
+
+              <View style={styles.filterActionsRow}>
+                <TouchableOpacity
+                  style={styles.filterActionReset}
+                  onPress={resetFilters}
+                  testID="users-filter-reset"
+                >
+                  <Text style={styles.filterActionResetLabel}>
+                    {t("users.filters.reset")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.filterActionClose}
+                  onPress={closeFilters}
+                  testID="users-filter-close"
+                >
+                  <Text style={styles.filterActionCloseLabel}>
+                    {t("users.filters.close")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.filterActionApply}
+                  onPress={applyFilters}
+                  testID="users-filter-apply"
+                >
+                  <Ionicons name="checkmark" size={15} color={colors.white} />
+                  <Text style={styles.filterActionApplyLabel}>
+                    {t("users.filters.apply")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : isLoading ? (
+            <View style={styles.centered}>
+              <LoadingBlock label={t("users.loading")} />
+            </View>
+          ) : (
+            <InfiniteScrollList
+              data={users}
+              renderItem={renderUser}
+              keyExtractor={keyExtractor}
+              onRefresh={() => void loadFirstPage(true)}
+              refreshing={isRefreshing}
+              onLoadMore={() => void loadMore()}
+              hasMore={hasMore}
+              isLoadingMore={isLoadingMore}
+              emptyComponent={emptyComponent}
+              contentContainerStyle={
+                users.length === 0 ? styles.emptyList : undefined
+              }
+              endOfListLabel={t("users.endOfList")}
+              ItemSeparatorComponent={UserSeparator}
+              testID="users-list"
+            />
+          )}
+        </>
       )}
+
+      {screenTab === "list" && !filtersOpen ? (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={openCreateForms}
+          testID="users-create-fab"
+          accessibilityLabel={t("users.create.fabAccessibilityLabel")}
+        >
+          <Ionicons name="add" size={26} color={colors.white} />
+        </TouchableOpacity>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
@@ -668,6 +1034,63 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerWrap: {},
+  fab: {
+    position: "absolute",
+    right: 20,
+    bottom: 24 + BOTTOM_TAB_BAR_HEIGHT,
+    width: 58,
+    height: 58,
+    borderRadius: 20,
+    backgroundColor: colors.accentTeal,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000000",
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
+  },
+  formsTabContent: {
+    flex: 1,
+  },
+  heroWrapper: {
+    padding: 16,
+  },
+  createTypePanel: {
+    padding: 16,
+    gap: 10,
+  },
+  createTypeTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: colors.textPrimary,
+  },
+  createTypeSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 6,
+  },
+  createTypeChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  createTypeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}55`,
+    backgroundColor: colors.surface,
+  },
+  createTypeChipLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",

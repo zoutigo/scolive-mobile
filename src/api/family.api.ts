@@ -24,6 +24,34 @@ export interface LinkExistingParentPayload {
   parentUserId: string;
 }
 
+export interface CreateStudentPayload {
+  firstName: string;
+  lastName: string;
+  classId: string;
+  email?: string;
+  password?: string;
+}
+
+export interface CreateStudentResponse {
+  id: string;
+  user?: { id: string } | null;
+}
+
+export interface CreateParentPayload {
+  studentId: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  password?: string;
+  pin?: string;
+}
+
+export interface CreateParentResponse {
+  parentUserId: string;
+  studentId: string;
+}
+
 export const familyApi = {
   getParentMe(schoolSlug: string): Promise<{ linkedStudents?: ParentChild[] }> {
     return apiFetch(`/schools/${schoolSlug}/me`, {}, true);
@@ -49,6 +77,36 @@ export const familyApi = {
     payload: LinkExistingParentPayload,
   ): Promise<void> {
     await apiFetch(
+      `/schools/${schoolSlug}/admin/parent-students`,
+      { method: "POST", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  async createStudent(
+    schoolSlug: string,
+    payload: CreateStudentPayload,
+  ): Promise<CreateStudentResponse> {
+    const raw = await apiFetch<{
+      id?: string;
+      user?: { id: string };
+      student?: { id: string };
+    }>(
+      `/schools/${schoolSlug}/admin/students`,
+      { method: "POST", body: JSON.stringify(payload) },
+      true,
+    );
+    if (raw.student) {
+      return { id: raw.student.id, user: raw.user ?? null };
+    }
+    return { id: raw.id!, user: raw.user ?? null };
+  },
+
+  async createParent(
+    schoolSlug: string,
+    payload: CreateParentPayload,
+  ): Promise<CreateParentResponse> {
+    return apiFetch(
       `/schools/${schoolSlug}/admin/parent-students`,
       { method: "POST", body: JSON.stringify(payload) },
       true,
