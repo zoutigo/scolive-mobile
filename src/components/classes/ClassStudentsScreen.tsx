@@ -14,7 +14,11 @@ import { ModuleHeader } from "../navigation/ModuleHeader";
 import { MultiActionFab, type FabAction } from "../navigation/MultiActionFab";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { FormHero } from "../forms/FormHero";
-import { EmptyState, ErrorBanner, LoadingBlock } from "../timetable/TimetableCommon";
+import {
+  EmptyState,
+  ErrorBanner,
+  LoadingBlock,
+} from "../timetable/TimetableCommon";
 import { useTranslation } from "../../i18n/useTranslation";
 
 const PAGE_SIZE = 100;
@@ -140,7 +144,10 @@ export function ClassStudentsScreen() {
                 palette="primary"
                 testID="class-students-hero"
                 footer={
-                  <Text style={styles.heroFooter} testID="class-students-hero-count">
+                  <Text
+                    style={styles.heroFooter}
+                    testID="class-students-hero-count"
+                  >
                     {capacityLabel} {t("classesAdmin.students.studentsSuffix")}
                   </Text>
                 }
@@ -157,7 +164,10 @@ export function ClassStudentsScreen() {
             </View>
           }
           renderItem={({ item }) => (
-            <View style={styles.studentRow} testID={`class-students-row-${item.id}`}>
+            <View
+              style={styles.studentRow}
+              testID={`class-students-row-${item.id}`}
+            >
               <Text style={styles.studentName}>{fullStudentName(item)}</Text>
             </View>
           )}

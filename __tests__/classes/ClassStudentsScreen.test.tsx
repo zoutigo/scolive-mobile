@@ -1,5 +1,10 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import { ClassStudentsScreen } from "../../src/components/classes/ClassStudentsScreen";
 import { classroomsApi } from "../../src/api/classrooms.api";
 import { familyApi } from "../../src/api/family.api";
@@ -141,9 +146,7 @@ describe("ClassStudentsScreen — chargement", () => {
       new Error("Erreur réseau"),
     );
     render(<ClassStudentsScreen />);
-    await waitFor(() =>
-      expect(screen.getByText("Erreur réseau")).toBeTruthy(),
-    );
+    await waitFor(() => expect(screen.getByText("Erreur réseau")).toBeTruthy());
   });
 });
 

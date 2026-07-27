@@ -116,9 +116,7 @@ describe("SetClassReferentTeacherScreen — chargement", () => {
         "class-1",
       ),
     );
-    expect(teachersApiMock.listTeachers).toHaveBeenCalledWith(
-      "college-vogt",
-    );
+    expect(teachersApiMock.listTeachers).toHaveBeenCalledWith("college-vogt");
   });
 
   it("affiche une erreur si le chargement échoue", async () => {
@@ -126,9 +124,7 @@ describe("SetClassReferentTeacherScreen — chargement", () => {
       new Error("Erreur réseau"),
     );
     render(<SetClassReferentTeacherScreen />);
-    await waitFor(() =>
-      expect(screen.getByText("Erreur réseau")).toBeTruthy(),
-    );
+    await waitFor(() => expect(screen.getByText("Erreur réseau")).toBeTruthy());
   });
 
   it("pré-sélectionne l'enseignant référent actuel de la classe", async () => {
@@ -148,9 +144,7 @@ describe("SetClassReferentTeacherScreen — chargement", () => {
       },
     });
     render(<SetClassReferentTeacherScreen />);
-    await waitFor(() =>
-      expect(screen.getByText("Lionel Ateba")).toBeTruthy(),
-    );
+    await waitFor(() => expect(screen.getByText("Lionel Ateba")).toBeTruthy());
   });
 });
 

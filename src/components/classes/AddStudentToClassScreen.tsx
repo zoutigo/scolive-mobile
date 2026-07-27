@@ -50,9 +50,7 @@ export function AddStudentToClassScreen() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [addingStudentId, setAddingStudentId] = useState<string | null>(null);
 
-  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadStudents = useCallback(
     async (page: number, search: string, mode: "reset" | "append") => {
@@ -194,9 +192,7 @@ export function AddStudentToClassScreen() {
               testID={`add-student-row-${item.id}`}
             >
               <View style={styles.studentInfo}>
-                <Text style={styles.studentName}>
-                  {fullStudentName(item)}
-                </Text>
+                <Text style={styles.studentName}>{fullStudentName(item)}</Text>
                 {item.currentEnrollment ? (
                   <Text style={styles.studentMeta}>
                     {item.currentEnrollment.class.name}

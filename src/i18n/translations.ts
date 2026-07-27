@@ -5124,11 +5124,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "classesAdmin.addStudent.searchPlaceholder": "Search a student by name...",
     "classesAdmin.addStudent.loading": "Loading students…",
     "classesAdmin.addStudent.empty.title": "No students",
-    "classesAdmin.addStudent.empty.message":
-      "No student matches your search.",
+    "classesAdmin.addStudent.empty.message": "No student matches your search.",
     "classesAdmin.addStudent.successTitle": "Student added",
-    "classesAdmin.addStudent.successMessageSuffix":
-      "was added to the class.",
+    "classesAdmin.addStudent.successMessageSuffix": "was added to the class.",
     "classesAdmin.students.headerTitle": "Students",
     "classesAdmin.students.fabAdd": "Add a student",
     "classesAdmin.students.fabReferent": "Referent teacher",
