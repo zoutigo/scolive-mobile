@@ -29,6 +29,7 @@ import { ModuleHeader } from "../navigation/ModuleHeader";
 import { FormHero } from "../forms/FormHero";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
+import { MultiActionFab, type FabAction } from "../navigation/MultiActionFab";
 import {
   EmptyState,
   ErrorBanner,
@@ -615,8 +616,12 @@ function DisciplineEventFormContent(props: {
 
 export function TeacherClassDisciplineScreen({
   showHeader = true,
+  extraFabActions = [],
 }: {
   showHeader?: boolean;
+  /** Actions supplémentaires fusionnées avec le FAB propre à cet écran
+   * (ex. "Voir les élèves" quand embarqué dans la fiche classe admin). */
+  extraFabActions?: FabAction[];
 } = {}) {
   const { t } = useTranslation();
   const params = useLocalSearchParams<{ classId?: string }>();
@@ -1023,17 +1028,20 @@ export function TeacherClassDisciplineScreen({
               testID="teacher-class-discipline-events-list"
             />
 
-            <TouchableOpacity
-              style={[
-                styles.fab,
-                { bottom: insets.bottom + 18 + BOTTOM_TAB_BAR_HEIGHT },
-              ]}
-              onPress={openCreateForm}
+            <MultiActionFab
+              bottom={insets.bottom + 18 + BOTTOM_TAB_BAR_HEIGHT}
               testID="teacher-class-discipline-fab"
-              accessibilityLabel={t("discipline.fab.addEvent")}
-            >
-              <Ionicons name="add" size={28} color={colors.white} />
-            </TouchableOpacity>
+              actions={[
+                {
+                  key: "add-event",
+                  icon: "add",
+                  label: t("discipline.fab.addEvent"),
+                  onPress: openCreateForm,
+                  testID: "teacher-class-discipline-fab",
+                },
+                ...extraFabActions,
+              ]}
+            />
           </View>
         ) : (
           <View style={styles.body}>
@@ -1080,6 +1088,12 @@ export function TeacherClassDisciplineScreen({
                 />
               </View>
             )}
+
+            <MultiActionFab
+              bottom={insets.bottom + 18 + BOTTOM_TAB_BAR_HEIGHT}
+              testID="teacher-class-discipline-fab"
+              actions={extraFabActions}
+            />
           </View>
         )
       ) : null}
@@ -1110,21 +1124,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
-  },
-  fab: {
-    position: "absolute",
-    right: 18,
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
   },
   // ── Inline form layout ────────────────────────────────────────────────
   formsTabContent: {

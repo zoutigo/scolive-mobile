@@ -148,7 +148,7 @@ describe("AdminClassesScreen — rafraîchissement au retour sur l'écran (focus
     render(<AdminClassesScreen />);
     await waitFor(() => expect(api.getAdminClassList).toHaveBeenCalledTimes(1));
 
-    mockList([CLASS_6EA, CLASS_6EB, CLASS_5EA, CLASS_5EA]);
+    mockList([CLASS_6EA, CLASS_6EB, CLASS_5EA]);
     latestFocusCallback?.();
 
     await waitFor(() => expect(api.getAdminClassList).toHaveBeenCalledTimes(2));

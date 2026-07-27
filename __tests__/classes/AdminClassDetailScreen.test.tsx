@@ -12,12 +12,14 @@ const mockReplace = jest.fn();
 const mockBack = jest.fn();
 const mockCanGoBack = jest.fn().mockReturnValue(true);
 const mockNavigate = jest.fn();
+const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({
     replace: mockReplace,
     back: mockBack,
     canGoBack: mockCanGoBack,
     navigate: mockNavigate,
+    push: mockPush,
   }),
   useLocalSearchParams: () => ({ classId: "class-1" }),
 }));
@@ -74,14 +76,27 @@ jest.mock(
   () => ({
     TeacherClassDisciplineScreen: ({
       showHeader,
+      extraFabActions = [],
     }: {
       showHeader?: boolean;
+      extraFabActions?: Array<{ key: string; testID: string; onPress: () => void }>;
     }) => {
-      const { Text } = require("react-native");
+      const { Text, TouchableOpacity, View } = require("react-native");
       return (
-        <Text testID={`discipline-screen-showHeader-${String(showHeader)}`}>
-          DisciplineScreen
-        </Text>
+        <View>
+          <Text testID={`discipline-screen-showHeader-${String(showHeader)}`}>
+            DisciplineScreen
+          </Text>
+          {extraFabActions.map((action) => (
+            <TouchableOpacity
+              key={action.key}
+              testID={action.testID}
+              onPress={action.onPress}
+            >
+              <Text>{action.key}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       );
     },
   }),
@@ -107,23 +122,57 @@ jest.mock("../../src/components/timetable/TeacherAgendaScreen", () => ({
 }));
 
 jest.mock("../../src/components/homework/ClassHomeworkScreen", () => ({
-  ClassHomeworkScreen: ({ showHeader }: { showHeader?: boolean }) => {
-    const { Text } = require("react-native");
+  ClassHomeworkScreen: ({
+    showHeader,
+    extraFabActions = [],
+  }: {
+    showHeader?: boolean;
+    extraFabActions?: Array<{ key: string; testID: string; onPress: () => void }>;
+  }) => {
+    const { Text, TouchableOpacity, View } = require("react-native");
     return (
-      <Text testID={`homework-screen-showHeader-${String(showHeader)}`}>
-        HomeworkScreen
-      </Text>
+      <View>
+        <Text testID={`homework-screen-showHeader-${String(showHeader)}`}>
+          HomeworkScreen
+        </Text>
+        {extraFabActions.map((action) => (
+          <TouchableOpacity
+            key={action.key}
+            testID={action.testID}
+            onPress={action.onPress}
+          >
+            <Text>{action.key}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     );
   },
 }));
 
 jest.mock("../../src/components/notes/ClassNotesManagerScreen", () => ({
-  ClassNotesManagerScreen: ({ showHeader }: { showHeader?: boolean }) => {
-    const { Text } = require("react-native");
+  ClassNotesManagerScreen: ({
+    showHeader,
+    extraFabActions = [],
+  }: {
+    showHeader?: boolean;
+    extraFabActions?: Array<{ key: string; testID: string; onPress: () => void }>;
+  }) => {
+    const { Text, TouchableOpacity, View } = require("react-native");
     return (
-      <Text testID={`notes-screen-showHeader-${String(showHeader)}`}>
-        NotesScreen
-      </Text>
+      <View>
+        <Text testID={`notes-screen-showHeader-${String(showHeader)}`}>
+          NotesScreen
+        </Text>
+        {extraFabActions.map((action) => (
+          <TouchableOpacity
+            key={action.key}
+            testID={action.testID}
+            onPress={action.onPress}
+          >
+            <Text>{action.key}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     );
   },
 }));
@@ -226,8 +275,45 @@ describe("AdminClassDetailScreen", () => {
 
   it("n'affiche plus de FAB de changement de classe (retour à la liste via la flèche du header)", () => {
     render(<AdminClassDetailScreen />);
-    expect(screen.queryByTestId("admin-class-detail-fab")).toBeNull();
     expect(screen.queryByTestId("class-select-modal")).toBeNull();
+  });
+
+  it("sur les onglets avec FAB propre (Discipline/Devoirs/Notes), le FAB 'voir élèves' est fusionné dans l'écran embarqué, pas dupliqué au niveau de la fiche", () => {
+    render(<AdminClassDetailScreen />);
+    // Discipline (tab par défaut) : le wrapper ne rend pas son propre FAB...
+    expect(screen.queryByTestId("admin-class-detail-fab")).toBeNull();
+    // ...mais transmet bien l'action "voir élèves" au screen embarqué
+    expect(screen.getByTestId("admin-class-detail-fab-students")).toBeTruthy();
+  });
+
+  it("transmet l'action 'voir élèves' à Devoirs et Notes", () => {
+    render(<AdminClassDetailScreen />);
+
+    fireEvent.press(screen.getByTestId("admin-class-detail-tab-devoirs"));
+    expect(screen.getByTestId("admin-class-detail-fab-students")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("admin-class-detail-tab-notes"));
+    expect(screen.getByTestId("admin-class-detail-fab-students")).toBeTruthy();
+  });
+
+  it("sur les onglets sans FAB propre (Agenda/Fil), la fiche rend son propre FAB 'voir élèves'", () => {
+    render(<AdminClassDetailScreen />);
+
+    fireEvent.press(screen.getByTestId("admin-class-detail-tab-agenda"));
+    expect(screen.getByTestId("admin-class-detail-fab-students")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("admin-class-detail-tab-fil"));
+    expect(screen.getByTestId("admin-class-detail-fab-students")).toBeTruthy();
+  });
+
+  it("le FAB 'voir élèves' navigue vers l'écran des élèves de la classe", () => {
+    render(<AdminClassDetailScreen />);
+    fireEvent.press(screen.getByTestId("admin-class-detail-tab-fil"));
+    fireEvent.press(screen.getByTestId("admin-class-detail-fab-students"));
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/admin-classes/[classId]/students",
+      params: { classId: "class-1" },
+    });
   });
 
   it("la flèche du header revient à l'écran précédent (liste des classes)", () => {

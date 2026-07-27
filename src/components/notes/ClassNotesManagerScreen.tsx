@@ -60,6 +60,7 @@ import {
 import { getViewType } from "../navigation/nav-config";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
+import { MultiActionFab, type FabAction } from "../navigation/MultiActionFab";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { NotesTabs } from "./NotesTabs";
 import type { NotesTabKey } from "./NotesTabs";
@@ -130,8 +131,12 @@ function createEmptyEvaluationForm(): UpsertEvaluationPayload {
 
 export function ClassNotesManagerScreen({
   showHeader = true,
+  extraFabActions = [],
 }: {
   showHeader?: boolean;
+  /** Actions supplémentaires fusionnées avec le FAB propre à cet écran
+   * (ex. "Voir les élèves" quand embarqué dans la fiche classe admin). */
+  extraFabActions?: FabAction[];
 } = {}) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -1356,19 +1361,23 @@ export function ClassNotesManagerScreen({
           )}
 
           {!evalFiltersOpen && classId ? (
-            <TouchableOpacity
-              style={[
-                styles.fab,
-                { bottom: insets.bottom + 16 + BOTTOM_TAB_BAR_HEIGHT },
-              ]}
-              onPress={() => {
-                resetEvaluationForm();
-                setEvaluationView("form");
-              }}
+            <MultiActionFab
+              bottom={insets.bottom + 16 + BOTTOM_TAB_BAR_HEIGHT}
               testID="class-notes-fab-create"
-            >
-              <Ionicons name="add" size={28} color={colors.white} />
-            </TouchableOpacity>
+              actions={[
+                {
+                  key: "add-evaluation",
+                  icon: "add",
+                  label: t("notes.manager.toast.createTitle"),
+                  onPress: () => {
+                    resetEvaluationForm();
+                    setEvaluationView("form");
+                  },
+                  testID: "class-notes-fab-create",
+                },
+                ...extraFabActions,
+              ]}
+            />
           ) : null}
         </View>
       ) : null}
@@ -2133,22 +2142,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     gap: 10,
-  },
-  fab: {
-    position: "absolute",
-    right: 16,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 6,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    zIndex: 10,
   },
   backRow: {
     flexDirection: "row",

@@ -2421,6 +2421,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "classesAdmin.form.successTitle": "Classe créée",
     "classesAdmin.form.successMessage": "La classe a été créée avec succès.",
     "classesAdmin.form.errorTitle": "Erreur",
+    "classesAdmin.detail.fabViewStudents": "Voir les élèves",
     "schoolsAdmin.access.deniedTitle": "Accès non autorisé",
     "schoolsAdmin.access.deniedMessage":
       "Ce module est réservé aux administrateurs de la plateforme.",
@@ -5088,6 +5089,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "classesAdmin.form.successTitle": "Class created",
     "classesAdmin.form.successMessage": "The class was created successfully.",
     "classesAdmin.form.errorTitle": "Error",
+    "classesAdmin.detail.fabViewStudents": "View students",
     "schoolsAdmin.access.deniedTitle": "Access denied",
     "schoolsAdmin.access.deniedMessage":
       "This module is restricted to platform administrators.",
