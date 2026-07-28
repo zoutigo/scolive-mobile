@@ -27,7 +27,11 @@ function fullStudentName(student: AdminStudentRow) {
   return `${student.firstName} ${student.lastName}`.trim();
 }
 
-export function ClassStudentsScreen() {
+export function ClassStudentsScreen({
+  showHeader = true,
+}: {
+  showHeader?: boolean;
+}) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -108,14 +112,16 @@ export function ClassStudentsScreen() {
 
   return (
     <View style={styles.root} testID="class-students-screen">
-      <ModuleHeader
-        title={t("classesAdmin.students.headerTitle")}
-        onBack={() => moduleBack(router)}
-        testID="class-students-header"
-        backTestID="class-students-back"
-        titleTestID="class-students-title"
-        topInset={insets.top}
-      />
+      {showHeader ? (
+        <ModuleHeader
+          title={t("classesAdmin.students.headerTitle")}
+          onBack={() => moduleBack(router)}
+          testID="class-students-header"
+          backTestID="class-students-back"
+          titleTestID="class-students-title"
+          topInset={insets.top}
+        />
+      ) : null}
 
       {errorMessage ? (
         <View style={styles.centered}>

@@ -150,6 +150,23 @@ describe("ClassStudentsScreen — chargement", () => {
   });
 });
 
+describe("ClassStudentsScreen — intégration en onglet (module Classes)", () => {
+  it("ne rend pas son propre header quand showHeader=false (utilisé comme onglet 'Élèves')", async () => {
+    render(<ClassStudentsScreen showHeader={false} />);
+    await waitFor(() =>
+      expect(screen.getByTestId("class-students-hero")).toBeTruthy(),
+    );
+    expect(screen.queryByTestId("class-students-header")).toBeNull();
+  });
+
+  it("rend son propre header par défaut (showHeader omis)", async () => {
+    render(<ClassStudentsScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId("class-students-header")).toBeTruthy(),
+    );
+  });
+});
+
 describe("ClassStudentsScreen — FAB actions", () => {
   it("rend un seul FAB '⋮' regroupant les deux actions (jamais deux FAB superposés)", async () => {
     render(<ClassStudentsScreen />);

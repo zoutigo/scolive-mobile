@@ -200,6 +200,17 @@ jest.mock("../../src/components/feed/TeacherClassFeedScreen", () => ({
   },
 }));
 
+jest.mock("../../src/components/classes/ClassStudentsScreen", () => ({
+  ClassStudentsScreen: ({ showHeader }: { showHeader?: boolean }) => {
+    const { Text } = require("react-native");
+    return (
+      <Text testID={`students-screen-showHeader-${String(showHeader)}`}>
+        StudentsScreen
+      </Text>
+    );
+  },
+}));
+
 const classOptions = {
   schoolYears: [{ id: "sy-1", label: "2025-2026", isActive: true }],
   selectedSchoolYearId: "sy-1",
@@ -241,7 +252,7 @@ describe("AdminClassDetailScreen", () => {
     expect(screen.getByText("6e A")).toBeTruthy();
   });
 
-  it("affiche les 5 onglets", () => {
+  it("affiche les 6 onglets, 'Élèves' en dernier", () => {
     render(<AdminClassDetailScreen />);
     expect(
       screen.getByTestId("admin-class-detail-tab-discipline"),
@@ -250,6 +261,7 @@ describe("AdminClassDetailScreen", () => {
     expect(screen.getByTestId("admin-class-detail-tab-devoirs")).toBeTruthy();
     expect(screen.getByTestId("admin-class-detail-tab-notes")).toBeTruthy();
     expect(screen.getByTestId("admin-class-detail-tab-fil")).toBeTruthy();
+    expect(screen.getByTestId("admin-class-detail-tab-eleves")).toBeTruthy();
   });
 
   it("affiche l'écran Discipline par défaut avec showHeader=false", () => {
@@ -290,42 +302,12 @@ describe("AdminClassDetailScreen", () => {
     expect(screen.queryByTestId("class-select-modal")).toBeNull();
   });
 
-  it("sur les onglets avec FAB propre (Discipline/Devoirs/Notes), le FAB 'voir élèves' est fusionné dans l'écran embarqué, pas dupliqué au niveau de la fiche", () => {
+  it("affiche l'écran Élèves avec showHeader=false quand on clique sur l'onglet 'Élèves'", () => {
     render(<AdminClassDetailScreen />);
-    // Discipline (tab par défaut) : le wrapper ne rend pas son propre FAB...
-    expect(screen.queryByTestId("admin-class-detail-fab")).toBeNull();
-    // ...mais transmet bien l'action "voir élèves" au screen embarqué
-    expect(screen.getByTestId("admin-class-detail-fab-students")).toBeTruthy();
-  });
-
-  it("transmet l'action 'voir élèves' à Devoirs et Notes", () => {
-    render(<AdminClassDetailScreen />);
-
-    fireEvent.press(screen.getByTestId("admin-class-detail-tab-devoirs"));
-    expect(screen.getByTestId("admin-class-detail-fab-students")).toBeTruthy();
-
-    fireEvent.press(screen.getByTestId("admin-class-detail-tab-notes"));
-    expect(screen.getByTestId("admin-class-detail-fab-students")).toBeTruthy();
-  });
-
-  it("sur les onglets sans FAB propre (Agenda/Fil), la fiche rend son propre FAB 'voir élèves'", () => {
-    render(<AdminClassDetailScreen />);
-
-    fireEvent.press(screen.getByTestId("admin-class-detail-tab-agenda"));
-    expect(screen.getByTestId("admin-class-detail-fab-students")).toBeTruthy();
-
-    fireEvent.press(screen.getByTestId("admin-class-detail-tab-fil"));
-    expect(screen.getByTestId("admin-class-detail-fab-students")).toBeTruthy();
-  });
-
-  it("le FAB 'voir élèves' navigue vers l'écran des élèves de la classe", () => {
-    render(<AdminClassDetailScreen />);
-    fireEvent.press(screen.getByTestId("admin-class-detail-tab-fil"));
-    fireEvent.press(screen.getByTestId("admin-class-detail-fab-students"));
-    expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/(home)/admin-classes/[classId]/students",
-      params: { classId: "class-1" },
-    });
+    fireEvent.press(screen.getByTestId("admin-class-detail-tab-eleves"));
+    expect(
+      screen.getByTestId("students-screen-showHeader-false"),
+    ).toBeTruthy();
   });
 
   it("la flèche du header revient à l'écran précédent (liste des classes)", () => {

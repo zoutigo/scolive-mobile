@@ -7,17 +7,16 @@ import { useAuthStore } from "../../store/auth.store";
 import { useTeacherClassNavStore } from "../../store/teacher-class-nav.store";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
-import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
-import { MultiActionFab, type FabAction } from "../navigation/MultiActionFab";
 import { TeacherClassDisciplineScreen } from "../discipline/TeacherClassDisciplineScreen";
 import { TeacherAgendaScreenInner } from "../timetable/TeacherAgendaScreen";
 import { ClassHomeworkScreen } from "../homework/ClassHomeworkScreen";
 import { ClassNotesManagerScreen } from "../notes/ClassNotesManagerScreen";
 import { TeacherClassFeedScreen } from "../feed/TeacherClassFeedScreen";
+import { ClassStudentsScreen } from "./ClassStudentsScreen";
 import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 import { moduleBack } from "../../utils/moduleBack";
 
-type TabKey = "discipline" | "agenda" | "devoirs" | "notes" | "fil";
+type TabKey = "discipline" | "agenda" | "devoirs" | "notes" | "fil" | "eleves";
 
 function buildTabs(t: TranslateFn) {
   return [
@@ -26,6 +25,7 @@ function buildTabs(t: TranslateFn) {
     { key: "devoirs" as const, label: t("homework.label") },
     { key: "notes" as const, label: "Notes" },
     { key: "fil" as const, label: "Fil" },
+    { key: "eleves" as const, label: t("classesAdmin.students.tabLabel") },
   ];
 }
 
@@ -51,28 +51,6 @@ export function AdminClassDetailScreen() {
   const className =
     classOptions?.classes.find((c) => c.classId === classId)?.className ?? null;
 
-  const viewStudentsAction: FabAction[] = classId
-    ? [
-        {
-          key: "view-students",
-          icon: "people-outline",
-          label: t("classesAdmin.detail.fabViewStudents"),
-          onPress: () =>
-            router.push({
-              pathname: "/(home)/admin-classes/[classId]/students",
-              params: { classId },
-            }),
-          testID: "admin-class-detail-fab-students",
-        },
-      ]
-    : [];
-
-  const fabBottom = insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT;
-  const hasTabOwnFab =
-    activeTab === "discipline" ||
-    activeTab === "devoirs" ||
-    activeTab === "notes";
-
   return (
     <View style={styles.root} testID="admin-class-detail-screen">
       <ModuleHeader
@@ -95,10 +73,7 @@ export function AdminClassDetailScreen() {
 
       <View style={styles.tabContent}>
         {activeTab === "discipline" ? (
-          <TeacherClassDisciplineScreen
-            showHeader={false}
-            extraFabActions={viewStudentsAction}
-          />
+          <TeacherClassDisciplineScreen showHeader={false} />
         ) : activeTab === "agenda" ? (
           <TeacherAgendaScreenInner
             initialTab="classes"
@@ -110,27 +85,15 @@ export function AdminClassDetailScreen() {
             showHeader={false}
           />
         ) : activeTab === "devoirs" ? (
-          <ClassHomeworkScreen
-            showHeader={false}
-            extraFabActions={viewStudentsAction}
-          />
+          <ClassHomeworkScreen showHeader={false} />
         ) : activeTab === "notes" ? (
-          <ClassNotesManagerScreen
-            showHeader={false}
-            extraFabActions={viewStudentsAction}
-          />
-        ) : (
+          <ClassNotesManagerScreen showHeader={false} />
+        ) : activeTab === "fil" ? (
           <TeacherClassFeedScreen showHeader={false} />
+        ) : (
+          <ClassStudentsScreen showHeader={false} />
         )}
       </View>
-
-      {!hasTabOwnFab ? (
-        <MultiActionFab
-          bottom={fabBottom}
-          testID="admin-class-detail-fab"
-          actions={viewStudentsAction}
-        />
-      ) : null}
     </View>
   );
 }
