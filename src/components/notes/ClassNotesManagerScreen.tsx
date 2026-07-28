@@ -1639,7 +1639,9 @@ export function ClassNotesManagerScreen({
                     {(selectedEvaluation?.attachments ?? []).map(
                       (attachment, index) => (
                         <TouchableOpacity
-                          key={attachment.id ?? `${attachment.fileName}-${index}`}
+                          key={
+                            attachment.id ?? `${attachment.fileName}-${index}`
+                          }
                           style={styles.scoresHeroAttachmentRow}
                           disabled={!attachment.fileUrl}
                           onPress={() =>

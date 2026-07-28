@@ -672,15 +672,17 @@ describe("Vue saisie notes", () => {
     };
     useNotesStore.setState({
       evaluationDetails: { "eval-1": detailWithAttachment },
-      loadEvaluationDetail: jest.fn().mockImplementation((_slug, _c, evalId) => {
-        useNotesStore.setState((s) => ({
-          evaluationDetails: {
-            ...s.evaluationDetails,
-            [evalId]: detailWithAttachment,
-          },
-        }));
-        return Promise.resolve(detailWithAttachment);
-      }),
+      loadEvaluationDetail: jest
+        .fn()
+        .mockImplementation((_slug, _c, evalId) => {
+          useNotesStore.setState((s) => ({
+            evaluationDetails: {
+              ...s.evaluationDetails,
+              [evalId]: detailWithAttachment,
+            },
+          }));
+          return Promise.resolve(detailWithAttachment);
+        }),
     } as never);
 
     await openScoresView();
