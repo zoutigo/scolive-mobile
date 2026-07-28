@@ -5,6 +5,21 @@ import { badgesApi } from "../api/badges.api";
 import { adminMessagingApi } from "../api/admin-messaging.api";
 import { PLATFORM_SCOPE, type MessagingScope } from "../api/messaging-client";
 import type { UnreadSummary } from "../types/badges.types";
+import {
+  getNotifications,
+  isRunningInExpoGo,
+} from "../notifications/push-registration";
+
+// Synchronise le badge natif de l'icône de l'app avec le total non-lu déjà
+// calculé pour le badge in-app — sans ça, le compteur de l'icône n'était
+// jamais remis à zéro après consultation (aucune autre remise à zéro n'est
+// implémentée ailleurs).
+function syncAppIconBadge(total: number) {
+  if (isRunningInExpoGo()) return;
+  getNotifications()
+    .setBadgeCountAsync(total)
+    .catch(() => {});
+}
 
 export const BADGES_STORAGE_KEY = "scolive-badges-summary";
 
@@ -39,6 +54,7 @@ export const useBadgesStore = create<BadgesState>()(
               ? await loadPlatformSummary()
               : await badgesApi.getUnreadSummary(scope);
           set({ schoolSlug: scope, summary });
+          syncAppIconBadge(summary.total);
         } catch {
           if (get().schoolSlug !== scope) {
             set({ schoolSlug: scope, summary: null });
@@ -48,6 +64,7 @@ export const useBadgesStore = create<BadgesState>()(
 
       clear() {
         set({ schoolSlug: null, summary: null });
+        syncAppIconBadge(0);
       },
     }),
     {
