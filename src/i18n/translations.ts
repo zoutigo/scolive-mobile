@@ -2116,6 +2116,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.toast.scoreErrorTitle": "Saisie impossible",
     "notes.manager.toast.scoreErrorMessage":
       "Impossible d'enregistrer la note.",
+    "notes.manager.toast.attachmentErrorTitle": "Ouverture impossible",
+    "notes.manager.toast.attachmentErrorMessage":
+      "Impossible d'ouvrir la pièce jointe.",
     "notes.manager.toast.deleteTitle": "Évaluation supprimée",
     "notes.manager.toast.deleteMessage":
       "L'évaluation et ses notes associées ont été supprimées.",
@@ -4816,6 +4819,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.toast.scoreMessage": "The grade has been saved.",
     "notes.manager.toast.scoreErrorTitle": "Entry failed",
     "notes.manager.toast.scoreErrorMessage": "Unable to save the grade.",
+    "notes.manager.toast.attachmentErrorTitle": "Unable to open",
+    "notes.manager.toast.attachmentErrorMessage":
+      "Unable to open the attachment.",
     "notes.manager.toast.deleteTitle": "Evaluation deleted",
     "notes.manager.toast.deleteMessage":
       "The evaluation and its grades have been deleted.",

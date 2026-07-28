@@ -29,6 +29,7 @@ import { teachersApi } from "../../api/teachers.api";
 import { useAuthStore } from "../../store/auth.store";
 import { useNotesStore } from "../../store/notes.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
+import { downloadAndOpenAttachment } from "../../utils/attachment-download";
 import type {
   CouncilDrafts,
   EvaluationRow,
@@ -1633,6 +1634,52 @@ export function ClassNotesManagerScreen({
                   {selectedEvalRow.author.firstName}{" "}
                   {selectedEvalRow.author.lastName}
                 </Text>
+                {(selectedEvaluation?.attachments ?? []).length > 0 ? (
+                  <View style={styles.scoresHeroAttachments}>
+                    {(selectedEvaluation?.attachments ?? []).map(
+                      (attachment, index) => (
+                        <TouchableOpacity
+                          key={attachment.id ?? `${attachment.fileName}-${index}`}
+                          style={styles.scoresHeroAttachmentRow}
+                          disabled={!attachment.fileUrl}
+                          onPress={() =>
+                            void (async () => {
+                              try {
+                                await downloadAndOpenAttachment({
+                                  fileUrl: attachment.fileUrl,
+                                  fileName: attachment.fileName,
+                                  mimeType: attachment.mimeType,
+                                });
+                              } catch {
+                                showError({
+                                  title: t(
+                                    "notes.manager.toast.attachmentErrorTitle",
+                                  ),
+                                  message: t(
+                                    "notes.manager.toast.attachmentErrorMessage",
+                                  ),
+                                });
+                              }
+                            })()
+                          }
+                          testID={`class-notes-scores-attachment-${index}`}
+                        >
+                          <Ionicons
+                            name="attach-outline"
+                            size={14}
+                            color={colors.primary}
+                          />
+                          <Text
+                            style={styles.scoresHeroAttachmentName}
+                            numberOfLines={1}
+                          >
+                            {attachment.fileName}
+                          </Text>
+                        </TouchableOpacity>
+                      ),
+                    )}
+                  </View>
+                ) : null}
               </>
             ) : null}
           </View>
@@ -2238,6 +2285,17 @@ const styles = StyleSheet.create({
     color: colors.warmAccent,
   },
   scoresHeroSubtitle: { fontSize: 12, color: colors.textSecondary },
+  scoresHeroAttachments: { marginTop: 4, gap: 4 },
+  scoresHeroAttachmentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  scoresHeroAttachmentName: {
+    fontSize: 12,
+    color: colors.primary,
+    flexShrink: 1,
+  },
   detailRow: {
     flexDirection: "row",
     alignItems: "flex-start",
