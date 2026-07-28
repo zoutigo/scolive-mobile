@@ -305,9 +305,85 @@ describe("AdminClassDetailScreen", () => {
   it("affiche l'écran Élèves avec showHeader=false quand on clique sur l'onglet 'Élèves'", () => {
     render(<AdminClassDetailScreen />);
     fireEvent.press(screen.getByTestId("admin-class-detail-tab-eleves"));
+    expect(screen.getByTestId("students-screen-showHeader-false")).toBeTruthy();
+  });
+
+  it("sur les onglets avec FAB propre (Discipline/Devoirs/Notes), les 3 actions élèves sont fusionnées dans l'écran embarqué, pas dupliquées au niveau de la fiche", () => {
+    render(<AdminClassDetailScreen />);
+    expect(screen.queryByTestId("admin-class-detail-fab")).toBeNull();
+    expect(screen.getByTestId("admin-class-detail-fab-students")).toBeTruthy();
     expect(
-      screen.getByTestId("students-screen-showHeader-false"),
+      screen.getByTestId("admin-class-detail-fab-add-student"),
     ).toBeTruthy();
+    expect(screen.getByTestId("admin-class-detail-fab-referent")).toBeTruthy();
+  });
+
+  it("transmet les 3 actions élèves à Devoirs et Notes", () => {
+    render(<AdminClassDetailScreen />);
+
+    fireEvent.press(screen.getByTestId("admin-class-detail-tab-devoirs"));
+    expect(screen.getByTestId("admin-class-detail-fab-students")).toBeTruthy();
+    expect(
+      screen.getByTestId("admin-class-detail-fab-add-student"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("admin-class-detail-fab-referent")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("admin-class-detail-tab-notes"));
+    expect(screen.getByTestId("admin-class-detail-fab-students")).toBeTruthy();
+    expect(
+      screen.getByTestId("admin-class-detail-fab-add-student"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("admin-class-detail-fab-referent")).toBeTruthy();
+  });
+
+  it("sur les onglets sans FAB propre (Agenda/Fil), la fiche rend son propre FAB '⋮' qui déplie les 3 actions élèves", () => {
+    render(<AdminClassDetailScreen />);
+
+    fireEvent.press(screen.getByTestId("admin-class-detail-tab-agenda"));
+    fireEvent.press(screen.getByTestId("admin-class-detail-fab"));
+    expect(screen.getByTestId("admin-class-detail-fab-students")).toBeTruthy();
+    expect(
+      screen.getByTestId("admin-class-detail-fab-add-student"),
+    ).toBeTruthy();
+    expect(screen.getByTestId("admin-class-detail-fab-referent")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("admin-class-detail-tab-fil"));
+    fireEvent.press(screen.getByTestId("admin-class-detail-fab"));
+    expect(screen.getByTestId("admin-class-detail-fab-students")).toBeTruthy();
+  });
+
+  it("sur l'onglet Élèves, la fiche ne duplique pas de FAB (l'écran embarqué a le sien)", () => {
+    render(<AdminClassDetailScreen />);
+    fireEvent.press(screen.getByTestId("admin-class-detail-tab-eleves"));
+    expect(screen.queryByTestId("admin-class-detail-fab")).toBeNull();
+    expect(
+      screen.queryByTestId("admin-class-detail-fab-students"),
+    ).toBeNull();
+  });
+
+  it("l'action 'voir élèves' du FAB fusionné bascule sur l'onglet Élèves (pas de navigation)", () => {
+    render(<AdminClassDetailScreen />);
+    fireEvent.press(screen.getByTestId("admin-class-detail-fab-students"));
+    expect(screen.getByTestId("students-screen-showHeader-false")).toBeTruthy();
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("l'action 'ajouter un élève' du FAB fusionné navigue vers l'écran dédié", () => {
+    render(<AdminClassDetailScreen />);
+    fireEvent.press(screen.getByTestId("admin-class-detail-fab-add-student"));
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/admin-classes/[classId]/students/add",
+      params: { classId: "class-1" },
+    });
+  });
+
+  it("l'action 'enseignant référent' du FAB fusionné navigue vers l'écran dédié", () => {
+    render(<AdminClassDetailScreen />);
+    fireEvent.press(screen.getByTestId("admin-class-detail-fab-referent"));
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/admin-classes/[classId]/students/referent",
+      params: { classId: "class-1" },
+    });
   });
 
   it("la flèche du header revient à l'écran précédent (liste des classes)", () => {
