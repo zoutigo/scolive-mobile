@@ -944,4 +944,78 @@ describe("CurriculumsAdminScreen — catalogue national", () => {
       });
     });
   });
+
+  // Régression : cas recette signalé comme "peut plus dissocier la matière du
+  // curriculum une fois que celle-ci est associée" — reproduit ici le cycle
+  // complet rattachement → dissociation sur le catalogue national.
+  it("dissocie une matière déjà rattachée à un curriculum national", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+    nationalCurriculumsState = [
+      {
+        id: "curriculum-1",
+        name: "6EME - TRONC_COMMUN",
+        academicLevelId: "level-1",
+        trackId: null,
+        academicLevel: { id: "level-1", code: "6EME", label: "6ème" },
+        track: null,
+        isNational: true,
+        _count: { classes: 0, subjects: 1 },
+      },
+    ];
+    nationalSubjectsState = [
+      {
+        id: "subject-1",
+        code: "MATH",
+        name: "Maths",
+        isNational: true,
+        _count: {
+          assignments: 0,
+          studentGrades: 0,
+          curriculumSubjects: 1,
+          classOverrides: 0,
+        },
+      },
+    ];
+    nationalCurriculumSubjectsState = [
+      {
+        id: "national-curriculum-subject-subject-1",
+        subjectId: "subject-1",
+        isMandatory: true,
+        coefficient: 4,
+        weeklyHours: null,
+        subject: { id: "subject-1", name: "Maths" },
+      },
+    ];
+
+    render(<CurriculumsAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("national-catalog-tab-subjects"));
+
+    fireEvent.press(
+      await screen.findByTestId("national-rattachement-curriculum"),
+    );
+    fireEvent.press(
+      await screen.findByTestId(
+        "national-rattachement-curriculum-option-curriculum-1",
+      ),
+    );
+
+    await screen.findByTestId("national-rattachement-row-subject-1");
+
+    fireEvent.press(
+      screen.getByTestId("national-rattachement-delete-subject-1"),
+    );
+
+    await waitFor(() => {
+      expect(
+        mockPlatformCatalogApi.deleteNationalCurriculumSubject,
+      ).toHaveBeenCalledWith("curriculum-1", "subject-1");
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("national-rattachement-row-subject-1"),
+      ).toBeNull();
+    });
+  });
 });

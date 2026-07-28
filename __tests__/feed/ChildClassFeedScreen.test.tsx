@@ -170,6 +170,19 @@ describe("ChildClassFeedScreen", () => {
     expect(screen.getByTestId("child-class-feed-compose-fab")).toBeTruthy();
   });
 
+  // Régression : le bouton de recherche du header n'était jamais branché.
+  it("ouvre le champ de recherche via le bouton du header", async () => {
+    render(<ChildClassFeedScreen />);
+
+    await waitFor(() => expect(api.list).toHaveBeenCalled());
+
+    fireEvent.press(screen.getByTestId("child-class-feed-search-toggle"));
+
+    expect(
+      screen.getByPlaceholderText("Rechercher une publication"),
+    ).toBeTruthy();
+  });
+
   it("change le filtre du fil de classe", async () => {
     render(<ChildClassFeedScreen />);
 

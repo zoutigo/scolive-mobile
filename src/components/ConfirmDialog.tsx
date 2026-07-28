@@ -1,9 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Modal,
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   Animated,
   TouchableWithoutFeedback,
@@ -28,6 +28,11 @@ export interface ConfirmDialogProps {
   onConfirm: () => void;
   onCancel: () => void;
 }
+
+// Fenêtre pendant laquelle un second tap sur "confirmer" est ignoré : évite
+// qu'un double-tap déclenche deux fois l'action (ex: deux DELETE concurrents,
+// où le second échoue avec un 404 et écrase le toast de succès du premier).
+const CONFIRM_DEBOUNCE_MS = 800;
 
 const VARIANT_COLORS: Record<ConfirmDialogVariant, string> = {
   danger: "#DC3545",
@@ -63,6 +68,30 @@ export function ConfirmDialog({
   const { t } = useTranslation();
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [confirming, setConfirming] = useState(false);
+  const confirmingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (visible) {
+      setConfirming(false);
+    }
+    return () => {
+      if (confirmingTimeoutRef.current) {
+        clearTimeout(confirmingTimeoutRef.current);
+      }
+    };
+  }, [visible]);
+
+  function handleConfirmPress() {
+    if (confirming) return;
+    setConfirming(true);
+    confirmingTimeoutRef.current = setTimeout(() => {
+      setConfirming(false);
+    }, CONFIRM_DEBOUNCE_MS);
+    onConfirm();
+  }
 
   useEffect(() => {
     if (visible) {
@@ -214,35 +243,43 @@ export function ConfirmDialog({
             </Text>
           </View>
 
-          {/* Actions */}
+          {/* Actions
+              Pressable (pas TouchableOpacity) : le press du bouton confirmer
+              déclenche un setState (`confirming`) dans ce même composant, ce
+              qui corrompt l'Animated.Value interne de TouchableOpacity sur
+              Fabric Android (opacité des boutons frères qui reste bloquée).
+              Voir feedback_fabric_opacity_touchable. L'opacité "disabled" est
+              posée sur un View interne, jamais sur le Pressable lui-même. */}
           <View style={styles.actions}>
             {hideCancel ? null : (
-              <TouchableOpacity
+              <Pressable
                 style={styles.cancelBtn}
                 onPress={onCancel}
-                activeOpacity={0.75}
                 testID="confirm-dialog-cancel"
                 accessibilityRole="button"
                 accessibilityLabel={resolvedCancelLabel}
               >
                 <Text style={styles.cancelLabel}>{resolvedCancelLabel}</Text>
-              </TouchableOpacity>
+              </Pressable>
             )}
 
-            <TouchableOpacity
+            <Pressable
               style={[
                 styles.confirmBtn,
                 hideCancel && styles.confirmBtnFull,
                 { backgroundColor: accentColor },
               ]}
-              onPress={onConfirm}
-              activeOpacity={0.8}
+              onPress={handleConfirmPress}
+              disabled={confirming}
               testID="confirm-dialog-confirm"
               accessibilityRole="button"
               accessibilityLabel={resolvedConfirmLabel}
+              accessibilityState={{ disabled: confirming }}
             >
-              <Text style={styles.confirmLabel}>{resolvedConfirmLabel}</Text>
-            </TouchableOpacity>
+              <View style={confirming ? styles.confirmContentDisabled : null}>
+                <Text style={styles.confirmLabel}>{resolvedConfirmLabel}</Text>
+              </View>
+            </Pressable>
           </View>
         </Animated.View>
       </View>
@@ -411,6 +448,9 @@ const styles = StyleSheet.create({
   confirmBtnFull: {
     flex: 0,
     width: "100%",
+  },
+  confirmContentDisabled: {
+    opacity: 0.6,
   },
   confirmLabel: {
     fontSize: 15,

@@ -57,6 +57,12 @@ const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: mockBack, push: mockPush }),
   useLocalSearchParams: () => ({}),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),

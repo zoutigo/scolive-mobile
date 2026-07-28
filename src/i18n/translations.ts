@@ -1373,6 +1373,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.detail.forward.quoteTo": "À : {recipients}",
 
     "messaging.actions.reply": "Répondre",
+    "messaging.actions.editDraft": "Modifier le brouillon",
     "messaging.actions.forward": "Transférer",
     "messaging.actions.markUnread": "Non lu",
     "messaging.actions.archive": "Archiver",
@@ -1738,6 +1739,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.filters.mine": "Mes posts",
 
     "feed.search.placeholder": "Rechercher une publication",
+    "feed.search.toggle": "Rechercher",
 
     "feed.unavailable.title": "Fil indisponible",
     "feed.unavailable.message":
@@ -4093,6 +4095,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.detail.forward.quoteTo": "To: {recipients}",
 
     "messaging.actions.reply": "Reply",
+    "messaging.actions.editDraft": "Edit draft",
     "messaging.actions.forward": "Forward",
     "messaging.actions.markUnread": "Unread",
     "messaging.actions.archive": "Archive",
@@ -4442,6 +4445,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.filters.mine": "My posts",
 
     "feed.search.placeholder": "Search a post",
+    "feed.search.toggle": "Search",
 
     "feed.unavailable.title": "Feed unavailable",
     "feed.unavailable.message":

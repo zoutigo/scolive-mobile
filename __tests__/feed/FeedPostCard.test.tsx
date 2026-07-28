@@ -8,8 +8,14 @@ import {
 import { Linking } from "react-native";
 import { FeedPostCard } from "../../src/components/feed/FeedPostCard";
 import { formatFeedDate } from "../../src/components/feed/feed.helpers";
+import { downloadAndOpenAttachment } from "../../src/utils/attachment-download";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
+jest.mock("../../src/utils/attachment-download");
+const mockDownloadAndOpenAttachment =
+  downloadAndOpenAttachment as jest.MockedFunction<
+    typeof downloadAndOpenAttachment
+  >;
 
 jest.spyOn(Linking, "canOpenURL").mockResolvedValue(true);
 jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
@@ -317,9 +323,10 @@ describe("FeedPostCard", () => {
 
     fireEvent.press(screen.getByTestId("feed-post-attachment-a1"));
     await waitFor(() => {
-      expect(Linking.openURL).toHaveBeenCalledWith(
-        "http://10.0.2.2:9000/media/ordre-du-jour.pdf",
-      );
+      expect(mockDownloadAndOpenAttachment).toHaveBeenCalledWith({
+        fileUrl: "http://10.0.2.2:9000/media/ordre-du-jour.pdf",
+        fileName: "ordre-du-jour.pdf",
+      });
     });
   });
 
@@ -333,7 +340,82 @@ describe("FeedPostCard", () => {
     );
 
     fireEvent.press(screen.getByTestId("feed-post-attachment-a1"));
-    expect(Linking.openURL).not.toHaveBeenCalled();
+    expect(mockDownloadAndOpenAttachment).not.toHaveBeenCalled();
+  });
+
+  // Régression : une image insérée via l'éditeur enrichi (bodyHtml) était
+  // totalement invisible — seul stripHtml(bodyHtml) était affiché, sans
+  // extraction ni rendu des <img>.
+  describe("Images inline (bodyHtml)", () => {
+    it("affiche une image insérée dans le contenu enrichi", () => {
+      render(
+        <FeedPostCard
+          post={{
+            ...post,
+            bodyHtml:
+              '<p>Voici la photo</p><img src="https://scolive.lisaweb.fr/media/scolive-media/feed/inline/photo.jpg" />',
+          }}
+          onToggleLike={jest.fn()}
+          onAddComment={jest.fn()}
+        />,
+      );
+
+      expect(screen.getByTestId("feed-post-images-post-1")).toBeTruthy();
+      const image = screen.getByTestId("feed-post-inline-image-post-1-0");
+      expect(image).toBeTruthy();
+    });
+
+    it("n'affiche aucun bloc image quand le contenu n'en a pas", () => {
+      render(
+        <FeedPostCard
+          post={post}
+          onToggleLike={jest.fn()}
+          onAddComment={jest.fn()}
+        />,
+      );
+      expect(screen.queryByTestId("feed-post-images-post-1")).toBeNull();
+    });
+
+    it("affiche plusieurs images dans l'ordre du contenu", () => {
+      render(
+        <FeedPostCard
+          post={{
+            ...post,
+            bodyHtml:
+              '<img src="https://example.com/a.jpg" /><p>texte</p><img src="https://example.com/b.jpg" />',
+          }}
+          onToggleLike={jest.fn()}
+          onAddComment={jest.fn()}
+        />,
+      );
+      expect(
+        screen.getByTestId("feed-post-inline-image-post-1-0"),
+      ).toBeTruthy();
+      expect(
+        screen.getByTestId("feed-post-inline-image-post-1-1"),
+      ).toBeTruthy();
+    });
+
+    it("ouvre l'image au tap", async () => {
+      render(
+        <FeedPostCard
+          post={{
+            ...post,
+            bodyHtml: '<img src="https://example.com/photo.jpg" />',
+          }}
+          onToggleLike={jest.fn()}
+          onAddComment={jest.fn()}
+        />,
+      );
+
+      fireEvent.press(screen.getByTestId("feed-post-inline-image-post-1-0"));
+      await waitFor(() => {
+        expect(mockDownloadAndOpenAttachment).toHaveBeenCalledWith({
+          fileUrl: "https://example.com/photo.jpg",
+          mimeType: "image/jpeg",
+        });
+      });
+    });
   });
 
   it("n'affiche pas la poubelle si canManage mais pas onDelete", () => {

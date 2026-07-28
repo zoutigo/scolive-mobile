@@ -7,7 +7,9 @@ import {
 } from "@testing-library/react-native";
 import VieScolaireScreen from "../../app/(home)/vie-scolaire/[childId]";
 import { disciplineApi } from "../../src/api/discipline.api";
+import { badgesApi } from "../../src/api/badges.api";
 import { useDisciplineStore } from "../../src/store/discipline.store";
+import { useBadgesStore } from "../../src/store/badges.store";
 import { useFamilyStore } from "../../src/store/family.store";
 import { useDrawer } from "../../src/components/navigation/drawer-context";
 import {
@@ -20,6 +22,7 @@ const mockPush = jest.fn();
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/discipline.api");
+jest.mock("../../src/api/badges.api");
 jest.mock("../../src/store/auth.store", () => ({ useAuthStore: jest.fn() }));
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: mockBack, push: mockPush }),
@@ -40,6 +43,7 @@ jest.mock("../../src/components/navigation/drawer-context", () => ({
 }));
 
 const api = disciplineApi as jest.Mocked<typeof disciplineApi>;
+const mockBadgesApi = badgesApi as jest.Mocked<typeof badgesApi>;
 const { useAuthStore } = jest.requireMock("../../src/store/auth.store") as {
   useAuthStore: jest.Mock;
 };
@@ -71,6 +75,17 @@ beforeEach(() => {
   });
   useAuthStore.mockReturnValue({ schoolSlug: "college-vogt" });
   api.list.mockResolvedValue([]);
+  mockBadgesApi.markRead.mockResolvedValue(undefined);
+  mockBadgesApi.getUnreadSummary.mockResolvedValue({
+    messagesUnread: 0,
+    feedUnread: 0,
+    ticketsNeedingResponse: 0,
+    ticketsUnreadReplies: 0,
+    children: [],
+    teacherClasses: [],
+    total: 0,
+  });
+  useBadgesStore.getState().clear();
 });
 
 describe("VieScolaireScreen", () => {
@@ -247,6 +262,49 @@ describe("VieScolaireScreen", () => {
     render(<VieScolaireScreen />);
 
     expect(screen.getByTestId("synthese-empty")).toBeOnTheScreen();
+  });
+
+  // Régression : le badge discipline (icône app + nav) n'était jamais remis
+  // à zéro après consultation, car aucun écran n'appelait badgesApi.markRead.
+  it("marque la discipline comme lue pour cet enfant à l'ouverture de l'écran", async () => {
+    useDisciplineStore.setState({
+      eventsMap: { "child-1": [makeLifeEvent({ studentId: "child-1" })] },
+    });
+
+    render(<VieScolaireScreen />);
+
+    await waitFor(() => {
+      expect(mockBadgesApi.markRead).toHaveBeenCalledWith(
+        "college-vogt",
+        "DISCIPLINE",
+        "child-1",
+      );
+    });
+  });
+
+  it("recharge le résumé des badges après avoir marqué la discipline comme lue", async () => {
+    useDisciplineStore.setState({
+      eventsMap: { "child-1": [makeLifeEvent({ studentId: "child-1" })] },
+    });
+
+    render(<VieScolaireScreen />);
+
+    await waitFor(() => {
+      expect(mockBadgesApi.getUnreadSummary).toHaveBeenCalledWith(
+        "college-vogt",
+      );
+    });
+  });
+
+  it("n'appelle pas markRead si l'école n'est pas encore connue", () => {
+    useAuthStore.mockReturnValue({ schoolSlug: null });
+    useDisciplineStore.setState({
+      eventsMap: { "child-1": [makeLifeEvent({ studentId: "child-1" })] },
+    });
+
+    render(<VieScolaireScreen />);
+
+    expect(mockBadgesApi.markRead).not.toHaveBeenCalled();
   });
 
   it("affiche une erreur de chargement et permet de reessayer", async () => {

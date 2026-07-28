@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
   Alert,
-  Linking,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -17,6 +17,8 @@ import type {
   FeedPost,
 } from "../../types/feed.types";
 import { useTranslation } from "../../i18n/useTranslation";
+import { extractImageUrls } from "../../utils/richText";
+import { downloadAndOpenAttachment } from "../../utils/attachment-download";
 import {
   formatCompactAuthorName,
   formatFeedDate,
@@ -121,6 +123,10 @@ export function FeedPostCard({
   const [reactionOpen, setReactionOpen] = useState(false);
   const [draftComment, setDraftComment] = useState("");
   const excerpt = useMemo(() => stripHtml(post.bodyHtml), [post.bodyHtml]);
+  const inlineImageUrls = useMemo(
+    () => extractImageUrls(post.bodyHtml),
+    [post.bodyHtml],
+  );
   const totalVotes =
     post.poll?.options.reduce((sum, option) => sum + option.votes, 0) ?? 0;
 
@@ -141,11 +147,21 @@ export function FeedPostCard({
   async function openAttachment(attachment: FeedAttachment) {
     if (!attachment.fileUrl) return;
     try {
-      const supported = await Linking.canOpenURL(attachment.fileUrl);
-      if (!supported) {
-        throw new Error("UNSUPPORTED_FEED_ATTACHMENT");
-      }
-      await Linking.openURL(attachment.fileUrl);
+      await downloadAndOpenAttachment({
+        fileUrl: attachment.fileUrl,
+        fileName: attachment.fileName,
+      });
+    } catch {
+      Alert.alert(
+        t("feed.errors.openAttachmentTitle"),
+        t("feed.errors.openAttachment"),
+      );
+    }
+  }
+
+  async function openImageUrl(url: string) {
+    try {
+      await downloadAndOpenAttachment({ fileUrl: url, mimeType: "image/jpeg" });
     } catch {
       Alert.alert(
         t("feed.errors.openAttachmentTitle"),
@@ -185,6 +201,27 @@ export function FeedPostCard({
         </View>
       </View>
       <Text style={styles.bodyText}>{excerpt || t("feed.post.noText")}</Text>
+
+      {inlineImageUrls.length > 0 ? (
+        <View
+          style={styles.inlineImages}
+          testID={`feed-post-images-${post.id}`}
+        >
+          {inlineImageUrls.map((url, index) => (
+            <TouchableOpacity
+              key={`${url}-${index}`}
+              onPress={() => void openImageUrl(url)}
+              testID={`feed-post-inline-image-${post.id}-${index}`}
+            >
+              <Image
+                source={{ uri: url }}
+                style={styles.inlineImage}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : null}
 
       {post.attachments.length > 0 ? (
         <View style={styles.attachmentPanel}>
@@ -451,6 +488,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 15,
     flexShrink: 1,
+  },
+  inlineImages: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  inlineImage: {
+    width: 96,
+    height: 96,
+    borderRadius: 10,
+    backgroundColor: colors.warmSurface,
   },
   attachmentPanel: {
     borderRadius: 16,

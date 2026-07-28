@@ -100,13 +100,20 @@ function FeedScreen() {
     <FeedModuleScreen
       schoolSlug={schoolSlug}
       viewerRole={viewerRole}
-      renderHeader={() => (
+      renderHeader={({ toggleSearch, searchVisible }) => (
         <ModuleHeader
           title={t("feed.page.title")}
           subtitle={subtitle}
           onBack={() => moduleBack(router)}
           testID="feed-header"
           backTestID="feed-back-btn"
+          secondaryAction={{
+            icon: "search-outline",
+            onPress: toggleSearch,
+            active: searchVisible,
+            testID: "feed-search-toggle",
+            accessibilityLabel: t("feed.search.toggle"),
+          }}
         />
       )}
       loadPage={loadPage}

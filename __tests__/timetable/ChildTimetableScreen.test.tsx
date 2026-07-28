@@ -36,6 +36,12 @@ const mockLoadMyTimetable = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: mockBack, push: mockPush }),
   useLocalSearchParams: () => ({ childId: "stu-1" }),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 
 jest.mock("react-native-safe-area-context", () => ({

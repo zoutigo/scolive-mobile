@@ -143,8 +143,13 @@ describe("TeacherClassFeedScreen", () => {
     render(<TeacherClassFeedScreen />);
 
     expect(capturedProps).not.toBeNull();
-    const renderHeader = capturedProps?.renderHeader as () => React.ReactNode;
-    render(<>{renderHeader()}</>);
+    const renderHeader = capturedProps?.renderHeader as (controls: {
+      toggleSearch: () => void;
+      searchVisible: boolean;
+    }) => React.ReactNode;
+    render(
+      <>{renderHeader({ toggleSearch: jest.fn(), searchVisible: false })}</>,
+    );
 
     expect(screen.getByTestId("teacher-class-feed-header")).toBeTruthy();
     expect(screen.getByTestId("teacher-class-feed-title")).toHaveTextContent(

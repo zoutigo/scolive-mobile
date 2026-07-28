@@ -15,8 +15,14 @@ import { timetableApi } from "../../src/api/timetable.api";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useFamilyStore } from "../../src/store/family.store";
 import { translate } from "../../src/i18n/useTranslation";
+import { downloadAndOpenAttachment } from "../../src/utils/attachment-download";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
+jest.mock("../../src/utils/attachment-download");
+const mockDownloadAndOpenAttachment =
+  downloadAndOpenAttachment as jest.MockedFunction<
+    typeof downloadAndOpenAttachment
+  >;
 jest.mock("../../src/api/homework.api");
 jest.mock("../../src/api/notes.api");
 jest.mock("../../src/api/timetable.api");
@@ -486,6 +492,32 @@ describe("ClassHomeworkScreen — vue enseignant", () => {
 
     expect(mockHomeworkApi.getHomeworkDetail).not.toHaveBeenCalled();
   });
+
+  // Régression : un double-tap sur "confirmer" déclenchait deux DELETE
+  // concurrents (le second échouait en 404 et écrasait le toast de succès
+  // du premier) — le test reproduit exactement le scénario signalé en recette.
+  it("un double-tap sur confirmer ne supprime le homework qu'une seule fois", async () => {
+    mockHomeworkApi.deleteHomework.mockResolvedValue(undefined);
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-delete-hw-1")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-delete-hw-1"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("confirm-dialog-confirm")).toBeTruthy(),
+    );
+
+    const confirmBtn = screen.getByTestId("confirm-dialog-confirm");
+    fireEvent.press(confirmBtn);
+    fireEvent.press(confirmBtn);
+
+    await waitFor(() =>
+      expect(mockHomeworkApi.deleteHomework).toHaveBeenCalledTimes(1),
+    );
+  });
 });
 
 // ─── Vue PARENT ────────────────────────────────────────────────────────────────
@@ -687,6 +719,45 @@ describe("ClassHomeworkScreen — comportements transversaux", () => {
         screen.getByTestId("class-homework-detail-inline-image-0"),
       ).toBeTruthy(),
     );
+  });
+
+  it("ouvre une pièce jointe via downloadAndOpenAttachment (pas Linking.openURL)", async () => {
+    mockHomeworkApi.getHomeworkDetail.mockResolvedValue({
+      ...BASE_DETAIL,
+      attachments: [
+        {
+          id: "att-1",
+          fileName: "consigne.pdf",
+          fileUrl: "https://cdn.example.com/homework/consigne.pdf",
+          mimeType: "application/pdf",
+          sizeLabel: "120 Ko",
+        },
+      ],
+    });
+
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Exercices 1 à 3")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-card-hw-1"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-homework-detail-attachment-0"),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-detail-attachment-0"));
+
+    await waitFor(() => {
+      expect(mockDownloadAndOpenAttachment).toHaveBeenCalledWith({
+        fileUrl: "https://cdn.example.com/homework/consigne.pdf",
+        fileName: "consigne.pdf",
+        mimeType: "application/pdf",
+      });
+    });
   });
 
   it("ferme le panel commentaires en re-appuyant sur le bouton", async () => {

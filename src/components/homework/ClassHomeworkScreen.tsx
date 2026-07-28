@@ -9,7 +9,6 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
-  Linking,
   Platform,
   RefreshControl,
   ScrollView,
@@ -39,6 +38,7 @@ import { useSuccessToastStore } from "../../store/success-toast.store";
 import { notesApi } from "../../api/notes.api";
 import { timetableApi } from "../../api/timetable.api";
 import { homeworkApi } from "../../api/homework.api";
+import { downloadAndOpenAttachment } from "../../utils/attachment-download";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { FormHero } from "../forms/FormHero";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
@@ -1554,11 +1554,11 @@ export function ClassHomeworkScreen({
   async function openAttachment(attachment: HomeworkAttachment) {
     if (!attachment.fileUrl) return;
     try {
-      const supported = await Linking.canOpenURL(attachment.fileUrl);
-      if (!supported) {
-        throw new Error("UNSUPPORTED_HOMEWORK_ATTACHMENT");
-      }
-      await Linking.openURL(attachment.fileUrl);
+      await downloadAndOpenAttachment({
+        fileUrl: attachment.fileUrl,
+        fileName: attachment.fileName,
+        mimeType: attachment.mimeType,
+      });
     } catch {
       Alert.alert(
         t("homework.errors.title"),
