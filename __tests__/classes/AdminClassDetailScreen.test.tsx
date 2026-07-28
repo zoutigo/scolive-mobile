@@ -356,9 +356,7 @@ describe("AdminClassDetailScreen", () => {
     render(<AdminClassDetailScreen />);
     fireEvent.press(screen.getByTestId("admin-class-detail-tab-eleves"));
     expect(screen.queryByTestId("admin-class-detail-fab")).toBeNull();
-    expect(
-      screen.queryByTestId("admin-class-detail-fab-students"),
-    ).toBeNull();
+    expect(screen.queryByTestId("admin-class-detail-fab-students")).toBeNull();
   });
 
   it("l'action 'voir élèves' du FAB fusionné bascule sur l'onglet Élèves (pas de navigation)", () => {
