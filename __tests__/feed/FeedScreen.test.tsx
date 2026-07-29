@@ -175,6 +175,24 @@ describe("FeedScreen", () => {
     expect(screen.getByTestId("module-header-title")).toBeTruthy();
   });
 
+  // Régression : le bouton de recherche du header n'était jamais branché
+  // (renderHeader ignorait toggleSearch/searchVisible) — la recherche était
+  // donc inatteignable depuis l'UI malgré son implémentation dans
+  // FeedModuleScreen.
+  it("ouvre le champ de recherche via le bouton du header", async () => {
+    await renderFeedScreen();
+
+    expect(
+      screen.queryByPlaceholderText("Rechercher une publication"),
+    ).toBeNull();
+
+    fireEvent.press(screen.getByTestId("feed-search-toggle"));
+
+    expect(
+      screen.getByPlaceholderText("Rechercher une publication"),
+    ).toBeTruthy();
+  });
+
   it("n'affiche pas de sous-titre quand l'utilisateur n'a pas d'école ni de classe référente", async () => {
     await renderFeedScreen();
 

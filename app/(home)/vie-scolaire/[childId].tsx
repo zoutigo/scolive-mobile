@@ -16,6 +16,8 @@ import { useTranslation } from "../../../src/i18n/useTranslation";
 import { useAuthStore } from "../../../src/store/auth.store";
 import { useFamilyStore } from "../../../src/store/family.store";
 import { useDisciplineStore } from "../../../src/store/discipline.store";
+import { badgesApi } from "../../../src/api/badges.api";
+import { useBadgesStore } from "../../../src/store/badges.store";
 import { ReadonlyDisciplineList } from "../../../src/components/discipline/ReadonlyDisciplineList";
 import { DisciplineSummaryOverview } from "../../../src/components/discipline/DisciplineSummaryOverview";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
@@ -122,6 +124,24 @@ function VieScolaireScreenContent() {
     if (!childId) return;
     setActiveChild(childId);
   }, [childId, setActiveChild]);
+
+  // Consultation de la vie scolaire d'un enfant = lecture des événements
+  // discipline de cet enfant : remet le badge (icône app + nav) à zéro.
+  // Sans cet appel, le compteur `disciplineUnread` ne redescend jamais
+  // (il se base côté API sur un readMarker jamais posé par le client).
+  // Le store de badges n'est resynchronisé qu'au retour en foreground de
+  // l'app — on force ici un rechargement immédiat pour que le badge
+  // disparaisse dès la sortie de cet écran, pas seulement après un cycle
+  // background/foreground.
+  useEffect(() => {
+    if (!schoolSlug || !childId) return;
+    badgesApi
+      .markRead(schoolSlug, "DISCIPLINE", childId)
+      .then(() => useBadgesStore.getState().loadSummary(schoolSlug))
+      .catch(() => {
+        // silencieux : ne bloque jamais la consultation pour un souci réseau
+      });
+  }, [schoolSlug, childId]);
 
   const childName = child
     ? `${child.lastName} ${child.firstName}`

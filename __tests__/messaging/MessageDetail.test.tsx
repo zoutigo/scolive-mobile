@@ -15,6 +15,13 @@ import { messagingApi } from "../../src/api/messaging.api";
 import { useMessagingStore } from "../../src/store/messaging.store";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useSuccessToastStore } from "../../src/store/success-toast.store";
+import { downloadAndOpenAttachment } from "../../src/utils/attachment-download";
+
+jest.mock("../../src/utils/attachment-download");
+const mockDownloadAndOpenAttachment =
+  downloadAndOpenAttachment as jest.MockedFunction<
+    typeof downloadAndOpenAttachment
+  >;
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -328,9 +335,11 @@ describe("Pièces jointes", () => {
     await renderDetailAndWait();
     fireEvent.press(screen.getByTestId("attachment-row-m1-att-1"));
     await waitFor(() => {
-      expect(Linking.openURL).toHaveBeenCalledWith(
-        "http://10.0.2.2:9000/media/bulletin.pdf",
-      );
+      expect(mockDownloadAndOpenAttachment).toHaveBeenCalledWith({
+        fileUrl: "http://10.0.2.2:9000/media/bulletin.pdf",
+        fileName: "bulletin.pdf",
+        mimeType: "application/pdf",
+      });
     });
   });
 });
@@ -673,6 +682,42 @@ describe("Action répondre", () => {
     });
     await renderDetailAndWait();
     expect(screen.queryByTestId("reply-btn-m1")).toBeNull();
+  });
+});
+
+// Régression : un brouillon consulté via son détail (pas depuis la liste, qui
+// redirige déjà vers compose) n'offrait que Transférer/Archiver/Supprimer —
+// aucun moyen de reprendre la rédaction et l'envoyer.
+describe("Action modifier le brouillon", () => {
+  it("affiche le bouton 'modifier le brouillon' pour un message DRAFT", async () => {
+    api.get.mockResolvedValueOnce({
+      ...messageDetail,
+      status: "DRAFT",
+      isSender: true,
+      recipientState: null,
+    });
+    await renderDetailAndWait();
+    expect(screen.getByTestId("edit-draft-btn-m1")).toBeTruthy();
+  });
+
+  it("n'affiche pas le bouton pour un message qui n'est pas un brouillon", async () => {
+    await renderDetailAndWait();
+    expect(screen.queryByTestId("edit-draft-btn-m1")).toBeNull();
+  });
+
+  it("navigue vers compose avec draftId au press", async () => {
+    api.get.mockResolvedValueOnce({
+      ...messageDetail,
+      status: "DRAFT",
+      isSender: true,
+      recipientState: null,
+    });
+    await renderDetailAndWait();
+    fireEvent.press(screen.getByTestId("edit-draft-btn-m1"));
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/messages/compose",
+      params: { draftId: "m1" },
+    });
   });
 });
 

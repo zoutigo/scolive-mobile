@@ -10,11 +10,11 @@ let notificationsConfigured = false;
 // Remote push notifications are unavailable in Expo Go since SDK 53.
 // expo-notifications initializes push token registration at module load time,
 // which throws on Android in Expo Go. We load it lazily to avoid the crash.
-function isRunningInExpoGo() {
+export function isRunningInExpoGo() {
   return Constants.appOwnership === "expo";
 }
 
-function getNotifications(): typeof NotificationsType {
+export function getNotifications(): typeof NotificationsType {
   return require("expo-notifications");
 }
 

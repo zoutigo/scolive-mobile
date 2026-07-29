@@ -4,7 +4,7 @@
  * Fonctionnels : interactions (confirmer, annuler, clic overlay)
  */
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react-native";
+import { render, screen, fireEvent, act } from "@testing-library/react-native";
 import { ConfirmDialog } from "../../src/components/ConfirmDialog";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
@@ -201,5 +201,75 @@ describe("Interaction — annuler", () => {
     render(<ConfirmDialog {...baseProps} onConfirm={onConfirm} />);
     fireEvent.press(screen.getByTestId("confirm-dialog-overlay"));
     expect(onConfirm).not.toHaveBeenCalled();
+  });
+});
+
+// ── Anti double-tap ───────────────────────────────────────────────────────────
+// Régression : un double-tap sur "confirmer" déclenchait deux appels de
+// l'action (ex: deux DELETE concurrents), le second échouant et écrasant le
+// toast de succès du premier — donnant l'impression que l'action a échoué
+// alors qu'elle a réussi.
+
+describe("Anti double-tap sur confirmer", () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  it("n'appelle onConfirm qu'une seule fois lors de deux presses rapprochées", () => {
+    const onConfirm = jest.fn();
+    render(<ConfirmDialog {...baseProps} onConfirm={onConfirm} />);
+    const confirmBtn = screen.getByTestId("confirm-dialog-confirm");
+    fireEvent.press(confirmBtn);
+    fireEvent.press(confirmBtn);
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("désactive le bouton confirmer juste après le premier press", () => {
+    const onConfirm = jest.fn();
+    render(<ConfirmDialog {...baseProps} onConfirm={onConfirm} />);
+    const confirmBtn = screen.getByTestId("confirm-dialog-confirm");
+    fireEvent.press(confirmBtn);
+    expect(confirmBtn.props.accessibilityState.disabled).toBe(true);
+  });
+
+  it("réactive le bouton confirmer après le délai anti double-tap", () => {
+    const onConfirm = jest.fn();
+    render(<ConfirmDialog {...baseProps} onConfirm={onConfirm} />);
+    const confirmBtn = screen.getByTestId("confirm-dialog-confirm");
+    fireEvent.press(confirmBtn);
+    act(() => {
+      jest.advanceTimersByTime(900);
+    });
+    fireEvent.press(confirmBtn);
+    expect(onConfirm).toHaveBeenCalledTimes(2);
+  });
+
+  it("réactive le bouton confirmer quand le dialog est rouvert (visible repasse à true)", () => {
+    const onConfirm = jest.fn();
+    const { rerender } = render(
+      <ConfirmDialog {...baseProps} onConfirm={onConfirm} />,
+    );
+    const confirmBtn = screen.getByTestId("confirm-dialog-confirm");
+    fireEvent.press(confirmBtn);
+    rerender(
+      <ConfirmDialog {...baseProps} onConfirm={onConfirm} visible={false} />,
+    );
+    rerender(<ConfirmDialog {...baseProps} onConfirm={onConfirm} visible />);
+    fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
+    expect(onConfirm).toHaveBeenCalledTimes(2);
+  });
+
+  it("n'affecte pas le bouton annuler : il reste utilisable après un press sur confirmer", () => {
+    const onConfirm = jest.fn();
+    const onCancel = jest.fn();
+    render(
+      <ConfirmDialog
+        {...baseProps}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />,
+    );
+    fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
+    fireEvent.press(screen.getByTestId("confirm-dialog-cancel"));
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 });

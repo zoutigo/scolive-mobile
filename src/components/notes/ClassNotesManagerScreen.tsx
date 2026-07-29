@@ -29,6 +29,7 @@ import { teachersApi } from "../../api/teachers.api";
 import { useAuthStore } from "../../store/auth.store";
 import { useNotesStore } from "../../store/notes.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
+import { downloadAndOpenAttachment } from "../../utils/attachment-download";
 import type {
   CouncilDrafts,
   EvaluationRow,
@@ -60,6 +61,7 @@ import {
 import { getViewType } from "../navigation/nav-config";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
+import { MultiActionFab, type FabAction } from "../navigation/MultiActionFab";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { NotesTabs } from "./NotesTabs";
 import type { NotesTabKey } from "./NotesTabs";
@@ -130,8 +132,12 @@ function createEmptyEvaluationForm(): UpsertEvaluationPayload {
 
 export function ClassNotesManagerScreen({
   showHeader = true,
+  extraFabActions = [],
 }: {
   showHeader?: boolean;
+  /** Actions supplémentaires fusionnées avec le FAB propre à cet écran
+   * (ex. "Voir les élèves" quand embarqué dans la fiche classe admin). */
+  extraFabActions?: FabAction[];
 } = {}) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -1356,19 +1362,23 @@ export function ClassNotesManagerScreen({
           )}
 
           {!evalFiltersOpen && classId ? (
-            <TouchableOpacity
-              style={[
-                styles.fab,
-                { bottom: insets.bottom + 16 + BOTTOM_TAB_BAR_HEIGHT },
-              ]}
-              onPress={() => {
-                resetEvaluationForm();
-                setEvaluationView("form");
-              }}
+            <MultiActionFab
+              bottom={insets.bottom + 16 + BOTTOM_TAB_BAR_HEIGHT}
               testID="class-notes-fab-create"
-            >
-              <Ionicons name="add" size={28} color={colors.white} />
-            </TouchableOpacity>
+              actions={[
+                {
+                  key: "add-evaluation",
+                  icon: "add",
+                  label: t("notes.manager.toast.createTitle"),
+                  onPress: () => {
+                    resetEvaluationForm();
+                    setEvaluationView("form");
+                  },
+                  testID: "class-notes-fab-create",
+                },
+                ...extraFabActions,
+              ]}
+            />
           ) : null}
         </View>
       ) : null}
@@ -1624,6 +1634,54 @@ export function ClassNotesManagerScreen({
                   {selectedEvalRow.author.firstName}{" "}
                   {selectedEvalRow.author.lastName}
                 </Text>
+                {(selectedEvaluation?.attachments ?? []).length > 0 ? (
+                  <View style={styles.scoresHeroAttachments}>
+                    {(selectedEvaluation?.attachments ?? []).map(
+                      (attachment, index) => (
+                        <TouchableOpacity
+                          key={
+                            attachment.id ?? `${attachment.fileName}-${index}`
+                          }
+                          style={styles.scoresHeroAttachmentRow}
+                          disabled={!attachment.fileUrl}
+                          onPress={() =>
+                            void (async () => {
+                              try {
+                                await downloadAndOpenAttachment({
+                                  fileUrl: attachment.fileUrl,
+                                  fileName: attachment.fileName,
+                                  mimeType: attachment.mimeType,
+                                });
+                              } catch {
+                                showError({
+                                  title: t(
+                                    "notes.manager.toast.attachmentErrorTitle",
+                                  ),
+                                  message: t(
+                                    "notes.manager.toast.attachmentErrorMessage",
+                                  ),
+                                });
+                              }
+                            })()
+                          }
+                          testID={`class-notes-scores-attachment-${index}`}
+                        >
+                          <Ionicons
+                            name="attach-outline"
+                            size={14}
+                            color={colors.primary}
+                          />
+                          <Text
+                            style={styles.scoresHeroAttachmentName}
+                            numberOfLines={1}
+                          >
+                            {attachment.fileName}
+                          </Text>
+                        </TouchableOpacity>
+                      ),
+                    )}
+                  </View>
+                ) : null}
               </>
             ) : null}
           </View>
@@ -2134,22 +2192,6 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     gap: 10,
   },
-  fab: {
-    position: "absolute",
-    right: 16,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 6,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    zIndex: 10,
-  },
   backRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -2245,6 +2287,17 @@ const styles = StyleSheet.create({
     color: colors.warmAccent,
   },
   scoresHeroSubtitle: { fontSize: 12, color: colors.textSecondary },
+  scoresHeroAttachments: { marginTop: 4, gap: 4 },
+  scoresHeroAttachmentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  scoresHeroAttachmentName: {
+    fontSize: 12,
+    color: colors.primary,
+    flexShrink: 1,
+  },
   detailRow: {
     flexDirection: "row",
     alignItems: "flex-start",

@@ -42,6 +42,8 @@ const mockUseWindowDimensions = useWindowDimensions as jest.MockedFunction<
 
 const mockBack = jest.fn();
 const mockPush = jest.fn();
+const focusCallbacksRef: Array<() => void> = [];
+
 jest.mock("expo-router", () => ({
   useRouter: () => ({
     back: mockBack,
@@ -50,6 +52,17 @@ jest.mock("expo-router", () => ({
     navigate: jest.fn(),
   }),
   useLocalSearchParams: () => ({}),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      focusCallbacksRef.push(callback);
+      callback();
+      return () => {
+        const index = focusCallbacksRef.indexOf(callback);
+        if (index !== -1) focusCallbacksRef.splice(index, 1);
+      };
+    }, [callback]);
+  },
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -251,6 +264,7 @@ function setupStores(overrides?: {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  focusCallbacksRef.length = 0;
   mockUseWindowDimensions.mockReturnValue({
     width: 360,
     height: 800,
@@ -944,6 +958,32 @@ describe("TeacherAgendaScreen — navigation vers slot-edit", () => {
     expect(useTimetableStore.getState().pendingSlotEdit).not.toBeNull();
     expect(useTimetableStore.getState().pendingSlotEdit?.occurrence.id).toBe(
       "occ-class-edit",
+    );
+  });
+});
+
+describe("TeacherAgendaScreen — refetch au retour de focus (slot-edit)", () => {
+  it("recharge l'agenda quand l'écran retrouve le focus, sans remonter le composant", async () => {
+    render(<TeacherAgendaScreen />);
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-mine-day-card-occ-ang-14"),
+      ).toBeTruthy(),
+    );
+
+    const callsBeforeRefocus = api.getTeacherMyTimetable.mock.calls.length;
+
+    // Simule un retour de focus après avoir modifié/supprimé un créneau
+    // depuis l'écran slot-edit (qui n'a jamais remonté cet écran).
+    await act(async () => {
+      focusCallbacksRef.forEach((cb) => cb());
+      await Promise.resolve();
+    });
+
+    await waitFor(() =>
+      expect(api.getTeacherMyTimetable.mock.calls.length).toBeGreaterThan(
+        callsBeforeRefocus,
+      ),
     );
   });
 });

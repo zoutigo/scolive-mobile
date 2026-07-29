@@ -140,7 +140,7 @@ export function ChildClassFeedScreen() {
     <FeedModuleScreen
       schoolSlug={schoolSlug}
       viewerRole={viewerRole}
-      renderHeader={() => (
+      renderHeader={({ toggleSearch, searchVisible }) => (
         <View style={styles.headerWrap}>
           <ModuleHeader
             title={t("feed.classLife.title")}
@@ -151,6 +151,13 @@ export function ChildClassFeedScreen() {
             titleTestID="child-class-feed-header-title"
             subtitleTestID="child-class-feed-header-subtitle"
             topInset={insets.top}
+            secondaryAction={{
+              icon: "search-outline",
+              onPress: toggleSearch,
+              active: searchVisible,
+              testID: "child-class-feed-search-toggle",
+              accessibilityLabel: t("feed.search.toggle"),
+            }}
           />
         </View>
       )}

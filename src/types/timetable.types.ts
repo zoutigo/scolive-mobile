@@ -174,6 +174,12 @@ export type TimetableClassOption = {
   studentCount: number;
   academicLevelId?: string | null;
   academicLevelName?: string | null;
+  capacity?: number | null;
+  referentTeacher?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  } | null;
 };
 
 export type TimetableClassOptionsResponse = {

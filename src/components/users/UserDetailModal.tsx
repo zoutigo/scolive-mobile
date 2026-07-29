@@ -27,6 +27,12 @@ import { PromoteToUserSheet } from "./PromoteToUserSheet";
 import { CredentialDisplaySheet } from "./CredentialDisplaySheet";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { extractApiError } from "../../utils/api-error";
+import { useTranslation } from "../../i18n/useTranslation";
+import {
+  ContactModeFields,
+  contactOnlyCreateFormSchema,
+  type ContactOnlyCreateFormValues,
+} from "./UserCreateForms";
 import type {
   SchoolMember,
   SchoolUser,
@@ -911,19 +917,75 @@ function AssignChildToParentSheet({
 
 // ── AssignParentToStudentSheet ────────────────────────────────────────────────
 
+function NewParentInlineForm({
+  isSubmitting,
+  onCancel,
+  onSubmit,
+}: {
+  isSubmitting: boolean;
+  onCancel: () => void;
+  onSubmit: (values: ContactOnlyCreateFormValues) => void;
+}) {
+  const { t } = useTranslation();
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setFocus,
+    formState: { errors },
+  } = useForm<ContactOnlyCreateFormValues>({
+    resolver: zodResolver(contactOnlyCreateFormSchema),
+    mode: "onChange",
+    defaultValues: {
+      mode: "phone",
+      phone: "",
+      pin: "",
+      email: "",
+      password: "",
+    },
+  });
+
+  const mode = watch("mode");
+
+  return (
+    <View testID="assign-parent-new-form">
+      <ContactModeFields
+        control={control}
+        errors={errors}
+        mode={mode}
+        testIDPrefix="assign-parent-new"
+      />
+      <FormActions
+        submitLabel={t("users.assignParent.new.submit")}
+        isSubmitting={isSubmitting}
+        onCancel={onCancel}
+        onSubmit={handleSubmit(onSubmit, (errs) => {
+          const first = Object.keys(errs)[0];
+          if (first) setFocus(first as Parameters<typeof setFocus>[0]);
+        })}
+        testIDPrefix="assign-parent-new"
+      />
+    </View>
+  );
+}
+
 function AssignParentToStudentSheet({
   visible,
   schoolSlug,
   isSubmitting,
   onClose,
-  onSubmit,
+  onSubmitExisting,
+  onSubmitNew,
 }: {
   visible: boolean;
   schoolSlug: string;
   isSubmitting: boolean;
   onClose: () => void;
-  onSubmit: (parentUserId: string) => void;
+  onSubmitExisting: (parentUserId: string) => void;
+  onSubmitNew: (values: ContactOnlyCreateFormValues) => void;
 }) {
+  const { t } = useTranslation();
+  const [subMode, setSubMode] = useState<"existing" | "new">("existing");
   const [query, setQuery] = useState("");
   const [parents, setParents] = useState<UserItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -951,6 +1013,7 @@ function AssignParentToStudentSheet({
 
   useEffect(() => {
     if (!visible) {
+      setSubMode("existing");
       setQuery("");
       setSelected(null);
       setParents([]);
@@ -975,73 +1038,119 @@ function AssignParentToStudentSheet({
       onClose={onClose}
       testID="assign-parent-sheet"
       footer={
-        <FormActions
-          submitLabel="Associer le parent"
-          isSubmitting={isSubmitting}
-          submitDisabled={!selected}
-          onCancel={onClose}
-          onSubmit={() => {
-            if (selected) onSubmit(selected.id);
-          }}
-          testIDPrefix="assign-parent"
-        />
+        subMode === "existing" ? (
+          <FormActions
+            submitLabel="Associer le parent"
+            isSubmitting={isSubmitting}
+            submitDisabled={!selected}
+            onCancel={onClose}
+            onSubmit={() => {
+              if (selected) onSubmitExisting(selected.id);
+            }}
+            testIDPrefix="assign-parent"
+          />
+        ) : null
       }
     >
-      <TextInput
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Nom ou prénom du parent..."
-        placeholderTextColor={colors.textSecondary}
-        style={styles.searchInput}
-        testID="assign-parent-search"
-      />
-      {isLoading ? (
-        <ActivityIndicator
-          color={colors.primary}
-          size="small"
-          style={{ marginTop: 12 }}
+      <View style={styles.modeRow} testID="assign-parent-submode">
+        <TouchableOpacity
+          style={[
+            styles.modeChip,
+            subMode === "existing" && styles.modeChipActive,
+          ]}
+          onPress={() => setSubMode("existing")}
+          testID="assign-parent-submode-existing"
+        >
+          <Text
+            style={[
+              styles.modeChipLabel,
+              subMode === "existing" && styles.modeChipLabelActive,
+            ]}
+          >
+            {t("users.assignParent.mode.existing")}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.modeChip, subMode === "new" && styles.modeChipActive]}
+          onPress={() => setSubMode("new")}
+          testID="assign-parent-submode-new"
+        >
+          <Text
+            style={[
+              styles.modeChipLabel,
+              subMode === "new" && styles.modeChipLabelActive,
+            ]}
+          >
+            {t("users.assignParent.mode.new")}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {subMode === "new" ? (
+        <NewParentInlineForm
+          isSubmitting={isSubmitting}
+          onCancel={onClose}
+          onSubmit={onSubmitNew}
         />
       ) : (
-        <View style={styles.studentList}>
-          {parents.map((parent) => {
-            const isSelected = selected?.id === parent.id;
-            return (
-              <TouchableOpacity
-                key={parent.id}
-                style={[
-                  styles.studentRow,
-                  isSelected && styles.studentRowSelected,
-                ]}
-                onPress={() => setSelected(isSelected ? null : parent)}
-                testID={`assign-parent-user-${parent.id}`}
-              >
-                <View style={styles.studentRowText}>
-                  <Text
+        <>
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Nom ou prénom du parent..."
+            placeholderTextColor={colors.textSecondary}
+            style={styles.searchInput}
+            testID="assign-parent-search"
+          />
+          {isLoading ? (
+            <ActivityIndicator
+              color={colors.primary}
+              size="small"
+              style={{ marginTop: 12 }}
+            />
+          ) : (
+            <View style={styles.studentList}>
+              {parents.map((parent) => {
+                const isSelected = selected?.id === parent.id;
+                return (
+                  <TouchableOpacity
+                    key={parent.id}
                     style={[
-                      styles.studentName,
-                      isSelected && styles.studentNameSelected,
+                      styles.studentRow,
+                      isSelected && styles.studentRowSelected,
                     ]}
+                    onPress={() => setSelected(isSelected ? null : parent)}
+                    testID={`assign-parent-user-${parent.id}`}
                   >
-                    {parent.lastName} {parent.firstName}
-                  </Text>
-                  {parent.phone ? (
-                    <Text style={styles.studentClass}>{parent.phone}</Text>
-                  ) : null}
-                </View>
-                {isSelected ? (
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={20}
-                    color={colors.primary}
-                  />
-                ) : null}
-              </TouchableOpacity>
-            );
-          })}
-          {!isLoading && parents.length === 0 ? (
-            <Text style={styles.noStudents}>Aucun parent trouvé.</Text>
-          ) : null}
-        </View>
+                    <View style={styles.studentRowText}>
+                      <Text
+                        style={[
+                          styles.studentName,
+                          isSelected && styles.studentNameSelected,
+                        ]}
+                      >
+                        {parent.lastName} {parent.firstName}
+                      </Text>
+                      {parent.phone ? (
+                        <Text style={styles.studentClass}>{parent.phone}</Text>
+                      ) : null}
+                    </View>
+                    {isSelected ? (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={20}
+                        color={colors.primary}
+                      />
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })}
+              {!isLoading && parents.length === 0 ? (
+                <Text style={styles.noStudents}>Aucun parent trouvé.</Text>
+              ) : null}
+            </View>
+          )}
+        </>
       )}
     </ModalFrame>
   );
@@ -1264,6 +1373,33 @@ export function UserDetailModal({
         await familyApi.linkExistingParent(schoolSlug, {
           studentId,
           parentUserId,
+        });
+        setAssignParentVisible(false);
+        await loadDetail();
+        showSuccess({
+          title: "Parent associé",
+          message: "Le lien parent-élève a été créé avec succès.",
+        });
+      } catch (err) {
+        showError({ title: "Erreur", message: extractApiError(err) });
+      } finally {
+        setIsSubmittingParent(false);
+      }
+    },
+    [user, schoolSlug, loadDetail, showSuccess, showError],
+  );
+
+  const handleCreateNewParent = useCallback(
+    async (values: ContactOnlyCreateFormValues) => {
+      if (!user) return;
+      const studentId = user.type === "student-only" ? user.studentId : user.id;
+      setIsSubmittingParent(true);
+      try {
+        await familyApi.createParent(schoolSlug, {
+          studentId,
+          ...(values.mode === "phone"
+            ? { phone: values.phone, pin: values.pin }
+            : { email: values.email, password: values.password }),
         });
         setAssignParentVisible(false);
         await loadDetail();
@@ -1739,9 +1875,10 @@ export function UserDetailModal({
           schoolSlug={schoolSlug}
           isSubmitting={isSubmittingParent}
           onClose={() => setAssignParentVisible(false)}
-          onSubmit={(parentUserId) =>
+          onSubmitExisting={(parentUserId) =>
             void handleSubmitAssignParent(parentUserId)
           }
+          onSubmitNew={(values) => void handleCreateNewParent(values)}
         />
       )}
 
@@ -2135,6 +2272,32 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     color: colors.textPrimary,
     fontSize: 14,
+  },
+  modeRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  modeChip: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    alignItems: "center",
+  },
+  modeChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  modeChipLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textSecondary,
+  },
+  modeChipLabelActive: {
+    color: colors.white,
   },
   studentList: { gap: 6, marginTop: 8 },
   studentRow: {

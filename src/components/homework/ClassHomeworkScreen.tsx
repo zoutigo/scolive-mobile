@@ -9,7 +9,6 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
-  Linking,
   Platform,
   RefreshControl,
   ScrollView,
@@ -39,11 +38,13 @@ import { useSuccessToastStore } from "../../store/success-toast.store";
 import { notesApi } from "../../api/notes.api";
 import { timetableApi } from "../../api/timetable.api";
 import { homeworkApi } from "../../api/homework.api";
+import { downloadAndOpenAttachment } from "../../utils/attachment-download";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { FormHero } from "../forms/FormHero";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { getViewType } from "../navigation/nav-config";
+import { MultiActionFab, type FabAction } from "../navigation/MultiActionFab";
 import {
   RichEditorField,
   type RichEditorFieldRef,
@@ -978,8 +979,12 @@ function HomeworkFormContent(props: {
 
 export function ClassHomeworkScreen({
   showHeader = true,
+  extraFabActions = [],
 }: {
   showHeader?: boolean;
+  /** Actions supplémentaires fusionnées avec le FAB propre à cet écran
+   * (ex. "Voir les élèves" quand embarqué dans la fiche classe admin). */
+  extraFabActions?: FabAction[];
 } = {}) {
   const { t, locale } = useTranslation();
   const params = useLocalSearchParams<{ classId?: string; childId?: string }>();
@@ -1549,11 +1554,11 @@ export function ClassHomeworkScreen({
   async function openAttachment(attachment: HomeworkAttachment) {
     if (!attachment.fileUrl) return;
     try {
-      const supported = await Linking.canOpenURL(attachment.fileUrl);
-      if (!supported) {
-        throw new Error("UNSUPPORTED_HOMEWORK_ATTACHMENT");
-      }
-      await Linking.openURL(attachment.fileUrl);
+      await downloadAndOpenAttachment({
+        fileUrl: attachment.fileUrl,
+        fileName: attachment.fileName,
+        mimeType: attachment.mimeType,
+      });
     } catch {
       Alert.alert(
         t("homework.errors.title"),
@@ -2329,14 +2334,25 @@ export function ClassHomeworkScreen({
         </View>
       ) : null}
 
-      {canManageAll && tab !== "forms" ? (
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={openCreateForm}
+      {tab !== "forms" ? (
+        <MultiActionFab
+          bottom={20 + BOTTOM_TAB_BAR_HEIGHT}
           testID="class-homework-fab"
-        >
-          <Ionicons name="add" size={28} color={colors.white} />
-        </TouchableOpacity>
+          actions={[
+            ...(canManageAll
+              ? [
+                  {
+                    key: "add-homework",
+                    icon: "add" as const,
+                    label: t("homework.form.createTitle"),
+                    onPress: openCreateForm,
+                    testID: "class-homework-fab",
+                  },
+                ]
+              : []),
+            ...extraFabActions,
+          ]}
+        />
       ) : null}
 
       <ConfirmDialog
@@ -2580,22 +2596,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "rgba(34,69,111,0.12)",
     paddingTop: 10,
-  },
-  fab: {
-    position: "absolute",
-    right: 20,
-    bottom: 20 + BOTTOM_TAB_BAR_HEIGHT,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 6,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
   },
   modalRoot: {
     flex: 1,

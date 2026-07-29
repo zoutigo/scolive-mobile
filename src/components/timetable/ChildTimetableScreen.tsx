@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
 import { ModuleHeader } from "../navigation/ModuleHeader";
@@ -222,9 +222,17 @@ export function ChildTimetableScreen() {
     });
   }, [childId, loadMyTimetable, range.fromDate, range.toDate, schoolSlug]);
 
-  useEffect(() => {
-    void load().catch(() => {});
-  }, [load]);
+  // useFocusEffect couvre déjà le montage initial (l'écran est focus dès son
+  // premier rendu) et se redéclenche à chaque retour de focus — nécessaire
+  // car un retour depuis l'écran d'édition d'un créneau (slot-edit) ne
+  // remonte pas cet écran : sans ce refetch, une suppression/modification de
+  // série récurrente semblait "ne pas être prise en compte" tant que
+  // l'agenda n'était pas rechargé manuellement.
+  useFocusEffect(
+    useCallback(() => {
+      void load().catch(() => {});
+    }, [load]),
+  );
 
   useEffect(() => {
     if (!childId) return;

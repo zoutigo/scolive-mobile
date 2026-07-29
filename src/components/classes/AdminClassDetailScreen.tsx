@@ -1,24 +1,24 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useMemo, useState } from "react";
+import { StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
 import { useAuthStore } from "../../store/auth.store";
 import { useTeacherClassNavStore } from "../../store/teacher-class-nav.store";
 import { ModuleHeader } from "../navigation/ModuleHeader";
-import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
+import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
+import { MultiActionFab, type FabAction } from "../navigation/MultiActionFab";
 import { TeacherClassDisciplineScreen } from "../discipline/TeacherClassDisciplineScreen";
 import { TeacherAgendaScreenInner } from "../timetable/TeacherAgendaScreen";
 import { ClassHomeworkScreen } from "../homework/ClassHomeworkScreen";
 import { ClassNotesManagerScreen } from "../notes/ClassNotesManagerScreen";
 import { TeacherClassFeedScreen } from "../feed/TeacherClassFeedScreen";
-import { ClassSelectModal } from "./ClassSelectModal";
+import { ClassStudentsScreen } from "./ClassStudentsScreen";
 import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
 import { moduleBack } from "../../utils/moduleBack";
 
-type TabKey = "discipline" | "agenda" | "devoirs" | "notes" | "fil";
+type TabKey = "discipline" | "agenda" | "devoirs" | "notes" | "fil" | "eleves";
 
 function buildTabs(t: TranslateFn) {
   return [
@@ -27,6 +27,7 @@ function buildTabs(t: TranslateFn) {
     { key: "devoirs" as const, label: t("homework.label") },
     { key: "notes" as const, label: "Notes" },
     { key: "fil" as const, label: "Fil" },
+    { key: "eleves" as const, label: t("classesAdmin.students.tabLabel") },
   ];
 }
 
@@ -42,7 +43,6 @@ export function AdminClassDetailScreen() {
   const classId = typeof params.classId === "string" ? params.classId : "";
 
   const [activeTab, setActiveTab] = useState<TabKey>("discipline");
-  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     if (schoolSlug && !classOptions && classId) {
@@ -53,17 +53,46 @@ export function AdminClassDetailScreen() {
   const className =
     classOptions?.classes.find((c) => c.classId === classId)?.className ?? null;
 
-  const handleClassSelect = useCallback(
-    (newClassId: string) => {
-      setModalVisible(false);
-      setActiveTab("discipline");
-      router.replace({
-        pathname: "/(home)/admin-classes/[classId]",
-        params: { classId: newClassId },
-      });
-    },
-    [router],
-  );
+  const studentsFabActions: FabAction[] = classId
+    ? [
+        {
+          key: "view-students",
+          icon: "people-outline",
+          label: t("classesAdmin.detail.fabViewStudents"),
+          onPress: () => setActiveTab("eleves"),
+          testID: "admin-class-detail-fab-students",
+        },
+        {
+          key: "add-student",
+          icon: "person-add-outline",
+          label: t("classesAdmin.students.fabAdd"),
+          onPress: () =>
+            router.push({
+              pathname: "/(home)/admin-classes/[classId]/students/add",
+              params: { classId },
+            }),
+          testID: "admin-class-detail-fab-add-student",
+        },
+        {
+          key: "set-referent",
+          icon: "person-outline",
+          label: t("classesAdmin.students.fabReferent"),
+          onPress: () =>
+            router.push({
+              pathname: "/(home)/admin-classes/[classId]/students/referent",
+              params: { classId },
+            }),
+          testID: "admin-class-detail-fab-referent",
+        },
+      ]
+    : [];
+
+  const fabBottom = insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT;
+  const hasTabOwnFab =
+    activeTab === "discipline" ||
+    activeTab === "devoirs" ||
+    activeTab === "notes" ||
+    activeTab === "eleves";
 
   return (
     <View style={styles.root} testID="admin-class-detail-screen">
@@ -87,7 +116,10 @@ export function AdminClassDetailScreen() {
 
       <View style={styles.tabContent}>
         {activeTab === "discipline" ? (
-          <TeacherClassDisciplineScreen showHeader={false} />
+          <TeacherClassDisciplineScreen
+            showHeader={false}
+            extraFabActions={studentsFabActions}
+          />
         ) : activeTab === "agenda" ? (
           <TeacherAgendaScreenInner
             initialTab="classes"
@@ -99,32 +131,29 @@ export function AdminClassDetailScreen() {
             showHeader={false}
           />
         ) : activeTab === "devoirs" ? (
-          <ClassHomeworkScreen showHeader={false} />
+          <ClassHomeworkScreen
+            showHeader={false}
+            extraFabActions={studentsFabActions}
+          />
         ) : activeTab === "notes" ? (
-          <ClassNotesManagerScreen showHeader={false} />
-        ) : (
+          <ClassNotesManagerScreen
+            showHeader={false}
+            extraFabActions={studentsFabActions}
+          />
+        ) : activeTab === "fil" ? (
           <TeacherClassFeedScreen showHeader={false} />
+        ) : (
+          <ClassStudentsScreen showHeader={false} />
         )}
       </View>
 
-      <TouchableOpacity
-        style={[
-          styles.fab,
-          { bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT },
-        ]}
-        onPress={() => setModalVisible(true)}
-        testID="admin-class-detail-fab"
-        activeOpacity={0.85}
-      >
-        <Ionicons name="layers-outline" size={26} color={colors.white} />
-      </TouchableOpacity>
-
-      <ClassSelectModal
-        visible={modalVisible}
-        classes={classOptions?.classes ?? []}
-        onSelect={handleClassSelect}
-        onDismiss={() => setModalVisible(false)}
-      />
+      {!hasTabOwnFab ? (
+        <MultiActionFab
+          bottom={fabBottom}
+          testID="admin-class-detail-fab"
+          actions={studentsFabActions}
+        />
+      ) : null}
     </View>
   );
 }
@@ -136,20 +165,5 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     flex: 1,
-  },
-  fab: {
-    position: "absolute",
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
   },
 });

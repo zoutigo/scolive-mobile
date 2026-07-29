@@ -59,12 +59,20 @@ export const familyApi = {
 
   async listAdminStudents(
     schoolSlug: string,
-    params: { search?: string; page?: number } = {},
+    params: {
+      search?: string;
+      page?: number;
+      limit?: number;
+      classId?: string;
+      status?: "ACTIVE" | "TRANSFERRED" | "WITHDRAWN" | "GRADUATED";
+    } = {},
   ): Promise<AdminStudentsPage> {
     const q = new URLSearchParams();
     if (params.search?.trim()) q.set("search", params.search.trim());
     q.set("page", String(params.page ?? 1));
-    q.set("limit", "20");
+    q.set("limit", String(params.limit ?? 20));
+    if (params.classId) q.set("classId", params.classId);
+    if (params.status) q.set("status", params.status);
     return apiFetch(
       `/schools/${schoolSlug}/admin/students?${q.toString()}`,
       {},

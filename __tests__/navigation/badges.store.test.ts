@@ -6,6 +6,14 @@ jest.mock("../../src/api/badges.api", () => ({
   },
 }));
 
+const mockSetBadgeCountAsync = jest.fn().mockResolvedValue(true);
+jest.mock("../../src/notifications/push-registration", () => ({
+  isRunningInExpoGo: () => false,
+  getNotifications: () => ({
+    setBadgeCountAsync: mockSetBadgeCountAsync,
+  }),
+}));
+
 const { badgesApi } = jest.requireMock("../../src/api/badges.api") as {
   badgesApi: Record<string, jest.Mock>;
 };
@@ -65,5 +73,22 @@ describe("useBadgesStore", () => {
 
     expect(useBadgesStore.getState().summary).toBeNull();
     expect(useBadgesStore.getState().schoolSlug).toBeNull();
+  });
+
+  it("synchronise le badge natif de l'icône avec le total non-lu au chargement", async () => {
+    badgesApi.getUnreadSummary.mockResolvedValueOnce(SUMMARY);
+
+    await useBadgesStore.getState().loadSummary("college-vogt");
+
+    expect(mockSetBadgeCountAsync).toHaveBeenCalledWith(1);
+  });
+
+  it("remet le badge natif de l'icône à zéro sur clear()", async () => {
+    badgesApi.getUnreadSummary.mockResolvedValueOnce(SUMMARY);
+    await useBadgesStore.getState().loadSummary("college-vogt");
+
+    useBadgesStore.getState().clear();
+
+    expect(mockSetBadgeCountAsync).toHaveBeenCalledWith(0);
   });
 });

@@ -11,11 +11,17 @@ import { useAuthStore } from "../../src/store/auth.store";
 import { useNotesStore } from "../../src/store/notes.store";
 import { teachersApi } from "../../src/api/teachers.api";
 import { notesApi } from "../../src/api/notes.api";
+import { downloadAndOpenAttachment } from "../../src/utils/attachment-download";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-document-picker", () => ({ getDocumentAsync: jest.fn() }));
 jest.mock("../../src/api/teachers.api");
 jest.mock("../../src/api/notes.api");
+jest.mock("../../src/utils/attachment-download");
+const mockDownloadAndOpenAttachment =
+  downloadAndOpenAttachment as jest.MockedFunction<
+    typeof downloadAndOpenAttachment
+  >;
 
 const mockTeachersApi = teachersApi as jest.Mocked<typeof teachersApi>;
 const mockNotesApi = notesApi as jest.Mocked<typeof notesApi>;
@@ -649,6 +655,52 @@ describe("Vue saisie notes", () => {
     const ntamack = screen.getByText("Ntamack Lisa");
     expect(abega).toBeTruthy();
     expect(ntamack).toBeTruthy();
+  });
+
+  it("affiche et ouvre une pièce jointe via downloadAndOpenAttachment", async () => {
+    const detailWithAttachment = {
+      ...EVAL_DETAIL,
+      attachments: [
+        {
+          id: "att-1",
+          fileName: "consignes.pdf",
+          fileUrl: "https://cdn.example.com/consignes.pdf",
+          mimeType: "application/pdf",
+          sizeLabel: "80 Ko",
+        },
+      ],
+    };
+    useNotesStore.setState({
+      evaluationDetails: { "eval-1": detailWithAttachment },
+      loadEvaluationDetail: jest
+        .fn()
+        .mockImplementation((_slug, _c, evalId) => {
+          useNotesStore.setState((s) => ({
+            evaluationDetails: {
+              ...s.evaluationDetails,
+              [evalId]: detailWithAttachment,
+            },
+          }));
+          return Promise.resolve(detailWithAttachment);
+        }),
+    } as never);
+
+    await openScoresView();
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-notes-scores-attachment-0"),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-notes-scores-attachment-0"));
+
+    await waitFor(() => {
+      expect(mockDownloadAndOpenAttachment).toHaveBeenCalledWith({
+        fileUrl: "https://cdn.example.com/consignes.pdf",
+        fileName: "consignes.pdf",
+        mimeType: "application/pdf",
+      });
+    });
   });
 
   it("filtre les élèves via le dropdown", async () => {

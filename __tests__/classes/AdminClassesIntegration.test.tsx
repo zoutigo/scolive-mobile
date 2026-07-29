@@ -4,15 +4,11 @@
  * Vérifie :
  * - nav-config : SCHOOL_NAV route classes = /admin-classes (non-placeholder)
  * - showHeader=false passe bien à chaque écran embarqué
- * - AdminClassDetailScreen + ClassSelectModal travaillent ensemble
+ * - AdminClassDetailScreen n'a plus de FAB "changer de classe" (retour à la
+ *   liste via la flèche du header)
  */
 import React from "react";
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 import { buildDrawerNavigationConfig } from "../../src/components/navigation/nav-config";
 import { AdminClassDetailScreen } from "../../src/components/classes/AdminClassDetailScreen";
 import { useTeacherClassNavStore } from "../../src/store/teacher-class-nav.store";
@@ -172,8 +168,8 @@ describe("Intégration — nav-config SCHOOL_NAV", () => {
   });
 });
 
-describe("Intégration — flux de sélection de classe dans AdminClassDetailScreen", () => {
-  it("le flux FAB → modal → sélection → router.replace fonctionne de bout en bout", async () => {
+describe("Intégration — fiche classe (AdminClassDetailScreen)", () => {
+  it("affiche le header avec le nom de la classe, sans FAB de changement de classe", () => {
     render(<AdminClassDetailScreen />);
 
     // Header affiché avec le bon nom de classe
@@ -183,21 +179,10 @@ describe("Intégration — flux de sélection de classe dans AdminClassDetailScr
     // Onglet Discipline visible par défaut avec showHeader=false
     expect(screen.getByTestId("disc-header-false")).toBeTruthy();
 
-    // On ouvre la modale via le FAB
-    fireEvent.press(screen.getByTestId("admin-class-detail-fab"));
-    expect(screen.getByText("Choisir une classe")).toBeTruthy();
-    expect(screen.getByText("5e B")).toBeTruthy();
-
-    // On sélectionne une autre classe
-    fireEvent.press(screen.getByTestId("class-select-item-class-2"));
-
-    // router.replace appelé avec le bon classId
-    await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith({
-        pathname: "/(home)/admin-classes/[classId]",
-        params: { classId: "class-2" },
-      });
-    });
+    // Le FAB "changer de classe" et sa modale ont été retirés : le retour à
+    // la liste des classes se fait désormais via la flèche du header.
+    expect(screen.queryByTestId("admin-class-detail-fab")).toBeNull();
+    expect(screen.queryByTestId("class-select-modal")).toBeNull();
   });
 
   it("chaque écran embarqué reçoit showHeader=false", () => {

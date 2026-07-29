@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -27,6 +26,7 @@ import { AppShell } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import { SwipePager } from "../../../src/components/SwipePager";
 import { getViewType } from "../../../src/components/navigation/nav-config";
+import { downloadAndOpenAttachment } from "../../../src/utils/attachment-download";
 import {
   useTranslation,
   type TranslateFn,
@@ -424,6 +424,14 @@ function MessageDetailPage({
     });
   }
 
+  function handleEditDraft() {
+    if (!message) return;
+    router.push({
+      pathname: "/(home)/messages/compose",
+      params: { draftId: message.id },
+    });
+  }
+
   function handleForward() {
     if (!message) return;
     const senderLabel = message.isSender
@@ -472,11 +480,11 @@ function MessageDetailPage({
 
   async function openAttachment(attachment: MessageAttachment) {
     try {
-      const supported = await Linking.canOpenURL(attachment.url);
-      if (!supported) {
-        throw new Error("UNSUPPORTED_ATTACHMENT_URL");
-      }
-      await Linking.openURL(attachment.url);
+      await downloadAndOpenAttachment({
+        fileUrl: attachment.url,
+        fileName: attachment.fileName,
+        mimeType: attachment.mimeType,
+      });
     } catch {
       Alert.alert(
         t("messaging.detail.errors.openAttachmentFailedTitle"),
@@ -607,6 +615,25 @@ function MessageDetailPage({
               style={styles.heroActionIcons}
               testID={`message-detail-action-bar-${id}`}
             >
+              {message.status === "DRAFT" ? (
+                <TouchableOpacity
+                  style={[
+                    styles.heroActionIconBtn,
+                    styles.heroActionIconBtnBlue,
+                  ]}
+                  onPress={handleEditDraft}
+                  disabled={isBusy}
+                  testID={`edit-draft-btn-${id}`}
+                  accessibilityLabel={t("messaging.actions.editDraft")}
+                >
+                  <Ionicons
+                    name="create-outline"
+                    size={18}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+              ) : null}
+
               {!message.isSender && (
                 <TouchableOpacity
                   style={[

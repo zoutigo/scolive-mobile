@@ -180,7 +180,9 @@ export type StudentCreateFormValues = z.infer<typeof studentCreateFormSchema>;
 // ContactModeFields — bloc partagé mode téléphone+PIN / email+mot de passe
 // ---------------------------------------------------------------------------
 
-function ContactModeFields<TFieldValues extends ContactModeFormValues>(props: {
+export function ContactModeFields<
+  TFieldValues extends ContactModeFormValues,
+>(props: {
   control: import("react-hook-form").Control<TFieldValues>;
   errors: Partial<
     Record<"phone" | "pin" | "email" | "password", { message?: string }>
