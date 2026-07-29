@@ -353,7 +353,7 @@ describe("FeedPostCard", () => {
           post={{
             ...post,
             bodyHtml:
-              '<p>Voici la photo</p><img src="https://scolive.lisaweb.fr/media/scolive-media/feed/inline/photo.jpg" />',
+              '<p>Voici la photo</p><img src="https://scolive.cm/media/scolive-media/feed/inline/photo.jpg" />',
           }}
           onToggleLike={jest.fn()}
           onAddComment={jest.fn()}

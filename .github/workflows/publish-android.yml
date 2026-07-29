@@ -97,8 +97,8 @@ jobs:
 
       - name: Build signed Android release APK
         env:
-          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://scolive.lisaweb.fr/api' }}
-          EXPO_PUBLIC_WEB_URL: ${{ vars.EXPO_PUBLIC_WEB_URL || 'https://scolive.lisaweb.fr' }}
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL || 'https://scolive.cm/api' }}
+          EXPO_PUBLIC_WEB_URL: ${{ vars.EXPO_PUBLIC_WEB_URL || 'https://scolive.cm' }}
           ORG_GRADLE_PROJECT_SCOLIVE_VERSION_NAME: ${{ steps.version.outputs.version_name }}
           ORG_GRADLE_PROJECT_SCOLIVE_VERSION_CODE: ${{ steps.version.outputs.version_code }}
           ORG_GRADLE_PROJECT_SCOLIVE_RELEASE_STORE_FILE: ${{ runner.temp }}/scolive-release.keystore
@@ -133,7 +133,7 @@ jobs:
             exit 1
           fi
 
-          UPLOAD_URL="${MOBILE_BUILD_UPLOAD_URL:-https://scolive.lisaweb.fr/api/mobile-builds/android}"
+          UPLOAD_URL="${MOBILE_BUILD_UPLOAD_URL:-https://scolive.cm/api/mobile-builds/android}"
 
           ARGS=(
             --fail --show-error --location

@@ -3,7 +3,7 @@ import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as WebBrowser from "expo-web-browser";
 
 const DEFAULT_DEV_WEB_URL = "http://localhost:3000";
-const DEFAULT_PROD_WEB_URL = "https://scolive.lisaweb.fr";
+const DEFAULT_PROD_WEB_URL = "https://scolive.cm";
 export const MOBILE_REDIRECT_URI = "scolive://auth/callback";
 
 export class GoogleAuthError extends Error {

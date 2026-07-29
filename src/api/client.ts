@@ -8,7 +8,7 @@ const SCHOOL_SLUG_KEY = "scolive_school_slug";
 
 // Android emulator → host machine ; iOS simulator → localhost
 const DEFAULT_DEV_BASE_URL = "http://10.0.2.2:3001/api";
-const DEFAULT_PROD_BASE_URL = "https://scolive.lisaweb.fr/api";
+const DEFAULT_PROD_BASE_URL = "https://scolive.cm/api";
 
 export const BASE_URL =
   process.env.EXPO_PUBLIC_API_URL ??

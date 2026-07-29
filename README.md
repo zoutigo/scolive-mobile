@@ -143,7 +143,7 @@ Secrets GitHub requis :
 Variable GitHub optionnelle :
 
 - `MOBILE_BUILD_UPLOAD_URL`
-  - défaut : `https://scolive.lisaweb.fr/api/mobile-builds/android`
+  - défaut : `https://scolive.cm/api/mobile-builds/android`
 
 Le workflow :
 
