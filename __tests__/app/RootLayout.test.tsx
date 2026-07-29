@@ -190,9 +190,7 @@ describe("RootLayout", () => {
     expect(Linking.openURL).toHaveBeenCalledWith(
       "https://downloads.example.com/scolive.apk",
     );
-    expect(Linking.openURL).not.toHaveBeenCalledWith(
-      "https://scolive.lisaweb.fr",
-    );
+    expect(Linking.openURL).not.toHaveBeenCalledWith("https://scolive.cm");
     expect(screen.getByTestId("root-install-guide")).toBeTruthy();
   });
 
