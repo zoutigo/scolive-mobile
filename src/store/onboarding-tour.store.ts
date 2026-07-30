@@ -9,6 +9,14 @@ export type OnboardingTourStep = {
   targetKey: string;
   titleKey: string;
   bodyKey: string;
+  /**
+   * When true, this step advances by the user tapping the highlighted
+   * target itself (its normal action still fires) instead of a "Next"
+   * button in the tooltip.
+   */
+  advanceOnTargetPress?: boolean;
+  /** Overrides the default "Finish" label when this is the last step. */
+  finishLabelKey?: string;
 };
 
 export type TargetLayout = {
@@ -40,6 +48,7 @@ type OnboardingTourState = {
   skip: () => void;
   finish: () => void;
   setTargetLayout: (layout: TargetLayout | null) => void;
+  advanceIfTarget: (targetKey: string) => void;
 };
 
 export const useOnboardingTourStore = create<OnboardingTourState>()(
@@ -105,6 +114,20 @@ export const useOnboardingTourStore = create<OnboardingTourState>()(
       },
 
       setTargetLayout: (layout) => set({ targetLayout: layout }),
+
+      advanceIfTarget: (targetKey) => {
+        const { activeTourId, steps, stepIndex } = get();
+        if (!activeTourId) return;
+        const step = steps[stepIndex];
+        if (
+          !step ||
+          step.targetKey !== targetKey ||
+          !step.advanceOnTargetPress
+        ) {
+          return;
+        }
+        get().next();
+      },
     }),
     {
       name: ONBOARDING_TOUR_STORAGE_KEY,

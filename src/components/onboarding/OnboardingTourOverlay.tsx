@@ -42,6 +42,11 @@ export function OnboardingTourOverlay() {
   }
 
   const isLastStep = stepIndex >= steps.length - 1;
+  const advanceOnTargetPress = !!step.advanceOnTargetPress;
+  const finishLabel =
+    isLastStep && step.finishLabelKey
+      ? t(step.finishLabelKey)
+      : t("onboardingTour.common.finish");
   const { height: screenHeight } = windowSize;
 
   const spaceBelow =
@@ -139,6 +144,11 @@ export function OnboardingTourOverlay() {
         <Text style={styles.body} testID="onboarding-tour-body">
           {t(step.bodyKey)}
         </Text>
+        {advanceOnTargetPress ? (
+          <Text style={styles.hint} testID="onboarding-tour-hint">
+            {t("onboardingTour.common.tapTarget")}
+          </Text>
+        ) : null}
         <View style={styles.actions}>
           <TouchableOpacity
             onPress={skip}
@@ -149,17 +159,17 @@ export function OnboardingTourOverlay() {
               {t("onboardingTour.common.skip")}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={next}
-            style={styles.nextButton}
-            testID="onboarding-tour-next"
-          >
-            <Text style={styles.nextText}>
-              {isLastStep
-                ? t("onboardingTour.common.finish")
-                : t("onboardingTour.common.next")}
-            </Text>
-          </TouchableOpacity>
+          {advanceOnTargetPress ? null : (
+            <TouchableOpacity
+              onPress={next}
+              style={styles.nextButton}
+              testID="onboarding-tour-next"
+            >
+              <Text style={styles.nextText}>
+                {isLastStep ? finishLabel : t("onboardingTour.common.next")}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>
@@ -207,6 +217,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: colors.textSecondary,
+  },
+  hint: {
+    fontSize: 12,
+    fontWeight: "600",
+    fontStyle: "italic",
+    color: colors.accentTeal,
   },
   actions: {
     flexDirection: "row",

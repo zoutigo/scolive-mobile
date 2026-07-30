@@ -109,6 +109,79 @@ describe("OnboardingTourOverlay", () => {
     ).toBe(true);
   });
 
+  it("hides the Suivant button and shows a tap hint when the step opts into advanceOnTargetPress", () => {
+    const stepsWithPress: OnboardingTourStep[] = [
+      {
+        targetKey: "a",
+        titleKey: "onboardingTour.childTimetable.step1Title",
+        bodyKey: "onboardingTour.childTimetable.step1Body",
+        advanceOnTargetPress: true,
+      },
+      STEPS[1],
+    ];
+    useOnboardingTourStore
+      .getState()
+      .startTour("agenda", "parent", stepsWithPress);
+    useOnboardingTourStore
+      .getState()
+      .setTargetLayout({ x: 10, y: 10, width: 100, height: 40 });
+
+    render(<OnboardingTourOverlay />);
+
+    expect(screen.queryByTestId("onboarding-tour-next")).toBeNull();
+    expect(screen.getByTestId("onboarding-tour-hint")).toBeOnTheScreen();
+    expect(screen.getByTestId("onboarding-tour-skip")).toBeOnTheScreen();
+  });
+
+  it("advancing an advanceOnTargetPress step happens via the store, not the tooltip button", () => {
+    const stepsWithPress: OnboardingTourStep[] = [
+      {
+        targetKey: "a",
+        titleKey: "onboardingTour.childTimetable.step1Title",
+        bodyKey: "onboardingTour.childTimetable.step1Body",
+        advanceOnTargetPress: true,
+      },
+      STEPS[1],
+    ];
+    useOnboardingTourStore
+      .getState()
+      .startTour("agenda", "parent", stepsWithPress);
+    useOnboardingTourStore
+      .getState()
+      .setTargetLayout({ x: 10, y: 10, width: 100, height: 40 });
+
+    render(<OnboardingTourOverlay />);
+
+    act(() => {
+      useOnboardingTourStore.getState().advanceIfTarget("a");
+    });
+
+    expect(useOnboardingTourStore.getState().stepIndex).toBe(1);
+  });
+
+  it("uses the step's finishLabelKey on the last step when provided", () => {
+    const stepsWithFinishLabel: OnboardingTourStep[] = [
+      STEPS[0],
+      {
+        ...STEPS[1],
+        finishLabelKey: "onboardingTour.common.gotIt",
+      },
+    ];
+    useOnboardingTourStore
+      .getState()
+      .startTour("agenda", "parent", stepsWithFinishLabel);
+    useOnboardingTourStore.getState().next();
+    useOnboardingTourStore
+      .getState()
+      .setTargetLayout({ x: 10, y: 10, width: 100, height: 40 });
+
+    render(<OnboardingTourOverlay />);
+
+    expect(screen.getByTestId("onboarding-tour-next")).toHaveTextContent(
+      "J'ai compris",
+    );
+  });
+
   it("skips (and completes) the tour when Passer is pressed", () => {
     useOnboardingTourStore.getState().startTour("agenda", "parent", STEPS);
     useOnboardingTourStore

@@ -66,6 +66,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.common.next": "Suivant",
     "onboardingTour.common.skip": "Passer",
     "onboardingTour.common.finish": "Terminer",
+    "onboardingTour.common.tapTarget":
+      "Touchez l'élément en surbrillance pour continuer.",
+    "onboardingTour.common.gotIt": "J'ai compris",
     "onboardingTour.childTimetable.step1Title": "Changez de vue",
     "onboardingTour.childTimetable.step1Body":
       "Touchez Jour, Semaine ou Mois pour changer la façon d'afficher l'emploi du temps.",
@@ -2868,6 +2871,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.common.next": "Next",
     "onboardingTour.common.skip": "Skip",
     "onboardingTour.common.finish": "Finish",
+    "onboardingTour.common.tapTarget":
+      "Tap the highlighted element to continue.",
+    "onboardingTour.common.gotIt": "Got it",
     "onboardingTour.childTimetable.step1Title": "Switch views",
     "onboardingTour.childTimetable.step1Body":
       "Tap Day, Week or Month to change how the schedule is displayed.",

@@ -21,6 +21,7 @@ import { useFamilyStore } from "../../store/family.store";
 import { useTimetableStore } from "../../store/timetable.store";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
 import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import {
   CHILD_TIMETABLE_TOUR_ID,
   CHILD_TIMETABLE_TOUR_STEPS,
@@ -251,6 +252,9 @@ export function ChildTimetableScreen() {
     role: "parent",
     steps: CHILD_TIMETABLE_TOUR_STEPS,
   });
+  const advanceOnboardingTourTarget = useOnboardingTourStore(
+    (state) => state.advanceIfTarget,
+  );
 
   useEffect(() => {
     if (!childId || !myTimetable?.class.name) return;
@@ -455,7 +459,12 @@ export function ChildTimetableScreen() {
                   <TouchableOpacity
                     key={entry.value}
                     style={[styles.modeTab, active && styles.modeTabActive]}
-                    onPress={() => setViewMode(entry.value)}
+                    onPress={() => {
+                      setViewMode(entry.value);
+                      advanceOnboardingTourTarget(
+                        CHILD_TIMETABLE_TOUR_TARGETS.modeTabs,
+                      );
+                    }}
                     testID={`child-timetable-mode-${entry.value}`}
                   >
                     <Text
@@ -477,7 +486,12 @@ export function ChildTimetableScreen() {
             >
               <TouchableOpacity
                 style={styles.periodNavButton}
-                onPress={() => moveCursor(-1)}
+                onPress={() => {
+                  moveCursor(-1);
+                  advanceOnboardingTourTarget(
+                    CHILD_TIMETABLE_TOUR_TARGETS.navRow,
+                  );
+                }}
                 testID="child-timetable-nav-prev"
               >
                 <Ionicons
@@ -488,14 +502,24 @@ export function ChildTimetableScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.periodLabelButton}
-                onPress={resetToCurrentPeriod}
+                onPress={() => {
+                  resetToCurrentPeriod();
+                  advanceOnboardingTourTarget(
+                    CHILD_TIMETABLE_TOUR_TARGETS.navRow,
+                  );
+                }}
                 testID="child-timetable-nav-label"
               >
                 <Text style={styles.periodLabelText}>{periodLabel}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.periodNavButton}
-                onPress={() => moveCursor(1)}
+                onPress={() => {
+                  moveCursor(1);
+                  advanceOnboardingTourTarget(
+                    CHILD_TIMETABLE_TOUR_TARGETS.navRow,
+                  );
+                }}
                 testID="child-timetable-nav-next"
               >
                 <Ionicons

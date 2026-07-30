@@ -83,6 +83,8 @@ describe("onboardingTour.* translations", () => {
       "onboardingTour.common.next",
       "onboardingTour.common.skip",
       "onboardingTour.common.finish",
+      "onboardingTour.common.tapTarget",
+      "onboardingTour.common.gotIt",
       "onboardingTour.childTimetable.step1Title",
       "onboardingTour.childTimetable.step1Body",
       "onboardingTour.childTimetable.step2Title",

@@ -117,6 +117,57 @@ describe("onboarding-tour.store", () => {
     });
   });
 
+  it("advanceIfTarget advances the step when it matches the active target-press step", () => {
+    const stepsWithPress: OnboardingTourStep[] = [
+      {
+        targetKey: "a",
+        titleKey: "t1",
+        bodyKey: "b1",
+        advanceOnTargetPress: true,
+      },
+      { targetKey: "b", titleKey: "t2", bodyKey: "b2" },
+    ];
+    useOnboardingTourStore
+      .getState()
+      .startTour("agenda", "parent", stepsWithPress);
+
+    useOnboardingTourStore.getState().advanceIfTarget("a");
+
+    expect(useOnboardingTourStore.getState().stepIndex).toBe(1);
+  });
+
+  it("advanceIfTarget does nothing when the step does not opt into advanceOnTargetPress", () => {
+    useOnboardingTourStore.getState().startTour("agenda", "parent", STEPS);
+
+    useOnboardingTourStore.getState().advanceIfTarget("a");
+
+    expect(useOnboardingTourStore.getState().stepIndex).toBe(0);
+  });
+
+  it("advanceIfTarget does nothing when the pressed target is not the active step's target", () => {
+    const stepsWithPress: OnboardingTourStep[] = [
+      {
+        targetKey: "a",
+        titleKey: "t1",
+        bodyKey: "b1",
+        advanceOnTargetPress: true,
+      },
+      { targetKey: "b", titleKey: "t2", bodyKey: "b2" },
+    ];
+    useOnboardingTourStore
+      .getState()
+      .startTour("agenda", "parent", stepsWithPress);
+
+    useOnboardingTourStore.getState().advanceIfTarget("b");
+
+    expect(useOnboardingTourStore.getState().stepIndex).toBe(0);
+  });
+
+  it("advanceIfTarget does nothing when no tour is active", () => {
+    useOnboardingTourStore.getState().advanceIfTarget("a");
+    expect(useOnboardingTourStore.getState().activeTourId).toBeNull();
+  });
+
   it("restores persisted completedTours on rehydration", async () => {
     await AsyncStorage.setItem(
       ONBOARDING_TOUR_STORAGE_KEY,
