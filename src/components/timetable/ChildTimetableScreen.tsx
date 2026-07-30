@@ -19,6 +19,13 @@ import { buildChildHomeTarget } from "../navigation/nav-config";
 import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { useTimetableStore } from "../../store/timetable.store";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import {
+  CHILD_TIMETABLE_TOUR_ID,
+  CHILD_TIMETABLE_TOUR_STEPS,
+  CHILD_TIMETABLE_TOUR_TARGETS,
+} from "./child-timetable-tour.config";
 import type { TimetableOccurrence } from "../../types/timetable.types";
 import {
   addDays,
@@ -239,6 +246,12 @@ export function ChildTimetableScreen() {
     setActiveChild(childId);
   }, [childId, setActiveChild]);
 
+  useOnboardingTourTrigger({
+    tourId: CHILD_TIMETABLE_TOUR_ID,
+    role: "parent",
+    steps: CHILD_TIMETABLE_TOUR_STEPS,
+  });
+
   useEffect(() => {
     if (!childId || !myTimetable?.class.name) return;
     updateChild(childId, {
@@ -431,7 +444,11 @@ export function ChildTimetableScreen() {
           </View>
         ) : myTimetable ? (
           <View style={styles.moduleCard}>
-            <View style={styles.modeTabs} testID="child-timetable-mode-tabs">
+            <OnboardingTarget
+              id={CHILD_TIMETABLE_TOUR_TARGETS.modeTabs}
+              style={styles.modeTabs}
+              testID="child-timetable-mode-tabs"
+            >
               {modeOptions.map((entry) => {
                 const active = viewMode === entry.value;
                 return (
@@ -452,9 +469,12 @@ export function ChildTimetableScreen() {
                   </TouchableOpacity>
                 );
               })}
-            </View>
+            </OnboardingTarget>
 
-            <View style={styles.periodNavRow}>
+            <OnboardingTarget
+              id={CHILD_TIMETABLE_TOUR_TARGETS.navRow}
+              style={styles.periodNavRow}
+            >
               <TouchableOpacity
                 style={styles.periodNavButton}
                 onPress={() => moveCursor(-1)}
@@ -484,10 +504,14 @@ export function ChildTimetableScreen() {
                   color={colors.primary}
                 />
               </TouchableOpacity>
-            </View>
+            </OnboardingTarget>
 
             {viewMode === "day" ? (
-              <View style={styles.dayList} testID="child-timetable-day-list">
+              <OnboardingTarget
+                id={CHILD_TIMETABLE_TOUR_TARGETS.dayList}
+                style={styles.dayList}
+                testID="child-timetable-day-list"
+              >
                 {daySlots.length === 0 ? (
                   <EmptyState
                     icon="calendar-clear-outline"
@@ -503,7 +527,7 @@ export function ChildTimetableScreen() {
                     />
                   ))
                 )}
-              </View>
+              </OnboardingTarget>
             ) : null}
 
             {viewMode === "week" ? (

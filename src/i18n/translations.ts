@@ -54,6 +54,27 @@ export const translations: Record<Locale, Record<string, string>> = {
     "settings.form.accountLanguage.errorTitle": "Mise à jour impossible",
     "settings.form.accountLanguage.errorMessage":
       "La langue du compte n'a pas pu être mise à jour.",
+    "settings.onboardingHelp.title": "Aide guidée",
+    "settings.onboardingHelp.subtitle":
+      "Affiche une visite guidée à la première découverte d'un module",
+    "settings.form.onboardingHelp.successTitle": "Préférence enregistrée",
+    "settings.form.onboardingHelp.successMessage":
+      "Votre préférence d'aide guidée a été enregistrée.",
+    "settings.form.onboardingHelp.errorTitle": "Mise à jour impossible",
+    "settings.form.onboardingHelp.errorMessage":
+      "La préférence d'aide guidée n'a pas pu être mise à jour.",
+    "onboardingTour.common.next": "Suivant",
+    "onboardingTour.common.skip": "Passer",
+    "onboardingTour.common.finish": "Terminer",
+    "onboardingTour.childTimetable.step1Title": "Changez de vue",
+    "onboardingTour.childTimetable.step1Body":
+      "Touchez Jour, Semaine ou Mois pour changer la façon d'afficher l'emploi du temps.",
+    "onboardingTour.childTimetable.step2Title": "Naviguez dans le temps",
+    "onboardingTour.childTimetable.step2Body":
+      "Utilisez les flèches pour passer à la période précédente ou suivante, ou touchez le libellé pour revenir à aujourd'hui.",
+    "onboardingTour.childTimetable.step3Title": "Consultez un cours",
+    "onboardingTour.childTimetable.step3Body":
+      "Chaque carte affiche l'horaire, la matière, l'enseignant et la salle du cours.",
     "settings.form.activeSchool.successTitle": "École active mise à jour",
     "settings.form.activeSchool.successMessage":
       "L'école active a été mise à jour.",
@@ -2835,6 +2856,27 @@ export const translations: Record<Locale, Record<string, string>> = {
     "settings.form.accountLanguage.errorTitle": "Update failed",
     "settings.form.accountLanguage.errorMessage":
       "The account language could not be updated.",
+    "settings.onboardingHelp.title": "Guided help",
+    "settings.onboardingHelp.subtitle":
+      "Show a guided tour the first time you open a module",
+    "settings.form.onboardingHelp.successTitle": "Preference saved",
+    "settings.form.onboardingHelp.successMessage":
+      "Your guided help preference has been saved.",
+    "settings.form.onboardingHelp.errorTitle": "Update failed",
+    "settings.form.onboardingHelp.errorMessage":
+      "The guided help preference could not be updated.",
+    "onboardingTour.common.next": "Next",
+    "onboardingTour.common.skip": "Skip",
+    "onboardingTour.common.finish": "Finish",
+    "onboardingTour.childTimetable.step1Title": "Switch views",
+    "onboardingTour.childTimetable.step1Body":
+      "Tap Day, Week or Month to change how the schedule is displayed.",
+    "onboardingTour.childTimetable.step2Title": "Navigate through time",
+    "onboardingTour.childTimetable.step2Body":
+      "Use the arrows to move to the previous or next period, or tap the label to jump back to today.",
+    "onboardingTour.childTimetable.step3Title": "Check a course",
+    "onboardingTour.childTimetable.step3Body":
+      "Each card shows the time, subject, teacher and room for the course.",
     "settings.form.activeSchool.successTitle": "Active school updated",
     "settings.form.activeSchool.successMessage":
       "The active school has been updated.",

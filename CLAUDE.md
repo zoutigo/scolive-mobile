@@ -13,6 +13,15 @@ Toute modification ou nouvelle fonctionnalité apportée sur mobile doit être r
 Ne jamais utiliser le tool `Agent` (sous-agents/Task) pour réaliser le travail demandé.
 Faire tout le travail soi-même, étape par étape si nécessaire.
 
+## Aide guidée (onboarding tour) — règle absolue
+
+Toute création ou modification d'UI qui introduit un contrôle, un filtre ou une fonctionnalité non évident à découvrir au premier coup d'œil doit créer ou mettre à jour une aide guidée ("onboarding tour" en spotlight) pour le(s) rôle(s) concerné(s), avec le skill `create-help`.
+
+- **Maximum 5 étapes par tour** — au-delà, sélectionner les 5 éléments les plus utiles plutôt que de tout montrer.
+- Infrastructure existante à réutiliser sans la dupliquer : `src/store/onboarding-tour.store.ts`, `src/components/onboarding/OnboardingTarget.tsx`, `src/components/onboarding/OnboardingTourOverlay.tsx`, `src/hooks/useOnboardingTourTrigger.ts`. Module pilote de référence : `src/components/timetable/child-timetable-tour.config.ts` + `ChildTimetableScreen.tsx`.
+- Cette règle est transverse à la règle de parité mobile ↔ web ci-dessus : toute aide guidée créée côté mobile doit avoir son équivalent côté web (`scolive-web/apps/web`), voir `AGENTS.md` et le skill `create-help` pour le détail.
+- Préférence utilisateur globale : `user.onboardingHelpEnabled` (activée par défaut), modifiable dans Mon compte → section Aide. Ne jamais ignorer cette préférence dans un nouveau déclenchement de tour.
+
 ## Rôle actif — règle absolue
 
 Un utilisateur peut avoir plusieurs rôles (plusieurs `memberships` école, plusieurs `platformRoles`), mais un seul **rôle actif** (`user.activeRole`) est sélectionné à la fois. Partout dans l'app — mobile et API — **seul `activeRole` doit déterminer ce que l'utilisateur voit ou peut faire**, jamais la liste brute de tous ses rôles/memberships possibles.

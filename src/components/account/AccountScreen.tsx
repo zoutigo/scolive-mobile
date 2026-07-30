@@ -11,6 +11,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -266,6 +267,34 @@ function SettingsValueCard(props: {
       <Text style={styles.settingsCurrentValue} testID={props.valueTestID}>
         {props.value}
       </Text>
+    </SectionCard>
+  );
+}
+
+function SettingsToggleCard(props: {
+  title: string;
+  subtitle: string;
+  value: boolean;
+  disabled?: boolean;
+  onToggle: (value: boolean) => void;
+  cardTestID: string;
+  switchTestID: string;
+}) {
+  return (
+    <SectionCard
+      title={props.title}
+      subtitle={props.subtitle}
+      testID={props.cardTestID}
+      action={
+        <Switch
+          value={props.value}
+          onValueChange={props.onToggle}
+          disabled={props.disabled}
+          testID={props.switchTestID}
+        />
+      }
+    >
+      <View />
     </SectionCard>
   );
 }
@@ -1655,6 +1684,7 @@ function AccountScreenContent() {
   const [savingActiveSchool, setSavingActiveSchool] = useState(false);
   const switchActiveSchool = useAuthStore((state) => state.switchActiveSchool);
   const [savingAccountLanguage, setSavingAccountLanguage] = useState(false);
+  const [savingOnboardingHelp, setSavingOnboardingHelp] = useState(false);
   const [formContext, setFormContext] = useState<SettingsFormContext | null>(
     null,
   );
@@ -1700,6 +1730,9 @@ function AccountScreenContent() {
           gender: nextProfile.gender ?? null,
           preferredLocale:
             nextProfile.preferredLocale ?? currentUser.preferredLocale,
+          onboardingHelpEnabled:
+            nextProfile.onboardingHelpEnabled ??
+            currentUser.onboardingHelpEnabled,
           email: nextProfile.email ?? currentUser.email ?? null,
           role: nextProfile.role ?? currentUser.role,
           activeRole: nextProfile.activeRole ?? currentUser.activeRole,
@@ -1860,6 +1893,31 @@ function AccountScreenContent() {
       return false;
     } finally {
       setSavingAccountLanguage(false);
+    }
+  }
+
+  async function handleToggleOnboardingHelp(nextValue: boolean): Promise<void> {
+    if (profile?.onboardingHelpEnabled === nextValue) return;
+    try {
+      setSavingOnboardingHelp(true);
+      const response = await accountApi.updateOnboardingHelp({
+        onboardingHelpEnabled: nextValue,
+      });
+      syncProfileState(response);
+      showSuccess({
+        title: t("settings.form.onboardingHelp.successTitle"),
+        message: t("settings.form.onboardingHelp.successMessage"),
+      });
+    } catch (error) {
+      showError({
+        title: t("settings.form.onboardingHelp.errorTitle"),
+        message: getErrorMessage(
+          error,
+          t("settings.form.onboardingHelp.errorMessage"),
+        ),
+      });
+    } finally {
+      setSavingOnboardingHelp(false);
     }
   }
 
@@ -2198,6 +2256,16 @@ function AccountScreenContent() {
               editTestID="account-settings-account-language-edit"
               valueTestID="account-settings-account-language-value"
               editLabel={t("settings.edit")}
+            />
+
+            <SettingsToggleCard
+              title={t("settings.onboardingHelp.title")}
+              subtitle={t("settings.onboardingHelp.subtitle")}
+              value={profile?.onboardingHelpEnabled ?? true}
+              disabled={savingOnboardingHelp}
+              onToggle={(value) => void handleToggleOnboardingHelp(value)}
+              cardTestID="account-settings-onboarding-help-card"
+              switchTestID="account-settings-onboarding-help-switch"
             />
 
             {(profile?.schools?.length ?? 0) > 1 ? (

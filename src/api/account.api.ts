@@ -14,6 +14,7 @@ import type {
   SetActiveSchoolPayload,
   UpdateAccountProfilePayload,
   UpdateAccountRecoveryPayload,
+  UpdateOnboardingHelpPayload,
   UpdatePreferredLocalePayload,
 } from "../types/account.types";
 
@@ -40,6 +41,19 @@ export const accountApi = {
   ): Promise<AccountProfileResponse> {
     return apiFetch(
       "/me/language",
+      {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      },
+      true,
+    );
+  },
+
+  updateOnboardingHelp(
+    payload: UpdateOnboardingHelpPayload,
+  ): Promise<AccountProfileResponse> {
+    return apiFetch(
+      "/me/onboarding-help",
       {
         method: "PUT",
         body: JSON.stringify(payload),

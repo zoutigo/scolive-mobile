@@ -582,4 +582,85 @@ describe("AccountScreen", () => {
       );
     });
   });
+
+  it("affiche le switch de l'aide guidée activé par défaut", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+
+    expect(
+      screen.getByTestId("account-settings-onboarding-help-card"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("account-settings-onboarding-help-switch").props.value,
+    ).toBe(true);
+  });
+
+  it("désactive l'aide guidée via le switch dédié", async () => {
+    api.updateOnboardingHelp.mockResolvedValueOnce({
+      ...profileResponse,
+      onboardingHelpEnabled: false,
+    });
+
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+
+    await act(async () => {
+      fireEvent(
+        screen.getByTestId("account-settings-onboarding-help-switch"),
+        "valueChange",
+        false,
+      );
+    });
+
+    await waitFor(() => {
+      expect(api.updateOnboardingHelp).toHaveBeenCalledWith({
+        onboardingHelpEnabled: false,
+      });
+    });
+
+    await waitFor(() => {
+      expect(useAuthStore.getState().user?.onboardingHelpEnabled).toBe(false);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("account-settings-onboarding-help-switch").props
+          .value,
+      ).toBe(false);
+    });
+  });
+
+  it("affiche une erreur si la désactivation de l'aide guidée échoue", async () => {
+    api.updateOnboardingHelp.mockRejectedValueOnce(new Error("network"));
+
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+
+    await act(async () => {
+      fireEvent(
+        screen.getByTestId("account-settings-onboarding-help-switch"),
+        "valueChange",
+        false,
+      );
+    });
+
+    await waitFor(() => {
+      expect(useSuccessToastStore.getState().variant).toBe("error");
+    });
+  });
 });

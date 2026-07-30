@@ -21,6 +21,7 @@ export interface AuthUser {
   avatarUrl?: string | null;
   gender?: "M" | "F" | "OTHER" | null;
   preferredLocale?: "FR" | "EN";
+  onboardingHelpEnabled?: boolean;
   isTester?: boolean;
   platformRoles: PlatformRole[];
   memberships: Array<{ schoolId: string; role: SchoolRole }>;
