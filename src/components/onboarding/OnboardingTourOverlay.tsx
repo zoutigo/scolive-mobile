@@ -11,7 +11,7 @@ import { useTranslation } from "../../i18n/useTranslation";
 import { colors } from "../../theme";
 
 const TOOLTIP_MARGIN = 12;
-const TOOLTIP_MAX_HEIGHT = 160;
+const TOOLTIP_MAX_HEIGHT = 110;
 const TOOLTIP_WIDTH_MARGIN = 16;
 
 export function OnboardingTourOverlay() {
@@ -135,21 +135,17 @@ export function OnboardingTourOverlay() {
         ]}
         testID="onboarding-tour-tooltip"
       >
-        <Text style={styles.stepCounter}>
-          {stepIndex + 1} / {steps.length}
-        </Text>
-        <Text style={styles.title} testID="onboarding-tour-title">
-          {t(step.titleKey)}
-        </Text>
-        <Text style={styles.body} testID="onboarding-tour-body">
-          {t(step.bodyKey)}
-        </Text>
-        {advanceOnTargetPress ? (
-          <Text style={styles.hint} testID="onboarding-tour-hint">
-            {t("onboardingTour.common.tapTarget")}
+        <View style={styles.header}>
+          <Text style={styles.stepCounter}>
+            {stepIndex + 1}/{steps.length}
           </Text>
-        ) : null}
-        <View style={styles.actions}>
+          <Text
+            style={styles.title}
+            numberOfLines={1}
+            testID="onboarding-tour-title"
+          >
+            {t(step.titleKey)}
+          </Text>
           <TouchableOpacity
             onPress={skip}
             style={styles.skipButton}
@@ -159,7 +155,16 @@ export function OnboardingTourOverlay() {
               {t("onboardingTour.common.skip")}
             </Text>
           </TouchableOpacity>
-          {advanceOnTargetPress ? null : (
+        </View>
+        <Text style={styles.body} testID="onboarding-tour-body">
+          {t(step.bodyKey)}
+        </Text>
+        {advanceOnTargetPress ? (
+          <Text style={styles.hint} testID="onboarding-tour-hint">
+            {t("onboardingTour.common.tapTarget")}
+          </Text>
+        ) : (
+          <View style={styles.actions}>
             <TouchableOpacity
               onPress={next}
               style={styles.nextButton}
@@ -169,8 +174,8 @@ export function OnboardingTourOverlay() {
                 {isLastStep ? finishLabel : t("onboardingTour.common.next")}
               </Text>
             </TouchableOpacity>
-          )}
-        </View>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -189,27 +194,31 @@ const styles = StyleSheet.create({
   },
   tooltip: {
     position: "absolute",
-    backgroundColor: colors.surface,
+    backgroundColor: "rgba(255, 255, 255, 0.86)",
     borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
-    gap: 6,
+    padding: 10,
+    gap: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.18,
     shadowRadius: 14,
     elevation: 8,
   },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   stepCounter: {
     fontSize: 11,
     fontWeight: "700",
     color: colors.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
   },
   title: {
-    fontSize: 16,
+    flex: 1,
+    fontSize: 15,
     fontWeight: "700",
     color: colors.textPrimary,
   },
@@ -227,12 +236,11 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: 12,
-    marginTop: 8,
+    marginTop: 4,
   },
   skipButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
   },
   skipText: {
     fontSize: 13,

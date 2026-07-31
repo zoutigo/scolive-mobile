@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { InteractionManager, View, type ViewProps } from "react-native";
 import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 
-const MEASURE_SETTLE_DELAY_MS = 80;
+const MEASURE_SETTLE_DELAYS_MS = [80, 250, 600];
 
 interface OnboardingTargetProps extends ViewProps {
   id: string;
@@ -29,17 +29,20 @@ export function OnboardingTarget({
 
     let cancelled = false;
 
-    const interactionHandle = InteractionManager.runAfterInteractions(() => {
-      const timer = setTimeout(() => {
+    const measure = () => {
+      viewRef.current?.measureInWindow((x, y, width, height) => {
         if (cancelled) return;
-        viewRef.current?.measureInWindow((x, y, width, height) => {
-          if (cancelled) return;
-          if (width <= 0 || height <= 0) return;
-          setTargetLayout({ x, y, width, height });
-        });
-      }, MEASURE_SETTLE_DELAY_MS);
+        if (width <= 0 || height <= 0) return;
+        setTargetLayout({ x, y, width, height });
+      });
+    };
 
-      return () => clearTimeout(timer);
+    const interactionHandle = InteractionManager.runAfterInteractions(() => {
+      const timers = MEASURE_SETTLE_DELAYS_MS.map((delay) =>
+        setTimeout(measure, delay),
+      );
+
+      return () => timers.forEach(clearTimeout);
     });
 
     return () => {
