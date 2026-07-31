@@ -11,6 +11,7 @@ import { enableFreeze } from "react-native-screens";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useAuthStore } from "../src/store/auth.store";
 import { SuccessToastHost } from "../src/components/feedback/SuccessToastHost";
+import { OnboardingTourOverlay } from "../src/components/onboarding/OnboardingTourOverlay";
 import { configurePushNotifications } from "../src/notifications/push-registration";
 import { useAppVersionCheck } from "../src/hooks/useAppVersionCheck";
 import { AppUpdateModal } from "../src/components/AppUpdateModal";
@@ -119,6 +120,7 @@ export default function RootLayout() {
         />
       </Stack>
       <SuccessToastHost />
+      <OnboardingTourOverlay />
       <AppUpdateModal
         visible={updateAvailable}
         mandatory={mandatory}

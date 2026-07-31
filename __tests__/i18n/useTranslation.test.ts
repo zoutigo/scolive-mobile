@@ -22,6 +22,25 @@ describe("translate", () => {
   });
 });
 
+describe("timetable.childAgenda.help.* translations", () => {
+  it("has matching, non-empty fr/en keys", () => {
+    const frKeys = Object.keys(translations.fr).filter((key) =>
+      key.startsWith("timetable.childAgenda.help."),
+    );
+    const enKeys = Object.keys(translations.en).filter((key) =>
+      key.startsWith("timetable.childAgenda.help."),
+    );
+
+    expect(frKeys.length).toBeGreaterThan(0);
+    expect(new Set(enKeys)).toEqual(new Set(frKeys));
+
+    for (const key of frKeys) {
+      expect(translations.fr[key]).not.toBe("");
+      expect(translations.en[key]).not.toBe("");
+    }
+  });
+});
+
 describe("homework.* translations", () => {
   it("has matching, non-empty fr/en keys", () => {
     const frKeys = Object.keys(translations.fr).filter((key) =>
@@ -48,6 +67,90 @@ describe("resources.* translations", () => {
     );
     const enKeys = Object.keys(translations.en).filter((key) =>
       key.startsWith("resources."),
+    );
+
+    expect(frKeys.length).toBeGreaterThan(0);
+    expect(new Set(enKeys)).toEqual(new Set(frKeys));
+
+    for (const key of frKeys) {
+      expect(translations.fr[key]).not.toBe("");
+      expect(translations.en[key]).not.toBe("");
+    }
+  });
+});
+
+describe("onboardingTour.* translations", () => {
+  it("has matching, non-empty fr/en keys", () => {
+    const frKeys = Object.keys(translations.fr).filter((key) =>
+      key.startsWith("onboardingTour."),
+    );
+    const enKeys = Object.keys(translations.en).filter((key) =>
+      key.startsWith("onboardingTour."),
+    );
+
+    expect(frKeys.length).toBeGreaterThan(0);
+    expect(new Set(enKeys)).toEqual(new Set(frKeys));
+
+    for (const key of frKeys) {
+      expect(translations.fr[key]).not.toBe("");
+      expect(translations.en[key]).not.toBe("");
+    }
+  });
+
+  it("has the child-timetable pilot tour steps in both locales", () => {
+    const requiredKeys = [
+      "onboardingTour.common.next",
+      "onboardingTour.common.skip",
+      "onboardingTour.common.finish",
+      "onboardingTour.common.tapTarget",
+      "onboardingTour.common.gotIt",
+      "onboardingTour.childTimetable.step1Title",
+      "onboardingTour.childTimetable.step1Body",
+      "onboardingTour.childTimetable.step2Title",
+      "onboardingTour.childTimetable.step2Body",
+      "onboardingTour.childTimetable.step3Title",
+      "onboardingTour.childTimetable.step3Body",
+      "onboardingTour.childTimetable.step4Title",
+      "onboardingTour.childTimetable.step4Body",
+    ];
+
+    for (const key of requiredKeys) {
+      expect(translations.fr[key]).toBeTruthy();
+      expect(translations.en[key]).toBeTruthy();
+    }
+  });
+});
+
+describe("settings.onboardingHelp.* translations", () => {
+  it("has matching, non-empty fr/en keys", () => {
+    const frKeys = Object.keys(translations.fr).filter(
+      (key) =>
+        key.startsWith("settings.onboardingHelp.") ||
+        key.startsWith("settings.form.onboardingHelp."),
+    );
+    const enKeys = Object.keys(translations.en).filter(
+      (key) =>
+        key.startsWith("settings.onboardingHelp.") ||
+        key.startsWith("settings.form.onboardingHelp."),
+    );
+
+    expect(frKeys.length).toBeGreaterThan(0);
+    expect(new Set(enKeys)).toEqual(new Set(frKeys));
+
+    for (const key of frKeys) {
+      expect(translations.fr[key]).not.toBe("");
+      expect(translations.en[key]).not.toBe("");
+    }
+  });
+});
+
+describe("settings.form.resetOnboardingTours.* translations", () => {
+  it("has matching, non-empty fr/en keys", () => {
+    const frKeys = Object.keys(translations.fr).filter((key) =>
+      key.startsWith("settings.form.resetOnboardingTours."),
+    );
+    const enKeys = Object.keys(translations.en).filter((key) =>
+      key.startsWith("settings.form.resetOnboardingTours."),
     );
 
     expect(frKeys.length).toBeGreaterThan(0);

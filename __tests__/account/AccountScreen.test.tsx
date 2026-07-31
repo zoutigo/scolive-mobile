@@ -11,6 +11,7 @@ import {
 import { AccountScreen } from "../../src/components/account/AccountScreen";
 import { accountApi } from "../../src/api/account.api";
 import { useAuthStore } from "../../src/store/auth.store";
+import { useOnboardingTourStore } from "../../src/store/onboarding-tour.store";
 import { useSuccessToastStore } from "../../src/store/success-toast.store";
 import { DEFAULT_LOCALE } from "../../src/i18n/translations";
 import {
@@ -79,6 +80,14 @@ describe("AccountScreen", () => {
     useSuccessToastStore.getState().hide();
     await AsyncStorage.clear();
     useLocaleStore.setState({ locale: DEFAULT_LOCALE });
+    useOnboardingTourStore.setState({
+      completedTours: {},
+      activeTourId: null,
+      activeRole: null,
+      steps: [],
+      stepIndex: 0,
+      targetLayout: null,
+    });
     useAuthStore.setState({
       user: {
         id: "user-1",
@@ -580,6 +589,158 @@ describe("AccountScreen", () => {
       expect(useSuccessToastStore.getState().message).toBe(
         "La langue de votre compte a été enregistrée.",
       );
+    });
+  });
+
+  it("affiche le contenu d'aide au bas de l'onglet sécurité", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-security"));
+
+    expect(screen.getByTestId("account-help-card")).toBeTruthy();
+    expect(screen.getByText("Mot de passe fort")).toBeTruthy();
+  });
+
+  it("n'affiche plus l'aide dans l'onglet Aide (déplacée dans l'onglet Paramètres)", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-help"));
+
+    expect(screen.queryByText("Mot de passe fort")).toBeNull();
+  });
+
+  it("affiche le switch de l'aide guidée activé par défaut dans l'onglet Aide", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-help"));
+
+    expect(
+      screen.getByTestId("account-settings-onboarding-help-card"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("account-settings-onboarding-help-switch").props.value,
+    ).toBe(true);
+  });
+
+  it("désactive l'aide guidée via le switch dédié", async () => {
+    api.updateOnboardingHelp.mockResolvedValueOnce({
+      ...profileResponse,
+      onboardingHelpEnabled: false,
+    });
+
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-help"));
+
+    await act(async () => {
+      fireEvent(
+        screen.getByTestId("account-settings-onboarding-help-switch"),
+        "valueChange",
+        false,
+      );
+    });
+
+    await waitFor(() => {
+      expect(api.updateOnboardingHelp).toHaveBeenCalledWith({
+        onboardingHelpEnabled: false,
+      });
+    });
+
+    await waitFor(() => {
+      expect(useAuthStore.getState().user?.onboardingHelpEnabled).toBe(false);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("account-settings-onboarding-help-switch").props
+          .value,
+      ).toBe(false);
+    });
+  });
+
+  it("montre le bouton de réinitialisation des aides guidées à tout compte, pas seulement aux testeurs", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-help"));
+
+    expect(
+      screen.getByTestId("account-settings-reset-tours-card"),
+    ).toBeTruthy();
+  });
+
+  it("déclenche la réinitialisation des aides guidées depuis l'onglet Aide", async () => {
+    useOnboardingTourStore
+      .getState()
+      .startTour("agenda", "parent", [
+        { targetKey: "a", titleKey: "t", bodyKey: "b" },
+      ]);
+    useOnboardingTourStore.getState().skip();
+    expect(
+      useOnboardingTourStore.getState().isCompleted("parent", "agenda"),
+    ).toBe(true);
+
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-help"));
+
+    fireEvent.press(screen.getByTestId("account-settings-reset-tours-action"));
+
+    await waitFor(() => {
+      expect(
+        useOnboardingTourStore.getState().isCompleted("parent", "agenda"),
+      ).toBe(false);
+    });
+
+    await waitFor(() => {
+      expect(useSuccessToastStore.getState().variant).toBe("success");
+    });
+  });
+
+  it("affiche une erreur si la désactivation de l'aide guidée échoue", async () => {
+    api.updateOnboardingHelp.mockRejectedValueOnce(new Error("network"));
+
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-help"));
+
+    await act(async () => {
+      fireEvent(
+        screen.getByTestId("account-settings-onboarding-help-switch"),
+        "valueChange",
+        false,
+      );
+    });
+
+    await waitFor(() => {
+      expect(useSuccessToastStore.getState().variant).toBe("error");
     });
   });
 });

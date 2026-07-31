@@ -11,6 +11,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -57,6 +58,7 @@ import type {
 import type { AppRole, PlatformRole, SchoolRole } from "../../types/auth.types";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { useAuthStore } from "../../store/auth.store";
+import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import { useTranslation } from "../../i18n/useTranslation";
 import { SUPPORTED_LOCALES, type Locale } from "../../i18n/translations";
 import type { ApiClientError } from "../../api/client";
@@ -266,6 +268,65 @@ function SettingsValueCard(props: {
       <Text style={styles.settingsCurrentValue} testID={props.valueTestID}>
         {props.value}
       </Text>
+    </SectionCard>
+  );
+}
+
+function SettingsToggleCard(props: {
+  title: string;
+  subtitle: string;
+  value: boolean;
+  disabled?: boolean;
+  onToggle: (value: boolean) => void;
+  cardTestID: string;
+  switchTestID: string;
+}) {
+  return (
+    <SectionCard
+      title={props.title}
+      subtitle={props.subtitle}
+      testID={props.cardTestID}
+      action={
+        <Switch
+          value={props.value}
+          onValueChange={props.onToggle}
+          disabled={props.disabled}
+          testID={props.switchTestID}
+        />
+      }
+    >
+      <View />
+    </SectionCard>
+  );
+}
+
+function SettingsActionCard(props: {
+  title: string;
+  subtitle: string;
+  actionLabel: string;
+  onPress: () => void;
+  disabled?: boolean;
+  cardTestID: string;
+  actionTestID: string;
+}) {
+  return (
+    <SectionCard
+      title={props.title}
+      subtitle={props.subtitle}
+      testID={props.cardTestID}
+    >
+      <TouchableOpacity
+        style={[
+          styles.resetToursButton,
+          props.disabled && styles.resetToursButtonDisabled,
+        ]}
+        onPress={props.onPress}
+        disabled={props.disabled}
+        testID={props.actionTestID}
+        activeOpacity={0.75}
+      >
+        <Text style={styles.resetToursButtonText}>{props.actionLabel}</Text>
+      </TouchableOpacity>
     </SectionCard>
   );
 }
@@ -1636,6 +1697,10 @@ function AccountScreenContent() {
   const setUser = useAuthStore((state) => state.setUser);
   const showError = useSuccessToastStore((state) => state.showError);
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
+  const resetOnboardingTours = useOnboardingTourStore(
+    (state) => state.resetAllCompleted,
+  );
+  const [resettingTours, setResettingTours] = useState(false);
 
   const [tab, setTab] = useState<AccountTab>("personal");
   const [loading, setLoading] = useState(true);
@@ -1655,6 +1720,7 @@ function AccountScreenContent() {
   const [savingActiveSchool, setSavingActiveSchool] = useState(false);
   const switchActiveSchool = useAuthStore((state) => state.switchActiveSchool);
   const [savingAccountLanguage, setSavingAccountLanguage] = useState(false);
+  const [savingOnboardingHelp, setSavingOnboardingHelp] = useState(false);
   const [formContext, setFormContext] = useState<SettingsFormContext | null>(
     null,
   );
@@ -1700,6 +1766,9 @@ function AccountScreenContent() {
           gender: nextProfile.gender ?? null,
           preferredLocale:
             nextProfile.preferredLocale ?? currentUser.preferredLocale,
+          onboardingHelpEnabled:
+            nextProfile.onboardingHelpEnabled ??
+            currentUser.onboardingHelpEnabled,
           email: nextProfile.email ?? currentUser.email ?? null,
           role: nextProfile.role ?? currentUser.role,
           activeRole: nextProfile.activeRole ?? currentUser.activeRole,
@@ -1860,6 +1929,44 @@ function AccountScreenContent() {
       return false;
     } finally {
       setSavingAccountLanguage(false);
+    }
+  }
+
+  async function handleToggleOnboardingHelp(nextValue: boolean): Promise<void> {
+    if (profile?.onboardingHelpEnabled === nextValue) return;
+    try {
+      setSavingOnboardingHelp(true);
+      const response = await accountApi.updateOnboardingHelp({
+        onboardingHelpEnabled: nextValue,
+      });
+      syncProfileState(response);
+      showSuccess({
+        title: t("settings.form.onboardingHelp.successTitle"),
+        message: t("settings.form.onboardingHelp.successMessage"),
+      });
+    } catch (error) {
+      showError({
+        title: t("settings.form.onboardingHelp.errorTitle"),
+        message: getErrorMessage(
+          error,
+          t("settings.form.onboardingHelp.errorMessage"),
+        ),
+      });
+    } finally {
+      setSavingOnboardingHelp(false);
+    }
+  }
+
+  async function handleResetOnboardingTours(): Promise<void> {
+    setResettingTours(true);
+    try {
+      resetOnboardingTours();
+      showSuccess({
+        title: t("settings.form.resetOnboardingTours.successTitle"),
+        message: t("settings.form.resetOnboardingTours.successMessage"),
+      });
+    } finally {
+      setResettingTours(false);
     }
   }
 
@@ -2144,34 +2251,56 @@ function AccountScreenContent() {
                 }}
               />
             )}
+
+            <SectionCard
+              title="Aide"
+              subtitle="Bonnes pratiques et assistance"
+              testID="account-help-card"
+            >
+              <View style={styles.helpList}>
+                <HelpItem
+                  title="Mot de passe fort"
+                  text="Utilisez au moins 8 caractères avec minuscules, majuscules et chiffres."
+                />
+                <HelpItem
+                  title="PIN confidentiel"
+                  text="Choisissez un code à 6 chiffres, différent des dates évidentes."
+                />
+                <HelpItem
+                  title="Récupération"
+                  text="Renseignez trois réponses fiables pour restaurer l'accès sans support."
+                />
+                <HelpItem
+                  title="Support"
+                  text="Si votre compte reste bloqué, contactez l'administration de votre établissement."
+                />
+              </View>
+            </SectionCard>
           </View>
         ) : null}
 
         {tab === "help" ? (
-          <SectionCard
-            title="Aide"
-            subtitle="Bonnes pratiques et assistance"
-            testID="account-help-card"
-          >
-            <View style={styles.helpList}>
-              <HelpItem
-                title="Mot de passe fort"
-                text="Utilisez au moins 8 caractères avec minuscules, majuscules et chiffres."
-              />
-              <HelpItem
-                title="PIN confidentiel"
-                text="Choisissez un code à 6 chiffres, différent des dates évidentes."
-              />
-              <HelpItem
-                title="Récupération"
-                text="Renseignez trois réponses fiables pour restaurer l'accès sans support."
-              />
-              <HelpItem
-                title="Support"
-                text="Si votre compte reste bloqué, contactez l'administration de votre établissement."
-              />
-            </View>
-          </SectionCard>
+          <View style={styles.settingsStack}>
+            <SettingsToggleCard
+              title={t("settings.onboardingHelp.title")}
+              subtitle={t("settings.onboardingHelp.subtitle")}
+              value={profile?.onboardingHelpEnabled ?? true}
+              disabled={savingOnboardingHelp}
+              onToggle={(value) => void handleToggleOnboardingHelp(value)}
+              cardTestID="account-settings-onboarding-help-card"
+              switchTestID="account-settings-onboarding-help-switch"
+            />
+
+            <SettingsActionCard
+              title={t("settings.form.resetOnboardingTours.title")}
+              subtitle={t("settings.form.resetOnboardingTours.subtitle")}
+              actionLabel={t("settings.form.resetOnboardingTours.action")}
+              onPress={() => void handleResetOnboardingTours()}
+              disabled={resettingTours}
+              cardTestID="account-settings-reset-tours-card"
+              actionTestID="account-settings-reset-tours-action"
+            />
+          </View>
         ) : null}
 
         {tab === "settings" ? (
@@ -2851,6 +2980,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: colors.textPrimary,
+  },
+  resetToursButton: {
+    alignSelf: "flex-start",
+    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: "rgba(12,95,168,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(12,95,168,0.14)",
+  },
+  resetToursButtonDisabled: {
+    opacity: 0.6,
+  },
+  resetToursButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.primary,
   },
   formsTabContent: {
     gap: 16,

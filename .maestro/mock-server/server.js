@@ -335,6 +335,7 @@ const MOCK_AUTH_USER = {
   activationStatus: "ACTIVE",
   role: "PARENT",
   activeRole: "PARENT",
+  onboardingHelpEnabled: false,
 };
 
 const MOCK_TEACHER_AUTH_USER = {
@@ -351,6 +352,7 @@ const MOCK_TEACHER_AUTH_USER = {
   activationStatus: "ACTIVE",
   role: "TEACHER",
   activeRole: "TEACHER",
+  onboardingHelpEnabled: false,
 };
 
 const MOCK_SCHOOL_AUTH_USER = {
@@ -367,6 +369,7 @@ const MOCK_SCHOOL_AUTH_USER = {
   activationStatus: "ACTIVE",
   role: "SCHOOL_ADMIN",
   activeRole: "SCHOOL_ADMIN",
+  onboardingHelpEnabled: false,
 };
 
 const EMAIL_TOKENS = {
@@ -408,6 +411,7 @@ const MOCK_GOOGLE_AUTH_USER = {
   activationStatus: "ACTIVE",
   role: "ADMIN",
   activeRole: "ADMIN",
+  onboardingHelpEnabled: false,
 };
 
 const MOCK_DISCIPLINE_ADMIN_AUTH_USER = {
@@ -424,6 +428,7 @@ const MOCK_DISCIPLINE_ADMIN_AUTH_USER = {
   activationStatus: "ACTIVE",
   role: "ADMIN",
   activeRole: "ADMIN",
+  onboardingHelpEnabled: false,
 };
 
 const MOCK_PARENT_ME = {

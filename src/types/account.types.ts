@@ -20,6 +20,7 @@ export interface AccountProfileResponse {
   lastName: string;
   gender?: AccountGender | null;
   preferredLocale: AccountLocale;
+  onboardingHelpEnabled?: boolean;
   email?: string | null;
   phone?: string | null;
   role: AppRole;
@@ -50,6 +51,10 @@ export interface UpdateAccountProfilePayload {
 
 export interface UpdatePreferredLocalePayload {
   preferredLocale: AccountLocale;
+}
+
+export interface UpdateOnboardingHelpPayload {
+  onboardingHelpEnabled: boolean;
 }
 
 export interface ChangePasswordPayload {

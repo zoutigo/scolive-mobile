@@ -105,6 +105,31 @@ describe("accountApi", () => {
     );
   });
 
+  it("met à jour l'aide guidée via PUT /me/onboarding-help", async () => {
+    mockApiFetch.mockResolvedValueOnce({
+      firstName: "Remi",
+      lastName: "Ntamack",
+      gender: "M",
+      preferredLocale: "FR",
+      onboardingHelpEnabled: false,
+      email: "remi@example.com",
+      phone: "237650123456",
+      role: "PARENT",
+      schoolSlug: "college-vogt",
+    });
+
+    await accountApi.updateOnboardingHelp({ onboardingHelpEnabled: false });
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/me/onboarding-help",
+      {
+        method: "PUT",
+        body: JSON.stringify({ onboardingHelpEnabled: false }),
+      },
+      true,
+    );
+  });
+
   it("met à jour le rôle actif via PUT /me/active-role", async () => {
     mockApiFetch.mockResolvedValueOnce({ activeRole: "TEACHER" });
 
