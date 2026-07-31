@@ -215,7 +215,11 @@ export function OnboardingTourOverlay() {
         }}
         style={[
           styles.tooltip,
-          { top: tooltipTop, left: TOOLTIP_WIDTH_MARGIN, right: TOOLTIP_WIDTH_MARGIN },
+          {
+            top: tooltipTop,
+            left: TOOLTIP_WIDTH_MARGIN,
+            right: TOOLTIP_WIDTH_MARGIN,
+          },
         ]}
         testID="onboarding-tour-tooltip"
       >

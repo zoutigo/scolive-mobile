@@ -35,8 +35,12 @@ export function OnboardingTarget({
 
     let cancelled = false;
     let pollTimer: ReturnType<typeof setTimeout> | null = null;
-    let lastLayout: { x: number; y: number; width: number; height: number } | null =
-      null;
+    let lastLayout: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    } | null = null;
 
     // Ancestor layout (header height, safe-area insets, loading→content swap)
     // can keep shifting this target on screen for a bit after mount, and
