@@ -255,6 +255,22 @@ export function ChildTimetableScreen() {
   const advanceOnboardingTourTarget = useOnboardingTourStore(
     (state) => state.advanceIfTarget,
   );
+  const onboardingActiveTourTargetKey = useOnboardingTourStore((state) =>
+    state.activeTourId ? state.steps[state.stepIndex]?.targetKey : undefined,
+  );
+
+  // The day-list step only exists in Day view. If the previous step (Switch
+  // views) was advanced by tapping Week/Month, force Day back so this step's
+  // target actually mounts instead of leaving the tour stuck with no visible
+  // overlay (its target would otherwise never appear).
+  useEffect(() => {
+    if (
+      onboardingActiveTourTargetKey === CHILD_TIMETABLE_TOUR_TARGETS.dayList &&
+      viewMode !== "day"
+    ) {
+      setViewMode("day");
+    }
+  }, [onboardingActiveTourTargetKey, viewMode]);
 
   useEffect(() => {
     if (!childId || !myTimetable?.class.name) return;

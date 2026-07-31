@@ -2,7 +2,13 @@ import React, { useEffect, useRef } from "react";
 import { InteractionManager, View, type ViewProps } from "react-native";
 import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 
-const MEASURE_SETTLE_DELAYS_MS = [80, 250, 600];
+const MEASURE_POLL_INTERVAL_MS = 150;
+const MEASURE_POLL_MAX_ATTEMPTS = 20; // ~3s ceiling
+// Safe-area insets can settle (shifting header height, and everything below
+// it) well after the first couple of reads already agree with each other.
+// Keep polling for at least this many attempts before trusting a "stable"
+// streak, instead of stopping on the first two identical reads.
+const MEASURE_POLL_MIN_ATTEMPTS = 6;
 
 interface OnboardingTargetProps extends ViewProps {
   id: string;
@@ -28,26 +34,52 @@ export function OnboardingTarget({
     if (!isActiveTarget) return;
 
     let cancelled = false;
+    let pollTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastLayout: { x: number; y: number; width: number; height: number } | null =
+      null;
 
-    const measure = () => {
+    // Ancestor layout (header height, safe-area insets, loading→content swap)
+    // can keep shifting this target on screen for a bit after mount, and
+    // those shifts don't always trigger this view's own onLayout. Poll until
+    // two consecutive reads agree (or we give up), instead of trusting a
+    // single fixed delay.
+    const pollMeasure = (attempt: number) => {
+      if (cancelled) return;
       viewRef.current?.measureInWindow((x, y, width, height) => {
         if (cancelled) return;
         if (width <= 0 || height <= 0) return;
-        setTargetLayout({ x, y, width, height });
+
+        const stable =
+          lastLayout !== null &&
+          lastLayout.x === x &&
+          lastLayout.y === y &&
+          lastLayout.width === width &&
+          lastLayout.height === height;
+
+        lastLayout = { x, y, width, height };
+        setTargetLayout(lastLayout);
+
+        const keepPolling =
+          (!stable || attempt < MEASURE_POLL_MIN_ATTEMPTS) &&
+          attempt < MEASURE_POLL_MAX_ATTEMPTS;
+
+        if (keepPolling) {
+          pollTimer = setTimeout(
+            () => pollMeasure(attempt + 1),
+            MEASURE_POLL_INTERVAL_MS,
+          );
+        }
       });
     };
 
     const interactionHandle = InteractionManager.runAfterInteractions(() => {
-      const timers = MEASURE_SETTLE_DELAYS_MS.map((delay) =>
-        setTimeout(measure, delay),
-      );
-
-      return () => timers.forEach(clearTimeout);
+      pollMeasure(0);
     });
 
     return () => {
       cancelled = true;
       interactionHandle.cancel();
+      if (pollTimer) clearTimeout(pollTimer);
     };
   }, [isActiveTarget, setTargetLayout]);
 
