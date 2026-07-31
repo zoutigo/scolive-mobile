@@ -65,7 +65,7 @@ export const translations: Record<Locale, Record<string, string>> = {
       "La préférence d'aide guidée n'a pas pu être mise à jour.",
     "settings.form.resetOnboardingTours.title": "Rejouer les aides guidées",
     "settings.form.resetOnboardingTours.subtitle":
-      "Réservé aux testeurs : efface la mémoire des visites guidées déjà vues pour les revoir au prochain passage sur chaque écran.",
+      "Efface la mémoire des visites guidées déjà vues pour les revoir au prochain passage sur chaque écran.",
     "settings.form.resetOnboardingTours.action": "Réinitialiser",
     "settings.form.resetOnboardingTours.successTitle":
       "Aides guidées réinitialisées",
@@ -2878,7 +2878,7 @@ export const translations: Record<Locale, Record<string, string>> = {
       "The guided help preference could not be updated.",
     "settings.form.resetOnboardingTours.title": "Replay guided tours",
     "settings.form.resetOnboardingTours.subtitle":
-      "Testers only: clears the memory of already-seen guided tours so they show again next time you visit each screen.",
+      "Clears the memory of already-seen guided tours so they show again next time you visit each screen.",
     "settings.form.resetOnboardingTours.action": "Reset",
     "settings.form.resetOnboardingTours.successTitle": "Guided tours reset",
     "settings.form.resetOnboardingTours.successMessage":

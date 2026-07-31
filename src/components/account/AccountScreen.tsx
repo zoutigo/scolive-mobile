@@ -1694,7 +1694,6 @@ function SecurityFormCard({
 function AccountScreenContent() {
   const router = useRouter();
   const { onScroll } = useHeaderScroll();
-  const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
   const showError = useSuccessToastStore((state) => state.showError);
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
@@ -2252,34 +2251,56 @@ function AccountScreenContent() {
                 }}
               />
             )}
+
+            <SectionCard
+              title="Aide"
+              subtitle="Bonnes pratiques et assistance"
+              testID="account-help-card"
+            >
+              <View style={styles.helpList}>
+                <HelpItem
+                  title="Mot de passe fort"
+                  text="Utilisez au moins 8 caractères avec minuscules, majuscules et chiffres."
+                />
+                <HelpItem
+                  title="PIN confidentiel"
+                  text="Choisissez un code à 6 chiffres, différent des dates évidentes."
+                />
+                <HelpItem
+                  title="Récupération"
+                  text="Renseignez trois réponses fiables pour restaurer l'accès sans support."
+                />
+                <HelpItem
+                  title="Support"
+                  text="Si votre compte reste bloqué, contactez l'administration de votre établissement."
+                />
+              </View>
+            </SectionCard>
           </View>
         ) : null}
 
         {tab === "help" ? (
-          <SectionCard
-            title="Aide"
-            subtitle="Bonnes pratiques et assistance"
-            testID="account-help-card"
-          >
-            <View style={styles.helpList}>
-              <HelpItem
-                title="Mot de passe fort"
-                text="Utilisez au moins 8 caractères avec minuscules, majuscules et chiffres."
-              />
-              <HelpItem
-                title="PIN confidentiel"
-                text="Choisissez un code à 6 chiffres, différent des dates évidentes."
-              />
-              <HelpItem
-                title="Récupération"
-                text="Renseignez trois réponses fiables pour restaurer l'accès sans support."
-              />
-              <HelpItem
-                title="Support"
-                text="Si votre compte reste bloqué, contactez l'administration de votre établissement."
-              />
-            </View>
-          </SectionCard>
+          <View style={styles.settingsStack}>
+            <SettingsToggleCard
+              title={t("settings.onboardingHelp.title")}
+              subtitle={t("settings.onboardingHelp.subtitle")}
+              value={profile?.onboardingHelpEnabled ?? true}
+              disabled={savingOnboardingHelp}
+              onToggle={(value) => void handleToggleOnboardingHelp(value)}
+              cardTestID="account-settings-onboarding-help-card"
+              switchTestID="account-settings-onboarding-help-switch"
+            />
+
+            <SettingsActionCard
+              title={t("settings.form.resetOnboardingTours.title")}
+              subtitle={t("settings.form.resetOnboardingTours.subtitle")}
+              actionLabel={t("settings.form.resetOnboardingTours.action")}
+              onPress={() => void handleResetOnboardingTours()}
+              disabled={resettingTours}
+              cardTestID="account-settings-reset-tours-card"
+              actionTestID="account-settings-reset-tours-action"
+            />
+          </View>
         ) : null}
 
         {tab === "settings" ? (
@@ -2307,28 +2328,6 @@ function AccountScreenContent() {
               valueTestID="account-settings-account-language-value"
               editLabel={t("settings.edit")}
             />
-
-            <SettingsToggleCard
-              title={t("settings.onboardingHelp.title")}
-              subtitle={t("settings.onboardingHelp.subtitle")}
-              value={profile?.onboardingHelpEnabled ?? true}
-              disabled={savingOnboardingHelp}
-              onToggle={(value) => void handleToggleOnboardingHelp(value)}
-              cardTestID="account-settings-onboarding-help-card"
-              switchTestID="account-settings-onboarding-help-switch"
-            />
-
-            {user?.isTester ? (
-              <SettingsActionCard
-                title={t("settings.form.resetOnboardingTours.title")}
-                subtitle={t("settings.form.resetOnboardingTours.subtitle")}
-                actionLabel={t("settings.form.resetOnboardingTours.action")}
-                onPress={() => void handleResetOnboardingTours()}
-                disabled={resettingTours}
-                cardTestID="account-settings-reset-tours-card"
-                actionTestID="account-settings-reset-tours-action"
-              />
-            ) : null}
 
             {(profile?.schools?.length ?? 0) > 1 ? (
               <SettingsValueCard

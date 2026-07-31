@@ -592,14 +592,39 @@ describe("AccountScreen", () => {
     });
   });
 
-  it("affiche le switch de l'aide guidée activé par défaut", async () => {
+  it("affiche le contenu d'aide au bas de l'onglet sécurité", async () => {
     render(<AccountScreen />);
 
     await waitFor(() => {
       expect(api.getMe).toHaveBeenCalled();
     });
 
-    fireEvent.press(screen.getByTestId("account-tab-settings"));
+    fireEvent.press(screen.getByTestId("account-tab-security"));
+
+    expect(screen.getByTestId("account-help-card")).toBeTruthy();
+    expect(screen.getByText("Mot de passe fort")).toBeTruthy();
+  });
+
+  it("n'affiche plus l'aide dans l'onglet Aide (déplacée dans l'onglet Paramètres)", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-help"));
+
+    expect(screen.queryByText("Mot de passe fort")).toBeNull();
+  });
+
+  it("affiche le switch de l'aide guidée activé par défaut dans l'onglet Aide", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-help"));
 
     expect(
       screen.getByTestId("account-settings-onboarding-help-card"),
@@ -621,7 +646,7 @@ describe("AccountScreen", () => {
       expect(api.getMe).toHaveBeenCalled();
     });
 
-    fireEvent.press(screen.getByTestId("account-tab-settings"));
+    fireEvent.press(screen.getByTestId("account-tab-help"));
 
     await act(async () => {
       fireEvent(
@@ -649,24 +674,21 @@ describe("AccountScreen", () => {
     });
   });
 
-  it("ne montre pas le bouton de réinitialisation des aides guidées à un compte non testeur", async () => {
+  it("montre le bouton de réinitialisation des aides guidées à tout compte, pas seulement aux testeurs", async () => {
     render(<AccountScreen />);
 
     await waitFor(() => {
       expect(api.getMe).toHaveBeenCalled();
     });
 
-    fireEvent.press(screen.getByTestId("account-tab-settings"));
+    fireEvent.press(screen.getByTestId("account-tab-help"));
 
     expect(
-      screen.queryByTestId("account-settings-reset-tours-card"),
-    ).toBeNull();
+      screen.getByTestId("account-settings-reset-tours-card"),
+    ).toBeTruthy();
   });
 
-  it("montre et déclenche le bouton de réinitialisation des aides guidées pour un compte testeur", async () => {
-    useAuthStore.setState({
-      user: { ...useAuthStore.getState().user!, isTester: true },
-    });
+  it("déclenche la réinitialisation des aides guidées depuis l'onglet Aide", async () => {
     useOnboardingTourStore
       .getState()
       .startTour("agenda", "parent", [
@@ -683,11 +705,7 @@ describe("AccountScreen", () => {
       expect(api.getMe).toHaveBeenCalled();
     });
 
-    fireEvent.press(screen.getByTestId("account-tab-settings"));
-
-    expect(
-      screen.getByTestId("account-settings-reset-tours-card"),
-    ).toBeTruthy();
+    fireEvent.press(screen.getByTestId("account-tab-help"));
 
     fireEvent.press(screen.getByTestId("account-settings-reset-tours-action"));
 
@@ -711,7 +729,7 @@ describe("AccountScreen", () => {
       expect(api.getMe).toHaveBeenCalled();
     });
 
-    fireEvent.press(screen.getByTestId("account-tab-settings"));
+    fireEvent.press(screen.getByTestId("account-tab-help"));
 
     await act(async () => {
       fireEvent(
