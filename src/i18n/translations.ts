@@ -86,6 +86,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.childTimetable.step3Title": "Consultez un cours",
     "onboardingTour.childTimetable.step3Body":
       "Chaque carte affiche l'horaire, la matière, l'enseignant et la salle du cours.",
+    "onboardingTour.childTimetable.step4Title": "Une aide toujours disponible",
+    "onboardingTour.childTimetable.step4Body":
+      "Touchez ce bouton à tout moment pour afficher un rappel sur l'utilisation de cette page.",
     "settings.form.activeSchool.successTitle": "École active mise à jour",
     "settings.form.activeSchool.successMessage":
       "L'école active a été mise à jour.",
@@ -961,6 +964,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.childAgenda.detail.time": "Horaire :",
     "timetable.childAgenda.detail.teacher": "Enseignant :",
     "timetable.childAgenda.detail.room": "Salle :",
+    "timetable.childAgenda.help.toggleOpen": "Besoin d'aide sur cette page ?",
+    "timetable.childAgenda.help.toggleClose": "Masquer l'aide",
+    "timetable.childAgenda.help.title": "Comment utiliser cette page",
+    "timetable.childAgenda.help.body1":
+      "Basculez entre Jour, Semaine et Mois pour changer la façon d'afficher l'emploi du temps de votre enfant.",
+    "timetable.childAgenda.help.body2":
+      "Utilisez les flèches ou touchez le libellé de la période pour naviguer dans le temps : avancez de plusieurs mois pour retrouver un créneau précis, ou revenez à « aujourd'hui » pour consulter l'agenda du jour ou de demain.",
+    "timetable.childAgenda.help.body3":
+      "Touchez une carte de cours pour voir en un coup d'œil son horaire, l'enseignant et la salle.",
 
     "timetable.classesScreen.headerTitle": "Mes classes",
     "timetable.classesScreen.schoolYear.title": "Année scolaire",
@@ -2898,6 +2910,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.childTimetable.step3Title": "Check a course",
     "onboardingTour.childTimetable.step3Body":
       "Each card shows the time, subject, teacher and room for the course.",
+    "onboardingTour.childTimetable.step4Title": "Help is always available",
+    "onboardingTour.childTimetable.step4Body":
+      "Tap this button anytime for a reminder on how to use this page.",
     "settings.form.activeSchool.successTitle": "Active school updated",
     "settings.form.activeSchool.successMessage":
       "The active school has been updated.",
@@ -3733,6 +3748,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.childAgenda.detail.time": "Time:",
     "timetable.childAgenda.detail.teacher": "Teacher:",
     "timetable.childAgenda.detail.room": "Room:",
+    "timetable.childAgenda.help.toggleOpen": "Need help with this page?",
+    "timetable.childAgenda.help.toggleClose": "Hide help",
+    "timetable.childAgenda.help.title": "How to use this page",
+    "timetable.childAgenda.help.body1":
+      "Switch between Day, Week and Month to change how your child's timetable is displayed.",
+    "timetable.childAgenda.help.body2":
+      "Use the arrows or tap the period label to move through time: jump several months ahead to find a specific slot, or return to \"today\" for today's or tomorrow's agenda.",
+    "timetable.childAgenda.help.body3":
+      "Tap a course card to see its time, teacher and room at a glance.",
 
     "timetable.classesScreen.headerTitle": "My classes",
     "timetable.classesScreen.schoolYear.title": "School year",

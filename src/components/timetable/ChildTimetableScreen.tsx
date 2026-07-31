@@ -20,6 +20,7 @@ import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { useTimetableStore } from "../../store/timetable.store";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { PageHelpBlock } from "../help/PageHelpBlock";
 import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
 import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import {
@@ -617,6 +618,20 @@ export function ChildTimetableScreen() {
             />
           </View>
         )}
+
+        <OnboardingTarget id={CHILD_TIMETABLE_TOUR_TARGETS.helpBlock}>
+          <PageHelpBlock
+            title={t("timetable.childAgenda.help.title")}
+            body={[
+              t("timetable.childAgenda.help.body1"),
+              t("timetable.childAgenda.help.body2"),
+              t("timetable.childAgenda.help.body3"),
+            ]}
+            toggleOpenLabel={t("timetable.childAgenda.help.toggleOpen")}
+            toggleCloseLabel={t("timetable.childAgenda.help.toggleClose")}
+            testID="child-timetable-help-block"
+          />
+        </OnboardingTarget>
       </ScrollView>
     </KeyboardAvoidingView>
   );

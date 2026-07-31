@@ -22,6 +22,25 @@ describe("translate", () => {
   });
 });
 
+describe("timetable.childAgenda.help.* translations", () => {
+  it("has matching, non-empty fr/en keys", () => {
+    const frKeys = Object.keys(translations.fr).filter((key) =>
+      key.startsWith("timetable.childAgenda.help."),
+    );
+    const enKeys = Object.keys(translations.en).filter((key) =>
+      key.startsWith("timetable.childAgenda.help."),
+    );
+
+    expect(frKeys.length).toBeGreaterThan(0);
+    expect(new Set(enKeys)).toEqual(new Set(frKeys));
+
+    for (const key of frKeys) {
+      expect(translations.fr[key]).not.toBe("");
+      expect(translations.en[key]).not.toBe("");
+    }
+  });
+});
+
 describe("homework.* translations", () => {
   it("has matching, non-empty fr/en keys", () => {
     const frKeys = Object.keys(translations.fr).filter((key) =>
@@ -91,6 +110,8 @@ describe("onboardingTour.* translations", () => {
       "onboardingTour.childTimetable.step2Body",
       "onboardingTour.childTimetable.step3Title",
       "onboardingTour.childTimetable.step3Body",
+      "onboardingTour.childTimetable.step4Title",
+      "onboardingTour.childTimetable.step4Body",
     ];
 
     for (const key of requiredKeys) {

@@ -419,6 +419,42 @@ describe("ChildTimetableScreen", () => {
   });
 });
 
+describe("ChildTimetableScreen — bloc d'aide", () => {
+  it("affiche le bloc d'aide replié par défaut, quelle que soit la vue", () => {
+    render(<ChildTimetableScreen />);
+
+    expect(screen.getByTestId("child-timetable-help-block")).toBeTruthy();
+    expect(
+      screen.queryByTestId("child-timetable-help-block-content"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("child-timetable-help-block-toggle"),
+    ).toHaveTextContent("Besoin d'aide sur cette page ?");
+  });
+
+  it("affiche le contenu d'aide au tap sur le toggle", () => {
+    render(<ChildTimetableScreen />);
+
+    fireEvent.press(screen.getByTestId("child-timetable-help-block-toggle"));
+
+    expect(
+      screen.getByTestId("child-timetable-help-block-content"),
+    ).toBeTruthy();
+    expect(screen.getByText("Comment utiliser cette page")).toBeTruthy();
+  });
+
+  it("reste visible et fonctionnel après un changement de vue (semaine/mois)", () => {
+    render(<ChildTimetableScreen />);
+    fireEvent.press(screen.getByTestId("child-timetable-mode-month"));
+
+    fireEvent.press(screen.getByTestId("child-timetable-help-block-toggle"));
+
+    expect(
+      screen.getByTestId("child-timetable-help-block-content"),
+    ).toBeTruthy();
+  });
+});
+
 describe("WeekGrid — responsive (largeur colonnes)", () => {
   it("sur téléphone 360px, les colonnes jour ont la largeur minimale 56px", () => {
     mockUseWindowDimensions.mockReturnValue(screen$(360));
