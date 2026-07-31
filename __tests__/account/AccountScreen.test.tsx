@@ -11,6 +11,7 @@ import {
 import { AccountScreen } from "../../src/components/account/AccountScreen";
 import { accountApi } from "../../src/api/account.api";
 import { useAuthStore } from "../../src/store/auth.store";
+import { useOnboardingTourStore } from "../../src/store/onboarding-tour.store";
 import { useSuccessToastStore } from "../../src/store/success-toast.store";
 import { DEFAULT_LOCALE } from "../../src/i18n/translations";
 import {
@@ -79,6 +80,14 @@ describe("AccountScreen", () => {
     useSuccessToastStore.getState().hide();
     await AsyncStorage.clear();
     useLocaleStore.setState({ locale: DEFAULT_LOCALE });
+    useOnboardingTourStore.setState({
+      completedTours: {},
+      activeTourId: null,
+      activeRole: null,
+      steps: [],
+      stepIndex: 0,
+      targetLayout: null,
+    });
     useAuthStore.setState({
       user: {
         id: "user-1",
@@ -637,6 +646,59 @@ describe("AccountScreen", () => {
         screen.getByTestId("account-settings-onboarding-help-switch").props
           .value,
       ).toBe(false);
+    });
+  });
+
+  it("ne montre pas le bouton de réinitialisation des aides guidées à un compte non testeur", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+
+    expect(
+      screen.queryByTestId("account-settings-reset-tours-card"),
+    ).toBeNull();
+  });
+
+  it("montre et déclenche le bouton de réinitialisation des aides guidées pour un compte testeur", async () => {
+    useAuthStore.setState({
+      user: { ...useAuthStore.getState().user!, isTester: true },
+    });
+    useOnboardingTourStore
+      .getState()
+      .startTour("agenda", "parent", [
+        { targetKey: "a", titleKey: "t", bodyKey: "b" },
+      ]);
+    useOnboardingTourStore.getState().skip();
+    expect(
+      useOnboardingTourStore.getState().isCompleted("parent", "agenda"),
+    ).toBe(true);
+
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-settings"));
+
+    expect(
+      screen.getByTestId("account-settings-reset-tours-card"),
+    ).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("account-settings-reset-tours-action"));
+
+    await waitFor(() => {
+      expect(
+        useOnboardingTourStore.getState().isCompleted("parent", "agenda"),
+      ).toBe(false);
+    });
+
+    await waitFor(() => {
+      expect(useSuccessToastStore.getState().variant).toBe("success");
     });
   });
 

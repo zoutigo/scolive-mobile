@@ -58,6 +58,7 @@ import type {
 import type { AppRole, PlatformRole, SchoolRole } from "../../types/auth.types";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { useAuthStore } from "../../store/auth.store";
+import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import { useTranslation } from "../../i18n/useTranslation";
 import { SUPPORTED_LOCALES, type Locale } from "../../i18n/translations";
 import type { ApiClientError } from "../../api/client";
@@ -295,6 +296,37 @@ function SettingsToggleCard(props: {
       }
     >
       <View />
+    </SectionCard>
+  );
+}
+
+function SettingsActionCard(props: {
+  title: string;
+  subtitle: string;
+  actionLabel: string;
+  onPress: () => void;
+  disabled?: boolean;
+  cardTestID: string;
+  actionTestID: string;
+}) {
+  return (
+    <SectionCard
+      title={props.title}
+      subtitle={props.subtitle}
+      testID={props.cardTestID}
+    >
+      <TouchableOpacity
+        style={[
+          styles.resetToursButton,
+          props.disabled && styles.resetToursButtonDisabled,
+        ]}
+        onPress={props.onPress}
+        disabled={props.disabled}
+        testID={props.actionTestID}
+        activeOpacity={0.75}
+      >
+        <Text style={styles.resetToursButtonText}>{props.actionLabel}</Text>
+      </TouchableOpacity>
     </SectionCard>
   );
 }
@@ -1662,9 +1694,14 @@ function SecurityFormCard({
 function AccountScreenContent() {
   const router = useRouter();
   const { onScroll } = useHeaderScroll();
+  const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
   const showError = useSuccessToastStore((state) => state.showError);
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
+  const resetOnboardingTours = useOnboardingTourStore(
+    (state) => state.resetAllCompleted,
+  );
+  const [resettingTours, setResettingTours] = useState(false);
 
   const [tab, setTab] = useState<AccountTab>("personal");
   const [loading, setLoading] = useState(true);
@@ -1918,6 +1955,19 @@ function AccountScreenContent() {
       });
     } finally {
       setSavingOnboardingHelp(false);
+    }
+  }
+
+  async function handleResetOnboardingTours(): Promise<void> {
+    setResettingTours(true);
+    try {
+      resetOnboardingTours();
+      showSuccess({
+        title: t("settings.form.resetOnboardingTours.successTitle"),
+        message: t("settings.form.resetOnboardingTours.successMessage"),
+      });
+    } finally {
+      setResettingTours(false);
     }
   }
 
@@ -2267,6 +2317,18 @@ function AccountScreenContent() {
               cardTestID="account-settings-onboarding-help-card"
               switchTestID="account-settings-onboarding-help-switch"
             />
+
+            {user?.isTester ? (
+              <SettingsActionCard
+                title={t("settings.form.resetOnboardingTours.title")}
+                subtitle={t("settings.form.resetOnboardingTours.subtitle")}
+                actionLabel={t("settings.form.resetOnboardingTours.action")}
+                onPress={() => void handleResetOnboardingTours()}
+                disabled={resettingTours}
+                cardTestID="account-settings-reset-tours-card"
+                actionTestID="account-settings-reset-tours-action"
+              />
+            ) : null}
 
             {(profile?.schools?.length ?? 0) > 1 ? (
               <SettingsValueCard
@@ -2919,6 +2981,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: colors.textPrimary,
+  },
+  resetToursButton: {
+    alignSelf: "flex-start",
+    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: "rgba(12,95,168,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(12,95,168,0.14)",
+  },
+  resetToursButtonDisabled: {
+    opacity: 0.6,
+  },
+  resetToursButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.primary,
   },
   formsTabContent: {
     gap: 16,

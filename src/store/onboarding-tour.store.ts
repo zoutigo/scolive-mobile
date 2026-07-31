@@ -49,6 +49,8 @@ type OnboardingTourState = {
   finish: () => void;
   setTargetLayout: (layout: TargetLayout | null) => void;
   advanceIfTarget: (targetKey: string) => void;
+  /** Testers-only: replay every guided tour by clearing all completion flags. */
+  resetAllCompleted: () => void;
 };
 
 export const useOnboardingTourStore = create<OnboardingTourState>()(
@@ -128,6 +130,8 @@ export const useOnboardingTourStore = create<OnboardingTourState>()(
         }
         get().next();
       },
+
+      resetAllCompleted: () => set({ completedTours: {} }),
     }),
     {
       name: ONBOARDING_TOUR_STORAGE_KEY,

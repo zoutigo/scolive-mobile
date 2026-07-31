@@ -123,6 +123,25 @@ describe("settings.onboardingHelp.* translations", () => {
   });
 });
 
+describe("settings.form.resetOnboardingTours.* translations", () => {
+  it("has matching, non-empty fr/en keys", () => {
+    const frKeys = Object.keys(translations.fr).filter((key) =>
+      key.startsWith("settings.form.resetOnboardingTours."),
+    );
+    const enKeys = Object.keys(translations.en).filter((key) =>
+      key.startsWith("settings.form.resetOnboardingTours."),
+    );
+
+    expect(frKeys.length).toBeGreaterThan(0);
+    expect(new Set(enKeys)).toEqual(new Set(frKeys));
+
+    for (const key of frKeys) {
+      expect(translations.fr[key]).not.toBe("");
+      expect(translations.en[key]).not.toBe("");
+    }
+  });
+});
+
 describe("schoolsAdmin.* translations", () => {
   it("has matching, non-empty fr/en keys", () => {
     const frKeys = Object.keys(translations.fr).filter((key) =>
