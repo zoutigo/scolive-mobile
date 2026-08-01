@@ -1799,6 +1799,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.filters.reset": "Réinitialiser",
     "feed.filters.close": "Fermer",
     "feed.filters.apply": "Appliquer",
+    "feed.filters.resultsLabel": "{count} publication(s) au total",
 
     "feed.search.placeholder": "Rechercher une publication",
     "feed.search.toggle": "Rechercher",
@@ -1930,8 +1931,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.classLife.classWithId": "Classe {classId}",
     "feed.classLife.classActive": "Classe active",
     "feed.classLife.help.title": "Rechercher et filtrer",
-    "feed.classLife.help.body":
-      "Utilisez la barre de recherche pour retrouver une publication par mot-clé. Le bouton filtre à droite ouvre un panneau où vous pouvez combiner plusieurs types de publication (à la une, sondages) et n'afficher que vos propres publications, puis valider avec Appliquer.",
+    "feed.classLife.help.body1":
+      "Utilisez la barre de recherche pour retrouver une publication par mot-clé.",
+    "feed.classLife.help.body2":
+      "Le bouton filtre à droite ouvre un panneau où vous pouvez combiner plusieurs types de publication (à la une, sondages) et n'afficher que vos propres publications.",
+    "feed.classLife.help.body3":
+      "Une fois votre sélection faite, validez avec Appliquer pour mettre à jour la liste.",
 
     "feed.page.title": "Fil d'actualité",
     "feed.page.endOfList": "Vous avez atteint la fin du fil",
@@ -1944,8 +1949,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.page.heroSubtitle":
       "Informations d'école, rappels, sondages et vie quotidienne.",
     "feed.page.help.title": "Rechercher et filtrer",
-    "feed.page.help.body":
-      "Utilisez la barre de recherche pour retrouver une publication par mot-clé. Le bouton filtre à droite ouvre un panneau où vous pouvez combiner plusieurs types de publication (à la une, sondages) et n'afficher que vos propres publications, puis valider avec Appliquer.",
+    "feed.page.help.body1":
+      "Utilisez la barre de recherche pour retrouver une publication par mot-clé.",
+    "feed.page.help.body2":
+      "Le bouton filtre à droite ouvre un panneau où vous pouvez combiner plusieurs types de publication (à la une, sondages) et n'afficher que vos propres publications.",
+    "feed.page.help.body3":
+      "Une fois votre sélection faite, validez avec Appliquer pour mettre à jour la liste.",
     "feed.detail.headerTitle": "Publication",
     "feed.detail.backToList": "Retour à la liste",
     "feed.composer.titleLabel": "Titre",
@@ -4578,6 +4587,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.filters.reset": "Reset",
     "feed.filters.close": "Close",
     "feed.filters.apply": "Apply",
+    "feed.filters.resultsLabel": "{count} post(s) total",
 
     "feed.search.placeholder": "Search a post",
     "feed.search.toggle": "Search",
@@ -4706,8 +4716,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.classLife.classWithId": "Class {classId}",
     "feed.classLife.classActive": "Active class",
     "feed.classLife.help.title": "Search and filter",
-    "feed.classLife.help.body":
-      "Use the search bar to find a post by keyword. The filter button on the right opens a panel where you can combine several post types (featured, polls) and show only your own posts, then confirm with Apply.",
+    "feed.classLife.help.body1":
+      "Use the search bar to find a post by keyword.",
+    "feed.classLife.help.body2":
+      "The filter button on the right opens a panel where you can combine several post types (featured, polls) and show only your own posts.",
+    "feed.classLife.help.body3":
+      "Once you've made your selection, confirm with Apply to update the list.",
 
     "feed.page.title": "News feed",
     "feed.page.endOfList": "You have reached the end of the feed",
@@ -4720,8 +4734,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.page.heroSubtitle":
       "School information, reminders, polls and everyday life.",
     "feed.page.help.title": "Search and filter",
-    "feed.page.help.body":
-      "Use the search bar to find a post by keyword. The filter button on the right opens a panel where you can combine several post types (featured, polls) and show only your own posts, then confirm with Apply.",
+    "feed.page.help.body1": "Use the search bar to find a post by keyword.",
+    "feed.page.help.body2":
+      "The filter button on the right opens a panel where you can combine several post types (featured, polls) and show only your own posts.",
+    "feed.page.help.body3":
+      "Once you've made your selection, confirm with Apply to update the list.",
     "feed.detail.headerTitle": "Post",
     "feed.detail.backToList": "Back to list",
     "feed.composer.titleLabel": "Title",

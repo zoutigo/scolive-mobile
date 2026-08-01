@@ -128,7 +128,11 @@ function FeedScreen() {
       onUploadInlineImage={handleUploadInlineImage}
       onUploadAttachment={handleUploadAttachment}
       helpTitle={t("feed.page.help.title")}
-      helpBody={t("feed.page.help.body")}
+      helpBody={[
+        t("feed.page.help.body1"),
+        t("feed.page.help.body2"),
+        t("feed.page.help.body3"),
+      ]}
       onPostsChange={(posts) => {
         useFeedStore.setState((state) => ({ ...state, posts }));
       }}

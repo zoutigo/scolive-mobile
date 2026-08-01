@@ -1,4 +1,5 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import {
   fireEvent,
   render,
@@ -140,6 +141,88 @@ describe("Feed integration — search + filter panel", () => {
         expect.objectContaining({ types: ["featured"] }),
       );
     });
+  });
+
+  it("affiche le nombre total de publications en badge sur le bouton de filtre", async () => {
+    render(<FeedScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-filter-total")).toHaveTextContent("1");
+    });
+  });
+
+  it("n'affiche pas de badge quand il n'y a aucune publication", async () => {
+    api.list.mockResolvedValueOnce({
+      items: [],
+      meta: { page: 1, limit: 12, total: 0, totalPages: 0 },
+    });
+    render(<FeedScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-filter-toggle")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("feed-filter-total")).toBeNull();
+  });
+
+  it("affiche un plafond '99+' sur le badge au-delà de 99 publications", async () => {
+    api.list.mockResolvedValueOnce({
+      items: [samplePost],
+      meta: { page: 1, limit: 12, total: 143, totalPages: 12 },
+    });
+    render(<FeedScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-filter-total")).toHaveTextContent("99+");
+    });
+  });
+
+  it("affiche le total de publications dans le panneau de filtres ouvert", async () => {
+    render(<FeedScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-filter-toggle")).toBeTruthy();
+    });
+    fireEvent.press(screen.getByTestId("feed-filter-toggle"));
+
+    expect(screen.getByTestId("feed-filter-results-summary")).toHaveTextContent(
+      "1 publication(s) au total",
+    );
+  });
+
+  it("regression: Reset/Close/Apply ont la même largeur (flex) dans le panneau de filtres", async () => {
+    // Bug réel : Apply est enveloppé dans un <OnboardingTarget> pour le
+    // tour guidé, or ce wrapper est un simple View sans style. Dans la
+    // filterActionsRow (flexDirection: "row"), un View sans flex ne se
+    // dimensionne pas selon le flex de son enfant (le TouchableOpacity Apply
+    // grandit alors verticalement, pas horizontalement, dans ce wrapper en
+    // column) : Apply se retrouve tassé à la taille de son contenu au lieu
+    // de partager la largeur avec Reset/Close.
+    render(<FeedScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("feed-filter-toggle")).toBeTruthy();
+    });
+    fireEvent.press(screen.getByTestId("feed-filter-toggle"));
+
+    const resetFlex = StyleSheet.flatten(
+      screen.getByTestId("feed-filter-reset").props.style,
+    ).flex;
+    const closeFlex = StyleSheet.flatten(
+      screen.getByTestId("feed-filter-close").props.style,
+    ).flex;
+    const applyFlex = StyleSheet.flatten(
+      screen.getByTestId("feed-filter-apply").props.style,
+    ).flex;
+
+    expect(resetFlex).toBe(1);
+    expect(closeFlex).toBe(1);
+    expect(applyFlex).toBe(1);
+
+    // The OnboardingTarget wrapper around Apply must itself carry flex: 1,
+    // otherwise the inner button's own flex is inert in the row.
+    const applyButton = screen.getByTestId("feed-filter-apply");
+    const applyWrapper = applyButton.parent;
+    expect(StyleSheet.flatten(applyWrapper?.props.style).flex).toBe(1);
   });
 });
 

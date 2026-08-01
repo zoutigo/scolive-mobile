@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
-  Modal,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   ScrollView,
@@ -11,7 +10,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,6 +20,7 @@ import { useSuccessToastStore } from "../../store/success-toast.store";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { ConfirmDialog } from "../ConfirmDialog";
+import { PageHelpModal } from "../help/PageHelpModal";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
 import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import { FeedComposerCard } from "./FeedComposerCard";
@@ -90,7 +89,7 @@ type Props = {
   unavailableMessage?: string;
   onPostsChange?: (posts: FeedPost[]) => void;
   helpTitle: string;
-  helpBody: string;
+  helpBody: string[];
 };
 
 export function FeedModuleScreen({
@@ -583,6 +582,16 @@ export function FeedModuleScreen({
                   : colors.accentTeal
               }
             />
+            {meta && meta.total > 0 ? (
+              <View
+                style={styles.filterToggleBadge}
+                testID={`${testIDPrefix}-filter-total`}
+              >
+                <Text style={styles.filterToggleBadgeLabel}>
+                  {meta.total > 99 ? "99+" : meta.total}
+                </Text>
+              </View>
+            ) : null}
           </TouchableOpacity>
         </OnboardingTarget>
       </View>
@@ -614,6 +623,17 @@ export function FeedModuleScreen({
             <Text style={styles.filterPanelHeaderTitle}>
               {t("feed.filters.toggleAccessibilityLabel")}
             </Text>
+            {meta ? (
+              <Text
+                style={styles.filterResultsSummary}
+                testID={`${testIDPrefix}-filter-results-summary`}
+              >
+                {t("feed.filters.resultsLabel").replace(
+                  "{count}",
+                  String(meta.total),
+                )}
+              </Text>
+            ) : null}
           </View>
 
           <View style={styles.filterScrollWrapper}>
@@ -757,7 +777,10 @@ export function FeedModuleScreen({
                 {t("feed.filters.close")}
               </Text>
             </TouchableOpacity>
-            <OnboardingTarget id={FEED_FILTERS_TOUR_TARGETS.apply}>
+            <OnboardingTarget
+              id={FEED_FILTERS_TOUR_TARGETS.apply}
+              style={styles.filterActionApplyTarget}
+            >
               <TouchableOpacity
                 style={styles.filterActionApply}
                 onPress={applyFilters}
@@ -872,50 +895,14 @@ export function FeedModuleScreen({
         </TouchableOpacity>
       ) : null}
 
-      <Modal
+      <PageHelpModal
         visible={helpVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setHelpVisible(false)}
-        testID={`${testIDPrefix}-help-modal`}
-      >
-        <TouchableWithoutFeedback onPress={() => setHelpVisible(false)}>
-          <View style={styles.helpBackdrop}>
-            <TouchableWithoutFeedback>
-              <View style={styles.helpCard}>
-                <View style={styles.helpIconWrap}>
-                  <Ionicons
-                    name="help-circle-outline"
-                    size={30}
-                    color={colors.accentTealDark}
-                  />
-                </View>
-                <Text
-                  style={styles.helpTitle}
-                  testID={`${testIDPrefix}-help-title`}
-                >
-                  {helpTitle}
-                </Text>
-                <Text
-                  style={styles.helpBody}
-                  testID={`${testIDPrefix}-help-body`}
-                >
-                  {helpBody}
-                </Text>
-                <TouchableOpacity
-                  style={styles.helpCloseBtn}
-                  onPress={() => setHelpVisible(false)}
-                  testID={`${testIDPrefix}-help-close`}
-                >
-                  <Text style={styles.helpCloseLabel}>
-                    {t("feed.help.close")}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+        onClose={() => setHelpVisible(false)}
+        title={helpTitle}
+        body={helpBody}
+        closeLabel={t("feed.help.close")}
+        testID={`${testIDPrefix}-help`}
+      />
 
       <ConfirmDialog
         visible={Boolean(deleteCandidate)}
@@ -969,6 +956,7 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   filterToggle: {
+    position: "relative",
     width: 40,
     height: 40,
     borderRadius: 6,
@@ -981,6 +969,23 @@ const styles = StyleSheet.create({
   filterToggleActive: {
     backgroundColor: colors.accentTeal,
     borderColor: colors.accentTeal,
+  },
+  filterToggleBadge: {
+    position: "absolute",
+    bottom: -6,
+    alignSelf: "center",
+    minWidth: 16,
+    height: 14,
+    borderRadius: 7,
+    paddingHorizontal: 3,
+    backgroundColor: colors.warmAccent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterToggleBadgeLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: colors.white,
   },
   filterPanel: {
     flex: 1,
@@ -1036,9 +1041,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   filterPanelHeaderTitle: {
+    flex: 1,
     fontSize: 14,
     fontWeight: "800",
     color: colors.accentTealDark,
+  },
+  filterResultsSummary: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
   },
   filterGroup: {
     gap: 8,
@@ -1056,12 +1067,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterChip: {
+    minWidth: 96,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center",
   },
   filterChipActive: {
     backgroundColor: colors.accentTeal,
@@ -1071,6 +1085,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
     color: colors.textSecondary,
+    textAlign: "center",
   },
   filterChipLabelActive: {
     color: colors.white,
@@ -1113,8 +1128,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
+  filterActionApplyTarget: {
+    flex: 1,
+  },
   filterActionApply: {
-    flex: 1.3,
+    flex: 1,
     borderRadius: 8,
     backgroundColor: colors.primary,
     alignItems: "center",
@@ -1126,60 +1144,6 @@ const styles = StyleSheet.create({
   filterActionApplyLabel: {
     color: colors.white,
     fontSize: 13,
-    fontWeight: "700",
-  },
-  helpBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  helpCard: {
-    width: "100%",
-    maxWidth: 420,
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.warmBorder,
-    paddingHorizontal: 20,
-    paddingVertical: 22,
-    alignItems: "center",
-    gap: 10,
-  },
-  helpIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: `${colors.accentTeal}1F`,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 4,
-  },
-  helpTitle: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: colors.textPrimary,
-    textAlign: "center",
-  },
-  helpBody: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  helpCloseBtn: {
-    marginTop: 10,
-    alignSelf: "stretch",
-    borderRadius: 8,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-  },
-  helpCloseLabel: {
-    color: colors.white,
-    fontSize: 14,
     fontWeight: "700",
   },
   errorBanner: {

@@ -194,7 +194,11 @@ export function ChildClassFeedScreen() {
       onCreatePost={handleCreatePost}
       onUploadInlineImage={handleUploadInlineImage}
       helpTitle={t("feed.classLife.help.title")}
-      helpBody={t("feed.classLife.help.body")}
+      helpBody={[
+        t("feed.classLife.help.body1"),
+        t("feed.classLife.help.body2"),
+        t("feed.classLife.help.body3"),
+      ]}
     />
   );
 }

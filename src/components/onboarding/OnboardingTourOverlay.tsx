@@ -233,15 +233,17 @@ export function OnboardingTourOverlay() {
           >
             {t(step.titleKey)}
           </Text>
-          <TouchableOpacity
-            onPress={next}
-            style={styles.skipButton}
-            testID="onboarding-tour-skip"
-          >
-            <Text style={styles.skipText}>
-              {t("onboardingTour.common.skip")}
-            </Text>
-          </TouchableOpacity>
+          {!advanceOnTargetPress ? (
+            <TouchableOpacity
+              onPress={next}
+              style={styles.skipButton}
+              testID="onboarding-tour-skip"
+            >
+              <Text style={styles.skipText}>
+                {t("onboardingTour.common.skip")}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
         <Text style={styles.body} testID="onboarding-tour-body">
           {t(step.bodyKey)}
