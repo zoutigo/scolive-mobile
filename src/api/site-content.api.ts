@@ -1,6 +1,8 @@
 import { apiFetch } from "./client";
 import type {
   ContactInfo,
+  ContactSubmission,
+  ContactSubmissionsPage,
   LegalDocumentItem,
   LegalDocumentSlug,
   PublicLegalDocument,
@@ -80,6 +82,26 @@ export const siteContentApi = {
     return apiFetch<void>(
       `/site-content/admin/legal-documents/${id}`,
       { method: "DELETE" },
+      true,
+    );
+  },
+
+  async listContactSubmissions(params: { page: number; limit: number }) {
+    const query = new URLSearchParams({
+      page: String(params.page),
+      limit: String(params.limit),
+    }).toString();
+    return apiFetch<ContactSubmissionsPage>(
+      `/site-content/admin/contact-submissions?${query}`,
+      {},
+      true,
+    );
+  },
+
+  async getContactSubmission(id: string) {
+    return apiFetch<ContactSubmission>(
+      `/site-content/admin/contact-submissions/${id}`,
+      {},
       true,
     );
   },

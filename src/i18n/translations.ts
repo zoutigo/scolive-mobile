@@ -1642,6 +1642,7 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Réservé aux administrateurs de la plateforme.",
     "siteContentAdmin.tabs.contact": "Contact",
     "siteContentAdmin.tabs.legal": "Documents légaux",
+    "siteContentAdmin.tabs.messages": "Messages",
     "siteContentAdmin.contact.emailLabel": "Email",
     "siteContentAdmin.contact.phoneLabel": "Téléphone",
     "siteContentAdmin.contact.addressLabel": "Adresse",
@@ -1697,19 +1698,27 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.editor.colorMenuTitle": "Couleur du texte",
     "siteContentAdmin.editor.colorMenuMessage": "Choix rapide",
     "siteContentAdmin.editor.cancel": "Annuler",
+    "siteContentAdmin.messages.listError":
+      "Impossible de charger les prises de contact.",
+    "siteContentAdmin.messages.emptyTitle": "Aucune prise de contact.",
+    "siteContentAdmin.messages.previous": "Précédent",
+    "siteContentAdmin.messages.next": "Suivant",
+    "siteContentAdmin.messages.loading": "Chargement...",
+    "siteContentAdmin.messages.read": "Message lu",
+    "siteContentAdmin.messages.reply": "Répondre par email",
     "siteContentAdmin.help.toggle": "Aide",
     "siteContentAdmin.help.title": "Contenu du site",
     "siteContentAdmin.help.body1":
-      "Cet écran gère le contenu public du site vitrine : les coordonnées de contact et les documents légaux (CGU, mentions légales, confidentialité).",
+      "Cet écran gère le contenu public du site vitrine : les coordonnées de contact, les documents légaux (CGU, mentions légales, confidentialité) et les prises de contact reçues.",
     "siteContentAdmin.help.body2":
       "Pour un document légal, choisissez d'abord la langue puis créez un nouveau brouillon depuis le bouton dédié. Un brouillon peut être modifié librement tant qu'il n'est pas publié.",
     "siteContentAdmin.help.body3":
-      "Publier un brouillon remplace immédiatement la version visible sur le site pour cette langue et ce document. Les anciennes versions publiées restent visibles dans l'historique.",
+      "Publier un brouillon remplace immédiatement la version visible sur le site pour cette langue et ce document. Les anciennes versions publiées restent visibles dans l'historique. L'onglet Messages liste les demandes reçues via le formulaire de contact public.",
     "siteContentAdmin.help.close": "J'ai compris",
 
-    "onboardingTour.siteContent.step1Title": "Contact et documents légaux",
+    "onboardingTour.siteContent.step1Title": "Contact, documents et messages",
     "onboardingTour.siteContent.step1Body":
-      "Basculez entre les coordonnées de contact publiques et les documents légaux (CGU, mentions légales, confidentialité).",
+      "Basculez entre les coordonnées de contact publiques, les documents légaux (CGU, mentions légales, confidentialité) et les prises de contact reçues via le formulaire public.",
     "onboardingTour.siteContent.step2Title": "Choisir le document et la langue",
     "onboardingTour.siteContent.step2Body":
       "Sélectionnez le document et la langue pour voir ses versions (brouillon, publiée, archivées).",
@@ -4534,6 +4543,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.restricted": "Reserved for platform administrators.",
     "siteContentAdmin.tabs.contact": "Contact",
     "siteContentAdmin.tabs.legal": "Legal documents",
+    "siteContentAdmin.tabs.messages": "Messages",
     "siteContentAdmin.contact.emailLabel": "Email",
     "siteContentAdmin.contact.phoneLabel": "Phone",
     "siteContentAdmin.contact.addressLabel": "Address",
@@ -4585,19 +4595,27 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.editor.colorMenuTitle": "Text color",
     "siteContentAdmin.editor.colorMenuMessage": "Quick pick",
     "siteContentAdmin.editor.cancel": "Cancel",
+    "siteContentAdmin.messages.listError":
+      "Unable to load contact submissions.",
+    "siteContentAdmin.messages.emptyTitle": "No contact submissions.",
+    "siteContentAdmin.messages.previous": "Previous",
+    "siteContentAdmin.messages.next": "Next",
+    "siteContentAdmin.messages.loading": "Loading...",
+    "siteContentAdmin.messages.read": "Message read",
+    "siteContentAdmin.messages.reply": "Reply by email",
     "siteContentAdmin.help.toggle": "Help",
     "siteContentAdmin.help.title": "Site content",
     "siteContentAdmin.help.body1":
-      "This screen manages the public showcase site content: contact details and legal documents (Terms of Service, Legal Notice, Privacy Policy).",
+      "This screen manages the public showcase site content: contact details, legal documents (Terms of Service, Legal Notice, Privacy Policy) and received contact submissions.",
     "siteContentAdmin.help.body2":
       "For a legal document, first pick the language, then start a new draft from the dedicated button. A draft can be freely edited until it is published.",
     "siteContentAdmin.help.body3":
-      "Publishing a draft immediately replaces the version visible on the site for that language and document. Previously published versions stay visible in the history.",
+      "Publishing a draft immediately replaces the version visible on the site for that language and document. Previously published versions stay visible in the history. The Messages tab lists submissions received through the public contact form.",
     "siteContentAdmin.help.close": "Got it",
 
-    "onboardingTour.siteContent.step1Title": "Contact and legal documents",
+    "onboardingTour.siteContent.step1Title": "Contact, documents and messages",
     "onboardingTour.siteContent.step1Body":
-      "Switch between the public contact details and the legal documents (Terms of Service, Legal Notice, Privacy Policy).",
+      "Switch between the public contact details, the legal documents (Terms of Service, Legal Notice, Privacy Policy) and the submissions received through the public contact form.",
     "onboardingTour.siteContent.step2Title": "Pick the document and language",
     "onboardingTour.siteContent.step2Body":
       "Select the document and language to see its versions (draft, published, archived).",

@@ -29,3 +29,22 @@ export interface LegalDocumentItem {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface ContactSubmission {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message: string;
+  readAt: string | null;
+  readById: string | null;
+  createdAt: string;
+}
+
+export interface ContactSubmissionsPage {
+  items: ContactSubmission[];
+  total: number;
+  page: number;
+  limit: number;
+}

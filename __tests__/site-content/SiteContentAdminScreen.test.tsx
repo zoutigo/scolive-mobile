@@ -42,6 +42,8 @@ jest.mock("../../src/api/site-content.api", () => ({
     updateLegalDocument: jest.fn(),
     publishLegalDocument: jest.fn(),
     deleteLegalDocument: jest.fn(),
+    listContactSubmissions: jest.fn(),
+    getContactSubmission: jest.fn(),
   },
 }));
 
@@ -77,6 +79,8 @@ const CONTACT = {
   email: "contact@scolive.cm",
   phone: "+237 690000000",
   address: "Yaoundé, Cameroun",
+  legalRepresentativeFirstName: "",
+  legalRepresentativeLastName: "",
 };
 
 const LEGAL_ITEM = {
@@ -92,6 +96,18 @@ const LEGAL_ITEM = {
   updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
+const SUBMISSION = {
+  id: "sub-1",
+  name: "Awa Ngono",
+  email: "awa@example.cm",
+  phone: "690000000",
+  subject: "Demande de devis",
+  message: "Bonjour, je souhaite en savoir plus sur Scolive.",
+  readAt: null as string | null,
+  readById: null as string | null,
+  createdAt: "2026-08-01T10:00:00.000Z",
+};
+
 describe("SiteContentAdminScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -105,6 +121,17 @@ describe("SiteContentAdminScreen", () => {
     });
     mockApi.getAdminContactInfo.mockResolvedValue(CONTACT);
     mockApi.listLegalDocuments.mockResolvedValue([LEGAL_ITEM]);
+    mockApi.listContactSubmissions.mockResolvedValue({
+      items: [SUBMISSION],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+    mockApi.getContactSubmission.mockResolvedValue({
+      ...SUBMISSION,
+      readAt: "2026-08-01T12:00:00.000Z",
+      readById: "admin-1",
+    });
   });
 
   it("affiche un message restreint pour un rôle non plateforme", async () => {
@@ -296,5 +323,50 @@ describe("SiteContentAdminScreen", () => {
     await waitFor(() =>
       expect(mockApi.publishLegalDocument).toHaveBeenCalledWith("doc-1"),
     );
+  });
+
+  it("liste les prises de contact et marque la sélection comme lue", async () => {
+    mockUser(SUPER_ADMIN_USER);
+    render(<SiteContentAdminScreen />);
+
+    await screen.findByTestId("site-content-contact-email");
+    fireEvent.press(screen.getByTestId("site-content-admin-tab-messages"));
+
+    await waitFor(() =>
+      expect(mockApi.listContactSubmissions).toHaveBeenCalledWith({
+        page: 1,
+        limit: 20,
+      }),
+    );
+    expect(
+      await screen.findByTestId("site-content-message-sub-1"),
+    ).toBeTruthy();
+    expect(screen.getByText("Awa Ngono")).toBeTruthy();
+    expect(screen.getByText("Demande de devis")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("site-content-message-sub-1"));
+
+    await screen.findByTestId("site-content-message-detail");
+    expect(screen.getByText("awa@example.cm")).toBeTruthy();
+    await waitFor(() =>
+      expect(mockApi.getContactSubmission).toHaveBeenCalledWith("sub-1"),
+    );
+    expect(await screen.findByText("Message lu")).toBeTruthy();
+  });
+
+  it("affiche un état vide quand il n'y a aucune prise de contact", async () => {
+    mockUser(SUPER_ADMIN_USER);
+    mockApi.listContactSubmissions.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+    });
+    render(<SiteContentAdminScreen />);
+
+    await screen.findByTestId("site-content-contact-email");
+    fireEvent.press(screen.getByTestId("site-content-admin-tab-messages"));
+
+    expect(await screen.findByText("Aucune prise de contact.")).toBeTruthy();
   });
 });
