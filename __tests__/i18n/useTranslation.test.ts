@@ -249,3 +249,26 @@ describe("useTranslation", () => {
     );
   });
 });
+
+describe("siteContentAdmin.* and onboardingTour.siteContent.* translations", () => {
+  it("has matching, non-empty fr/en keys", () => {
+    const frKeys = Object.keys(translations.fr).filter(
+      (key) =>
+        key.startsWith("siteContentAdmin.") ||
+        key.startsWith("onboardingTour.siteContent."),
+    );
+    const enKeys = Object.keys(translations.en).filter(
+      (key) =>
+        key.startsWith("siteContentAdmin.") ||
+        key.startsWith("onboardingTour.siteContent."),
+    );
+
+    expect(frKeys.length).toBeGreaterThan(0);
+    expect(new Set(enKeys)).toEqual(new Set(frKeys));
+
+    for (const key of frKeys) {
+      expect(translations.fr[key]).not.toBe("");
+      expect(translations.en[key]).not.toBe("");
+    }
+  });
+});

@@ -14,3 +14,18 @@ export interface PublicLegalDocument {
   contentHtml: string;
   updatedAt: string;
 }
+
+export type LegalDocumentStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+
+export interface LegalDocumentItem {
+  id: string;
+  slug: LegalDocumentSlug;
+  locale: SiteContentLocale;
+  version: number;
+  title: string;
+  contentHtml: string;
+  status: LegalDocumentStatus;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

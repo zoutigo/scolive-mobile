@@ -1,0 +1,254 @@
+import React from "react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
+import { SiteContentAdminScreen } from "../../src/components/site-content/SiteContentAdminScreen";
+import { useAuthStore } from "../../src/store/auth.store";
+import { siteContentApi } from "../../src/api/site-content.api";
+import { useOnboardingTourStore } from "../../src/store/onboarding-tour.store";
+
+jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
+jest.mock("expo-router", () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+    back: jest.fn(),
+    canGoBack: () => false,
+    navigate: jest.fn(),
+  }),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
+}));
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock("../../src/components/navigation/drawer-context", () => ({
+  useDrawer: () => ({ openDrawer: jest.fn() }),
+}));
+jest.mock("../../src/store/auth.store");
+jest.mock("../../src/api/site-content.api", () => ({
+  siteContentApi: {
+    getAdminContactInfo: jest.fn(),
+    updateContactInfo: jest.fn(),
+    listLegalDocuments: jest.fn(),
+    createLegalDocument: jest.fn(),
+    updateLegalDocument: jest.fn(),
+    publishLegalDocument: jest.fn(),
+    deleteLegalDocument: jest.fn(),
+  },
+}));
+
+const mockApi = siteContentApi as jest.Mocked<typeof siteContentApi>;
+
+const SUPER_ADMIN_USER = {
+  id: "admin-1",
+  firstName: "Admin",
+  lastName: "Scolive",
+  platformRoles: ["SUPER_ADMIN"],
+  memberships: [],
+  profileCompleted: true,
+  role: "SUPER_ADMIN",
+  activeRole: "SUPER_ADMIN",
+  onboardingHelpEnabled: false,
+};
+
+const SCHOOL_ADMIN_USER = {
+  ...SUPER_ADMIN_USER,
+  platformRoles: [],
+  role: "SCHOOL_ADMIN",
+  activeRole: "SCHOOL_ADMIN",
+};
+
+function mockUser(user: typeof SUPER_ADMIN_USER) {
+  (useAuthStore as unknown as jest.Mock).mockImplementation(
+    (selector?: (state: { user: typeof user }) => unknown) =>
+      selector ? selector({ user }) : { user },
+  );
+}
+
+const CONTACT = {
+  email: "contact@scolive.cm",
+  phone: "+237 690000000",
+  address: "Yaoundé, Cameroun",
+};
+
+const LEGAL_ITEM = {
+  id: "doc-1",
+  slug: "cgu" as const,
+  locale: "fr" as const,
+  version: 1,
+  title: "CGU",
+  contentHtml: "<p>Contenu</p>",
+  status: "DRAFT" as const,
+  publishedAt: null,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+};
+
+describe("SiteContentAdminScreen", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useOnboardingTourStore.setState({
+      completedTours: {},
+      activeTourId: null,
+      activeRole: null,
+      steps: [],
+      stepIndex: 0,
+      targetLayout: null,
+    });
+    mockApi.getAdminContactInfo.mockResolvedValue(CONTACT);
+    mockApi.listLegalDocuments.mockResolvedValue([LEGAL_ITEM]);
+  });
+
+  it("affiche un message restreint pour un rôle non plateforme", async () => {
+    mockUser(SCHOOL_ADMIN_USER);
+    render(<SiteContentAdminScreen />);
+
+    expect(
+      await screen.findByText("Réservé aux administrateurs de la plateforme."),
+    ).toBeTruthy();
+    expect(mockApi.getAdminContactInfo).not.toHaveBeenCalled();
+  });
+
+  it("charge et affiche le formulaire de contact pour un SUPER_ADMIN", async () => {
+    mockUser(SUPER_ADMIN_USER);
+    render(<SiteContentAdminScreen />);
+
+    await waitFor(() => expect(mockApi.getAdminContactInfo).toHaveBeenCalled());
+    expect(await screen.findByTestId("site-content-contact-email")).toHaveProp(
+      "value",
+      CONTACT.email,
+    );
+  });
+
+  it("charge et affiche le formulaire de contact pour un ADMIN", async () => {
+    mockUser({ ...SUPER_ADMIN_USER, activeRole: "ADMIN", role: "ADMIN" });
+    render(<SiteContentAdminScreen />);
+
+    await waitFor(() => expect(mockApi.getAdminContactInfo).toHaveBeenCalled());
+    expect(
+      await screen.findByTestId("site-content-contact-email"),
+    ).toBeTruthy();
+  });
+
+  it("enregistre les nouvelles coordonnées de contact", async () => {
+    mockUser(SUPER_ADMIN_USER);
+    mockApi.updateContactInfo.mockResolvedValue({
+      ...CONTACT,
+      phone: "+237 699999999",
+    });
+    render(<SiteContentAdminScreen />);
+
+    const phoneInput = await screen.findByTestId("site-content-contact-phone");
+    fireEvent.changeText(phoneInput, "+237 699999999");
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("site-content-contact-submit"));
+    });
+
+    await waitFor(() =>
+      expect(mockApi.updateContactInfo).toHaveBeenCalledWith({
+        ...CONTACT,
+        phone: "+237 699999999",
+      }),
+    );
+  });
+
+  it("bascule vers l'onglet Documents légaux et liste les versions", async () => {
+    mockUser(SUPER_ADMIN_USER);
+    render(<SiteContentAdminScreen />);
+
+    await screen.findByTestId("site-content-contact-email");
+    fireEvent.press(screen.getByTestId("site-content-admin-tab-legal"));
+
+    await waitFor(() => expect(mockApi.listLegalDocuments).toHaveBeenCalled());
+    expect(screen.getByTestId("site-content-legal-publish-doc-1")).toBeTruthy();
+    expect(screen.getByText(/Version 1/)).toBeTruthy();
+  });
+
+  it("bloque la création tant que le contenu est vide", async () => {
+    mockUser(SUPER_ADMIN_USER);
+    render(<SiteContentAdminScreen />);
+
+    await screen.findByTestId("site-content-contact-email");
+    fireEvent.press(screen.getByTestId("site-content-admin-tab-legal"));
+    await screen.findByTestId("site-content-legal-publish-doc-1");
+
+    fireEvent.press(screen.getByTestId("site-content-legal-new-draft"));
+    fireEvent.changeText(
+      screen.getByTestId("site-content-legal-draft-title"),
+      "Nouvelle version",
+    );
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("site-content-legal-draft-submit"));
+    });
+
+    expect(mockApi.createLegalDocument).not.toHaveBeenCalled();
+  });
+
+  it("crée un nouveau brouillon de document légal une fois le contenu saisi", async () => {
+    mockUser(SUPER_ADMIN_USER);
+    mockApi.createLegalDocument.mockResolvedValue({
+      ...LEGAL_ITEM,
+      id: "doc-2",
+      version: 2,
+    });
+    render(<SiteContentAdminScreen />);
+
+    await screen.findByTestId("site-content-contact-email");
+    fireEvent.press(screen.getByTestId("site-content-admin-tab-legal"));
+    await screen.findByTestId("site-content-legal-publish-doc-1");
+
+    fireEvent.press(screen.getByTestId("site-content-legal-new-draft"));
+    fireEvent.changeText(
+      screen.getByTestId("site-content-legal-draft-title"),
+      "Nouvelle version",
+    );
+    fireEvent.press(screen.getAllByTestId("rich-editor-set-content")[0]);
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("site-content-legal-draft-submit"));
+    });
+
+    await waitFor(() =>
+      expect(mockApi.createLegalDocument).toHaveBeenCalledWith({
+        slug: "cgu",
+        locale: "fr",
+        title: "Nouvelle version",
+        contentHtml: "<p>Bonjour</p>",
+      }),
+    );
+  });
+
+  it("demande une confirmation avant de publier un document", async () => {
+    mockUser(SUPER_ADMIN_USER);
+    mockApi.publishLegalDocument.mockResolvedValue({
+      ...LEGAL_ITEM,
+      status: "PUBLISHED",
+    });
+    render(<SiteContentAdminScreen />);
+
+    await screen.findByTestId("site-content-contact-email");
+    fireEvent.press(screen.getByTestId("site-content-admin-tab-legal"));
+    await screen.findByTestId("site-content-legal-publish-doc-1");
+
+    fireEvent.press(screen.getByTestId("site-content-legal-publish-doc-1"));
+    expect(await screen.findByText("Publier ce document ?")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
+    });
+
+    await waitFor(() =>
+      expect(mockApi.publishLegalDocument).toHaveBeenCalledWith("doc-1"),
+    );
+  });
+});
