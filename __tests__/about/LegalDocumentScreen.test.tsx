@@ -1,0 +1,61 @@
+import React from "react";
+import { render, screen, waitFor } from "@testing-library/react-native";
+import { LegalDocumentScreen } from "../../src/components/about/LegalDocumentScreen";
+import { siteContentApi } from "../../src/api/site-content.api";
+
+jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
+jest.mock("../../src/api/site-content.api");
+
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: jest.fn(), back: jest.fn(), canGoBack: () => true }),
+  useLocalSearchParams: () => ({ slug: "cgu" }),
+}));
+
+jest.mock("../../src/components/navigation/AppShell", () => ({
+  AppShell: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+jest.mock("../../src/components/navigation/ModuleHeader", () => ({
+  ModuleHeader: ({ title, testID }: { title: string; testID?: string }) => {
+    const { Text } = require("react-native");
+    return <Text testID={testID}>{title}</Text>;
+  },
+}));
+
+const api = siteContentApi as jest.Mocked<typeof siteContentApi>;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
+describe("LegalDocumentScreen", () => {
+  it("charge et affiche le document légal", async () => {
+    api.getLegalDocument.mockResolvedValue({
+      slug: "cgu",
+      locale: "fr",
+      title: "Conditions générales d'utilisation",
+      contentHtml: "<p>Contenu des CGU</p>",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+
+    render(<LegalDocumentScreen />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Conditions générales d'utilisation"),
+      ).toBeTruthy(),
+    );
+    expect(api.getLegalDocument).toHaveBeenCalledWith("cgu", "fr");
+    expect(screen.getByText("<p>Contenu des CGU</p>")).toBeTruthy();
+  });
+
+  it("affiche une erreur si le chargement échoue", async () => {
+    api.getLegalDocument.mockRejectedValue(new Error("boom"));
+
+    render(<LegalDocumentScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("legal-document-error")).toBeTruthy(),
+    );
+  });
+});

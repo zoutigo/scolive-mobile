@@ -41,6 +41,26 @@ describe("timetable.childAgenda.help.* translations", () => {
   });
 });
 
+describe("aboutScreen.* / legalScreen.* / settings.about.* translations", () => {
+  it("has matching, non-empty fr/en keys", () => {
+    const prefixes = ["aboutScreen.", "legalScreen.", "settings.about."];
+    const frKeys = Object.keys(translations.fr).filter((key) =>
+      prefixes.some((prefix) => key.startsWith(prefix)),
+    );
+    const enKeys = Object.keys(translations.en).filter((key) =>
+      prefixes.some((prefix) => key.startsWith(prefix)),
+    );
+
+    expect(frKeys.length).toBeGreaterThan(0);
+    expect(new Set(enKeys)).toEqual(new Set(frKeys));
+
+    for (const key of frKeys) {
+      expect(translations.fr[key]).not.toBe("");
+      expect(translations.en[key]).not.toBe("");
+    }
+  });
+});
+
 describe("homework.* translations", () => {
   it("has matching, non-empty fr/en keys", () => {
     const frKeys = Object.keys(translations.fr).filter((key) =>

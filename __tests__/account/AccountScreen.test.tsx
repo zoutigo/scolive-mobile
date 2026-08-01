@@ -22,8 +22,9 @@ import { colors } from "../../src/theme";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/account.api");
+const mockRouterPush = jest.fn();
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
+  useRouter: () => ({ back: jest.fn(), push: mockRouterPush }),
 }));
 jest.mock("../../src/components/navigation/AppShell", () => ({
   AppShell: ({ children }: { children: React.ReactNode }) => children,
@@ -632,6 +633,22 @@ describe("AccountScreen", () => {
     expect(
       screen.getByTestId("account-settings-onboarding-help-switch").props.value,
     ).toBe(true);
+  });
+
+  it("navigue vers /a-propos depuis la carte À propos de l'onglet Aide", async () => {
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-tab-help"));
+
+    expect(screen.getByTestId("account-settings-about-card")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("account-settings-about-action"));
+
+    expect(mockRouterPush).toHaveBeenCalledWith("/a-propos");
   });
 
   it("désactive l'aide guidée via le switch dédié", async () => {
