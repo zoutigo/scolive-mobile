@@ -21,6 +21,7 @@ import { OnboardingTarget } from "../onboarding/OnboardingTarget";
 import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
 import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import { ConfirmDialog } from "../ConfirmDialog";
+import { PageHelpModal } from "../help/PageHelpModal";
 import {
   RichEditorField,
   type RichEditorFieldRef,
@@ -86,6 +87,7 @@ export function SiteContentAdminScreen() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
   const [tab, setTab] = useState<Tab>("contact");
+  const [helpVisible, setHelpVisible] = useState(false);
 
   const effectiveRole = user?.activeRole ?? user?.role ?? null;
   const isPlatformAdmin = roleAllowsPlatformAdmin(effectiveRole);
@@ -97,6 +99,9 @@ export function SiteContentAdminScreen() {
   });
   const onboardingActiveTargetKey = useOnboardingTourStore((state) =>
     state.activeTourId ? state.steps[state.stepIndex]?.targetKey : undefined,
+  );
+  const advanceOnboardingTourTarget = useOnboardingTourStore(
+    (state) => state.advanceIfTarget,
   );
 
   // Steps 2 and 3 target controls that only exist in the "legal" tab — force
@@ -119,6 +124,16 @@ export function SiteContentAdminScreen() {
         onBack={() => moduleBack(router)}
         topInset={insets.top}
         testID="site-content-admin-header"
+        secondaryAction={{
+          icon: "help-circle-outline",
+          onPress: () => {
+            setHelpVisible(true);
+            advanceOnboardingTourTarget(SITE_CONTENT_TOUR_TARGETS.helpToggle);
+          },
+          testID: "site-content-admin-help-toggle",
+          accessibilityLabel: t("siteContentAdmin.help.toggle"),
+        }}
+        secondaryActionTourTargetId={SITE_CONTENT_TOUR_TARGETS.helpToggle}
       />
 
       {!isPlatformAdmin ? (
@@ -136,7 +151,10 @@ export function SiteContentAdminScreen() {
                 { key: "legal", label: t("siteContentAdmin.tabs.legal") },
               ]}
               activeKey={tab}
-              onSelect={setTab}
+              onSelect={(key) => {
+                setTab(key);
+                advanceOnboardingTourTarget(SITE_CONTENT_TOUR_TARGETS.tabs);
+              }}
               testIDPrefix="site-content-admin-tab"
             />
           </OnboardingTarget>
@@ -148,6 +166,19 @@ export function SiteContentAdminScreen() {
           )}
         </>
       )}
+
+      <PageHelpModal
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        title={t("siteContentAdmin.help.title")}
+        body={[
+          t("siteContentAdmin.help.body1"),
+          t("siteContentAdmin.help.body2"),
+          t("siteContentAdmin.help.body3"),
+        ]}
+        closeLabel={t("siteContentAdmin.help.close")}
+        testID="site-content-admin-help"
+      />
     </View>
   );
 }

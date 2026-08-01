@@ -228,6 +228,52 @@ describe("SiteContentAdminScreen", () => {
     );
   });
 
+  it("ouvre et ferme la modale d'aide via le bouton d'en-tête", async () => {
+    mockUser(SUPER_ADMIN_USER);
+    render(<SiteContentAdminScreen />);
+
+    await screen.findByTestId("site-content-contact-email");
+    expect(screen.queryByTestId("site-content-admin-help-title")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("site-content-admin-help-toggle"));
+    expect(
+      await screen.findByTestId("site-content-admin-help-title"),
+    ).toHaveTextContent("Contenu du site");
+
+    fireEvent.press(screen.getByTestId("site-content-admin-help-close"));
+    await waitFor(() =>
+      expect(screen.queryByTestId("site-content-admin-help-title")).toBeNull(),
+    );
+  });
+
+  it("avance le tour guidé quand on touche l'onglet mis en surbrillance", async () => {
+    mockUser(SUPER_ADMIN_USER);
+    render(<SiteContentAdminScreen />);
+
+    await screen.findByTestId("site-content-contact-email");
+
+    act(() => {
+      useOnboardingTourStore.getState().startTour("site-content", "platform", [
+        {
+          targetKey: "site-content-tour-tabs",
+          titleKey: "onboardingTour.siteContent.step1Title",
+          bodyKey: "onboardingTour.siteContent.step1Body",
+          advanceOnTargetPress: true,
+        },
+        {
+          targetKey: "site-content-tour-selectors",
+          titleKey: "onboardingTour.siteContent.step2Title",
+          bodyKey: "onboardingTour.siteContent.step2Body",
+        },
+      ]);
+    });
+    expect(useOnboardingTourStore.getState().stepIndex).toBe(0);
+
+    fireEvent.press(screen.getByTestId("site-content-admin-tab-legal"));
+
+    expect(useOnboardingTourStore.getState().stepIndex).toBe(1);
+  });
+
   it("demande une confirmation avant de publier un document", async () => {
     mockUser(SUPER_ADMIN_USER);
     mockApi.publishLegalDocument.mockResolvedValue({

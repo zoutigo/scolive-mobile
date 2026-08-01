@@ -1697,6 +1697,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.editor.colorMenuTitle": "Couleur du texte",
     "siteContentAdmin.editor.colorMenuMessage": "Choix rapide",
     "siteContentAdmin.editor.cancel": "Annuler",
+    "siteContentAdmin.help.toggle": "Aide",
+    "siteContentAdmin.help.title": "Contenu du site",
+    "siteContentAdmin.help.body1":
+      "Cet écran gère le contenu public du site vitrine : les coordonnées de contact et les documents légaux (CGU, mentions légales, confidentialité).",
+    "siteContentAdmin.help.body2":
+      "Pour un document légal, choisissez d'abord la langue puis créez un nouveau brouillon depuis le bouton dédié. Un brouillon peut être modifié librement tant qu'il n'est pas publié.",
+    "siteContentAdmin.help.body3":
+      "Publier un brouillon remplace immédiatement la version visible sur le site pour cette langue et ce document. Les anciennes versions publiées restent visibles dans l'historique.",
+    "siteContentAdmin.help.close": "J'ai compris",
 
     "onboardingTour.siteContent.step1Title": "Contact et documents légaux",
     "onboardingTour.siteContent.step1Body":
@@ -1707,6 +1716,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.siteContent.step3Title": "Créer une nouvelle version",
     "onboardingTour.siteContent.step3Body":
       "Rédigez un nouveau brouillon puis publiez-le pour remplacer la version en ligne.",
+    "onboardingTour.siteContent.step4Title": "Besoin d'aide ?",
+    "onboardingTour.siteContent.step4Body":
+      "Retrouvez à tout moment un rappel de l'usage de cet écran via ce bouton.",
 
     "testsAdmin.title": "Tests (admin)",
     "testsAdmin.subtitle": "Pilotage global des campagnes de recette",
@@ -4573,6 +4585,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.editor.colorMenuTitle": "Text color",
     "siteContentAdmin.editor.colorMenuMessage": "Quick pick",
     "siteContentAdmin.editor.cancel": "Cancel",
+    "siteContentAdmin.help.toggle": "Help",
+    "siteContentAdmin.help.title": "Site content",
+    "siteContentAdmin.help.body1":
+      "This screen manages the public showcase site content: contact details and legal documents (Terms of Service, Legal Notice, Privacy Policy).",
+    "siteContentAdmin.help.body2":
+      "For a legal document, first pick the language, then start a new draft from the dedicated button. A draft can be freely edited until it is published.",
+    "siteContentAdmin.help.body3":
+      "Publishing a draft immediately replaces the version visible on the site for that language and document. Previously published versions stay visible in the history.",
+    "siteContentAdmin.help.close": "Got it",
 
     "onboardingTour.siteContent.step1Title": "Contact and legal documents",
     "onboardingTour.siteContent.step1Body":
@@ -4583,6 +4604,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.siteContent.step3Title": "Create a new version",
     "onboardingTour.siteContent.step3Body":
       "Draft a new version, then publish it to replace the live one.",
+    "onboardingTour.siteContent.step4Title": "Need help?",
+    "onboardingTour.siteContent.step4Body":
+      "Come back to this button any time for a reminder of how this screen works.",
 
     "testsAdmin.title": "Tests (admin)",
     "testsAdmin.subtitle": "Global management of test campaigns",
