@@ -1,4 +1,5 @@
 import React from "react";
+import { StyleSheet } from "react-native";
 import {
   fireEvent,
   render,
@@ -10,6 +11,7 @@ import { feedApi } from "../../src/api/feed.api";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useFamilyStore } from "../../src/store/family.store";
 import { useFeedStore } from "../../src/store/feed.store";
+import { colors } from "../../src/theme";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("react-native-pell-rich-editor");
@@ -175,22 +177,16 @@ describe("FeedScreen", () => {
     expect(screen.getByTestId("module-header-title")).toBeTruthy();
   });
 
-  // Régression : le bouton de recherche du header n'était jamais branché
-  // (renderHeader ignorait toggleSearch/searchVisible) — la recherche était
-  // donc inatteignable depuis l'UI malgré son implémentation dans
-  // FeedModuleScreen.
-  it("ouvre le champ de recherche via le bouton du header", async () => {
+  it("affiche la recherche toujours visible et ouvre la modale d'aide via le header", async () => {
     await renderFeedScreen();
-
-    expect(
-      screen.queryByPlaceholderText("Rechercher une publication"),
-    ).toBeNull();
-
-    fireEvent.press(screen.getByTestId("feed-search-toggle"));
 
     expect(
       screen.getByPlaceholderText("Rechercher une publication"),
     ).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("feed-help-toggle"));
+
+    expect(screen.getByTestId("feed-help-title")).toBeTruthy();
   });
 
   it("n'affiche pas de sous-titre quand l'utilisateur n'a pas d'école ni de classe référente", async () => {
@@ -217,19 +213,20 @@ describe("FeedScreen", () => {
     );
   });
 
-  it("affiche les filtres dans des onglets en haut avec 'Tout' actif par défaut", async () => {
+  it("affiche le bouton de filtre inactif par défaut ('Tous' en vigueur)", async () => {
     await renderFeedScreen();
 
-    expect(screen.getByTestId("feed-filter-tab-all")).toBeTruthy();
-    expect(screen.getByTestId("feed-filter-tab-featured")).toBeTruthy();
-    expect(screen.getByTestId("feed-filter-tab-polls")).toBeTruthy();
-    expect(screen.getByTestId("feed-filter-tab-mine")).toBeTruthy();
-    expect(screen.getByTestId("feed-filter-tab-all")).toHaveStyle({
-      borderBottomColor: "#08467D",
-    });
-    expect(screen.getByTestId("feed-filter-tab-featured")).toHaveStyle({
-      borderBottomColor: "transparent",
-    });
+    const toggle = screen.getByTestId("feed-filter-toggle");
+    expect(StyleSheet.flatten(toggle.props.style).backgroundColor).not.toBe(
+      colors.accentTeal,
+    );
+
+    fireEvent.press(toggle);
+    expect(screen.getByTestId("feed-filter-panel")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-chip-all")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-chip-featured")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-chip-polls")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-chip-mine")).toBeTruthy();
   });
 
   it("ouvre le composeur depuis le FAB", async () => {
@@ -240,15 +237,17 @@ describe("FeedScreen", () => {
     expect(screen.getByTestId("feed-composer-card")).toBeTruthy();
   });
 
-  it("change le filtre du feed", async () => {
+  it("change le filtre du feed via le panneau", async () => {
     await renderFeedScreen();
 
-    fireEvent.press(screen.getByTestId("feed-filter-tab-featured"));
+    fireEvent.press(screen.getByTestId("feed-filter-toggle"));
+    fireEvent.press(screen.getByTestId("feed-filter-chip-featured"));
+    fireEvent.press(screen.getByTestId("feed-filter-apply"));
 
     await waitFor(() => {
       expect(api.list).toHaveBeenLastCalledWith(
         "college-vogt",
-        expect.objectContaining({ filter: "featured" }),
+        expect.objectContaining({ types: ["featured"] }),
       );
     });
   });
@@ -276,6 +275,85 @@ describe("FeedScreen", () => {
         expect.objectContaining({ page: 2 }),
       );
     });
+  });
+
+  it("revient en page 1 quand un filtre est appliqué après un load-more", async () => {
+    api.list
+      .mockResolvedValueOnce({
+        items: [samplePost],
+        meta: { page: 1, limit: 12, total: 24, totalPages: 2 },
+      })
+      .mockResolvedValueOnce({
+        items: [{ ...samplePost, id: "post-2", title: "Deuxième actualité" }],
+        meta: { page: 2, limit: 12, total: 24, totalPages: 2 },
+      })
+      .mockResolvedValueOnce({
+        items: [samplePost],
+        meta: { page: 1, limit: 12, total: 1, totalPages: 1 },
+      });
+
+    await renderFeedScreen();
+
+    fireEvent(screen.getByTestId("feed-list"), "onEndReached", {
+      distanceFromEnd: 20,
+    });
+    await waitFor(() => {
+      expect(api.list).toHaveBeenLastCalledWith(
+        "college-vogt",
+        expect.objectContaining({ page: 2 }),
+      );
+    });
+
+    fireEvent.press(screen.getByTestId("feed-filter-toggle"));
+    fireEvent.press(screen.getByTestId("feed-filter-chip-featured"));
+    fireEvent.press(screen.getByTestId("feed-filter-apply"));
+
+    await waitFor(() => {
+      expect(api.list).toHaveBeenLastCalledWith(
+        "college-vogt",
+        expect.objectContaining({ page: 1, types: ["featured"] }),
+      );
+    });
+  });
+
+  it("revient en page 1 quand la recherche change après un load-more", async () => {
+    api.list
+      .mockResolvedValueOnce({
+        items: [samplePost],
+        meta: { page: 1, limit: 12, total: 24, totalPages: 2 },
+      })
+      .mockResolvedValueOnce({
+        items: [{ ...samplePost, id: "post-2", title: "Deuxième actualité" }],
+        meta: { page: 2, limit: 12, total: 24, totalPages: 2 },
+      })
+      .mockResolvedValueOnce({
+        items: [samplePost],
+        meta: { page: 1, limit: 12, total: 1, totalPages: 1 },
+      });
+
+    await renderFeedScreen();
+
+    fireEvent(screen.getByTestId("feed-list"), "onEndReached", {
+      distanceFromEnd: 20,
+    });
+    await waitFor(() => {
+      expect(api.list).toHaveBeenLastCalledWith(
+        "college-vogt",
+        expect.objectContaining({ page: 2 }),
+      );
+    });
+
+    fireEvent.changeText(screen.getByTestId("feed-search-input"), "réunion");
+
+    await waitFor(
+      () => {
+        expect(api.list).toHaveBeenLastCalledWith(
+          "college-vogt",
+          expect.objectContaining({ page: 1, q: "réunion" }),
+        );
+      },
+      { timeout: 1000 },
+    );
   });
 
   it("réagit à un like", async () => {

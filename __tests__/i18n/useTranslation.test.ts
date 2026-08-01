@@ -41,6 +41,26 @@ describe("timetable.childAgenda.help.* translations", () => {
   });
 });
 
+describe("aboutScreen.* / legalScreen.* / settings.about.* translations", () => {
+  it("has matching, non-empty fr/en keys", () => {
+    const prefixes = ["aboutScreen.", "legalScreen.", "settings.about."];
+    const frKeys = Object.keys(translations.fr).filter((key) =>
+      prefixes.some((prefix) => key.startsWith(prefix)),
+    );
+    const enKeys = Object.keys(translations.en).filter((key) =>
+      prefixes.some((prefix) => key.startsWith(prefix)),
+    );
+
+    expect(frKeys.length).toBeGreaterThan(0);
+    expect(new Set(enKeys)).toEqual(new Set(frKeys));
+
+    for (const key of frKeys) {
+      expect(translations.fr[key]).not.toBe("");
+      expect(translations.en[key]).not.toBe("");
+    }
+  });
+});
+
 describe("homework.* translations", () => {
   it("has matching, non-empty fr/en keys", () => {
     const frKeys = Object.keys(translations.fr).filter((key) =>
@@ -227,5 +247,28 @@ describe("useTranslation", () => {
     expect(result.current.t("settings.language.title")).toBe(
       "Language of this device",
     );
+  });
+});
+
+describe("siteContentAdmin.* and onboardingTour.siteContent.* translations", () => {
+  it("has matching, non-empty fr/en keys", () => {
+    const frKeys = Object.keys(translations.fr).filter(
+      (key) =>
+        key.startsWith("siteContentAdmin.") ||
+        key.startsWith("onboardingTour.siteContent."),
+    );
+    const enKeys = Object.keys(translations.en).filter(
+      (key) =>
+        key.startsWith("siteContentAdmin.") ||
+        key.startsWith("onboardingTour.siteContent."),
+    );
+
+    expect(frKeys.length).toBeGreaterThan(0);
+    expect(new Set(enKeys)).toEqual(new Set(frKeys));
+
+    for (const key of frKeys) {
+      expect(translations.fr[key]).not.toBe("");
+      expect(translations.en[key]).not.toBe("");
+    }
   });
 });

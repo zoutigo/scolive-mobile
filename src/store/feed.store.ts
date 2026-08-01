@@ -2,9 +2,9 @@ import { create } from "zustand";
 import { feedApi } from "../api/feed.api";
 import type {
   FeedComment,
-  FeedFilter,
   FeedListMeta,
   FeedPost,
+  FeedTypeFilter,
 } from "../types/feed.types";
 
 const PAGE_SIZE = 12;
@@ -12,13 +12,13 @@ const PAGE_SIZE = 12;
 type FeedState = {
   posts: FeedPost[];
   meta: FeedListMeta | null;
-  filter: FeedFilter;
+  types: FeedTypeFilter[];
   search: string;
   isLoading: boolean;
   isRefreshing: boolean;
   isLoadingMore: boolean;
 
-  setFilter: (filter: FeedFilter) => void;
+  setTypes: (types: FeedTypeFilter[]) => void;
   setSearch: (search: string) => void;
   loadFeed: (schoolSlug: string) => Promise<void>;
   refreshFeed: (schoolSlug: string) => Promise<void>;
@@ -39,14 +39,14 @@ type FeedState = {
 export const useFeedStore = create<FeedState>((set, get) => ({
   posts: [],
   meta: null,
-  filter: "all",
+  types: [],
   search: "",
   isLoading: false,
   isRefreshing: false,
   isLoadingMore: false,
 
-  setFilter(filter) {
-    set({ filter, posts: [], meta: null });
+  setTypes(types) {
+    set({ types, posts: [], meta: null });
   },
 
   setSearch(search) {
@@ -54,11 +54,11 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   },
 
   async loadFeed(schoolSlug) {
-    const { filter, search } = get();
+    const { types, search } = get();
     set({ isLoading: true });
     try {
       const response = await feedApi.list(schoolSlug, {
-        filter,
+        types,
         q: search || undefined,
         page: 1,
         limit: PAGE_SIZE,
@@ -70,11 +70,11 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   },
 
   async refreshFeed(schoolSlug) {
-    const { filter, search } = get();
+    const { types, search } = get();
     set({ isRefreshing: true });
     try {
       const response = await feedApi.list(schoolSlug, {
-        filter,
+        types,
         q: search || undefined,
         page: 1,
         limit: PAGE_SIZE,
@@ -86,7 +86,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   },
 
   async loadMoreFeed(schoolSlug) {
-    const { filter, search, posts, meta, isLoadingMore } = get();
+    const { types, search, posts, meta, isLoadingMore } = get();
     if (!meta || isLoadingMore || posts.length >= meta.total) {
       return;
     }
@@ -95,7 +95,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     try {
       const nextPage = meta.page + 1;
       const response = await feedApi.list(schoolSlug, {
-        filter,
+        types,
         q: search || undefined,
         page: nextPage,
         limit: PAGE_SIZE,
@@ -177,7 +177,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     set({
       posts: [],
       meta: null,
-      filter: "all",
+      types: [],
       search: "",
       isLoading: false,
       isRefreshing: false,

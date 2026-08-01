@@ -14,11 +14,18 @@ import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { feedApi } from "../../api/feed.api";
 import { timetableApi } from "../../api/timetable.api";
+import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import { useTranslation } from "../../i18n/useTranslation";
 import { FeedModuleScreen } from "./FeedModuleScreen";
+import {
+  FEED_FILTERS_TOUR_ID,
+  FEED_FILTERS_TOUR_STEPS,
+  FEED_FILTERS_TOUR_TARGETS,
+} from "./feed-filters-tour.config";
 import type {
   CreateFeedPayload,
-  FeedFilter,
+  FeedTypeFilter,
   FeedViewerRole,
 } from "../../types/feed.types";
 
@@ -57,6 +64,15 @@ export function ChildClassFeedScreen() {
   const [className, setClassName] = useState<string | null>(null);
 
   const child = children.find((entry) => entry.id === childId);
+
+  useOnboardingTourTrigger({
+    tourId: FEED_FILTERS_TOUR_ID,
+    role: "parent",
+    steps: FEED_FILTERS_TOUR_STEPS,
+  });
+  const advanceOnboardingTourTarget = useOnboardingTourStore(
+    (state) => state.advanceIfTarget,
+  );
 
   useEffect(() => {
     if (!childId) return;
@@ -101,18 +117,18 @@ export function ChildClassFeedScreen() {
   const loadPage = useCallback(
     async ({
       page,
-      filter,
+      types,
       search,
     }: {
       page: number;
-      filter: FeedFilter;
+      types: FeedTypeFilter[];
       search: string;
     }) => {
       const resolvedClassId = classId ?? (await ensureContext());
       return feedApi.list(schoolSlug!, {
         viewScope: "CLASS",
         classId: resolvedClassId,
-        filter,
+        types,
         q: search || undefined,
         page,
         limit: 12,
@@ -140,7 +156,7 @@ export function ChildClassFeedScreen() {
     <FeedModuleScreen
       schoolSlug={schoolSlug}
       viewerRole={viewerRole}
-      renderHeader={({ toggleSearch, searchVisible }) => (
+      renderHeader={({ openHelp }) => (
         <View style={styles.headerWrap}>
           <ModuleHeader
             title={t("feed.classLife.title")}
@@ -152,12 +168,17 @@ export function ChildClassFeedScreen() {
             subtitleTestID="child-class-feed-header-subtitle"
             topInset={insets.top}
             secondaryAction={{
-              icon: "search-outline",
-              onPress: toggleSearch,
-              active: searchVisible,
-              testID: "child-class-feed-search-toggle",
-              accessibilityLabel: t("feed.search.toggle"),
+              icon: "help-circle-outline",
+              onPress: () => {
+                openHelp();
+                advanceOnboardingTourTarget(
+                  FEED_FILTERS_TOUR_TARGETS.helpToggle,
+                );
+              },
+              testID: "child-class-feed-help-toggle",
+              accessibilityLabel: t("feed.help.toggle"),
             }}
+            secondaryActionTourTargetId={FEED_FILTERS_TOUR_TARGETS.helpToggle}
           />
         </View>
       )}
@@ -172,6 +193,12 @@ export function ChildClassFeedScreen() {
       canCompose
       onCreatePost={handleCreatePost}
       onUploadInlineImage={handleUploadInlineImage}
+      helpTitle={t("feed.classLife.help.title")}
+      helpBody={[
+        t("feed.classLife.help.body1"),
+        t("feed.classLife.help.body2"),
+        t("feed.classLife.help.body3"),
+      ]}
     />
   );
 }

@@ -241,8 +241,24 @@ const PLATFORM_NAV: NavItem[] = [
     icon: "chatbubble-outline",
     route: "/messages",
   },
-  accountItem(),
 ];
+
+const PLATFORM_ADMIN_ROLES = new Set<AppRole>(["SUPER_ADMIN", "ADMIN"]);
+
+function buildPlatformNavItems(user: AuthUser): NavItem[] {
+  const role = user.activeRole ?? user.role;
+  const items = [...PLATFORM_NAV];
+  if (role && PLATFORM_ADMIN_ROLES.has(role)) {
+    items.push({
+      key: "site-content",
+      label: "Contenu du site",
+      icon: "document-text-outline",
+      route: "/site-contenu",
+    });
+  }
+  items.push(accountItem());
+  return items;
+}
 
 const SCHOOL_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
@@ -612,7 +628,7 @@ export function getNavItems(
   const items = (() => {
     switch (view) {
       case "platform":
-        return PLATFORM_NAV;
+        return buildPlatformNavItems(user);
       case "school":
         return SCHOOL_NAV;
       case "teacher":

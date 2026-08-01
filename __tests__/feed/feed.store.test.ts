@@ -48,7 +48,7 @@ beforeEach(() => {
 
 describe("feed.store", () => {
   it("charge le feed avec le filtre et la recherche", async () => {
-    useFeedStore.setState({ filter: "featured", search: "réunion" });
+    useFeedStore.setState({ types: ["featured"], search: "réunion" });
     api.list.mockResolvedValueOnce({
       items: [post1],
       meta: { page: 1, limit: 12, total: 1, totalPages: 1 },
@@ -58,7 +58,7 @@ describe("feed.store", () => {
 
     expect(api.list).toHaveBeenCalledWith(
       "college-vogt",
-      expect.objectContaining({ filter: "featured", q: "réunion" }),
+      expect.objectContaining({ types: ["featured"], q: "réunion" }),
     );
     expect(useFeedStore.getState().posts).toHaveLength(1);
   });

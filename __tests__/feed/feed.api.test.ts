@@ -34,7 +34,7 @@ describe("feedApi.list()", () => {
     );
 
     await feedApi.list("college-vogt", {
-      filter: "featured",
+      types: ["featured"],
       q: "conseil",
       page: 2,
       limit: 12,
@@ -42,10 +42,24 @@ describe("feedApi.list()", () => {
 
     const [url, options] = mockFetch.mock.calls[0];
     expect(url).toContain("/schools/college-vogt/feed?");
-    expect(url).toContain("filter=featured");
+    expect(url).toContain("types=featured");
     expect(url).toContain("q=conseil");
     expect(url).toContain("page=2");
     expect(options.headers.Authorization).toBe("Bearer feed-token");
+  });
+
+  it("combine plusieurs types de filtre dans une seule query", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okJson({
+        items: [],
+        meta: { page: 1, limit: 12, total: 0, totalPages: 0 },
+      }),
+    );
+
+    await feedApi.list("college-vogt", { types: ["featured", "polls"] });
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain("types=featured%2Cpolls");
   });
 
   it("propage explicitement le scope classe pour le contexte enfant", async () => {
@@ -59,7 +73,7 @@ describe("feedApi.list()", () => {
     await feedApi.list("college-vogt", {
       viewScope: "CLASS",
       classId: "class-6ec",
-      filter: "all",
+      types: [],
     });
 
     const [url] = mockFetch.mock.calls[0];
@@ -68,7 +82,7 @@ describe("feedApi.list()", () => {
     expect(url).toContain("classId=class-6ec");
   });
 
-  it("n'envoie pas filter=mine au backend car le filtre est local", async () => {
+  it("n'envoie aucun paramètre types quand aucun type n'est sélectionné (mode 'Tous')", async () => {
     mockFetch.mockResolvedValueOnce(
       okJson({
         items: [],
@@ -77,7 +91,7 @@ describe("feedApi.list()", () => {
     );
 
     await feedApi.list("college-vogt", {
-      filter: "mine",
+      types: [],
       viewScope: "CLASS",
       classId: "class-6ec",
     });
@@ -85,7 +99,7 @@ describe("feedApi.list()", () => {
     const [url] = mockFetch.mock.calls[0];
     expect(url).toContain("viewScope=CLASS");
     expect(url).toContain("classId=class-6ec");
-    expect(url).not.toContain("filter=mine");
+    expect(url).not.toContain("types=");
   });
 
   it("mappe les posts en ajoutant schoolSlug", async () => {

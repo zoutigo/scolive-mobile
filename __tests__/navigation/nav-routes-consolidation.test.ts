@@ -76,6 +76,8 @@ const NON_MENU_SCREENS = new Set([
   "notes", // "grades"/"Notes" pointe vers /notes -> couvert, mais dossier contient aussi child/class dynamiques
   "tickets", // branché via la bottom tab bar ("Support"), pas le drawer
   "tests", // branché via la bottom tab bar ("Tests"), distinct de "admin-tests"
+  "a-propos.tsx", // atteint depuis Mon compte -> onglet Aide, pas le menu
+  "legal", // atteint depuis /a-propos, pas un module de menu dédié
 ]);
 
 describe("Consolidation menu ↔ écrans (nav-config ↔ app/(home))", () => {

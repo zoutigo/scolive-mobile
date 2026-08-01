@@ -160,18 +160,20 @@ describe("Fil d'actualité — traduction selon la locale du compte (mobile)", (
     expect(screen.getByTestId("module-header-title")).toHaveTextContent(
       translate("fr", "feed.page.title"),
     );
-    expect(screen.getByTestId("feed-filter-tab-all")).toHaveTextContent(
+    fireEvent.press(screen.getByTestId("feed-filter-toggle"));
+    expect(screen.getByTestId("feed-filter-chip-all")).toHaveTextContent(
       translate("fr", "feed.filters.all"),
     );
-    expect(screen.getByTestId("feed-filter-tab-featured")).toHaveTextContent(
+    expect(screen.getByTestId("feed-filter-chip-featured")).toHaveTextContent(
       translate("fr", "feed.filters.featured"),
     );
-    expect(screen.getByTestId("feed-filter-tab-polls")).toHaveTextContent(
+    expect(screen.getByTestId("feed-filter-chip-polls")).toHaveTextContent(
       translate("fr", "feed.filters.polls"),
     );
-    expect(screen.getByTestId("feed-filter-tab-mine")).toHaveTextContent(
+    expect(screen.getByTestId("feed-filter-chip-mine")).toHaveTextContent(
       translate("fr", "feed.filters.mine"),
     );
+    fireEvent.press(screen.getByTestId("feed-filter-close"));
     expect(
       screen.getByText(translate("fr", "feed.page.emptyTitle")),
     ).toBeTruthy();
@@ -189,18 +191,20 @@ describe("Fil d'actualité — traduction selon la locale du compte (mobile)", (
     expect(screen.getByTestId("module-header-title")).toHaveTextContent(
       translate("en", "feed.page.title"),
     );
-    expect(screen.getByTestId("feed-filter-tab-all")).toHaveTextContent(
+    fireEvent.press(screen.getByTestId("feed-filter-toggle"));
+    expect(screen.getByTestId("feed-filter-chip-all")).toHaveTextContent(
       translate("en", "feed.filters.all"),
     );
-    expect(screen.getByTestId("feed-filter-tab-featured")).toHaveTextContent(
+    expect(screen.getByTestId("feed-filter-chip-featured")).toHaveTextContent(
       translate("en", "feed.filters.featured"),
     );
-    expect(screen.getByTestId("feed-filter-tab-polls")).toHaveTextContent(
+    expect(screen.getByTestId("feed-filter-chip-polls")).toHaveTextContent(
       translate("en", "feed.filters.polls"),
     );
-    expect(screen.getByTestId("feed-filter-tab-mine")).toHaveTextContent(
+    expect(screen.getByTestId("feed-filter-chip-mine")).toHaveTextContent(
       translate("en", "feed.filters.mine"),
     );
+    fireEvent.press(screen.getByTestId("feed-filter-close"));
     expect(
       screen.getByText(translate("en", "feed.page.emptyTitle")),
     ).toBeTruthy();

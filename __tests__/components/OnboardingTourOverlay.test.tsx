@@ -109,7 +109,7 @@ describe("OnboardingTourOverlay", () => {
     ).toBe(true);
   });
 
-  it("hides the Suivant button and shows a tap hint when the step opts into advanceOnTargetPress", () => {
+  it("hides both the Suivant and Passer buttons and shows a tap hint when the step opts into advanceOnTargetPress", () => {
     const stepsWithPress: OnboardingTourStep[] = [
       {
         targetKey: "a",
@@ -130,7 +130,11 @@ describe("OnboardingTourOverlay", () => {
 
     expect(screen.queryByTestId("onboarding-tour-next")).toBeNull();
     expect(screen.getByTestId("onboarding-tour-hint")).toBeOnTheScreen();
-    expect(screen.getByTestId("onboarding-tour-skip")).toBeOnTheScreen();
+    // Passer must NOT be offered here: it would call `next()` without
+    // performing the target's real action (e.g. opening a filter panel),
+    // silently stranding the tour on a step whose target never mounts.
+    // See create-help skill, "Bouton Passer — Exception advanceOnTargetPress".
+    expect(screen.queryByTestId("onboarding-tour-skip")).toBeNull();
   });
 
   it("advancing an advanceOnTargetPress step happens via the store, not the tooltip button", () => {
@@ -182,8 +186,60 @@ describe("OnboardingTourOverlay", () => {
     );
   });
 
-  it("skips (and completes) the tour when Passer is pressed", () => {
+  it("advances to the next step (does not end the tour) when Passer is pressed", () => {
     useOnboardingTourStore.getState().startTour("agenda", "parent", STEPS);
+    useOnboardingTourStore
+      .getState()
+      .setTargetLayout({ x: 10, y: 10, width: 100, height: 40 });
+
+    render(<OnboardingTourOverlay />);
+
+    act(() => {
+      fireEvent.press(screen.getByTestId("onboarding-tour-skip"));
+    });
+
+    expect(useOnboardingTourStore.getState().activeTourId).toBe("agenda");
+    expect(useOnboardingTourStore.getState().stepIndex).toBe(1);
+    expect(
+      useOnboardingTourStore.getState().isCompleted("parent", "agenda"),
+    ).toBe(false);
+  });
+
+  it("regression: an advanceOnTargetPress step never offers a bypass that could strand the tour on a conditionally-mounted next target", () => {
+    // Mirrors feed-filters-tour: step 1 targets the filter toggle
+    // (advanceOnTargetPress), step 2 targets a chip that only exists once
+    // the filter panel is open — an action the real target press performs
+    // but a generic `next()` call does not.
+    const chainedSteps: OnboardingTourStep[] = [
+      {
+        targetKey: "filter-toggle",
+        titleKey: "onboardingTour.childTimetable.step1Title",
+        bodyKey: "onboardingTour.childTimetable.step1Body",
+        advanceOnTargetPress: true,
+      },
+      {
+        targetKey: "type-chips",
+        titleKey: "onboardingTour.childTimetable.step2Title",
+        bodyKey: "onboardingTour.childTimetable.step2Body",
+      },
+    ];
+    useOnboardingTourStore
+      .getState()
+      .startTour("feed-filters", "teacher", chainedSteps);
+    useOnboardingTourStore
+      .getState()
+      .setTargetLayout({ x: 10, y: 10, width: 100, height: 40 });
+
+    render(<OnboardingTourOverlay />);
+
+    // No bypass button available on step 1: the only way to advance is to
+    // press the real target, which also opens the panel the next step needs.
+    expect(screen.queryByTestId("onboarding-tour-skip")).toBeNull();
+  });
+
+  it("completes the tour when Passer is pressed on the final step", () => {
+    useOnboardingTourStore.getState().startTour("agenda", "parent", STEPS);
+    useOnboardingTourStore.getState().next();
     useOnboardingTourStore
       .getState()
       .setTargetLayout({ x: 10, y: 10, width: 100, height: 40 });

@@ -16,6 +16,7 @@ import { HeaderBackButton } from "./HeaderBackButton";
 import { useHeaderScroll, HEADER_HIDE_DISTANCE } from "./header-scroll-context";
 import { useAuthStore } from "../../store/auth.store";
 import { ConfirmDialog } from "../ConfirmDialog";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
 import { useTranslation } from "../../i18n/useTranslation";
 
 interface ModuleHeaderSecondaryAction {
@@ -42,6 +43,8 @@ interface ModuleHeaderProps {
   titleUppercase?: boolean;
   /** Extra icon button rendered left of the kebab menu (e.g. a search toggle). */
   secondaryAction?: ModuleHeaderSecondaryAction;
+  /** Onboarding tour target id wrapping `secondaryAction`, if it should be spotlighted. */
+  secondaryActionTourTargetId?: string;
 }
 
 export function ModuleHeader({
@@ -57,6 +60,7 @@ export function ModuleHeader({
   backgroundColor = colors.primary,
   titleUppercase = true,
   secondaryAction,
+  secondaryActionTourTargetId,
 }: ModuleHeaderProps) {
   const { translateY } = useHeaderScroll();
   const { logout } = useAuthStore();
@@ -118,27 +122,38 @@ export function ModuleHeader({
             ) : null}
           </View>
 
-          {secondaryAction ? (
-            <TouchableOpacity
-              onPress={secondaryAction.onPress}
-              style={[
-                styles.kebabBtn,
-                secondaryAction.active && styles.secondaryActionActive,
-              ]}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityLabel={secondaryAction.accessibilityLabel}
-              accessibilityRole="button"
-              testID={
-                secondaryAction.testID ?? "module-header-secondary-action"
-              }
-            >
-              <Ionicons
-                name={secondaryAction.icon}
-                size={20}
-                color={colors.white}
-              />
-            </TouchableOpacity>
-          ) : null}
+          {secondaryAction
+            ? (() => {
+                const button = (
+                  <TouchableOpacity
+                    onPress={secondaryAction.onPress}
+                    style={[
+                      styles.kebabBtn,
+                      secondaryAction.active && styles.secondaryActionActive,
+                    ]}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityLabel={secondaryAction.accessibilityLabel}
+                    accessibilityRole="button"
+                    testID={
+                      secondaryAction.testID ?? "module-header-secondary-action"
+                    }
+                  >
+                    <Ionicons
+                      name={secondaryAction.icon}
+                      size={20}
+                      color={colors.white}
+                    />
+                  </TouchableOpacity>
+                );
+                return secondaryActionTourTargetId ? (
+                  <OnboardingTarget id={secondaryActionTourTargetId}>
+                    {button}
+                  </OnboardingTarget>
+                ) : (
+                  button
+                );
+              })()
+            : null}
 
           <TouchableOpacity
             onPress={() => setMenuOpen(true)}

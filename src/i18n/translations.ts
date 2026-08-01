@@ -71,6 +71,22 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Aides guidées réinitialisées",
     "settings.form.resetOnboardingTours.successMessage":
       "Les visites guidées réapparaîtront au prochain passage sur chaque écran concerné.",
+    "settings.about.title": "À propos & mentions légales",
+    "settings.about.subtitle":
+      "Coordonnées de contact, CGU, mentions légales et confidentialité.",
+    "settings.about.action": "Consulter",
+    "aboutScreen.title": "À propos de Scolive",
+    "aboutScreen.contactTitle": "Nous contacter",
+    "aboutScreen.legalTitle": "Documents légaux",
+    "aboutScreen.legal.cgu": "Conditions générales d'utilisation",
+    "aboutScreen.legal.mentions-legales": "Mentions légales",
+    "aboutScreen.legal.confidentialite": "Politique de confidentialité",
+    "aboutScreen.loading": "Chargement...",
+    "aboutScreen.errors.loadContact": "Impossible de charger les coordonnées.",
+    "legalScreen.title": "Document légal",
+    "legalScreen.loading": "Chargement...",
+    "legalScreen.errors.load": "Impossible de charger ce document.",
+    "legalScreen.publisherLabel": "Responsable de publication :",
     "onboardingTour.common.next": "Suivant",
     "onboardingTour.common.skip": "Passer",
     "onboardingTour.common.finish": "Terminer",
@@ -89,6 +105,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.childTimetable.step4Title": "Une aide toujours disponible",
     "onboardingTour.childTimetable.step4Body":
       "Touchez ce bouton à tout moment pour afficher un rappel sur l'utilisation de cette page.",
+    "onboardingTour.feedFilters.step1Title": "Ouvrez les filtres",
+    "onboardingTour.feedFilters.step1Body":
+      "Touchez ce bouton pour ouvrir le panneau de filtres du fil.",
+    "onboardingTour.feedFilters.step2Title": "Combinez les types",
+    "onboardingTour.feedFilters.step2Body":
+      "Sélectionnez un ou plusieurs types de publication : ils se combinent entre eux.",
+    "onboardingTour.feedFilters.step3Title": "Validez votre sélection",
+    "onboardingTour.feedFilters.step3Body":
+      "Touchez Appliquer : le panneau se ferme et la liste affiche directement le résultat filtré.",
+    "onboardingTour.feedFilters.step4Title": "Une aide toujours disponible",
+    "onboardingTour.feedFilters.step4Body":
+      "Touchez ce bouton à tout moment pour retrouver l'explication de la recherche et des filtres.",
     "settings.form.activeSchool.successTitle": "École active mise à jour",
     "settings.form.activeSchool.successMessage":
       "L'école active a été mise à jour.",
@@ -1608,6 +1636,104 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.campaigns.status.upcoming": "À commencer",
     "tests.campaigns.status.completed": "Terminée",
 
+    "siteContentAdmin.title": "Contenu du site",
+    "siteContentAdmin.subtitle":
+      "Coordonnées de contact et documents légaux publics",
+    "siteContentAdmin.restricted":
+      "Réservé aux administrateurs de la plateforme.",
+    "siteContentAdmin.tabs.contact": "Contact",
+    "siteContentAdmin.tabs.legal": "Documents légaux",
+    "siteContentAdmin.tabs.messages": "Messages",
+    "siteContentAdmin.contact.emailLabel": "Email",
+    "siteContentAdmin.contact.phoneLabel": "Téléphone",
+    "siteContentAdmin.contact.addressLabel": "Adresse",
+    "siteContentAdmin.contact.legalRepresentativeFirstNameLabel":
+      "Responsable légal — Prénom",
+    "siteContentAdmin.contact.legalRepresentativeLastNameLabel":
+      "Responsable légal — Nom",
+    "siteContentAdmin.contact.save": "Enregistrer",
+    "siteContentAdmin.contact.loadError":
+      "Impossible de charger les coordonnées de contact.",
+    "siteContentAdmin.contact.saveSuccess": "Coordonnées mises à jour.",
+    "siteContentAdmin.contact.saveError":
+      "Impossible d'enregistrer les coordonnées.",
+    "siteContentAdmin.contact.error.email": "Email invalide.",
+    "siteContentAdmin.contact.error.phone": "Le téléphone est requis.",
+    "siteContentAdmin.contact.error.address": "L'adresse est requise.",
+    "siteContentAdmin.legal.slugLabel": "Document",
+    "siteContentAdmin.legal.slug.cgu": "CGU",
+    "siteContentAdmin.legal.slug.mentions-legales": "Mentions légales",
+    "siteContentAdmin.legal.slug.confidentialite": "Confidentialité",
+    "siteContentAdmin.legal.localeLabel": "Langue",
+    "siteContentAdmin.legal.locale.fr": "Français",
+    "siteContentAdmin.legal.locale.en": "Anglais",
+    "siteContentAdmin.legal.listError":
+      "Impossible de charger les versions de ce document.",
+    "siteContentAdmin.legal.empty": "Aucune version pour l'instant.",
+    "siteContentAdmin.legal.version": "Version",
+    "siteContentAdmin.legal.status.DRAFT": "Brouillon",
+    "siteContentAdmin.legal.status.PUBLISHED": "Publié",
+    "siteContentAdmin.legal.status.ARCHIVED": "Archivé",
+    "siteContentAdmin.legal.edit": "Modifier",
+    "siteContentAdmin.legal.publish": "Publier",
+    "siteContentAdmin.legal.delete": "Supprimer",
+    "siteContentAdmin.legal.newDraftTitle": "Nouveau brouillon",
+    "siteContentAdmin.legal.titleLabel": "Titre",
+    "siteContentAdmin.legal.contentLabel": "Contenu",
+    "siteContentAdmin.legal.createDraft": "Créer le brouillon",
+    "siteContentAdmin.legal.saveDraft": "Enregistrer le brouillon",
+    "siteContentAdmin.legal.cancel": "Annuler",
+    "siteContentAdmin.legal.error.title": "Le titre est requis.",
+    "siteContentAdmin.legal.error.content": "Le contenu est requis.",
+    "siteContentAdmin.legal.createSuccess": "Brouillon créé.",
+    "siteContentAdmin.legal.createError": "Impossible de créer le brouillon.",
+    "siteContentAdmin.legal.saveDraftSuccess": "Brouillon enregistré.",
+    "siteContentAdmin.legal.saveDraftError":
+      "Impossible d'enregistrer le brouillon.",
+    "siteContentAdmin.legal.publishConfirmTitle": "Publier ce document ?",
+    "siteContentAdmin.legal.publishConfirm":
+      "La version publiée actuelle sera archivée et remplacée par celle-ci.",
+    "siteContentAdmin.legal.publishSuccess": "Document publié.",
+    "siteContentAdmin.legal.publishError": "Impossible de publier le document.",
+    "siteContentAdmin.legal.deleteConfirmTitle": "Supprimer ce brouillon ?",
+    "siteContentAdmin.legal.deleteConfirm": "Cette action est irréversible.",
+    "siteContentAdmin.legal.deleteSuccess": "Brouillon supprimé.",
+    "siteContentAdmin.legal.deleteError":
+      "Impossible de supprimer ce brouillon.",
+    "siteContentAdmin.editor.colorMenuTitle": "Couleur du texte",
+    "siteContentAdmin.editor.colorMenuMessage": "Choix rapide",
+    "siteContentAdmin.editor.cancel": "Annuler",
+    "siteContentAdmin.messages.listError":
+      "Impossible de charger les prises de contact.",
+    "siteContentAdmin.messages.emptyTitle": "Aucune prise de contact.",
+    "siteContentAdmin.messages.previous": "Précédent",
+    "siteContentAdmin.messages.next": "Suivant",
+    "siteContentAdmin.messages.loading": "Chargement...",
+    "siteContentAdmin.messages.read": "Message lu",
+    "siteContentAdmin.messages.reply": "Répondre par email",
+    "siteContentAdmin.help.toggle": "Aide",
+    "siteContentAdmin.help.title": "Contenu du site",
+    "siteContentAdmin.help.body1":
+      "Cet écran gère le contenu public du site vitrine : les coordonnées de contact, les documents légaux (CGU, mentions légales, confidentialité) et les prises de contact reçues.",
+    "siteContentAdmin.help.body2":
+      "Pour un document légal, choisissez d'abord la langue puis créez un nouveau brouillon depuis le bouton dédié. Un brouillon peut être modifié librement tant qu'il n'est pas publié.",
+    "siteContentAdmin.help.body3":
+      "Publier un brouillon remplace immédiatement la version visible sur le site pour cette langue et ce document. Les anciennes versions publiées restent visibles dans l'historique. L'onglet Messages liste les demandes reçues via le formulaire de contact public.",
+    "siteContentAdmin.help.close": "J'ai compris",
+
+    "onboardingTour.siteContent.step1Title": "Contact, documents et messages",
+    "onboardingTour.siteContent.step1Body":
+      "Basculez entre les coordonnées de contact publiques, les documents légaux (CGU, mentions légales, confidentialité) et les prises de contact reçues via le formulaire public.",
+    "onboardingTour.siteContent.step2Title": "Choisir le document et la langue",
+    "onboardingTour.siteContent.step2Body":
+      "Sélectionnez le document et la langue pour voir ses versions (brouillon, publiée, archivées).",
+    "onboardingTour.siteContent.step3Title": "Créer une nouvelle version",
+    "onboardingTour.siteContent.step3Body":
+      "Rédigez un nouveau brouillon puis publiez-le pour remplacer la version en ligne.",
+    "onboardingTour.siteContent.step4Title": "Besoin d'aide ?",
+    "onboardingTour.siteContent.step4Body":
+      "Retrouvez à tout moment un rappel de l'usage de cet écran via ce bouton.",
+
     "testsAdmin.title": "Tests (admin)",
     "testsAdmin.subtitle": "Pilotage global des campagnes de recette",
     "testsAdmin.tabs.summary": "Synthèse",
@@ -1781,9 +1907,19 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.filters.featured": "À la une",
     "feed.filters.polls": "Sondages",
     "feed.filters.mine": "Mes posts",
+    "feed.filters.toggleAccessibilityLabel": "Filtres",
+    "feed.filters.typeGroupLabel": "Type de publication",
+    "feed.filters.authorGroupLabel": "Auteur",
+    "feed.filters.reset": "Réinitialiser",
+    "feed.filters.close": "Fermer",
+    "feed.filters.apply": "Appliquer",
+    "feed.filters.resultsLabel": "{count} publication(s) au total",
 
     "feed.search.placeholder": "Rechercher une publication",
     "feed.search.toggle": "Rechercher",
+
+    "feed.help.toggle": "Aide",
+    "feed.help.close": "J'ai compris",
 
     "feed.unavailable.title": "Fil indisponible",
     "feed.unavailable.message":
@@ -1908,6 +2044,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.classLife.studentFallback": "Élève",
     "feed.classLife.classWithId": "Classe {classId}",
     "feed.classLife.classActive": "Classe active",
+    "feed.classLife.help.title": "Rechercher et filtrer",
+    "feed.classLife.help.body1":
+      "Utilisez la barre de recherche pour retrouver une publication par mot-clé.",
+    "feed.classLife.help.body2":
+      "Le bouton filtre à droite ouvre un panneau où vous pouvez combiner plusieurs types de publication (à la une, sondages) et n'afficher que vos propres publications.",
+    "feed.classLife.help.body3":
+      "Une fois votre sélection faite, validez avec Appliquer pour mettre à jour la liste.",
 
     "feed.page.title": "Fil d'actualité",
     "feed.page.endOfList": "Vous avez atteint la fin du fil",
@@ -1919,6 +2062,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.page.heroTitle": "Partager une annonce utile",
     "feed.page.heroSubtitle":
       "Informations d'école, rappels, sondages et vie quotidienne.",
+    "feed.page.help.title": "Rechercher et filtrer",
+    "feed.page.help.body1":
+      "Utilisez la barre de recherche pour retrouver une publication par mot-clé.",
+    "feed.page.help.body2":
+      "Le bouton filtre à droite ouvre un panneau où vous pouvez combiner plusieurs types de publication (à la une, sondages) et n'afficher que vos propres publications.",
+    "feed.page.help.body3":
+      "Une fois votre sélection faite, validez avec Appliquer pour mettre à jour la liste.",
     "feed.detail.headerTitle": "Publication",
     "feed.detail.backToList": "Retour à la liste",
     "feed.composer.titleLabel": "Titre",
@@ -2895,6 +3045,22 @@ export const translations: Record<Locale, Record<string, string>> = {
     "settings.form.resetOnboardingTours.successTitle": "Guided tours reset",
     "settings.form.resetOnboardingTours.successMessage":
       "Guided tours will reappear next time you visit each relevant screen.",
+    "settings.about.title": "About & legal notices",
+    "settings.about.subtitle":
+      "Contact details, terms of service, legal notice and privacy policy.",
+    "settings.about.action": "View",
+    "aboutScreen.title": "About Scolive",
+    "aboutScreen.contactTitle": "Contact us",
+    "aboutScreen.legalTitle": "Legal documents",
+    "aboutScreen.legal.cgu": "Terms of service",
+    "aboutScreen.legal.mentions-legales": "Legal notice",
+    "aboutScreen.legal.confidentialite": "Privacy policy",
+    "aboutScreen.loading": "Loading...",
+    "aboutScreen.errors.loadContact": "Could not load contact details.",
+    "legalScreen.title": "Legal document",
+    "legalScreen.loading": "Loading...",
+    "legalScreen.errors.load": "Could not load this document.",
+    "legalScreen.publisherLabel": "Publication director:",
     "onboardingTour.common.next": "Next",
     "onboardingTour.common.skip": "Skip",
     "onboardingTour.common.finish": "Finish",
@@ -2913,6 +3079,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.childTimetable.step4Title": "Help is always available",
     "onboardingTour.childTimetable.step4Body":
       "Tap this button anytime for a reminder on how to use this page.",
+    "onboardingTour.feedFilters.step1Title": "Open the filters",
+    "onboardingTour.feedFilters.step1Body":
+      "Tap this button to open the feed's filter panel.",
+    "onboardingTour.feedFilters.step2Title": "Combine post types",
+    "onboardingTour.feedFilters.step2Body":
+      "Select one or more post types: they combine with each other.",
+    "onboardingTour.feedFilters.step3Title": "Confirm your selection",
+    "onboardingTour.feedFilters.step3Body":
+      "Tap Apply: the panel closes and the list shows the filtered result right away.",
+    "onboardingTour.feedFilters.step4Title": "Help is always available",
+    "onboardingTour.feedFilters.step4Body":
+      "Tap this button anytime to see the search and filters explanation again.",
     "settings.form.activeSchool.successTitle": "Active school updated",
     "settings.form.activeSchool.successMessage":
       "The active school has been updated.",
@@ -4366,6 +4544,98 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.campaigns.status.upcoming": "Upcoming",
     "tests.campaigns.status.completed": "Completed",
 
+    "siteContentAdmin.title": "Site content",
+    "siteContentAdmin.subtitle": "Public contact details and legal documents",
+    "siteContentAdmin.restricted": "Reserved for platform administrators.",
+    "siteContentAdmin.tabs.contact": "Contact",
+    "siteContentAdmin.tabs.legal": "Legal documents",
+    "siteContentAdmin.tabs.messages": "Messages",
+    "siteContentAdmin.contact.emailLabel": "Email",
+    "siteContentAdmin.contact.phoneLabel": "Phone",
+    "siteContentAdmin.contact.addressLabel": "Address",
+    "siteContentAdmin.contact.legalRepresentativeFirstNameLabel":
+      "Legal representative — First name",
+    "siteContentAdmin.contact.legalRepresentativeLastNameLabel":
+      "Legal representative — Last name",
+    "siteContentAdmin.contact.save": "Save",
+    "siteContentAdmin.contact.loadError": "Unable to load contact details.",
+    "siteContentAdmin.contact.saveSuccess": "Contact details updated.",
+    "siteContentAdmin.contact.saveError": "Unable to save contact details.",
+    "siteContentAdmin.contact.error.email": "Invalid email.",
+    "siteContentAdmin.contact.error.phone": "Phone number is required.",
+    "siteContentAdmin.contact.error.address": "Address is required.",
+    "siteContentAdmin.legal.slugLabel": "Document",
+    "siteContentAdmin.legal.slug.cgu": "Terms of Service",
+    "siteContentAdmin.legal.slug.mentions-legales": "Legal Notice",
+    "siteContentAdmin.legal.slug.confidentialite": "Privacy Policy",
+    "siteContentAdmin.legal.localeLabel": "Language",
+    "siteContentAdmin.legal.locale.fr": "French",
+    "siteContentAdmin.legal.locale.en": "English",
+    "siteContentAdmin.legal.listError":
+      "Unable to load this document's versions.",
+    "siteContentAdmin.legal.empty": "No version yet.",
+    "siteContentAdmin.legal.version": "Version",
+    "siteContentAdmin.legal.status.DRAFT": "Draft",
+    "siteContentAdmin.legal.status.PUBLISHED": "Published",
+    "siteContentAdmin.legal.status.ARCHIVED": "Archived",
+    "siteContentAdmin.legal.edit": "Edit",
+    "siteContentAdmin.legal.publish": "Publish",
+    "siteContentAdmin.legal.delete": "Delete",
+    "siteContentAdmin.legal.newDraftTitle": "New draft",
+    "siteContentAdmin.legal.titleLabel": "Title",
+    "siteContentAdmin.legal.contentLabel": "Content",
+    "siteContentAdmin.legal.createDraft": "Create draft",
+    "siteContentAdmin.legal.saveDraft": "Save draft",
+    "siteContentAdmin.legal.cancel": "Cancel",
+    "siteContentAdmin.legal.error.title": "Title is required.",
+    "siteContentAdmin.legal.error.content": "Content is required.",
+    "siteContentAdmin.legal.createSuccess": "Draft created.",
+    "siteContentAdmin.legal.createError": "Unable to create the draft.",
+    "siteContentAdmin.legal.saveDraftSuccess": "Draft saved.",
+    "siteContentAdmin.legal.saveDraftError": "Unable to save the draft.",
+    "siteContentAdmin.legal.publishConfirmTitle": "Publish this document?",
+    "siteContentAdmin.legal.publishConfirm":
+      "The currently published version will be archived and replaced by this one.",
+    "siteContentAdmin.legal.publishSuccess": "Document published.",
+    "siteContentAdmin.legal.publishError": "Unable to publish the document.",
+    "siteContentAdmin.legal.deleteConfirmTitle": "Delete this draft?",
+    "siteContentAdmin.legal.deleteConfirm": "This action cannot be undone.",
+    "siteContentAdmin.legal.deleteSuccess": "Draft deleted.",
+    "siteContentAdmin.legal.deleteError": "Unable to delete this draft.",
+    "siteContentAdmin.editor.colorMenuTitle": "Text color",
+    "siteContentAdmin.editor.colorMenuMessage": "Quick pick",
+    "siteContentAdmin.editor.cancel": "Cancel",
+    "siteContentAdmin.messages.listError":
+      "Unable to load contact submissions.",
+    "siteContentAdmin.messages.emptyTitle": "No contact submissions.",
+    "siteContentAdmin.messages.previous": "Previous",
+    "siteContentAdmin.messages.next": "Next",
+    "siteContentAdmin.messages.loading": "Loading...",
+    "siteContentAdmin.messages.read": "Message read",
+    "siteContentAdmin.messages.reply": "Reply by email",
+    "siteContentAdmin.help.toggle": "Help",
+    "siteContentAdmin.help.title": "Site content",
+    "siteContentAdmin.help.body1":
+      "This screen manages the public showcase site content: contact details, legal documents (Terms of Service, Legal Notice, Privacy Policy) and received contact submissions.",
+    "siteContentAdmin.help.body2":
+      "For a legal document, first pick the language, then start a new draft from the dedicated button. A draft can be freely edited until it is published.",
+    "siteContentAdmin.help.body3":
+      "Publishing a draft immediately replaces the version visible on the site for that language and document. Previously published versions stay visible in the history. The Messages tab lists submissions received through the public contact form.",
+    "siteContentAdmin.help.close": "Got it",
+
+    "onboardingTour.siteContent.step1Title": "Contact, documents and messages",
+    "onboardingTour.siteContent.step1Body":
+      "Switch between the public contact details, the legal documents (Terms of Service, Legal Notice, Privacy Policy) and the submissions received through the public contact form.",
+    "onboardingTour.siteContent.step2Title": "Pick the document and language",
+    "onboardingTour.siteContent.step2Body":
+      "Select the document and language to see its versions (draft, published, archived).",
+    "onboardingTour.siteContent.step3Title": "Create a new version",
+    "onboardingTour.siteContent.step3Body":
+      "Draft a new version, then publish it to replace the live one.",
+    "onboardingTour.siteContent.step4Title": "Need help?",
+    "onboardingTour.siteContent.step4Body":
+      "Come back to this button any time for a reminder of how this screen works.",
+
     "testsAdmin.title": "Tests (admin)",
     "testsAdmin.subtitle": "Global management of test campaigns",
     "testsAdmin.tabs.summary": "Summary",
@@ -4533,9 +4803,19 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.filters.featured": "Featured",
     "feed.filters.polls": "Polls",
     "feed.filters.mine": "My posts",
+    "feed.filters.toggleAccessibilityLabel": "Filters",
+    "feed.filters.typeGroupLabel": "Post type",
+    "feed.filters.authorGroupLabel": "Author",
+    "feed.filters.reset": "Reset",
+    "feed.filters.close": "Close",
+    "feed.filters.apply": "Apply",
+    "feed.filters.resultsLabel": "{count} post(s) total",
 
     "feed.search.placeholder": "Search a post",
     "feed.search.toggle": "Search",
+
+    "feed.help.toggle": "Help",
+    "feed.help.close": "Got it",
 
     "feed.unavailable.title": "Feed unavailable",
     "feed.unavailable.message":
@@ -4657,6 +4937,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.classLife.studentFallback": "Student",
     "feed.classLife.classWithId": "Class {classId}",
     "feed.classLife.classActive": "Active class",
+    "feed.classLife.help.title": "Search and filter",
+    "feed.classLife.help.body1":
+      "Use the search bar to find a post by keyword.",
+    "feed.classLife.help.body2":
+      "The filter button on the right opens a panel where you can combine several post types (featured, polls) and show only your own posts.",
+    "feed.classLife.help.body3":
+      "Once you've made your selection, confirm with Apply to update the list.",
 
     "feed.page.title": "News feed",
     "feed.page.endOfList": "You have reached the end of the feed",
@@ -4668,6 +4955,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.page.heroTitle": "Share a useful announcement",
     "feed.page.heroSubtitle":
       "School information, reminders, polls and everyday life.",
+    "feed.page.help.title": "Search and filter",
+    "feed.page.help.body1": "Use the search bar to find a post by keyword.",
+    "feed.page.help.body2":
+      "The filter button on the right opens a panel where you can combine several post types (featured, polls) and show only your own posts.",
+    "feed.page.help.body3":
+      "Once you've made your selection, confirm with Apply to update the list.",
     "feed.detail.headerTitle": "Post",
     "feed.detail.backToList": "Back to list",
     "feed.composer.titleLabel": "Title",

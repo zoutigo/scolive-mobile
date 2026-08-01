@@ -76,7 +76,12 @@ export type FeedPost = {
   };
 };
 
-export type FeedFilter = "all" | "featured" | "polls" | "mine";
+export type FeedTypeFilter = "featured" | "polls";
+
+export type FeedFilters = {
+  types: FeedTypeFilter[];
+  mine: boolean;
+};
 
 export type FeedListMeta = {
   page: number;
@@ -89,7 +94,7 @@ export type FeedListParams = {
   viewScope?: "GENERAL" | "CLASS";
   classId?: string;
   levelId?: string;
-  filter?: FeedFilter;
+  types?: FeedTypeFilter[];
   q?: string;
   page?: number;
   limit?: number;

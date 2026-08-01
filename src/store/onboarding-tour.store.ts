@@ -45,7 +45,6 @@ type OnboardingTourState = {
     steps: OnboardingTourStep[],
   ) => void;
   next: () => void;
-  skip: () => void;
   finish: () => void;
   setTargetLayout: (layout: TargetLayout | null) => void;
   advanceIfTarget: (targetKey: string) => void;
@@ -84,10 +83,6 @@ export const useOnboardingTourStore = create<OnboardingTourState>()(
           return;
         }
         set({ stepIndex: stepIndex + 1, targetLayout: null });
-      },
-
-      skip: () => {
-        get().finish();
       },
 
       finish: () => {

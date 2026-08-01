@@ -497,3 +497,51 @@ describe("PLATFORM_NAV — Messagerie", () => {
     expect(items.find((item) => item.key === "messages")?.unread).toBe(3);
   });
 });
+
+describe("PLATFORM_NAV — Contenu du site", () => {
+  it("inclut l'entrée Contenu du site pour un SUPER_ADMIN", () => {
+    const superAdmin = makeUser({
+      platformRoles: ["SUPER_ADMIN"],
+      role: "SUPER_ADMIN",
+      activeRole: "SUPER_ADMIN",
+    });
+    const items = getNavItems(superAdmin);
+    expect(items.find((item) => item.key === "site-content")).toEqual({
+      key: "site-content",
+      label: "Contenu du site",
+      icon: "document-text-outline",
+      route: "/site-contenu",
+    });
+  });
+
+  it("inclut l'entrée Contenu du site pour un ADMIN", () => {
+    const admin = makeUser({
+      platformRoles: ["ADMIN"],
+      role: "ADMIN",
+      activeRole: "ADMIN",
+    });
+    const items = getNavItems(admin);
+    expect(items.find((item) => item.key === "site-content")).toBeDefined();
+  });
+
+  it("n'inclut pas l'entrée Contenu du site pour un SALES", () => {
+    const sales = makeUser({
+      platformRoles: ["SALES"],
+      role: "SALES",
+      activeRole: "SALES",
+    });
+    const items = getNavItems(sales);
+    expect(items.find((item) => item.key === "site-content")).toBeUndefined();
+  });
+
+  it("place l'entrée juste avant Mon compte", () => {
+    const superAdmin = makeUser({
+      platformRoles: ["SUPER_ADMIN"],
+      role: "SUPER_ADMIN",
+      activeRole: "SUPER_ADMIN",
+    });
+    const items = getNavItems(superAdmin);
+    const keys = items.map((item) => item.key);
+    expect(keys.indexOf("site-content")).toBe(keys.indexOf("account") - 1);
+  });
+});

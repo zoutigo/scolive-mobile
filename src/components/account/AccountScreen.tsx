@@ -2300,6 +2300,15 @@ function AccountScreenContent() {
               cardTestID="account-settings-reset-tours-card"
               actionTestID="account-settings-reset-tours-action"
             />
+
+            <SettingsActionCard
+              title={t("settings.about.title")}
+              subtitle={t("settings.about.subtitle")}
+              actionLabel={t("settings.about.action")}
+              onPress={() => router.push("/a-propos")}
+              cardTestID="account-settings-about-card"
+              actionTestID="account-settings-about-action"
+            />
           </View>
         ) : null}
 
