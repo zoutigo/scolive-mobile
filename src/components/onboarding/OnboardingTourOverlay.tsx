@@ -21,7 +21,6 @@ export function OnboardingTourOverlay() {
   const stepIndex = useOnboardingTourStore((state) => state.stepIndex);
   const targetLayout = useOnboardingTourStore((state) => state.targetLayout);
   const next = useOnboardingTourStore((state) => state.next);
-  const skip = useOnboardingTourStore((state) => state.skip);
 
   const [windowSize, setWindowSize] = useState(() => Dimensions.get("window"));
   const [tooltipHeight, setTooltipHeight] = useState(TOOLTIP_MAX_HEIGHT);
@@ -235,7 +234,7 @@ export function OnboardingTourOverlay() {
             {t(step.titleKey)}
           </Text>
           <TouchableOpacity
-            onPress={skip}
+            onPress={next}
             style={styles.skipButton}
             testID="onboarding-tour-skip"
           >

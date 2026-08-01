@@ -80,17 +80,9 @@ describe("onboarding-tour.store", () => {
     expect(state.isCompleted("parent", "agenda")).toBe(true);
   });
 
-  it("skip marks the tour completed immediately", () => {
-    useOnboardingTourStore.getState().startTour("agenda", "parent", STEPS);
-    useOnboardingTourStore.getState().skip();
-    const state = useOnboardingTourStore.getState();
-    expect(state.activeTourId).toBeNull();
-    expect(state.isCompleted("parent", "agenda")).toBe(true);
-  });
-
   it("keys completion by role+tourId so other roles/tours are unaffected", () => {
     useOnboardingTourStore.getState().startTour("agenda", "parent", STEPS);
-    useOnboardingTourStore.getState().skip();
+    useOnboardingTourStore.getState().finish();
     expect(
       useOnboardingTourStore.getState().isCompleted("teacher", "agenda"),
     ).toBe(false);
@@ -105,7 +97,7 @@ describe("onboarding-tour.store", () => {
 
   it("persists only completedTours (not ephemeral session state) to AsyncStorage", async () => {
     useOnboardingTourStore.getState().startTour("agenda", "parent", STEPS);
-    useOnboardingTourStore.getState().skip();
+    useOnboardingTourStore.getState().finish();
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -170,9 +162,9 @@ describe("onboarding-tour.store", () => {
 
   it("resetAllCompleted clears every completed tour flag", () => {
     useOnboardingTourStore.getState().startTour("agenda", "parent", STEPS);
-    useOnboardingTourStore.getState().skip();
+    useOnboardingTourStore.getState().finish();
     useOnboardingTourStore.getState().startTour("discipline", "teacher", STEPS);
-    useOnboardingTourStore.getState().skip();
+    useOnboardingTourStore.getState().finish();
 
     useOnboardingTourStore.getState().resetAllCompleted();
 

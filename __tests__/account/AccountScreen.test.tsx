@@ -694,7 +694,7 @@ describe("AccountScreen", () => {
       .startTour("agenda", "parent", [
         { targetKey: "a", titleKey: "t", bodyKey: "b" },
       ]);
-    useOnboardingTourStore.getState().skip();
+    useOnboardingTourStore.getState().finish();
     expect(
       useOnboardingTourStore.getState().isCompleted("parent", "agenda"),
     ).toBe(true);

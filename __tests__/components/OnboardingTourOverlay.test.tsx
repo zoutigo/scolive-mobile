@@ -182,8 +182,28 @@ describe("OnboardingTourOverlay", () => {
     );
   });
 
-  it("skips (and completes) the tour when Passer is pressed", () => {
+  it("advances to the next step (does not end the tour) when Passer is pressed", () => {
     useOnboardingTourStore.getState().startTour("agenda", "parent", STEPS);
+    useOnboardingTourStore
+      .getState()
+      .setTargetLayout({ x: 10, y: 10, width: 100, height: 40 });
+
+    render(<OnboardingTourOverlay />);
+
+    act(() => {
+      fireEvent.press(screen.getByTestId("onboarding-tour-skip"));
+    });
+
+    expect(useOnboardingTourStore.getState().activeTourId).toBe("agenda");
+    expect(useOnboardingTourStore.getState().stepIndex).toBe(1);
+    expect(
+      useOnboardingTourStore.getState().isCompleted("parent", "agenda"),
+    ).toBe(false);
+  });
+
+  it("completes the tour when Passer is pressed on the final step", () => {
+    useOnboardingTourStore.getState().startTour("agenda", "parent", STEPS);
+    useOnboardingTourStore.getState().next();
     useOnboardingTourStore
       .getState()
       .setTargetLayout({ x: 10, y: 10, width: 100, height: 40 });
