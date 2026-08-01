@@ -1,6 +1,11 @@
 import React from "react";
 import { Linking } from "react-native";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import { AboutScreen } from "../../src/components/about/AboutScreen";
 import { siteContentApi } from "../../src/api/site-content.api";
 
@@ -36,6 +41,8 @@ describe("AboutScreen", () => {
       email: "contact@scolive.cm",
       phone: "+237 690000000",
       address: "Yaoundé, Cameroun",
+      legalRepresentativeFirstName: "",
+      legalRepresentativeLastName: "",
     });
 
     render(<AboutScreen />);
@@ -53,6 +60,8 @@ describe("AboutScreen", () => {
       email: "contact@scolive.cm",
       phone: "+237 690000000",
       address: "Yaoundé, Cameroun",
+      legalRepresentativeFirstName: "",
+      legalRepresentativeLastName: "",
     });
 
     render(<AboutScreen />);
@@ -62,9 +71,7 @@ describe("AboutScreen", () => {
 
     fireEvent.press(screen.getByTestId("about-screen-email"));
 
-    expect(Linking.openURL).toHaveBeenCalledWith(
-      "mailto:contact@scolive.cm",
-    );
+    expect(Linking.openURL).toHaveBeenCalledWith("mailto:contact@scolive.cm");
   });
 
   it("navigue vers le document légal correspondant", async () => {
@@ -72,6 +79,8 @@ describe("AboutScreen", () => {
       email: "contact@scolive.cm",
       phone: "+237 690000000",
       address: "Yaoundé, Cameroun",
+      legalRepresentativeFirstName: "",
+      legalRepresentativeLastName: "",
     });
 
     render(<AboutScreen />);

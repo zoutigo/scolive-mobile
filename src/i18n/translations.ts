@@ -86,6 +86,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "legalScreen.title": "Document légal",
     "legalScreen.loading": "Chargement...",
     "legalScreen.errors.load": "Impossible de charger ce document.",
+    "legalScreen.publisherLabel": "Responsable de publication :",
     "onboardingTour.common.next": "Suivant",
     "onboardingTour.common.skip": "Passer",
     "onboardingTour.common.finish": "Terminer",
@@ -1646,6 +1647,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.contact.emailLabel": "Email",
     "siteContentAdmin.contact.phoneLabel": "Téléphone",
     "siteContentAdmin.contact.addressLabel": "Adresse",
+    "siteContentAdmin.contact.legalRepresentativeFirstNameLabel":
+      "Responsable légal — Prénom",
+    "siteContentAdmin.contact.legalRepresentativeLastNameLabel":
+      "Responsable légal — Nom",
     "siteContentAdmin.contact.save": "Enregistrer",
     "siteContentAdmin.contact.loadError":
       "Impossible de charger les coordonnées de contact.",
@@ -3055,6 +3060,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "legalScreen.title": "Legal document",
     "legalScreen.loading": "Loading...",
     "legalScreen.errors.load": "Could not load this document.",
+    "legalScreen.publisherLabel": "Publication director:",
     "onboardingTour.common.next": "Next",
     "onboardingTour.common.skip": "Skip",
     "onboardingTour.common.finish": "Finish",
@@ -4547,6 +4553,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.contact.emailLabel": "Email",
     "siteContentAdmin.contact.phoneLabel": "Phone",
     "siteContentAdmin.contact.addressLabel": "Address",
+    "siteContentAdmin.contact.legalRepresentativeFirstNameLabel":
+      "Legal representative — First name",
+    "siteContentAdmin.contact.legalRepresentativeLastNameLabel":
+      "Legal representative — Last name",
     "siteContentAdmin.contact.save": "Save",
     "siteContentAdmin.contact.loadError": "Unable to load contact details.",
     "siteContentAdmin.contact.saveSuccess": "Contact details updated.",

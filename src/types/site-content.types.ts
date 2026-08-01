@@ -5,6 +5,8 @@ export interface ContactInfo {
   email: string;
   phone: string;
   address: string;
+  legalRepresentativeFirstName: string;
+  legalRepresentativeLastName: string;
 }
 
 export interface PublicLegalDocument {

@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { siteContentApi } from "../../api/site-content.api";
@@ -8,8 +15,15 @@ import { AppShell } from "../navigation/AppShell";
 import { moduleBack } from "../../utils/moduleBack";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
-import type { ContactInfo, LegalDocumentSlug } from "../../types/site-content.types";
-import { ErrorBanner, LoadingBlock, SectionCard } from "../timetable/TimetableCommon";
+import type {
+  ContactInfo,
+  LegalDocumentSlug,
+} from "../../types/site-content.types";
+import {
+  ErrorBanner,
+  LoadingBlock,
+  SectionCard,
+} from "../timetable/TimetableCommon";
 
 const LEGAL_DOCUMENTS: LegalDocumentSlug[] = [
   "cgu",
@@ -69,7 +83,11 @@ export function AboutScreen() {
                 onPress={() => Linking.openURL(`mailto:${contactInfo.email}`)}
                 testID="about-screen-email"
               >
-                <Ionicons name="mail-outline" size={18} color={colors.primary} />
+                <Ionicons
+                  name="mail-outline"
+                  size={18}
+                  color={colors.primary}
+                />
                 <Text style={styles.contactText}>{contactInfo.email}</Text>
               </TouchableOpacity>
 
@@ -78,7 +96,11 @@ export function AboutScreen() {
                 onPress={() => Linking.openURL(`tel:${contactInfo.phone}`)}
                 testID="about-screen-phone"
               >
-                <Ionicons name="call-outline" size={18} color={colors.primary} />
+                <Ionicons
+                  name="call-outline"
+                  size={18}
+                  color={colors.primary}
+                />
                 <Text style={styles.contactText}>{contactInfo.phone}</Text>
               </TouchableOpacity>
 

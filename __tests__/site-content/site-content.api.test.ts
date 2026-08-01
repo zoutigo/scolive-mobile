@@ -71,6 +71,8 @@ describe("siteContentApi", () => {
       email: "a@b.cm",
       phone: "+237 690000000",
       address: "Douala",
+      legalRepresentativeFirstName: "",
+      legalRepresentativeLastName: "",
     };
     (apiFetch as jest.Mock).mockResolvedValue(payload);
 
