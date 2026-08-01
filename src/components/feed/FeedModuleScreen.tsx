@@ -3,15 +3,16 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
-  KeyboardAvoidingView,
-  Platform,
+  Modal,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
-  type ViewToken,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,21 +22,31 @@ import { useSuccessToastStore } from "../../store/success-toast.store";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { ConfirmDialog } from "../ConfirmDialog";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import { FeedComposerCard } from "./FeedComposerCard";
-import { FeedFilterTabs } from "./FeedFilterTabs";
+import { FEED_FILTERS_TOUR_TARGETS } from "./feed-filters-tour.config";
 import { FeedPostCard } from "./FeedPostCard";
 import { orderFeedPosts } from "./feed.helpers";
 import { useTranslation } from "../../i18n/useTranslation";
 import type {
   CreateFeedPayload,
-  FeedFilter,
+  FeedFilters,
   FeedListMeta,
   FeedPost,
   FeedPostType,
+  FeedTypeFilter,
   FeedViewerRole,
 } from "../../types/feed.types";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
+const SEARCH_DEBOUNCE_MS = 300;
+
+const NO_FEED_FILTERS: FeedFilters = { types: [], mine: false };
+
+function hasActiveFeedFilters(filters: FeedFilters) {
+  return filters.types.length > 0 || filters.mine;
+}
 
 type FeedPagePayload = {
   items: FeedPost[];
@@ -45,13 +56,10 @@ type FeedPagePayload = {
 type Props = {
   schoolSlug?: string | null;
   viewerRole: FeedViewerRole | null;
-  renderHeader: (controls: {
-    toggleSearch: () => void;
-    searchVisible: boolean;
-  }) => React.ReactNode;
+  renderHeader: (controls: { openHelp: () => void }) => React.ReactNode;
   loadPage: (input: {
     page: number;
-    filter: FeedFilter;
+    types: FeedTypeFilter[];
     search: string;
   }) => Promise<FeedPagePayload>;
   testIDPrefix: string;
@@ -81,6 +89,8 @@ type Props = {
   unavailableTitle?: string;
   unavailableMessage?: string;
   onPostsChange?: (posts: FeedPost[]) => void;
+  helpTitle: string;
+  helpBody: string;
 };
 
 export function FeedModuleScreen({
@@ -103,6 +113,8 @@ export function FeedModuleScreen({
   unavailableTitle,
   unavailableMessage,
   onPostsChange,
+  helpTitle,
+  helpBody,
 }: Props) {
   const { t } = useTranslation();
   const tRef = useRef(t);
@@ -115,11 +127,26 @@ export function FeedModuleScreen({
     unavailableMessage ?? t("feed.unavailable.message");
   const insets = useSafeAreaInsets();
   const showToast = useSuccessToastStore((state) => state.show);
+  const advanceOnboardingTourTarget = useOnboardingTourStore(
+    (state) => state.advanceIfTarget,
+  );
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [meta, setMeta] = useState<FeedListMeta | null>(null);
-  const [filter, setFilter] = useState<FeedFilter>("all");
-  const [search, setSearch] = useState("");
-  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftFilters, setDraftFilters] =
+    useState<FeedFilters>(NO_FEED_FILTERS);
+  const [appliedFilters, setAppliedFilters] =
+    useState<FeedFilters>(NO_FEED_FILTERS);
+  const [filterScrollOverflowing, setFilterScrollOverflowing] = useState(false);
+  const [filterScrollNearBottom, setFilterScrollNearBottom] = useState(false);
+  const filterScrollLayoutHeightRef = useRef(0);
+  const filterScrollContentHeightRef = useRef(0);
+  const showFilterScrollHint =
+    filterScrollOverflowing && !filterScrollNearBottom;
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [helpVisible, setHelpVisible] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerType] = useState<FeedPostType>("POST");
   const [deleteCandidate, setDeleteCandidate] = useState<FeedPost | null>(null);
@@ -129,41 +156,85 @@ export function FeedModuleScreen({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [detailIndex, setDetailIndex] = useState<number | null>(null);
 
-  const seenPostIdsRef = useRef<Set<string>>(new Set());
-  const [unreadCounts, setUnreadCounts] = useState<
-    Partial<Record<FeedFilter, number>>
-  >({});
-  const filterRef = useRef(filter);
-  filterRef.current = filter;
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setAppliedSearch(searchInput.trim());
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [searchInput]);
 
-  const markRead = useCallback((postId: string) => {
-    if (seenPostIdsRef.current.has(postId)) return;
-    seenPostIdsRef.current.add(postId);
-    setUnreadCounts((prev) => {
-      const current = prev[filterRef.current] ?? 0;
-      if (current <= 0) return prev;
-      return { ...prev, [filterRef.current]: current - 1 };
-    });
-  }, []);
+  function openFilters() {
+    setDraftFilters(appliedFilters);
+    filterScrollLayoutHeightRef.current = 0;
+    filterScrollContentHeightRef.current = 0;
+    setFilterScrollOverflowing(false);
+    setFilterScrollNearBottom(false);
+    setFiltersOpen(true);
+  }
 
-  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 70 });
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      viewableItems.forEach((token) => {
-        if (token.isViewable && token.item) {
-          const post = token.item as FeedPost;
-          if (!seenPostIdsRef.current.has(post.id)) {
-            seenPostIdsRef.current.add(post.id);
-            setUnreadCounts((prev) => {
-              const current = prev[filterRef.current] ?? 0;
-              if (current <= 0) return prev;
-              return { ...prev, [filterRef.current]: current - 1 };
-            });
-          }
-        }
-      });
-    },
-  );
+  function closeFilters() {
+    setDraftFilters(appliedFilters);
+    setFiltersOpen(false);
+  }
+
+  function toggleFilters() {
+    if (filtersOpen) closeFilters();
+    else openFilters();
+    advanceOnboardingTourTarget(FEED_FILTERS_TOUR_TARGETS.filterToggle);
+  }
+
+  function applyFilters() {
+    setAppliedFilters(draftFilters);
+    setFiltersOpen(false);
+    setDetailIndex(null);
+    advanceOnboardingTourTarget(FEED_FILTERS_TOUR_TARGETS.apply);
+  }
+
+  function resetFilters() {
+    setDraftFilters(NO_FEED_FILTERS);
+    setAppliedFilters(NO_FEED_FILTERS);
+  }
+
+  function toggleDraftType(type: FeedTypeFilter) {
+    setDraftFilters((current) => ({
+      ...current,
+      types: current.types.includes(type)
+        ? current.types.filter((entry) => entry !== type)
+        : [...current.types, type],
+    }));
+  }
+
+  function clearDraftTypes() {
+    setDraftFilters((current) => ({ ...current, types: [] }));
+  }
+
+  function toggleDraftMine() {
+    setDraftFilters((current) => ({ ...current, mine: !current.mine }));
+  }
+
+  function recomputeFilterScrollOverflow() {
+    setFilterScrollOverflowing(
+      filterScrollContentHeightRef.current >
+        filterScrollLayoutHeightRef.current + 4,
+    );
+  }
+  function handleFilterScrollLayout(height: number) {
+    filterScrollLayoutHeightRef.current = height;
+    recomputeFilterScrollOverflow();
+  }
+  function handleFilterScrollContentSize(height: number) {
+    filterScrollContentHeightRef.current = height;
+    recomputeFilterScrollOverflow();
+  }
+  function handleFilterScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const distanceFromBottom =
+      contentSize.height - (contentOffset.y + layoutMeasurement.height);
+    setFilterScrollNearBottom(distanceFromBottom < 12);
+  }
 
   const commitPosts = useCallback(
     (updater: FeedPost[] | ((current: FeedPost[]) => FeedPost[])) => {
@@ -192,8 +263,8 @@ export function FeedModuleScreen({
         const page = mode === "more" ? (meta?.page ?? 1) + 1 : 1;
         const response = await loadPage({
           page,
-          filter: filter === "mine" ? "all" : filter,
-          search: search.trim(),
+          types: appliedFilters.types,
+          search: appliedSearch.trim(),
         });
 
         commitPosts((current) =>
@@ -207,16 +278,6 @@ export function FeedModuleScreen({
             : response.items,
         );
         setMeta(response.meta);
-
-        if (mode !== "more") {
-          const unseenCount = response.items.filter(
-            (p) => !seenPostIdsRef.current.has(p.id),
-          ).length;
-          setUnreadCounts((prev) => ({
-            ...prev,
-            [filter]: unseenCount,
-          }));
-        }
       } catch (error) {
         setErrorMessage(
           error instanceof Error
@@ -229,7 +290,7 @@ export function FeedModuleScreen({
         setIsLoadingMore(false);
       }
     },
-    [filter, loadPage, schoolSlug, search],
+    [appliedFilters, loadPage, schoolSlug, appliedSearch],
   );
 
   useEffect(() => {
@@ -388,10 +449,7 @@ export function FeedModuleScreen({
   if (!viewerRole) {
     return (
       <View style={styles.root}>
-        {renderHeader({
-          toggleSearch: () => setSearchVisible((value) => !value),
-          searchVisible,
-        })}
+        {renderHeader({ openHelp: () => setHelpVisible(true) })}
         <View style={styles.center}>
           <Text style={styles.emptyTitle}>{effectiveUnavailableTitle}</Text>
           <Text style={styles.emptySub}>{effectiveUnavailableMessage}</Text>
@@ -400,10 +458,9 @@ export function FeedModuleScreen({
     );
   }
 
-  const visiblePosts =
-    filter === "mine"
-      ? orderFeedPosts(posts.filter((post) => post.authoredByViewer))
-      : orderFeedPosts(posts);
+  const visiblePosts = appliedFilters.mine
+    ? orderFeedPosts(posts.filter((post) => post.authoredByViewer))
+    : orderFeedPosts(posts);
 
   const listBottomPadding =
     Math.max(insets.bottom, 18) + BOTTOM_TAB_BAR_HEIGHT + 72;
@@ -465,11 +522,7 @@ export function FeedModuleScreen({
               e.nativeEvent.contentOffset.x / SCREEN_WIDTH,
             );
             setDetailIndex(newIndex);
-            const post = visiblePosts[newIndex];
-            if (post) markRead(post.id);
           }}
-          onViewableItemsChanged={onViewableItemsChanged.current}
-          viewabilityConfig={viewabilityConfig.current}
           decelerationRate="fast"
         />
       </View>
@@ -478,45 +531,61 @@ export function FeedModuleScreen({
 
   return (
     <View style={styles.root}>
-      {renderHeader({
-        toggleSearch: () => setSearchVisible((value) => !value),
-        searchVisible,
-      })}
+      {renderHeader({ openHelp: () => setHelpVisible(true) })}
 
-      <FeedFilterTabs
-        activeFilter={filter}
-        unreadCounts={unreadCounts}
-        onSelect={(f) => {
-          setFilter(f);
-          setDetailIndex(null);
-        }}
-      />
-
-      {searchVisible ? (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.searchWrap}
-        >
+      <View style={styles.searchRow} testID={`${testIDPrefix}-search-row`}>
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={16} color={colors.textSecondary} />
           <TextInput
-            style={styles.searchInput}
-            value={search}
-            onChangeText={setSearch}
+            style={styles.searchInputField}
+            value={searchInput}
+            onChangeText={setSearchInput}
             placeholder={effectiveSearchPlaceholder}
             placeholderTextColor={colors.textSecondary}
+            returnKeyType="search"
+            autoCapitalize="none"
+            accessibilityLabel={effectiveSearchPlaceholder}
             testID={`${testIDPrefix}-search-input`}
           />
+          {searchInput.length > 0 ? (
+            <TouchableOpacity
+              onPress={() => setSearchInput("")}
+              testID={`${testIDPrefix}-search-clear`}
+            >
+              <Ionicons
+                name="close-circle"
+                size={16}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+        <OnboardingTarget id={FEED_FILTERS_TOUR_TARGETS.filterToggle}>
           <TouchableOpacity
-            style={styles.searchClose}
-            onPress={() => {
-              setSearch("");
-              setSearchVisible(false);
-            }}
-            testID={`${testIDPrefix}-search-close`}
+            style={[
+              styles.filterToggle,
+              hasActiveFeedFilters(appliedFilters) && styles.filterToggleActive,
+            ]}
+            onPress={toggleFilters}
+            testID={`${testIDPrefix}-filter-toggle`}
+            accessibilityLabel={t("feed.filters.toggleAccessibilityLabel")}
           >
-            <Ionicons name="close" size={18} color={colors.textSecondary} />
+            <Ionicons
+              name={
+                hasActiveFeedFilters(appliedFilters)
+                  ? "filter"
+                  : "filter-outline"
+              }
+              size={18}
+              color={
+                hasActiveFeedFilters(appliedFilters)
+                  ? colors.white
+                  : colors.accentTeal
+              }
+            />
           </TouchableOpacity>
-        </KeyboardAvoidingView>
-      ) : null}
+        </OnboardingTarget>
+      </View>
 
       {errorMessage ? (
         <View style={styles.errorBanner} testID={`${testIDPrefix}-error`}>
@@ -529,7 +598,180 @@ export function FeedModuleScreen({
         </View>
       ) : null}
 
-      {composerOpen && canCompose && onCreatePost && onUploadInlineImage ? (
+      {filtersOpen ? (
+        <View
+          style={styles.filterPanel}
+          testID={`${testIDPrefix}-filter-panel`}
+        >
+          <View style={styles.filterPanelHeader}>
+            <View style={styles.filterPanelHeaderIcon}>
+              <Ionicons
+                name="options-outline"
+                size={16}
+                color={colors.accentTealDark}
+              />
+            </View>
+            <Text style={styles.filterPanelHeaderTitle}>
+              {t("feed.filters.toggleAccessibilityLabel")}
+            </Text>
+          </View>
+
+          <View style={styles.filterScrollWrapper}>
+            <ScrollView
+              style={styles.filterScrollArea}
+              contentContainerStyle={styles.filterScrollContent}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator
+              onLayout={(e) =>
+                handleFilterScrollLayout(e.nativeEvent.layout.height)
+              }
+              onContentSizeChange={(_w, h) => handleFilterScrollContentSize(h)}
+              onScroll={handleFilterScroll}
+              scrollEventThrottle={16}
+              testID={`${testIDPrefix}-filter-scroll`}
+            >
+              <OnboardingTarget id={FEED_FILTERS_TOUR_TARGETS.typeChips}>
+                <View style={styles.filterGroup}>
+                  <Text style={styles.filterGroupLabel}>
+                    {t("feed.filters.typeGroupLabel")}
+                  </Text>
+                  <View style={styles.filterChipsRow}>
+                    <TouchableOpacity
+                      style={[
+                        styles.filterChip,
+                        draftFilters.types.length === 0 &&
+                          styles.filterChipActive,
+                      ]}
+                      onPress={clearDraftTypes}
+                      testID={`${testIDPrefix}-filter-chip-all`}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipLabel,
+                          draftFilters.types.length === 0 &&
+                            styles.filterChipLabelActive,
+                        ]}
+                      >
+                        {t("feed.filters.all")}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.filterChip,
+                        draftFilters.types.includes("featured") &&
+                          styles.filterChipActive,
+                      ]}
+                      onPress={() => toggleDraftType("featured")}
+                      testID={`${testIDPrefix}-filter-chip-featured`}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipLabel,
+                          draftFilters.types.includes("featured") &&
+                            styles.filterChipLabelActive,
+                        ]}
+                      >
+                        {t("feed.filters.featured")}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.filterChip,
+                        draftFilters.types.includes("polls") &&
+                          styles.filterChipActive,
+                      ]}
+                      onPress={() => toggleDraftType("polls")}
+                      testID={`${testIDPrefix}-filter-chip-polls`}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipLabel,
+                          draftFilters.types.includes("polls") &&
+                            styles.filterChipLabelActive,
+                        ]}
+                      >
+                        {t("feed.filters.polls")}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </OnboardingTarget>
+
+              <View style={styles.filterGroup}>
+                <Text style={styles.filterGroupLabel}>
+                  {t("feed.filters.authorGroupLabel")}
+                </Text>
+                <View style={styles.filterChipsRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.filterChip,
+                      draftFilters.mine && styles.filterChipActive,
+                    ]}
+                    onPress={toggleDraftMine}
+                    testID={`${testIDPrefix}-filter-chip-mine`}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipLabel,
+                        draftFilters.mine && styles.filterChipLabelActive,
+                      ]}
+                    >
+                      {t("feed.filters.mine")}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ScrollView>
+            {showFilterScrollHint ? (
+              <View
+                style={styles.filterScrollHint}
+                pointerEvents="none"
+                testID={`${testIDPrefix}-filter-scroll-hint`}
+              >
+                <View style={styles.filterScrollHintFade} />
+                <Ionicons
+                  name="chevron-down"
+                  size={16}
+                  color={colors.accentTeal}
+                />
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.filterActionsRow}>
+            <TouchableOpacity
+              style={styles.filterActionReset}
+              onPress={resetFilters}
+              testID={`${testIDPrefix}-filter-reset`}
+            >
+              <Text style={styles.filterActionResetLabel}>
+                {t("feed.filters.reset")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.filterActionClose}
+              onPress={closeFilters}
+              testID={`${testIDPrefix}-filter-close`}
+            >
+              <Text style={styles.filterActionCloseLabel}>
+                {t("feed.filters.close")}
+              </Text>
+            </TouchableOpacity>
+            <OnboardingTarget id={FEED_FILTERS_TOUR_TARGETS.apply}>
+              <TouchableOpacity
+                style={styles.filterActionApply}
+                onPress={applyFilters}
+                testID={`${testIDPrefix}-filter-apply`}
+              >
+                <Ionicons name="checkmark" size={15} color={colors.white} />
+                <Text style={styles.filterActionApplyLabel}>
+                  {t("feed.filters.apply")}
+                </Text>
+              </TouchableOpacity>
+            </OnboardingTarget>
+          </View>
+        </View>
+      ) : composerOpen && canCompose && onCreatePost && onUploadInlineImage ? (
         <ScrollView
           style={styles.composerScroll}
           contentContainerStyle={[
@@ -581,20 +823,26 @@ export function FeedModuleScreen({
                 color={colors.warmBorder}
               />
               <Text style={styles.emptyTitle}>
-                {search ? t("feed.empty.noResultsTitle") : emptyTitle}
+                {appliedSearch ? t("feed.empty.noResultsTitle") : emptyTitle}
               </Text>
               <Text style={styles.emptySub}>
-                {search ? t("feed.empty.noResultsMessage") : emptyMessage}
+                {appliedSearch
+                  ? t("feed.empty.noResultsMessage")
+                  : emptyMessage}
               </Text>
             </View>
           }
           hasMore={
-            filter === "mine" ? false : meta ? posts.length < meta.total : false
+            appliedFilters.mine
+              ? false
+              : meta
+                ? posts.length < meta.total
+                : false
           }
           isLoadingMore={isLoadingMore}
           onLoadMore={() => {
             if (
-              filter === "mine" ||
+              appliedFilters.mine ||
               !meta ||
               posts.length >= meta.total ||
               isLoadingMore
@@ -609,13 +857,11 @@ export function FeedModuleScreen({
               ? [styles.emptyContainer, { paddingBottom: listBottomPadding }]
               : [styles.listContent, { paddingBottom: listBottomPadding }]
           }
-          onViewableItemsChanged={onViewableItemsChanged.current}
-          viewabilityConfig={viewabilityConfig.current}
           testID={listTestID}
         />
       )}
 
-      {!composerOpen && detailIndex === null && canCompose ? (
+      {!filtersOpen && !composerOpen && detailIndex === null && canCompose ? (
         <TouchableOpacity
           style={[styles.fab, { bottom: listBottomPadding - 4 }]}
           onPress={() => setComposerOpen(true)}
@@ -625,6 +871,51 @@ export function FeedModuleScreen({
           <Ionicons name="create-outline" size={24} color={colors.white} />
         </TouchableOpacity>
       ) : null}
+
+      <Modal
+        visible={helpVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setHelpVisible(false)}
+        testID={`${testIDPrefix}-help-modal`}
+      >
+        <TouchableWithoutFeedback onPress={() => setHelpVisible(false)}>
+          <View style={styles.helpBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={styles.helpCard}>
+                <View style={styles.helpIconWrap}>
+                  <Ionicons
+                    name="help-circle-outline"
+                    size={30}
+                    color={colors.accentTealDark}
+                  />
+                </View>
+                <Text
+                  style={styles.helpTitle}
+                  testID={`${testIDPrefix}-help-title`}
+                >
+                  {helpTitle}
+                </Text>
+                <Text
+                  style={styles.helpBody}
+                  testID={`${testIDPrefix}-help-body`}
+                >
+                  {helpBody}
+                </Text>
+                <TouchableOpacity
+                  style={styles.helpCloseBtn}
+                  onPress={() => setHelpVisible(false)}
+                  testID={`${testIDPrefix}-help-close`}
+                >
+                  <Text style={styles.helpCloseLabel}>
+                    {t("feed.help.close")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
       <ConfirmDialog
         visible={Boolean(deleteCandidate)}
@@ -651,33 +942,245 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  searchWrap: {
+  searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.warmBorder,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
-  searchInput: {
+  searchBox: {
     flex: 1,
-    minHeight: 46,
-    borderRadius: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  searchInputField: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.textPrimary,
+    padding: 0,
+  },
+  filterToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}55`,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterToggleActive: {
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.accentTeal,
+  },
+  filterPanel: {
+    flex: 1,
+    marginHorizontal: 16,
+    marginTop: 10,
+    padding: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}33`,
+    backgroundColor: colors.surface,
+    gap: 14,
+  },
+  filterScrollWrapper: {
+    flex: 1,
+    position: "relative",
+  },
+  filterScrollArea: {
+    flex: 1,
+  },
+  filterScrollContent: {
+    gap: 14,
+    paddingBottom: 12,
+  },
+  filterScrollHint: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterScrollHintFade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: colors.surface,
+    opacity: 0.85,
+  },
+  filterPanelHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  filterPanelHeaderIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: `${colors.accentTeal}1F`,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterPanelHeaderTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.accentTealDark,
+  },
+  filterGroup: {
+    gap: 8,
+  },
+  filterGroupLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  filterChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  filterChipActive: {
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.accentTeal,
+  },
+  filterChipLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
+  filterChipLabelActive: {
+    color: colors.white,
+  },
+  filterActionsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 2,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  filterActionReset: {
+    flex: 1,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.warmBorder,
-    backgroundColor: colors.background,
-    paddingHorizontal: 14,
-    color: colors.textPrimary,
-  },
-  searchClose: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
     backgroundColor: colors.warmSurface,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 11,
+  },
+  filterActionResetLabel: {
+    color: colors.warmAccent,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  filterActionClose: {
+    flex: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 11,
+  },
+  filterActionCloseLabel: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  filterActionApply: {
+    flex: 1.3,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 6,
+    paddingVertical: 11,
+  },
+  filterActionApplyLabel: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  helpBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  helpCard: {
+    width: "100%",
+    maxWidth: 420,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    paddingHorizontal: 20,
+    paddingVertical: 22,
+    alignItems: "center",
+    gap: 10,
+  },
+  helpIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: `${colors.accentTeal}1F`,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  helpTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: colors.textPrimary,
+    textAlign: "center",
+  },
+  helpBody: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  helpCloseBtn: {
+    marginTop: 10,
+    alignSelf: "stretch",
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+  },
+  helpCloseLabel: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: "700",
   },
   errorBanner: {
     marginHorizontal: 16,

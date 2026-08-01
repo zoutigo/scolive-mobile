@@ -11,8 +11,13 @@ import { feedApi } from "../../src/api/feed.api";
 import { timetableApi } from "../../src/api/timetable.api";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useFamilyStore } from "../../src/store/family.store";
+import { useOnboardingTourStore } from "../../src/store/onboarding-tour.store";
 import { colors } from "../../src/theme";
 import { useDrawer } from "../../src/components/navigation/drawer-context";
+import {
+  FEED_FILTERS_TOUR_ID,
+  FEED_FILTERS_TOUR_TARGETS,
+} from "../../src/components/feed/feed-filters-tour.config";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("react-native-pell-rich-editor");
@@ -24,6 +29,12 @@ const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
   useLocalSearchParams: () => ({ childId: "child-1" }),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -73,6 +84,14 @@ const otherPost = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  useOnboardingTourStore.setState({
+    completedTours: {},
+    activeTourId: null,
+    activeRole: null,
+    steps: [],
+    stepIndex: 0,
+    targetLayout: null,
+  });
   mockUseDrawer.mockReturnValue({
     openDrawer: mockOpenDrawer,
     closeDrawer: jest.fn(),
@@ -150,7 +169,7 @@ describe("ChildClassFeedScreen", () => {
         expect.objectContaining({
           viewScope: "CLASS",
           classId: "class-1",
-          filter: "all",
+          types: [],
         }),
       );
     });
@@ -163,34 +182,34 @@ describe("ChildClassFeedScreen", () => {
     expect(screen.getByText("CONSEIL DE CLASSE")).toBeTruthy();
     expect(screen.getByText("INFORMATION PARENTS")).toBeTruthy();
     expect(headerStyle.backgroundColor).toBe(colors.primary);
-    expect(screen.getByTestId("feed-filter-tab-all")).toBeTruthy();
-    expect(screen.getByTestId("feed-filter-tab-featured")).toBeTruthy();
-    expect(screen.getByTestId("feed-filter-tab-polls")).toBeTruthy();
-    expect(screen.getByTestId("feed-filter-tab-mine")).toBeTruthy();
+    expect(screen.getByTestId("child-class-feed-search-input")).toBeTruthy();
+    expect(screen.getByTestId("child-class-feed-filter-toggle")).toBeTruthy();
     expect(screen.getByTestId("child-class-feed-compose-fab")).toBeTruthy();
   });
 
-  // Régression : le bouton de recherche du header n'était jamais branché.
-  it("ouvre le champ de recherche via le bouton du header", async () => {
+  // Régression : le bouton d'aide du header n'était jamais branché.
+  it("ouvre la modale d'aide via le bouton du header", async () => {
     render(<ChildClassFeedScreen />);
 
     await waitFor(() => expect(api.list).toHaveBeenCalled());
 
-    fireEvent.press(screen.getByTestId("child-class-feed-search-toggle"));
+    fireEvent.press(screen.getByTestId("child-class-feed-help-toggle"));
 
-    expect(
-      screen.getByPlaceholderText("Rechercher une publication"),
-    ).toBeTruthy();
+    expect(screen.getByTestId("child-class-feed-help-title")).toBeTruthy();
   });
 
-  it("change le filtre du fil de classe", async () => {
+  it("change le filtre du fil de classe via le panneau de filtres", async () => {
     render(<ChildClassFeedScreen />);
 
     await waitFor(() => {
       expect(api.list).toHaveBeenCalled();
     });
 
-    fireEvent.press(screen.getByTestId("feed-filter-tab-featured"));
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-toggle"));
+    fireEvent.press(
+      screen.getByTestId("child-class-feed-filter-chip-featured"),
+    );
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-apply"));
 
     await waitFor(() => {
       expect(api.list).toHaveBeenLastCalledWith(
@@ -198,13 +217,37 @@ describe("ChildClassFeedScreen", () => {
         expect.objectContaining({
           viewScope: "CLASS",
           classId: "class-1",
-          filter: "featured",
+          types: ["featured"],
         }),
       );
     });
   });
 
-  it("filtre localement sur mes posts depuis la bottom navigation", async () => {
+  it("combine plusieurs chips de type dans le panneau de filtres", async () => {
+    render(<ChildClassFeedScreen />);
+
+    await waitFor(() => {
+      expect(api.list).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-toggle"));
+    fireEvent.press(
+      screen.getByTestId("child-class-feed-filter-chip-featured"),
+    );
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-chip-polls"));
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-apply"));
+
+    await waitFor(() => {
+      expect(api.list).toHaveBeenLastCalledWith(
+        "college-vogt",
+        expect.objectContaining({
+          types: ["featured", "polls"],
+        }),
+      );
+    });
+  });
+
+  it("filtre localement sur mes posts via le chip 'Les miens'", async () => {
     render(<ChildClassFeedScreen />);
 
     await waitFor(() => {
@@ -212,7 +255,9 @@ describe("ChildClassFeedScreen", () => {
       expect(screen.getByText("INFORMATION PARENTS")).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId("feed-filter-tab-mine"));
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-toggle"));
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-chip-mine"));
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-apply"));
 
     await waitFor(() => {
       expect(screen.getByText("CONSEIL DE CLASSE")).toBeTruthy();
@@ -224,8 +269,67 @@ describe("ChildClassFeedScreen", () => {
       expect.objectContaining({
         viewScope: "CLASS",
         classId: "class-1",
-        filter: "all",
+        types: [],
       }),
+    );
+  });
+
+  it("le bouton filtre devient actif seulement après Apply, et Reset l'efface", async () => {
+    render(<ChildClassFeedScreen />);
+    await waitFor(() => expect(api.list).toHaveBeenCalled());
+
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-toggle"));
+    fireEvent.press(
+      screen.getByTestId("child-class-feed-filter-chip-featured"),
+    );
+
+    let toggle = screen.getByTestId("child-class-feed-filter-toggle");
+    expect(StyleSheet.flatten(toggle.props.style).backgroundColor).not.toBe(
+      colors.accentTeal,
+    );
+
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-apply"));
+
+    await waitFor(() => {
+      toggle = screen.getByTestId("child-class-feed-filter-toggle");
+      expect(StyleSheet.flatten(toggle.props.style).backgroundColor).toBe(
+        colors.accentTeal,
+      );
+    });
+
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-toggle"));
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-reset"));
+
+    await waitFor(() => {
+      expect(api.list).toHaveBeenLastCalledWith(
+        "college-vogt",
+        expect.objectContaining({ types: [] }),
+      );
+    });
+    toggle = screen.getByTestId("child-class-feed-filter-toggle");
+    expect(StyleSheet.flatten(toggle.props.style).backgroundColor).not.toBe(
+      colors.accentTeal,
+    );
+  });
+
+  it("Close referme le panneau sans appliquer le brouillon en cours", async () => {
+    render(<ChildClassFeedScreen />);
+    await waitFor(() => expect(api.list).toHaveBeenCalled());
+
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-toggle"));
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-chip-polls"));
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-close"));
+
+    expect(screen.queryByTestId("child-class-feed-filter-panel")).toBeNull();
+    expect(api.list).not.toHaveBeenLastCalledWith(
+      "college-vogt",
+      expect.objectContaining({ types: ["polls"] }),
+    );
+
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-toggle"));
+    const pollsChip = screen.getByTestId("child-class-feed-filter-chip-polls");
+    expect(StyleSheet.flatten(pollsChip.props.style).backgroundColor).not.toBe(
+      colors.accentTeal,
     );
   });
 
@@ -291,5 +395,67 @@ describe("ChildClassFeedScreen", () => {
       pathname: "/(home)/children/[childId]",
       params: { childId: "child-1" },
     });
+  });
+});
+
+describe("ChildClassFeedScreen — tour d'aide guidée sur les filtres", () => {
+  it("démarre le tour au premier affichage pour le rôle parent", async () => {
+    render(<ChildClassFeedScreen />);
+
+    await waitFor(() => {
+      expect(useOnboardingTourStore.getState().activeTourId).toBe(
+        FEED_FILTERS_TOUR_ID,
+      );
+    });
+    expect(useOnboardingTourStore.getState().steps[0]?.targetKey).toBe(
+      FEED_FILTERS_TOUR_TARGETS.filterToggle,
+    );
+  });
+
+  it("avance à l'étape suivante quand on appuie sur le bouton filtre, puis sur Appliquer une fois sur l'étape apply", async () => {
+    render(<ChildClassFeedScreen />);
+    await waitFor(() => {
+      expect(useOnboardingTourStore.getState().activeTourId).toBe(
+        FEED_FILTERS_TOUR_ID,
+      );
+    });
+
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-toggle"));
+    expect(useOnboardingTourStore.getState().stepIndex).toBe(1);
+    expect(useOnboardingTourStore.getState().steps[1]?.targetKey).toBe(
+      FEED_FILTERS_TOUR_TARGETS.typeChips,
+    );
+
+    // L'étape "chips" est informative (pas advanceOnTargetPress) : elle
+    // avance via le bouton "Suivant" du tooltip global, simulé ici par un
+    // appel direct au store plutôt que par l'overlay (non monté dans ce test).
+    useOnboardingTourStore.getState().next();
+    expect(useOnboardingTourStore.getState().steps[2]?.targetKey).toBe(
+      FEED_FILTERS_TOUR_TARGETS.apply,
+    );
+
+    fireEvent.press(screen.getByTestId("child-class-feed-filter-apply"));
+    expect(useOnboardingTourStore.getState().stepIndex).toBe(3);
+    expect(useOnboardingTourStore.getState().steps[3]?.targetKey).toBe(
+      FEED_FILTERS_TOUR_TARGETS.helpToggle,
+    );
+  });
+
+  it("ouvre la modale d'aide au tap sur le bouton d'aide même quand ce dernier est l'étape active du tour", async () => {
+    render(<ChildClassFeedScreen />);
+    await waitFor(() => {
+      expect(useOnboardingTourStore.getState().activeTourId).toBe(
+        FEED_FILTERS_TOUR_ID,
+      );
+    });
+
+    useOnboardingTourStore.setState({ stepIndex: 3 });
+    expect(useOnboardingTourStore.getState().steps[3]?.targetKey).toBe(
+      FEED_FILTERS_TOUR_TARGETS.helpToggle,
+    );
+
+    fireEvent.press(screen.getByTestId("child-class-feed-help-toggle"));
+
+    expect(screen.getByTestId("child-class-feed-help-title")).toBeTruthy();
   });
 });

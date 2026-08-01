@@ -12,6 +12,12 @@ const mockOpenDrawer = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: mockBack }),
   useLocalSearchParams: () => ({ classId: "class-6ec" }),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -22,17 +28,21 @@ jest.mock("../../src/components/navigation/drawer-context", () => ({
   useDrawer: () => ({ openDrawer: mockOpenDrawer }),
 }));
 
+const mockAuthState = {
+  schoolSlug: "college-vogt",
+  user: {
+    id: "teacher-1",
+    firstName: "Valery",
+    lastName: "Mbele",
+    role: "TEACHER",
+    activeRole: "TEACHER",
+    platformRoles: [] as string[],
+  },
+};
+
 jest.mock("../../src/store/auth.store", () => ({
-  useAuthStore: () => ({
-    schoolSlug: "college-vogt",
-    user: {
-      id: "teacher-1",
-      firstName: "Valery",
-      lastName: "Mbele",
-      role: "TEACHER",
-      activeRole: "TEACHER",
-    },
-  }),
+  useAuthStore: (selector?: (state: typeof mockAuthState) => unknown) =>
+    selector ? selector(mockAuthState) : mockAuthState,
 }));
 
 jest.mock("../../src/store/teacher-class-nav.store", () => ({
@@ -101,7 +111,7 @@ describe("TeacherClassFeedScreen", () => {
 
     const loadPage = capturedProps?.loadPage as (input: {
       page: number;
-      filter: "all" | "featured" | "polls" | "mine";
+      types: Array<"featured" | "polls">;
       search: string;
     }) => Promise<unknown>;
     const onCreatePost = capturedProps?.onCreatePost as (payload: {
@@ -112,7 +122,7 @@ describe("TeacherClassFeedScreen", () => {
       audienceLabel?: string;
     }) => Promise<unknown>;
 
-    await loadPage({ page: 2, filter: "featured", search: "conseil" });
+    await loadPage({ page: 2, types: ["featured"], search: "conseil" });
     await onCreatePost({
       type: "POST",
       title: "Conseil de classe",
@@ -124,7 +134,7 @@ describe("TeacherClassFeedScreen", () => {
     expect(api.list).toHaveBeenCalledWith("college-vogt", {
       viewScope: "CLASS",
       classId: "class-6ec",
-      filter: "featured",
+      types: ["featured"],
       q: "conseil",
       page: 2,
       limit: 12,
@@ -144,12 +154,9 @@ describe("TeacherClassFeedScreen", () => {
 
     expect(capturedProps).not.toBeNull();
     const renderHeader = capturedProps?.renderHeader as (controls: {
-      toggleSearch: () => void;
-      searchVisible: boolean;
+      openHelp: () => void;
     }) => React.ReactNode;
-    render(
-      <>{renderHeader({ toggleSearch: jest.fn(), searchVisible: false })}</>,
-    );
+    render(<>{renderHeader({ openHelp: jest.fn() })}</>);
 
     expect(screen.getByTestId("teacher-class-feed-header")).toBeTruthy();
     expect(screen.getByTestId("teacher-class-feed-title")).toHaveTextContent(

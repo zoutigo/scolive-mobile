@@ -6,11 +6,18 @@ import { ModuleHeader } from "../navigation/ModuleHeader";
 import { useAuthStore } from "../../store/auth.store";
 import { useTeacherClassNavStore } from "../../store/teacher-class-nav.store";
 import { feedApi } from "../../api/feed.api";
+import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import { useTranslation } from "../../i18n/useTranslation";
 import { FeedModuleScreen } from "./FeedModuleScreen";
+import {
+  FEED_FILTERS_TOUR_ID,
+  FEED_FILTERS_TOUR_STEPS,
+  FEED_FILTERS_TOUR_TARGETS,
+} from "./feed-filters-tour.config";
 import type {
   CreateFeedPayload,
-  FeedFilter,
+  FeedTypeFilter,
   FeedViewerRole,
 } from "../../types/feed.types";
 import { moduleBack } from "../../utils/moduleBack";
@@ -59,14 +66,23 @@ export function TeacherClassFeedScreen({
       ? t("feed.classLife.classWithId").replace("{classId}", classId)
       : t("feed.classLife.classActive"));
 
+  useOnboardingTourTrigger({
+    tourId: FEED_FILTERS_TOUR_ID,
+    role: "teacher",
+    steps: FEED_FILTERS_TOUR_STEPS,
+  });
+  const advanceOnboardingTourTarget = useOnboardingTourStore(
+    (state) => state.advanceIfTarget,
+  );
+
   const loadPage = useCallback(
     async ({
       page,
-      filter,
+      types,
       search,
     }: {
       page: number;
-      filter: FeedFilter;
+      types: FeedTypeFilter[];
       search: string;
     }) => {
       if (!schoolSlug || !classId) {
@@ -76,7 +92,7 @@ export function TeacherClassFeedScreen({
       return feedApi.list(schoolSlug, {
         viewScope: "CLASS",
         classId,
-        filter,
+        types,
         q: search || undefined,
         page,
         limit: 12,
@@ -117,7 +133,7 @@ export function TeacherClassFeedScreen({
     <FeedModuleScreen
       schoolSlug={schoolSlug}
       viewerRole={viewerRole}
-      renderHeader={({ toggleSearch, searchVisible }) =>
+      renderHeader={({ openHelp }) =>
         showHeader ? (
           <View style={styles.headerWrap}>
             <ModuleHeader
@@ -130,12 +146,17 @@ export function TeacherClassFeedScreen({
               subtitleTestID="teacher-class-feed-subtitle"
               topInset={insets.top}
               secondaryAction={{
-                icon: "search-outline",
-                onPress: toggleSearch,
-                active: searchVisible,
-                testID: "teacher-class-feed-search-toggle",
-                accessibilityLabel: t("feed.search.toggle"),
+                icon: "help-circle-outline",
+                onPress: () => {
+                  openHelp();
+                  advanceOnboardingTourTarget(
+                    FEED_FILTERS_TOUR_TARGETS.helpToggle,
+                  );
+                },
+                testID: "teacher-class-feed-help-toggle",
+                accessibilityLabel: t("feed.help.toggle"),
               }}
+              secondaryActionTourTargetId={FEED_FILTERS_TOUR_TARGETS.helpToggle}
             />
           </View>
         ) : null
@@ -151,6 +172,8 @@ export function TeacherClassFeedScreen({
       canCompose
       onCreatePost={handleCreatePost}
       onUploadInlineImage={handleUploadInlineImage}
+      helpTitle={t("feed.classLife.help.title")}
+      helpBody={t("feed.classLife.help.body")}
     />
   );
 }

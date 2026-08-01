@@ -408,6 +408,25 @@ describe("ModuleHeader — secondaryAction", () => {
     );
     expect(screen.getByTestId("module-header-menu")).toBeTruthy();
   });
+
+  it("reste pressable quand il est enveloppé pour un tour guidé (secondaryActionTourTargetId)", () => {
+    const onPress = jest.fn();
+    render(
+      <ModuleHeader
+        title="Test"
+        onBack={jest.fn()}
+        secondaryAction={{
+          icon: "help-circle-outline",
+          onPress,
+          testID: "help-toggle",
+        }}
+        secondaryActionTourTargetId="feed-filters-tour-help-toggle"
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId("help-toggle"));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
 });
 
 // ── Symétrie gauche/droite ────────────────────────────────────────────────────

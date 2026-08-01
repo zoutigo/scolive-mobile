@@ -113,31 +113,31 @@ beforeEach(() => {
   });
 });
 
-describe("Feed integration — top tabs", () => {
-  it("affiche les 4 onglets filtres en haut (plus de barre basse)", async () => {
+describe("Feed integration — search + filter panel", () => {
+  it("affiche la recherche et le bouton de filtre en haut (plus de barre basse)", async () => {
     render(<FeedScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("feed-filter-tab-all")).toBeTruthy();
+      expect(screen.getByTestId("feed-search-input")).toBeTruthy();
     });
-    expect(screen.getByTestId("feed-filter-tab-featured")).toBeTruthy();
-    expect(screen.getByTestId("feed-filter-tab-polls")).toBeTruthy();
-    expect(screen.getByTestId("feed-filter-tab-mine")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-toggle")).toBeTruthy();
     expect(screen.queryByTestId("feed-filter-bottom-bar")).toBeNull();
   });
 
-  it("change de filtre au press d'un onglet et recharge la liste", async () => {
+  it("change de filtre via le panneau et recharge la liste", async () => {
     render(<FeedScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("feed-filter-tab-featured")).toBeTruthy();
+      expect(screen.getByTestId("feed-filter-toggle")).toBeTruthy();
     });
-    fireEvent.press(screen.getByTestId("feed-filter-tab-featured"));
+    fireEvent.press(screen.getByTestId("feed-filter-toggle"));
+    fireEvent.press(screen.getByTestId("feed-filter-chip-featured"));
+    fireEvent.press(screen.getByTestId("feed-filter-apply"));
 
     await waitFor(() => {
       expect(api.list).toHaveBeenCalledWith(
         "college-vogt",
-        expect.objectContaining({ filter: "featured" }),
+        expect.objectContaining({ types: ["featured"] }),
       );
     });
   });
@@ -500,29 +500,6 @@ describe("Feed integration — non-lus et pager de détail", () => {
     });
   });
 
-  it("initialise le badge non-lus après chargement", async () => {
-    render(<FeedScreen />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("feed-filter-badge-all")).toBeTruthy();
-    });
-    expect(screen.getByText("1")).toBeTruthy();
-  });
-
-  it("n'affiche pas de badge si count = 0 (pas de posts)", async () => {
-    api.list.mockResolvedValueOnce({
-      items: [],
-      meta: { page: 1, limit: 12, total: 0, totalPages: 0 },
-    });
-
-    render(<FeedScreen />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("feed-filter-tab-all")).toBeTruthy();
-    });
-    expect(screen.queryByTestId("feed-filter-badge-all")).toBeNull();
-  });
-
   it("le FAB disparaît en mode pager", async () => {
     render(<FeedScreen />);
 
@@ -537,7 +514,7 @@ describe("Feed integration — non-lus et pager de détail", () => {
     expect(screen.queryByTestId("feed-compose-fab")).toBeNull();
   });
 
-  it("les filter tabs restent visibles en mode pager", async () => {
+  it("la recherche et le bouton de filtre restent visibles en mode pager", async () => {
     render(<FeedScreen />);
 
     await waitFor(() => {
@@ -548,10 +525,8 @@ describe("Feed integration — non-lus et pager de détail", () => {
     await waitFor(() => {
       expect(screen.getByTestId("feed-detail-back")).toBeTruthy();
     });
-    expect(screen.getByTestId("feed-filter-tab-all")).toBeTruthy();
-    expect(screen.getByTestId("feed-filter-tab-featured")).toBeTruthy();
-    expect(screen.getByTestId("feed-filter-tab-polls")).toBeTruthy();
-    expect(screen.getByTestId("feed-filter-tab-mine")).toBeTruthy();
+    expect(screen.getByTestId("feed-search-input")).toBeTruthy();
+    expect(screen.getByTestId("feed-filter-toggle")).toBeTruthy();
   });
 
   it("le compteur de pagination affiche '1 / 1' pour un seul post", async () => {
@@ -570,7 +545,7 @@ describe("Feed integration — non-lus et pager de détail", () => {
     );
   });
 
-  it("changer de filtre ferme le pager et revient à la liste", async () => {
+  it("appliquer un filtre ferme le pager et revient à la liste", async () => {
     render(<FeedScreen />);
 
     await waitFor(() => {
@@ -582,7 +557,9 @@ describe("Feed integration — non-lus et pager de détail", () => {
       expect(screen.getByTestId("feed-detail-back")).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId("feed-filter-tab-featured"));
+    fireEvent.press(screen.getByTestId("feed-filter-toggle"));
+    fireEvent.press(screen.getByTestId("feed-filter-chip-featured"));
+    fireEvent.press(screen.getByTestId("feed-filter-apply"));
 
     await waitFor(() => {
       expect(screen.queryByTestId("feed-detail-back")).toBeNull();

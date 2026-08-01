@@ -10,7 +10,7 @@ import { ModuleHeader } from "../../src/components/navigation/ModuleHeader";
 import { buildTeacherSubtitle } from "../../src/components/navigation/nav-config";
 import type {
   CreateFeedPayload,
-  FeedFilter,
+  FeedTypeFilter,
   FeedViewerRole,
 } from "../../src/types/feed.types";
 import { moduleBack } from "../../src/utils/moduleBack";
@@ -55,15 +55,15 @@ function FeedScreen() {
   const loadPage = useCallback(
     async ({
       page,
-      filter,
+      types,
       search,
     }: {
       page: number;
-      filter: FeedFilter;
+      types: FeedTypeFilter[];
       search: string;
     }) =>
       feedApi.list(schoolSlug!, {
-        filter,
+        types,
         q: search || undefined,
         page,
         limit: 12,
@@ -100,7 +100,7 @@ function FeedScreen() {
     <FeedModuleScreen
       schoolSlug={schoolSlug}
       viewerRole={viewerRole}
-      renderHeader={({ toggleSearch, searchVisible }) => (
+      renderHeader={({ openHelp }) => (
         <ModuleHeader
           title={t("feed.page.title")}
           subtitle={subtitle}
@@ -108,11 +108,10 @@ function FeedScreen() {
           testID="feed-header"
           backTestID="feed-back-btn"
           secondaryAction={{
-            icon: "search-outline",
-            onPress: toggleSearch,
-            active: searchVisible,
-            testID: "feed-search-toggle",
-            accessibilityLabel: t("feed.search.toggle"),
+            icon: "help-circle-outline",
+            onPress: openHelp,
+            testID: "feed-help-toggle",
+            accessibilityLabel: t("feed.help.toggle"),
           }}
         />
       )}
@@ -128,6 +127,8 @@ function FeedScreen() {
       onCreatePost={handleCreatePost}
       onUploadInlineImage={handleUploadInlineImage}
       onUploadAttachment={handleUploadAttachment}
+      helpTitle={t("feed.page.help.title")}
+      helpBody={t("feed.page.help.body")}
       onPostsChange={(posts) => {
         useFeedStore.setState((state) => ({ ...state, posts }));
       }}

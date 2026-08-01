@@ -89,6 +89,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.childTimetable.step4Title": "Une aide toujours disponible",
     "onboardingTour.childTimetable.step4Body":
       "Touchez ce bouton à tout moment pour afficher un rappel sur l'utilisation de cette page.",
+    "onboardingTour.feedFilters.step1Title": "Ouvrez les filtres",
+    "onboardingTour.feedFilters.step1Body":
+      "Touchez ce bouton pour ouvrir le panneau de filtres du fil.",
+    "onboardingTour.feedFilters.step2Title": "Combinez les types",
+    "onboardingTour.feedFilters.step2Body":
+      "Sélectionnez un ou plusieurs types de publication : ils se combinent entre eux.",
+    "onboardingTour.feedFilters.step3Title": "Validez votre sélection",
+    "onboardingTour.feedFilters.step3Body":
+      "Touchez Appliquer : le panneau se ferme et la liste affiche directement le résultat filtré.",
+    "onboardingTour.feedFilters.step4Title": "Une aide toujours disponible",
+    "onboardingTour.feedFilters.step4Body":
+      "Touchez ce bouton à tout moment pour retrouver l'explication de la recherche et des filtres.",
     "settings.form.activeSchool.successTitle": "École active mise à jour",
     "settings.form.activeSchool.successMessage":
       "L'école active a été mise à jour.",
@@ -1781,9 +1793,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.filters.featured": "À la une",
     "feed.filters.polls": "Sondages",
     "feed.filters.mine": "Mes posts",
+    "feed.filters.toggleAccessibilityLabel": "Filtres",
+    "feed.filters.typeGroupLabel": "Type de publication",
+    "feed.filters.authorGroupLabel": "Auteur",
+    "feed.filters.reset": "Réinitialiser",
+    "feed.filters.close": "Fermer",
+    "feed.filters.apply": "Appliquer",
 
     "feed.search.placeholder": "Rechercher une publication",
     "feed.search.toggle": "Rechercher",
+
+    "feed.help.toggle": "Aide",
+    "feed.help.close": "J'ai compris",
 
     "feed.unavailable.title": "Fil indisponible",
     "feed.unavailable.message":
@@ -1908,6 +1929,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.classLife.studentFallback": "Élève",
     "feed.classLife.classWithId": "Classe {classId}",
     "feed.classLife.classActive": "Classe active",
+    "feed.classLife.help.title": "Rechercher et filtrer",
+    "feed.classLife.help.body":
+      "Utilisez la barre de recherche pour retrouver une publication par mot-clé. Le bouton filtre à droite ouvre un panneau où vous pouvez combiner plusieurs types de publication (à la une, sondages) et n'afficher que vos propres publications, puis valider avec Appliquer.",
 
     "feed.page.title": "Fil d'actualité",
     "feed.page.endOfList": "Vous avez atteint la fin du fil",
@@ -1919,6 +1943,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.page.heroTitle": "Partager une annonce utile",
     "feed.page.heroSubtitle":
       "Informations d'école, rappels, sondages et vie quotidienne.",
+    "feed.page.help.title": "Rechercher et filtrer",
+    "feed.page.help.body":
+      "Utilisez la barre de recherche pour retrouver une publication par mot-clé. Le bouton filtre à droite ouvre un panneau où vous pouvez combiner plusieurs types de publication (à la une, sondages) et n'afficher que vos propres publications, puis valider avec Appliquer.",
     "feed.detail.headerTitle": "Publication",
     "feed.detail.backToList": "Retour à la liste",
     "feed.composer.titleLabel": "Titre",
@@ -2913,6 +2940,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.childTimetable.step4Title": "Help is always available",
     "onboardingTour.childTimetable.step4Body":
       "Tap this button anytime for a reminder on how to use this page.",
+    "onboardingTour.feedFilters.step1Title": "Open the filters",
+    "onboardingTour.feedFilters.step1Body":
+      "Tap this button to open the feed's filter panel.",
+    "onboardingTour.feedFilters.step2Title": "Combine post types",
+    "onboardingTour.feedFilters.step2Body":
+      "Select one or more post types: they combine with each other.",
+    "onboardingTour.feedFilters.step3Title": "Confirm your selection",
+    "onboardingTour.feedFilters.step3Body":
+      "Tap Apply: the panel closes and the list shows the filtered result right away.",
+    "onboardingTour.feedFilters.step4Title": "Help is always available",
+    "onboardingTour.feedFilters.step4Body":
+      "Tap this button anytime to see the search and filters explanation again.",
     "settings.form.activeSchool.successTitle": "Active school updated",
     "settings.form.activeSchool.successMessage":
       "The active school has been updated.",
@@ -4533,9 +4572,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.filters.featured": "Featured",
     "feed.filters.polls": "Polls",
     "feed.filters.mine": "My posts",
+    "feed.filters.toggleAccessibilityLabel": "Filters",
+    "feed.filters.typeGroupLabel": "Post type",
+    "feed.filters.authorGroupLabel": "Author",
+    "feed.filters.reset": "Reset",
+    "feed.filters.close": "Close",
+    "feed.filters.apply": "Apply",
 
     "feed.search.placeholder": "Search a post",
     "feed.search.toggle": "Search",
+
+    "feed.help.toggle": "Help",
+    "feed.help.close": "Got it",
 
     "feed.unavailable.title": "Feed unavailable",
     "feed.unavailable.message":
@@ -4657,6 +4705,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.classLife.studentFallback": "Student",
     "feed.classLife.classWithId": "Class {classId}",
     "feed.classLife.classActive": "Active class",
+    "feed.classLife.help.title": "Search and filter",
+    "feed.classLife.help.body":
+      "Use the search bar to find a post by keyword. The filter button on the right opens a panel where you can combine several post types (featured, polls) and show only your own posts, then confirm with Apply.",
 
     "feed.page.title": "News feed",
     "feed.page.endOfList": "You have reached the end of the feed",
@@ -4668,6 +4719,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.page.heroTitle": "Share a useful announcement",
     "feed.page.heroSubtitle":
       "School information, reminders, polls and everyday life.",
+    "feed.page.help.title": "Search and filter",
+    "feed.page.help.body":
+      "Use the search bar to find a post by keyword. The filter button on the right opens a panel where you can combine several post types (featured, polls) and show only your own posts, then confirm with Apply.",
     "feed.detail.headerTitle": "Post",
     "feed.detail.backToList": "Back to list",
     "feed.composer.titleLabel": "Title",

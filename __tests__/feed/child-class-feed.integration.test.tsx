@@ -20,6 +20,12 @@ jest.mock("../../src/api/timetable.api");
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: jest.fn() }),
   useLocalSearchParams: () => ({ childId: "child-1" }),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
