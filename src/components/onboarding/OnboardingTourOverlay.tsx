@@ -233,17 +233,6 @@ export function OnboardingTourOverlay() {
           >
             {t(step.titleKey)}
           </Text>
-          {!advanceOnTargetPress ? (
-            <TouchableOpacity
-              onPress={next}
-              style={styles.skipButton}
-              testID="onboarding-tour-skip"
-            >
-              <Text style={styles.skipText}>
-                {t("onboardingTour.common.skip")}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
         </View>
         <Text style={styles.body} testID="onboarding-tour-body">
           {t(step.bodyKey)}
@@ -326,15 +315,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-end",
     marginTop: 4,
-  },
-  skipButton: {
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-  },
-  skipText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "rgba(255, 255, 255, 0.85)",
   },
   nextButton: {
     backgroundColor: colors.primary,

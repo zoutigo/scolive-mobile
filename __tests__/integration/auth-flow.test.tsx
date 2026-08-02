@@ -21,6 +21,12 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
   usePathname: () => "/",
   useLocalSearchParams: jest.fn(() => ({})),
+  useFocusEffect: (callback: () => void | (() => void)) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      return callback();
+    }, [callback]);
+  },
 }));
 jest.mock("../../src/api/auth.api");
 jest.mock("../../src/api/family.api");

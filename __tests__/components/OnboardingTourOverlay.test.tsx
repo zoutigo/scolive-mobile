@@ -109,7 +109,7 @@ describe("OnboardingTourOverlay", () => {
     ).toBe(true);
   });
 
-  it("hides both the Suivant and Passer buttons and shows a tap hint when the step opts into advanceOnTargetPress", () => {
+  it("hides the Suivant button and shows a tap hint when the step opts into advanceOnTargetPress", () => {
     const stepsWithPress: OnboardingTourStep[] = [
       {
         targetKey: "a",
@@ -186,7 +186,7 @@ describe("OnboardingTourOverlay", () => {
     );
   });
 
-  it("advances to the next step (does not end the tour) when Passer is pressed", () => {
+  it("does not render a Passer/skip button on a regular step", () => {
     useOnboardingTourStore.getState().startTour("agenda", "parent", STEPS);
     useOnboardingTourStore
       .getState()
@@ -194,15 +194,7 @@ describe("OnboardingTourOverlay", () => {
 
     render(<OnboardingTourOverlay />);
 
-    act(() => {
-      fireEvent.press(screen.getByTestId("onboarding-tour-skip"));
-    });
-
-    expect(useOnboardingTourStore.getState().activeTourId).toBe("agenda");
-    expect(useOnboardingTourStore.getState().stepIndex).toBe(1);
-    expect(
-      useOnboardingTourStore.getState().isCompleted("parent", "agenda"),
-    ).toBe(false);
+    expect(screen.queryByTestId("onboarding-tour-skip")).toBeNull();
   });
 
   it("regression: an advanceOnTargetPress step never offers a bypass that could strand the tour on a conditionally-mounted next target", () => {
@@ -237,7 +229,7 @@ describe("OnboardingTourOverlay", () => {
     expect(screen.queryByTestId("onboarding-tour-skip")).toBeNull();
   });
 
-  it("completes the tour when Passer is pressed on the final step", () => {
+  it("does not render a Passer/skip button on the final step", () => {
     useOnboardingTourStore.getState().startTour("agenda", "parent", STEPS);
     useOnboardingTourStore.getState().next();
     useOnboardingTourStore
@@ -246,13 +238,6 @@ describe("OnboardingTourOverlay", () => {
 
     render(<OnboardingTourOverlay />);
 
-    act(() => {
-      fireEvent.press(screen.getByTestId("onboarding-tour-skip"));
-    });
-
-    expect(useOnboardingTourStore.getState().activeTourId).toBeNull();
-    expect(
-      useOnboardingTourStore.getState().isCompleted("parent", "agenda"),
-    ).toBe(true);
+    expect(screen.queryByTestId("onboarding-tour-skip")).toBeNull();
   });
 });

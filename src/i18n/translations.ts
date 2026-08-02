@@ -88,7 +88,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "legalScreen.errors.load": "Impossible de charger ce document.",
     "legalScreen.publisherLabel": "Responsable de publication :",
     "onboardingTour.common.next": "Suivant",
-    "onboardingTour.common.skip": "Passer",
     "onboardingTour.common.finish": "Terminer",
     "onboardingTour.common.tapTarget":
       "Touchez l'élément en surbrillance pour continuer.",
@@ -105,6 +104,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.childTimetable.step4Title": "Une aide toujours disponible",
     "onboardingTour.childTimetable.step4Body":
       "Touchez ce bouton à tout moment pour afficher un rappel sur l'utilisation de cette page.",
+    "onboardingTour.parentLanding.step1Title": "Votre menu de navigation",
+    "onboardingTour.parentLanding.step1Body":
+      "Touchez cette icône pour ouvrir le menu et accéder à toutes les rubriques de l'école.",
+    "onboardingTour.parentLanding.step2Title": "Votre messagerie",
+    "onboardingTour.parentLanding.step2Body":
+      "Ce raccourci ouvre votre messagerie parent, où se trouvent tous vos échanges avec l'école.",
+    "onboardingTour.parentLanding.step3Title": "Vos enfants",
+    "onboardingTour.parentLanding.step3Body":
+      "Retrouvez ici la liste de vos enfants. Touchez le nom d'un enfant pour ouvrir son espace (notes, emploi du temps, vie scolaire...).",
+    "onboardingTour.parentLanding.step4Title": "Paramètres de votre compte",
+    "onboardingTour.parentLanding.step4Body":
+      "Cette icône ouvre les paramètres de votre compte : coordonnées, sécurité et préférences.",
     "onboardingTour.feedFilters.step1Title": "Ouvrez les filtres",
     "onboardingTour.feedFilters.step1Body":
       "Touchez ce bouton pour ouvrir le panneau de filtres du fil.",
@@ -3074,7 +3085,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "legalScreen.errors.load": "Could not load this document.",
     "legalScreen.publisherLabel": "Publication director:",
     "onboardingTour.common.next": "Next",
-    "onboardingTour.common.skip": "Skip",
     "onboardingTour.common.finish": "Finish",
     "onboardingTour.common.tapTarget":
       "Tap the highlighted element to continue.",
@@ -3091,6 +3101,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.childTimetable.step4Title": "Help is always available",
     "onboardingTour.childTimetable.step4Body":
       "Tap this button anytime for a reminder on how to use this page.",
+    "onboardingTour.parentLanding.step1Title": "Your navigation menu",
+    "onboardingTour.parentLanding.step1Body":
+      "Tap this icon to open the menu and reach every section of the school.",
+    "onboardingTour.parentLanding.step2Title": "Your messaging",
+    "onboardingTour.parentLanding.step2Body":
+      "This shortcut opens your parent messaging, where all your exchanges with the school live.",
+    "onboardingTour.parentLanding.step3Title": "Your children",
+    "onboardingTour.parentLanding.step3Body":
+      "This is the list of your children. Tap a child's name to open their space (grades, timetable, school life...).",
+    "onboardingTour.parentLanding.step4Title": "Your account settings",
+    "onboardingTour.parentLanding.step4Body":
+      "This icon opens your account settings: contact details, security and preferences.",
     "onboardingTour.feedFilters.step1Title": "Open the filters",
     "onboardingTour.feedFilters.step1Body":
       "Tap this button to open the feed's filter panel.",

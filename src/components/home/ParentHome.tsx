@@ -15,6 +15,13 @@ import { useMessagingStore } from "../../store/messaging.store";
 import { buildChildHomeTarget } from "../navigation/nav-config";
 import { useHeaderScroll } from "../navigation/header-scroll-context";
 import { useTranslation } from "../../i18n/useTranslation";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import {
+  PARENT_LANDING_TOUR_ID,
+  PARENT_LANDING_TOUR_STEPS,
+  PARENT_LANDING_TOUR_TARGETS,
+} from "./parent-landing-tour.config";
 import type { AuthUser } from "../../types/auth.types";
 import type { ParentChild } from "../../types/family.types";
 
@@ -34,6 +41,12 @@ export function ParentHome({ schoolSlug }: ParentHomeProps) {
     if (!schoolSlug) return;
     loadUnreadCount(schoolSlug).catch(() => {});
   }, [loadUnreadCount, schoolSlug]);
+
+  useOnboardingTourTrigger({
+    tourId: PARENT_LANDING_TOUR_ID,
+    role: "parent",
+    steps: PARENT_LANDING_TOUR_STEPS,
+  });
 
   function handleChildPress(child: ParentChild) {
     setActiveChild(child.id);
@@ -76,48 +89,50 @@ export function ParentHome({ schoolSlug }: ParentHomeProps) {
       </View>
 
       {/* Mes enfants */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          {t("home.parent.children.title")}
-        </Text>
-        {children.length > 0 && (
-          <View style={styles.countBadge} testID="children-count-badge">
-            <Text style={styles.countBadgeText}>{children.length}</Text>
+      <OnboardingTarget id={PARENT_LANDING_TOUR_TARGETS.children}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            {t("home.parent.children.title")}
+          </Text>
+          {children.length > 0 && (
+            <View style={styles.countBadge} testID="children-count-badge">
+              <Text style={styles.countBadgeText}>{children.length}</Text>
+            </View>
+          )}
+        </View>
+
+        {isLoading ? (
+          <View style={styles.loadingCard}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        ) : children.length === 0 ? (
+          <View style={styles.childrenCard}>
+            <View style={styles.childrenEmpty}>
+              <Ionicons
+                name="people-circle-outline"
+                size={42}
+                color={colors.warmBorder}
+              />
+              <Text style={styles.emptyTitle}>
+                {t("home.parent.children.empty.title")}
+              </Text>
+              <Text style={styles.emptySub}>
+                {t("home.parent.children.empty.subtitle")}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.childrenList}>
+            {children.map((child) => (
+              <ChildCard
+                key={child.id}
+                child={child}
+                onPress={handleChildPress}
+              />
+            ))}
           </View>
         )}
-      </View>
-
-      {isLoading ? (
-        <View style={styles.loadingCard}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
-      ) : children.length === 0 ? (
-        <View style={styles.childrenCard}>
-          <View style={styles.childrenEmpty}>
-            <Ionicons
-              name="people-circle-outline"
-              size={42}
-              color={colors.warmBorder}
-            />
-            <Text style={styles.emptyTitle}>
-              {t("home.parent.children.empty.title")}
-            </Text>
-            <Text style={styles.emptySub}>
-              {t("home.parent.children.empty.subtitle")}
-            </Text>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.childrenList}>
-          {children.map((child) => (
-            <ChildCard
-              key={child.id}
-              child={child}
-              onPress={handleChildPress}
-            />
-          ))}
-        </View>
-      )}
+      </OnboardingTarget>
 
       {/* Accès rapides */}
       <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
@@ -153,37 +168,57 @@ export function ParentHome({ schoolSlug }: ParentHomeProps) {
             sub: t("home.parent.quickAccess.documents.sub"),
             color: colors.warmAccent,
           },
-        ].map((item) => (
-          <TouchableOpacity
-            key={item.id}
-            style={styles.quickCard}
-            activeOpacity={0.75}
-            onPress={() => handleQuickAccessPress(item.id, item.label)}
-            testID={`quick-link-${item.id}`}
-          >
-            {item.id === "messagerie" && unreadCount > 0 ? (
-              <View
-                style={styles.quickBadge}
-                testID="quick-link-messagerie-badge"
-              >
-                <Text style={styles.quickBadgeText}>
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </Text>
-              </View>
-            ) : null}
-            <View
-              style={[styles.quickIcon, { backgroundColor: item.color + "18" }]}
+        ].map((item) => {
+          const isMessaging = item.id === "messagerie";
+          const quickCard = (
+            <TouchableOpacity
+              key={item.id}
+              style={isMessaging ? styles.quickCardInner : styles.quickCard}
+              activeOpacity={0.75}
+              onPress={() => handleQuickAccessPress(item.id, item.label)}
+              testID={`quick-link-${item.id}`}
             >
-              <Ionicons
-                name={item.icon as "home"}
-                size={24}
-                color={item.color}
-              />
-            </View>
-            <Text style={styles.quickLabel}>{item.label}</Text>
-            <Text style={styles.quickSub}>{item.sub}</Text>
-          </TouchableOpacity>
-        ))}
+              {isMessaging && unreadCount > 0 ? (
+                <View
+                  style={styles.quickBadge}
+                  testID="quick-link-messagerie-badge"
+                >
+                  <Text style={styles.quickBadgeText}>
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </Text>
+                </View>
+              ) : null}
+              <View
+                style={[
+                  styles.quickIcon,
+                  { backgroundColor: item.color + "18" },
+                ]}
+              >
+                <Ionicons
+                  name={item.icon as "home"}
+                  size={24}
+                  color={item.color}
+                />
+              </View>
+              <Text style={styles.quickLabel}>{item.label}</Text>
+              <Text style={styles.quickSub}>{item.sub}</Text>
+            </TouchableOpacity>
+          );
+
+          if (isMessaging) {
+            return (
+              <OnboardingTarget
+                key={item.id}
+                id={PARENT_LANDING_TOUR_TARGETS.messaging}
+                style={styles.quickCard}
+              >
+                {quickCard}
+              </OnboardingTarget>
+            );
+          }
+
+          return quickCard;
+        })}
       </View>
 
       {/* Actualités */}
@@ -342,6 +377,16 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: "center",
     opacity: 0.7,
+  },
+
+  quickCardInner: {
+    position: "relative",
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    padding: 16,
+    gap: 8,
   },
 
   quickGrid: {

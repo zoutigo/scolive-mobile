@@ -9,9 +9,19 @@ import { NavBadge } from "./NavBadge";
 import { useAuthStore } from "../../store/auth.store";
 import { useBadgesStore } from "../../store/badges.store";
 import { useTranslation } from "../../i18n/useTranslation";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
 
 /** Hauteur du contenu de la barre, hors zone de sécurité bas (insets.bottom). */
 export const BOTTOM_TAB_BAR_HEIGHT = 58;
+
+/**
+ * Cibles de tour spotlight stables portées par cette barre, partagées par
+ * tout module qui veut mettre en avant le menu de navigation ou l'accès au
+ * compte (ex. `parent-landing-tour.config.ts`) — définies ici plutôt que
+ * dans le module appelant puisque ce sont ces boutons qui en sont la source.
+ */
+export const BOTTOM_TAB_MENU_TOUR_TARGET = "bottom-tab-menu-target";
+export const BOTTOM_TAB_ACCOUNT_TOUR_TARGET = "bottom-tab-account-target";
 
 /** Couleur des icônes/labels inactifs sur le fond sombre du thème header. */
 const INACTIVE_COLOR = "rgba(255,255,255,0.72)";
@@ -147,7 +157,7 @@ export function BottomTabBar() {
       <View style={styles.container} testID="bottom-tab-bar">
         {tabs.map((tab) => {
           const active = isActive(tab.key);
-          return (
+          const tabButton = (
             <TouchableOpacity
               key={tab.key}
               onPress={() => handlePress(tab)}
@@ -180,6 +190,32 @@ export function BottomTabBar() {
               </Text>
             </TouchableOpacity>
           );
+
+          if (tab.key === "menu") {
+            return (
+              <OnboardingTarget
+                key={tab.key}
+                id={BOTTOM_TAB_MENU_TOUR_TARGET}
+                style={styles.tab}
+              >
+                {tabButton}
+              </OnboardingTarget>
+            );
+          }
+
+          if (tab.key === "account") {
+            return (
+              <OnboardingTarget
+                key={tab.key}
+                id={BOTTOM_TAB_ACCOUNT_TOUR_TARGET}
+                style={styles.tab}
+              >
+                {tabButton}
+              </OnboardingTarget>
+            );
+          }
+
+          return tabButton;
         })}
       </View>
       <View
