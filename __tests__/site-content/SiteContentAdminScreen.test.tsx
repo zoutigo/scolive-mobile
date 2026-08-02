@@ -78,7 +78,10 @@ function mockUser(user: typeof SUPER_ADMIN_USER) {
 const CONTACT = {
   email: "contact@scolive.cm",
   phone: "+237 690000000",
-  address: "Yaoundé, Cameroun",
+  addressStreet: "Rue des Manguiers",
+  addressDistrict: "Bastos",
+  addressCity: "Yaoundé",
+  addressCountry: "Cameroun",
   legalRepresentativeFirstName: "",
   legalRepresentativeLastName: "",
 };
@@ -144,34 +147,85 @@ describe("SiteContentAdminScreen", () => {
     expect(mockApi.getAdminContactInfo).not.toHaveBeenCalled();
   });
 
-  it("charge et affiche le formulaire de contact pour un SUPER_ADMIN", async () => {
+  it("charge et affiche les coordonnées de contact en lecture seule pour un SUPER_ADMIN", async () => {
     mockUser(SUPER_ADMIN_USER);
     render(<SiteContentAdminScreen />);
 
     await waitFor(() => expect(mockApi.getAdminContactInfo).toHaveBeenCalled());
-    expect(await screen.findByTestId("site-content-contact-email")).toHaveProp(
-      "value",
-      CONTACT.email,
-    );
+    expect(await screen.findByText(CONTACT.email)).toBeTruthy();
+    expect(screen.getByText(CONTACT.phone)).toBeTruthy();
+    expect(
+      screen.getByText("Rue des Manguiers, Bastos, Yaoundé, Cameroun"),
+    ).toBeTruthy();
+    expect(screen.queryByTestId("site-content-contact-email")).toBeNull();
   });
 
-  it("charge et affiche le formulaire de contact pour un ADMIN", async () => {
+  it("charge et affiche les coordonnées de contact en lecture seule pour un ADMIN", async () => {
     mockUser({ ...SUPER_ADMIN_USER, activeRole: "ADMIN", role: "ADMIN" });
     render(<SiteContentAdminScreen />);
 
     await waitFor(() => expect(mockApi.getAdminContactInfo).toHaveBeenCalled());
-    expect(
-      await screen.findByTestId("site-content-contact-email"),
-    ).toBeTruthy();
+    expect(await screen.findByText(CONTACT.email)).toBeTruthy();
   });
 
-  it("enregistre les nouvelles coordonnées de contact", async () => {
+  it("ouvre le formulaire de modification pré-rempli au tap sur Modifier", async () => {
+    mockUser(SUPER_ADMIN_USER);
+    render(<SiteContentAdminScreen />);
+
+    await screen.findByTestId("site-content-contact-view");
+    fireEvent.press(screen.getByTestId("site-content-contact-edit"));
+
+    expect(await screen.findByTestId("site-content-contact-email")).toHaveProp(
+      "value",
+      CONTACT.email,
+    );
+    expect(
+      screen.getByTestId("site-content-contact-address-street"),
+    ).toHaveProp("value", CONTACT.addressStreet);
+    expect(
+      screen.getByTestId("site-content-contact-address-district"),
+    ).toHaveProp("value", CONTACT.addressDistrict);
+    expect(screen.getByTestId("site-content-contact-address-city")).toHaveProp(
+      "value",
+      CONTACT.addressCity,
+    );
+    expect(
+      screen.getByTestId("site-content-contact-address-country"),
+    ).toHaveProp("value", CONTACT.addressCountry);
+  });
+
+  it("annule la modification et revient à la vue en lecture seule sans enregistrer", async () => {
+    mockUser(SUPER_ADMIN_USER);
+    render(<SiteContentAdminScreen />);
+
+    await screen.findByTestId("site-content-contact-view");
+    fireEvent.press(screen.getByTestId("site-content-contact-edit"));
+    const streetInput = await screen.findByTestId(
+      "site-content-contact-address-street",
+    );
+    fireEvent.changeText(streetInput, "Rue modifiée");
+
+    fireEvent.press(screen.getByTestId("site-content-contact-cancel"));
+
+    expect(
+      await screen.findByText("Rue des Manguiers, Bastos, Yaoundé, Cameroun"),
+    ).toBeTruthy();
+    expect(mockApi.updateContactInfo).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId("site-content-contact-address-street"),
+    ).toBeNull();
+  });
+
+  it("enregistre les nouvelles coordonnées de contact et revient à la vue en lecture seule", async () => {
     mockUser(SUPER_ADMIN_USER);
     mockApi.updateContactInfo.mockResolvedValue({
       ...CONTACT,
       phone: "+237 699999999",
     });
     render(<SiteContentAdminScreen />);
+
+    await screen.findByTestId("site-content-contact-view");
+    fireEvent.press(screen.getByTestId("site-content-contact-edit"));
 
     const phoneInput = await screen.findByTestId("site-content-contact-phone");
     fireEvent.changeText(phoneInput, "+237 699999999");
@@ -186,13 +240,37 @@ describe("SiteContentAdminScreen", () => {
         phone: "+237 699999999",
       }),
     );
+    expect(await screen.findByText("+237 699999999")).toBeTruthy();
+    expect(
+      screen.queryByTestId("site-content-contact-address-street"),
+    ).toBeNull();
+  });
+
+  it("affiche une erreur inline si la voie est vidée dans le formulaire", async () => {
+    mockUser(SUPER_ADMIN_USER);
+    render(<SiteContentAdminScreen />);
+
+    await screen.findByTestId("site-content-contact-view");
+    fireEvent.press(screen.getByTestId("site-content-contact-edit"));
+
+    const streetInput = await screen.findByTestId(
+      "site-content-contact-address-street",
+    );
+    fireEvent.changeText(streetInput, "");
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("site-content-contact-submit"));
+    });
+
+    expect(await screen.findByText("La voie est requise.")).toBeTruthy();
+    expect(mockApi.updateContactInfo).not.toHaveBeenCalled();
   });
 
   it("bascule vers l'onglet Documents légaux et liste les versions", async () => {
     mockUser(SUPER_ADMIN_USER);
     render(<SiteContentAdminScreen />);
 
-    await screen.findByTestId("site-content-contact-email");
+    await screen.findByTestId("site-content-contact-view");
     fireEvent.press(screen.getByTestId("site-content-admin-tab-legal"));
 
     await waitFor(() => expect(mockApi.listLegalDocuments).toHaveBeenCalled());
@@ -204,7 +282,7 @@ describe("SiteContentAdminScreen", () => {
     mockUser(SUPER_ADMIN_USER);
     render(<SiteContentAdminScreen />);
 
-    await screen.findByTestId("site-content-contact-email");
+    await screen.findByTestId("site-content-contact-view");
     fireEvent.press(screen.getByTestId("site-content-admin-tab-legal"));
     await screen.findByTestId("site-content-legal-publish-doc-1");
 
@@ -230,7 +308,7 @@ describe("SiteContentAdminScreen", () => {
     });
     render(<SiteContentAdminScreen />);
 
-    await screen.findByTestId("site-content-contact-email");
+    await screen.findByTestId("site-content-contact-view");
     fireEvent.press(screen.getByTestId("site-content-admin-tab-legal"));
     await screen.findByTestId("site-content-legal-publish-doc-1");
 
@@ -259,7 +337,7 @@ describe("SiteContentAdminScreen", () => {
     mockUser(SUPER_ADMIN_USER);
     render(<SiteContentAdminScreen />);
 
-    await screen.findByTestId("site-content-contact-email");
+    await screen.findByTestId("site-content-contact-view");
     expect(screen.queryByTestId("site-content-admin-help-title")).toBeNull();
 
     fireEvent.press(screen.getByTestId("site-content-admin-help-toggle"));
@@ -277,7 +355,7 @@ describe("SiteContentAdminScreen", () => {
     mockUser(SUPER_ADMIN_USER);
     render(<SiteContentAdminScreen />);
 
-    await screen.findByTestId("site-content-contact-email");
+    await screen.findByTestId("site-content-contact-view");
 
     act(() => {
       useOnboardingTourStore.getState().startTour("site-content", "platform", [
@@ -309,7 +387,7 @@ describe("SiteContentAdminScreen", () => {
     });
     render(<SiteContentAdminScreen />);
 
-    await screen.findByTestId("site-content-contact-email");
+    await screen.findByTestId("site-content-contact-view");
     fireEvent.press(screen.getByTestId("site-content-admin-tab-legal"));
     await screen.findByTestId("site-content-legal-publish-doc-1");
 
@@ -329,7 +407,7 @@ describe("SiteContentAdminScreen", () => {
     mockUser(SUPER_ADMIN_USER);
     render(<SiteContentAdminScreen />);
 
-    await screen.findByTestId("site-content-contact-email");
+    await screen.findByTestId("site-content-contact-view");
     fireEvent.press(screen.getByTestId("site-content-admin-tab-messages"));
 
     await waitFor(() =>
@@ -364,7 +442,7 @@ describe("SiteContentAdminScreen", () => {
     });
     render(<SiteContentAdminScreen />);
 
-    await screen.findByTestId("site-content-contact-email");
+    await screen.findByTestId("site-content-contact-view");
     fireEvent.press(screen.getByTestId("site-content-admin-tab-messages"));
 
     expect(await screen.findByText("Aucune prise de contact.")).toBeTruthy();

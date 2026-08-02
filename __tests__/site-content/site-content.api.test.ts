@@ -1,4 +1,7 @@
-import { siteContentApi } from "../../src/api/site-content.api";
+import {
+  formatContactAddress,
+  siteContentApi,
+} from "../../src/api/site-content.api";
 import { apiFetch } from "../../src/api/client";
 
 jest.mock("../../src/api/client", () => ({
@@ -18,7 +21,10 @@ describe("siteContentApi", () => {
     (apiFetch as jest.Mock).mockResolvedValue({
       email: "contact@scolive.cm",
       phone: "+237 6XX XXX XXX",
-      address: "Cameroun",
+      addressStreet: "",
+      addressDistrict: "",
+      addressCity: "",
+      addressCountry: "Cameroun",
     });
 
     const result = await siteContentApi.getContactInfo();
@@ -54,7 +60,10 @@ describe("siteContentApi", () => {
     (apiFetch as jest.Mock).mockResolvedValue({
       email: "contact@scolive.cm",
       phone: "+237 6XX XXX XXX",
-      address: "Cameroun",
+      addressStreet: "",
+      addressDistrict: "",
+      addressCity: "",
+      addressCountry: "Cameroun",
     });
 
     await siteContentApi.getAdminContactInfo();
@@ -70,7 +79,10 @@ describe("siteContentApi", () => {
     const payload = {
       email: "a@b.cm",
       phone: "+237 690000000",
-      address: "Douala",
+      addressStreet: "Rue X",
+      addressDistrict: "Bonapriso",
+      addressCity: "Douala",
+      addressCountry: "Cameroun",
       legalRepresentativeFirstName: "",
       legalRepresentativeLastName: "",
     };
@@ -83,6 +95,34 @@ describe("siteContentApi", () => {
       { method: "PUT", body: JSON.stringify(payload) },
       true,
     );
+  });
+
+  it("formatContactAddress compose voie/quartier/ville/pays en filtrant les vides", () => {
+    expect(
+      formatContactAddress({
+        email: "a@b.cm",
+        phone: "+237 690000000",
+        addressStreet: "Rue X",
+        addressDistrict: "",
+        addressCity: "Douala",
+        addressCountry: "Cameroun",
+        legalRepresentativeFirstName: "",
+        legalRepresentativeLastName: "",
+      }),
+    ).toBe("Rue X, Douala, Cameroun");
+
+    expect(
+      formatContactAddress({
+        email: "a@b.cm",
+        phone: "+237 690000000",
+        addressStreet: "",
+        addressDistrict: "",
+        addressCity: "",
+        addressCountry: "",
+        legalRepresentativeFirstName: "",
+        legalRepresentativeLastName: "",
+      }),
+    ).toBe("");
   });
 
   it("appelle listLegalDocuments avec la query slug/locale", async () => {

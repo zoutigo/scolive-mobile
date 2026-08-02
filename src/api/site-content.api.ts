@@ -9,6 +9,17 @@ import type {
   SiteContentLocale,
 } from "../types/site-content.types";
 
+export function formatContactAddress(contact: ContactInfo): string {
+  return [
+    contact.addressStreet,
+    contact.addressDistrict,
+    contact.addressCity,
+    contact.addressCountry,
+  ]
+    .filter((part) => part.trim().length > 0)
+    .join(", ");
+}
+
 export const siteContentApi = {
   async getContactInfo() {
     return apiFetch<ContactInfo>("/public/site-content/contact", {}, false);

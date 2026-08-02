@@ -1646,7 +1646,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.tabs.messages": "Messages",
     "siteContentAdmin.contact.emailLabel": "Email",
     "siteContentAdmin.contact.phoneLabel": "Téléphone",
-    "siteContentAdmin.contact.addressLabel": "Adresse",
+    "siteContentAdmin.contact.addressStreetLabel": "Voie",
+    "siteContentAdmin.contact.addressDistrictLabel": "Quartier",
+    "siteContentAdmin.contact.addressCityLabel": "Ville",
+    "siteContentAdmin.contact.addressCountryLabel": "Pays",
     "siteContentAdmin.contact.legalRepresentativeFirstNameLabel":
       "Responsable légal — Prénom",
     "siteContentAdmin.contact.legalRepresentativeLastNameLabel":
@@ -1659,7 +1662,13 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Impossible d'enregistrer les coordonnées.",
     "siteContentAdmin.contact.error.email": "Email invalide.",
     "siteContentAdmin.contact.error.phone": "Le téléphone est requis.",
-    "siteContentAdmin.contact.error.address": "L'adresse est requise.",
+    "siteContentAdmin.contact.error.addressStreet": "La voie est requise.",
+    "siteContentAdmin.contact.error.addressCity": "La ville est requise.",
+    "siteContentAdmin.contact.error.addressCountry": "Le pays est requis.",
+    "siteContentAdmin.contact.edit": "Modifier",
+    "siteContentAdmin.contact.cancel": "Annuler",
+    "siteContentAdmin.contact.notProvided": "Non renseigné",
+    "siteContentAdmin.contact.addressGroupLabel": "Adresse",
     "siteContentAdmin.legal.slugLabel": "Document",
     "siteContentAdmin.legal.slug.cgu": "CGU",
     "siteContentAdmin.legal.slug.mentions-legales": "Mentions légales",
@@ -1724,14 +1733,17 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.siteContent.step1Title": "Contact, documents et messages",
     "onboardingTour.siteContent.step1Body":
       "Basculez entre les coordonnées de contact publiques, les documents légaux (CGU, mentions légales, confidentialité) et les prises de contact reçues via le formulaire public.",
-    "onboardingTour.siteContent.step2Title": "Choisir le document et la langue",
+    "onboardingTour.siteContent.step2Title": "Modifier les coordonnées",
     "onboardingTour.siteContent.step2Body":
-      "Sélectionnez le document et la langue pour voir ses versions (brouillon, publiée, archivées).",
-    "onboardingTour.siteContent.step3Title": "Créer une nouvelle version",
+      "Les coordonnées sont affichées en lecture seule. Touchez ce bouton pour ouvrir le formulaire de modification, adresse comprise (voie, quartier, ville, pays).",
+    "onboardingTour.siteContent.step3Title": "Choisir le document et la langue",
     "onboardingTour.siteContent.step3Body":
-      "Rédigez un nouveau brouillon puis publiez-le pour remplacer la version en ligne.",
-    "onboardingTour.siteContent.step4Title": "Besoin d'aide ?",
+      "Sélectionnez le document et la langue pour voir ses versions (brouillon, publiée, archivées).",
+    "onboardingTour.siteContent.step4Title": "Créer une nouvelle version",
     "onboardingTour.siteContent.step4Body":
+      "Rédigez un nouveau brouillon puis publiez-le pour remplacer la version en ligne.",
+    "onboardingTour.siteContent.step5Title": "Besoin d'aide ?",
+    "onboardingTour.siteContent.step5Body":
       "Retrouvez à tout moment un rappel de l'usage de cet écran via ce bouton.",
 
     "testsAdmin.title": "Tests (admin)",
@@ -4552,7 +4564,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.tabs.messages": "Messages",
     "siteContentAdmin.contact.emailLabel": "Email",
     "siteContentAdmin.contact.phoneLabel": "Phone",
-    "siteContentAdmin.contact.addressLabel": "Address",
+    "siteContentAdmin.contact.addressStreetLabel": "Street",
+    "siteContentAdmin.contact.addressDistrictLabel": "District",
+    "siteContentAdmin.contact.addressCityLabel": "City",
+    "siteContentAdmin.contact.addressCountryLabel": "Country",
     "siteContentAdmin.contact.legalRepresentativeFirstNameLabel":
       "Legal representative — First name",
     "siteContentAdmin.contact.legalRepresentativeLastNameLabel":
@@ -4563,7 +4578,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.contact.saveError": "Unable to save contact details.",
     "siteContentAdmin.contact.error.email": "Invalid email.",
     "siteContentAdmin.contact.error.phone": "Phone number is required.",
-    "siteContentAdmin.contact.error.address": "Address is required.",
+    "siteContentAdmin.contact.error.addressStreet": "Street is required.",
+    "siteContentAdmin.contact.error.addressCity": "City is required.",
+    "siteContentAdmin.contact.error.addressCountry": "Country is required.",
+    "siteContentAdmin.contact.edit": "Edit",
+    "siteContentAdmin.contact.cancel": "Cancel",
+    "siteContentAdmin.contact.notProvided": "Not provided",
+    "siteContentAdmin.contact.addressGroupLabel": "Address",
     "siteContentAdmin.legal.slugLabel": "Document",
     "siteContentAdmin.legal.slug.cgu": "Terms of Service",
     "siteContentAdmin.legal.slug.mentions-legales": "Legal Notice",
@@ -4626,14 +4647,17 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.siteContent.step1Title": "Contact, documents and messages",
     "onboardingTour.siteContent.step1Body":
       "Switch between the public contact details, the legal documents (Terms of Service, Legal Notice, Privacy Policy) and the submissions received through the public contact form.",
-    "onboardingTour.siteContent.step2Title": "Pick the document and language",
+    "onboardingTour.siteContent.step2Title": "Edit contact details",
     "onboardingTour.siteContent.step2Body":
-      "Select the document and language to see its versions (draft, published, archived).",
-    "onboardingTour.siteContent.step3Title": "Create a new version",
+      "Contact details are shown read-only. Tap this button to open the edit form, including the address (street, district, city, country).",
+    "onboardingTour.siteContent.step3Title": "Pick the document and language",
     "onboardingTour.siteContent.step3Body":
-      "Draft a new version, then publish it to replace the live one.",
-    "onboardingTour.siteContent.step4Title": "Need help?",
+      "Select the document and language to see its versions (draft, published, archived).",
+    "onboardingTour.siteContent.step4Title": "Create a new version",
     "onboardingTour.siteContent.step4Body":
+      "Draft a new version, then publish it to replace the live one.",
+    "onboardingTour.siteContent.step5Title": "Need help?",
+    "onboardingTour.siteContent.step5Body":
       "Come back to this button any time for a reminder of how this screen works.",
 
     "testsAdmin.title": "Tests (admin)",

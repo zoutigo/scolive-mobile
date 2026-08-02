@@ -9,7 +9,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { siteContentApi } from "../../api/site-content.api";
+import {
+  formatContactAddress,
+  siteContentApi,
+} from "../../api/site-content.api";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { AppShell } from "../navigation/AppShell";
 import { moduleBack } from "../../utils/moduleBack";
@@ -110,7 +113,9 @@ export function AboutScreen() {
                   size={18}
                   color={colors.primary}
                 />
-                <Text style={styles.contactText}>{contactInfo.address}</Text>
+                <Text style={styles.contactText}>
+                  {formatContactAddress(contactInfo)}
+                </Text>
               </View>
             </View>
           ) : null}

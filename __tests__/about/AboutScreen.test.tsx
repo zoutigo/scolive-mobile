@@ -10,7 +10,22 @@ import { AboutScreen } from "../../src/components/about/AboutScreen";
 import { siteContentApi } from "../../src/api/site-content.api";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
-jest.mock("../../src/api/site-content.api");
+jest.mock("../../src/api/site-content.api", () => ({
+  ...jest.requireActual("../../src/api/site-content.api"),
+  siteContentApi: {
+    getContactInfo: jest.fn(),
+    getLegalDocument: jest.fn(),
+    getAdminContactInfo: jest.fn(),
+    updateContactInfo: jest.fn(),
+    listLegalDocuments: jest.fn(),
+    createLegalDocument: jest.fn(),
+    updateLegalDocument: jest.fn(),
+    publishLegalDocument: jest.fn(),
+    deleteLegalDocument: jest.fn(),
+    listContactSubmissions: jest.fn(),
+    getContactSubmission: jest.fn(),
+  },
+}));
 
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
@@ -40,7 +55,10 @@ describe("AboutScreen", () => {
     api.getContactInfo.mockResolvedValue({
       email: "contact@scolive.cm",
       phone: "+237 690000000",
-      address: "Yaoundé, Cameroun",
+      addressStreet: "Rue des Manguiers",
+      addressDistrict: "Bastos",
+      addressCity: "Yaoundé",
+      addressCountry: "Cameroun",
       legalRepresentativeFirstName: "",
       legalRepresentativeLastName: "",
     });
@@ -52,14 +70,19 @@ describe("AboutScreen", () => {
     );
     expect(screen.getByText("contact@scolive.cm")).toBeTruthy();
     expect(screen.getByText("+237 690000000")).toBeTruthy();
-    expect(screen.getByText("Yaoundé, Cameroun")).toBeTruthy();
+    expect(
+      screen.getByText("Rue des Manguiers, Bastos, Yaoundé, Cameroun"),
+    ).toBeTruthy();
   });
 
   it("ouvre le client mail au tap sur l'email", async () => {
     api.getContactInfo.mockResolvedValue({
       email: "contact@scolive.cm",
       phone: "+237 690000000",
-      address: "Yaoundé, Cameroun",
+      addressStreet: "Rue des Manguiers",
+      addressDistrict: "Bastos",
+      addressCity: "Yaoundé",
+      addressCountry: "Cameroun",
       legalRepresentativeFirstName: "",
       legalRepresentativeLastName: "",
     });
@@ -78,7 +101,10 @@ describe("AboutScreen", () => {
     api.getContactInfo.mockResolvedValue({
       email: "contact@scolive.cm",
       phone: "+237 690000000",
-      address: "Yaoundé, Cameroun",
+      addressStreet: "Rue des Manguiers",
+      addressDistrict: "Bastos",
+      addressCity: "Yaoundé",
+      addressCountry: "Cameroun",
       legalRepresentativeFirstName: "",
       legalRepresentativeLastName: "",
     });
