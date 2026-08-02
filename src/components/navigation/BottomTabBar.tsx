@@ -10,6 +10,7 @@ import { useAuthStore } from "../../store/auth.store";
 import { useBadgesStore } from "../../store/badges.store";
 import { useTranslation } from "../../i18n/useTranslation";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 
 /** Hauteur du contenu de la barre, hors zone de sécurité bas (insets.bottom). */
 export const BOTTOM_TAB_BAR_HEIGHT = 58;
@@ -83,6 +84,9 @@ export function BottomTabBar() {
   const { user } = useAuthStore();
   const { summary } = useBadgesStore();
   const { t } = useTranslation();
+  const advanceOnboardingTourTarget = useOnboardingTourStore(
+    (state) => state.advanceIfTarget,
+  );
 
   const isTester = Boolean(user?.isTester);
   const tabs = useMemo(
@@ -133,6 +137,7 @@ export function BottomTabBar() {
   const handlePress = (tab: TabDef) => {
     if (tab.key === "menu") {
       openDrawer();
+      advanceOnboardingTourTarget(BOTTOM_TAB_MENU_TOUR_TARGET);
       return;
     }
     if (isActive(tab.key)) return;
@@ -196,7 +201,7 @@ export function BottomTabBar() {
               <OnboardingTarget
                 key={tab.key}
                 id={BOTTOM_TAB_MENU_TOUR_TARGET}
-                style={styles.tab}
+                style={styles.tabTarget}
               >
                 {tabButton}
               </OnboardingTarget>
@@ -208,7 +213,7 @@ export function BottomTabBar() {
               <OnboardingTarget
                 key={tab.key}
                 id={BOTTOM_TAB_ACCOUNT_TOUR_TARGET}
-                style={styles.tab}
+                style={styles.tabTarget}
               >
                 {tabButton}
               </OnboardingTarget>
@@ -258,6 +263,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 2,
     paddingTop: 12,
+  },
+  // Wrapper OnboardingTarget des onglets "menu"/"compte" : seulement flex:1
+  // pour occuper la même largeur de colonne que les autres onglets — les
+  // props d'alignement/padding vivent déjà sur le TouchableOpacity interne
+  // (styles.tab). Les dupliquer ici causait un padding double (le contenu
+  // de ces deux onglets se retrouvait décalé vers le bas par rapport aux
+  // autres onglets de la barre).
+  tabTarget: {
+    flex: 1,
   },
   iconWrap: {
     width: 40,

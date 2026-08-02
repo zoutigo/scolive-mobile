@@ -149,6 +149,24 @@ describe("onboardingTour.* translations", () => {
       "onboardingTour.parentLanding.step3Body",
       "onboardingTour.parentLanding.step4Title",
       "onboardingTour.parentLanding.step4Body",
+      "onboardingTour.parentLanding.step5Title",
+      "onboardingTour.parentLanding.step5Body",
+    ];
+
+    for (const key of requiredKeys) {
+      expect(translations.fr[key]).toBeTruthy();
+      expect(translations.en[key]).toBeTruthy();
+    }
+  });
+
+  it("has the parent-landing help modal content in both locales", () => {
+    const requiredKeys = [
+      "home.parent.help.toggle",
+      "home.parent.help.title",
+      "home.parent.help.body1",
+      "home.parent.help.body2",
+      "home.parent.help.body3",
+      "home.parent.help.close",
     ];
 
     for (const key of requiredKeys) {

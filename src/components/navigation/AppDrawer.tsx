@@ -14,6 +14,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter, usePathname } from "expo-router";
 import { colors } from "../../theme";
 import { useFamilyStore } from "../../store/family.store";
+import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { PARENT_LANDING_TOUR_TARGETS } from "../home/parent-landing-tour.config";
 import { NavBadge } from "./NavBadge";
 import type {
   NavItem,
@@ -68,6 +71,26 @@ export function AppDrawer({
   const [openSection, setOpenSection] = useState<string>(
     activeChildId ? `child-${activeChildId}` : "general",
   );
+
+  const activeTourStepTargetKey = useOnboardingTourStore(
+    (state) => state.steps[state.stepIndex]?.targetKey,
+  );
+  const advanceOnboardingTourTarget = useOnboardingTourStore(
+    (state) => state.advanceIfTarget,
+  );
+
+  // Le tour "parent-landing" cible la messagerie du menu principal
+  // ("Mon espace famille") : si une section enfant était restée ouverte
+  // (activeChildId persistant), la forcer à s'ouvrir pour cette étape sinon
+  // sa cible ne serait jamais montée (drawer content conditionné par
+  // openSection === "general").
+  useEffect(() => {
+    if (
+      activeTourStepTargetKey === PARENT_LANDING_TOUR_TARGETS.drawerMessaging
+    ) {
+      setOpenSection("general");
+    }
+  }, [activeTourStepTargetKey]);
 
   const translateX = useRef(new Animated.Value(DRAWER_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
@@ -409,7 +432,7 @@ export function AppDrawer({
                   .filter((i) => i.key !== "account")
                   .map((item) => {
                     const active = isItemActive(item);
-                    return (
+                    const row = (
                       <NavRow
                         key={item.key}
                         item={item}
@@ -418,10 +441,23 @@ export function AppDrawer({
                         indented
                       />
                     );
+
+                    if (item.key === "messages") {
+                      return (
+                        <OnboardingTarget
+                          key={item.key}
+                          id={PARENT_LANDING_TOUR_TARGETS.drawerMessaging}
+                        >
+                          {row}
+                        </OnboardingTarget>
+                      );
+                    }
+
+                    return row;
                   })}
 
               {/* ── Sections par enfant ── */}
-              {childSections!.map((child) => {
+              {childSections!.map((child, childIndex) => {
                 const sectionKey = `child-${child.id}`;
                 const isOpen = openSection === sectionKey;
                 const childInitials = initials(child.firstName, child.lastName);
@@ -430,33 +466,56 @@ export function AppDrawer({
                   isItemActive(item),
                 );
 
-                return (
-                  <View key={child.id}>
-                    <ExpandableNavRow
-                      label={`${child.lastName} ${child.firstName}`}
-                      leadingNode={
-                        <View
+                // Seul le premier enfant porte la cible de tour : un parcours
+                // guidé montre le principe (comment atteindre l'espace d'un
+                // enfant), pas une répétition par enfant.
+                const isFirstChild = childIndex === 0;
+
+                const expandableRow = (
+                  <ExpandableNavRow
+                    label={`${child.lastName} ${child.firstName}`}
+                    leadingNode={
+                      <View
+                        style={[
+                          styles.childAvatar,
+                          isChildRouteActive && styles.childAvatarActive,
+                        ]}
+                      >
+                        <Text
                           style={[
-                            styles.childAvatar,
-                            isChildRouteActive && styles.childAvatarActive,
+                            styles.childAvatarText,
+                            isChildRouteActive && styles.childAvatarTextActive,
                           ]}
                         >
-                          <Text
-                            style={[
-                              styles.childAvatarText,
-                              isChildRouteActive &&
-                                styles.childAvatarTextActive,
-                            ]}
-                          >
-                            {childInitials}
-                          </Text>
-                        </View>
+                          {childInitials}
+                        </Text>
+                      </View>
+                    }
+                    isOpen={isOpen}
+                    active={isChildRouteActive}
+                    onPress={() => {
+                      setOpenSection(sectionKey);
+                      if (isFirstChild) {
+                        advanceOnboardingTourTarget(
+                          PARENT_LANDING_TOUR_TARGETS.drawerChild,
+                        );
                       }
-                      isOpen={isOpen}
-                      active={isChildRouteActive}
-                      onPress={() => setOpenSection(sectionKey)}
-                      testID={`drawer-section-child-${child.id}`}
-                    />
+                    }}
+                    testID={`drawer-section-child-${child.id}`}
+                  />
+                );
+
+                return (
+                  <View key={child.id}>
+                    {isFirstChild ? (
+                      <OnboardingTarget
+                        id={PARENT_LANDING_TOUR_TARGETS.drawerChild}
+                      >
+                        {expandableRow}
+                      </OnboardingTarget>
+                    ) : (
+                      expandableRow
+                    )}
 
                     {isOpen &&
                       child.navItems.map((item) => {

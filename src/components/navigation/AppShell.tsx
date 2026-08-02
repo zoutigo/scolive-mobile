@@ -5,11 +5,16 @@ import { useAuthStore } from "../../store/auth.store";
 import { useBadgesStore } from "../../store/badges.store";
 import { useFamilyStore } from "../../store/family.store";
 import { useTeacherClassNavStore } from "../../store/teacher-class-nav.store";
+import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import { colors } from "../../theme";
 import { PLATFORM_SCOPE } from "../../api/messaging-client";
 import { AppHeader } from "./AppHeader";
 import { AppDrawer } from "./AppDrawer";
-import { BottomTabBar, BOTTOM_TAB_BAR_HEIGHT } from "./BottomTabBar";
+import {
+  BottomTabBar,
+  BOTTOM_TAB_BAR_HEIGHT,
+  BOTTOM_TAB_ACCOUNT_TOUR_TARGET,
+} from "./BottomTabBar";
 import {
   getRoleLabel,
   getViewType,
@@ -62,6 +67,23 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
     setPendingSection(`teacher-class-${classId}`);
     setIsDrawerOpen(true);
   }, []);
+
+  const activeTourStepTargetKey = useOnboardingTourStore(
+    (state) => state.steps[state.stepIndex]?.targetKey,
+  );
+
+  // Le tour "parent-landing" referme le drawer avant sa dernière étape
+  // (compte, dans la barre du bas) : le drawer resterait sinon ouvert
+  // par-dessus la barre de tabs et masquerait la cible réelle, reproduisant
+  // le bug initial (tooltip flottant au-dessus d'un menu déjà ouvert).
+  useEffect(() => {
+    if (
+      activeTourStepTargetKey === BOTTOM_TAB_ACCOUNT_TOUR_TARGET &&
+      isDrawerOpen
+    ) {
+      closeDrawer();
+    }
+  }, [activeTourStepTargetKey, isDrawerOpen, closeDrawer]);
 
   const viewType = user ? getViewType(user) : "unknown";
 

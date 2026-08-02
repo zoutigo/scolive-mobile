@@ -109,13 +109,16 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Touchez cette icône pour ouvrir le menu et accéder à toutes les rubriques de l'école.",
     "onboardingTour.parentLanding.step2Title": "Votre messagerie",
     "onboardingTour.parentLanding.step2Body":
-      "Ce raccourci ouvre votre messagerie parent, où se trouvent tous vos échanges avec l'école.",
-    "onboardingTour.parentLanding.step3Title": "Vos enfants",
+      "Dans ce menu, cette entrée ouvre votre messagerie parent, où se trouvent tous vos échanges avec l'école.",
+    "onboardingTour.parentLanding.step3Title": "L'espace de votre enfant",
     "onboardingTour.parentLanding.step3Body":
-      "Retrouvez ici la liste de vos enfants. Touchez le nom d'un enfant pour ouvrir son espace (notes, emploi du temps, vie scolaire...).",
+      "Touchez le nom de votre enfant pour déplier son espace : notes, emploi du temps, vie scolaire et plus encore.",
     "onboardingTour.parentLanding.step4Title": "Paramètres de votre compte",
     "onboardingTour.parentLanding.step4Body":
       "Cette icône ouvre les paramètres de votre compte : coordonnées, sécurité et préférences.",
+    "onboardingTour.parentLanding.step5Title": "Une aide toujours disponible",
+    "onboardingTour.parentLanding.step5Body":
+      "Touchez ce bouton à tout moment pour revoir un rappel sur l'utilisation de cette page et du menu de navigation.",
     "onboardingTour.feedFilters.step1Title": "Ouvrez les filtres",
     "onboardingTour.feedFilters.step1Body":
       "Touchez ce bouton pour ouvrir le panneau de filtres du fil.",
@@ -2528,6 +2531,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.parent.news.empty.title": "Aucune actualité",
     "home.parent.news.empty.subtitle":
       "Les informations de l'établissement apparaîtront ici",
+    "home.parent.help.toggle": "Aide sur cette page",
+    "home.parent.help.title": "Votre espace parent",
+    "home.parent.help.body1":
+      "Cette page regroupe l'essentiel : vos enfants, vos accès rapides (fil d'actualité, situation financière, messagerie, documents) et les dernières actualités de l'école.",
+    "home.parent.help.body2":
+      "Pour tout le reste — messagerie, espace d'un enfant, paramètres du compte — touchez l'icône Menu en bas de l'écran : elle ouvre le menu de navigation qui donne accès à toutes les rubriques.",
+    "home.parent.help.body3":
+      "Vous pouvez revoir le parcours de découverte du menu à tout moment en touchant à nouveau cette icône d'aide.",
+    "home.parent.help.close": "Fermer",
 
     // Placeholder screen
     "placeholder.subtitle": "Module en cours de développement",
@@ -3106,13 +3118,16 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Tap this icon to open the menu and reach every section of the school.",
     "onboardingTour.parentLanding.step2Title": "Your messaging",
     "onboardingTour.parentLanding.step2Body":
-      "This shortcut opens your parent messaging, where all your exchanges with the school live.",
-    "onboardingTour.parentLanding.step3Title": "Your children",
+      "In this menu, this entry opens your parent messaging, where all your exchanges with the school live.",
+    "onboardingTour.parentLanding.step3Title": "Your child's space",
     "onboardingTour.parentLanding.step3Body":
-      "This is the list of your children. Tap a child's name to open their space (grades, timetable, school life...).",
+      "Tap your child's name to expand their space: grades, timetable, school life and more.",
     "onboardingTour.parentLanding.step4Title": "Your account settings",
     "onboardingTour.parentLanding.step4Body":
       "This icon opens your account settings: contact details, security and preferences.",
+    "onboardingTour.parentLanding.step5Title": "Help is always available",
+    "onboardingTour.parentLanding.step5Body":
+      "Tap this button anytime for a reminder on how to use this page and the navigation menu.",
     "onboardingTour.feedFilters.step1Title": "Open the filters",
     "onboardingTour.feedFilters.step1Body":
       "Tap this button to open the feed's filter panel.",
@@ -5437,6 +5452,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.parent.news.seeAll": "See all",
     "home.parent.news.empty.title": "No news yet",
     "home.parent.news.empty.subtitle": "School announcements will appear here",
+    "home.parent.help.toggle": "Help on this page",
+    "home.parent.help.title": "Your family space",
+    "home.parent.help.body1":
+      "This page gathers the essentials: your children, quick access shortcuts (news feed, financial situation, messaging, documents) and the latest school news.",
+    "home.parent.help.body2":
+      "For everything else — messaging, a child's space, account settings — tap the Menu icon at the bottom of the screen: it opens the navigation menu with access to every section.",
+    "home.parent.help.body3":
+      "You can replay the menu discovery tour at any time by tapping this help icon again.",
+    "home.parent.help.close": "Close",
 
     // Placeholder screen
     "placeholder.subtitle": "Module under development",

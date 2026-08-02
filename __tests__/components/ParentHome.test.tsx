@@ -245,4 +245,36 @@ describe("Accès rapides", () => {
 
     expect(screen.getByText("99+")).toBeTruthy();
   });
+
+  describe("modale d'aide", () => {
+    it("est masquée par défaut", () => {
+      render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+      expect(
+        screen.queryByTestId("parent-landing-help-modal-title"),
+      ).toBeNull();
+    });
+
+    it("s'ouvre au tap sur le bouton d'aide et affiche titre/corps", () => {
+      render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+      fireEvent.press(screen.getByTestId("parent-landing-help-toggle"));
+
+      expect(
+        screen.getByTestId("parent-landing-help-modal-title"),
+      ).toBeTruthy();
+      expect(screen.getByTestId("parent-landing-help-modal-body")).toBeTruthy();
+    });
+
+    it("se ferme au tap sur le bouton de fermeture", () => {
+      render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+      fireEvent.press(screen.getByTestId("parent-landing-help-toggle"));
+      fireEvent.press(screen.getByTestId("parent-landing-help-modal-close"));
+
+      expect(
+        screen.queryByTestId("parent-landing-help-modal-title"),
+      ).toBeNull();
+    });
+  });
 });
