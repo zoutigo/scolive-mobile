@@ -15,7 +15,8 @@ export type CreatableStaffRole =
   | "SCHOOL_MANAGER"
   | "SUPERVISOR"
   | "SCHOOL_ACCOUNTANT"
-  | "SCHOOL_STAFF";
+  | "SCHOOL_STAFF"
+  | "SCHOOL_HEALTH_OFFICER";
 
 export interface CreateStaffMemberPayload {
   role: CreatableStaffRole;

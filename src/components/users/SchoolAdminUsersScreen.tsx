@@ -66,7 +66,8 @@ type CreatableUserType =
   | "SCHOOL_MANAGER"
   | "SUPERVISOR"
   | "SCHOOL_ACCOUNTANT"
-  | "SCHOOL_STAFF";
+  | "SCHOOL_STAFF"
+  | "SCHOOL_HEALTH_OFFICER";
 
 const CREATABLE_USER_TYPES: Array<{
   type: CreatableUserType;
@@ -79,6 +80,7 @@ const CREATABLE_USER_TYPES: Array<{
   { type: "SUPERVISOR", icon: "eye-outline" },
   { type: "SCHOOL_ACCOUNTANT", icon: "calculator-outline" },
   { type: "SCHOOL_STAFF", icon: "id-card-outline" },
+  { type: "SCHOOL_HEALTH_OFFICER", icon: "medkit-outline" },
 ];
 
 function buildMinimalUserItem(id: string, role: SchoolRole): UserItem {
@@ -131,6 +133,7 @@ const ROLE_FILTER_KEYS: SchoolUserRoleFilter[] = [
   "SUPERVISOR",
   "SCHOOL_ACCOUNTANT",
   "SCHOOL_STAFF",
+  "SCHOOL_HEALTH_OFFICER",
 ];
 
 const ROLE_LEGEND_KEYS: SchoolRole[] = ROLE_FILTER_KEYS.filter(
@@ -255,7 +258,8 @@ export function SchoolAdminUsersScreen() {
       (type === "SCHOOL_MANAGER" ||
         type === "SUPERVISOR" ||
         type === "SCHOOL_ACCOUNTANT" ||
-        type === "SCHOOL_STAFF") &&
+        type === "SCHOOL_STAFF" ||
+        type === "SCHOOL_HEALTH_OFFICER") &&
       staffFunctionOptions.length === 0
     ) {
       staffFunctionsApi
@@ -701,7 +705,8 @@ export function SchoolAdminUsersScreen() {
               {createType === "SCHOOL_MANAGER" ||
               createType === "SUPERVISOR" ||
               createType === "SCHOOL_ACCOUNTANT" ||
-              createType === "SCHOOL_STAFF" ? (
+              createType === "SCHOOL_STAFF" ||
+              createType === "SCHOOL_HEALTH_OFFICER" ? (
                 <StaffCreateFormContent
                   role={createType}
                   functionOptions={staffFunctionOptions}

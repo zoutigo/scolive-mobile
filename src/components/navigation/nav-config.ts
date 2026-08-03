@@ -102,6 +102,7 @@ const SCHOOL_STAFF_ROLES: SchoolRole[] = [
   "SUPERVISOR",
   "SCHOOL_ACCOUNTANT",
   "SCHOOL_STAFF",
+  "SCHOOL_HEALTH_OFFICER",
 ];
 
 const SCHOOL_ROLES = new Set<AppRole>([
@@ -110,6 +111,7 @@ const SCHOOL_ROLES = new Set<AppRole>([
   "SUPERVISOR",
   "SCHOOL_ACCOUNTANT",
   "SCHOOL_STAFF",
+  "SCHOOL_HEALTH_OFFICER",
   "TEACHER",
   "PARENT",
   "STUDENT",
@@ -168,6 +170,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
   SUPERVISOR: "Superviseur",
   SCHOOL_ACCOUNTANT: "Comptable",
   SCHOOL_STAFF: "Personnel",
+  SCHOOL_HEALTH_OFFICER: "Responsable santé",
   TEACHER: "Enseignant(e)",
   PARENT: "Parent",
   STUDENT: "Élève",
@@ -321,6 +324,12 @@ const SCHOOL_NAV: NavItem[] = [
     route: "/admin-discipline",
   },
   {
+    key: "health",
+    label: "Santé",
+    icon: "heart-outline",
+    route: "/admin-sante",
+  },
+  {
     key: "resources",
     label: "Ressources",
     icon: "library-outline",
@@ -457,6 +466,13 @@ export function buildChildNavItems(
       route: "/(home)/vie-scolaire/[childId]",
       params: { childId },
       unread: toUnread(childBadge?.disciplineUnread),
+    },
+    {
+      key: `child-${childId}-health`,
+      label: "Santé",
+      icon: "heart-outline",
+      route: "/(home)/sante/[childId]",
+      params: { childId },
     },
     {
       key: `child-${childId}-class-life`,

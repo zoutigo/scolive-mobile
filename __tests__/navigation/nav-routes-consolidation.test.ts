@@ -72,6 +72,7 @@ const NON_MENU_SCREENS = new Set([
   "children", // atteint via les sections "enfant" du parent, pas le menu plat
   "discipline-student", // atteint via un item Discipline, pas un module de menu dédié
   "vie-scolaire", // idem, atteint via les sections enfant
+  "sante", // idem, atteint via les sections enfant (santé de l'élève)
   "classes", // sous-modules enseignant par classe, pas un item de menu plat
   "notes", // "grades"/"Notes" pointe vers /notes -> couvert, mais dossier contient aussi child/class dynamiques
   "tickets", // branché via la bottom tab bar ("Support"), pas le drawer

@@ -119,6 +119,7 @@ const SCHOOL_ROLE_LABELS: Record<SchoolRole, string> = {
   SUPERVISOR: "Superviseur",
   SCHOOL_ACCOUNTANT: "Comptable",
   SCHOOL_STAFF: "Personnel",
+  SCHOOL_HEALTH_OFFICER: "Responsable santé",
   TEACHER: "Enseignant(e)",
   PARENT: "Parent",
   STUDENT: "Élève",
