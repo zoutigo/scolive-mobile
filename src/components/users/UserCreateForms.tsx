@@ -22,6 +22,7 @@ import {
   TextFormField,
 } from "../teachers/TeacherSheetCommons";
 import { SecureTextField } from "../SecureTextField";
+import { DatePickerField } from "../DatePickerField";
 import {
   normalizePhoneInput,
   PASSWORD_COMPLEXITY_REGEX,
@@ -131,43 +132,16 @@ export const staffCreateFormSchema = z
   })
   .superRefine(refineContactMode);
 
-export const studentCreateFormSchema = z
-  .object({
-    firstName: z.string().trim().min(1, "Le prénom est obligatoire."),
-    lastName: z.string().trim().min(1, "Le nom est obligatoire."),
-    levelId: z.string().trim().min(1, "Le niveau est obligatoire."),
-    classId: z.string().trim().min(1, "La classe est obligatoire."),
-    email: z.union([
-      z.string().trim().email("Adresse email invalide."),
-      z.literal(""),
-    ]),
-    password: z
-      .string()
-      .trim()
-      .optional()
-      .refine((value) => !value || PASSWORD_COMPLEXITY_REGEX.test(value), {
-        message:
-          "Le mot de passe doit contenir au moins 8 caractères avec majuscules, minuscules et chiffres.",
-      }),
-  })
-  .superRefine((value, ctx) => {
-    const hasEmail = Boolean(value.email.trim());
-    const hasPassword = Boolean((value.password ?? "").trim());
-    if (hasEmail && !hasPassword) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["password"],
-        message: "Mot de passe requis si un email est fourni.",
-      });
-    }
-    if (hasPassword && !hasEmail) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["email"],
-        message: "Email requis si un mot de passe est fourni.",
-      });
-    }
-  });
+export const studentCreateFormSchema = z.object({
+  firstName: z.string().trim().min(1, "Le prénom est obligatoire."),
+  lastName: z.string().trim().min(1, "Le nom est obligatoire."),
+  levelId: z.string().trim().min(1, "Le niveau est obligatoire."),
+  classId: z.string().trim().min(1, "La classe est obligatoire."),
+  dateOfBirth: z
+    .string()
+    .trim()
+    .min(1, "La date de naissance est obligatoire."),
+});
 
 export type ContactModeFormValues = z.infer<
   z.ZodObject<typeof contactModeShape>
@@ -724,8 +698,7 @@ export function StudentCreateFormContent(props: {
       lastName: "",
       levelId: "",
       classId: "",
-      email: "",
-      password: "",
+      dateOfBirth: "",
     },
   });
 
@@ -820,6 +793,34 @@ export function StudentCreateFormContent(props: {
           testID="users-create-student-class"
         />
 
+        <View style={styles.formField}>
+          <Text style={styles.formLabel}>
+            {t("users.create.field.dateOfBirth.label")}
+          </Text>
+          <Controller
+            control={control}
+            name="dateOfBirth"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <DatePickerField
+                value={value}
+                onChange={onChange}
+                onBlur={onBlur}
+                placeholder={t("users.create.field.dateOfBirth.placeholder")}
+                hasError={!!errors.dateOfBirth}
+                testID="users-create-student-date-of-birth"
+              />
+            )}
+          />
+          {errors.dateOfBirth ? (
+            <Text
+              style={styles.formError}
+              testID="users-create-student-date-of-birth-error"
+            >
+              {errors.dateOfBirth.message}
+            </Text>
+          ) : null}
+        </View>
+
         <View style={styles.sectionDivider}>
           <Text style={styles.sectionDividerLabel}>
             {t("users.create.field.access.sectionTitle")}
@@ -828,55 +829,6 @@ export function StudentCreateFormContent(props: {
         <Text style={styles.formHint}>
           {t("users.create.field.access.hint")}
         </Text>
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { value, onChange, onBlur, ref } }) => (
-            <TextFormField
-              ref={ref}
-              label={t("users.create.field.email.label")}
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              placeholder={t("users.create.field.email.placeholder")}
-              error={errors.email?.message}
-              testID="users-create-student-email"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { value, onChange, onBlur, ref } }) => (
-            <View style={styles.formField}>
-              <Text style={styles.formLabel}>
-                {t("users.create.field.password.label")}
-              </Text>
-              <SecureTextField
-                ref={ref}
-                value={value ?? ""}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                placeholder={t("users.create.field.password.placeholder")}
-                hasError={!!errors.password}
-                testID="users-create-student-password"
-                variant="password"
-                autoCapitalize="none"
-                containerStyle={{ borderRadius: 6 }}
-              />
-              {errors.password ? (
-                <Text
-                  style={styles.formError}
-                  testID="users-create-student-password-error"
-                >
-                  {errors.password.message}
-                </Text>
-              ) : null}
-            </View>
-          )}
-        />
       </ScrollView>
 
       <View style={styles.formActionsBar}>

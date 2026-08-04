@@ -315,14 +315,9 @@ export function SchoolAdminUsersScreen() {
         firstName: values.firstName.trim(),
         lastName: values.lastName.trim(),
         classId: values.classId,
-        email: values.email.trim() || undefined,
-        password: (values.password ?? "").trim() || undefined,
+        dateOfBirth: values.dateOfBirth.trim() || undefined,
       });
-      afterCreateSuccess(
-        response.user
-          ? buildMinimalUserItem(response.user.id, "STUDENT")
-          : buildMinimalStudentOnlyItem(response.id),
-      );
+      afterCreateSuccess(buildMinimalStudentOnlyItem(response.id));
     } catch (err) {
       showCreateError({
         title: t("users.create.errors.title"),

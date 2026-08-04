@@ -785,6 +785,20 @@ describe("SchoolAdminUsersScreen — Création d'utilisateur (FAB)", () => {
       screen.getByTestId("users-create-student-class-option-class-1"),
     );
 
+    const now = new Date();
+    const dateOfBirthIso = `${now.getFullYear()}-${String(
+      now.getMonth() + 1,
+    ).padStart(2, "0")}-15`;
+    fireEvent.press(screen.getByTestId("users-create-student-date-of-birth"));
+    fireEvent.press(
+      await screen.findByTestId(
+        `users-create-student-date-of-birth-day-${dateOfBirthIso}`,
+      ),
+    );
+    fireEvent.press(
+      screen.getByTestId("users-create-student-date-of-birth-confirm"),
+    );
+
     fireEvent.press(screen.getByTestId("users-create-student-submit"));
 
     await waitFor(() => {
@@ -794,6 +808,7 @@ describe("SchoolAdminUsersScreen — Création d'utilisateur (FAB)", () => {
           firstName: "Jean",
           lastName: "Dupont",
           classId: "class-1",
+          dateOfBirth: dateOfBirthIso,
         }),
       );
     });
