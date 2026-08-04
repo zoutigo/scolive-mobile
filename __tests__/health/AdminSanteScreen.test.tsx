@@ -87,6 +87,7 @@ beforeEach(() => {
     description: null,
     occurredAt: new Date().toISOString(),
     alertLevel: "INFO",
+    followUpNeeded: false,
     authorUser: null,
   });
 });

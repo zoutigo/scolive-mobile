@@ -12,13 +12,105 @@ beforeEach(() => {
 });
 
 describe("healthApi", () => {
-  it("liste les conditions de santé d'un élève", async () => {
-    mockApiFetch.mockResolvedValueOnce([]);
+  it("liste les conditions de santé d'un élève, paginées par défaut (page=1, limit=20)", async () => {
+    mockApiFetch.mockResolvedValueOnce({
+      items: [],
+      page: 1,
+      limit: 20,
+      total: 0,
+    });
 
     await healthApi.listConditions("college-vogt", "student-1");
 
     expect(mockApiFetch).toHaveBeenCalledWith(
-      "/schools/college-vogt/students/student-1/health/conditions",
+      "/schools/college-vogt/students/student-1/health/conditions?page=1&limit=20",
+      {},
+      true,
+    );
+  });
+
+  it("liste les conditions avec recherche, filtres et pagination explicites", async () => {
+    mockApiFetch.mockResolvedValueOnce({
+      items: [],
+      page: 2,
+      limit: 10,
+      total: 0,
+    });
+
+    await healthApi.listConditions("college-vogt", "student-1", {
+      page: 2,
+      limit: 10,
+      search: "arachide",
+      filters: { type: "ALLERGY", alertLevel: "URGENT", active: true },
+    });
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/students/student-1/health/conditions?search=arachide&type=ALLERGY&alertLevel=URGENT&active=true&page=2&limit=10",
+      {},
+      true,
+    );
+  });
+
+  it("met à jour une condition en PATCH JSON", async () => {
+    mockApiFetch.mockResolvedValueOnce({ id: "cond-1", active: false });
+
+    await healthApi.updateCondition("college-vogt", "student-1", "cond-1", {
+      type: "ALLERGY",
+      alertLevel: "URGENT",
+      label: "Allergie arachides",
+      active: false,
+    });
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/students/student-1/health/conditions/cond-1",
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          type: "ALLERGY",
+          alertLevel: "URGENT",
+          label: "Allergie arachides",
+          active: false,
+        }),
+      },
+      true,
+    );
+  });
+
+  it("récupère l'historique fusionné (soins + signalements), paginé par défaut", async () => {
+    mockApiFetch.mockResolvedValueOnce({
+      items: [],
+      page: 1,
+      limit: 20,
+      total: 0,
+    });
+
+    await healthApi.getHistory("college-vogt", "student-1");
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/students/student-1/health/history?page=1&limit=20",
+      {},
+      true,
+    );
+  });
+
+  it("récupère l'historique avec filtres origin/alertLevel/reportType", async () => {
+    mockApiFetch.mockResolvedValueOnce({
+      items: [],
+      page: 1,
+      limit: 20,
+      total: 0,
+    });
+
+    await healthApi.getHistory("college-vogt", "student-1", {
+      filters: {
+        alertLevel: "URGENT",
+        origin: "REPORT",
+        reportType: "ACCIDENT",
+      },
+    });
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/students/student-1/health/history?alertLevel=URGENT&origin=REPORT&reportType=ACCIDENT&page=1&limit=20",
       {},
       true,
     );

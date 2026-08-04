@@ -1,5 +1,9 @@
 import { z } from "zod";
+import type { ComponentProps } from "react";
+import type { Ionicons } from "@expo/vector-icons";
 import type { TranslateFn } from "../i18n/useTranslation";
+
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
 
 export const HEALTH_ALERT_LEVELS = ["INFO", "ATTENTION", "URGENT"] as const;
 export type HealthAlertLevel = (typeof HEALTH_ALERT_LEVELS)[number];
@@ -43,6 +47,7 @@ export interface StudentHealthCareEvent {
   description: string | null;
   occurredAt: string;
   alertLevel: HealthAlertLevel;
+  followUpNeeded: boolean;
   authorUser: { firstName: string; lastName: string } | null;
 }
 
@@ -54,6 +59,59 @@ export interface StudentHealthReport {
   sportRestriction: boolean;
   createdAt: string;
   acknowledgedAt: string | null;
+  reportedByUser: { firstName: string; lastName: string } | null;
+  acknowledgedByUser: { firstName: string; lastName: string } | null;
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export type HealthHistoryOrigin = "CARE_EVENT" | "REPORT";
+
+export type HealthHistoryItem =
+  | { kind: "CARE_EVENT"; at: string; payload: StudentHealthCareEvent }
+  | { kind: "REPORT"; at: string; payload: StudentHealthReport };
+
+export interface HealthConditionsFilters {
+  type: HealthConditionType | null;
+  alertLevel: HealthAlertLevel | null;
+  active: boolean | null;
+}
+
+export const NO_CONDITION_FILTERS: HealthConditionsFilters = {
+  type: null,
+  alertLevel: null,
+  active: null,
+};
+
+export function hasActiveConditionFilters(filters: HealthConditionsFilters) {
+  return (
+    filters.type != null || filters.alertLevel != null || filters.active != null
+  );
+}
+
+export interface HealthHistoryFilters {
+  alertLevel: HealthAlertLevel | null;
+  origin: HealthHistoryOrigin | null;
+  reportType: HealthReportType | null;
+}
+
+export const NO_HISTORY_FILTERS: HealthHistoryFilters = {
+  alertLevel: null,
+  origin: null,
+  reportType: null,
+};
+
+export function hasActiveHistoryFilters(filters: HealthHistoryFilters) {
+  return (
+    filters.alertLevel != null ||
+    filters.origin != null ||
+    filters.reportType != null
+  );
 }
 
 export interface CreateHealthConditionPayload {
@@ -61,6 +119,14 @@ export interface CreateHealthConditionPayload {
   alertLevel: HealthAlertLevel;
   label: string;
   description?: string;
+}
+
+export interface UpdateHealthConditionPayload {
+  type: HealthConditionType;
+  alertLevel: HealthAlertLevel;
+  label: string;
+  description?: string;
+  active: boolean;
 }
 
 export interface CreateHealthCareEventPayload {
@@ -97,6 +163,25 @@ export const ALERT_LEVEL_COLORS: Record<
   URGENT: { bg: "#FFF0F0", text: "#C0392B" },
 };
 
+export const ALERT_LEVEL_ICONS: Record<HealthAlertLevel, IoniconName> = {
+  INFO: "information-circle",
+  ATTENTION: "warning",
+  URGENT: "alert-circle",
+};
+
+export const CONDITION_TYPE_ICONS: Record<HealthConditionType, IoniconName> = {
+  ALLERGY: "nutrition-outline",
+  PATHOLOGY: "pulse-outline",
+  TREATMENT: "medkit-outline",
+  INSTRUCTION: "clipboard-outline",
+  OTHER: "ellipsis-horizontal-circle-outline",
+};
+
+export const HISTORY_ORIGIN_ICONS: Record<HealthHistoryOrigin, IoniconName> = {
+  CARE_EVENT: "school-outline",
+  REPORT: "person-outline",
+};
+
 export function alertLevelLabel(t: TranslateFn, level: HealthAlertLevel) {
   return t(`health.alertLevel.${level}`);
 }
@@ -115,6 +200,16 @@ export function createConditionFormSchema(t: TranslateFn) {
     alertLevel: z.enum(HEALTH_ALERT_LEVELS),
     label: z.string().trim().min(1, t("health.validation.labelRequired")),
     description: z.string(),
+  });
+}
+
+export function editConditionFormSchema(t: TranslateFn) {
+  return z.object({
+    type: z.enum(HEALTH_CONDITION_TYPES),
+    alertLevel: z.enum(HEALTH_ALERT_LEVELS),
+    label: z.string().trim().min(1, t("health.validation.labelRequired")),
+    description: z.string(),
+    active: z.boolean(),
   });
 }
 
