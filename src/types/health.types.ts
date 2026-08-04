@@ -135,6 +135,91 @@ export interface CreateHealthCareEventPayload {
   description?: string;
 }
 
+export interface UpdateHealthCareEventPayload {
+  summary?: string;
+  alertLevel?: HealthAlertLevel;
+  description?: string;
+}
+
+export interface SchoolHealthClassSummary {
+  id: string;
+  name: string;
+}
+
+export interface SchoolHealthStudentSummary {
+  id: string;
+  firstName: string;
+  lastName: string;
+  class: SchoolHealthClassSummary | null;
+  birthDate: string | null;
+  age: number | null;
+}
+
+export interface SchoolHealthReportItem {
+  id: string;
+  type: HealthReportType;
+  alertLevel: HealthAlertLevel;
+  description: string;
+  sportRestriction: boolean;
+  createdAt: string;
+  acknowledgedAt: string | null;
+  student: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    class: SchoolHealthClassSummary | null;
+  };
+  reportedByUser: { firstName: string; lastName: string } | null;
+  acknowledgedByUser: { firstName: string; lastName: string } | null;
+}
+
+export interface SchoolHealthStats {
+  scope: "SCHOOL" | "CLASS";
+  classId: string | null;
+  activeConditionsByAlertLevel: Record<HealthAlertLevel, number>;
+  activeConditionsTotal: number;
+  studentsWithActiveConditions: number;
+  careEventsLast7Days: number;
+  careEventsLast30Days: number;
+  reportsPendingAcknowledgement: number;
+}
+
+export interface SchoolHealthStudentsFilters {
+  classId: string | null;
+}
+
+export const NO_SCHOOL_HEALTH_STUDENTS_FILTERS: SchoolHealthStudentsFilters = {
+  classId: null,
+};
+
+export function hasActiveSchoolHealthStudentsFilters(
+  filters: SchoolHealthStudentsFilters,
+) {
+  return filters.classId != null;
+}
+
+export interface SchoolHealthReportsFilters {
+  alertLevel: HealthAlertLevel | null;
+  reportType: HealthReportType | null;
+  acknowledged: boolean | null;
+}
+
+export const NO_SCHOOL_HEALTH_REPORTS_FILTERS: SchoolHealthReportsFilters = {
+  alertLevel: null,
+  reportType: null,
+  acknowledged: null,
+};
+
+export function hasActiveSchoolHealthReportsFilters(
+  filters: SchoolHealthReportsFilters,
+) {
+  return (
+    filters.alertLevel != null ||
+    filters.reportType != null ||
+    filters.acknowledged != null
+  );
+}
+
 export interface CreateHealthReportPayload {
   type: HealthReportType;
   alertLevel: HealthAlertLevel;

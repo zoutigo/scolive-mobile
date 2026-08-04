@@ -7,10 +7,16 @@ import type {
   HealthHistoryFilters,
   HealthHistoryItem,
   PaginatedResult,
+  SchoolHealthReportItem,
+  SchoolHealthReportsFilters,
+  SchoolHealthStats,
+  SchoolHealthStudentSummary,
+  SchoolHealthStudentsFilters,
   StudentHealthCareEvent,
   StudentHealthCondition,
   StudentHealthReport,
   StudentHealthUrgencySummary,
+  UpdateHealthCareEventPayload,
   UpdateHealthConditionPayload,
 } from "../types/health.types";
 
@@ -28,6 +34,24 @@ export interface GetHistoryParams {
   limit?: number;
   search?: string;
   filters?: HealthHistoryFilters;
+}
+
+export interface ListSchoolStudentsParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  filters?: SchoolHealthStudentsFilters;
+}
+
+export interface ListSchoolReportsParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  filters?: SchoolHealthReportsFilters;
+}
+
+export interface GetSchoolStatsParams {
+  classId?: string;
 }
 
 function buildConditionsQuery(params: ListConditionsParams): string {
@@ -57,7 +81,82 @@ function buildHistoryQuery(params: GetHistoryParams): string {
   return `?${q.toString()}`;
 }
 
+function buildSchoolStudentsQuery(params: ListSchoolStudentsParams): string {
+  const q = new URLSearchParams();
+  if (params.search?.trim()) q.set("search", params.search.trim());
+  if (params.filters?.classId) q.set("classId", params.filters.classId);
+  q.set("page", String(params.page ?? 1));
+  q.set("limit", String(params.limit ?? HEALTH_PAGE_LIMIT));
+  return `?${q.toString()}`;
+}
+
+function buildSchoolReportsQuery(params: ListSchoolReportsParams): string {
+  const q = new URLSearchParams();
+  if (params.search?.trim()) q.set("search", params.search.trim());
+  if (params.filters?.alertLevel)
+    q.set("alertLevel", params.filters.alertLevel);
+  if (params.filters?.reportType)
+    q.set("reportType", params.filters.reportType);
+  if (params.filters?.acknowledged != null) {
+    q.set("acknowledged", String(params.filters.acknowledged));
+  }
+  q.set("page", String(params.page ?? 1));
+  q.set("limit", String(params.limit ?? HEALTH_PAGE_LIMIT));
+  return `?${q.toString()}`;
+}
+
 export const healthApi = {
+  async listSchoolStudents(
+    schoolSlug: string,
+    params: ListSchoolStudentsParams = {},
+  ): Promise<PaginatedResult<SchoolHealthStudentSummary>> {
+    const query = buildSchoolStudentsQuery(params);
+    return apiFetch<PaginatedResult<SchoolHealthStudentSummary>>(
+      `/schools/${schoolSlug}/health/students${query}`,
+      {},
+      true,
+    );
+  },
+
+  async listSchoolReports(
+    schoolSlug: string,
+    params: ListSchoolReportsParams = {},
+  ): Promise<PaginatedResult<SchoolHealthReportItem>> {
+    const query = buildSchoolReportsQuery(params);
+    return apiFetch<PaginatedResult<SchoolHealthReportItem>>(
+      `/schools/${schoolSlug}/health/reports${query}`,
+      {},
+      true,
+    );
+  },
+
+  async getSchoolStats(
+    schoolSlug: string,
+    params: GetSchoolStatsParams = {},
+  ): Promise<SchoolHealthStats> {
+    const q = new URLSearchParams();
+    if (params.classId) q.set("classId", params.classId);
+    const query = q.toString() ? `?${q.toString()}` : "";
+    return apiFetch<SchoolHealthStats>(
+      `/schools/${schoolSlug}/health/stats${query}`,
+      {},
+      true,
+    );
+  },
+
+  async updateCareEvent(
+    schoolSlug: string,
+    studentId: string,
+    careEventId: string,
+    payload: UpdateHealthCareEventPayload,
+  ): Promise<StudentHealthCareEvent> {
+    return apiFetch<StudentHealthCareEvent>(
+      `/schools/${schoolSlug}/students/${studentId}/health/care-events/${careEventId}`,
+      { method: "PATCH", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
   async listConditions(
     schoolSlug: string,
     studentId: string,

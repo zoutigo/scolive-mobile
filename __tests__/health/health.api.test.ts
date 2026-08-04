@@ -213,4 +213,126 @@ describe("healthApi", () => {
       true,
     );
   });
+
+  it("modifie un soin en PATCH JSON", async () => {
+    mockApiFetch.mockResolvedValueOnce({ id: "care-1", summary: "Maj" });
+
+    await healthApi.updateCareEvent("college-vogt", "student-1", "care-1", {
+      summary: "Maj",
+      alertLevel: "ATTENTION",
+    });
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/students/student-1/health/care-events/care-1",
+      {
+        method: "PATCH",
+        body: JSON.stringify({ summary: "Maj", alertLevel: "ATTENTION" }),
+      },
+      true,
+    );
+  });
+
+  it("liste les élèves de l'école (santé), paginés par défaut", async () => {
+    mockApiFetch.mockResolvedValueOnce({
+      items: [],
+      page: 1,
+      limit: 20,
+      total: 0,
+    });
+
+    await healthApi.listSchoolStudents("college-vogt");
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/health/students?page=1&limit=20",
+      {},
+      true,
+    );
+  });
+
+  it("liste les élèves avec recherche, filtre classe et pagination explicites", async () => {
+    mockApiFetch.mockResolvedValueOnce({
+      items: [],
+      page: 2,
+      limit: 10,
+      total: 0,
+    });
+
+    await healthApi.listSchoolStudents("college-vogt", {
+      page: 2,
+      limit: 10,
+      search: "mbele",
+      filters: { classId: "class-1" },
+    });
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/health/students?search=mbele&classId=class-1&page=2&limit=10",
+      {},
+      true,
+    );
+  });
+
+  it("liste les signalements de l'école (santé), paginés par défaut", async () => {
+    mockApiFetch.mockResolvedValueOnce({
+      items: [],
+      page: 1,
+      limit: 20,
+      total: 0,
+    });
+
+    await healthApi.listSchoolReports("college-vogt");
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/health/reports?page=1&limit=20",
+      {},
+      true,
+    );
+  });
+
+  it("liste les signalements avec recherche et filtres explicites", async () => {
+    mockApiFetch.mockResolvedValueOnce({
+      items: [],
+      page: 1,
+      limit: 20,
+      total: 0,
+    });
+
+    await healthApi.listSchoolReports("college-vogt", {
+      search: "ateba",
+      filters: {
+        alertLevel: "URGENT",
+        reportType: "ACCIDENT",
+        acknowledged: false,
+      },
+    });
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/health/reports?search=ateba&alertLevel=URGENT&reportType=ACCIDENT&acknowledged=false&page=1&limit=20",
+      {},
+      true,
+    );
+  });
+
+  it("récupère les stats école (sans filtre)", async () => {
+    mockApiFetch.mockResolvedValueOnce({ scope: "SCHOOL" });
+
+    await healthApi.getSchoolStats("college-vogt");
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/health/stats",
+      {},
+      true,
+    );
+  });
+
+  it("récupère les stats filtrées par classe", async () => {
+    mockApiFetch.mockResolvedValueOnce({ scope: "CLASS" });
+
+    await healthApi.getSchoolStats("college-vogt", { classId: "class-1" });
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/health/stats?classId=class-1",
+      {},
+      true,
+    );
+  });
 });
