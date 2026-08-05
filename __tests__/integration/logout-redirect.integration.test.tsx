@@ -4,14 +4,20 @@
  * Ces tests vérifient que la correction du bug "Maximum update depth exceeded"
  * tient quand le vrai store Zustand est utilisé (pas de mock de useAuthStore).
  *
- * Scénario du bug : lors de la déconnexion depuis un écran (home)/*,
- * HomeLayout utilisait useEffect + router.replace("/") tout en rendant une
- * <View> ordinaire à la place du <Stack> navigator. React Navigation perdait
- * l'arbre de navigateurs et générait des mises à jour synchrones en cascade
- * remontant jusqu'à RootLayout ("Maximum update depth exceeded").
+ * Scénario du bug (reproduit manuellement sur émulateur Android) : lors de la
+ * déconnexion depuis un écran (home)/* imbriqué (ex. /account avec le
+ * sélecteur de rôle ouvert), HomeLayout rendait <Redirect href="/" />
+ * déclarativement à chaque render dès que isAuthenticated passait à false.
+ * Au même moment, app/index.tsx réagit au même changement de store en
+ * basculant HomeScreen -> LoginScreen. Les deux écrans "/" concurrents (celui
+ * déjà présent dans la pile de navigation + celui recréé par le Redirect)
+ * faisaient boucler React Navigation ("Maximum update depth exceeded"),
+ * gelant l'app sur un écran blanc — logout "qui ne fait rien".
  *
- * Le correctif remplace ce pattern par <Redirect href="/" /> déclaratif
- * d'expo-router, qui est une instruction de navigation valide pour le runtime.
+ * Le correctif remplace le <Redirect> déclaratif par un unique appel
+ * `router.dismissAll()` déclenché dans un effect gardé par un ref (jamais
+ * plus d'une fois par transition), qui dépile jusqu'à l'écran "/" déjà
+ * existant au lieu d'en empiler un second.
  */
 import React from "react";
 import { act, render, screen } from "@testing-library/react-native";
@@ -21,15 +27,18 @@ import type { AuthUser } from "../../src/types/auth.types";
 
 // ─── Mocks infrastructure ──────────────────────────────────────────────────────
 
+const mockDismissAll = jest.fn();
+const mockReplace = jest.fn();
+
 jest.mock("expo-router", () => ({
   Stack: Object.assign(
     ({ children }: { children?: React.ReactNode }) => <>{children}</>,
     { Screen: () => null },
   ),
-  Redirect: ({ href }: { href: string }) => {
-    const { View } = require("react-native");
-    return <View testID="home-layout-redirect" accessibilityLabel={href} />;
-  },
+  useRouter: () => ({
+    dismissAll: mockDismissAll,
+    replace: mockReplace,
+  }),
 }));
 
 jest.mock("../../src/notifications/push-registration", () => ({
@@ -104,14 +113,11 @@ beforeEach(() => {
 
 describe("HomeLayout + store auth réel — intégration", () => {
   describe("état initial du store", () => {
-    it("rend <Redirect href='/' /> quand le store est non-authentifié", () => {
+    it("affiche la vue de redirection quand le store est non-authentifié", () => {
       render(<HomeLayout />);
 
-      expect(screen.getByTestId("home-layout-redirect")).toBeOnTheScreen();
-      expect(screen.getByTestId("home-layout-redirect")).toHaveProp(
-        "accessibilityLabel",
-        "/",
-      );
+      expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
+      expect(mockDismissAll).toHaveBeenCalledTimes(1);
     });
 
     it("rend le spinner quand le store est en chargement", () => {
@@ -120,7 +126,8 @@ describe("HomeLayout + store auth réel — intégration", () => {
       render(<HomeLayout />);
 
       expect(screen.getByTestId("home-layout-loading")).toBeOnTheScreen();
-      expect(screen.queryByTestId("home-layout-redirect")).toBeNull();
+      expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
+      expect(mockDismissAll).not.toHaveBeenCalled();
     });
 
     it("rend le Stack navigateur quand le store est authentifié", () => {
@@ -128,51 +135,50 @@ describe("HomeLayout + store auth réel — intégration", () => {
 
       render(<HomeLayout />);
 
-      expect(screen.queryByTestId("home-layout-redirect")).toBeNull();
+      expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
       expect(screen.queryByTestId("home-layout-loading")).toBeNull();
+      expect(mockDismissAll).not.toHaveBeenCalled();
     });
   });
 
   // ── Transition logout via setState direct ──────────────────────────────────
 
   describe("transition authentifié → déconnecté via setState", () => {
-    it("passe à <Redirect href='/' /> après setState sans lever d'erreur", async () => {
+    it("passe à la vue de redirection après setState sans lever d'erreur", async () => {
       useAuthStore.setState(AUTHENTICATED_STATE);
       render(<HomeLayout />);
-
-      expect(screen.queryByTestId("home-layout-redirect")).toBeNull();
-
-      await act(async () => {
-        useAuthStore.setState(UNAUTHENTICATED_STATE);
-      });
-
-      expect(screen.getByTestId("home-layout-redirect")).toBeOnTheScreen();
-      expect(screen.getByTestId("home-layout-redirect")).toHaveProp(
-        "accessibilityLabel",
-        "/",
-      );
-    });
-
-    it("ne renvoie jamais l'ancien testID home-layout-redirecting", async () => {
-      useAuthStore.setState(AUTHENTICATED_STATE);
-      render(<HomeLayout />);
-
-      await act(async () => {
-        useAuthStore.setState(UNAUTHENTICATED_STATE);
-      });
 
       expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
+
+      await act(async () => {
+        useAuthStore.setState(UNAUTHENTICATED_STATE);
+      });
+
+      expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
+      expect(mockDismissAll).toHaveBeenCalledTimes(1);
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it("ne renvoie jamais l'ancien pattern <Redirect> (testID home-layout-redirect)", async () => {
+      useAuthStore.setState(AUTHENTICATED_STATE);
+      render(<HomeLayout />);
+
+      await act(async () => {
+        useAuthStore.setState(UNAUTHENTICATED_STATE);
+      });
+
+      expect(screen.queryByTestId("home-layout-redirect")).toBeNull();
     });
   });
 
   // ── Transition logout via logout() réel ───────────────────────────────────
 
   describe("transition via logout() du store", () => {
-    it("HomeLayout affiche <Redirect> après logout() sans crash", async () => {
+    it("HomeLayout redirige après logout() sans crash", async () => {
       useAuthStore.setState(AUTHENTICATED_STATE);
       render(<HomeLayout />);
 
-      expect(screen.queryByTestId("home-layout-redirect")).toBeNull();
+      expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
 
       await act(async () => {
         await useAuthStore.getState().logout();
@@ -180,10 +186,11 @@ describe("HomeLayout + store auth réel — intégration", () => {
 
       expect(useAuthStore.getState().isAuthenticated).toBe(false);
       expect(useAuthStore.getState().user).toBeNull();
-      expect(screen.getByTestId("home-layout-redirect")).toBeOnTheScreen();
+      expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
+      expect(mockDismissAll).toHaveBeenCalledTimes(1);
     });
 
-    it("logout() vide le store et HomeLayout redirige vers '/'", async () => {
+    it("logout() vide le store et HomeLayout n'appelle dismissAll qu'une fois", async () => {
       useAuthStore.setState(AUTHENTICATED_STATE);
       render(<HomeLayout />);
 
@@ -191,10 +198,7 @@ describe("HomeLayout + store auth réel — intégration", () => {
         await useAuthStore.getState().logout();
       });
 
-      expect(screen.getByTestId("home-layout-redirect")).toHaveProp(
-        "accessibilityLabel",
-        "/",
-      );
+      expect(mockDismissAll).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -213,36 +217,48 @@ describe("HomeLayout + store auth réel — intégration", () => {
           useAuthStore.setState(UNAUTHENTICATED_STATE);
         }),
       ).resolves.not.toThrow();
+
+      // Une seule redirection malgré les changements d'état multiples.
+      expect(mockDismissAll).toHaveBeenCalledTimes(1);
     });
 
-    it("le composant ne se réabonne pas en boucle après déconnexion", async () => {
-      // Scénario : plusieurs setState sur le store en état déconnecté
-      // ne doivent pas provoquer de re-renders infinis.
+    it("le composant ne redéclenche pas dismissAll après déconnexion", async () => {
       useAuthStore.setState(AUTHENTICATED_STATE);
       render(<HomeLayout />);
 
       await act(async () => {
         useAuthStore.setState(UNAUTHENTICATED_STATE);
       });
+      expect(mockDismissAll).toHaveBeenCalledTimes(1);
 
-      // Changements supplémentaires sans changer isAuthenticated
+      // Changements supplémentaires sans changer isAuthenticated (ex. le
+      // ConfirmDialog "session expirée" de app/index.tsx pilote authErrorMessage).
       await act(async () => {
         useAuthStore.setState({ authErrorMessage: "test" });
         useAuthStore.setState({ authErrorMessage: null });
       });
 
-      // Toujours stable : Redirect présent, pas de boucle
-      expect(screen.getByTestId("home-layout-redirect")).toBeOnTheScreen();
+      // Toujours stable : un seul dismissAll, pas de boucle.
+      expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
+      expect(mockDismissAll).toHaveBeenCalledTimes(1);
     });
 
-    it("useRouter n'est pas requis par le composant (pas de crash si absent du mock)", () => {
-      // Le mock expo-router n'expose PAS useRouter.
-      // Si HomeLayout appelait useRouter(), ce test crasherait avec
-      // "TypeError: useRouter is not a function".
-      // Son succès prouve que le composant ne dépend plus de router.replace().
-      useAuthStore.setState(UNAUTHENTICATED_STATE);
+    it("logout depuis un écran imbriqué (isAuthenticated bascule alors qu'un autre re-render est déjà en cours) reste stable", async () => {
+      // Reproduit la condition de course du bug : plusieurs souscripteurs du
+      // store (ici simulés par des setState imbriqués) réagissent au même
+      // instant que HomeLayout au changement d'authentification.
+      useAuthStore.setState(AUTHENTICATED_STATE);
+      const { rerender } = render(<HomeLayout />);
 
-      expect(() => render(<HomeLayout />)).not.toThrow();
+      await act(async () => {
+        useAuthStore.setState(UNAUTHENTICATED_STATE);
+        rerender(<HomeLayout />);
+        rerender(<HomeLayout />);
+        rerender(<HomeLayout />);
+      });
+
+      expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
+      expect(mockDismissAll).toHaveBeenCalledTimes(1);
     });
   });
 });
