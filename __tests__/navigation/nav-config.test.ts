@@ -545,3 +545,42 @@ describe("PLATFORM_NAV — Contenu du site", () => {
     expect(keys.indexOf("site-content")).toBe(keys.indexOf("account") - 1);
   });
 });
+
+describe("STUDENT_NAV — parité avec la vue parent (hors Santé)", () => {
+  function studentItems() {
+    const student = makeUser({ role: "STUDENT", activeRole: "STUDENT" });
+    return getNavItems(student);
+  }
+
+  it("donne accès aux mêmes modules que le parent pour son enfant, sauf Santé", () => {
+    const items = studentItems();
+    const routes = items.map((item) => item.route);
+
+    expect(routes).toEqual([
+      "/",
+      "/notes/me",
+      "/homework/me",
+      "/timetable/me",
+      "/vie-scolaire/me",
+      "/vie-de-classe/me",
+      "/resources",
+      "/messages",
+      "/placeholder",
+      "/account",
+    ]);
+  });
+
+  it("n'expose pas de module Santé (exclusion volontaire)", () => {
+    const items = studentItems();
+    expect(items.some((item) => item.key === "health")).toBe(false);
+  });
+
+  it("expose Notes et Devoirs comme deux entrées distinctes (plus de placeholder fusionné)", () => {
+    const items = studentItems();
+    const grades = items.find((item) => item.key === "grades");
+    const homework = items.find((item) => item.key === "homework");
+
+    expect(grades?.route).toBe("/notes/me");
+    expect(homework?.route).toBe("/homework/me");
+  });
+});

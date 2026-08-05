@@ -1,7 +1,7 @@
 /**
  * Tests d'intégration : vue hebdomadaire responsive
  *
- * Simule le rendu complet de ChildTimetableScreen avec différentes tailles
+ * Simule le rendu complet de StudentTimetableScreen avec différentes tailles
  * d'écran et vérifie que la grille hebdomadaire remplit correctement l'espace
  * disponible, quel que soit le profil (parent, enseignant) et le nombre de
  * jours affichés.
@@ -9,8 +9,8 @@
 import React from "react";
 import { StyleSheet, useWindowDimensions } from "react-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { ChildTimetableScreen } from "../../src/components/timetable/ChildTimetableScreen";
-import { computeWeekDayColumnWidth } from "../../src/components/timetable/ChildTimetableScreen";
+import { StudentTimetableScreen } from "../../src/components/timetable/StudentTimetableScreen";
+import { computeWeekDayColumnWidth } from "../../src/components/timetable/StudentTimetableScreen";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useTimetableStore } from "../../src/store/timetable.store";
 import { useDrawer } from "../../src/components/navigation/drawer-context";
@@ -189,14 +189,14 @@ function goToWeekView() {
 describe("WeekGrid responsive — intégration écran complet", () => {
   describe("téléphone — largeur minimale et scrollabilité", () => {
     it("affiche la grille en vue semaine sur téléphone 360px", () => {
-      render(<ChildTimetableScreen />);
+      render(<StudentTimetableScreen />);
       goToWeekView();
       expect(screen.getByTestId("child-timetable-week-grid")).toBeTruthy();
     });
 
     it("sur téléphone 360px, chaque colonne jour a exactement 56px", () => {
       mockUseWindowDimensions.mockReturnValue(screen$(360, 800));
-      render(<ChildTimetableScreen />);
+      render(<StudentTimetableScreen />);
       goToWeekView();
 
       for (let weekday = 1; weekday <= 5; weekday++) {
@@ -208,7 +208,7 @@ describe("WeekGrid responsive — intégration écran complet", () => {
 
     it("sur téléphone 375px, les colonnes restent à 56px (raw < 56)", () => {
       mockUseWindowDimensions.mockReturnValue(screen$(375, 812));
-      render(<ChildTimetableScreen />);
+      render(<StudentTimetableScreen />);
       goToWeekView();
 
       const col = screen.getByTestId("child-timetable-week-col-1");
@@ -219,7 +219,7 @@ describe("WeekGrid responsive — intégration écran complet", () => {
   describe("tablette — adaptation à l'espace disponible", () => {
     it("sur tablette 768px, chaque colonne jour est plus large que 56px", () => {
       mockUseWindowDimensions.mockReturnValue(screen$(768, 1024));
-      render(<ChildTimetableScreen />);
+      render(<StudentTimetableScreen />);
       goToWeekView();
 
       for (let weekday = 1; weekday <= 5; weekday++) {
@@ -231,7 +231,7 @@ describe("WeekGrid responsive — intégration écran complet", () => {
 
     it("sur tablette 768px, toutes les colonnes ont la même largeur", () => {
       mockUseWindowDimensions.mockReturnValue(screen$(768, 1024));
-      render(<ChildTimetableScreen />);
+      render(<StudentTimetableScreen />);
       goToWeekView();
 
       const widths = [1, 2, 3, 4, 5].map((wd) => {
@@ -254,7 +254,7 @@ describe("WeekGrid responsive — intégration écran complet", () => {
     it("sur tablette 1024px, les colonnes sont encore plus larges que sur 768px", () => {
       // 768px
       mockUseWindowDimensions.mockReturnValue(screen$(768, 1024));
-      const { unmount } = render(<ChildTimetableScreen />);
+      const { unmount } = render(<StudentTimetableScreen />);
       goToWeekView();
       const col768 = screen.getByTestId("child-timetable-week-col-1");
       const width768 = StyleSheet.flatten(col768.props.style).width as number;
@@ -262,7 +262,7 @@ describe("WeekGrid responsive — intégration écran complet", () => {
 
       // 1024px
       mockUseWindowDimensions.mockReturnValue(screen$(1024, 768));
-      render(<ChildTimetableScreen />);
+      render(<StudentTimetableScreen />);
       goToWeekView();
       const col1024 = screen.getByTestId("child-timetable-week-col-1");
       const width1024 = StyleSheet.flatten(col1024.props.style).width as number;
@@ -336,7 +336,7 @@ describe("WeekGrid responsive — intégration écran complet", () => {
       });
 
       mockUseWindowDimensions.mockReturnValue(screen$(360, 800));
-      render(<ChildTimetableScreen />);
+      render(<StudentTimetableScreen />);
       goToWeekView();
 
       expect(screen.getByTestId("child-timetable-week-col-6")).toBeTruthy();
@@ -352,7 +352,7 @@ describe("WeekGrid responsive — intégration écran complet", () => {
 
     it("sur tablette 768px, les 6 colonnes (lun-sam) sont identiques en largeur", () => {
       mockUseWindowDimensions.mockReturnValue(screen$(768, 1024));
-      render(<ChildTimetableScreen />);
+      render(<StudentTimetableScreen />);
       goToWeekView();
 
       const widths = [1, 2, 3, 4, 5, 6].map((wd) => {
@@ -365,7 +365,7 @@ describe("WeekGrid responsive — intégration écran complet", () => {
 
     it("sur téléphone 360px / 6 jours, les colonnes restent à la largeur minimale 56px", () => {
       mockUseWindowDimensions.mockReturnValue(screen$(360, 800));
-      render(<ChildTimetableScreen />);
+      render(<StudentTimetableScreen />);
       goToWeekView();
 
       const col = screen.getByTestId("child-timetable-week-col-6");
@@ -376,7 +376,7 @@ describe("WeekGrid responsive — intégration écran complet", () => {
   describe("interaction utilisateur sur tablette", () => {
     it("le clic sur un créneau fonctionne normalement sur tablette 768px", async () => {
       mockUseWindowDimensions.mockReturnValue(screen$(768, 1024));
-      render(<ChildTimetableScreen />);
+      render(<StudentTimetableScreen />);
       goToWeekView();
 
       fireEvent.press(screen.getByTestId("child-timetable-week-slot-occ-mar"));
@@ -387,7 +387,7 @@ describe("WeekGrid responsive — intégration écran complet", () => {
 
     it("la navigation semaine précédente/suivante conserve les largeurs sur tablette", () => {
       mockUseWindowDimensions.mockReturnValue(screen$(768, 1024));
-      render(<ChildTimetableScreen />);
+      render(<StudentTimetableScreen />);
       goToWeekView();
 
       const before = StyleSheet.flatten(

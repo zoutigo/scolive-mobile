@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
 import { EmptyState, LoadingBlock } from "../timetable/TimetableCommon";
-import { StudentNotesPanel } from "./ChildNotesScreen";
+import { StudentNotesPanel } from "./StudentNotesScreen";
 import type {
   StudentNotesSequence,
   StudentNotesTerm,

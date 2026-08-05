@@ -50,7 +50,7 @@ function resolveViewerRole(
     : null;
 }
 
-export function ChildClassFeedScreen() {
+export function ClassLifeFeedScreen() {
   const { t } = useTranslation();
   const tRef = useRef(t);
   tRef.current = t;
@@ -68,7 +68,7 @@ export function ChildClassFeedScreen() {
 
   useOnboardingTourTrigger({
     tourId: FEED_FILTERS_TOUR_ID,
-    role: "parent",
+    role: childId ? "parent" : "student",
     steps: FEED_FILTERS_TOUR_STEPS,
   });
   const advanceOnboardingTourTarget = useOnboardingTourStore(
@@ -81,37 +81,43 @@ export function ChildClassFeedScreen() {
   }, [childId, setActiveChild]);
 
   const subtitle = useMemo(() => {
-    const childLabel = child
-      ? `${child.firstName} ${child.lastName}`
-      : t("feed.classLife.studentFallback");
+    const childLabel = childId
+      ? child
+        ? `${child.firstName} ${child.lastName}`
+        : t("feed.classLife.studentFallback")
+      : user
+        ? `${user.firstName} ${user.lastName}`
+        : t("feed.classLife.studentFallback");
     const resolvedClassLabel = className || child?.className?.trim() || "";
     return resolvedClassLabel
       ? `${childLabel} • ${resolvedClassLabel}`
       : childLabel;
-  }, [child, className, t]);
+  }, [child, childId, className, t, user]);
 
   const ensureContext = useCallback(async () => {
-    if (!schoolSlug || !childId) {
+    if (!schoolSlug) {
       throw new Error(tRef.current("feed.errors.childContextMissing"));
     }
 
-    if (child?.classId && child?.className) {
+    if (childId && child?.classId && child?.className) {
       setClassId(child.classId);
       setClassName(child.className);
       return child.classId;
     }
 
     const timetable = await timetableApi.getMyTimetable(schoolSlug, {
-      childId,
+      childId: childId || undefined,
     });
     setClassId(timetable.class.id);
     setClassName(timetable.class.name);
-    updateChild(childId, {
-      firstName: timetable.student.firstName,
-      lastName: timetable.student.lastName,
-      classId: timetable.class.id,
-      className: timetable.class.name,
-    });
+    if (childId) {
+      updateChild(childId, {
+        firstName: timetable.student.firstName,
+        lastName: timetable.student.lastName,
+        classId: timetable.class.id,
+        className: timetable.class.name,
+      });
+    }
     return timetable.class.id;
   }, [child, childId, schoolSlug, updateChild]);
 
@@ -162,7 +168,11 @@ export function ChildClassFeedScreen() {
           <ModuleHeader
             title={t("feed.classLife.title")}
             subtitle={subtitle}
-            onBack={() => router.push(buildChildHomeTarget(childId) as never)}
+            onBack={() =>
+              router.push(
+                (childId ? buildChildHomeTarget(childId) : "/") as never,
+              )
+            }
             testID="child-class-feed-header"
             backTestID="child-class-feed-back"
             titleTestID="child-class-feed-header-title"

@@ -59,7 +59,7 @@ import {
   LoadingBlock,
   SectionCard,
 } from "../timetable/TimetableCommon";
-import { MonthGrid, buildWeekDays } from "../timetable/ChildTimetableScreen";
+import { MonthGrid, buildWeekDays } from "../timetable/StudentTimetableScreen";
 import {
   addDays,
   addMonths,

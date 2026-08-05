@@ -1,4 +1,4 @@
-import { computeWeekDayColumnWidth } from "../../src/components/timetable/ChildTimetableScreen";
+import { computeWeekDayColumnWidth } from "../../src/components/timetable/StudentTimetableScreen";
 
 // availableWidth = screenWidth - 68 (outer padding)
 // dayColWidth    = floor((availableWidth - 36 - nDays*2) / nDays), min 56

@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet } from "react-native";
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { ChildNotesScreen } from "../../src/components/notes/ChildNotesScreen";
+import { StudentNotesScreen } from "../../src/components/notes/StudentNotesScreen";
 import { colors } from "../../src/theme";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useFamilyStore } from "../../src/store/family.store";
@@ -47,7 +47,7 @@ function selectNotesTermViaPanel(term: string) {
   applyNotesFilters();
 }
 
-describe("ChildNotesScreen", () => {
+describe("StudentNotesScreen", () => {
   afterEach(() => {
     jest.useRealTimers();
   });
@@ -142,7 +142,7 @@ describe("ChildNotesScreen", () => {
   });
 
   it("affiche la vue notes de l'enfant", () => {
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     expect(screen.getByTestId("child-notes-header")).toBeTruthy();
     expect(screen.getByText("Évaluations et moyennes")).toBeTruthy();
@@ -155,7 +155,7 @@ describe("ChildNotesScreen", () => {
   });
 
   it("redirige le retour vers l'accueil de l'enfant actif", () => {
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     fireEvent.press(screen.getByTestId("child-notes-back"));
 
@@ -208,7 +208,7 @@ describe("ChildNotesScreen", () => {
       clearError: jest.fn(),
     } as never);
 
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     selectNotesTermViaPanel("TERM_2");
 
@@ -283,7 +283,7 @@ describe("ChildNotesScreen", () => {
       },
     } as never);
 
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     expect(screen.getByTestId("child-notes-filter-summary")).toHaveTextContent(
       "Trimestre 3",
@@ -303,7 +303,7 @@ describe("ChildNotesScreen", () => {
   });
 
   it("affiche une entete concise avec le nom et la classe", () => {
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     expect(screen.queryByText("Evaluations et moyennes de l'eleve")).toBeNull();
     expect(screen.getByText("Évaluations et moyennes")).toBeTruthy();
@@ -311,7 +311,7 @@ describe("ChildNotesScreen", () => {
   });
 
   it("verrouille le gabarit compact et pleine largeur du header", () => {
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     const header = screen.getByTestId("child-notes-header");
     const title = screen.getByTestId("child-notes-header-title");
@@ -330,7 +330,7 @@ describe("ChildNotesScreen", () => {
   });
 
   it("distingue visuellement les puces actives/inactives du panneau de filtres", () => {
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     openNotesFilters();
 
@@ -351,7 +351,7 @@ describe("ChildNotesScreen", () => {
   });
 
   it("le bouton Appliquer a une couleur distincte des puces actives", () => {
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     openNotesFilters();
 
@@ -368,7 +368,7 @@ describe("ChildNotesScreen", () => {
   });
 
   it("ouvre le détail d'une évaluation", () => {
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     fireEvent.press(screen.getByTestId("child-notes-evaluation-eval-1"));
 
@@ -377,7 +377,7 @@ describe("ChildNotesScreen", () => {
   });
 
   it("applique la couleur de vigilance aux notes faibles comme sur le web", () => {
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     const weakScore = screen.getByTestId("score-value-eval-geo-1");
     const weakScoreStyle = StyleSheet.flatten(weakScore.props.style);
@@ -387,7 +387,7 @@ describe("ChildNotesScreen", () => {
   });
 
   it("alterne legerement le fond des matieres pour faciliter la lecture", () => {
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     const firstRow = screen.getByTestId("child-notes-subject-row-math");
     const secondRow = screen.getByTestId("child-notes-subject-row-geo");
@@ -400,7 +400,7 @@ describe("ChildNotesScreen", () => {
   });
 
   it("affiche le bloc bulletin de période et les données publiées dans l'onglet Bulletins", () => {
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     fireEvent.press(screen.getByTestId("child-notes-tab-reports"));
 
@@ -411,7 +411,7 @@ describe("ChildNotesScreen", () => {
   });
 
   it("affiche les cartes de synthèse du bulletin dans l'onglet Bulletins", () => {
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     fireEvent.press(screen.getByTestId("child-notes-tab-reports"));
 
@@ -422,7 +422,7 @@ describe("ChildNotesScreen", () => {
   });
 
   it("affiche la vue moyennes proche du tableau web mobile", () => {
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     selectNotesViewViaPanel("averages");
 
@@ -438,7 +438,7 @@ describe("ChildNotesScreen", () => {
   });
 
   it("affiche les panneaux graphiques de comparaison et radar", () => {
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     selectNotesViewViaPanel("charts");
 
@@ -448,7 +448,7 @@ describe("ChildNotesScreen", () => {
   });
 
   it("redirige le retour vers l'accueil enfant", () => {
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     fireEvent.press(screen.getByTestId("child-notes-back"));
 
@@ -459,7 +459,7 @@ describe("ChildNotesScreen", () => {
   });
 
   it("déclenche une seule navigation retour au clic sur le bouton retour", () => {
-    render(<ChildNotesScreen />);
+    render(<StudentNotesScreen />);
 
     const backButton = screen.getByTestId("child-notes-back");
     fireEvent.press(backButton);
@@ -469,7 +469,7 @@ describe("ChildNotesScreen", () => {
 
   describe("Onglets Notes / Bulletins", () => {
     it("affiche les deux onglets, Notes actif par défaut", () => {
-      render(<ChildNotesScreen />);
+      render(<StudentNotesScreen />);
 
       expect(screen.getByTestId("child-notes-tab-notes")).toBeTruthy();
       expect(screen.getByTestId("child-notes-tab-reports")).toBeTruthy();
@@ -478,7 +478,7 @@ describe("ChildNotesScreen", () => {
     });
 
     it("bascule vers l'onglet Bulletins et affiche le bulletin de période", () => {
-      render(<ChildNotesScreen />);
+      render(<StudentNotesScreen />);
 
       fireEvent.press(screen.getByTestId("child-notes-tab-reports"));
 
@@ -490,7 +490,7 @@ describe("ChildNotesScreen", () => {
     });
 
     it("l'onglet Bulletins n'affiche pas la grille d'évaluations de l'onglet Notes", () => {
-      render(<ChildNotesScreen />);
+      render(<StudentNotesScreen />);
 
       fireEvent.press(screen.getByTestId("child-notes-tab-reports"));
 
@@ -498,7 +498,7 @@ describe("ChildNotesScreen", () => {
     });
 
     it("revient à l'onglet Notes inchangé après être passé par Bulletins", () => {
-      render(<ChildNotesScreen />);
+      render(<StudentNotesScreen />);
 
       fireEvent.press(screen.getByTestId("child-notes-tab-reports"));
       fireEvent.press(screen.getByTestId("child-notes-tab-notes"));
@@ -509,7 +509,7 @@ describe("ChildNotesScreen", () => {
 
   describe("Onglet Bulletins — bulletin en lecture seule", () => {
     it("affiche le rang, la moyenne de classe et l'appréciation sans aucun bouton d'action", () => {
-      render(<ChildNotesScreen />);
+      render(<StudentNotesScreen />);
 
       fireEvent.press(screen.getByTestId("child-notes-tab-reports"));
 
@@ -536,7 +536,7 @@ describe("ChildNotesScreen", () => {
     });
 
     it("n'affiche plus le badge 'année scolaire en cours'", () => {
-      render(<ChildNotesScreen />);
+      render(<StudentNotesScreen />);
 
       fireEvent.press(screen.getByTestId("child-notes-tab-reports"));
 

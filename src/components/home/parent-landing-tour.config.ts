@@ -31,7 +31,7 @@ export const PARENT_LANDING_TOUR_TARGETS = {
 // Étape 4 : informative — le drawer est refermé automatiquement (AppShell)
 // avant cette étape pour laisser l'icône compte du bas visible.
 // Étape 5 : bouton d'aide toujours disponible sur la landing (rappel de ce
-// tour) — purement informative, comme le pilote ChildTimetableScreen ;
+// tour) — purement informative, comme le pilote StudentTimetableScreen ;
 // porte le finishLabelKey (dernière étape), pas l'étape compte.
 export const PARENT_LANDING_TOUR_STEPS: OnboardingTourStep[] = [
   {

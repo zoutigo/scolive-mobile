@@ -1,10 +1,10 @@
-import { ChildNotesScreen } from "../../../../src/components/notes/ChildNotesScreen";
+import { StudentNotesScreen } from "../../../../src/components/notes/StudentNotesScreen";
 import { AppShell } from "../../../../src/components/navigation/AppShell";
 
 export default function NotesChildRoute() {
   return (
     <AppShell showHeader={false}>
-      <ChildNotesScreen />
+      <StudentNotesScreen />
     </AppShell>
   );
 }

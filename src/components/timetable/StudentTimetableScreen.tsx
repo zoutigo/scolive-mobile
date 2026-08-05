@@ -192,7 +192,7 @@ export function findInitialMonthSelection(
   );
 }
 
-export function ChildTimetableScreen() {
+export function StudentTimetableScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t, locale } = useTranslation();
@@ -223,9 +223,9 @@ export function ChildTimetableScreen() {
   );
 
   const load = useCallback(async () => {
-    if (!schoolSlug || !childId) return;
+    if (!schoolSlug) return;
     await loadMyTimetable(schoolSlug, {
-      childId,
+      childId: childId || undefined,
       fromDate: range.fromDate,
       toDate: range.toDate,
     });
@@ -250,7 +250,7 @@ export function ChildTimetableScreen() {
 
   useOnboardingTourTrigger({
     tourId: CHILD_TIMETABLE_TOUR_ID,
-    role: "parent",
+    role: childId ? "parent" : "student",
     steps: CHILD_TIMETABLE_TOUR_STEPS,
   });
   const advanceOnboardingTourTarget = useOnboardingTourStore(
@@ -431,7 +431,9 @@ export function ChildTimetableScreen() {
       <ModuleHeader
         title={t("timetable.classManager.defaultTitle")}
         subtitle={subtitle}
-        onBack={() => router.push(buildChildHomeTarget(childId) as never)}
+        onBack={() =>
+          router.push((childId ? buildChildHomeTarget(childId) : "/") as never)
+        }
         testID="child-timetable-header"
         backTestID="child-timetable-back"
         titleTestID="child-timetable-header-title"

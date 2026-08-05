@@ -5,7 +5,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
-import { ChildClassFeedScreen } from "../../src/components/feed/ChildClassFeedScreen";
+import { ClassLifeFeedScreen } from "../../src/components/feed/ClassLifeFeedScreen";
 import { SuccessToastHost } from "../../src/components/feedback/SuccessToastHost";
 import { feedApi } from "../../src/api/feed.api";
 import { timetableApi } from "../../src/api/timetable.api";
@@ -147,7 +147,7 @@ describe("Child class feed integration", () => {
   it("ajoute un like sur un post du fil de classe", async () => {
     render(
       <>
-        <ChildClassFeedScreen />
+        <ClassLifeFeedScreen />
         <SuccessToastHost />
       </>,
     );
@@ -166,7 +166,7 @@ describe("Child class feed integration", () => {
   it("ajoute un commentaire sur un post du fil de classe", async () => {
     render(
       <>
-        <ChildClassFeedScreen />
+        <ClassLifeFeedScreen />
         <SuccessToastHost />
       </>,
     );
@@ -199,7 +199,7 @@ describe("Child class feed integration", () => {
 
     render(
       <>
-        <ChildClassFeedScreen />
+        <ClassLifeFeedScreen />
         <SuccessToastHost />
       </>,
     );
@@ -222,7 +222,7 @@ describe("Child class feed integration", () => {
   it("crée une info depuis le FAB", async () => {
     render(
       <>
-        <ChildClassFeedScreen />
+        <ClassLifeFeedScreen />
         <SuccessToastHost />
       </>,
     );
@@ -258,7 +258,7 @@ describe("Child class feed integration", () => {
   it("crée un sondage depuis le FAB", async () => {
     render(
       <>
-        <ChildClassFeedScreen />
+        <ClassLifeFeedScreen />
         <SuccessToastHost />
       </>,
     );

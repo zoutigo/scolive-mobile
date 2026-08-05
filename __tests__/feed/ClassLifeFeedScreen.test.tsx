@@ -6,7 +6,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
-import { ChildClassFeedScreen } from "../../src/components/feed/ChildClassFeedScreen";
+import { ClassLifeFeedScreen } from "../../src/components/feed/ClassLifeFeedScreen";
 import { feedApi } from "../../src/api/feed.api";
 import { timetableApi } from "../../src/api/timetable.api";
 import { useAuthStore } from "../../src/store/auth.store";
@@ -159,9 +159,9 @@ beforeEach(() => {
   api.remove.mockResolvedValue(undefined);
 });
 
-describe("ChildClassFeedScreen", () => {
+describe("ClassLifeFeedScreen", () => {
   it("charge le feed de classe avec le scope CLASS et affiche le header homogène", async () => {
-    render(<ChildClassFeedScreen />);
+    render(<ClassLifeFeedScreen />);
 
     await waitFor(() => {
       expect(api.list).toHaveBeenCalledWith(
@@ -189,7 +189,7 @@ describe("ChildClassFeedScreen", () => {
 
   // Régression : le bouton d'aide du header n'était jamais branché.
   it("ouvre la modale d'aide via le bouton du header", async () => {
-    render(<ChildClassFeedScreen />);
+    render(<ClassLifeFeedScreen />);
 
     await waitFor(() => expect(api.list).toHaveBeenCalled());
 
@@ -199,7 +199,7 @@ describe("ChildClassFeedScreen", () => {
   });
 
   it("change le filtre du fil de classe via le panneau de filtres", async () => {
-    render(<ChildClassFeedScreen />);
+    render(<ClassLifeFeedScreen />);
 
     await waitFor(() => {
       expect(api.list).toHaveBeenCalled();
@@ -224,7 +224,7 @@ describe("ChildClassFeedScreen", () => {
   });
 
   it("combine plusieurs chips de type dans le panneau de filtres", async () => {
-    render(<ChildClassFeedScreen />);
+    render(<ClassLifeFeedScreen />);
 
     await waitFor(() => {
       expect(api.list).toHaveBeenCalled();
@@ -248,7 +248,7 @@ describe("ChildClassFeedScreen", () => {
   });
 
   it("filtre localement sur mes posts via le chip 'Les miens'", async () => {
-    render(<ChildClassFeedScreen />);
+    render(<ClassLifeFeedScreen />);
 
     await waitFor(() => {
       expect(screen.getByText("CONSEIL DE CLASSE")).toBeTruthy();
@@ -275,7 +275,7 @@ describe("ChildClassFeedScreen", () => {
   });
 
   it("le bouton filtre devient actif seulement après Apply, et Reset l'efface", async () => {
-    render(<ChildClassFeedScreen />);
+    render(<ClassLifeFeedScreen />);
     await waitFor(() => expect(api.list).toHaveBeenCalled());
 
     fireEvent.press(screen.getByTestId("child-class-feed-filter-toggle"));
@@ -313,7 +313,7 @@ describe("ChildClassFeedScreen", () => {
   });
 
   it("Close referme le panneau sans appliquer le brouillon en cours", async () => {
-    render(<ChildClassFeedScreen />);
+    render(<ClassLifeFeedScreen />);
     await waitFor(() => expect(api.list).toHaveBeenCalled());
 
     fireEvent.press(screen.getByTestId("child-class-feed-filter-toggle"));
@@ -334,7 +334,7 @@ describe("ChildClassFeedScreen", () => {
   });
 
   it("ouvre le formulaire inline de reaction dans le fil de classe", async () => {
-    render(<ChildClassFeedScreen />);
+    render(<ClassLifeFeedScreen />);
 
     await waitFor(() => {
       expect(screen.getByTestId("feed-post-react-post-1")).toBeTruthy();
@@ -357,7 +357,7 @@ describe("ChildClassFeedScreen", () => {
   });
 
   it("ouvre le composeur depuis le FAB", async () => {
-    render(<ChildClassFeedScreen />);
+    render(<ClassLifeFeedScreen />);
 
     await waitFor(() => {
       expect(screen.getByTestId("child-class-feed-compose-fab")).toBeTruthy();
@@ -368,7 +368,7 @@ describe("ChildClassFeedScreen", () => {
   });
 
   it("ouvre le composeur en mode sondage depuis le FAB", async () => {
-    render(<ChildClassFeedScreen />);
+    render(<ClassLifeFeedScreen />);
 
     await waitFor(() => {
       expect(screen.getByTestId("child-class-feed-compose-fab")).toBeTruthy();
@@ -383,7 +383,7 @@ describe("ChildClassFeedScreen", () => {
   });
 
   it("revient vers l'accueil enfant via le bouton retour", async () => {
-    render(<ChildClassFeedScreen />);
+    render(<ClassLifeFeedScreen />);
 
     await waitFor(() => {
       expect(screen.getByTestId("child-class-feed-back")).toBeTruthy();
@@ -398,9 +398,9 @@ describe("ChildClassFeedScreen", () => {
   });
 });
 
-describe("ChildClassFeedScreen — tour d'aide guidée sur les filtres", () => {
+describe("ClassLifeFeedScreen — tour d'aide guidée sur les filtres", () => {
   it("démarre le tour au premier affichage pour le rôle parent", async () => {
-    render(<ChildClassFeedScreen />);
+    render(<ClassLifeFeedScreen />);
 
     await waitFor(() => {
       expect(useOnboardingTourStore.getState().activeTourId).toBe(
@@ -413,7 +413,7 @@ describe("ChildClassFeedScreen — tour d'aide guidée sur les filtres", () => {
   });
 
   it("avance à l'étape suivante quand on appuie sur le bouton filtre, puis sur Appliquer une fois sur l'étape apply", async () => {
-    render(<ChildClassFeedScreen />);
+    render(<ClassLifeFeedScreen />);
     await waitFor(() => {
       expect(useOnboardingTourStore.getState().activeTourId).toBe(
         FEED_FILTERS_TOUR_ID,
@@ -442,7 +442,7 @@ describe("ChildClassFeedScreen — tour d'aide guidée sur les filtres", () => {
   });
 
   it("ouvre la modale d'aide au tap sur le bouton d'aide même quand ce dernier est l'étape active du tour", async () => {
-    render(<ChildClassFeedScreen />);
+    render(<ClassLifeFeedScreen />);
     await waitFor(() => {
       expect(useOnboardingTourStore.getState().activeTourId).toBe(
         FEED_FILTERS_TOUR_ID,

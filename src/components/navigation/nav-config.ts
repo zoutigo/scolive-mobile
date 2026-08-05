@@ -419,7 +419,36 @@ const PARENT_NAV: NavItem[] = [
 
 const STUDENT_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
-  placeholder("Notes & homework", "ribbon-outline", "grades"),
+  {
+    key: "grades",
+    label: "Notes",
+    icon: "ribbon-outline",
+    route: "/notes/me",
+  },
+  {
+    key: "homework",
+    label: "Devoirs",
+    icon: "document-text-outline",
+    route: "/homework/me",
+  },
+  {
+    key: "schedule",
+    label: "Emploi du temps",
+    icon: "calendar-outline",
+    route: "/timetable/me",
+  },
+  {
+    key: "life",
+    label: "Vie scolaire",
+    icon: "person-circle-outline",
+    route: "/vie-scolaire/me",
+  },
+  {
+    key: "class-life",
+    label: "Vie de classe",
+    icon: "newspaper-outline",
+    route: "/vie-de-classe/me",
+  },
   {
     key: "resources",
     label: "Ressources",

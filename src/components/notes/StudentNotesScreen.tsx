@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -19,6 +20,7 @@ import { buildChildHomeTarget } from "../navigation/nav-config";
 import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { useNotesStore } from "../../store/notes.store";
+import { useSelfStudentContext } from "../../hooks/useSelfStudentContext";
 import { PeriodHero } from "./PeriodHero";
 import { SubjectReportCard } from "./SubjectReportCard";
 import type {
@@ -493,34 +495,48 @@ export function StudentNotesPanel({
 
 type ChildNotesTabKey = "notes" | "reports";
 
-export function ChildNotesScreen() {
+export function StudentNotesScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ childId?: string }>();
-  const childId = typeof params.childId === "string" ? params.childId : "";
+  const routeChildId = typeof params.childId === "string" ? params.childId : "";
+  const isSelf = !routeChildId;
   const { schoolSlug } = useAuthStore();
   const { children, setActiveChild, updateChild } = useFamilyStore();
   const { studentNotes } = useNotesStore();
   const [childTab, setChildTab] = useState<ChildNotesTabKey>("notes");
+  const selfContext = useSelfStudentContext(isSelf);
+
+  const childId = isSelf ? (selfContext.studentId ?? "") : routeChildId;
 
   useEffect(() => {
-    if (!childId) return;
-    setActiveChild(childId);
-  }, [childId, setActiveChild]);
+    if (!routeChildId) return;
+    setActiveChild(routeChildId);
+  }, [routeChildId, setActiveChild]);
 
   const snapshots = studentNotes[childId] ?? [];
   const currentSnapshot = snapshots[0] ?? null;
 
-  const child = children.find((entry) => entry.id === childId);
+  const child = children.find((entry) => entry.id === routeChildId);
   const title = t("notes.child.title");
-  const subtitle = buildHeaderSubtitle(child, currentSnapshot, t);
+  const subtitle = isSelf
+    ? `${selfContext.firstName ?? ""} ${selfContext.lastName ?? ""}`.trim()
+    : buildHeaderSubtitle(child, currentSnapshot, t);
   const classLabel = extractClassLabel(currentSnapshot?.councilLabel ?? "");
 
   useEffect(() => {
-    if (!childId || !classLabel) return;
-    updateChild(childId, { className: classLabel });
-  }, [childId, classLabel, updateChild]);
+    if (!routeChildId || !classLabel) return;
+    updateChild(routeChildId, { className: classLabel });
+  }, [routeChildId, classLabel, updateChild]);
+
+  if (isSelf && (selfContext.isLoading || !childId)) {
+    return (
+      <View style={styles.selfLoading} testID="student-notes-self-loading">
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -530,7 +546,11 @@ export function ChildNotesScreen() {
       <ModuleHeader
         title={title}
         subtitle={subtitle}
-        onBack={() => router.push(buildChildHomeTarget(childId) as never)}
+        onBack={() =>
+          router.push(
+            (routeChildId ? buildChildHomeTarget(routeChildId) : "/") as never,
+          )
+        }
         testID="child-notes-header"
         backTestID="child-notes-back"
         titleTestID="child-notes-header-title"
@@ -1581,6 +1601,12 @@ function ModalStat(props: { label: string; value: string; suffix?: string }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
+  selfLoading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.background,
+  },
   content: { paddingHorizontal: 16, gap: 14 },
   childTabsBar: {
     flexDirection: "row",
