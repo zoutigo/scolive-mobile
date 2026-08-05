@@ -306,6 +306,24 @@ const SCHOOL_NAV: NavItem[] = [
   },
   placeholder("Parents-Élèves", "people-circle-outline", "parents"),
   {
+    key: "promotions",
+    label: "Passages de classe",
+    icon: "trending-up-outline",
+    route: "/promotions",
+  },
+  {
+    key: "finance-echeanciers",
+    label: "Échéanciers",
+    icon: "card-outline",
+    route: "/finance-echeanciers",
+  },
+  {
+    key: "finance-paiements",
+    label: "Paiements",
+    icon: "cash-outline",
+    route: "/finance-paiements",
+  },
+  {
     key: "users",
     label: "Utilisateurs",
     icon: "person-outline",

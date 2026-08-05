@@ -10,6 +10,84 @@ export const DEFAULT_LOCALE: Locale = "fr";
  */
 export const translations: Record<Locale, Record<string, string>> = {
   fr: {
+    "common.loading": "Chargement...",
+    "common.cancel": "Annuler",
+    "common.save": "Enregistrer",
+    "common.delete": "Supprimer",
+    "common.select": "Sélectionner",
+
+    "financeAdmin.lockedTitle": "Module réservé au personnel administratif",
+    "financeAdmin.lockedMessage":
+      "Ce module mobile est disponible pour les comptes admin, gestionnaire ou comptable.",
+    "financeAdmin.schedules.title": "Échéanciers",
+    "financeAdmin.schedules.empty": "Aucun échéancier défini pour le moment.",
+    "financeAdmin.schedules.success.saved": "Échéancier enregistré.",
+    "financeAdmin.schedules.success.deleted": "Échéancier supprimé.",
+    "financeAdmin.schedules.errors.save": "Enregistrement impossible.",
+    "financeAdmin.schedules.errors.delete": "Suppression impossible.",
+    "financeAdmin.schedules.form.title": "Nouvel échéancier / mise à jour",
+    "financeAdmin.schedules.form.subtitle":
+      "Barème par niveau, filière et année scolaire",
+    "financeAdmin.schedules.form.schoolYear": "Année scolaire",
+    "financeAdmin.schedules.form.academicLevel": "Niveau",
+    "financeAdmin.schedules.form.track": "Filière",
+    "financeAdmin.schedules.form.trackNone": "Aucune filière",
+    "financeAdmin.schedules.form.installments": "Échéances",
+    "financeAdmin.schedules.form.label": "Libellé",
+    "financeAdmin.schedules.form.amount": "Montant",
+    "financeAdmin.schedules.form.addInstallment": "Ajouter une échéance",
+    "financeAdmin.schedules.deleteConfirm.title": "Supprimer l'échéancier",
+
+    "financeAdmin.payments.title": "Paiements",
+    "financeAdmin.payments.search.placeholder": "Nom ou prénom",
+    "financeAdmin.payments.search.button": "Rechercher",
+    "financeAdmin.payments.errors.search": "Recherche impossible.",
+    "financeAdmin.payments.errors.summary":
+      "Impossible de charger la situation financière de cet élève.",
+    "financeAdmin.payments.errors.save":
+      "Enregistrement du paiement impossible.",
+    "financeAdmin.payments.success.paid": "Paiement enregistré.",
+    "financeAdmin.payments.success.paidAndReinscribed":
+      "Paiement enregistré : la réinscription de l'élève est confirmée.",
+    "financeAdmin.payments.targetYear": "Année scolaire (réinscription)",
+    "financeAdmin.payments.summary.totalPaid": "Total déjà versé",
+    "financeAdmin.payments.summary.firstInstallment":
+      "Montant de la 1ère échéance",
+    "financeAdmin.payments.summary.eligible":
+      "Seuil atteint : élève réinscrit.",
+    "financeAdmin.payments.summary.notEligible":
+      "Seuil non atteint : la réinscription n'est pas encore confirmée.",
+    "financeAdmin.payments.form.amount": "Montant versé",
+    "financeAdmin.payments.form.submit": "Enregistrer le paiement",
+
+    "promotionsAdmin.title": "Passages de classe",
+    "promotionsAdmin.tab.decisions": "Décisions",
+    "promotionsAdmin.tab.waiting": "Attente",
+    "promotionsAdmin.decisions.selectClass": "Classe (année en cours)",
+    "promotionsAdmin.decisions.empty":
+      "Aucun bulletin du dernier trimestre pour cette classe.",
+    "promotionsAdmin.decisions.nextLevel": "Niveau cible",
+    "promotionsAdmin.decisions.nextTrack": "Filière cible",
+    "promotionsAdmin.decisions.trackNone": "Aucune filière",
+    "promotionsAdmin.decision.PROMOTED": "Promu",
+    "promotionsAdmin.decision.REPEATED": "Redouble",
+    "promotionsAdmin.decision.LEFT": "Quitte l'établissement",
+    "promotionsAdmin.errors.loadReports":
+      "Impossible de charger les bulletins.",
+    "promotionsAdmin.errors.saveDecision":
+      "Enregistrement de la décision impossible.",
+    "promotionsAdmin.errors.loadWaiting":
+      "Impossible de charger la liste d'attente.",
+    "promotionsAdmin.errors.assign": "Affectation impossible.",
+    "promotionsAdmin.success.decisionSaved": "Décision enregistrée.",
+    "promotionsAdmin.success.assigned": "Élève affecté à la classe.",
+    "promotionsAdmin.waiting.targetYear": "Année scolaire cible",
+    "promotionsAdmin.waiting.level": "Niveau",
+    "promotionsAdmin.waiting.allLevels": "Tous les niveaux",
+    "promotionsAdmin.waiting.targetClass": "Classe définitive",
+    "promotionsAdmin.waiting.assign": "Affecter",
+    "promotionsAdmin.waiting.empty":
+      "Aucun élève en attente d'affectation pour ces filtres.",
     "settings.language.title": "Langue de cet appareil",
     "settings.language.subtitle": "Choisissez la langue de l'application",
     "settings.language.hint":
@@ -92,6 +170,35 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.common.tapTarget":
       "Touchez l'élément en surbrillance pour continuer.",
     "onboardingTour.common.gotIt": "J'ai compris",
+    "onboardingTour.financeParent.walletTitle": "Votre porte-monnaie",
+    "onboardingTour.financeParent.walletBody":
+      "Creditez ce porte-monnaie a tout moment, meme avant que le conseil de classe n'ait statue. L'argent y reste disponible jusqu'a ce que vous decidiez de l'affecter a un enfant.",
+    "onboardingTour.financeParent.childrenTitle": "Statut de chaque enfant",
+    "onboardingTour.financeParent.childrenBody":
+      "Pour chaque enfant : en attente de la decision du conseil de classe, deja reinscrit, ou pret a etre reinscrit avec le montant restant du affiche.",
+    "onboardingTour.financeParent.reinscribeTitle": "Je paie et je reinscris",
+    "onboardingTour.financeParent.reinscribeBody":
+      "Ce bouton debite votre porte-monnaie du montant exact de la 1ere echeance de CET enfant et confirme sa reinscription en un seul geste. Un parent avec plusieurs enfants doit cliquer separement pour chacun.",
+    "finSituation.wallet.balance": "Solde du porte-monnaie",
+    "finSituation.wallet.topUpAmount": "Montant a crediter",
+    "finSituation.wallet.topUpSubmit": "Crediter",
+    "finSituation.wallet.allChildrenLoaded": "Tous les enfants ont ete charges",
+    "finSituation.wallet.errors.load":
+      "Impossible de charger le porte-monnaie.",
+    "finSituation.wallet.errors.amount": "Montant invalide.",
+    "finSituation.wallet.errors.topUp": "Depot impossible.",
+    "finSituation.wallet.errors.reinscribe": "Reinscription impossible.",
+    "finSituation.wallet.success.topUp": "Porte-monnaie credite.",
+    "finSituation.wallet.success.reinscribed": "{firstName} est reinscrit(e) !",
+    "finSituation.children.title": "Mes enfants",
+    "finSituation.children.required": "Montant restant du :",
+    "finSituation.children.payAndReinscribe": "Je paie et je reinscris",
+    "finSituation.children.empty": "Aucun enfant rattache a votre compte.",
+    "finSituation.children.status.DECISION_PENDING":
+      "En attente de la decision du conseil de classe",
+    "finSituation.children.status.ALREADY_REINSCRIBED": "Deja reinscrit(e)",
+    "finSituation.children.status.READY_TO_REINSCRIBE":
+      "Pret(e) a etre reinscrit(e)",
     "onboardingTour.childTimetable.step1Title": "Changez de vue",
     "onboardingTour.childTimetable.step1Body":
       "Touchez Jour, Semaine ou Mois pour changer la façon d'afficher l'emploi du temps.",
@@ -3238,6 +3345,81 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Ouvrez la fiche d'un élève pour voir ses soins et conditions de santé, et utilisez le bouton + pour enregistrer un nouveau soin.",
   },
   en: {
+    "common.loading": "Loading...",
+    "common.cancel": "Cancel",
+    "common.save": "Save",
+    "common.delete": "Delete",
+    "common.select": "Select",
+
+    "financeAdmin.lockedTitle": "Module reserved for administrative staff",
+    "financeAdmin.lockedMessage":
+      "This mobile module is available for admin, manager or accountant accounts.",
+    "financeAdmin.schedules.title": "Fee schedules",
+    "financeAdmin.schedules.empty": "No fee schedule defined yet.",
+    "financeAdmin.schedules.success.saved": "Fee schedule saved.",
+    "financeAdmin.schedules.success.deleted": "Fee schedule deleted.",
+    "financeAdmin.schedules.errors.save": "Unable to save.",
+    "financeAdmin.schedules.errors.delete": "Unable to delete.",
+    "financeAdmin.schedules.form.title": "New fee schedule / update",
+    "financeAdmin.schedules.form.subtitle":
+      "Schedule by level, track and school year",
+    "financeAdmin.schedules.form.schoolYear": "School year",
+    "financeAdmin.schedules.form.academicLevel": "Level",
+    "financeAdmin.schedules.form.track": "Track",
+    "financeAdmin.schedules.form.trackNone": "No track",
+    "financeAdmin.schedules.form.installments": "Installments",
+    "financeAdmin.schedules.form.label": "Label",
+    "financeAdmin.schedules.form.amount": "Amount",
+    "financeAdmin.schedules.form.addInstallment": "Add installment",
+    "financeAdmin.schedules.deleteConfirm.title": "Delete fee schedule",
+
+    "financeAdmin.payments.title": "Payments",
+    "financeAdmin.payments.search.placeholder": "First or last name",
+    "financeAdmin.payments.search.button": "Search",
+    "financeAdmin.payments.errors.search": "Unable to search.",
+    "financeAdmin.payments.errors.summary":
+      "Unable to load this student's financial status.",
+    "financeAdmin.payments.errors.save": "Unable to save the payment.",
+    "financeAdmin.payments.success.paid": "Payment recorded.",
+    "financeAdmin.payments.success.paidAndReinscribed":
+      "Payment recorded: the student's re-enrollment is confirmed.",
+    "financeAdmin.payments.targetYear": "School year (re-enrollment)",
+    "financeAdmin.payments.summary.totalPaid": "Total already paid",
+    "financeAdmin.payments.summary.firstInstallment":
+      "First installment amount",
+    "financeAdmin.payments.summary.eligible":
+      "Threshold reached: student re-enrolled.",
+    "financeAdmin.payments.summary.notEligible":
+      "Threshold not reached: re-enrollment is not confirmed yet.",
+    "financeAdmin.payments.form.amount": "Amount paid",
+    "financeAdmin.payments.form.submit": "Record payment",
+
+    "promotionsAdmin.title": "Grade promotion",
+    "promotionsAdmin.tab.decisions": "Decisions",
+    "promotionsAdmin.tab.waiting": "Waiting",
+    "promotionsAdmin.decisions.selectClass": "Class (current year)",
+    "promotionsAdmin.decisions.empty":
+      "No last-term report card for this class.",
+    "promotionsAdmin.decisions.nextLevel": "Target level",
+    "promotionsAdmin.decisions.nextTrack": "Target track",
+    "promotionsAdmin.decisions.trackNone": "No track",
+    "promotionsAdmin.decision.PROMOTED": "Promoted",
+    "promotionsAdmin.decision.REPEATED": "Repeated",
+    "promotionsAdmin.decision.LEFT": "Left the school",
+    "promotionsAdmin.errors.loadReports": "Unable to load report cards.",
+    "promotionsAdmin.errors.saveDecision": "Unable to save the decision.",
+    "promotionsAdmin.errors.loadWaiting": "Unable to load the waiting list.",
+    "promotionsAdmin.errors.assign": "Unable to assign.",
+    "promotionsAdmin.success.decisionSaved": "Decision saved.",
+    "promotionsAdmin.success.assigned": "Student assigned to class.",
+    "promotionsAdmin.waiting.targetYear": "Target school year",
+    "promotionsAdmin.waiting.level": "Level",
+    "promotionsAdmin.waiting.allLevels": "All levels",
+    "promotionsAdmin.waiting.targetClass": "Final class",
+    "promotionsAdmin.waiting.assign": "Assign",
+    "promotionsAdmin.waiting.empty":
+      "No student waiting for assignment with these filters.",
+
     "settings.language.title": "Language of this device",
     "settings.language.subtitle": "Choose the application language",
     "settings.language.hint":
@@ -3318,6 +3500,33 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.common.tapTarget":
       "Tap the highlighted element to continue.",
     "onboardingTour.common.gotIt": "Got it",
+    "onboardingTour.financeParent.walletTitle": "Your wallet",
+    "onboardingTour.financeParent.walletBody":
+      "Top up this wallet at any time, even before the class council has decided. The money stays available until you choose to allocate it to a child.",
+    "onboardingTour.financeParent.childrenTitle": "Each child's status",
+    "onboardingTour.financeParent.childrenBody":
+      "For each child: waiting on the class council decision, already re-enrolled, or ready to re-enroll with the remaining amount due shown.",
+    "onboardingTour.financeParent.reinscribeTitle": "Pay and re-enroll",
+    "onboardingTour.financeParent.reinscribeBody":
+      "This button debits your wallet for the exact amount of THIS child's first installment and confirms their re-enrollment in one step. A parent with several children must tap separately for each one.",
+    "finSituation.wallet.balance": "Wallet balance",
+    "finSituation.wallet.topUpAmount": "Amount to top up",
+    "finSituation.wallet.topUpSubmit": "Top up",
+    "finSituation.wallet.allChildrenLoaded": "All children have been loaded",
+    "finSituation.wallet.errors.load": "Unable to load the wallet.",
+    "finSituation.wallet.errors.amount": "Invalid amount.",
+    "finSituation.wallet.errors.topUp": "Unable to top up.",
+    "finSituation.wallet.errors.reinscribe": "Unable to re-enroll.",
+    "finSituation.wallet.success.topUp": "Wallet topped up.",
+    "finSituation.wallet.success.reinscribed": "{firstName} is re-enrolled!",
+    "finSituation.children.title": "My children",
+    "finSituation.children.required": "Remaining amount due:",
+    "finSituation.children.payAndReinscribe": "Pay and re-enroll",
+    "finSituation.children.empty": "No child linked to your account.",
+    "finSituation.children.status.DECISION_PENDING":
+      "Waiting on the class council decision",
+    "finSituation.children.status.ALREADY_REINSCRIBED": "Already re-enrolled",
+    "finSituation.children.status.READY_TO_REINSCRIBE": "Ready to re-enroll",
     "onboardingTour.childTimetable.step1Title": "Switch views",
     "onboardingTour.childTimetable.step1Body":
       "Tap Day, Week or Month to change how the schedule is displayed.",
