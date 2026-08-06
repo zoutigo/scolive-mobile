@@ -25,6 +25,14 @@ import { useBadgesStore } from "../../store/badges.store";
 import { ReadonlyDisciplineList } from "./ReadonlyDisciplineList";
 import { DisciplineSummaryOverview } from "./DisciplineSummaryOverview";
 import { ModuleHeader } from "../navigation/ModuleHeader";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { PageHelpModal } from "../help/PageHelpModal";
+import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import {
+  VIE_SCOLAIRE_TOUR_ID,
+  VIE_SCOLAIRE_TOUR_STEPS,
+  VIE_SCOLAIRE_TOUR_TARGETS,
+} from "./vie-scolaire-tour.config";
 import type {
   DisciplineSummary,
   StudentLifeEvent,
@@ -62,6 +70,10 @@ export type StudentLifeScreenProps = {
    * (utilisé par la vue Parent pour tenir à jour le family store — sans
    * lien vers ce store depuis ce composant partagé). */
   onClassLabelResolved?: (classLabel: string) => void;
+  /** "student" quand l'élève consulte sa propre vie scolaire, "parent"
+   * quand un parent consulte celle d'un enfant. L'aide guidée (tour +
+   * modale) est scopée à la vue élève. */
+  viewerRole: "student" | "parent";
 };
 
 export function StudentLifeScreen({
@@ -69,6 +81,7 @@ export function StudentLifeScreen({
   studentLabel,
   onBack,
   onClassLabelResolved,
+  viewerRole,
 }: StudentLifeScreenProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -84,6 +97,14 @@ export function StudentLifeScreen({
 
   const [tab, setTab] = useState<TabKey>("synthese");
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [helpVisible, setHelpVisible] = useState(false);
+  const isStudentSelfView = viewerRole === "student";
+
+  useOnboardingTourTrigger({
+    tourId: VIE_SCOLAIRE_TOUR_ID,
+    role: "student",
+    steps: VIE_SCOLAIRE_TOUR_STEPS,
+  });
 
   const events: StudentLifeEvent[] = eventsMap[studentId] ?? [];
   const isCached = eventsMap[studentId] !== undefined;
@@ -167,11 +188,23 @@ export function StudentLifeScreen({
           titleTestID="vie-scolaire-header-title"
           subtitleTestID="vie-scolaire-header-subtitle"
           topInset={insets.top}
+          helpAction={
+            isStudentSelfView
+              ? {
+                  label: t("discipline.vieScolaire.help.menuLabel"),
+                  onPress: () => setHelpVisible(true),
+                  testID: "vie-scolaire-help-menu-item",
+                }
+              : undefined
+          }
+          menuTourTargetId={
+            isStudentSelfView ? VIE_SCOLAIRE_TOUR_TARGETS.helpToggle : undefined
+          }
         />
       </View>
 
       {/* Onglets */}
-      <View style={styles.tabs}>
+      <OnboardingTarget id={VIE_SCOLAIRE_TOUR_TARGETS.tabs} style={styles.tabs}>
         {TAB_KEYS.map((item) => (
           <TouchableOpacity
             key={item.key}
@@ -196,7 +229,7 @@ export function StudentLifeScreen({
             </Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </OnboardingTarget>
 
       {/* Erreur de chargement */}
       {loadError && (
@@ -222,6 +255,9 @@ export function StudentLifeScreen({
             isLoading={isLoading && !isCached}
             isRefreshing={isRefreshing}
             onRefresh={refresh}
+            kpisTourTargetId={
+              isStudentSelfView ? VIE_SCOLAIRE_TOUR_TARGETS.kpis : undefined
+            }
           />
         )}
 
@@ -251,6 +287,26 @@ export function StudentLifeScreen({
           />
         )}
       </View>
+
+      {isStudentSelfView ? (
+        <PageHelpModal
+          visible={helpVisible}
+          onClose={() => setHelpVisible(false)}
+          title={t("discipline.vieScolaire.help.title")}
+          sections={[
+            {
+              title: t("discipline.vieScolaire.help.section1Title"),
+              body: [t("discipline.vieScolaire.help.section1Body")],
+            },
+            {
+              title: t("discipline.vieScolaire.help.section2Title"),
+              body: [t("discipline.vieScolaire.help.section2Body")],
+            },
+          ]}
+          closeLabel={t("discipline.vieScolaire.help.close")}
+          testID="vie-scolaire-help-modal"
+        />
+      ) : null}
     </View>
   );
 }
@@ -263,6 +319,7 @@ interface SyntheseProps {
   isLoading: boolean;
   isRefreshing: boolean;
   onRefresh: () => void;
+  kpisTourTargetId?: string;
 }
 
 function SyntheseTab({
@@ -271,6 +328,7 @@ function SyntheseTab({
   isLoading,
   isRefreshing,
   onRefresh,
+  kpisTourTargetId,
 }: SyntheseProps) {
   return (
     <DisciplineSummaryOverview
@@ -280,6 +338,7 @@ function SyntheseTab({
       isRefreshing={isRefreshing}
       onRefresh={onRefresh}
       testID="synthese-tab"
+      kpisTourTargetId={kpisTourTargetId}
     />
   );
 }

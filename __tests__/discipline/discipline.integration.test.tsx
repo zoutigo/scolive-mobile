@@ -31,6 +31,15 @@ const api = disciplineApi as jest.Mocked<typeof disciplineApi>;
 const { useAuthStore } = jest.requireMock("../../src/store/auth.store") as {
   useAuthStore: jest.Mock;
 };
+// useAuthStore is fully mocked (not the real zustand store), so it must
+// apply the selector itself when one is passed — otherwise selector-based
+// callers (e.g. useOnboardingTourTrigger's `(state) => state.user`) get the
+// whole mocked object back instead of just `.user`.
+function setAuthState(state: Record<string, unknown>) {
+  useAuthStore.mockImplementation((selector?: (s: unknown) => unknown) =>
+    selector ? selector(state) : state,
+  );
+}
 
 let mockRouteParams: Record<string, string> = {
   studentId: "student-1",
@@ -43,6 +52,12 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ back: jest.fn(), push: jest.fn() }),
   useLocalSearchParams: () => mockRouteParams,
   usePathname: () => "/(home)/discipline-student/[studentId]",
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 
 beforeEach(() => {
@@ -77,7 +92,7 @@ beforeEach(() => {
     }),
   );
   api.remove.mockResolvedValue(undefined as never);
-  useAuthStore.mockReturnValue({
+  setAuthState({
     schoolSlug: "college-vogt",
     user: makeUser({
       id: "admin-1",
@@ -359,7 +374,7 @@ describe("DisciplineStudentScreen", () => {
 
 describe("VieScolaireScreen", () => {
   it("charge la vue parent lecture seule dans le store et affiche la bannière d'absence non justifiée", async () => {
-    useAuthStore.mockReturnValue({
+    setAuthState({
       schoolSlug: "college-vogt",
       user: makeUser(),
     });
@@ -382,7 +397,7 @@ describe("VieScolaireScreen", () => {
   });
 
   it("n'affiche pas de FAB sur la vue parent (lecture seule)", async () => {
-    useAuthStore.mockReturnValue({
+    setAuthState({
       schoolSlug: "college-vogt",
       user: makeUser(),
     });

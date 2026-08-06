@@ -44,6 +44,7 @@ function VieScolaireChildScreen() {
       studentLabel={studentLabel}
       onBack={() => router.push(buildChildHomeTarget(childId) as never)}
       onClassLabelResolved={handleClassLabelResolved}
+      viewerRole="parent"
     />
   );
 }

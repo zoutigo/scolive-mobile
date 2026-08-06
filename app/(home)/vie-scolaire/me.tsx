@@ -39,6 +39,7 @@ function VieScolaireMeScreen() {
       studentId={studentId}
       studentLabel={`${firstName} ${lastName}`}
       onBack={() => router.push("/")}
+      viewerRole="student"
     />
   );
 }

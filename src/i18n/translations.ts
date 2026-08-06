@@ -211,6 +211,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.childTimetable.step4Title": "Une aide toujours disponible",
     "onboardingTour.childTimetable.step4Body":
       "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel sur l'utilisation de cette page.",
+    "onboardingTour.vieScolaire.step1Title": "Trois onglets",
+    "onboardingTour.vieScolaire.step1Body":
+      "Touchez un onglet pour passer de la synthèse aux absences et retards, puis aux sanctions et punitions.",
+    "onboardingTour.vieScolaire.step2Title": "Filtrez par indicateur",
+    "onboardingTour.vieScolaire.step2Body":
+      "Touchez une carte (absences, retards, sanctions, punitions) pour filtrer la liste des événements récents sur ce type.",
+    "onboardingTour.vieScolaire.step3Title": "Une aide toujours disponible",
+    "onboardingTour.vieScolaire.step3Body":
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour retrouver ces explications.",
     "onboardingTour.homework.step1Title": "Deux façons de voir vos devoirs",
     "onboardingTour.homework.step1Body":
       "« Liste » affiche vos prochains devoirs les uns après les autres, « Agenda » les organise par semaine ou par mois.",
@@ -627,8 +636,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.delete.confirmAria": "Confirmer la suppression",
 
     "discipline.tabs.synthesis": "Synthèse",
-    "discipline.tabs.absencesRetards": "Absences & Retards",
-    "discipline.tabs.sanctionsPunitions": "Sanctions & Punitions",
+    "discipline.tabs.absencesRetards": "Absences",
+    "discipline.tabs.sanctionsPunitions": "Sanctions",
     "discipline.tabs.events": "Événements",
     "discipline.tabs.booklets": "Carnets",
     "discipline.tabs.history": "Historique",
@@ -677,6 +686,16 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.header.discipline": "Discipline",
     "discipline.header.vieScolaire": "Vie scolaire",
     "discipline.header.student": "Élève",
+
+    "discipline.vieScolaire.help.menuLabel": "Aide",
+    "discipline.vieScolaire.help.title": "Vie scolaire",
+    "discipline.vieScolaire.help.close": "Fermer",
+    "discipline.vieScolaire.help.section1Title": "Trois onglets",
+    "discipline.vieScolaire.help.section1Body":
+      "« Synthèse » résume vos absences, retards, sanctions et punitions de l'année. « Absences » liste vos absences et retards. « Sanctions » liste vos sanctions et punitions.",
+    "discipline.vieScolaire.help.section2Title": "Filtrer par indicateur",
+    "discipline.vieScolaire.help.section2Body":
+      "Dans l'onglet Synthèse, touchez une carte (absences, retards, sanctions, punitions) pour n'afficher que les événements de ce type. Touchez « Tout voir » pour revenir à la liste complète.",
 
     "discipline.fab.addEvent": "Ajouter un événement de discipline",
 
@@ -3572,6 +3591,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.childTimetable.step4Title": "Help is always available",
     "onboardingTour.childTimetable.step4Body":
       'Tap this button at any time, then "Help" in the menu, to see a reminder of how to use this page.',
+    "onboardingTour.vieScolaire.step1Title": "Three tabs",
+    "onboardingTour.vieScolaire.step1Body":
+      "Tap a tab to switch between the summary, absences and lateness, then sanctions and punishments.",
+    "onboardingTour.vieScolaire.step2Title": "Filter by indicator",
+    "onboardingTour.vieScolaire.step2Body":
+      "Tap a card (absences, lateness, sanctions, punishments) to filter the recent events list to that type.",
+    "onboardingTour.vieScolaire.step3Title": "Help is always available",
+    "onboardingTour.vieScolaire.step3Body":
+      'Tap this button at any time, then "Help" in the menu, to see these explanations again.',
     "onboardingTour.homework.step1Title": "Two ways to see your homework",
     "onboardingTour.homework.step1Body":
       '"List" shows your upcoming homework one after another, "Agenda" organizes them by week or month.',
@@ -3967,8 +3995,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.delete.confirmAria": "Confirm deletion",
 
     "discipline.tabs.synthesis": "Summary",
-    "discipline.tabs.absencesRetards": "Absences & Lateness",
-    "discipline.tabs.sanctionsPunitions": "Sanctions & Punishments",
+    "discipline.tabs.absencesRetards": "Absences",
+    "discipline.tabs.sanctionsPunitions": "Sanctions",
     "discipline.tabs.events": "Events",
     "discipline.tabs.booklets": "Records",
     "discipline.tabs.history": "History",
@@ -4012,6 +4040,16 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.header.discipline": "Discipline",
     "discipline.header.vieScolaire": "School life",
     "discipline.header.student": "Student",
+
+    "discipline.vieScolaire.help.menuLabel": "Help",
+    "discipline.vieScolaire.help.title": "School life",
+    "discipline.vieScolaire.help.close": "Close",
+    "discipline.vieScolaire.help.section1Title": "Three tabs",
+    "discipline.vieScolaire.help.section1Body":
+      '"Summary" gives an overview of your absences, lateness, sanctions and punishments for the year. "Absences" lists your absences and lateness. "Sanctions" lists your sanctions and punishments.',
+    "discipline.vieScolaire.help.section2Title": "Filter by indicator",
+    "discipline.vieScolaire.help.section2Body":
+      'In the Summary tab, tap a card (absences, lateness, sanctions, punishments) to only show events of that type. Tap "Show all" to go back to the full list.',
 
     "discipline.fab.addEvent": "Add a discipline event",
 

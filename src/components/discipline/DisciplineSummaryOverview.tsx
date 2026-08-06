@@ -19,6 +19,7 @@ import {
 } from "../../types/discipline.types";
 import { DisciplineSummaryKpis } from "./DisciplineSummaryKpis";
 import { LifeEventCard } from "./LifeEventCard";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
 
 type Props = {
   summary: DisciplineSummary;
@@ -29,6 +30,8 @@ type Props = {
   emptyTitle?: string;
   emptySub?: string;
   testID?: string;
+  /** Onboarding tour target id wrapping the KPI cards, if it should be spotlighted. */
+  kpisTourTargetId?: string;
 };
 
 export function DisciplineSummaryOverview({
@@ -40,6 +43,7 @@ export function DisciplineSummaryOverview({
   emptyTitle,
   emptySub,
   testID = "discipline-summary-overview",
+  kpisTourTargetId,
 }: Props) {
   const { t } = useTranslation();
   const resolvedEmptyTitle = emptyTitle ?? t("discipline.summary.allGoodTitle");
@@ -92,10 +96,19 @@ export function DisciplineSummaryOverview({
         {t("discipline.summary.currentYear")}
       </Text>
 
-      <DisciplineSummaryKpis
-        summary={summary}
-        onFilterPress={handleFilterPress}
-      />
+      {kpisTourTargetId ? (
+        <OnboardingTarget id={kpisTourTargetId}>
+          <DisciplineSummaryKpis
+            summary={summary}
+            onFilterPress={handleFilterPress}
+          />
+        </OnboardingTarget>
+      ) : (
+        <DisciplineSummaryKpis
+          summary={summary}
+          onFilterPress={handleFilterPress}
+        />
+      )}
 
       {summary.unjustifiedAbsences > 0 ? (
         <View style={styles.alertBanner} testID="unjustified-banner">

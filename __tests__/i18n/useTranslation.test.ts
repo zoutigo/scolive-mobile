@@ -139,6 +139,29 @@ describe("onboardingTour.* translations", () => {
     }
   });
 
+  it("has the vie-scolaire tour steps and help modal content in both locales", () => {
+    const requiredKeys = [
+      "onboardingTour.vieScolaire.step1Title",
+      "onboardingTour.vieScolaire.step1Body",
+      "onboardingTour.vieScolaire.step2Title",
+      "onboardingTour.vieScolaire.step2Body",
+      "onboardingTour.vieScolaire.step3Title",
+      "onboardingTour.vieScolaire.step3Body",
+      "discipline.vieScolaire.help.menuLabel",
+      "discipline.vieScolaire.help.title",
+      "discipline.vieScolaire.help.close",
+      "discipline.vieScolaire.help.section1Title",
+      "discipline.vieScolaire.help.section1Body",
+      "discipline.vieScolaire.help.section2Title",
+      "discipline.vieScolaire.help.section2Body",
+    ];
+
+    for (const key of requiredKeys) {
+      expect(translations.fr[key]).toBeTruthy();
+      expect(translations.en[key]).toBeTruthy();
+    }
+  });
+
   it("has the parent-landing tour steps in both locales", () => {
     const requiredKeys = [
       "onboardingTour.parentLanding.step1Title",

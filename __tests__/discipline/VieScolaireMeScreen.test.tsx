@@ -26,11 +26,24 @@ jest.mock("../../src/api/discipline.api");
 jest.mock("../../src/api/badges.api");
 jest.mock("../../src/api/timetable.api");
 jest.mock("../../src/store/auth.store", () => ({
-  useAuthStore: jest.fn(() => ({ schoolSlug: "college-vogt" })),
+  // Applies the selector itself when one is passed — otherwise
+  // selector-based callers (e.g. useOnboardingTourTrigger's
+  // `(state) => state.user`) get the whole mocked object back instead of
+  // just `.user`.
+  useAuthStore: jest.fn((selector?: (s: unknown) => unknown) => {
+    const state = { schoolSlug: "college-vogt" };
+    return selector ? selector(state) : state;
+  }),
 }));
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
   usePathname: () => "/(home)/vie-scolaire/me",
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -112,5 +125,28 @@ describe("VieScolaireMeScreen (self, rôle élève)", () => {
 
     fireEvent.press(screen.getByTestId("btn-back"));
     expect(mockPush).toHaveBeenCalledWith("/");
+  });
+
+  it("ouvre et ferme la modale d'aide depuis le menu du header (vue élève)", async () => {
+    render(<VieScolaireMeScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("vie-scolaire-header")).toBeOnTheScreen();
+    });
+
+    // La modale n'est pas visible par défaut.
+    expect(screen.queryByTestId("vie-scolaire-help-modal-title")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("vie-scolaire-help-menu-item"));
+
+    expect(
+      screen.getByTestId("vie-scolaire-help-modal-title"),
+    ).toHaveTextContent("Vie scolaire");
+    expect(screen.getByText("Trois onglets")).toBeOnTheScreen();
+    expect(screen.getByText("Filtrer par indicateur")).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByTestId("vie-scolaire-help-modal-close"));
+    expect(screen.queryByTestId("vie-scolaire-help-modal-title")).toBeNull();
   });
 });
