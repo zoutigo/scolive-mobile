@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { InteractionManager } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useAuthStore } from "../store/auth.store";
 import {
@@ -30,11 +29,13 @@ export function useOnboardingTourTrigger(options: {
       if (isCompleted(role, tourId)) return;
       if (activeTourId) return;
 
-      const handle = InteractionManager.runAfterInteractions(() => {
+      // InteractionManager.runAfterInteractions is deprecated in favor of
+      // requestIdleCallback (React Native provides it as a global polyfill).
+      const handle = requestIdleCallback(() => {
         startTour(tourId, role, steps);
       });
 
-      return () => handle.cancel();
+      return () => cancelIdleCallback(handle);
     }, [user, role, tourId, steps, isCompleted, activeTourId, startTour]),
   );
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { InteractionManager, View, type ViewProps } from "react-native";
+import { View, type ViewProps } from "react-native";
 import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 
 const MEASURE_POLL_INTERVAL_MS = 150;
@@ -76,13 +76,15 @@ export function OnboardingTarget({
       });
     };
 
-    const interactionHandle = InteractionManager.runAfterInteractions(() => {
+    // InteractionManager.runAfterInteractions is deprecated in favor of
+    // requestIdleCallback (React Native provides it as a global polyfill).
+    const idleHandle = requestIdleCallback(() => {
       pollMeasure(0);
     });
 
     return () => {
       cancelled = true;
-      interactionHandle.cancel();
+      cancelIdleCallback(idleHandle);
       if (pollTimer) clearTimeout(pollTimer);
     };
   }, [isActiveTarget, setTargetLayout]);
