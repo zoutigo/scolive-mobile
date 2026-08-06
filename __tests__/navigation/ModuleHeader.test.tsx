@@ -317,6 +317,90 @@ describe("ModuleHeader — menu déroulant", () => {
   });
 });
 
+// ── Option d'aide dans le menu déroulant ────────────────────────────────────────
+
+describe("ModuleHeader — helpAction (menu déroulant)", () => {
+  it("n'affiche aucune option d'aide si helpAction est absent", async () => {
+    render(<ModuleHeader title="Test" onBack={jest.fn()} />);
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    await waitFor(() =>
+      expect(screen.getByText("Se déconnecter")).toBeTruthy(),
+    );
+    expect(screen.queryByTestId("module-header-help-action")).toBeNull();
+  });
+
+  it("affiche l'option d'aide sous Déconnexion quand helpAction est fourni", async () => {
+    render(
+      <ModuleHeader
+        title="Test"
+        onBack={jest.fn()}
+        helpAction={{ label: "Aide", onPress: jest.fn() }}
+      />,
+    );
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    await waitFor(() =>
+      expect(screen.getByTestId("module-header-help-action")).toBeTruthy(),
+    );
+    expect(screen.getByText("Aide")).toBeTruthy();
+  });
+
+  it("utilise le testID personnalisé", async () => {
+    render(
+      <ModuleHeader
+        title="Test"
+        onBack={jest.fn()}
+        helpAction={{
+          label: "Aide",
+          onPress: jest.fn(),
+          testID: "child-timetable-help-menu-item",
+        }}
+      />,
+    );
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    await waitFor(() =>
+      expect(screen.getByTestId("child-timetable-help-menu-item")).toBeTruthy(),
+    );
+  });
+
+  it("appelle onPress et ferme le menu au tap sur l'option d'aide", async () => {
+    const onPress = jest.fn();
+    render(
+      <ModuleHeader
+        title="Test"
+        onBack={jest.fn()}
+        helpAction={{ label: "Aide", onPress, testID: "help-menu-item" }}
+      />,
+    );
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    await waitFor(() =>
+      expect(screen.getByTestId("help-menu-item")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("help-menu-item"));
+    expect(onPress).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(screen.queryByTestId("help-menu-item")).toBeNull(),
+    );
+  });
+
+  it("reste pressable quand le bouton kebab est enveloppé pour un tour guidé (menuTourTargetId)", async () => {
+    const onPress = jest.fn();
+    render(
+      <ModuleHeader
+        title="Test"
+        onBack={jest.fn()}
+        helpAction={{ label: "Aide", onPress, testID: "help-menu-item" }}
+        menuTourTargetId="child-timetable-tour-help-toggle"
+      />,
+    );
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    await waitFor(() =>
+      expect(screen.getByTestId("help-menu-item")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("help-menu-item"));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+});
+
 // ── Bouton d'action secondaire (ex. recherche) ─────────────────────────────────
 
 describe("ModuleHeader — secondaryAction", () => {

@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -10,11 +11,20 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
 
+/** A titled sub-chapter within the modal body — see `sections` below. */
+export type PageHelpSection = {
+  title: string;
+  body: string[];
+};
+
 export type PageHelpModalProps = {
   visible: boolean;
   onClose: () => void;
   title: string;
-  body: string[];
+  /** Flat paragraphs, no sub-chapters. Ignored when `sections` is provided. */
+  body?: string[];
+  /** Paragraphs grouped under titled sub-chapters, for longer help content. */
+  sections?: PageHelpSection[];
   closeLabel: string;
   testID?: string;
 };
@@ -24,6 +34,7 @@ export function PageHelpModal({
   onClose,
   title,
   body,
+  sections,
   closeLabel,
   testID = "page-help-modal",
 }: PageHelpModalProps) {
@@ -39,7 +50,7 @@ export function PageHelpModal({
         <View style={styles.backdrop}>
           <TouchableWithoutFeedback>
             <View style={styles.card}>
-              <View style={styles.headerRow}>
+              <View style={styles.headerBand}>
                 <View style={styles.iconWrap}>
                   <Ionicons
                     name="help-circle"
@@ -51,20 +62,45 @@ export function PageHelpModal({
                   {title}
                 </Text>
               </View>
-              <View style={styles.content} testID={`${testID}-body`}>
-                {body.map((paragraph, index) => (
-                  <Text key={index} style={styles.bodyParagraph}>
-                    {paragraph}
-                  </Text>
-                ))}
+              <View style={styles.cardBody}>
+                <ScrollView
+                  style={styles.contentScroll}
+                  testID={`${testID}-body`}
+                >
+                  {sections
+                    ? sections.map((section, sectionIndex) => (
+                        <View
+                          key={sectionIndex}
+                          style={styles.section}
+                          testID={`${testID}-section-${sectionIndex}`}
+                        >
+                          <View style={styles.sectionTitleRow}>
+                            <View style={styles.sectionTitleBar} />
+                            <Text style={styles.sectionTitle}>
+                              {section.title}
+                            </Text>
+                          </View>
+                          {section.body.map((paragraph, index) => (
+                            <Text key={index} style={styles.bodyParagraph}>
+                              {paragraph}
+                            </Text>
+                          ))}
+                        </View>
+                      ))
+                    : (body ?? []).map((paragraph, index) => (
+                        <Text key={index} style={styles.bodyParagraph}>
+                          {paragraph}
+                        </Text>
+                      ))}
+                </ScrollView>
+                <TouchableOpacity
+                  style={styles.closeBtn}
+                  onPress={onClose}
+                  testID={`${testID}-close`}
+                >
+                  <Text style={styles.closeLabel}>{closeLabel}</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                style={styles.closeBtn}
-                onPress={onClose}
-                testID={`${testID}-close`}
-              >
-                <Text style={styles.closeLabel}>{closeLabel}</Text>
-              </TouchableOpacity>
             </View>
           </TouchableWithoutFeedback>
         </View>
@@ -84,24 +120,28 @@ const styles = StyleSheet.create({
   card: {
     width: "100%",
     maxWidth: 420,
-    backgroundColor: colors.surface,
+    maxHeight: "80%",
+    backgroundColor: "#EAF6F4",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.warmBorder,
-    paddingHorizontal: 20,
-    paddingVertical: 22,
-    gap: 14,
+    borderColor: "#BFE3DE",
+    overflow: "hidden",
   },
-  headerRow: {
+  headerBand: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: "#D5EEEA",
+    borderBottomWidth: 1,
+    borderBottomColor: "#BFE3DE",
   },
   iconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: `${colors.accentTeal}1F`,
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    backgroundColor: colors.white,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -109,22 +149,51 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 17,
     fontWeight: "800",
-    color: colors.textPrimary,
+    color: colors.accentTealDark,
   },
-  content: {
+  cardBody: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
+    gap: 14,
+  },
+  contentScroll: {
+    flexGrow: 0,
+  },
+  section: {
+    gap: 6,
+    marginBottom: 16,
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
+  },
+  sectionTitleBar: {
+    width: 3,
+    height: 14,
+    borderRadius: 2,
+    backgroundColor: colors.accentTeal,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: colors.accentTealDark,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
   },
   bodyParagraph: {
     fontSize: 14,
     lineHeight: 20,
-    color: colors.textSecondary,
+    color: colors.textPrimary,
     textAlign: "justify",
+    marginBottom: 8,
   },
   closeBtn: {
     marginTop: 4,
     alignSelf: "stretch",
     borderRadius: 8,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accentTeal,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,

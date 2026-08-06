@@ -45,6 +45,14 @@ interface ModuleHeaderProps {
   secondaryAction?: ModuleHeaderSecondaryAction;
   /** Onboarding tour target id wrapping `secondaryAction`, if it should be spotlighted. */
   secondaryActionTourTargetId?: string;
+  /** Extra entry rendered in the kebab dropdown menu, below "Déconnexion". */
+  helpAction?: {
+    label: string;
+    onPress: () => void;
+    testID?: string;
+  };
+  /** Onboarding tour target id wrapping the kebab (`...`) button itself, if it should be spotlighted. */
+  menuTourTargetId?: string;
 }
 
 export function ModuleHeader({
@@ -61,6 +69,8 @@ export function ModuleHeader({
   titleUppercase = true,
   secondaryAction,
   secondaryActionTourTargetId,
+  helpAction,
+  menuTourTargetId,
 }: ModuleHeaderProps) {
   const { translateY } = useHeaderScroll();
   const { logout } = useAuthStore();
@@ -155,16 +165,31 @@ export function ModuleHeader({
               })()
             : null}
 
-          <TouchableOpacity
-            onPress={() => setMenuOpen(true)}
-            style={styles.kebabBtn}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            accessibilityLabel="Menu"
-            accessibilityRole="button"
-            testID="module-header-menu"
-          >
-            <Ionicons name="ellipsis-vertical" size={20} color={colors.white} />
-          </TouchableOpacity>
+          {(() => {
+            const menuButton = (
+              <TouchableOpacity
+                onPress={() => setMenuOpen(true)}
+                style={styles.kebabBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel="Menu"
+                accessibilityRole="button"
+                testID="module-header-menu"
+              >
+                <Ionicons
+                  name="ellipsis-vertical"
+                  size={20}
+                  color={colors.white}
+                />
+              </TouchableOpacity>
+            );
+            return menuTourTargetId ? (
+              <OnboardingTarget id={menuTourTargetId}>
+                {menuButton}
+              </OnboardingTarget>
+            ) : (
+              menuButton
+            );
+          })()}
         </View>
       </Animated.View>
 
@@ -195,6 +220,23 @@ export function ModuleHeader({
                     {t("header.home.logoutAction")}
                   </Text>
                 </TouchableOpacity>
+                {helpAction ? (
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      setMenuOpen(false);
+                      helpAction.onPress();
+                    }}
+                    testID={helpAction.testID ?? "module-header-help-action"}
+                  >
+                    <Ionicons
+                      name="help-circle-outline"
+                      size={18}
+                      color={colors.accentTealDark}
+                    />
+                    <Text style={styles.menuItemHelp}>{helpAction.label}</Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
             </TouchableWithoutFeedback>
           </View>
@@ -329,5 +371,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: colors.notification,
+  },
+  menuItemHelp: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.accentTealDark,
   },
 });

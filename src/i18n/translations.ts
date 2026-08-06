@@ -210,7 +210,7 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Chaque carte affiche l'horaire, la matière, l'enseignant et la salle du cours.",
     "onboardingTour.childTimetable.step4Title": "Une aide toujours disponible",
     "onboardingTour.childTimetable.step4Body":
-      "Touchez ce bouton à tout moment pour afficher un rappel sur l'utilisation de cette page.",
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel sur l'utilisation de cette page.",
     "onboardingTour.parentLanding.step1Title": "Votre menu de navigation",
     "onboardingTour.parentLanding.step1Body":
       "Touchez cette icône pour ouvrir le menu et accéder à toutes les rubriques de l'école.",
@@ -1113,14 +1113,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.childAgenda.detail.time": "Horaire :",
     "timetable.childAgenda.detail.teacher": "Enseignant :",
     "timetable.childAgenda.detail.room": "Salle :",
-    "timetable.childAgenda.help.toggleOpen": "Besoin d'aide sur cette page ?",
-    "timetable.childAgenda.help.toggleClose": "Masquer l'aide",
+    "timetable.childAgenda.help.menuLabel": "Aide",
     "timetable.childAgenda.help.title": "Comment utiliser cette page",
-    "timetable.childAgenda.help.body1":
+    "timetable.childAgenda.help.close": "J'ai compris",
+    "timetable.childAgenda.help.section1Title": "Changer de vue",
+    "timetable.childAgenda.help.section1Body":
       "Basculez entre Jour, Semaine et Mois pour changer la façon d'afficher l'emploi du temps de votre enfant.",
-    "timetable.childAgenda.help.body2":
+    "timetable.childAgenda.help.section2Title": "Naviguer dans le temps",
+    "timetable.childAgenda.help.section2Body":
       "Utilisez les flèches ou touchez le libellé de la période pour naviguer dans le temps : avancez de plusieurs mois pour retrouver un créneau précis, ou revenez à « aujourd'hui » pour consulter l'agenda du jour ou de demain.",
-    "timetable.childAgenda.help.body3":
+    "timetable.childAgenda.help.section3Title":
+      "Consulter le détail d'un cours",
+    "timetable.childAgenda.help.section3Body":
       "Touchez une carte de cours pour voir en un coup d'œil son horaire, l'enseignant et la salle.",
 
     "timetable.classesScreen.headerTitle": "Mes classes",
@@ -3538,7 +3542,7 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Each card shows the time, subject, teacher and room for the course.",
     "onboardingTour.childTimetable.step4Title": "Help is always available",
     "onboardingTour.childTimetable.step4Body":
-      "Tap this button anytime for a reminder on how to use this page.",
+      'Tap this button at any time, then "Help" in the menu, to see a reminder of how to use this page.',
     "onboardingTour.parentLanding.step1Title": "Your navigation menu",
     "onboardingTour.parentLanding.step1Body":
       "Tap this icon to open the menu and reach every section of the school.",
@@ -4401,14 +4405,17 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.childAgenda.detail.time": "Time:",
     "timetable.childAgenda.detail.teacher": "Teacher:",
     "timetable.childAgenda.detail.room": "Room:",
-    "timetable.childAgenda.help.toggleOpen": "Need help with this page?",
-    "timetable.childAgenda.help.toggleClose": "Hide help",
+    "timetable.childAgenda.help.menuLabel": "Help",
     "timetable.childAgenda.help.title": "How to use this page",
-    "timetable.childAgenda.help.body1":
+    "timetable.childAgenda.help.close": "Got it",
+    "timetable.childAgenda.help.section1Title": "Switch views",
+    "timetable.childAgenda.help.section1Body":
       "Switch between Day, Week and Month to change how your child's timetable is displayed.",
-    "timetable.childAgenda.help.body2":
+    "timetable.childAgenda.help.section2Title": "Navigate through time",
+    "timetable.childAgenda.help.section2Body":
       "Use the arrows or tap the period label to move through time: jump several months ahead to find a specific slot, or return to \"today\" for today's or tomorrow's agenda.",
-    "timetable.childAgenda.help.body3":
+    "timetable.childAgenda.help.section3Title": "Check a course's details",
+    "timetable.childAgenda.help.section3Body":
       "Tap a course card to see its time, teacher and room at a glance.",
 
     "timetable.classesScreen.headerTitle": "My classes",

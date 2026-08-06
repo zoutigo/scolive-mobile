@@ -20,7 +20,7 @@ import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { useTimetableStore } from "../../store/timetable.store";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
-import { PageHelpBlock } from "../help/PageHelpBlock";
+import { PageHelpModal } from "../help/PageHelpModal";
 import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
 import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import {
@@ -216,6 +216,7 @@ export function StudentTimetableScreen() {
   const [selectedMonthDate, setSelectedMonthDate] = useState<Date | null>(
     today,
   );
+  const [helpVisible, setHelpVisible] = useState(false);
 
   const range = useMemo(
     () => buildTimetableRangeForView(viewMode, cursorDate),
@@ -439,6 +440,17 @@ export function StudentTimetableScreen() {
         titleTestID="child-timetable-header-title"
         subtitleTestID="child-timetable-header-subtitle"
         topInset={insets.top}
+        helpAction={{
+          label: t("timetable.childAgenda.help.menuLabel"),
+          onPress: () => {
+            setHelpVisible(true);
+            advanceOnboardingTourTarget(
+              CHILD_TIMETABLE_TOUR_TARGETS.helpToggle,
+            );
+          },
+          testID: "child-timetable-help-menu-item",
+        }}
+        menuTourTargetId={CHILD_TIMETABLE_TOUR_TARGETS.helpToggle}
       />
 
       <ScrollView
@@ -620,21 +632,29 @@ export function StudentTimetableScreen() {
             />
           </View>
         )}
-
-        <OnboardingTarget id={CHILD_TIMETABLE_TOUR_TARGETS.helpBlock}>
-          <PageHelpBlock
-            title={t("timetable.childAgenda.help.title")}
-            body={[
-              t("timetable.childAgenda.help.body1"),
-              t("timetable.childAgenda.help.body2"),
-              t("timetable.childAgenda.help.body3"),
-            ]}
-            toggleOpenLabel={t("timetable.childAgenda.help.toggleOpen")}
-            toggleCloseLabel={t("timetable.childAgenda.help.toggleClose")}
-            testID="child-timetable-help-block"
-          />
-        </OnboardingTarget>
       </ScrollView>
+
+      <PageHelpModal
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        title={t("timetable.childAgenda.help.title")}
+        sections={[
+          {
+            title: t("timetable.childAgenda.help.section1Title"),
+            body: [t("timetable.childAgenda.help.section1Body")],
+          },
+          {
+            title: t("timetable.childAgenda.help.section2Title"),
+            body: [t("timetable.childAgenda.help.section2Body")],
+          },
+          {
+            title: t("timetable.childAgenda.help.section3Title"),
+            body: [t("timetable.childAgenda.help.section3Body")],
+          },
+        ]}
+        closeLabel={t("timetable.childAgenda.help.close")}
+        testID="child-timetable-help-modal"
+      />
     </KeyboardAvoidingView>
   );
 }

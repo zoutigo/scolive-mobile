@@ -419,39 +419,48 @@ describe("StudentTimetableScreen", () => {
   });
 });
 
-describe("StudentTimetableScreen — bloc d'aide", () => {
-  it("affiche le bloc d'aide replié par défaut, quelle que soit la vue", () => {
+describe("StudentTimetableScreen — modale d'aide (menu ...)", () => {
+  function openHelpFromMenu() {
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("child-timetable-help-menu-item"));
+  }
+
+  it("n'affiche pas la modale d'aide par défaut", () => {
     render(<StudentTimetableScreen />);
 
-    expect(screen.getByTestId("child-timetable-help-block")).toBeTruthy();
-    expect(
-      screen.queryByTestId("child-timetable-help-block-content"),
-    ).toBeNull();
-    expect(
-      screen.getByTestId("child-timetable-help-block-toggle"),
-    ).toHaveTextContent("Besoin d'aide sur cette page ?");
+    expect(screen.queryByTestId("child-timetable-help-modal-title")).toBeNull();
   });
 
-  it("affiche le contenu d'aide au tap sur le toggle", () => {
+  it("ouvre la modale d'aide via « Aide » dans le menu ..., avec ses sous-chapitres", () => {
     render(<StudentTimetableScreen />);
 
-    fireEvent.press(screen.getByTestId("child-timetable-help-block-toggle"));
+    openHelpFromMenu();
 
     expect(
-      screen.getByTestId("child-timetable-help-block-content"),
-    ).toBeTruthy();
-    expect(screen.getByText("Comment utiliser cette page")).toBeTruthy();
+      screen.getByTestId("child-timetable-help-modal-title"),
+    ).toHaveTextContent("Comment utiliser cette page");
+    expect(screen.getByText("Changer de vue")).toBeTruthy();
+    expect(screen.getByText("Naviguer dans le temps")).toBeTruthy();
+    expect(screen.getByText("Consulter le détail d'un cours")).toBeTruthy();
   });
 
-  it("reste visible et fonctionnel après un changement de vue (semaine/mois)", () => {
+  it("ferme la modale d'aide au tap sur le bouton de fermeture", () => {
+    render(<StudentTimetableScreen />);
+
+    openHelpFromMenu();
+    expect(screen.getByTestId("child-timetable-help-modal-title")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("child-timetable-help-modal-close"));
+    expect(screen.queryByTestId("child-timetable-help-modal-title")).toBeNull();
+  });
+
+  it("reste accessible après un changement de vue (semaine/mois)", () => {
     render(<StudentTimetableScreen />);
     fireEvent.press(screen.getByTestId("child-timetable-mode-month"));
 
-    fireEvent.press(screen.getByTestId("child-timetable-help-block-toggle"));
+    openHelpFromMenu();
 
-    expect(
-      screen.getByTestId("child-timetable-help-block-content"),
-    ).toBeTruthy();
+    expect(screen.getByTestId("child-timetable-help-modal-title")).toBeTruthy();
   });
 });
 
