@@ -15,6 +15,12 @@ const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: mockBack, push: mockPush }),
   useLocalSearchParams: () => ({ childId: "child-1" }),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -163,6 +169,24 @@ describe("StudentNotesScreen", () => {
       pathname: "/(home)/children/[childId]",
       params: { childId: "child-1" },
     });
+  });
+
+  it("ouvre et ferme la modale d'aide depuis le menu du header", () => {
+    render(<StudentNotesScreen />);
+
+    expect(screen.queryByTestId("child-notes-help-modal-title")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("child-notes-help-menu-item"));
+
+    expect(
+      screen.getByTestId("child-notes-help-modal-title"),
+    ).toHaveTextContent("Notes");
+    expect(screen.getByText("Deux onglets")).toBeOnTheScreen();
+    expect(screen.getByText("Filtrer les résultats")).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByTestId("child-notes-help-modal-close"));
+    expect(screen.queryByTestId("child-notes-help-modal-title")).toBeNull();
   });
 
   it("change de trimestre via le panneau de filtres", () => {

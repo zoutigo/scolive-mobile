@@ -24,6 +24,12 @@ const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: jest.fn(), push: mockPush }),
   useLocalSearchParams: () => ({}),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -85,5 +91,16 @@ describe("StudentNotesScreen — mode self (élève)", () => {
 
     fireEvent.press(screen.getByTestId("child-notes-back"));
     expect(mockPush).toHaveBeenCalledWith("/");
+  });
+
+  it("n'affiche pas l'entrée d'aide « vue enfant » en mode self", async () => {
+    render(<StudentNotesScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("child-notes-header")).toBeOnTheScreen();
+    });
+
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    expect(screen.queryByTestId("child-notes-help-menu-item")).toBeNull();
   });
 });

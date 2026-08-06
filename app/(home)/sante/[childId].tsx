@@ -86,6 +86,7 @@ import {
 } from "../../../src/components/health/health-parent-tour.config";
 import { useOnboardingTourTrigger } from "../../../src/hooks/useOnboardingTourTrigger";
 import { OnboardingTarget } from "../../../src/components/onboarding/OnboardingTarget";
+import { PageHelpModal } from "../../../src/components/help/PageHelpModal";
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -150,6 +151,7 @@ function SanteScreenContent() {
   );
   const [isSavingForm, setIsSavingForm] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [helpVisible, setHelpVisible] = useState(false);
 
   useOnboardingTourTrigger({
     tourId: HEALTH_PARENT_TOUR_ID,
@@ -581,6 +583,12 @@ function SanteScreenContent() {
         testID="sante-header"
         backTestID="sante-back"
         topInset={insets.top}
+        helpAction={{
+          label: t("health.parent.help.menuLabel"),
+          onPress: () => setHelpVisible(true),
+          testID: "sante-help-menu-item",
+        }}
+        menuTourTargetId={HEALTH_PARENT_TOUR_TARGETS.helpToggle}
       />
 
       {tab === "conditions" || tab === "history" ? (
@@ -681,6 +689,28 @@ function SanteScreenContent() {
           />
         </OnboardingTarget>
       ) : null}
+
+      <PageHelpModal
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        title={t("health.parent.help.title")}
+        sections={[
+          {
+            title: t("health.parent.help.section1Title"),
+            body: [t("health.parent.help.section1Body")],
+          },
+          {
+            title: t("health.parent.help.section2Title"),
+            body: [t("health.parent.help.section2Body")],
+          },
+          {
+            title: t("health.parent.help.section3Title"),
+            body: [t("health.parent.help.section3Body")],
+          },
+        ]}
+        closeLabel={t("health.parent.help.close")}
+        testID="sante-help-modal"
+      />
     </View>
   );
 }

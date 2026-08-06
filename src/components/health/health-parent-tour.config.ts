@@ -6,6 +6,7 @@ export const HEALTH_PARENT_TOUR_TARGETS = {
   tabs: "health-parent-tour-tabs",
   search: "health-parent-tour-search",
   fab: "health-parent-tour-fab",
+  helpToggle: "health-parent-tour-help-toggle",
 } as const;
 
 export const HEALTH_PARENT_TOUR_STEPS: OnboardingTourStep[] = [
@@ -23,6 +24,11 @@ export const HEALTH_PARENT_TOUR_STEPS: OnboardingTourStep[] = [
     targetKey: HEALTH_PARENT_TOUR_TARGETS.fab,
     titleKey: "onboardingTour.healthParent.fabTitle",
     bodyKey: "onboardingTour.healthParent.fabBody",
+  },
+  {
+    targetKey: HEALTH_PARENT_TOUR_TARGETS.helpToggle,
+    titleKey: "onboardingTour.healthParent.helpToggleTitle",
+    bodyKey: "onboardingTour.healthParent.helpToggleBody",
     finishLabelKey: "onboardingTour.common.gotIt",
   },
 ];

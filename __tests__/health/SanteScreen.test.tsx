@@ -487,3 +487,31 @@ describe("SanteScreen (vue parent) — onglet Historique", () => {
     });
   });
 });
+
+describe("SanteScreen (vue parent) — aide", () => {
+  it("ouvre et ferme la modale d'aide depuis le menu du header", async () => {
+    render(<SanteScreenRoute />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("sante-header")).toBeOnTheScreen();
+    });
+
+    expect(screen.queryByTestId("sante-help-modal-title")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("sante-help-menu-item"));
+
+    expect(screen.getByTestId("sante-help-modal-title")).toHaveTextContent(
+      "Santé",
+    );
+    expect(
+      screen.getByText(/allergies, pathologies et consignes durables/),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText(/soins reçus à l'école et les événements/),
+    ).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByTestId("sante-help-modal-close"));
+    expect(screen.queryByTestId("sante-help-modal-title")).toBeNull();
+  });
+});

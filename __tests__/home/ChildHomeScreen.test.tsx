@@ -33,6 +33,12 @@ const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
   useLocalSearchParams: () => ({ childId: "child-1" }),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -736,6 +742,29 @@ describe("ChildHomeScreen — navigation", () => {
     );
     fireEvent.press(screen.getByTestId("child-home-back"));
     expect(mockPush).toHaveBeenCalledWith("/");
+  });
+});
+
+// ── Aide ──────────────────────────────────────────────────────────────────────
+
+describe("ChildHomeScreen — aide", () => {
+  it("ouvre et ferme la modale d'aide depuis le menu du header", async () => {
+    render(<ChildHomeScreen />);
+    await waitForContent();
+
+    expect(screen.queryByTestId("child-home-help-modal-title")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("child-home-help-menu-item"));
+
+    expect(screen.getByTestId("child-home-help-modal-title")).toHaveTextContent(
+      "Accueil enfant",
+    );
+    expect(screen.getByText("Trois indicateurs")).toBeOnTheScreen();
+    expect(screen.getByText("Des blocs résumés")).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByTestId("child-home-help-modal-close"));
+    expect(screen.queryByTestId("child-home-help-modal-title")).toBeNull();
   });
 });
 

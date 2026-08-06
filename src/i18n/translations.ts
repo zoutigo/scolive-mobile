@@ -2518,6 +2518,27 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "notes.child.title": "Évaluations et moyennes",
     "notes.child.subtitle.student": "Élève",
+    "notes.child.help.menuLabel": "Aide",
+    "notes.child.help.title": "Notes",
+    "notes.child.help.close": "Fermer",
+    "notes.child.help.section1Title": "Deux onglets",
+    "notes.child.help.section1Body":
+      "L'onglet Notes affiche les évaluations et moyennes du trimestre en cours. L'onglet Bulletins affiche les bulletins publiés, trimestre par trimestre, avec l'appréciation de chaque matière.",
+    "notes.child.help.section2Title": "Filtrer les résultats",
+    "notes.child.help.section2Body":
+      "Le bouton filtre change le trimestre consulté, la vue (évaluations, moyennes ou graphiques) et, si plusieurs séquences existent, la séquence affichée.",
+    "notes.child.help.section3Title": "Trois façons de lire les résultats",
+    "notes.child.help.section3Body":
+      "La vue Évaluations liste chaque note obtenue. La vue Moyennes compare la moyenne de votre enfant à celle de la classe. La vue Graphiques affiche un comparatif et un radar par matière sur l'année. Touchez une évaluation ou une moyenne pour voir son détail.",
+    "onboardingTour.childNotes.tabsTitle": "Deux onglets",
+    "onboardingTour.childNotes.tabsBody":
+      "Notes affiche les évaluations et moyennes du trimestre en cours. Bulletins affiche les bulletins déjà publiés.",
+    "onboardingTour.childNotes.filtersTitle": "Filtrez la vue",
+    "onboardingTour.childNotes.filtersBody":
+      "Changez de trimestre, de vue (évaluations, moyennes, graphiques) ou de séquence depuis ce bouton.",
+    "onboardingTour.childNotes.helpToggleTitle": "Une aide toujours disponible",
+    "onboardingTour.childNotes.helpToggleBody":
+      "Touchez ce bouton, puis « Aide » dans le menu, pour retrouver à tout moment le fonctionnement de cet écran.",
     "notes.panel.notes": "Notes",
     "notes.panel.loading": "Chargement des notes publiées...",
     "notes.panel.emptyTitle": "Aucune note publiée",
@@ -2629,6 +2650,25 @@ export const translations: Record<Locale, Record<string, string>> = {
     "app.sessionExpired.message":
       "Votre session a expiré. Veuillez vous connecter à nouveau.",
     "app.sessionExpired.reconnect": "Se reconnecter",
+
+    "childHome.help.menuLabel": "Aide",
+    "childHome.help.title": "Accueil enfant",
+    "childHome.help.close": "Fermer",
+    "childHome.help.section1Title": "Trois indicateurs",
+    "childHome.help.section1Body":
+      "La moyenne générale, les devoirs non faits et les messages non lus sont résumés en un coup d'œil. Touchez une carte pour ouvrir directement le module correspondant.",
+    "childHome.help.section2Title": "Des blocs résumés",
+    "childHome.help.section2Body":
+      "Chaque bloc (dernières évaluations, fil d'actualité, messages non lus) affiche un aperçu. Touchez « Voir plus » en haut à droite du bloc pour ouvrir le module complet.",
+    "onboardingTour.childHome.kpisTitle": "Trois indicateurs",
+    "onboardingTour.childHome.kpisBody":
+      "Moyenne, devoirs non faits et messages non lus : touchez une carte pour ouvrir le module correspondant.",
+    "onboardingTour.childHome.sectionsTitle": "Des blocs résumés",
+    "onboardingTour.childHome.sectionsBody":
+      "Chaque bloc affiche un aperçu du module. Touchez « Voir plus » pour l'ouvrir en entier.",
+    "onboardingTour.childHome.helpToggleTitle": "Une aide toujours disponible",
+    "onboardingTour.childHome.helpToggleBody":
+      "Touchez ce bouton, puis « Aide » dans le menu, pour retrouver à tout moment le fonctionnement de cet écran.",
 
     // Home index — fallback
     "home.fallback.welcome": "Bienvenue, {firstName} {lastName}",
@@ -3190,6 +3230,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "rooms.detail.notFound": "Salle introuvable.",
 
     "health.title": "Santé",
+    "health.parent.help.menuLabel": "Aide",
+    "health.parent.help.title": "Santé",
+    "health.parent.help.close": "Fermer",
+    "health.parent.help.section1Title": "Conditions",
+    "health.parent.help.section1Body":
+      "L'onglet Conditions regroupe les allergies, pathologies et consignes durables de votre enfant, avec un niveau d'alerte (info, attention, urgence) visible d'un coup d'œil.",
+    "health.parent.help.section2Title": "Historique",
+    "health.parent.help.section2Body":
+      "L'onglet Historique fusionne les soins reçus à l'école et les événements que vous signalez vous-même, triés du plus récent au plus ancien.",
+    "health.parent.help.section3Title": "Signaler un événement",
+    "health.parent.help.section3Body":
+      "Le bouton + en bas de l'écran ajoute une condition de santé depuis l'onglet Conditions, ou signale un événement (maladie, accident...) depuis l'onglet Historique. L'enseignant référent est automatiquement informé pour un signalement.",
     "health.parent.tabs.conditions": "Conditions",
     "health.parent.tabs.history": "Historique",
     "health.parent.loading": "Chargement…",
@@ -3386,6 +3438,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.healthParent.fabTitle": "Ajouter une information",
     "onboardingTour.healthParent.fabBody":
       "Le bouton + ajoute une condition de santé (onglet Conditions) ou signale un événement hors école (onglet Historique). L'enseignant référent est automatiquement informé pour un signalement.",
+    "onboardingTour.healthParent.helpToggleTitle":
+      "Une aide toujours disponible",
+    "onboardingTour.healthParent.helpToggleBody":
+      "Touchez ce bouton, puis « Aide » dans le menu, pour retrouver à tout moment le fonctionnement de cet écran.",
     "onboardingTour.healthSchool.tabsTitle": "3 onglets pour s'y retrouver",
     "onboardingTour.healthSchool.tabsBody":
       "Synthèse regroupe les statistiques de l'école ou d'une classe. Cares liste les signalements des parents, du plus récent au plus ancien. Élèves permet de retrouver la fiche santé de chaque élève.",
@@ -5811,6 +5867,27 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "notes.child.title": "Evaluations and averages",
     "notes.child.subtitle.student": "Student",
+    "notes.child.help.menuLabel": "Help",
+    "notes.child.help.title": "Grades",
+    "notes.child.help.close": "Close",
+    "notes.child.help.section1Title": "Two tabs",
+    "notes.child.help.section1Body":
+      "The Grades tab shows the current term's evaluations and averages. The Reports tab shows published report cards, term by term, with each subject's appreciation.",
+    "notes.child.help.section2Title": "Filter the results",
+    "notes.child.help.section2Body":
+      "The filter button changes the term you're viewing, the view (evaluations, averages or charts) and, when several sequences exist, the displayed sequence.",
+    "notes.child.help.section3Title": "Three ways to read the results",
+    "notes.child.help.section3Body":
+      "The Evaluations view lists each grade received. The Averages view compares your child's average to the class average. The Charts view shows a year-long comparison and a per-subject radar. Tap an evaluation or an average to see its detail.",
+    "onboardingTour.childNotes.tabsTitle": "Two tabs",
+    "onboardingTour.childNotes.tabsBody":
+      "Grades shows the current term's evaluations and averages. Reports shows already published report cards.",
+    "onboardingTour.childNotes.filtersTitle": "Filter the view",
+    "onboardingTour.childNotes.filtersBody":
+      "Change the term, the view (evaluations, averages, charts) or the sequence from this button.",
+    "onboardingTour.childNotes.helpToggleTitle": "Help is always available",
+    "onboardingTour.childNotes.helpToggleBody":
+      'Tap this button, then "Help" in the menu, to find how this screen works at any time.',
     "notes.panel.notes": "Notes",
     "notes.panel.loading": "Loading published grades...",
     "notes.panel.emptyTitle": "No published grade",
@@ -5920,6 +5997,25 @@ export const translations: Record<Locale, Record<string, string>> = {
     "app.sessionExpired.message":
       "Your session has expired. Please log in again.",
     "app.sessionExpired.reconnect": "Log in again",
+
+    "childHome.help.menuLabel": "Help",
+    "childHome.help.title": "Child home",
+    "childHome.help.close": "Close",
+    "childHome.help.section1Title": "Three indicators",
+    "childHome.help.section1Body":
+      "The overall average, undone homework and unread messages are summarized at a glance. Tap a card to open the matching module directly.",
+    "childHome.help.section2Title": "Summary blocks",
+    "childHome.help.section2Body":
+      'Each block (latest evaluations, news feed, unread messages) shows a preview. Tap "See more" at the top right of the block to open the full module.',
+    "onboardingTour.childHome.kpisTitle": "Three indicators",
+    "onboardingTour.childHome.kpisBody":
+      "Average, undone homework and unread messages: tap a card to open the matching module.",
+    "onboardingTour.childHome.sectionsTitle": "Summary blocks",
+    "onboardingTour.childHome.sectionsBody":
+      'Each block shows a preview of the module. Tap "See more" to open it fully.',
+    "onboardingTour.childHome.helpToggleTitle": "Help is always available",
+    "onboardingTour.childHome.helpToggleBody":
+      'Tap this button, then "Help" in the menu, to find how this screen works at any time.',
 
     // Home index — fallback
     "home.fallback.welcome": "Welcome, {firstName} {lastName}",
@@ -6469,6 +6565,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "rooms.detail.notFound": "Room not found.",
 
     "health.title": "Health",
+    "health.parent.help.menuLabel": "Help",
+    "health.parent.help.title": "Health",
+    "health.parent.help.close": "Close",
+    "health.parent.help.section1Title": "Conditions",
+    "health.parent.help.section1Body":
+      "The Conditions tab groups your child's allergies, pathologies and long-standing instructions, with an alert level (info, warning, emergency) visible at a glance.",
+    "health.parent.help.section2Title": "History",
+    "health.parent.help.section2Body":
+      "The History tab merges care received at school and events you report yourself, sorted from most recent to oldest.",
+    "health.parent.help.section3Title": "Report an event",
+    "health.parent.help.section3Body":
+      "The + button at the bottom of the screen adds a health condition from the Conditions tab, or reports an event (illness, accident...) from the History tab. The referent teacher is automatically notified for a report.",
     "health.parent.tabs.conditions": "Conditions",
     "health.parent.tabs.history": "History",
     "health.parent.loading": "Loading…",
@@ -6658,6 +6766,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.healthParent.fabTitle": "Add information",
     "onboardingTour.healthParent.fabBody":
       "The + button adds a health condition (Conditions tab) or reports an event outside school (History tab). The referent teacher is automatically notified for a report.",
+    "onboardingTour.healthParent.helpToggleTitle": "Help is always available",
+    "onboardingTour.healthParent.helpToggleBody":
+      'Tap this button, then "Help" in the menu, to find how this screen works at any time.',
     "onboardingTour.healthSchool.tabsTitle": "3 tabs to find things easily",
     "onboardingTour.healthSchool.tabsBody":
       "Summary groups the school's or a class's statistics. Cares lists parent reports, from most recent to oldest. Students lets you find each student's health profile.",

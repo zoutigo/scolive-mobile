@@ -48,6 +48,14 @@ import {
   SectionCard,
 } from "../timetable/TimetableCommon";
 import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { PageHelpModal } from "../help/PageHelpModal";
+import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import {
+  CHILD_NOTES_TOUR_ID,
+  CHILD_NOTES_TOUR_STEPS,
+  CHILD_NOTES_TOUR_TARGETS,
+} from "./child-notes-tour.config";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -59,6 +67,17 @@ type DetailState =
     }
   | { type: "average"; subject: StudentSubjectNotes }
   | null;
+
+function OnboardingTargetOrView({
+  id,
+  children,
+}: {
+  id?: string;
+  children: React.ReactNode;
+}) {
+  if (!id) return <>{children}</>;
+  return <OnboardingTarget id={id}>{children}</OnboardingTarget>;
+}
 
 function buildViewOptions(
   t: TranslateFn,
@@ -84,6 +103,8 @@ export type StudentNotesPanelProps = {
   sequence?: StudentNotesSequence | null;
   onSequenceChange?: (sequence: StudentNotesSequence | null) => void;
   hideSwitcher?: boolean;
+  /** Onboarding tour target id wrapping the filter toggle button, if it should be spotlighted. */
+  filterTourTargetId?: string;
 };
 
 // ─── StudentNotesPanel ───────────────────────────────────────────────────────
@@ -100,6 +121,7 @@ export function StudentNotesPanel({
   sequence,
   onSequenceChange,
   hideSwitcher = false,
+  filterTourTargetId,
 }: StudentNotesPanelProps) {
   const { t } = useTranslation();
   const {
@@ -288,25 +310,27 @@ export function StudentNotesPanel({
                   {summaryText}
                 </Text>
               </View>
-              <TouchableOpacity
-                style={[
-                  styles.filterToggle,
-                  hasNonDefaultFilters && styles.filterToggleActive,
-                ]}
-                onPress={toggleFilters}
-                testID="child-notes-filter-toggle"
-                accessibilityLabel={t(
-                  "notes.panel.filters.toggleAccessibilityLabel",
-                )}
-              >
-                <Ionicons
-                  name={hasNonDefaultFilters ? "filter" : "filter-outline"}
-                  size={18}
-                  color={
-                    hasNonDefaultFilters ? colors.white : colors.accentTeal
-                  }
-                />
-              </TouchableOpacity>
+              <OnboardingTargetOrView id={filterTourTargetId}>
+                <TouchableOpacity
+                  style={[
+                    styles.filterToggle,
+                    hasNonDefaultFilters && styles.filterToggleActive,
+                  ]}
+                  onPress={toggleFilters}
+                  testID="child-notes-filter-toggle"
+                  accessibilityLabel={t(
+                    "notes.panel.filters.toggleAccessibilityLabel",
+                  )}
+                >
+                  <Ionicons
+                    name={hasNonDefaultFilters ? "filter" : "filter-outline"}
+                    size={18}
+                    color={
+                      hasNonDefaultFilters ? colors.white : colors.accentTeal
+                    }
+                  />
+                </TouchableOpacity>
+              </OnboardingTargetOrView>
             </View>
 
             {filtersOpen ? (
@@ -506,7 +530,14 @@ export function StudentNotesScreen() {
   const { children, setActiveChild, updateChild } = useFamilyStore();
   const { studentNotes } = useNotesStore();
   const [childTab, setChildTab] = useState<ChildNotesTabKey>("notes");
+  const [helpVisible, setHelpVisible] = useState(false);
   const selfContext = useSelfStudentContext(isSelf);
+
+  useOnboardingTourTrigger({
+    tourId: CHILD_NOTES_TOUR_ID,
+    role: "parent",
+    steps: CHILD_NOTES_TOUR_STEPS,
+  });
 
   const childId = isSelf ? (selfContext.studentId ?? "") : routeChildId;
 
@@ -556,50 +587,69 @@ export function StudentNotesScreen() {
         titleTestID="child-notes-header-title"
         subtitleTestID="child-notes-header-subtitle"
         topInset={insets.top}
+        helpAction={
+          !isSelf
+            ? {
+                label: t("notes.child.help.menuLabel"),
+                onPress: () => setHelpVisible(true),
+                testID: "child-notes-help-menu-item",
+              }
+            : undefined
+        }
+        menuTourTargetId={
+          !isSelf ? CHILD_NOTES_TOUR_TARGETS.helpToggle : undefined
+        }
       />
 
-      <View style={styles.childTabsBar} testID="child-notes-tabs">
-        <TouchableOpacity
-          style={[
-            styles.childTabButton,
-            childTab === "notes" && styles.childTabButtonActive,
-          ]}
-          onPress={() => setChildTab("notes")}
-          testID="child-notes-tab-notes"
-        >
-          <Text
+      <OnboardingTargetOrView
+        id={!isSelf ? CHILD_NOTES_TOUR_TARGETS.tabs : undefined}
+      >
+        <View style={styles.childTabsBar} testID="child-notes-tabs">
+          <TouchableOpacity
             style={[
-              styles.childTabLabel,
-              childTab === "notes" && styles.childTabLabelActive,
+              styles.childTabButton,
+              childTab === "notes" && styles.childTabButtonActive,
             ]}
+            onPress={() => setChildTab("notes")}
+            testID="child-notes-tab-notes"
           >
-            {t("notes.child.tabs.notes")}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.childTabButton,
-            childTab === "reports" && styles.childTabButtonActive,
-          ]}
-          onPress={() => setChildTab("reports")}
-          testID="child-notes-tab-reports"
-        >
-          <Text
+            <Text
+              style={[
+                styles.childTabLabel,
+                childTab === "notes" && styles.childTabLabelActive,
+              ]}
+            >
+              {t("notes.child.tabs.notes")}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[
-              styles.childTabLabel,
-              childTab === "reports" && styles.childTabLabelActive,
+              styles.childTabButton,
+              childTab === "reports" && styles.childTabButtonActive,
             ]}
+            onPress={() => setChildTab("reports")}
+            testID="child-notes-tab-reports"
           >
-            {t("notes.child.tabs.reports")}
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <Text
+              style={[
+                styles.childTabLabel,
+                childTab === "reports" && styles.childTabLabelActive,
+              ]}
+            >
+              {t("notes.child.tabs.reports")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </OnboardingTargetOrView>
 
       {childTab === "notes" ? (
         <StudentNotesPanel
           studentId={childId}
           schoolSlug={schoolSlug ?? ""}
           bottomInset={insets.bottom}
+          filterTourTargetId={
+            !isSelf ? CHILD_NOTES_TOUR_TARGETS.filters : undefined
+          }
         />
       ) : (
         <ChildPeriodReportTab
@@ -608,6 +658,30 @@ export function StudentNotesScreen() {
           bottomInset={insets.bottom}
         />
       )}
+
+      {!isSelf ? (
+        <PageHelpModal
+          visible={helpVisible}
+          onClose={() => setHelpVisible(false)}
+          title={t("notes.child.help.title")}
+          sections={[
+            {
+              title: t("notes.child.help.section1Title"),
+              body: [t("notes.child.help.section1Body")],
+            },
+            {
+              title: t("notes.child.help.section2Title"),
+              body: [t("notes.child.help.section2Body")],
+            },
+            {
+              title: t("notes.child.help.section3Title"),
+              body: [t("notes.child.help.section3Body")],
+            },
+          ]}
+          closeLabel={t("notes.child.help.close")}
+          testID="child-notes-help-modal"
+        />
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
