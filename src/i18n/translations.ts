@@ -211,6 +211,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.childTimetable.step4Title": "Une aide toujours disponible",
     "onboardingTour.childTimetable.step4Body":
       "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel sur l'utilisation de cette page.",
+    "onboardingTour.homework.step1Title": "Deux façons de voir vos devoirs",
+    "onboardingTour.homework.step1Body":
+      "« Liste » affiche vos prochains devoirs les uns après les autres, « Agenda » les organise par semaine ou par mois.",
+    "onboardingTour.homework.step2Title": "La carte d'un devoir",
+    "onboardingTour.homework.step2Body":
+      "Touchez une carte pour voir la consigne complète et les pièces jointes. L'icône bulle affiche et ajoute des commentaires.",
+    "onboardingTour.homework.step3Title": "Marquez-le comme fait",
+    "onboardingTour.homework.step3Body":
+      "Une fois le devoir terminé, touchez cette pastille pour le signaler à votre enseignant. Vous pouvez la retoucher pour l'annuler.",
+    "onboardingTour.homework.step4Title": "Une aide toujours disponible",
+    "onboardingTour.homework.step4Body":
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel sur l'utilisation de cette page.",
     "onboardingTour.parentLanding.step1Title": "Votre menu de navigation",
     "onboardingTour.parentLanding.step1Body":
       "Touchez cette icône pour ouvrir le menu et accéder à toutes les rubriques de l'école.",
@@ -744,6 +756,23 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.tabs.agenda": "Agenda des homeworks",
     "homework.tabs.week": "Semaine",
     "homework.tabs.month": "Mois",
+
+    "homework.tourFallback.title": "Exemple : Exercices page 42",
+    "homework.tourFallback.subject": "Mathématiques",
+    "homework.tourFallback.author": "Votre enseignant",
+
+    "homework.help.menuLabel": "Aide",
+    "homework.help.title": "Comprendre vos devoirs",
+    "homework.help.close": "Fermer",
+    "homework.help.section1Title": "Changer de vue",
+    "homework.help.section1Body":
+      "« Liste » affiche vos prochains devoirs les uns après les autres. « Agenda » les organise par semaine ou par mois, avec un point sur chaque jour ayant un devoir.",
+    "homework.help.section2Title": "La carte d'un devoir",
+    "homework.help.section2Body":
+      "Touchez une carte pour voir la consigne complète et les pièces jointes. L'icône bulle affiche et permet d'ajouter des commentaires.",
+    "homework.help.section3Title": "Marquer comme fait",
+    "homework.help.section3Body":
+      "Une fois le devoir terminé, touchez la pastille « Marquer fait » pour le signaler à votre enseignant. Vous pouvez la retoucher pour l'annuler.",
 
     "homework.form.validation.subjectRequired": "La matière est obligatoire.",
     "homework.form.validation.titleRequired": "Le titre est obligatoire.",
@@ -3543,6 +3572,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.childTimetable.step4Title": "Help is always available",
     "onboardingTour.childTimetable.step4Body":
       'Tap this button at any time, then "Help" in the menu, to see a reminder of how to use this page.',
+    "onboardingTour.homework.step1Title": "Two ways to see your homework",
+    "onboardingTour.homework.step1Body":
+      '"List" shows your upcoming homework one after another, "Agenda" organizes them by week or month.',
+    "onboardingTour.homework.step2Title": "A homework card",
+    "onboardingTour.homework.step2Body":
+      "Tap a card to see the full instructions and attachments. The bubble icon shows and adds comments.",
+    "onboardingTour.homework.step3Title": "Mark it as done",
+    "onboardingTour.homework.step3Body":
+      "Once you're done, tap this toggle to let your teacher know. Tap it again to undo.",
+    "onboardingTour.homework.step4Title": "Help is always available",
+    "onboardingTour.homework.step4Body":
+      'Tap this button any time, then "Help" in the menu, to see a reminder of how to use this page.',
     "onboardingTour.parentLanding.step1Title": "Your navigation menu",
     "onboardingTour.parentLanding.step1Body":
       "Tap this icon to open the menu and reach every section of the school.",
@@ -4048,6 +4089,23 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.tabs.agenda": "Homework agenda",
     "homework.tabs.week": "Week",
     "homework.tabs.month": "Month",
+
+    "homework.tourFallback.title": "Example: Exercises page 42",
+    "homework.tourFallback.subject": "Mathematics",
+    "homework.tourFallback.author": "Your teacher",
+
+    "homework.help.menuLabel": "Help",
+    "homework.help.title": "Understanding your homework",
+    "homework.help.close": "Close",
+    "homework.help.section1Title": "Switch views",
+    "homework.help.section1Body":
+      '"List" shows your upcoming homework one after another. "Agenda" organizes it by week or month, with a dot on each day that has homework.',
+    "homework.help.section2Title": "A homework card",
+    "homework.help.section2Body":
+      "Tap a card to see the full instructions and attachments. The bubble icon shows and lets you add comments.",
+    "homework.help.section3Title": "Mark as done",
+    "homework.help.section3Body":
+      'Once you\'re done, tap the "Mark done" toggle to let your teacher know. Tap it again to undo.',
 
     "homework.form.validation.subjectRequired": "Subject is required.",
     "homework.form.validation.titleRequired": "Title is required.",

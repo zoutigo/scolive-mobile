@@ -20,6 +20,12 @@ jest.mock("../../src/store/family.store");
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: jest.fn() }),
   useLocalSearchParams: () => ({ classId: "class-1" }),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -133,11 +139,18 @@ const MY_TIMETABLE = {
   subjectStyles: [],
 };
 
+// useOnboardingTourTrigger reads useAuthStore via a selector
+// (`useAuthStore((state) => state.user)`), unlike this screen which
+// destructures the whole store. mockImplementation must apply the selector
+// itself (mirroring real zustand behavior) so both call styles work.
+function mockAuthState(state: { schoolSlug: string; user: unknown }) {
+  mockUseAuthStore.mockImplementation(((
+    selector?: (s: typeof state) => unknown,
+  ) => (selector ? selector(state) : state)) as never);
+}
+
 function setupTeacher() {
-  mockUseAuthStore.mockReturnValue({
-    schoolSlug: "college-vogt",
-    user: TEACHER_USER,
-  } as never);
+  mockAuthState({ schoolSlug: "college-vogt", user: TEACHER_USER });
   mockUseFamilyStore.mockReturnValue({
     children: [],
     activeChildId: null,
@@ -145,10 +158,7 @@ function setupTeacher() {
 }
 
 function setupParent() {
-  mockUseAuthStore.mockReturnValue({
-    schoolSlug: "college-vogt",
-    user: PARENT_USER,
-  } as never);
+  mockAuthState({ schoolSlug: "college-vogt", user: PARENT_USER });
   mockUseFamilyStore.mockReturnValue({
     children: [CHILD_RECORD],
     activeChildId: "child-1",
