@@ -17,7 +17,7 @@
     "android:reinstall": "export NODE_ENV=development && ~/Android/Sdk/platform-tools/adb uninstall com.zoutigo.scoliveapp || true && bash scripts/android-dev-build.sh",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "jest --runInBand --watchman=false",
+    "test": "jest --watchman=false",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -67,6 +67,7 @@
   },
   "jest": {
     "preset": "jest-expo",
+    "workerIdleMemoryLimit": "512MB",
     "setupFilesAfterEnv": [
       "<rootDir>/jest.setup.ts"
     ],

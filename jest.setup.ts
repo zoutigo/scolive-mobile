@@ -1,4 +1,4 @@
-import { act } from "@testing-library/react-native";
+import { act, cleanup } from "@testing-library/react-native";
 
 // React Native provides `requestIdleCallback`/`cancelIdleCallback` as a
 // global polyfill at runtime (see setUpTimers.js) but the jest-expo preset
@@ -32,4 +32,5 @@ afterEach(async () => {
     await Promise.resolve();
     await Promise.resolve();
   });
+  cleanup();
 });
