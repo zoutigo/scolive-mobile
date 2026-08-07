@@ -2,6 +2,9 @@ export type CurriculumAcademicLevel = {
   id: string;
   code: string;
   label: string;
+  order?: number | null;
+  isNational?: boolean;
+  isActivated?: boolean;
   _count?: {
     classes: number;
     curriculums: number;
@@ -71,7 +74,9 @@ export type CreateAcademicLevelPayload = {
   label: string;
 };
 
-export type UpdateAcademicLevelPayload = Partial<CreateAcademicLevelPayload>;
+export type UpdateAcademicLevelPayload = Partial<
+  CreateAcademicLevelPayload & { order: number }
+>;
 
 export type CreateTrackPayload = {
   code: string;

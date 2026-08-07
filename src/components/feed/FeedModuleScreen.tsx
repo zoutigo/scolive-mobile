@@ -20,7 +20,7 @@ import { useSuccessToastStore } from "../../store/success-toast.store";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { ConfirmDialog } from "../ConfirmDialog";
-import { PageHelpModal } from "../help/PageHelpModal";
+import { PageHelpModal, type PageHelpSection } from "../help/PageHelpModal";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
 import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import { FeedComposerCard } from "./FeedComposerCard";
@@ -89,7 +89,10 @@ type Props = {
   unavailableMessage?: string;
   onPostsChange?: (posts: FeedPost[]) => void;
   helpTitle: string;
-  helpBody: string[];
+  /** Flat paragraphs, no sub-chapters. Ignored when `helpSections` is provided. */
+  helpBody?: string[];
+  /** Paragraphs grouped under titled sub-chapters — preferred for new callers. */
+  helpSections?: PageHelpSection[];
 };
 
 export function FeedModuleScreen({
@@ -114,6 +117,7 @@ export function FeedModuleScreen({
   onPostsChange,
   helpTitle,
   helpBody,
+  helpSections,
 }: Props) {
   const { t } = useTranslation();
   const tRef = useRef(t);
@@ -900,6 +904,7 @@ export function FeedModuleScreen({
         onClose={() => setHelpVisible(false)}
         title={helpTitle}
         body={helpBody}
+        sections={helpSections}
         closeLabel={t("feed.help.close")}
         testID={`${testIDPrefix}-help`}
       />

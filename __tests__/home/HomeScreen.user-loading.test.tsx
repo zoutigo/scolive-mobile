@@ -38,6 +38,12 @@ jest.mock("../../src/api/client", () => ({
 }));
 jest.mock("expo-router", () => ({
   useRouter: () => ({ replace: jest.fn(), back: jest.fn() }),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),

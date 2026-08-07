@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from "react";
 import {
   Animated,
+  Modal,
   View,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,6 +17,8 @@ import { getViewType } from "./nav-config";
 import { useHeaderScroll } from "./header-scroll-context";
 import { useTranslation } from "../../i18n/useTranslation";
 import { ConfirmDialog } from "../ConfirmDialog";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { useHomeHeaderHelpStore } from "../../store/home-header-help.store";
 import type { AuthUser } from "../../types/auth.types";
 
 /** Convertit un slug en nom lisible : "college-vogt" → "College Vogt" */
@@ -43,6 +47,8 @@ export function AppHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const helpAction = useHomeHeaderHelpStore((state) => state.helpAction);
 
   const isHome = isHomePath(pathname);
   const view = user ? getViewType(user) : "unknown";
@@ -60,7 +66,7 @@ export function AppHeader() {
 
   const handleAuthButtonPress = () => {
     if (user) {
-      setConfirmLogoutVisible(true);
+      setMenuOpen(true);
     } else {
       router.replace("/login" as never);
     }
@@ -107,24 +113,35 @@ export function AppHeader() {
                     </View>
                   ) : null}
                 </View>
-                <TouchableOpacity
-                  onPress={handleAuthButtonPress}
-                  style={styles.authBtn}
-                  testID="app-header-auth-btn"
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    user
-                      ? t("header.home.logoutAction")
-                      : t("header.home.loginAction")
-                  }
-                >
-                  <Ionicons
-                    name={user ? "log-out-outline" : "log-in-outline"}
-                    size={22}
-                    color={colors.white}
-                  />
-                </TouchableOpacity>
+                {(() => {
+                  const authBtn = (
+                    <TouchableOpacity
+                      onPress={handleAuthButtonPress}
+                      style={styles.authBtn}
+                      testID="app-header-auth-btn"
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        user
+                          ? t("header.home.menuAction")
+                          : t("header.home.loginAction")
+                      }
+                    >
+                      <Ionicons
+                        name={user ? "ellipsis-vertical" : "log-in-outline"}
+                        size={user ? 20 : 22}
+                        color={colors.white}
+                      />
+                    </TouchableOpacity>
+                  );
+                  return user && helpAction?.tourTargetId ? (
+                    <OnboardingTarget id={helpAction.tourTargetId}>
+                      {authBtn}
+                    </OnboardingTarget>
+                  ) : (
+                    authBtn
+                  );
+                })()}
               </>
             ) : (
               <Text
@@ -144,6 +161,56 @@ export function AppHeader() {
        * doit pas dépendre du transform du header pour rester réactif au tap
        * (régression Fabric connue quand un Modal est imbriqué sous un
        * ancêtre animé). */}
+      <Modal
+        transparent
+        visible={menuOpen}
+        animationType="fade"
+        onRequestClose={() => setMenuOpen(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setMenuOpen(false)}>
+          <View style={styles.menuBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={styles.menuPanel}>
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => {
+                    setMenuOpen(false);
+                    setConfirmLogoutVisible(true);
+                  }}
+                  testID="app-header-logout-menu-item"
+                >
+                  <Ionicons
+                    name="log-out-outline"
+                    size={18}
+                    color={colors.notification}
+                  />
+                  <Text style={styles.menuItemLogout}>
+                    {t("header.home.logoutAction")}
+                  </Text>
+                </TouchableOpacity>
+                {helpAction ? (
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => {
+                      setMenuOpen(false);
+                      helpAction.onPress();
+                    }}
+                    testID={helpAction.testID ?? "app-header-help-menu-item"}
+                  >
+                    <Ionicons
+                      name="help-circle-outline"
+                      size={18}
+                      color={colors.accentTealDark}
+                    />
+                    <Text style={styles.menuItemHelp}>{helpAction.label}</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
       <ConfirmDialog
         visible={confirmLogoutVisible}
         variant="danger"
@@ -250,5 +317,42 @@ const styles = StyleSheet.create({
     borderColor: "rgba(216,155,91,0.55)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  menuBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.18)",
+  },
+  menuPanel: {
+    position: "absolute",
+    top: 72,
+    right: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    paddingVertical: 6,
+    minWidth: 180,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  menuItemLogout: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.notification,
+  },
+  menuItemHelp: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.accentTealDark,
   },
 });

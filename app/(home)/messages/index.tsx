@@ -31,6 +31,14 @@ import { AppShell } from "../../../src/components/navigation/AppShell";
 import { useDrawer } from "../../../src/components/navigation/drawer-context";
 import { PLATFORM_SCOPE } from "../../../src/api/messaging-client";
 import { useTranslation } from "../../../src/i18n/useTranslation";
+import { OnboardingTarget } from "../../../src/components/onboarding/OnboardingTarget";
+import { PageHelpModal } from "../../../src/components/help/PageHelpModal";
+import { useOnboardingTourTrigger } from "../../../src/hooks/useOnboardingTourTrigger";
+import {
+  MESSAGES_TOUR_ID,
+  MESSAGES_TOUR_STEPS,
+  MESSAGES_TOUR_TARGETS,
+} from "../../../src/components/messaging/messages-tour.config";
 import type {
   FolderKey,
   MessageListItem,
@@ -73,6 +81,17 @@ function MessagesScreenContent() {
   } = useMessagingStore();
 
   const [searchVisible, setSearchVisible] = useState(false);
+  const [helpVisible, setHelpVisible] = useState(false);
+  const viewType = user ? getViewType(user) : "unknown";
+  const isParentRole = viewType === "parent";
+  const isTeacherRole = viewType === "teacher";
+  const isEligibleForHelp = isParentRole || isTeacherRole;
+
+  useOnboardingTourTrigger({
+    tourId: MESSAGES_TOUR_ID,
+    role: isTeacherRole ? "teacher" : "parent",
+    steps: MESSAGES_TOUR_STEPS,
+  });
 
   const load = useCallback(async () => {
     if (!scope) return;
@@ -197,6 +216,18 @@ function MessagesScreenContent() {
             titleTestID="messages-header-title"
             subtitleTestID="messages-header-subtitle"
             topInset={insets.top}
+            helpAction={
+              isEligibleForHelp
+                ? {
+                    label: t("messaging.help.menuLabel"),
+                    onPress: () => setHelpVisible(true),
+                    testID: "messages-help-menu-item",
+                  }
+                : undefined
+            }
+            menuTourTargetId={
+              isEligibleForHelp ? MESSAGES_TOUR_TARGETS.helpToggle : undefined
+            }
           />
         </View>
       )}
@@ -217,11 +248,13 @@ function MessagesScreenContent() {
       ) : null}
 
       {/* Folder Tabs */}
-      <FolderTabs
-        activeFolder={folder}
-        unreadCount={unreadCount}
-        onSelect={handleFolderChange}
-      />
+      <OnboardingTarget id={MESSAGES_TOUR_TARGETS.folderTabs}>
+        <FolderTabs
+          activeFolder={folder}
+          unreadCount={unreadCount}
+          onSelect={handleFolderChange}
+        />
+      </OnboardingTarget>
 
       {/* Message List */}
       {isLoading && messages.length === 0 ? (
@@ -277,18 +310,41 @@ function MessagesScreenContent() {
 
       {/* FAB Compose — visible uniquement sur l'onglet Boîte de réception */}
       {folder === "inbox" ? (
-        <TouchableOpacity
+        <OnboardingTarget
+          id={MESSAGES_TOUR_TARGETS.compose}
           style={[
-            styles.fab,
+            styles.fabWrap,
             { bottom: insets.bottom + 20 + BOTTOM_TAB_BAR_HEIGHT },
           ]}
-          onPress={handleCompose}
-          activeOpacity={0.85}
-          testID="compose-fab"
         >
-          <Ionicons name="add" size={28} color={colors.white} />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={handleCompose}
+            activeOpacity={0.85}
+            testID="compose-fab"
+          >
+            <Ionicons name="add" size={28} color={colors.white} />
+          </TouchableOpacity>
+        </OnboardingTarget>
       ) : null}
+
+      <PageHelpModal
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        title={t("messaging.help.title")}
+        closeLabel={t("messaging.help.close")}
+        testID="messages-help-modal"
+        sections={[
+          {
+            title: t("messaging.help.section1Title"),
+            body: [t("messaging.help.section1Body")],
+          },
+          {
+            title: t("messaging.help.section2Title"),
+            body: [t("messaging.help.section2Body")],
+          },
+        ]}
+      />
     </View>
   );
 }
@@ -377,9 +433,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     opacity: 0.7,
   },
-  fab: {
+  fabWrap: {
     position: "absolute",
     right: 20,
+    width: 56,
+    height: 56,
+  },
+  fab: {
     width: 56,
     height: 56,
     borderRadius: 28,

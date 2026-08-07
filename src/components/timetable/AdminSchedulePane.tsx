@@ -33,9 +33,9 @@ import {
   toWeekdayMondayFirst,
   TimetableCalendarViewMode,
 } from "../../utils/timetable";
-import type { WeekSelection } from "./ChildTimetableScreen";
+import type { WeekSelection } from "./StudentTimetableScreen";
 import { EmptyState } from "./TimetableCommon";
-import { TimetablePane, type OccurrenceContext } from "./TeacherAgendaScreen";
+import { TimetablePane, type OccurrenceContext } from "./TimetablePane";
 import {
   SearchableDropdown,
   type SearchableDropdownItem,

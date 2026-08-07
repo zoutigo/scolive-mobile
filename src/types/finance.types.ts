@@ -41,3 +41,26 @@ export type PaymentChannel = {
   status: "actif" | "inactif";
   number?: string;
 };
+
+export type WalletTransactionEntry = {
+  id: string;
+  type: "TOPUP" | "ALLOCATION";
+  amount: number;
+  createdAt: string;
+  note: string | null;
+};
+
+export type ChildFinanceStatus = {
+  student: { id: string; firstName: string; lastName: string };
+  status: "DECISION_PENDING" | "ALREADY_REINSCRIBED" | "READY_TO_REINSCRIBE";
+  targetSchoolYearId?: string;
+  targetSchoolYearLabel?: string;
+  requiredAmount?: number | null;
+};
+
+export type WalletSummary = {
+  walletId: string;
+  balance: number;
+  transactions: WalletTransactionEntry[];
+  children: ChildFinanceStatus[];
+};

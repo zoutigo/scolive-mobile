@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react-native";
-import { ChildTimetableScreen } from "../../src/components/timetable/ChildTimetableScreen";
+import { StudentTimetableScreen } from "../../src/components/timetable/StudentTimetableScreen";
 import { TimetableClassesScreen } from "../../src/components/timetable/TimetableClassesScreen";
 import {
   TeacherAgendaScreen,
@@ -148,9 +148,9 @@ describe("Agenda/Emploi du temps — traduction selon la locale (mobile)", () =>
     }
   });
 
-  describe("ChildTimetableScreen", () => {
+  describe("StudentTimetableScreen", () => {
     it("affiche les libellés en français par défaut", () => {
-      render(<ChildTimetableScreen />);
+      render(<StudentTimetableScreen />);
 
       expect(
         screen.getByText(
@@ -170,7 +170,7 @@ describe("Agenda/Emploi du temps — traduction selon la locale (mobile)", () =>
 
     it("affiche les libellés en anglais quand locale=en", () => {
       useLocaleStore.setState({ locale: "en" });
-      render(<ChildTimetableScreen />);
+      render(<StudentTimetableScreen />);
 
       expect(
         screen.getByText(

@@ -50,8 +50,8 @@ jest.mock("../../src/components/TimePickerField", () => ({
 jest.mock("../../src/api/notes.api");
 jest.mock("../../src/api/timetable.api");
 jest.mock("../../src/api/discipline.api");
-jest.mock("../../src/store/auth.store", () => ({
-  useAuthStore: () => ({
+jest.mock("../../src/store/auth.store", () => {
+  const authState = {
     schoolSlug: "college-vogt",
     user: {
       id: "teacher-1",
@@ -59,10 +59,16 @@ jest.mock("../../src/store/auth.store", () => ({
       lastName: "Mbele",
       role: "TEACHER",
       activeRole: "TEACHER",
+      platformRoles: [] as never[],
+      memberships: [{ schoolId: "s1", role: "TEACHER" as const }],
       schoolName: "Collège Vogt",
     },
-  }),
-}));
+  };
+  const useAuthStore = (selector?: (state: typeof authState) => unknown) =>
+    selector ? selector(authState) : authState;
+  useAuthStore.getState = () => authState;
+  return { useAuthStore };
+});
 jest.mock("expo-router", () => {
   const back = jest.fn();
   const navigate = jest.fn();
@@ -75,6 +81,12 @@ jest.mock("expo-router", () => {
       navigate,
     }),
     useLocalSearchParams: () => ({ classId: "class-1" }),
+    useFocusEffect: (callback: () => void) => {
+      const { useEffect } = require("react");
+      useEffect(() => {
+        callback();
+      }, [callback]);
+    },
   };
 });
 jest.mock("../../src/store/success-toast.store", () => {
@@ -685,5 +697,64 @@ describe("TeacherClassDisciplineScreen — carnets", () => {
     );
     expect(screen.getByText("Carnet retard S2")).toBeTruthy();
     expect(screen.getByText("Carnet sanction S2")).toBeTruthy();
+  });
+});
+
+describe("TeacherClassDisciplineScreen — modale d'aide (menu ...)", () => {
+  function openHelpFromMenu() {
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(
+      screen.getByTestId("teacher-class-discipline-help-menu-item"),
+    );
+  }
+
+  it("n'affiche pas la modale d'aide par défaut", async () => {
+    await renderLoaded();
+
+    expect(
+      screen.queryByTestId("teacher-class-discipline-help-modal-title"),
+    ).toBeNull();
+  });
+
+  it("ouvre la modale d'aide via « Aide » dans le menu ..., contenu de l'onglet Événements", async () => {
+    await renderLoaded();
+
+    openHelpFromMenu();
+
+    expect(
+      screen.getByTestId("teacher-class-discipline-help-modal-title"),
+    ).toHaveTextContent("Comment utiliser l'onglet Événements");
+    expect(screen.getByText("Filtrer par élève")).toBeTruthy();
+    expect(screen.getByText("Signaler un événement")).toBeTruthy();
+  });
+
+  it("ferme la modale d'aide au tap sur le bouton de fermeture", async () => {
+    await renderLoaded();
+
+    openHelpFromMenu();
+    expect(
+      screen.getByTestId("teacher-class-discipline-help-modal-title"),
+    ).toBeTruthy();
+
+    fireEvent.press(
+      screen.getByTestId("teacher-class-discipline-help-modal-close"),
+    );
+    expect(
+      screen.queryByTestId("teacher-class-discipline-help-modal-title"),
+    ).toBeNull();
+  });
+
+  it("affiche un contenu différent et plus ciblé sur l'onglet Carnets", async () => {
+    await renderLoaded();
+
+    fireEvent.press(screen.getByTestId("teacher-class-discipline-tab-carnets"));
+
+    openHelpFromMenu();
+
+    expect(
+      screen.getByTestId("teacher-class-discipline-help-modal-title"),
+    ).toHaveTextContent("Comment utiliser l'onglet Carnets");
+    expect(screen.getByText("Consulter le carnet d'un élève")).toBeTruthy();
+    expect(screen.queryByText("Signaler un événement")).toBeNull();
   });
 });

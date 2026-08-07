@@ -28,6 +28,12 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ back: mockBack, push: mockPush }),
   useLocalSearchParams: () => ({ childId: "child-1" }),
   usePathname: () => "/(home)/vie-scolaire/[childId]",
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -47,6 +53,15 @@ const mockBadgesApi = badgesApi as jest.Mocked<typeof badgesApi>;
 const { useAuthStore } = jest.requireMock("../../src/store/auth.store") as {
   useAuthStore: jest.Mock;
 };
+// useAuthStore is fully mocked (not the real zustand store), so it must
+// apply the selector itself when one is passed — otherwise selector-based
+// callers (e.g. useOnboardingTourTrigger's `(state) => state.user`) get the
+// whole mocked object back instead of just `.user`.
+function setAuthState(state: Record<string, unknown>) {
+  useAuthStore.mockImplementation((selector?: (s: unknown) => unknown) =>
+    selector ? selector(state) : state,
+  );
+}
 const mockUseDrawer = useDrawer as jest.MockedFunction<typeof useDrawer>;
 const mockOpenDrawer = jest.fn();
 
@@ -73,7 +88,7 @@ beforeEach(() => {
     loadChildren: jest.fn(async () => {}),
     clearChildren: jest.fn(),
   });
-  useAuthStore.mockReturnValue({ schoolSlug: "college-vogt" });
+  setAuthState({ schoolSlug: "college-vogt" });
   api.list.mockResolvedValue([]);
   mockBadgesApi.markRead.mockResolvedValue(undefined);
   mockBadgesApi.getUnreadSummary.mockResolvedValue({
@@ -158,6 +173,27 @@ describe("VieScolaireScreen", () => {
       pathname: "/(home)/children/[childId]",
       params: { childId: "child-1" },
     });
+  });
+
+  it("affiche l'entrée d'aide dans le menu et ouvre/ferme la modale (vue parent)", async () => {
+    useDisciplineStore.setState({
+      eventsMap: { "child-1": [makeLifeEvent({ studentId: "child-1" })] },
+    });
+
+    render(<VieScolaireScreen />);
+
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    expect(screen.getByTestId("vie-scolaire-help-menu-item")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("vie-scolaire-help-menu-item"));
+    await waitFor(() =>
+      expect(screen.getByTestId("vie-scolaire-help-modal-title")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("vie-scolaire-help-modal-close"));
+    await waitFor(() =>
+      expect(screen.queryByTestId("vie-scolaire-help-modal-title")).toBeNull(),
+    );
   });
 
   it("filtre les evenements inline depuis le KPI dans l'onglet synthese", () => {
@@ -297,7 +333,7 @@ describe("VieScolaireScreen", () => {
   });
 
   it("n'appelle pas markRead si l'école n'est pas encore connue", () => {
-    useAuthStore.mockReturnValue({ schoolSlug: null });
+    setAuthState({ schoolSlug: null });
     useDisciplineStore.setState({
       eventsMap: { "child-1": [makeLifeEvent({ studentId: "child-1" })] },
     });

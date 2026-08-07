@@ -15,6 +15,7 @@ import {
   FEED_FILTERS_TOUR_STEPS,
   FEED_FILTERS_TOUR_TARGETS,
 } from "./feed-filters-tour.config";
+import { FEED_HELP_SECTIONS } from "./feed-help.content";
 import type {
   CreateFeedPayload,
   FeedTypeFilter,
@@ -28,6 +29,7 @@ const FEED_ROLES: FeedViewerRole[] = [
   "SUPERVISOR",
   "SCHOOL_ACCOUNTANT",
   "SCHOOL_STAFF",
+  "SCHOOL_HEALTH_OFFICER",
   "TEACHER",
   "PARENT",
   "STUDENT",
@@ -145,18 +147,17 @@ export function TeacherClassFeedScreen({
               titleTestID="teacher-class-feed-title"
               subtitleTestID="teacher-class-feed-subtitle"
               topInset={insets.top}
-              secondaryAction={{
-                icon: "help-circle-outline",
+              helpAction={{
+                label: t("feed.classLife.help.menuLabel"),
                 onPress: () => {
                   openHelp();
                   advanceOnboardingTourTarget(
                     FEED_FILTERS_TOUR_TARGETS.helpToggle,
                   );
                 },
-                testID: "teacher-class-feed-help-toggle",
-                accessibilityLabel: t("feed.help.toggle"),
+                testID: "teacher-class-feed-help-menu-item",
               }}
-              secondaryActionTourTargetId={FEED_FILTERS_TOUR_TARGETS.helpToggle}
+              menuTourTargetId={FEED_FILTERS_TOUR_TARGETS.helpToggle}
             />
           </View>
         ) : null
@@ -173,11 +174,7 @@ export function TeacherClassFeedScreen({
       onCreatePost={handleCreatePost}
       onUploadInlineImage={handleUploadInlineImage}
       helpTitle={t("feed.classLife.help.title")}
-      helpBody={[
-        t("feed.classLife.help.body1"),
-        t("feed.classLife.help.body2"),
-        t("feed.classLife.help.body3"),
-      ]}
+      helpSections={FEED_HELP_SECTIONS(t)}
     />
   );
 }

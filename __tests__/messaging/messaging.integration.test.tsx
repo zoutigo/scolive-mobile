@@ -39,6 +39,12 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ back: mockBack, push: mockPush }),
   useLocalSearchParams: () => mockRouteParams,
   usePathname: () => "/(home)/messages",
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 
 jest.mock("../../src/components/messaging/RecipientPickerModal", () => ({
@@ -150,9 +156,15 @@ beforeEach(() => {
   mockRequestGallery.mockClear();
   mockLaunchLibrary.mockClear();
   mockRouteParams = {};
-  (useAuthStore as unknown as jest.Mock).mockReturnValue({
-    schoolSlug: "college-vogt",
-  });
+  // useAuthStore is fully mocked (not the real zustand store), so it must
+  // apply the selector itself when one is passed — otherwise selector-based
+  // callers (e.g. useOnboardingTourTrigger's `(state) => state.user`) get
+  // the whole mocked object back instead of just `.user`.
+  const authState = { schoolSlug: "college-vogt" };
+  (useAuthStore as unknown as jest.Mock).mockImplementation(
+    (selector?: (s: typeof authState) => unknown) =>
+      selector ? selector(authState) : authState,
+  );
   useMessagingStore.setState({
     folder: "inbox",
     messages: [],

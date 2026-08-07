@@ -44,6 +44,14 @@ import {
 } from "./StudentSelectField";
 import { DatePickerField } from "../DatePickerField";
 import { TimePickerField } from "../TimePickerField";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { PageHelpModal } from "../help/PageHelpModal";
+import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import {
+  TEACHER_DISCIPLINE_TOUR_ID,
+  TEACHER_DISCIPLINE_TOUR_STEPS,
+  TEACHER_DISCIPLINE_TOUR_TARGETS,
+} from "./teacher-discipline-tour.config";
 import {
   buildLifeEventPayload,
   createDisciplineFormSchema,
@@ -657,6 +665,13 @@ export function TeacherClassDisciplineScreen({
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSavingForm, setIsSavingForm] = useState(false);
+  const [helpVisible, setHelpVisible] = useState(false);
+
+  useOnboardingTourTrigger({
+    tourId: TEACHER_DISCIPLINE_TOUR_ID,
+    role: "teacher",
+    steps: TEACHER_DISCIPLINE_TOUR_STEPS,
+  });
 
   const students = useMemo(
     () =>
@@ -892,6 +907,12 @@ export function TeacherClassDisciplineScreen({
             testID="teacher-class-discipline-header"
             backTestID="teacher-class-discipline-back"
             topInset={insets.top}
+            helpAction={{
+              label: t("discipline.teacherHelp.menuLabel"),
+              onPress: () => setHelpVisible(true),
+              testID: "teacher-class-discipline-help-menu-item",
+            }}
+            menuTourTargetId={TEACHER_DISCIPLINE_TOUR_TARGETS.helpToggle}
           />
         </View>
       ) : null}
@@ -911,6 +932,7 @@ export function TeacherClassDisciplineScreen({
           activeKey={tab as ListTabKey}
           onSelect={(key) => setTab(key as TabKey)}
           testIDPrefix="teacher-class-discipline-tab"
+          tourTargetId={TEACHER_DISCIPLINE_TOUR_TARGETS.tabs}
         />
       ) : null}
 
@@ -979,7 +1001,8 @@ export function TeacherClassDisciplineScreen({
                 testID="teacher-class-discipline-events-hero"
               />
             </View>
-            <View
+            <OnboardingTarget
+              id={TEACHER_DISCIPLINE_TOUR_TARGETS.studentFilter}
               style={styles.filterCardWrapper}
               testID="teacher-class-discipline-events-card"
             >
@@ -991,7 +1014,7 @@ export function TeacherClassDisciplineScreen({
                 emptyOptionLabel={t("discipline.filters.allStudents")}
                 testIDPrefix="teacher-class-discipline-events-student"
               />
-            </View>
+            </OnboardingTarget>
 
             <DisciplineList
               events={classEvents}
@@ -1031,6 +1054,11 @@ export function TeacherClassDisciplineScreen({
             <MultiActionFab
               bottom={insets.bottom + 18 + BOTTOM_TAB_BAR_HEIGHT}
               testID="teacher-class-discipline-fab"
+              tourTargetId={
+                extraFabActions.length === 0
+                  ? TEACHER_DISCIPLINE_TOUR_TARGETS.createFab
+                  : undefined
+              }
               actions={[
                 {
                   key: "add-event",
@@ -1106,6 +1134,39 @@ export function TeacherClassDisciplineScreen({
           void handleDeleteConfirm();
         }}
       />
+
+      {showHeader ? (
+        <PageHelpModal
+          visible={helpVisible}
+          onClose={() => setHelpVisible(false)}
+          title={
+            tab === "carnets"
+              ? t("discipline.teacherHelp.carnets.title")
+              : t("discipline.teacherHelp.events.title")
+          }
+          sections={
+            tab === "carnets"
+              ? [
+                  {
+                    title: t("discipline.teacherHelp.carnets.section1Title"),
+                    body: [t("discipline.teacherHelp.carnets.section1Body")],
+                  },
+                ]
+              : [
+                  {
+                    title: t("discipline.teacherHelp.events.section1Title"),
+                    body: [t("discipline.teacherHelp.events.section1Body")],
+                  },
+                  {
+                    title: t("discipline.teacherHelp.events.section2Title"),
+                    body: [t("discipline.teacherHelp.events.section2Body")],
+                  },
+                ]
+          }
+          closeLabel={t("discipline.teacherHelp.close")}
+          testID="teacher-class-discipline-help-modal"
+        />
+      ) : null}
     </View>
   );
 }

@@ -1282,3 +1282,76 @@ describe("TeacherAgendaScreen — race condition stale-load prevention", () => {
     ).toBeNull();
   });
 });
+
+// ── Tests — Modale d'aide (menu ...) ────────────────────────────────────────
+
+describe("TeacherAgendaScreen — modale d'aide (menu ...)", () => {
+  function openHelpFromMenu() {
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("teacher-agenda-help-menu-item"));
+  }
+
+  it("n'affiche pas la modale d'aide par défaut", async () => {
+    render(<TeacherAgendaScreen />);
+    await waitFor(() => expect(mockLoadClassOptions).toHaveBeenCalledTimes(1));
+
+    expect(screen.queryByTestId("teacher-agenda-help-modal-title")).toBeNull();
+  });
+
+  it("ouvre la modale d'aide via « Aide » dans le menu ..., contenu de l'onglet Mon agenda", async () => {
+    render(<TeacherAgendaScreen />);
+    await waitFor(() => expect(mockLoadClassOptions).toHaveBeenCalledTimes(1));
+
+    openHelpFromMenu();
+
+    expect(
+      screen.getByTestId("teacher-agenda-help-modal-title"),
+    ).toHaveTextContent("Comment utiliser mon agenda");
+    expect(screen.getByText("Changer de vue")).toBeTruthy();
+    expect(screen.getByText("Naviguer dans le temps")).toBeTruthy();
+    expect(screen.getByText("Consulter un cours")).toBeTruthy();
+  });
+
+  it("ferme la modale d'aide au tap sur le bouton de fermeture", async () => {
+    render(<TeacherAgendaScreen />);
+    await waitFor(() => expect(mockLoadClassOptions).toHaveBeenCalledTimes(1));
+
+    openHelpFromMenu();
+    expect(screen.getByTestId("teacher-agenda-help-modal-title")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("teacher-agenda-help-modal-close"));
+    expect(screen.queryByTestId("teacher-agenda-help-modal-title")).toBeNull();
+  });
+
+  it("affiche un contenu différent et plus ciblé sur l'onglet Mes classes", async () => {
+    render(<TeacherAgendaScreen />);
+    await waitFor(() => expect(mockLoadClassOptions).toHaveBeenCalledTimes(1));
+
+    fireEvent.press(screen.getByTestId("teacher-agenda-tab-classes"));
+    await waitFor(() => expect(mockLoadClassTimetable).toHaveBeenCalled());
+
+    openHelpFromMenu();
+
+    expect(
+      screen.getByTestId("teacher-agenda-help-modal-title"),
+    ).toHaveTextContent("Comment utiliser l'agenda de mes classes");
+    expect(screen.getByText("Choisir la classe")).toBeTruthy();
+    expect(screen.getByText("Changer de vue et naviguer")).toBeTruthy();
+    // "Consulter un cours" est commun aux deux onglets, mais le titre change bien de contenu.
+    expect(screen.queryByText("Naviguer dans le temps")).toBeNull();
+  });
+
+  it("reste accessible après un changement de vue (semaine/mois)", async () => {
+    render(<TeacherAgendaScreen />);
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("teacher-agenda-mine-day-card-occ-ang-14"),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("teacher-agenda-mine-mode-month"));
+
+    openHelpFromMenu();
+
+    expect(screen.getByTestId("teacher-agenda-help-modal-title")).toBeTruthy();
+  });
+});

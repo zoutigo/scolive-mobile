@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 import { colors } from "../../theme";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
 
 export type UnderlineTabItem<T extends string> = {
   key: T;
@@ -21,6 +22,8 @@ type Props<T extends string> = {
   testIDPrefix: string;
   /** When true, tabs share the available width equally instead of scrolling horizontally. */
   fitWidth?: boolean;
+  /** Onboarding tour target id wrapping the tab row, if this screen should be spotlighted. */
+  tourTargetId?: string;
 };
 
 export function UnderlineTabs<T extends string>({
@@ -29,6 +32,7 @@ export function UnderlineTabs<T extends string>({
   onSelect,
   testIDPrefix,
   fitWidth,
+  tourTargetId,
 }: Props<T>) {
   const tabs = items.map((item) => {
     const isActive = item.key === activeKey;
@@ -68,23 +72,32 @@ export function UnderlineTabs<T extends string>({
   });
 
   if (fitWidth) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.fitRow}>{tabs}</View>
-      </View>
+    const fitContent = <View style={styles.fitRow}>{tabs}</View>;
+    return tourTargetId ? (
+      <OnboardingTarget id={tourTargetId} style={styles.container}>
+        {fitContent}
+      </OnboardingTarget>
+    ) : (
+      <View style={styles.container}>{fitContent}</View>
     );
   }
 
-  return (
-    <View style={styles.container}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
-      >
-        {tabs}
-      </ScrollView>
-    </View>
+  const scrollContent = (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.scroll}
+    >
+      {tabs}
+    </ScrollView>
+  );
+
+  return tourTargetId ? (
+    <OnboardingTarget id={tourTargetId} style={styles.container}>
+      {scrollContent}
+    </OnboardingTarget>
+  ) : (
+    <View style={styles.container}>{scrollContent}</View>
   );
 }
 

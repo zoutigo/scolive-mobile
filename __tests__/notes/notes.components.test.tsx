@@ -7,7 +7,7 @@ import {
 } from "@testing-library/react-native";
 import { useNotesStore } from "../../src/store/notes.store";
 import { useAuthStore } from "../../src/store/auth.store";
-import { StudentNotesPanel } from "../../src/components/notes/ChildNotesScreen";
+import { StudentNotesPanel } from "../../src/components/notes/StudentNotesScreen";
 import type {
   StudentNotesTermSnapshot,
   StudentNotesSequenceSnapshot,

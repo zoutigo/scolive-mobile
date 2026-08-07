@@ -26,6 +26,7 @@ const ROLE_LABEL_KEYS: Partial<Record<SchoolRole, string>> = {
   SUPERVISOR: "home.hero.role.supervisor",
   SCHOOL_ACCOUNTANT: "home.hero.role.accountant",
   SCHOOL_STAFF: "home.hero.role.staff",
+  SCHOOL_HEALTH_OFFICER: "home.hero.role.healthOfficer",
 };
 
 interface QuickLinkProps {

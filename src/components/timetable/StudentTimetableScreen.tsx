@@ -20,7 +20,8 @@ import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { useTimetableStore } from "../../store/timetable.store";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
-import { PageHelpBlock } from "../help/PageHelpBlock";
+import { OnboardingScrollView } from "../onboarding/OnboardingScrollView";
+import { PageHelpModal } from "../help/PageHelpModal";
 import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
 import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import {
@@ -192,7 +193,7 @@ export function findInitialMonthSelection(
   );
 }
 
-export function ChildTimetableScreen() {
+export function StudentTimetableScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { t, locale } = useTranslation();
@@ -216,6 +217,7 @@ export function ChildTimetableScreen() {
   const [selectedMonthDate, setSelectedMonthDate] = useState<Date | null>(
     today,
   );
+  const [helpVisible, setHelpVisible] = useState(false);
 
   const range = useMemo(
     () => buildTimetableRangeForView(viewMode, cursorDate),
@@ -223,9 +225,9 @@ export function ChildTimetableScreen() {
   );
 
   const load = useCallback(async () => {
-    if (!schoolSlug || !childId) return;
+    if (!schoolSlug) return;
     await loadMyTimetable(schoolSlug, {
-      childId,
+      childId: childId || undefined,
       fromDate: range.fromDate,
       toDate: range.toDate,
     });
@@ -250,12 +252,9 @@ export function ChildTimetableScreen() {
 
   useOnboardingTourTrigger({
     tourId: CHILD_TIMETABLE_TOUR_ID,
-    role: "parent",
+    role: childId ? "parent" : "student",
     steps: CHILD_TIMETABLE_TOUR_STEPS,
   });
-  const advanceOnboardingTourTarget = useOnboardingTourStore(
-    (state) => state.advanceIfTarget,
-  );
   const onboardingActiveTourTargetKey = useOnboardingTourStore((state) =>
     state.activeTourId ? state.steps[state.stepIndex]?.targetKey : undefined,
   );
@@ -431,15 +430,23 @@ export function ChildTimetableScreen() {
       <ModuleHeader
         title={t("timetable.classManager.defaultTitle")}
         subtitle={subtitle}
-        onBack={() => router.push(buildChildHomeTarget(childId) as never)}
+        onBack={() =>
+          router.push((childId ? buildChildHomeTarget(childId) : "/") as never)
+        }
         testID="child-timetable-header"
         backTestID="child-timetable-back"
         titleTestID="child-timetable-header-title"
         subtitleTestID="child-timetable-header-subtitle"
         topInset={insets.top}
+        helpAction={{
+          label: t("timetable.childAgenda.help.menuLabel"),
+          onPress: () => setHelpVisible(true),
+          testID: "child-timetable-help-menu-item",
+        }}
+        menuTourTargetId={CHILD_TIMETABLE_TOUR_TARGETS.helpToggle}
       />
 
-      <ScrollView
+      <OnboardingScrollView
         style={styles.root}
         contentContainerStyle={[
           styles.content,
@@ -476,12 +483,7 @@ export function ChildTimetableScreen() {
                   <TouchableOpacity
                     key={entry.value}
                     style={[styles.modeTab, active && styles.modeTabActive]}
-                    onPress={() => {
-                      setViewMode(entry.value);
-                      advanceOnboardingTourTarget(
-                        CHILD_TIMETABLE_TOUR_TARGETS.modeTabs,
-                      );
-                    }}
+                    onPress={() => setViewMode(entry.value)}
                     testID={`child-timetable-mode-${entry.value}`}
                   >
                     <Text
@@ -503,12 +505,7 @@ export function ChildTimetableScreen() {
             >
               <TouchableOpacity
                 style={styles.periodNavButton}
-                onPress={() => {
-                  moveCursor(-1);
-                  advanceOnboardingTourTarget(
-                    CHILD_TIMETABLE_TOUR_TARGETS.navRow,
-                  );
-                }}
+                onPress={() => moveCursor(-1)}
                 testID="child-timetable-nav-prev"
               >
                 <Ionicons
@@ -519,24 +516,14 @@ export function ChildTimetableScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.periodLabelButton}
-                onPress={() => {
-                  resetToCurrentPeriod();
-                  advanceOnboardingTourTarget(
-                    CHILD_TIMETABLE_TOUR_TARGETS.navRow,
-                  );
-                }}
+                onPress={() => resetToCurrentPeriod()}
                 testID="child-timetable-nav-label"
               >
                 <Text style={styles.periodLabelText}>{periodLabel}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.periodNavButton}
-                onPress={() => {
-                  moveCursor(1);
-                  advanceOnboardingTourTarget(
-                    CHILD_TIMETABLE_TOUR_TARGETS.navRow,
-                  );
-                }}
+                onPress={() => moveCursor(1)}
                 testID="child-timetable-nav-next"
               >
                 <Ionicons
@@ -618,21 +605,29 @@ export function ChildTimetableScreen() {
             />
           </View>
         )}
+      </OnboardingScrollView>
 
-        <OnboardingTarget id={CHILD_TIMETABLE_TOUR_TARGETS.helpBlock}>
-          <PageHelpBlock
-            title={t("timetable.childAgenda.help.title")}
-            body={[
-              t("timetable.childAgenda.help.body1"),
-              t("timetable.childAgenda.help.body2"),
-              t("timetable.childAgenda.help.body3"),
-            ]}
-            toggleOpenLabel={t("timetable.childAgenda.help.toggleOpen")}
-            toggleCloseLabel={t("timetable.childAgenda.help.toggleClose")}
-            testID="child-timetable-help-block"
-          />
-        </OnboardingTarget>
-      </ScrollView>
+      <PageHelpModal
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        title={t("timetable.childAgenda.help.title")}
+        sections={[
+          {
+            title: t("timetable.childAgenda.help.section1Title"),
+            body: [t("timetable.childAgenda.help.section1Body")],
+          },
+          {
+            title: t("timetable.childAgenda.help.section2Title"),
+            body: [t("timetable.childAgenda.help.section2Body")],
+          },
+          {
+            title: t("timetable.childAgenda.help.section3Title"),
+            body: [t("timetable.childAgenda.help.section3Body")],
+          },
+        ]}
+        closeLabel={t("timetable.childAgenda.help.close")}
+        testID="child-timetable-help-modal"
+      />
     </KeyboardAvoidingView>
   );
 }

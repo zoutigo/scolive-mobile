@@ -102,6 +102,7 @@ const SCHOOL_STAFF_ROLES: SchoolRole[] = [
   "SUPERVISOR",
   "SCHOOL_ACCOUNTANT",
   "SCHOOL_STAFF",
+  "SCHOOL_HEALTH_OFFICER",
 ];
 
 const SCHOOL_ROLES = new Set<AppRole>([
@@ -110,6 +111,7 @@ const SCHOOL_ROLES = new Set<AppRole>([
   "SUPERVISOR",
   "SCHOOL_ACCOUNTANT",
   "SCHOOL_STAFF",
+  "SCHOOL_HEALTH_OFFICER",
   "TEACHER",
   "PARENT",
   "STUDENT",
@@ -168,6 +170,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
   SUPERVISOR: "Superviseur",
   SCHOOL_ACCOUNTANT: "Comptable",
   SCHOOL_STAFF: "Personnel",
+  SCHOOL_HEALTH_OFFICER: "Responsable santé",
   TEACHER: "Enseignant(e)",
   PARENT: "Parent",
   STUDENT: "Élève",
@@ -303,6 +306,24 @@ const SCHOOL_NAV: NavItem[] = [
   },
   placeholder("Parents-Élèves", "people-circle-outline", "parents"),
   {
+    key: "promotions",
+    label: "Passages de classe",
+    icon: "trending-up-outline",
+    route: "/promotions",
+  },
+  {
+    key: "finance-echeanciers",
+    label: "Échéanciers",
+    icon: "card-outline",
+    route: "/finance-echeanciers",
+  },
+  {
+    key: "finance-paiements",
+    label: "Paiements",
+    icon: "cash-outline",
+    route: "/finance-paiements",
+  },
+  {
     key: "users",
     label: "Utilisateurs",
     icon: "person-outline",
@@ -321,6 +342,12 @@ const SCHOOL_NAV: NavItem[] = [
     route: "/admin-discipline",
   },
   {
+    key: "health",
+    label: "Santé",
+    icon: "heart-outline",
+    route: "/admin-sante",
+  },
+  {
     key: "resources",
     label: "Ressources",
     icon: "library-outline",
@@ -331,6 +358,12 @@ const SCHOOL_NAV: NavItem[] = [
     label: "Messagerie",
     icon: "chatbubble-outline",
     route: "/messages",
+  },
+  {
+    key: "school-settings",
+    label: "Paramètres de l'école",
+    icon: "options-outline",
+    route: "/school-settings",
   },
   accountItem(),
 ];
@@ -392,7 +425,36 @@ const PARENT_NAV: NavItem[] = [
 
 const STUDENT_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
-  placeholder("Notes & homework", "ribbon-outline", "grades"),
+  {
+    key: "grades",
+    label: "Notes",
+    icon: "ribbon-outline",
+    route: "/notes/me",
+  },
+  {
+    key: "homework",
+    label: "Devoirs",
+    icon: "document-text-outline",
+    route: "/homework/me",
+  },
+  {
+    key: "schedule",
+    label: "Emploi du temps",
+    icon: "calendar-outline",
+    route: "/timetable/me",
+  },
+  {
+    key: "life",
+    label: "Vie scolaire",
+    icon: "person-circle-outline",
+    route: "/vie-scolaire/me",
+  },
+  {
+    key: "class-life",
+    label: "Vie de classe",
+    icon: "newspaper-outline",
+    route: "/vie-de-classe/me",
+  },
   {
     key: "resources",
     label: "Ressources",
@@ -457,6 +519,13 @@ export function buildChildNavItems(
       route: "/(home)/vie-scolaire/[childId]",
       params: { childId },
       unread: toUnread(childBadge?.disciplineUnread),
+    },
+    {
+      key: `child-${childId}-health`,
+      label: "Santé",
+      icon: "heart-outline",
+      route: "/(home)/sante/[childId]",
+      params: { childId },
     },
     {
       key: `child-${childId}-class-life`,

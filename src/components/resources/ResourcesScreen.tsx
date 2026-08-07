@@ -37,6 +37,14 @@ import { ModuleHeader } from "../navigation/ModuleHeader";
 import { FormHero } from "../forms/FormHero";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { PageHelpModal } from "../help/PageHelpModal";
+import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import {
+  RESOURCES_TOUR_ID,
+  RESOURCES_TOUR_STEPS,
+  RESOURCES_TOUR_TARGETS,
+} from "./resources-tour.config";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import {
   InlineSelectDropDown,
@@ -350,6 +358,14 @@ export function ResourcesScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [onboardingVisible, setOnboardingVisible] = useState(false);
   const [onboardingDontShowAgain, setOnboardingDontShowAgain] = useState(false);
+  const [helpVisible, setHelpVisible] = useState(false);
+  const isParentRole = activeRole === "PARENT";
+
+  useOnboardingTourTrigger({
+    tourId: RESOURCES_TOUR_ID,
+    role: "parent",
+    steps: RESOURCES_TOUR_STEPS,
+  });
 
   useEffect(() => {
     resourcesApi
@@ -698,16 +714,30 @@ export function ResourcesScreen() {
           testID="resources-header"
           backTestID="resources-back-btn"
           topInset={insets.top}
+          helpAction={
+            isParentRole
+              ? {
+                  label: t("resources.help.menuLabel"),
+                  onPress: () => setHelpVisible(true),
+                  testID: "resources-help-menu-item",
+                }
+              : undefined
+          }
+          menuTourTargetId={
+            isParentRole ? RESOURCES_TOUR_TARGETS.helpToggle : undefined
+          }
         />
       </View>
 
       {!isFormsTab ? (
-        <UnderlineTabs
-          items={tabItems}
-          activeKey={tab}
-          onSelect={(key) => setTab(key)}
-          testIDPrefix="resources-tab"
-        />
+        <OnboardingTarget id={RESOURCES_TOUR_TARGETS.tabs}>
+          <UnderlineTabs
+            items={tabItems}
+            activeKey={tab}
+            onSelect={(key) => setTab(key)}
+            testIDPrefix="resources-tab"
+          />
+        </OnboardingTarget>
       ) : null}
 
       {loadError ? (
@@ -752,7 +782,11 @@ export function ResourcesScreen() {
 
       <View style={styles.body}>
         {isSearchableTab && !isFormsTab ? (
-          <View style={styles.searchRow} testID="resources-search-row">
+          <OnboardingTarget
+            id={RESOURCES_TOUR_TARGETS.searchFilter}
+            style={styles.searchRow}
+            testID="resources-search-row"
+          >
             <View style={styles.searchBox}>
               <Ionicons name="search" size={16} color={colors.textSecondary} />
               <TextInput
@@ -800,7 +834,7 @@ export function ResourcesScreen() {
                 }
               />
             </TouchableOpacity>
-          </View>
+          </OnboardingTarget>
         ) : null}
 
         {isSearchableTab && filtersOpen ? (
@@ -1164,6 +1198,40 @@ export function ResourcesScreen() {
         dontShowAgain={onboardingDontShowAgain}
         onToggleDontShowAgain={setOnboardingDontShowAgain}
         onClose={closeOnboarding}
+      />
+
+      <PageHelpModal
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        title={
+          tab === "mine"
+            ? t("resources.help.mine.title")
+            : tab === "favorites"
+              ? t("resources.help.favorites.title")
+              : tab === "EXAM"
+                ? t("resources.help.EXAM.title")
+                : t("resources.help.ASSESSMENT.title")
+        }
+        closeLabel={t("resources.help.close")}
+        testID="resources-help-modal"
+        sections={
+          tab === "mine"
+            ? [1, 2].map((n) => ({
+                title: t(`resources.help.mine.section${n}Title`),
+                body: [t(`resources.help.mine.section${n}Body`)],
+              }))
+            : tab === "favorites"
+              ? [
+                  {
+                    title: t("resources.help.favorites.section1Title"),
+                    body: [t("resources.help.favorites.section1Body")],
+                  },
+                ]
+              : [1, 2, 3].map((n) => ({
+                  title: t(`resources.help.browse.section${n}Title`),
+                  body: [t(`resources.help.browse.section${n}Body`)],
+                }))
+        }
       />
     </View>
   );

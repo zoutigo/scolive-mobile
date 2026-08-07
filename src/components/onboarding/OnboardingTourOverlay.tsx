@@ -6,13 +6,16 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import { useTranslation } from "../../i18n/useTranslation";
 import { colors } from "../../theme";
 
 const TOOLTIP_MARGIN = 12;
-const TOOLTIP_MAX_HEIGHT = 110;
+const TOOLTIP_MAX_HEIGHT = 130;
 const TOOLTIP_WIDTH_MARGIN = 16;
+const CONNECTOR_THICKNESS = 2;
+const CONNECTOR_DOT_SIZE = 8;
 
 export function OnboardingTourOverlay() {
   const { t } = useTranslation();
@@ -89,39 +92,38 @@ export function OnboardingTourOverlay() {
       Math.max(0, (spaceBelow - tooltipHeight) / 2)
     : Math.max(TOOLTIP_MARGIN, (spaceAbove - tooltipHeight) / 2);
   const tooltipBottom = tooltipTop + tooltipHeight;
-  const tooltipBandTop = tooltipTop - TOOLTIP_MARGIN / 2;
-  const tooltipBandBottom = tooltipBottom + TOOLTIP_MARGIN / 2;
-
-  // The mask panel that would otherwise sit directly behind the tooltip is
-  // split in two so that band stays undimmed: the tooltip's own translucent
-  // background then reveals real screen content behind it, not the dark
-  // mask, which is what makes it read as "lighter".
   const targetTop = targetY;
   const targetBottom = targetY + targetLayout.height;
 
-  // Above/below the target, the mask is split around the tooltip's band so
-  // that band is left undimmed (see comment above).
-  const topPanels: { top: number; height: number }[] = placeBelow
-    ? [{ top: 0, height: Math.max(targetTop, 0) }]
-    : [
-        { top: 0, height: Math.max(Math.min(tooltipBandTop, targetTop), 0) },
-        {
-          top: Math.max(tooltipBandBottom, 0),
-          height: Math.max(targetTop - Math.max(tooltipBandBottom, 0), 0),
-        },
-      ];
-  const bottomPanels: { top: number; height?: number }[] = placeBelow
-    ? [
-        {
-          top: targetBottom,
-          height: Math.max(
-            Math.min(tooltipBandTop, screenHeight) - targetBottom,
-            0,
-          ),
-        },
-        { top: Math.max(tooltipBandBottom, targetBottom) },
-      ]
-    : [{ top: targetBottom }];
+  // The tooltip card is opaque and renders on top of these mask panels, so
+  // it already fully covers its own row — the mask itself can stay a
+  // single full-width panel above/below the target with no gap carved out
+  // for the tooltip. (An earlier version left that row undimmed on the
+  // assumption the tooltip background was translucent; once the tooltip
+  // became an opaque card, that gap just exposed a strip of undimmed real
+  // content on either side of the card, out to the screen edges.)
+  const topPanels: { top: number; height: number }[] = [
+    { top: 0, height: Math.max(targetTop, 0) },
+  ];
+  const bottomPanels: { top: number; height?: number }[] = [
+    { top: targetBottom },
+  ];
+
+  // A straight line from the tooltip's edge closest to the target to the
+  // target's own closest edge, so the tooltip visually reads as pointing at
+  // the exact control it is describing rather than floating unrelated to it.
+  const tooltipAnchorX = windowSize.width / 2;
+  const tooltipAnchorY = placeBelow ? tooltipTop : tooltipBottom;
+  const targetAnchorX = targetX + targetLayout.width / 2;
+  const targetAnchorY = placeBelow ? targetBottom : targetTop;
+  const connectorDx = targetAnchorX - tooltipAnchorX;
+  const connectorDy = targetAnchorY - tooltipAnchorY;
+  const connectorLength = Math.sqrt(
+    connectorDx * connectorDx + connectorDy * connectorDy,
+  );
+  const connectorAngle = (Math.atan2(connectorDy, connectorDx) * 180) / Math.PI;
+  const connectorMidX = (tooltipAnchorX + targetAnchorX) / 2;
+  const connectorMidY = (tooltipAnchorY + targetAnchorY) / 2;
 
   return (
     <View
@@ -190,6 +192,25 @@ export function OnboardingTourOverlay() {
         testID="onboarding-tour-mask-right"
       />
 
+      {/* Steps that don't opt into advanceOnTargetPress are purely
+          informative: the only way to move the tour forward is the
+          tooltip's own "Suivant" button, so the highlighted control itself
+          must not be reachable, or the user could act on the real screen
+          without going through the tour at all. */}
+      {!advanceOnTargetPress ? (
+        <View
+          pointerEvents="auto"
+          style={{
+            position: "absolute",
+            top: targetY,
+            left: targetX,
+            width: targetLayout.width,
+            height: targetLayout.height,
+          }}
+          testID="onboarding-tour-target-block"
+        />
+      ) : null}
+
       <View
         pointerEvents="none"
         style={[
@@ -202,6 +223,31 @@ export function OnboardingTourOverlay() {
           },
         ]}
         testID="onboarding-tour-highlight"
+      />
+
+      <View
+        pointerEvents="none"
+        style={[
+          styles.connector,
+          {
+            left: connectorMidX - connectorLength / 2,
+            top: connectorMidY - CONNECTOR_THICKNESS / 2,
+            width: connectorLength,
+            transform: [{ rotate: `${connectorAngle}deg` }],
+          },
+        ]}
+        testID="onboarding-tour-connector"
+      />
+      <View
+        pointerEvents="none"
+        style={[
+          styles.connectorDot,
+          {
+            left: targetAnchorX - CONNECTOR_DOT_SIZE / 2,
+            top: targetAnchorY - CONNECTOR_DOT_SIZE / 2,
+          },
+        ]}
+        testID="onboarding-tour-connector-dot"
       />
 
       <View
@@ -222,49 +268,52 @@ export function OnboardingTourOverlay() {
         ]}
         testID="onboarding-tour-tooltip"
       >
-        <View style={styles.header}>
-          <Text style={styles.stepCounter}>
-            {stepIndex + 1}/{steps.length}
-          </Text>
-          <Text
-            style={styles.title}
-            numberOfLines={1}
-            testID="onboarding-tour-title"
-          >
-            {t(step.titleKey)}
-          </Text>
-          {!advanceOnTargetPress ? (
-            <TouchableOpacity
-              onPress={next}
-              style={styles.skipButton}
-              testID="onboarding-tour-skip"
+        {/* Elevation on Android draws an unclipped rectangular shadow behind
+            the view, regardless of `overflow: hidden`/`borderRadius` on the
+            same node — it can bleed past the rounded corners as a mismatched
+            patch. Keeping the shadow on this outer node and the rounded
+            clipping + colors on a separate inner node avoids that. */}
+        <View style={styles.tooltipInner}>
+          <View style={styles.headerBand}>
+            <View style={styles.iconWrap}>
+              <Ionicons
+                name="help-circle"
+                size={16}
+                color={colors.accentTeal}
+              />
+            </View>
+            <Text style={styles.stepCounter}>
+              {stepIndex + 1}/{steps.length}
+            </Text>
+            <Text
+              style={styles.title}
+              numberOfLines={1}
+              testID="onboarding-tour-title"
             >
-              <Text style={styles.skipText}>
-                {t("onboardingTour.common.skip")}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
-        <Text style={styles.body} testID="onboarding-tour-body">
-          {t(step.bodyKey)}
-        </Text>
-        {advanceOnTargetPress ? (
-          <Text style={styles.hint} testID="onboarding-tour-hint">
-            {t("onboardingTour.common.tapTarget")}
-          </Text>
-        ) : (
-          <View style={styles.actions}>
-            <TouchableOpacity
-              onPress={next}
-              style={styles.nextButton}
-              testID="onboarding-tour-next"
-            >
-              <Text style={styles.nextText}>
-                {isLastStep ? finishLabel : t("onboardingTour.common.next")}
-              </Text>
-            </TouchableOpacity>
+              {t(step.titleKey)}
+            </Text>
           </View>
-        )}
+          <View style={styles.body}>
+            <Text style={styles.bodyText} testID="onboarding-tour-body">
+              {t(step.bodyKey)}
+            </Text>
+            {advanceOnTargetPress ? (
+              <Text style={styles.hint} testID="onboarding-tour-hint">
+                {t("onboardingTour.common.tapTarget")}
+              </Text>
+            ) : (
+              <TouchableOpacity
+                onPress={next}
+                style={styles.nextButton}
+                testID="onboarding-tour-next"
+              >
+                <Text style={styles.nextText}>
+                  {isLastStep ? finishLabel : t("onboardingTour.common.next")}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
       </View>
     </View>
   );
@@ -281,66 +330,91 @@ const styles = StyleSheet.create({
     borderColor: colors.accentTeal,
     borderRadius: 6,
   },
+  connector: {
+    position: "absolute",
+    height: CONNECTOR_THICKNESS,
+    backgroundColor: colors.accentTeal,
+  },
+  connectorDot: {
+    position: "absolute",
+    width: CONNECTOR_DOT_SIZE,
+    height: CONNECTOR_DOT_SIZE,
+    borderRadius: CONNECTOR_DOT_SIZE / 2,
+    backgroundColor: colors.accentTeal,
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
   tooltip: {
     position: "absolute",
-    backgroundColor: "rgba(36, 124, 114, 0.98)",
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.35)",
-    padding: 10,
-    gap: 4,
+    // Elevation needs an opaque background to render its shadow on Android;
+    // the rounded clipping itself lives on `tooltipInner` (see comment at
+    // the call site).
+    backgroundColor: "#EAF6F4",
+    borderRadius: 14,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.18,
     shadowRadius: 14,
     elevation: 8,
   },
-  header: {
+  tooltipInner: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#BFE3DE",
+    overflow: "hidden",
+  },
+  headerBand: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#D5EEEA",
+    borderBottomWidth: 1,
+    borderBottomColor: "#BFE3DE",
+  },
+  iconWrap: {
+    width: 22,
+    height: 22,
+    borderRadius: 7,
+    backgroundColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
   },
   stepCounter: {
     fontSize: 11,
     fontWeight: "700",
-    color: "rgba(255, 255, 255, 0.75)",
+    color: colors.accentTeal,
   },
   title: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: "700",
-    color: colors.white,
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.accentTealDark,
   },
   body: {
+    padding: 12,
+    gap: 8,
+  },
+  bodyText: {
     fontSize: 13,
     lineHeight: 18,
-    color: "rgba(255, 255, 255, 0.92)",
+    color: colors.textPrimary,
+    textAlign: "justify",
   },
   hint: {
     fontSize: 12,
     fontWeight: "600",
     fontStyle: "italic",
-    color: colors.white,
-  },
-  actions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: 4,
-  },
-  skipButton: {
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-  },
-  skipText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "rgba(255, 255, 255, 0.85)",
+    color: colors.accentTealDark,
   },
   nextButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    alignSelf: "stretch",
+    backgroundColor: colors.accentTeal,
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
   nextText: {
     fontSize: 13,

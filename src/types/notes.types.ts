@@ -213,7 +213,7 @@ export type CouncilDrafts = Record<
 export type UpsertTermReportsPayload = {
   status: "DRAFT" | "PUBLISHED";
   councilHeldAt?: string | null;
-  students: Array<{
+  reports: Array<{
     studentId: string;
     generalAppreciation?: string | null;
     subjects: Array<{

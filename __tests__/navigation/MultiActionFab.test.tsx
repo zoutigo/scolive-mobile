@@ -30,6 +30,30 @@ describe("MultiActionFab — une seule action", () => {
   });
 });
 
+describe("MultiActionFab — tourTargetId (une seule action)", () => {
+  it("reste tapable et déclenche l'action quand tourTargetId est fourni", () => {
+    const onPress = jest.fn();
+    render(
+      <MultiActionFab
+        bottom={20}
+        tourTargetId="teacher-notes-tour-create-fab"
+        actions={[
+          {
+            key: "add",
+            icon: "add",
+            label: "Ajouter",
+            onPress,
+            testID: "fab-add",
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.press(screen.getByTestId("fab-add"));
+    expect(onPress).toHaveBeenCalled();
+  });
+});
+
 describe("MultiActionFab — aucune action", () => {
   it("ne rend rien", () => {
     render(<MultiActionFab bottom={20} actions={[]} />);

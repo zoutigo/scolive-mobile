@@ -79,7 +79,10 @@ describe("LegalDocumentScreen", () => {
     api.getContactInfo.mockResolvedValue({
       email: "contact@scolive.cm",
       phone: "+237 690000000",
-      address: "Yaoundé, Cameroun",
+      addressStreet: "Rue des Manguiers",
+      addressDistrict: "Bastos",
+      addressCity: "Yaoundé",
+      addressCountry: "Cameroun",
       legalRepresentativeFirstName: "Jean",
       legalRepresentativeLastName: "Dupont",
     });
@@ -103,7 +106,10 @@ describe("LegalDocumentScreen", () => {
     api.getContactInfo.mockResolvedValue({
       email: "contact@scolive.cm",
       phone: "+237 690000000",
-      address: "Yaoundé, Cameroun",
+      addressStreet: "Rue des Manguiers",
+      addressDistrict: "Bastos",
+      addressCity: "Yaoundé",
+      addressCountry: "Cameroun",
       legalRepresentativeFirstName: "",
       legalRepresentativeLastName: "",
     });

@@ -109,6 +109,7 @@ const ROLE_SECTION_COLORS: Partial<
   SCHOOL_MANAGER: { bg: "#E8F2F1", border: "#195E56", icon: "#195E56" },
   SUPERVISOR: { bg: "#F3EDF8", border: "#7B4EA0", icon: "#7B4EA0" },
   SCHOOL_ACCOUNTANT: { bg: "#EAF5F0", border: "#2E7D62", icon: "#2E7D62" },
+  SCHOOL_HEALTH_OFFICER: { bg: "#FCEBEA", border: "#B3261E", icon: "#B3261E" },
 };
 
 const ALL_ROLES: SchoolRole[] = [
@@ -116,6 +117,7 @@ const ALL_ROLES: SchoolRole[] = [
   "PARENT",
   "STUDENT",
   "SCHOOL_STAFF",
+  "SCHOOL_HEALTH_OFFICER",
   "SCHOOL_ADMIN",
   "SCHOOL_MANAGER",
   "SUPERVISOR",
@@ -1595,7 +1597,7 @@ export function UserDetailModal({
           />
         );
       }
-      if (role === "SCHOOL_STAFF") {
+      if (role === "SCHOOL_STAFF" || role === "SCHOOL_HEALTH_OFFICER") {
         return (
           <StaffSection
             key={role}

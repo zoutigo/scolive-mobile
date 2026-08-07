@@ -4,7 +4,10 @@ export type SiteContentLocale = "fr" | "en";
 export interface ContactInfo {
   email: string;
   phone: string;
-  address: string;
+  addressStreet: string;
+  addressDistrict: string;
+  addressCity: string;
+  addressCountry: string;
   legalRepresentativeFirstName: string;
   legalRepresentativeLastName: string;
 }

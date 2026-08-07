@@ -70,3 +70,27 @@ describe("Interactions", () => {
     expect(baseProps.onClose).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("Sous-chapitres (sections)", () => {
+  const sections = [
+    { title: "Changer de vue", body: ["Paragraphe A."] },
+    {
+      title: "Naviguer dans le temps",
+      body: ["Paragraphe B.", "Paragraphe C."],
+    },
+  ];
+
+  it("affiche le titre de chaque section et ses paragraphes, en ignorant body", () => {
+    render(
+      <PageHelpModal {...baseProps} sections={sections} body={undefined} />,
+    );
+    expect(screen.getByText("Changer de vue")).toBeTruthy();
+    expect(screen.getByText("Naviguer dans le temps")).toBeTruthy();
+    expect(screen.getByText("Paragraphe A.")).toBeTruthy();
+    expect(screen.getByText("Paragraphe B.")).toBeTruthy();
+    expect(screen.getByText("Paragraphe C.")).toBeTruthy();
+    for (const paragraph of baseProps.body) {
+      expect(screen.queryByText(paragraph)).toBeNull();
+    }
+  });
+});

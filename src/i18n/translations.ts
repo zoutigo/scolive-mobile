@@ -10,6 +10,116 @@ export const DEFAULT_LOCALE: Locale = "fr";
  */
 export const translations: Record<Locale, Record<string, string>> = {
   fr: {
+    "common.loading": "Chargement...",
+    "common.cancel": "Annuler",
+    "common.save": "Enregistrer",
+    "common.delete": "Supprimer",
+    "common.select": "Sélectionner",
+
+    "financeAdmin.lockedTitle": "Module réservé au personnel administratif",
+    "financeAdmin.lockedMessage":
+      "Ce module mobile est disponible pour les comptes admin, gestionnaire ou comptable.",
+    "financeAdmin.schedules.title": "Échéanciers",
+    "financeAdmin.schedules.empty": "Aucun échéancier défini pour le moment.",
+    "financeAdmin.schedules.success.saved": "Échéancier enregistré.",
+    "financeAdmin.schedules.success.deleted": "Échéancier supprimé.",
+    "financeAdmin.schedules.errors.save": "Enregistrement impossible.",
+    "financeAdmin.schedules.errors.delete": "Suppression impossible.",
+    "financeAdmin.schedules.form.title": "Nouvel échéancier / mise à jour",
+    "financeAdmin.schedules.form.subtitle":
+      "Barème par niveau, filière et année scolaire",
+    "financeAdmin.schedules.form.schoolYear": "Année scolaire",
+    "financeAdmin.schedules.form.academicLevel": "Niveau",
+    "financeAdmin.schedules.form.track": "Filière",
+    "financeAdmin.schedules.form.trackNone": "Aucune filière",
+    "financeAdmin.schedules.form.installments": "Échéances",
+    "financeAdmin.schedules.form.label": "Libellé",
+    "financeAdmin.schedules.form.amount": "Montant",
+    "financeAdmin.schedules.form.addInstallment": "Ajouter une échéance",
+    "financeAdmin.schedules.deleteConfirm.title": "Supprimer l'échéancier",
+
+    "financeAdmin.payments.title": "Paiements",
+    "financeAdmin.payments.search.placeholder": "Nom ou prénom",
+    "financeAdmin.payments.search.button": "Rechercher",
+    "financeAdmin.payments.errors.search": "Recherche impossible.",
+    "financeAdmin.payments.errors.summary":
+      "Impossible de charger la situation financière de cet élève.",
+    "financeAdmin.payments.errors.save":
+      "Enregistrement du paiement impossible.",
+    "financeAdmin.payments.success.paid": "Paiement enregistré.",
+    "financeAdmin.payments.success.paidAndReinscribed":
+      "Paiement enregistré : la réinscription de l'élève est confirmée.",
+    "financeAdmin.payments.targetYear": "Année scolaire (réinscription)",
+    "financeAdmin.payments.summary.totalPaid": "Total déjà versé",
+    "financeAdmin.payments.summary.firstInstallment":
+      "Montant de la 1ère échéance",
+    "financeAdmin.payments.summary.eligible":
+      "Seuil atteint : élève réinscrit.",
+    "financeAdmin.payments.summary.notEligible":
+      "Seuil non atteint : la réinscription n'est pas encore confirmée.",
+    "financeAdmin.payments.form.amount": "Montant versé",
+    "financeAdmin.payments.form.submit": "Enregistrer le paiement",
+
+    "promotionsAdmin.title": "Passages de classe",
+    "promotionsAdmin.tab.decisions": "Décisions",
+    "promotionsAdmin.tab.waiting": "Attente",
+    "promotionsAdmin.decisions.selectClass": "Classe (année en cours)",
+    "promotionsAdmin.decisions.empty":
+      "Aucun bulletin du dernier trimestre pour cette classe.",
+    "promotionsAdmin.decisions.nextLevel": "Niveau cible",
+    "promotionsAdmin.decisions.nextTrack": "Filière cible",
+    "promotionsAdmin.decisions.trackNone": "Aucune filière",
+    "promotionsAdmin.decision.PROMOTED": "Promu",
+    "promotionsAdmin.decision.REPEATED": "Redouble",
+    "promotionsAdmin.decision.LEFT": "Quitte l'établissement",
+    "promotionsAdmin.errors.loadReports":
+      "Impossible de charger les bulletins.",
+    "promotionsAdmin.errors.saveDecision":
+      "Enregistrement de la décision impossible.",
+    "promotionsAdmin.errors.loadWaiting":
+      "Impossible de charger la liste d'attente.",
+    "promotionsAdmin.errors.assign": "Affectation impossible.",
+    "promotionsAdmin.success.decisionSaved": "Décision enregistrée.",
+    "promotionsAdmin.success.assigned": "Élève affecté à la classe.",
+    "promotionsAdmin.waiting.targetYear": "Année scolaire cible",
+    "promotionsAdmin.waiting.level": "Niveau",
+    "promotionsAdmin.waiting.allLevels": "Tous les niveaux",
+    "promotionsAdmin.waiting.targetClass": "Classe définitive",
+    "promotionsAdmin.waiting.assign": "Affecter",
+    "promotionsAdmin.waiting.empty":
+      "Aucun élève en attente d'affectation pour ces filtres.",
+
+    "schoolSettings.title": "Paramètres de l'école",
+    "schoolSettings.tabs.levels": "Niveaux",
+    "schoolSettings.lockedTitle": "Accès réservé",
+    "schoolSettings.lockedMessage":
+      "Seuls les administrateurs et directeurs de l'école peuvent accéder aux paramètres.",
+    "schoolSettings.errors.load": "Impossible de charger les niveaux.",
+    "schoolSettings.levels.intro":
+      "Activez les niveaux nationaux utilisés par cette école. Les niveaux propres à l'école sont toujours actifs. L'ordre détermine le niveau suivant proposé automatiquement lors d'une décision de passage.",
+    "schoolSettings.levels.own": "Niveau propre à l'école",
+    "schoolSettings.levels.national": "Niveau national",
+    "schoolSettings.levels.alwaysActive": "Toujours actif",
+    "schoolSettings.levels.orderLabel": "Ordre",
+    "schoolSettings.levels.empty.title": "Aucun niveau",
+    "schoolSettings.levels.empty.message":
+      "Aucun niveau académique n'est disponible pour cette école.",
+    "schoolSettings.levels.errors.toggle":
+      "Impossible de modifier l'activation de ce niveau.",
+    "schoolSettings.levels.errors.save": "Impossible d'enregistrer l'ordre.",
+    "schoolSettings.levels.errors.invalidOrder":
+      "L'ordre doit être un nombre entier positif.",
+    "schoolSettings.levels.success.saved": "Modification enregistrée.",
+    "schoolSettings.help.menuLabel": "Aide",
+    "schoolSettings.help.close": "Fermer",
+    "schoolSettings.help.title": "Aide — Paramètres de l'école",
+    "schoolSettings.help.section1Title": "Activer un niveau",
+    "schoolSettings.help.section1Body":
+      "Les niveaux nationaux du catalogue plateforme n'apparaissent pas tous automatiquement pour votre école : activez uniquement ceux que votre école utilise réellement. Les niveaux propres à votre école sont toujours actifs et n'ont pas besoin d'être activés.",
+    "schoolSettings.help.section2Title": "L'ordre et la décision de passage",
+    "schoolSettings.help.section2Body":
+      "Le champ Ordre (modifiable sur vos niveaux propres) définit la progression pédagogique. Quand un enseignant enregistre une décision « Promu » dans l'onglet Décision de Notes, l'application propose automatiquement le niveau actif suivant dans cet ordre.",
+
     "settings.language.title": "Langue de cet appareil",
     "settings.language.subtitle": "Choisissez la langue de l'application",
     "settings.language.hint":
@@ -88,11 +198,39 @@ export const translations: Record<Locale, Record<string, string>> = {
     "legalScreen.errors.load": "Impossible de charger ce document.",
     "legalScreen.publisherLabel": "Responsable de publication :",
     "onboardingTour.common.next": "Suivant",
-    "onboardingTour.common.skip": "Passer",
     "onboardingTour.common.finish": "Terminer",
     "onboardingTour.common.tapTarget":
       "Touchez l'élément en surbrillance pour continuer.",
     "onboardingTour.common.gotIt": "J'ai compris",
+    "onboardingTour.financeParent.walletTitle": "Votre porte-monnaie",
+    "onboardingTour.financeParent.walletBody":
+      "Creditez ce porte-monnaie a tout moment, meme avant que le conseil de classe n'ait statue. L'argent y reste disponible jusqu'a ce que vous decidiez de l'affecter a un enfant.",
+    "onboardingTour.financeParent.childrenTitle": "Statut de chaque enfant",
+    "onboardingTour.financeParent.childrenBody":
+      "Pour chaque enfant : en attente de la decision du conseil de classe, deja reinscrit, ou pret a etre reinscrit avec le montant restant du affiche.",
+    "onboardingTour.financeParent.reinscribeTitle": "Je paie et je reinscris",
+    "onboardingTour.financeParent.reinscribeBody":
+      "Ce bouton debite votre porte-monnaie du montant exact de la 1ere echeance de CET enfant et confirme sa reinscription en un seul geste. Un parent avec plusieurs enfants doit cliquer separement pour chacun.",
+    "finSituation.wallet.balance": "Solde du porte-monnaie",
+    "finSituation.wallet.topUpAmount": "Montant a crediter",
+    "finSituation.wallet.topUpSubmit": "Crediter",
+    "finSituation.wallet.allChildrenLoaded": "Tous les enfants ont ete charges",
+    "finSituation.wallet.errors.load":
+      "Impossible de charger le porte-monnaie.",
+    "finSituation.wallet.errors.amount": "Montant invalide.",
+    "finSituation.wallet.errors.topUp": "Depot impossible.",
+    "finSituation.wallet.errors.reinscribe": "Reinscription impossible.",
+    "finSituation.wallet.success.topUp": "Porte-monnaie credite.",
+    "finSituation.wallet.success.reinscribed": "{firstName} est reinscrit(e) !",
+    "finSituation.children.title": "Mes enfants",
+    "finSituation.children.required": "Montant restant du :",
+    "finSituation.children.payAndReinscribe": "Je paie et je reinscris",
+    "finSituation.children.empty": "Aucun enfant rattache a votre compte.",
+    "finSituation.children.status.DECISION_PENDING":
+      "En attente de la decision du conseil de classe",
+    "finSituation.children.status.ALREADY_REINSCRIBED": "Deja reinscrit(e)",
+    "finSituation.children.status.READY_TO_REINSCRIBE":
+      "Pret(e) a etre reinscrit(e)",
     "onboardingTour.childTimetable.step1Title": "Changez de vue",
     "onboardingTour.childTimetable.step1Body":
       "Touchez Jour, Semaine ou Mois pour changer la façon d'afficher l'emploi du temps.",
@@ -104,7 +242,52 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Chaque carte affiche l'horaire, la matière, l'enseignant et la salle du cours.",
     "onboardingTour.childTimetable.step4Title": "Une aide toujours disponible",
     "onboardingTour.childTimetable.step4Body":
-      "Touchez ce bouton à tout moment pour afficher un rappel sur l'utilisation de cette page.",
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel sur l'utilisation de cette page.",
+    "onboardingTour.schoolSettings.step1Title": "Onglet Niveaux",
+    "onboardingTour.schoolSettings.step1Body":
+      "Cet onglet regroupe les niveaux académiques utilisés par votre école. D'autres réglages viendront s'y ajouter au fil du temps.",
+    "onboardingTour.schoolSettings.step2Title": "Activer un niveau",
+    "onboardingTour.schoolSettings.step2Body":
+      "Le bouton active ou désactive un niveau national pour votre école : seuls les niveaux actifs apparaissent ensuite comme cible possible dans l'onglet Décision de Notes. Les niveaux propres à votre école sont toujours actifs. Le champ Ordre (sur vos niveaux propres) détermine quel niveau est proposé automatiquement quand un enseignant enregistre une décision « Promu ».",
+    "onboardingTour.schoolSettings.step3Title": "Une aide toujours disponible",
+    "onboardingTour.schoolSettings.step3Body":
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel sur l'utilisation de cette page.",
+    "onboardingTour.vieScolaire.step1Title": "Trois onglets",
+    "onboardingTour.vieScolaire.step1Body":
+      "Touchez un onglet pour passer de la synthèse aux absences et retards, puis aux sanctions et punitions.",
+    "onboardingTour.vieScolaire.step2Title": "Filtrez par indicateur",
+    "onboardingTour.vieScolaire.step2Body":
+      "Touchez une carte (absences, retards, sanctions, punitions) pour filtrer la liste des événements récents sur ce type.",
+    "onboardingTour.vieScolaire.step3Title": "Une aide toujours disponible",
+    "onboardingTour.vieScolaire.step3Body":
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour retrouver ces explications.",
+    "onboardingTour.homework.step1Title": "Deux façons de voir vos devoirs",
+    "onboardingTour.homework.step1Body":
+      "« Liste » affiche vos prochains devoirs les uns après les autres, « Agenda » les organise par semaine ou par mois.",
+    "onboardingTour.homework.step2Title": "La carte d'un devoir",
+    "onboardingTour.homework.step2Body":
+      "Touchez une carte pour voir la consigne complète et les pièces jointes. L'icône bulle affiche et ajoute des commentaires.",
+    "onboardingTour.homework.step3Title": "Marquez-le comme fait",
+    "onboardingTour.homework.step3Body":
+      "Une fois le devoir terminé, touchez cette pastille pour le signaler à votre enseignant. Vous pouvez la retoucher pour l'annuler.",
+    "onboardingTour.homework.step4Title": "Une aide toujours disponible",
+    "onboardingTour.homework.step4Body":
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel sur l'utilisation de cette page.",
+    "onboardingTour.parentLanding.step1Title": "Votre menu de navigation",
+    "onboardingTour.parentLanding.step1Body":
+      "Touchez cette icône pour ouvrir le menu et accéder à toutes les rubriques de l'école.",
+    "onboardingTour.parentLanding.step2Title": "Votre messagerie",
+    "onboardingTour.parentLanding.step2Body":
+      "Dans ce menu, cette entrée ouvre votre messagerie parent, où se trouvent tous vos échanges avec l'école.",
+    "onboardingTour.parentLanding.step3Title": "L'espace de votre enfant",
+    "onboardingTour.parentLanding.step3Body":
+      "Touchez le nom de votre enfant pour déplier son espace : notes, emploi du temps, vie scolaire et plus encore.",
+    "onboardingTour.parentLanding.step4Title": "Paramètres de votre compte",
+    "onboardingTour.parentLanding.step4Body":
+      "Cette icône ouvre les paramètres de votre compte : coordonnées, sécurité et préférences.",
+    "onboardingTour.parentLanding.step5Title": "Une aide toujours disponible",
+    "onboardingTour.parentLanding.step5Body":
+      "Touchez ce bouton à tout moment pour revoir un rappel sur l'utilisation de cette page et du menu de navigation.",
     "onboardingTour.feedFilters.step1Title": "Ouvrez les filtres",
     "onboardingTour.feedFilters.step1Body":
       "Touchez ce bouton pour ouvrir le panneau de filtres du fil.",
@@ -494,8 +677,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.delete.confirmAria": "Confirmer la suppression",
 
     "discipline.tabs.synthesis": "Synthèse",
-    "discipline.tabs.absencesRetards": "Absences & Retards",
-    "discipline.tabs.sanctionsPunitions": "Sanctions & Punitions",
+    "discipline.tabs.absencesRetards": "Absences",
+    "discipline.tabs.sanctionsPunitions": "Sanctions",
     "discipline.tabs.events": "Événements",
     "discipline.tabs.booklets": "Carnets",
     "discipline.tabs.history": "Historique",
@@ -544,6 +727,28 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.header.discipline": "Discipline",
     "discipline.header.vieScolaire": "Vie scolaire",
     "discipline.header.student": "Élève",
+
+    "discipline.vieScolaire.help.menuLabel": "Aide",
+    "discipline.vieScolaire.help.close": "Fermer",
+    "discipline.vieScolaire.help.synthese.title": "Vie scolaire — Synthèse",
+    "discipline.vieScolaire.help.synthese.section1Title":
+      "Les compteurs de l'année",
+    "discipline.vieScolaire.help.synthese.section1Body":
+      "Les cartes en haut de l'écran totalisent, depuis le début de l'année scolaire, le nombre d'absences, de retards, de sanctions et de punitions. Ces chiffres se mettent à jour automatiquement dès qu'un nouvel événement est enregistré par l'établissement — vous n'avez rien à faire pour les actualiser.",
+    "discipline.vieScolaire.help.synthese.section2Title":
+      "Filtrer les événements récents",
+    "discipline.vieScolaire.help.synthese.section2Body":
+      "Touchez une carte (absences, retards, sanctions ou punitions) pour n'afficher, dans la liste « Événements récents » juste en dessous, que les événements de ce type — pratique pour vérifier rapidement, par exemple, si un retard signalé oralement a bien été enregistré. Touchez à nouveau la même carte (ou « Tout voir ») pour revenir à la liste complète sans filtre.",
+    "discipline.vieScolaire.help.absences.title": "Vie scolaire — Absences",
+    "discipline.vieScolaire.help.absences.section1Title":
+      "L'historique complet des absences et retards",
+    "discipline.vieScolaire.help.absences.section1Body":
+      "Cet onglet liste, du plus récent au plus ancien, chaque absence et chaque retard enregistrés par l'établissement, avec leur date et leur motif si l'établissement en a précisé un. Cette liste est en lecture seule : elle reflète ce que l'établissement a saisi, elle ne peut pas être modifiée depuis l'application.",
+    "discipline.vieScolaire.help.sanctions.title": "Vie scolaire — Sanctions",
+    "discipline.vieScolaire.help.sanctions.section1Title":
+      "L'historique complet des sanctions et punitions",
+    "discipline.vieScolaire.help.sanctions.section1Body":
+      "Cet onglet liste, du plus récent au plus ancien, chaque sanction et chaque punition enregistrées par l'établissement, avec leur date et leur motif. Comme l'onglet Absences, cette liste est en lecture seule et reflète uniquement ce que l'établissement a saisi.",
 
     "discipline.fab.addEvent": "Ajouter un événement de discipline",
 
@@ -596,6 +801,36 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.sections.byClass.subtitle":
       "Sélectionnez une année et une classe.",
 
+    "discipline.teacherHelp.menuLabel": "Aide",
+    "discipline.teacherHelp.close": "J'ai compris",
+    "discipline.teacherHelp.events.title":
+      "Comment utiliser l'onglet Événements",
+    "discipline.teacherHelp.events.section1Title": "Filtrer par élève",
+    "discipline.teacherHelp.events.section1Body":
+      "Choisissez un élève dans la liste pour n'afficher que ses événements, ou laissez vide pour voir toute la classe.",
+    "discipline.teacherHelp.events.section2Title": "Signaler un événement",
+    "discipline.teacherHelp.events.section2Body":
+      "Touchez le bouton + pour signaler une absence, un retard, une sanction ou une punition.",
+    "discipline.teacherHelp.carnets.title": "Comment utiliser l'onglet Carnets",
+    "discipline.teacherHelp.carnets.section1Title":
+      "Consulter le carnet d'un élève",
+    "discipline.teacherHelp.carnets.section1Body":
+      "Choisissez un élève pour afficher la synthèse de ses absences, retards, sanctions et punitions.",
+
+    "onboardingTour.teacherDiscipline.step1Title": "Deux onglets",
+    "onboardingTour.teacherDiscipline.step1Body":
+      "Passez des événements récents de la classe au carnet détaillé d'un élève.",
+    "onboardingTour.teacherDiscipline.step2Title": "Filtrer par élève",
+    "onboardingTour.teacherDiscipline.step2Body":
+      "Choisissez un élève dans la liste pour n'afficher que ses événements.",
+    "onboardingTour.teacherDiscipline.step3Title": "Signaler un événement",
+    "onboardingTour.teacherDiscipline.step3Body":
+      "Touchez ce bouton pour signaler une absence, un retard, une sanction ou une punition.",
+    "onboardingTour.teacherDiscipline.step4Title":
+      "Une aide toujours disponible",
+    "onboardingTour.teacherDiscipline.step4Body":
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel adapté à l'onglet que vous consultez.",
+
     "discipline.filters.title": "Filtres",
     "discipline.filters.student": "Élève",
     "discipline.filters.allStudents": "Tous les élèves",
@@ -623,6 +858,27 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.tabs.agenda": "Agenda des homeworks",
     "homework.tabs.week": "Semaine",
     "homework.tabs.month": "Mois",
+
+    "homework.tourFallback.title": "Exemple : Exercices page 42",
+    "homework.tourFallback.subject": "Mathématiques",
+    "homework.tourFallback.author": "Votre enseignant",
+
+    "homework.help.menuLabel": "Aide",
+    "homework.help.close": "Fermer",
+    "homework.help.list.title": "Devoirs — Liste",
+    "homework.help.list.section1Title": "La vue Liste",
+    "homework.help.list.section1Body":
+      "Cette vue affiche vos prochains devoirs les uns après les autres, du plus proche au plus lointain dans le temps. Touchez « Agenda » en haut de l'écran pour les voir organisés par semaine ou par mois à la place.",
+    "homework.help.agenda.title": "Devoirs — Agenda",
+    "homework.help.agenda.section1Title": "La vue Agenda",
+    "homework.help.agenda.section1Body":
+      "Cette vue organise vos devoirs par semaine ou par mois : un point apparaît sous chaque jour qui contient au moins un devoir. Touchez un jour marqué pour afficher les devoirs de ce jour-là. Touchez « Liste » en haut de l'écran pour revenir à l'ordre chronologique simple.",
+    "homework.help.section2Title": "La carte d'un devoir",
+    "homework.help.section2Body":
+      "Chaque carte affiche la matière, le titre du devoir et sa date d'échéance. Touchez une carte pour voir la consigne complète et les pièces jointes éventuelles. L'icône bulle affiche les commentaires déjà postés et permet d'en ajouter un nouveau, visible par l'enseignant et les autres élèves de la classe.",
+    "homework.help.section3Title": "Marquer comme fait",
+    "homework.help.section3Body":
+      "Une fois le devoir terminé, touchez la pastille « Marquer fait » pour le signaler à votre enseignant : le devoir reste visible mais apparaît comme traité. Vous pouvez retoucher la même pastille pour annuler ce marquage si vous vous êtes trompé.",
 
     "homework.form.validation.subjectRequired": "La matière est obligatoire.",
     "homework.form.validation.titleRequired": "Le titre est obligatoire.",
@@ -866,6 +1122,42 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.filters.apply": "Appliquer",
     "resources.filters.close": "Fermer",
 
+    "resources.help.menuLabel": "Aide",
+    "resources.help.close": "Fermer",
+    "resources.help.ASSESSMENT.title": "Comment utiliser l'onglet Évaluations",
+    "resources.help.EXAM.title": "Comment utiliser l'onglet Examens",
+    "resources.help.browse.section1Title": "Rechercher et filtrer",
+    "resources.help.browse.section1Body":
+      "Utilisez le champ de recherche pour retrouver une ressource par son titre. Touchez l'icône filtre pour affiner par année scolaire, établissement, niveau, séquence ou type d'examen selon l'onglet consulté.",
+    "resources.help.browse.section2Title": "Consulter une ressource",
+    "resources.help.browse.section2Body":
+      "Touchez une carte pour ouvrir l'énoncé ou, si disponible, le corrigé.",
+    "resources.help.browse.section3Title": "Ajouter aux favoris",
+    "resources.help.browse.section3Body":
+      "Touchez l'icône favori sur une carte pour l'ajouter à vos favoris et la retrouver rapidement depuis l'onglet Favoris.",
+    "resources.help.mine.title": "Comment utiliser l'onglet Mes ressources",
+    "resources.help.mine.section1Title": "Suivre le statut de vos propositions",
+    "resources.help.mine.section1Body":
+      "Chaque ressource que vous avez proposée affiche le statut de son énoncé et, si présent, de son corrigé : en attente, approuvé ou refusé par la modération — pour savoir si votre proposition est déjà visible des autres utilisateurs.",
+    "resources.help.mine.section2Title": "Modifier une proposition",
+    "resources.help.mine.section2Body":
+      "Touchez Modifier sur une de vos ressources pour corriger son contenu, avant ou après validation par la modération.",
+    "resources.help.favorites.title": "Comment utiliser l'onglet Favoris",
+    "resources.help.favorites.section1Title":
+      "Retrouver vos ressources favorites",
+    "resources.help.favorites.section1Body":
+      "Cet onglet regroupe toutes les ressources ajoutées en favori depuis les onglets Évaluations et Examens. Touchez à nouveau l'icône favori sur une carte pour la retirer de cette liste.",
+
+    "onboardingTour.resources.step1Title": "Types de ressources",
+    "onboardingTour.resources.step1Body":
+      "Basculez entre Évaluations, Examens et vos Favoris grâce à ces onglets.",
+    "onboardingTour.resources.step2Title": "Rechercher et filtrer",
+    "onboardingTour.resources.step2Body":
+      "Recherchez une ressource par titre, ou touchez l'icône de filtre pour affiner par année, établissement, niveau ou type.",
+    "onboardingTour.resources.step3Title": "Besoin d'aide ?",
+    "onboardingTour.resources.step3Body":
+      "Touchez ce bouton, puis « Aide » dans le menu, pour retrouver ces explications à tout moment.",
+
     "resources.form.duplicateWarningTitle":
       "Ressource peut-être déjà existante",
     "resources.form.duplicateWarningMessage":
@@ -992,14 +1284,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.childAgenda.detail.time": "Horaire :",
     "timetable.childAgenda.detail.teacher": "Enseignant :",
     "timetable.childAgenda.detail.room": "Salle :",
-    "timetable.childAgenda.help.toggleOpen": "Besoin d'aide sur cette page ?",
-    "timetable.childAgenda.help.toggleClose": "Masquer l'aide",
+    "timetable.childAgenda.help.menuLabel": "Aide",
     "timetable.childAgenda.help.title": "Comment utiliser cette page",
-    "timetable.childAgenda.help.body1":
+    "timetable.childAgenda.help.close": "J'ai compris",
+    "timetable.childAgenda.help.section1Title": "Changer de vue",
+    "timetable.childAgenda.help.section1Body":
       "Basculez entre Jour, Semaine et Mois pour changer la façon d'afficher l'emploi du temps de votre enfant.",
-    "timetable.childAgenda.help.body2":
+    "timetable.childAgenda.help.section2Title": "Naviguer dans le temps",
+    "timetable.childAgenda.help.section2Body":
       "Utilisez les flèches ou touchez le libellé de la période pour naviguer dans le temps : avancez de plusieurs mois pour retrouver un créneau précis, ou revenez à « aujourd'hui » pour consulter l'agenda du jour ou de demain.",
-    "timetable.childAgenda.help.body3":
+    "timetable.childAgenda.help.section3Title":
+      "Consulter le détail d'un cours",
+    "timetable.childAgenda.help.section3Body":
       "Touchez une carte de cours pour voir en un coup d'œil son horaire, l'enseignant et la salle.",
 
     "timetable.classesScreen.headerTitle": "Mes classes",
@@ -1081,6 +1377,44 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.teacherAgenda.admin.selectionBanner.classPrefix": "Classe",
     "timetable.teacherAgenda.admin.selectionBanner.clear":
       "Effacer la sélection",
+
+    "timetable.teacherAgenda.help.menuLabel": "Aide",
+    "timetable.teacherAgenda.help.close": "J'ai compris",
+    "timetable.teacherAgenda.help.mine.title": "Comment utiliser mon agenda",
+    "timetable.teacherAgenda.help.mine.section1Title": "Changer de vue",
+    "timetable.teacherAgenda.help.mine.section1Body":
+      "Touchez Jour, Semaine ou Mois pour changer la façon d'afficher votre emploi du temps personnel.",
+    "timetable.teacherAgenda.help.mine.section2Title": "Naviguer dans le temps",
+    "timetable.teacherAgenda.help.mine.section2Body":
+      "Utilisez les flèches pour passer à la période précédente ou suivante, ou touchez le libellé pour revenir à aujourd'hui.",
+    "timetable.teacherAgenda.help.mine.section3Title": "Consulter un cours",
+    "timetable.teacherAgenda.help.mine.section3Body":
+      "Touchez une carte de cours pour voir la classe, la matière, la salle et modifier ou annuler ce créneau si besoin.",
+    "timetable.teacherAgenda.help.classes.title":
+      "Comment utiliser l'agenda de mes classes",
+    "timetable.teacherAgenda.help.classes.section1Title": "Choisir la classe",
+    "timetable.teacherAgenda.help.classes.section1Body":
+      "Touchez une classe dans la liste en haut de l'écran pour afficher son emploi du temps complet.",
+    "timetable.teacherAgenda.help.classes.section2Title":
+      "Changer de vue et naviguer",
+    "timetable.teacherAgenda.help.classes.section2Body":
+      "Comme pour votre agenda personnel, basculez entre Jour/Semaine/Mois et utilisez les flèches pour changer de période.",
+    "timetable.teacherAgenda.help.classes.section3Title": "Consulter un cours",
+    "timetable.teacherAgenda.help.classes.section3Body":
+      "Touchez une carte de cours pour voir le détail complet du créneau pour cette classe.",
+
+    "onboardingTour.teacherAgenda.step1Title": "Deux vues",
+    "onboardingTour.teacherAgenda.step1Body":
+      "Touchez un onglet pour passer de votre agenda personnel à l'emploi du temps de vos classes.",
+    "onboardingTour.teacherAgenda.step2Title": "Changez de vue",
+    "onboardingTour.teacherAgenda.step2Body":
+      "Touchez Jour, Semaine ou Mois pour changer la façon d'afficher l'emploi du temps.",
+    "onboardingTour.teacherAgenda.step3Title": "Naviguez dans le temps",
+    "onboardingTour.teacherAgenda.step3Body":
+      "Utilisez les flèches pour passer à la période précédente ou suivante, ou touchez le libellé pour revenir à aujourd'hui.",
+    "onboardingTour.teacherAgenda.step4Title": "Une aide toujours disponible",
+    "onboardingTour.teacherAgenda.step4Body":
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel adapté à l'onglet que vous consultez.",
 
     "timetable.classManager.defaultTitle": "Emploi du temps",
     "timetable.classManager.headerSubtitle": "Emploi du temps de la classe",
@@ -1331,6 +1665,26 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.list.unknownSender": "Expéditeur inconnu",
     "messaging.list.recipientSingular": "1 destinataire",
     "messaging.list.recipientPlural": "{count} destinataires",
+
+    "messaging.help.menuLabel": "Aide",
+    "messaging.help.title": "Messagerie",
+    "messaging.help.close": "Fermer",
+    "messaging.help.section1Title": "Organiser vos messages",
+    "messaging.help.section1Body":
+      "Utilisez les onglets Réception, Envoyés, Brouillons et Archives pour retrouver vos messages selon leur statut.",
+    "messaging.help.section2Title": "Écrire un message",
+    "messaging.help.section2Body":
+      "Touchez le bouton + pour composer un nouveau message. Un brouillon en cours d'écriture est automatiquement enregistré dans l'onglet Brouillons.",
+
+    "onboardingTour.messages.step1Title": "Vos dossiers",
+    "onboardingTour.messages.step1Body":
+      "Basculez entre Réception, Envoyés, Brouillons et Archives grâce à ces onglets.",
+    "onboardingTour.messages.step2Title": "Écrire un message",
+    "onboardingTour.messages.step2Body":
+      "Touchez ce bouton pour composer un nouveau message.",
+    "onboardingTour.messages.step3Title": "Besoin d'aide ?",
+    "onboardingTour.messages.step3Body":
+      "Touchez ce bouton, puis « Aide » dans le menu, pour retrouver ces explications à tout moment.",
 
     "messaging.compose.titleNew": "Nouveau message",
     "messaging.compose.titleReply": "Répondre",
@@ -1646,7 +2000,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.tabs.messages": "Messages",
     "siteContentAdmin.contact.emailLabel": "Email",
     "siteContentAdmin.contact.phoneLabel": "Téléphone",
-    "siteContentAdmin.contact.addressLabel": "Adresse",
+    "siteContentAdmin.contact.addressStreetLabel": "Voie",
+    "siteContentAdmin.contact.addressDistrictLabel": "Quartier",
+    "siteContentAdmin.contact.addressCityLabel": "Ville",
+    "siteContentAdmin.contact.addressCountryLabel": "Pays",
     "siteContentAdmin.contact.legalRepresentativeFirstNameLabel":
       "Responsable légal — Prénom",
     "siteContentAdmin.contact.legalRepresentativeLastNameLabel":
@@ -1659,7 +2016,13 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Impossible d'enregistrer les coordonnées.",
     "siteContentAdmin.contact.error.email": "Email invalide.",
     "siteContentAdmin.contact.error.phone": "Le téléphone est requis.",
-    "siteContentAdmin.contact.error.address": "L'adresse est requise.",
+    "siteContentAdmin.contact.error.addressStreet": "La voie est requise.",
+    "siteContentAdmin.contact.error.addressCity": "La ville est requise.",
+    "siteContentAdmin.contact.error.addressCountry": "Le pays est requis.",
+    "siteContentAdmin.contact.edit": "Modifier",
+    "siteContentAdmin.contact.cancel": "Annuler",
+    "siteContentAdmin.contact.notProvided": "Non renseigné",
+    "siteContentAdmin.contact.addressGroupLabel": "Adresse",
     "siteContentAdmin.legal.slugLabel": "Document",
     "siteContentAdmin.legal.slug.cgu": "CGU",
     "siteContentAdmin.legal.slug.mentions-legales": "Mentions légales",
@@ -1712,26 +2075,50 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.messages.read": "Message lu",
     "siteContentAdmin.messages.reply": "Répondre par email",
     "siteContentAdmin.help.toggle": "Aide",
-    "siteContentAdmin.help.title": "Contenu du site",
-    "siteContentAdmin.help.body1":
-      "Cet écran gère le contenu public du site vitrine : les coordonnées de contact, les documents légaux (CGU, mentions légales, confidentialité) et les prises de contact reçues.",
-    "siteContentAdmin.help.body2":
-      "Pour un document légal, choisissez d'abord la langue puis créez un nouveau brouillon depuis le bouton dédié. Un brouillon peut être modifié librement tant qu'il n'est pas publié.",
-    "siteContentAdmin.help.body3":
-      "Publier un brouillon remplace immédiatement la version visible sur le site pour cette langue et ce document. Les anciennes versions publiées restent visibles dans l'historique. L'onglet Messages liste les demandes reçues via le formulaire de contact public.",
     "siteContentAdmin.help.close": "J'ai compris",
+    "siteContentAdmin.help.contact.title": "Comment utiliser l'onglet Contact",
+    "siteContentAdmin.help.contact.section1Title":
+      "Consulter les coordonnées publiques",
+    "siteContentAdmin.help.contact.section1Body":
+      "Cet onglet affiche les coordonnées de contact (email, téléphone, adresse, représentant légal) affichées publiquement sur le site vitrine de l'école.",
+    "siteContentAdmin.help.contact.section2Title": "Modifier les coordonnées",
+    "siteContentAdmin.help.contact.section2Body":
+      "Touchez Modifier pour corriger une information, puis Enregistrer. La mise à jour est immédiatement visible sur le site public.",
+    "siteContentAdmin.help.legal.title":
+      "Comment utiliser l'onglet Documents légaux",
+    "siteContentAdmin.help.legal.section1Title":
+      "Choisir le document et la langue",
+    "siteContentAdmin.help.legal.section1Body":
+      "Sélectionnez le document (CGU, mentions légales, confidentialité) puis la langue à modifier — chaque document existe indépendamment pour chaque langue proposée sur le site.",
+    "siteContentAdmin.help.legal.section2Title":
+      "Créer ou modifier un brouillon",
+    "siteContentAdmin.help.legal.section2Body":
+      "Touchez Nouveau brouillon pour rédiger une nouvelle version, ou Modifier sur un brouillon existant. Un brouillon peut être corrigé librement tant qu'il n'est pas publié, sans affecter la version visible sur le site.",
+    "siteContentAdmin.help.legal.section3Title":
+      "Publier ou supprimer un document",
+    "siteContentAdmin.help.legal.section3Body":
+      "Publier un brouillon remplace immédiatement la version visible sur le site pour cette langue et ce document ; les anciennes versions publiées restent consultables dans l'historique. Supprimer retire définitivement un brouillon qui ne doit plus être conservé.",
+    "siteContentAdmin.help.messages.title":
+      "Comment utiliser l'onglet Messages",
+    "siteContentAdmin.help.messages.section1Title":
+      "Consulter les messages reçus",
+    "siteContentAdmin.help.messages.section1Body":
+      "Cet onglet liste les demandes envoyées via le formulaire de contact public du site, des plus récentes aux plus anciennes. Touchez un message pour lire son détail — il est alors marqué comme lu.",
 
     "onboardingTour.siteContent.step1Title": "Contact, documents et messages",
     "onboardingTour.siteContent.step1Body":
       "Basculez entre les coordonnées de contact publiques, les documents légaux (CGU, mentions légales, confidentialité) et les prises de contact reçues via le formulaire public.",
-    "onboardingTour.siteContent.step2Title": "Choisir le document et la langue",
+    "onboardingTour.siteContent.step2Title": "Modifier les coordonnées",
     "onboardingTour.siteContent.step2Body":
-      "Sélectionnez le document et la langue pour voir ses versions (brouillon, publiée, archivées).",
-    "onboardingTour.siteContent.step3Title": "Créer une nouvelle version",
+      "Les coordonnées sont affichées en lecture seule. Touchez ce bouton pour ouvrir le formulaire de modification, adresse comprise (voie, quartier, ville, pays).",
+    "onboardingTour.siteContent.step3Title": "Choisir le document et la langue",
     "onboardingTour.siteContent.step3Body":
-      "Rédigez un nouveau brouillon puis publiez-le pour remplacer la version en ligne.",
-    "onboardingTour.siteContent.step4Title": "Besoin d'aide ?",
+      "Sélectionnez le document et la langue pour voir ses versions (brouillon, publiée, archivées).",
+    "onboardingTour.siteContent.step4Title": "Créer une nouvelle version",
     "onboardingTour.siteContent.step4Body":
+      "Rédigez un nouveau brouillon puis publiez-le pour remplacer la version en ligne.",
+    "onboardingTour.siteContent.step5Title": "Besoin d'aide ?",
+    "onboardingTour.siteContent.step5Body":
       "Retrouvez à tout moment un rappel de l'usage de cet écran via ce bouton.",
 
     "testsAdmin.title": "Tests (admin)",
@@ -2044,13 +2431,29 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.classLife.studentFallback": "Élève",
     "feed.classLife.classWithId": "Classe {classId}",
     "feed.classLife.classActive": "Classe active",
-    "feed.classLife.help.title": "Rechercher et filtrer",
-    "feed.classLife.help.body1":
-      "Utilisez la barre de recherche pour retrouver une publication par mot-clé.",
-    "feed.classLife.help.body2":
-      "Le bouton filtre à droite ouvre un panneau où vous pouvez combiner plusieurs types de publication (à la une, sondages) et n'afficher que vos propres publications.",
-    "feed.classLife.help.body3":
-      "Une fois votre sélection faite, validez avec Appliquer pour mettre à jour la liste.",
+    "feed.classLife.help.title": "Vie de classe",
+    "feed.classLife.help.menuLabel": "Aide",
+    "feed.classLife.help.section1Title": "À quoi sert ce fil",
+    "feed.classLife.help.section1Body":
+      "Ce fil regroupe toutes les publications de la classe (annonces, messages, sondages) dans l'ordre chronologique, les plus récentes en premier. Il sert de mémoire commune : plutôt que de disperser l'information dans des messages séparés, tout ce qui concerne la classe reste consultable à un seul endroit, y compris après plusieurs jours.",
+    "feed.classLife.help.section2Title": "Rechercher une publication",
+    "feed.classLife.help.section2Body":
+      "Utilisez la barre de recherche pour retrouver une publication par mot-clé (dans son titre ou son texte). C'est utile dès que le fil contient plusieurs semaines d'historique et que vous cherchez une information précise (ex. une date de sortie scolaire) sans faire défiler toute la liste.",
+    "feed.classLife.help.section3Title": "Filtrer par type et par auteur",
+    "feed.classLife.help.section3Body":
+      "Le bouton filtre (icône entonnoir) ouvre un panneau où vous pouvez combiner plusieurs types de publication (« à la une », sondages) et n'afficher que vos propres publications. Utile pour se concentrer sur un seul sujet, par exemple ne voir que les sondages en cours. Une fois votre sélection faite, validez avec « Appliquer » pour mettre à jour la liste ; le bouton filtre reste teinté tant qu'un filtre est actif, pour vous rappeler que la liste est restreinte.",
+    "feed.classLife.help.section4Title": "Types de publications",
+    "feed.classLife.help.section4Body":
+      "Une publication marquée d'une étoile (icône scintillante) est « à la une » : mise en avant par l'auteur car jugée particulièrement importante, elle reste visible même après avoir été dépassée par des publications plus récentes. Un sondage affiche une question et des options à choix : touchez une option pour voter, le résultat (nombre de voix par option) apparaît immédiatement après votre vote, qui n'est pas modifiable ensuite.",
+    "feed.classLife.help.section5Title": "Réagir à une publication",
+    "feed.classLife.help.section5Body":
+      "Le cœur ajoute ou retire un « j'aime » et affiche le nombre total de personnes ayant aimé la publication — un signal rapide d'approbation sans écrire de message. La bulle de commentaires affiche le nombre de réponses déjà postées et déplie la liste des commentaires en la touchant. Le bouton « Réagir » ouvre un champ de texte avec des émojis rapides à ajouter d'un tap : écrivez votre réponse (ou insérez un émoji) puis validez avec « Envoyer » pour publier votre commentaire, visible par toute la classe.",
+    "feed.classLife.help.section6Title": "Pièces jointes et images",
+    "feed.classLife.help.section6Body":
+      "Une publication peut contenir des images insérées directement dans le texte (touchez-les pour les afficher en plein écran) et des fichiers joints (documents, PDF...) listés sous le texte avec leur nom et leur taille : touchez un fichier pour l'ouvrir ou le télécharger.",
+    "feed.classLife.help.section7Title": "Publier et gérer vos publications",
+    "feed.classLife.help.section7Body":
+      "Le bouton rond en bas de l'écran ouvre le formulaire de publication : rédigez un texte, ajoutez éventuellement des images ou pièces jointes, ou créez un sondage. Vous pouvez supprimer une publication que vous avez vous-même créée grâce à l'icône corbeille qui apparaît sur celle-ci ; les publications des autres membres de la classe ne peuvent pas être supprimées depuis cet écran.",
 
     "feed.page.title": "Fil d'actualité",
     "feed.page.endOfList": "Vous avez atteint la fin du fil",
@@ -2081,6 +2484,24 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.tabs.notes": "Notes",
     "notes.tabs.council": "Conseil classe",
     "notes.tabs.reports": "Bulletins",
+    "notes.tabs.decision": "Décision",
+
+    "notes.decision.intro":
+      "Synthèse annuelle et décision de passage, réservée au professeur référent de la classe.",
+    "notes.decision.synthesis.term1": "T1",
+    "notes.decision.synthesis.term2": "T2",
+    "notes.decision.synthesis.term3": "T3",
+    "notes.decision.synthesis.yearly": "Moy. annuelle",
+    "notes.decision.synthesis.rankPrefix": "Rang",
+    "notes.decision.synthesis.rankSeparator": "/",
+    "notes.decision.empty.title": "Aucun bulletin",
+    "notes.decision.empty.message":
+      "Aucun bulletin du 3ème trimestre n'est disponible pour cette classe.",
+    "notes.decision.errors.load": "Impossible de charger les décisions",
+    "notes.decision.errors.save": "Impossible d'enregistrer la décision",
+    "notes.decision.success.saved": "Décision enregistrée",
+    "notes.decision.decisionPlaceholder": "Décision",
+    "notes.decision.noDecision": "Aucune décision",
 
     "notes.classes.title": "Cahier de notes",
     "notes.classes.filterTitle": "Filtrer par année",
@@ -2331,8 +2752,109 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.toast.updateMessage":
       "Les modifications ont bien été enregistrées.",
 
+    "notes.manager.help.menuLabel": "Aide",
+    "notes.manager.help.close": "J'ai compris",
+    "notes.manager.help.evaluations.title":
+      "Comment utiliser l'onglet Évaluations",
+    "notes.manager.help.evaluations.section1Title": "Rechercher et filtrer",
+    "notes.manager.help.evaluations.section1Body":
+      "Utilisez la recherche pour retrouver une évaluation par titre. Touchez l'icône filtre pour affiner la liste par type d'évaluation, par séquence ou par statut de saisie (complète ou incomplète) — utile pour repérer rapidement les évaluations auxquelles il manque encore des notes.",
+    "notes.manager.help.evaluations.section2Title":
+      "Statut brouillon ou publié",
+    "notes.manager.help.evaluations.section2Body":
+      "Une évaluation créée en brouillon n'est visible ni par les élèves ni par les parents, et ses notes n'apparaissent pas dans leur onglet Notes tant qu'elle n'est pas publiée. Publiez-la dès que son barème et sa date sont définitifs pour la rendre visible ; le badge Brouillon ou Publié sur chaque carte indique son état actuel.",
+    "notes.manager.help.evaluations.section3Title":
+      "Suivre l'avancement de la saisie",
+    "notes.manager.help.evaluations.section3Body":
+      "Chaque carte affiche le nombre de notes déjà saisies sur l'effectif de la classe. L'icône de saisie change de couleur selon que la saisie est complète ou encore incomplète, pour repérer d'un coup d'œil les évaluations à finaliser.",
+    "notes.manager.help.evaluations.section4Title": "Créer une évaluation",
+    "notes.manager.help.evaluations.section4Body":
+      "Touchez le bouton + pour créer une nouvelle évaluation : titre, matière, type, séquence, date, barème et coefficient. Enregistrez-la comme brouillon pour la préparer à l'avance, ou publiez-la directement si elle est prête.",
+    "notes.manager.help.evaluations.section5Title":
+      "Modifier ou supprimer une évaluation",
+    "notes.manager.help.evaluations.section5Body":
+      "Depuis chaque carte, touchez Détails pour consulter toutes les informations de l'évaluation, Modifier pour corriger son barème, sa date ou son type, ou Supprimer pour la retirer définitivement — utile en cas d'erreur de création, avant que des notes n'y soient rattachées.",
+    "notes.manager.help.evaluations.section6Title":
+      "Saisir ou modifier les notes",
+    "notes.manager.help.evaluations.section6Body":
+      "Touchez une évaluation, ou l'action Notes de sa carte, pour ouvrir la saisie et entrer ou corriger la note de chaque élève. Tant que l'évaluation reste en brouillon, un bandeau le rappelle : les notes saisies restent invisibles des familles jusqu'à la publication.",
+    "notes.manager.help.notes.title": "Comment utiliser l'onglet Notes",
+    "notes.manager.help.notes.section1Title": "Rechercher un élève",
+    "notes.manager.help.notes.section1Body":
+      "Recherchez un élève par nom pour consulter toutes ses notes et sa moyenne, matière par matière.",
+    "notes.manager.help.notes.section2Title":
+      "Filtrer par matière, trimestre ou séquence",
+    "notes.manager.help.notes.section2Body":
+      "Touchez l'icône filtre pour restreindre les résultats à une matière, un trimestre ou une séquence précise — utile pour vérifier rapidement les notes d'une période donnée sans faire défiler tout l'historique de l'élève.",
+    "notes.manager.help.notes.section3Title": "Changer d'affichage",
+    "notes.manager.help.notes.section3Body":
+      "Basculez entre la liste des évaluations, les moyennes par matière et les graphiques d'évolution pour analyser les résultats de l'élève sous l'angle qui vous intéresse.",
+    "notes.manager.help.reports.title": "Comment utiliser l'onglet Bulletins",
+    "notes.manager.help.reports.section1Title":
+      "Rechercher un élève et choisir un trimestre",
+    "notes.manager.help.reports.section1Body":
+      "Recherchez un élève, puis touchez la carte du trimestre souhaité pour ouvrir son bulletin complet : moyennes par séquence et par matière. Une fois le bulletin généré par l'école, la date de publication apparaît en bas du bulletin.",
+    "notes.manager.help.reports.section2Title":
+      "Rédiger l'appréciation de matière",
+    "notes.manager.help.reports.section2Body":
+      "Pour chaque matière que vous enseignez, touchez Modifier pour rédiger ou corriger l'appréciation qui apparaîtra sur le bulletin de l'élève. Les matières que vous n'enseignez pas restent en lecture seule.",
+    "notes.manager.help.reports.section3Title":
+      "Rédiger l'appréciation générale (professeur référent)",
+    "notes.manager.help.reports.section3Body":
+      "Si vous êtes professeur référent de la classe, une appréciation générale de conseil de classe est également modifiable, en plus des appréciations par matière — elle résume l'avis du conseil sur l'ensemble du trimestre de l'élève.",
+    "notes.manager.help.decision.title": "Comment utiliser l'onglet Décision",
+    "notes.manager.help.decision.section1Title": "Ouvrir la carte d'un élève",
+    "notes.manager.help.decision.section1Body":
+      "Chaque élève est d'abord affiché replié, avec juste son nom et une pastille rouge « Aucune décision » tant qu'aucune décision n'a été enregistrée. Touchez la carte pour l'ouvrir : elle affiche alors les moyennes des trois trimestres, la moyenne annuelle et le rang de l'élève dans sa classe (ex. 3e sur 28) — de quoi statuer en connaissance de cause sur son passage.",
+    "notes.manager.help.decision.section2Title": "Choisir la décision",
+    "notes.manager.help.decision.section2Body":
+      "Sélectionnez Passage, Redoublement ou Départ pour chaque élève. Cette décision détermine si l'élève poursuit dans la classe supérieure, refait son année, ou quitte l'établissement.",
+    "notes.manager.help.decision.section3Title":
+      "Niveau cible proposé automatiquement",
+    "notes.manager.help.decision.section3Body":
+      "Sauf en cas de Départ, indiquez le niveau de destination pour l'année suivante. L'application le propose automatiquement dès que vous choisissez Passage (niveau suivant) ou Redoublement (même niveau) — vous pouvez toujours le changer manuellement avant d'enregistrer. Seuls les niveaux activés pour votre école dans Paramètres > Niveaux apparaissent dans cette liste.",
+    "notes.manager.help.decision.section4Title": "Enregistrer",
+    "notes.manager.help.decision.section4Body":
+      "Touchez Enregistrer pour valider la décision de cet élève : la carte se referme automatiquement et affiche désormais la décision prise à la place de « Aucune décision ».",
+
+    "onboardingTour.teacherNotes.step1Title": "Les onglets",
+    "onboardingTour.teacherNotes.step1Body":
+      "Passez des évaluations aux notes par élève, puis aux bulletins de conseil de classe. Si vous êtes professeur référent de la classe, un onglet Décision apparaît en plus pour statuer sur le passage.",
+    "onboardingTour.teacherNotes.step2Title": "Rechercher et filtrer",
+    "onboardingTour.teacherNotes.step2Body":
+      "Touchez l'icône filtre pour affiner la liste des évaluations par type, séquence ou statut de saisie.",
+    "onboardingTour.teacherNotes.step3Title": "Créer une évaluation",
+    "onboardingTour.teacherNotes.step3Body":
+      "Touchez ce bouton pour créer une nouvelle évaluation avec son barème et sa date.",
+    "onboardingTour.teacherNotes.step4Title": "Une aide toujours disponible",
+    "onboardingTour.teacherNotes.step4Body":
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel adapté à l'onglet que vous consultez.",
+
     "notes.child.title": "Évaluations et moyennes",
     "notes.child.subtitle.student": "Élève",
+    "notes.child.help.menuLabel": "Aide",
+    "notes.child.help.close": "Fermer",
+    "notes.child.help.notes.title": "Notes — Évaluations et moyennes",
+    "notes.child.help.notes.section1Title": "Filtrer les résultats",
+    "notes.child.help.notes.section1Body":
+      "Le bouton filtre change le trimestre consulté, la vue (évaluations, moyennes ou graphiques) et, si plusieurs séquences existent, la séquence affichée. Ces réglages s'appliquent immédiatement à la liste ci-dessous.",
+    "notes.child.help.notes.section2Title":
+      "Trois façons de lire les résultats",
+    "notes.child.help.notes.section2Body":
+      "La vue Évaluations liste chaque note obtenue, matière par matière. La vue Moyennes compare la moyenne de votre enfant à celle de la classe pour repérer rapidement un écart. La vue Graphiques affiche un comparatif et un radar par matière sur l'année, utile pour visualiser une évolution ou un point faible récurrent. Touchez une évaluation ou une moyenne pour voir son détail (barème, coefficient, appréciation de l'enseignant).",
+    "notes.child.help.reports.title": "Notes — Bulletins",
+    "notes.child.help.reports.section1Title": "Consulter les bulletins",
+    "notes.child.help.reports.section1Body":
+      "Cet onglet liste les bulletins déjà publiés par l'établissement, un par trimestre. Touchez un bulletin pour l'ouvrir : il détaille, matière par matière, la moyenne obtenue et l'appréciation rédigée par l'enseignant, ainsi qu'une appréciation générale du conseil de classe si elle a été renseignée. Un bulletin non encore publié par l'établissement n'apparaît pas dans cette liste.",
+    "onboardingTour.childNotes.tabsTitle": "Deux onglets",
+    "onboardingTour.childNotes.tabsBody":
+      "Notes affiche les évaluations et moyennes du trimestre en cours. Bulletins affiche les bulletins déjà publiés.",
+    "onboardingTour.childNotes.filtersTitle": "Filtrez la vue",
+    "onboardingTour.childNotes.filtersBody":
+      "Changez de trimestre, de vue (évaluations, moyennes, graphiques) ou de séquence depuis ce bouton.",
+    "onboardingTour.childNotes.helpToggleTitle": "Une aide toujours disponible",
+    "onboardingTour.childNotes.helpToggleBody":
+      "Touchez ce bouton, puis « Aide » dans le menu, pour retrouver à tout moment le fonctionnement de cet écran.",
     "notes.panel.notes": "Notes",
     "notes.panel.loading": "Chargement des notes publiées...",
     "notes.panel.emptyTitle": "Aucune note publiée",
@@ -2445,6 +2967,25 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Votre session a expiré. Veuillez vous connecter à nouveau.",
     "app.sessionExpired.reconnect": "Se reconnecter",
 
+    "childHome.help.menuLabel": "Aide",
+    "childHome.help.title": "Accueil enfant",
+    "childHome.help.close": "Fermer",
+    "childHome.help.section1Title": "Trois indicateurs",
+    "childHome.help.section1Body":
+      "La moyenne générale, les devoirs non faits et les messages non lus sont résumés en un coup d'œil. Touchez une carte pour ouvrir directement le module correspondant.",
+    "childHome.help.section2Title": "Des blocs résumés",
+    "childHome.help.section2Body":
+      "Chaque bloc (dernières évaluations, fil d'actualité, messages non lus) affiche un aperçu. Touchez « Voir plus » en haut à droite du bloc pour ouvrir le module complet.",
+    "onboardingTour.childHome.kpisTitle": "Trois indicateurs",
+    "onboardingTour.childHome.kpisBody":
+      "Moyenne, devoirs non faits et messages non lus : touchez une carte pour ouvrir le module correspondant.",
+    "onboardingTour.childHome.sectionsTitle": "Des blocs résumés",
+    "onboardingTour.childHome.sectionsBody":
+      "Chaque bloc affiche un aperçu du module. Touchez « Voir plus » pour l'ouvrir en entier.",
+    "onboardingTour.childHome.helpToggleTitle": "Une aide toujours disponible",
+    "onboardingTour.childHome.helpToggleBody":
+      "Touchez ce bouton, puis « Aide » dans le menu, pour retrouver à tout moment le fonctionnement de cet écran.",
+
     // Home index — fallback
     "home.fallback.welcome": "Bienvenue, {firstName} {lastName}",
 
@@ -2459,6 +3000,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.hero.role.supervisor": "Superviseur",
     "home.hero.role.accountant": "Comptable",
     "home.hero.role.staff": "Personnel",
+    "home.hero.role.healthOfficer": "Responsable santé",
     "home.hero.role.teacher": "Enseignant(e)",
     "home.hero.role.parent": "Parent",
     "home.hero.role.student": "Élève",
@@ -2505,6 +3047,50 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.parent.news.empty.title": "Aucune actualité",
     "home.parent.news.empty.subtitle":
       "Les informations de l'établissement apparaîtront ici",
+    "home.parent.help.toggle": "Aide sur cette page",
+    "home.parent.help.title": "Votre espace parent",
+    "home.parent.help.close": "Fermer",
+    "home.parent.help.section1Title": "Vos enfants",
+    "home.parent.help.section1Body":
+      "Chaque enfant scolarisé sous votre compte apparaît sous forme de carte, avec son nom et sa classe. Le badge à côté du titre indique le nombre total d'enfants rattachés à votre compte. Touchez la carte d'un enfant pour ouvrir son espace personnel (emploi du temps, notes, devoirs, vie scolaire, fil de classe...).",
+    "home.parent.help.section2Title": "Accès rapides",
+    "home.parent.help.section2Body":
+      "Ces quatre raccourcis mènent directement aux rubriques les plus consultées, sans passer par le menu de navigation : « Fil d'actualité » (publications de l'école et des classes), « Finances » (frais de scolarité et paiements), « Messagerie » (échanges avec l'établissement — un badge rouge indique le nombre de messages non lus) et « Documents » (fichiers partagés par l'école).",
+    "home.parent.help.section3Title": "Actualités de l'école",
+    "home.parent.help.section3Body":
+      "Les publications les plus récentes destinées à l'ensemble de l'école s'affichent ici en aperçu. Touchez « Voir tout » pour ouvrir le fil complet et consulter l'historique.",
+    "home.parent.help.section4Title": "Retrouver toutes les rubriques",
+    "home.parent.help.section4Body":
+      "Cette page ne montre que l'essentiel. Pour tout le reste (paramètres du compte, autres modules...), touchez l'icône Menu dans la barre du bas : elle ouvre la navigation complète vers toutes les rubriques disponibles pour votre compte.",
+
+    "home.teacher.help.toggle": "Aide sur cette page",
+    "home.teacher.help.title": "Votre tableau de bord enseignant",
+    "home.teacher.help.section1Title": "Vos classes",
+    "home.teacher.help.section1Body":
+      "Chaque carte représente une classe qui vous est assignée, avec son nombre d'élèves et un résumé rapide (nombre de devoirs ouverts, nombre d'évaluations en attente de saisie). Touchez une carte pour ouvrir le menu rapide de cette classe (emploi du temps, notes, discipline, vie de classe).",
+    "home.teacher.help.section2Title": "Messages non lus",
+    "home.teacher.help.section2Body":
+      "Cette section affiche vos messages non lus les plus récents, avec l'expéditeur et l'objet. Le badge numéroté indique combien de messages restent à lire. Touchez un message pour l'ouvrir directement, ou « Messagerie » pour accéder à toute votre boîte de réception.",
+    "home.teacher.help.section3Title": "Emploi du temps du jour",
+    "home.teacher.help.section3Body":
+      "Cette section liste vos cours du jour dans l'ordre chronologique, avec leur horaire et la classe concernée. Touchez « Agenda » pour consulter l'emploi du temps complet de la semaine ou du mois.",
+    "home.teacher.help.section4Title": "Évaluations à saisir",
+    "home.teacher.help.section4Body":
+      "Cette section liste vos évaluations dont les notes n'ont pas encore été entièrement saisies, avec un badge indiquant leur nombre. Touchez « Cahier de notes » pour ouvrir le module complet et compléter la saisie.",
+    "home.teacher.help.section5Title": "Devoirs en cours",
+    "home.teacher.help.section5Body":
+      "Cette section liste les devoirs que vous avez donnés et dont l'échéance n'est pas encore passée, avec leur classe et leur date d'échéance. Touchez « Voir tout » pour gérer l'ensemble de vos devoirs.",
+    "home.teacher.help.close": "J'ai compris",
+
+    "onboardingTour.teacherHome.step1Title": "Vos classes",
+    "onboardingTour.teacherHome.step1Body":
+      "Touchez une carte de classe pour ouvrir rapidement son emploi du temps, ses notes, sa discipline ou sa vie de classe.",
+    "onboardingTour.teacherHome.step2Title": "Évaluations en attente",
+    "onboardingTour.teacherHome.step2Body":
+      "Touchez « Cahier de notes » pour saisir les notes des évaluations en attente.",
+    "onboardingTour.teacherHome.step3Title": "Une aide toujours disponible",
+    "onboardingTour.teacherHome.step3Body":
+      "Touchez ce bouton à tout moment pour revoir cette présentation du tableau de bord.",
 
     // Placeholder screen
     "placeholder.subtitle": "Module en cours de développement",
@@ -2554,6 +3140,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Home header (AppHeader, variante accueil)
     "header.home.loginAction": "Se connecter",
+    "header.home.menuAction": "Menu",
     "header.home.logoutAction": "Se déconnecter",
     "header.home.logoutConfirmTitle": "Se déconnecter ?",
     "header.home.logoutConfirmMessage":
@@ -2863,6 +3450,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.role.SUPERVISOR": "Superviseurs",
     "users.role.SCHOOL_ACCOUNTANT": "Comptables",
     "users.role.SCHOOL_STAFF": "Personnel",
+    "users.role.SCHOOL_HEALTH_OFFICER": "Responsables santé",
     "users.role.short.TEACHER": "ENS",
     "users.role.short.PARENT": "PAR",
     "users.role.short.STUDENT": "ELE",
@@ -2871,6 +3459,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.role.short.SUPERVISOR": "SUP",
     "users.role.short.SCHOOL_ACCOUNTANT": "CPT",
     "users.role.short.SCHOOL_STAFF": "PER",
+    "users.role.short.SCHOOL_HEALTH_OFFICER": "SAN",
     "users.account.ALL": "Tous",
     "users.account.WITH_ACCOUNT": "Avec compte",
     "users.account.WITHOUT_ACCOUNT": "Sans compte",
@@ -2907,6 +3496,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.create.hero.SCHOOL_STAFF.title": "Créer un membre du personnel",
     "users.create.hero.SCHOOL_STAFF.subtitle":
       "Téléphone + PIN ou email + mot de passe initial.",
+    "users.create.hero.SCHOOL_HEALTH_OFFICER.title":
+      "Créer un responsable santé",
+    "users.create.hero.SCHOOL_HEALTH_OFFICER.subtitle":
+      "Téléphone + PIN ou email + mot de passe initial.",
     "users.create.contactMode.label": "Mode de création",
     "users.create.contactMode.phone": "Téléphone + PIN",
     "users.create.contactMode.email": "Email + mot de passe",
@@ -2926,9 +3519,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.create.field.level.placeholder": "Choisir un niveau",
     "users.create.field.class.label": "Classe",
     "users.create.field.class.placeholder": "Choisir une classe",
-    "users.create.field.access.sectionTitle": "Accès (optionnel)",
+    "users.create.field.dateOfBirth.label": "Date de naissance",
+    "users.create.field.dateOfBirth.placeholder": "Sélectionner une date",
+    "users.create.field.access.sectionTitle": "Accès",
     "users.create.field.access.hint":
-      "Sans email ni mot de passe, l'élève est créé sans compte — un accès pourra être créé plus tard.",
+      'L\'élève est créé sans compte. Le compte (identifiant et mot de passe) se crée ensuite via "Créer un accès" sur sa fiche.',
     "users.create.field.student.label": "Élève à rattacher",
     "users.create.field.student.placeholder": "Rechercher un élève…",
     "users.create.field.student.noResults": "Aucun élève trouvé.",
@@ -2941,6 +3536,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.create.submit.SUPERVISOR": "Créer le surveillant",
     "users.create.submit.SCHOOL_ACCOUNTANT": "Créer le comptable",
     "users.create.submit.SCHOOL_STAFF": "Créer le membre du personnel",
+    "users.create.submit.SCHOOL_HEALTH_OFFICER": "Créer le responsable santé",
     "users.create.success.title": "Utilisateur créé",
     "users.create.success.message": "Le compte a été créé avec succès.",
     "users.create.errors.title": "Création impossible",
@@ -2984,8 +3580,337 @@ export const translations: Record<Locale, Record<string, string>> = {
     "rooms.detail.loading": "Chargement de la salle...",
     "rooms.detail.errorLoad": "Impossible de charger cette salle.",
     "rooms.detail.notFound": "Salle introuvable.",
+
+    "health.title": "Santé",
+    "health.parent.help.menuLabel": "Aide",
+    "health.parent.help.title": "Santé",
+    "health.parent.help.close": "Fermer",
+    "health.parent.help.section1Title": "Conditions",
+    "health.parent.help.section1Body":
+      "L'onglet Conditions regroupe les allergies, pathologies et consignes durables de votre enfant, avec un niveau d'alerte (info, attention, urgence) visible d'un coup d'œil.",
+    "health.parent.help.section2Title": "Historique",
+    "health.parent.help.section2Body":
+      "L'onglet Historique fusionne les soins reçus à l'école et les événements que vous signalez vous-même, triés du plus récent au plus ancien.",
+    "health.parent.help.section3Title": "Signaler un événement",
+    "health.parent.help.section3Body":
+      "Le bouton + en bas de l'écran ajoute une condition de santé depuis l'onglet Conditions, ou signale un événement (maladie, accident...) depuis l'onglet Historique. L'enseignant référent est automatiquement informé pour un signalement.",
+    "health.parent.tabs.conditions": "Conditions",
+    "health.parent.tabs.history": "Historique",
+    "health.parent.loading": "Chargement…",
+    "health.parent.search.placeholderConditions": "Rechercher une condition…",
+    "health.parent.search.placeholderHistory": "Rechercher dans l'historique…",
+    "health.parent.search.accessibilityLabel": "Rechercher",
+    "health.parent.filters.toggleAccessibilityLabel": "Filtres",
+    "health.parent.filters.reset": "Réinitialiser",
+    "health.parent.filters.close": "Fermer",
+    "health.parent.filters.apply": "Appliquer",
+    "health.parent.filters.typeLabel": "Type",
+    "health.parent.filters.allTypes": "Tous",
+    "health.parent.filters.alertLevelLabel": "Niveau d'alerte",
+    "health.parent.filters.allLevels": "Tous",
+    "health.parent.filters.statusLabel": "Statut",
+    "health.parent.filters.status.all": "Tous",
+    "health.parent.filters.status.active": "Actives",
+    "health.parent.filters.status.inactive": "Résolues",
+    "health.parent.filters.originLabel": "Origine",
+    "health.parent.filters.allOrigins": "Toutes",
+    "health.parent.filters.originSchool": "École",
+    "health.parent.filters.originParent": "Vous",
+    "health.parent.filters.reportTypeLabel": "Type de signalement",
+    "health.parent.filters.allReportTypes": "Tous",
+    "health.parent.empty.conditionsTitle": "Aucune condition de santé",
+    "health.parent.empty.conditionsSearch":
+      "Aucune condition ne correspond à votre recherche.",
+    "health.parent.empty.historyTitle": "Aucun événement",
+    "health.parent.empty.historySearch":
+      "Aucun événement ne correspond à votre recherche.",
+    "health.parent.fab.addCondition": "Ajouter une condition",
+    "health.parent.fab.addReport": "Signaler un événement",
+    "health.parent.form.cancel": "Annuler",
+    "health.parent.form.active": "Condition toujours active",
+    "health.parent.form.successTitle": "Enregistré",
+    "health.parent.form.errorTitle": "Erreur",
+    "health.parent.form.createConditionSuccess":
+      "La condition de santé a été ajoutée.",
+    "health.parent.form.editConditionSuccess":
+      "La condition de santé a été mise à jour.",
+    "health.parent.form.createReportSuccess":
+      "L'événement a été signalé à l'école.",
+    "health.parent.form.hero.createConditionTitle": "Ajouter une condition",
+    "health.parent.form.hero.createConditionSubtitle":
+      "Allergie, pathologie, traitement ou consigne particulière.",
+    "health.parent.form.hero.editConditionTitle": "Modifier la condition",
+    "health.parent.form.hero.editConditionSubtitle":
+      "Mettez à jour les informations ou marquez-la comme résolue.",
+    "health.parent.form.hero.createReportTitle": "Signaler un événement",
+    "health.parent.form.hero.createReportSubtitle":
+      "Maladie, accident, traitement... l'enseignant référent est automatiquement informé.",
+    "health.parent.detail.editAction": "Modifier",
+    "health.parent.detail.statusLabel": "Statut",
+    "health.parent.detail.visibleToTeachers":
+      "Visible par l'équipe pédagogique",
+    "health.parent.detail.careBy": "Pris en charge par",
+    "health.parent.detail.reportedBy": "Signalé par",
+    "health.parent.detail.followUpNeeded": "Suivi nécessaire",
+    "health.parent.detail.origin.school": "École",
+    "health.parent.detail.origin.parent": "Vous",
+    "health.parent.detail.yes": "Oui",
+    "health.parent.detail.no": "Non",
+    "health.parent.card.active": "Active",
+    "health.parent.card.inactive": "Résolue",
+    "health.tabs.conditions": "Informations importantes",
+    "health.tabs.care": "Soins à l'école",
+    "health.tabs.reports": "Événements hors école",
+    "health.tabs.history": "Historique",
+    "health.conditions.empty": "Aucune information de santé enregistrée.",
+    "health.care.empty": "Aucun soin enregistré à l'école.",
+    "health.reports.empty": "Aucun événement signalé.",
+    "health.reports.acknowledged": "Pris en compte par l'école",
+    "health.reports.pending": "En attente de lecture par l'école",
+    "health.reports.acknowledgeAction": "Marquer comme pris en compte",
+    "health.history.empty": "Aucun élément dans l'historique.",
+    "health.form.conditionType": "Type",
+    "health.form.alertLevel": "Niveau",
+    "health.form.label": "Intitulé",
+    "health.form.labelPlaceholder": "Ex : Allergie aux arachides",
+    "health.form.description": "Description",
+    "health.form.descriptionPlaceholder": "Décrivez la situation",
+    "health.form.submitCondition": "Ajouter cette information",
+    "health.form.reportType": "Type d'événement",
+    "health.form.submitReport": "Signaler cet événement",
+    "health.form.sportRestriction": "Restriction sportive associée",
+    "health.form.careSummaryPlaceholder": "Ex : Chute dans la cour",
+    "health.form.submitCareEvent": "Enregistrer ce soin",
+    "health.validation.labelRequired": "L'intitulé est requis.",
+    "health.validation.descriptionRequired": "La description est requise.",
+    "health.errors.load": "Impossible de charger les informations de santé.",
+    "health.errors.createFailed": "Impossible d'enregistrer cette information.",
+    "health.alertLevel.INFO": "Information",
+    "health.alertLevel.ATTENTION": "Attention",
+    "health.alertLevel.URGENT": "Urgent",
+    "health.conditionType.ALLERGY": "Allergie",
+    "health.conditionType.PATHOLOGY": "Pathologie",
+    "health.conditionType.TREATMENT": "Traitement",
+    "health.conditionType.INSTRUCTION": "Instruction particulière",
+    "health.conditionType.OTHER": "Autre",
+    "health.reportType.MALADIE": "Maladie",
+    "health.reportType.TRAITEMENT": "Traitement",
+    "health.reportType.ACCIDENT": "Accident",
+    "health.reportType.CONSULTATION": "Consultation médicale",
+    "health.reportType.HOSPITALISATION": "Hospitalisation",
+    "health.reportType.VACCINATION": "Vaccination",
+    "health.reportType.RESTRICTION_SPORT": "Restriction sportive",
+    "health.reportType.AUTRE": "Autre",
+    "health.school.searchPlaceholder": "Rechercher un élève…",
+    "health.school.noStudent": "Aucun élève trouvé.",
+    "health.school.urgencyTitle": "Informations critiques",
+    "health.school.contacts": "Contacts",
+    "health.admin.tabs.synthese": "Synthèse",
+    "health.admin.tabs.cares": "Cares",
+    "health.admin.tabs.eleves": "Élèves",
+    "health.admin.scope.school": "École entière",
+    "health.admin.scope.classLabel": "Classe",
+    "health.admin.scope.allClasses": "Toute l'école",
+    "health.admin.stats.activeConditions": "Conditions actives",
+    "health.admin.stats.studentsWithConditions": "Élèves concernés",
+    "health.admin.stats.careEvents7d": "Soins (7 derniers jours)",
+    "health.admin.stats.careEvents30d": "Soins (30 derniers jours)",
+    "health.admin.stats.reportsPending": "Signalements en attente",
+    "health.admin.stats.byAlertLevel": "Répartition par niveau d'alerte",
+    "health.admin.stats.loading": "Chargement des statistiques…",
+    "health.admin.stats.error": "Impossible de charger les statistiques.",
+    "health.admin.cares.search.placeholder": "Rechercher un élève…",
+    "health.admin.cares.search.accessibilityLabel": "Rechercher",
+    "health.admin.cares.filters.toggleAccessibilityLabel": "Filtres",
+    "health.admin.cares.filters.reset": "Réinitialiser",
+    "health.admin.cares.filters.close": "Fermer",
+    "health.admin.cares.filters.apply": "Appliquer",
+    "health.admin.cares.filters.alertLevelLabel": "Niveau d'alerte",
+    "health.admin.cares.filters.allLevels": "Tous",
+    "health.admin.cares.filters.reportTypeLabel": "Type de signalement",
+    "health.admin.cares.filters.allReportTypes": "Tous",
+    "health.admin.cares.filters.statusLabel": "Statut",
+    "health.admin.cares.filters.statusAll": "Tous",
+    "health.admin.cares.filters.statusAcknowledged": "Acquittés",
+    "health.admin.cares.filters.statusPending": "En attente",
+    "health.admin.cares.empty.title": "Aucun signalement",
+    "health.admin.cares.empty.default": "Aucun signalement pour le moment.",
+    "health.admin.cares.empty.search":
+      "Aucun signalement ne correspond à votre recherche.",
+    "health.admin.cares.card.pending": "En attente",
+    "health.admin.cares.card.acknowledged": "Acquitté",
+    "health.admin.eleves.search.placeholder": "Rechercher un élève…",
+    "health.admin.eleves.search.accessibilityLabel": "Rechercher",
+    "health.admin.eleves.filters.toggleAccessibilityLabel": "Filtres",
+    "health.admin.eleves.filters.reset": "Réinitialiser",
+    "health.admin.eleves.filters.close": "Fermer",
+    "health.admin.eleves.filters.apply": "Appliquer",
+    "health.admin.eleves.filters.classLabel": "Classe",
+    "health.admin.eleves.filters.allClasses": "Toutes",
+    "health.admin.eleves.empty.title": "Aucun élève",
+    "health.admin.eleves.empty.default": "Aucun élève pour le moment.",
+    "health.admin.eleves.empty.search":
+      "Aucun élève ne correspond à votre recherche.",
+    "health.admin.eleves.card.ageUnit": "ans",
+    "health.admin.eleves.card.noClass": "Sans classe",
+    "health.admin.profile.tabs.cares": "Cares",
+    "health.admin.profile.tabs.conditions": "Conditions",
+    "health.admin.profile.hero.noClass": "Sans classe",
+    "health.admin.profile.hero.ageUnknown": "Âge inconnu",
+    "health.admin.profile.fab.addCare": "Ajouter un soin",
+    "health.admin.profile.form.hero.createTitle": "Ajouter un soin",
+    "health.admin.profile.form.hero.createSubtitle":
+      "Enregistrez un soin prodigué à l'élève.",
+    "health.admin.profile.form.hero.editTitle": "Modifier le soin",
+    "health.admin.profile.form.hero.editSubtitle":
+      "Mettez à jour les informations de ce soin.",
+    "health.admin.profile.form.submitEdit": "Enregistrer les modifications",
+    "health.admin.profile.toasts.careCreatedTitle": "Soin enregistré",
+    "health.admin.profile.toasts.careCreatedMessage":
+      "Le soin a été ajouté avec succès.",
+    "health.admin.profile.toasts.careUpdatedTitle": "Soin modifié",
+    "health.admin.profile.toasts.careUpdatedMessage":
+      "Le soin a été mis à jour avec succès.",
+    "health.admin.profile.errors.load": "Impossible de charger la fiche santé.",
+    "health.admin.profile.errors.saveGeneric":
+      "Impossible d'enregistrer ce soin.",
+    "health.admin.profile.empty.caresTitle": "Aucun soin",
+    "health.admin.profile.empty.cares": "Aucun soin enregistré.",
+    "health.admin.profile.empty.conditionsTitle": "Aucune condition",
+    "health.admin.profile.empty.conditions":
+      "Aucune condition de santé enregistrée.",
+    "health.admin.profile.editAction": "Modifier",
+    "health.admin.profile.byPrefix": "par",
+    "onboardingTour.healthParent.tabsTitle": "2 onglets pour s'y retrouver",
+    "onboardingTour.healthParent.tabsBody":
+      "Conditions regroupe les allergies, pathologies et consignes durables. Historique regroupe les soins reçus à l'école et les événements que vous signalez, triés par date.",
+    "onboardingTour.healthParent.searchTitle": "Recherche et filtres",
+    "onboardingTour.healthParent.searchBody":
+      "Recherchez par mot-clé et affinez avec les filtres (type, niveau d'alerte...) sur chaque onglet.",
+    "onboardingTour.healthParent.fabTitle": "Ajouter une information",
+    "onboardingTour.healthParent.fabBody":
+      "Le bouton + ajoute une condition de santé (onglet Conditions) ou signale un événement hors école (onglet Historique). L'enseignant référent est automatiquement informé pour un signalement.",
+    "onboardingTour.healthParent.helpToggleTitle":
+      "Une aide toujours disponible",
+    "onboardingTour.healthParent.helpToggleBody":
+      "Touchez ce bouton, puis « Aide » dans le menu, pour retrouver à tout moment le fonctionnement de cet écran.",
+    "onboardingTour.healthSchool.tabsTitle": "3 onglets pour s'y retrouver",
+    "onboardingTour.healthSchool.tabsBody":
+      "Synthèse regroupe les statistiques de l'école ou d'une classe. Cares liste les signalements des parents, du plus récent au plus ancien. Élèves permet de retrouver la fiche santé de chaque élève.",
+    "onboardingTour.healthSchool.searchTitle": "Recherche et filtres",
+    "onboardingTour.healthSchool.searchBody":
+      "Recherchez un élève et affinez les résultats avec les filtres (niveau d'alerte, type, classe…).",
+    "onboardingTour.healthSchool.studentFabTitle": "Fiche élève",
+    "onboardingTour.healthSchool.studentFabBody":
+      "Ouvrez la fiche d'un élève pour voir ses soins et conditions de santé, et utilisez le bouton + pour enregistrer un nouveau soin.",
   },
   en: {
+    "common.loading": "Loading...",
+    "common.cancel": "Cancel",
+    "common.save": "Save",
+    "common.delete": "Delete",
+    "common.select": "Select",
+
+    "financeAdmin.lockedTitle": "Module reserved for administrative staff",
+    "financeAdmin.lockedMessage":
+      "This mobile module is available for admin, manager or accountant accounts.",
+    "financeAdmin.schedules.title": "Fee schedules",
+    "financeAdmin.schedules.empty": "No fee schedule defined yet.",
+    "financeAdmin.schedules.success.saved": "Fee schedule saved.",
+    "financeAdmin.schedules.success.deleted": "Fee schedule deleted.",
+    "financeAdmin.schedules.errors.save": "Unable to save.",
+    "financeAdmin.schedules.errors.delete": "Unable to delete.",
+    "financeAdmin.schedules.form.title": "New fee schedule / update",
+    "financeAdmin.schedules.form.subtitle":
+      "Schedule by level, track and school year",
+    "financeAdmin.schedules.form.schoolYear": "School year",
+    "financeAdmin.schedules.form.academicLevel": "Level",
+    "financeAdmin.schedules.form.track": "Track",
+    "financeAdmin.schedules.form.trackNone": "No track",
+    "financeAdmin.schedules.form.installments": "Installments",
+    "financeAdmin.schedules.form.label": "Label",
+    "financeAdmin.schedules.form.amount": "Amount",
+    "financeAdmin.schedules.form.addInstallment": "Add installment",
+    "financeAdmin.schedules.deleteConfirm.title": "Delete fee schedule",
+
+    "financeAdmin.payments.title": "Payments",
+    "financeAdmin.payments.search.placeholder": "First or last name",
+    "financeAdmin.payments.search.button": "Search",
+    "financeAdmin.payments.errors.search": "Unable to search.",
+    "financeAdmin.payments.errors.summary":
+      "Unable to load this student's financial status.",
+    "financeAdmin.payments.errors.save": "Unable to save the payment.",
+    "financeAdmin.payments.success.paid": "Payment recorded.",
+    "financeAdmin.payments.success.paidAndReinscribed":
+      "Payment recorded: the student's re-enrollment is confirmed.",
+    "financeAdmin.payments.targetYear": "School year (re-enrollment)",
+    "financeAdmin.payments.summary.totalPaid": "Total already paid",
+    "financeAdmin.payments.summary.firstInstallment":
+      "First installment amount",
+    "financeAdmin.payments.summary.eligible":
+      "Threshold reached: student re-enrolled.",
+    "financeAdmin.payments.summary.notEligible":
+      "Threshold not reached: re-enrollment is not confirmed yet.",
+    "financeAdmin.payments.form.amount": "Amount paid",
+    "financeAdmin.payments.form.submit": "Record payment",
+
+    "promotionsAdmin.title": "Grade promotion",
+    "promotionsAdmin.tab.decisions": "Decisions",
+    "promotionsAdmin.tab.waiting": "Waiting",
+    "promotionsAdmin.decisions.selectClass": "Class (current year)",
+    "promotionsAdmin.decisions.empty":
+      "No last-term report card for this class.",
+    "promotionsAdmin.decisions.nextLevel": "Target level",
+    "promotionsAdmin.decisions.nextTrack": "Target track",
+    "promotionsAdmin.decisions.trackNone": "No track",
+    "promotionsAdmin.decision.PROMOTED": "Promoted",
+    "promotionsAdmin.decision.REPEATED": "Repeated",
+    "promotionsAdmin.decision.LEFT": "Left the school",
+    "promotionsAdmin.errors.loadReports": "Unable to load report cards.",
+    "promotionsAdmin.errors.saveDecision": "Unable to save the decision.",
+    "promotionsAdmin.errors.loadWaiting": "Unable to load the waiting list.",
+    "promotionsAdmin.errors.assign": "Unable to assign.",
+    "promotionsAdmin.success.decisionSaved": "Decision saved.",
+    "promotionsAdmin.success.assigned": "Student assigned to class.",
+    "promotionsAdmin.waiting.targetYear": "Target school year",
+    "promotionsAdmin.waiting.level": "Level",
+    "promotionsAdmin.waiting.allLevels": "All levels",
+    "promotionsAdmin.waiting.targetClass": "Final class",
+    "promotionsAdmin.waiting.assign": "Assign",
+    "promotionsAdmin.waiting.empty":
+      "No student waiting for assignment with these filters.",
+
+    "schoolSettings.title": "School settings",
+    "schoolSettings.tabs.levels": "Levels",
+    "schoolSettings.lockedTitle": "Restricted access",
+    "schoolSettings.lockedMessage":
+      "Only school admins and managers can access the school settings.",
+    "schoolSettings.errors.load": "Unable to load the levels.",
+    "schoolSettings.levels.intro":
+      "Activate the national levels used by this school. Levels created for this school are always active. The order determines the level automatically suggested for the next promotion decision.",
+    "schoolSettings.levels.own": "School-owned level",
+    "schoolSettings.levels.national": "National level",
+    "schoolSettings.levels.alwaysActive": "Always active",
+    "schoolSettings.levels.orderLabel": "Order",
+    "schoolSettings.levels.empty.title": "No level",
+    "schoolSettings.levels.empty.message":
+      "No academic level is available for this school.",
+    "schoolSettings.levels.errors.toggle":
+      "Unable to change this level's activation.",
+    "schoolSettings.levels.errors.save": "Unable to save the order.",
+    "schoolSettings.levels.errors.invalidOrder":
+      "The order must be a positive integer.",
+    "schoolSettings.levels.success.saved": "Change saved.",
+    "schoolSettings.help.menuLabel": "Help",
+    "schoolSettings.help.close": "Close",
+    "schoolSettings.help.title": "Help — School settings",
+    "schoolSettings.help.section1Title": "Activating a level",
+    "schoolSettings.help.section1Body":
+      "Not every national level from the platform catalog automatically applies to your school — activate only the ones your school actually uses. Levels created for your school are always active and never need activating.",
+    "schoolSettings.help.section2Title": "Order and the promotion decision",
+    "schoolSettings.help.section2Body":
+      'The Order field (editable on your own levels) defines the pedagogical progression. When a teacher records a "Promoted" decision in the Decision tab of Notes, the app automatically suggests the next active level in that order.',
+
     "settings.language.title": "Language of this device",
     "settings.language.subtitle": "Choose the application language",
     "settings.language.hint":
@@ -3062,11 +3987,37 @@ export const translations: Record<Locale, Record<string, string>> = {
     "legalScreen.errors.load": "Could not load this document.",
     "legalScreen.publisherLabel": "Publication director:",
     "onboardingTour.common.next": "Next",
-    "onboardingTour.common.skip": "Skip",
     "onboardingTour.common.finish": "Finish",
     "onboardingTour.common.tapTarget":
       "Tap the highlighted element to continue.",
     "onboardingTour.common.gotIt": "Got it",
+    "onboardingTour.financeParent.walletTitle": "Your wallet",
+    "onboardingTour.financeParent.walletBody":
+      "Top up this wallet at any time, even before the class council has decided. The money stays available until you choose to allocate it to a child.",
+    "onboardingTour.financeParent.childrenTitle": "Each child's status",
+    "onboardingTour.financeParent.childrenBody":
+      "For each child: waiting on the class council decision, already re-enrolled, or ready to re-enroll with the remaining amount due shown.",
+    "onboardingTour.financeParent.reinscribeTitle": "Pay and re-enroll",
+    "onboardingTour.financeParent.reinscribeBody":
+      "This button debits your wallet for the exact amount of THIS child's first installment and confirms their re-enrollment in one step. A parent with several children must tap separately for each one.",
+    "finSituation.wallet.balance": "Wallet balance",
+    "finSituation.wallet.topUpAmount": "Amount to top up",
+    "finSituation.wallet.topUpSubmit": "Top up",
+    "finSituation.wallet.allChildrenLoaded": "All children have been loaded",
+    "finSituation.wallet.errors.load": "Unable to load the wallet.",
+    "finSituation.wallet.errors.amount": "Invalid amount.",
+    "finSituation.wallet.errors.topUp": "Unable to top up.",
+    "finSituation.wallet.errors.reinscribe": "Unable to re-enroll.",
+    "finSituation.wallet.success.topUp": "Wallet topped up.",
+    "finSituation.wallet.success.reinscribed": "{firstName} is re-enrolled!",
+    "finSituation.children.title": "My children",
+    "finSituation.children.required": "Remaining amount due:",
+    "finSituation.children.payAndReinscribe": "Pay and re-enroll",
+    "finSituation.children.empty": "No child linked to your account.",
+    "finSituation.children.status.DECISION_PENDING":
+      "Waiting on the class council decision",
+    "finSituation.children.status.ALREADY_REINSCRIBED": "Already re-enrolled",
+    "finSituation.children.status.READY_TO_REINSCRIBE": "Ready to re-enroll",
     "onboardingTour.childTimetable.step1Title": "Switch views",
     "onboardingTour.childTimetable.step1Body":
       "Tap Day, Week or Month to change how the schedule is displayed.",
@@ -3078,7 +4029,52 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Each card shows the time, subject, teacher and room for the course.",
     "onboardingTour.childTimetable.step4Title": "Help is always available",
     "onboardingTour.childTimetable.step4Body":
-      "Tap this button anytime for a reminder on how to use this page.",
+      'Tap this button at any time, then "Help" in the menu, to see a reminder of how to use this page.',
+    "onboardingTour.schoolSettings.step1Title": "Levels tab",
+    "onboardingTour.schoolSettings.step1Body":
+      "This tab groups the academic levels used by your school. More settings will be added here over time.",
+    "onboardingTour.schoolSettings.step2Title": "Activate a level",
+    "onboardingTour.schoolSettings.step2Body":
+      'This switch activates or deactivates a national level for your school: only active levels then appear as a possible target in the Decision tab of Notes. Levels created for your school are always active. The Order field (on your own levels) determines which level is automatically suggested when a teacher records a "Promoted" decision.',
+    "onboardingTour.schoolSettings.step3Title": "Help is always available",
+    "onboardingTour.schoolSettings.step3Body":
+      'Tap this button at any time, then "Help" in the menu, to see a reminder of how to use this page.',
+    "onboardingTour.vieScolaire.step1Title": "Three tabs",
+    "onboardingTour.vieScolaire.step1Body":
+      "Tap a tab to switch between the summary, absences and lateness, then sanctions and punishments.",
+    "onboardingTour.vieScolaire.step2Title": "Filter by indicator",
+    "onboardingTour.vieScolaire.step2Body":
+      "Tap a card (absences, lateness, sanctions, punishments) to filter the recent events list to that type.",
+    "onboardingTour.vieScolaire.step3Title": "Help is always available",
+    "onboardingTour.vieScolaire.step3Body":
+      'Tap this button at any time, then "Help" in the menu, to see these explanations again.',
+    "onboardingTour.homework.step1Title": "Two ways to see your homework",
+    "onboardingTour.homework.step1Body":
+      '"List" shows your upcoming homework one after another, "Agenda" organizes them by week or month.',
+    "onboardingTour.homework.step2Title": "A homework card",
+    "onboardingTour.homework.step2Body":
+      "Tap a card to see the full instructions and attachments. The bubble icon shows and adds comments.",
+    "onboardingTour.homework.step3Title": "Mark it as done",
+    "onboardingTour.homework.step3Body":
+      "Once you're done, tap this toggle to let your teacher know. Tap it again to undo.",
+    "onboardingTour.homework.step4Title": "Help is always available",
+    "onboardingTour.homework.step4Body":
+      'Tap this button any time, then "Help" in the menu, to see a reminder of how to use this page.',
+    "onboardingTour.parentLanding.step1Title": "Your navigation menu",
+    "onboardingTour.parentLanding.step1Body":
+      "Tap this icon to open the menu and reach every section of the school.",
+    "onboardingTour.parentLanding.step2Title": "Your messaging",
+    "onboardingTour.parentLanding.step2Body":
+      "In this menu, this entry opens your parent messaging, where all your exchanges with the school live.",
+    "onboardingTour.parentLanding.step3Title": "Your child's space",
+    "onboardingTour.parentLanding.step3Body":
+      "Tap your child's name to expand their space: grades, timetable, school life and more.",
+    "onboardingTour.parentLanding.step4Title": "Your account settings",
+    "onboardingTour.parentLanding.step4Body":
+      "This icon opens your account settings: contact details, security and preferences.",
+    "onboardingTour.parentLanding.step5Title": "Help is always available",
+    "onboardingTour.parentLanding.step5Body":
+      "Tap this button anytime for a reminder on how to use this page and the navigation menu.",
     "onboardingTour.feedFilters.step1Title": "Open the filters",
     "onboardingTour.feedFilters.step1Body":
       "Tap this button to open the feed's filter panel.",
@@ -3447,8 +4443,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.delete.confirmAria": "Confirm deletion",
 
     "discipline.tabs.synthesis": "Summary",
-    "discipline.tabs.absencesRetards": "Absences & Lateness",
-    "discipline.tabs.sanctionsPunitions": "Sanctions & Punishments",
+    "discipline.tabs.absencesRetards": "Absences",
+    "discipline.tabs.sanctionsPunitions": "Sanctions",
     "discipline.tabs.events": "Events",
     "discipline.tabs.booklets": "Records",
     "discipline.tabs.history": "History",
@@ -3492,6 +4488,27 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.header.discipline": "Discipline",
     "discipline.header.vieScolaire": "School life",
     "discipline.header.student": "Student",
+
+    "discipline.vieScolaire.help.menuLabel": "Help",
+    "discipline.vieScolaire.help.close": "Close",
+    "discipline.vieScolaire.help.synthese.title": "School life — Summary",
+    "discipline.vieScolaire.help.synthese.section1Title": "The year's counters",
+    "discipline.vieScolaire.help.synthese.section1Body":
+      "The cards at the top of the screen total, since the start of the school year, the number of absences, lateness, sanctions and punishments. These numbers update automatically as soon as a new event is recorded by the school — you don't need to do anything to refresh them.",
+    "discipline.vieScolaire.help.synthese.section2Title":
+      "Filtering recent events",
+    "discipline.vieScolaire.help.synthese.section2Body":
+      'Tap a card (absences, lateness, sanctions or punishments) to only show, in the "Recent events" list just below, events of that type — useful to quickly check, for example, whether a lateness reported verbally was actually recorded. Tap the same card again (or "Show all") to go back to the full unfiltered list.',
+    "discipline.vieScolaire.help.absences.title": "School life — Absences",
+    "discipline.vieScolaire.help.absences.section1Title":
+      "The full history of absences and lateness",
+    "discipline.vieScolaire.help.absences.section1Body":
+      "This tab lists, most recent first, every absence and lateness recorded by the school, with its date and its reason if the school specified one. This list is read-only: it reflects what the school entered and cannot be edited from the app.",
+    "discipline.vieScolaire.help.sanctions.title": "School life — Sanctions",
+    "discipline.vieScolaire.help.sanctions.section1Title":
+      "The full history of sanctions and punishments",
+    "discipline.vieScolaire.help.sanctions.section1Body":
+      "This tab lists, most recent first, every sanction and punishment recorded by the school, with its date and its reason. Like the Absences tab, this list is read-only and only reflects what the school entered.",
 
     "discipline.fab.addEvent": "Add a discipline event",
 
@@ -3542,6 +4559,33 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.sections.byClass.title": "By-class view",
     "discipline.sections.byClass.subtitle": "Select a year and a class.",
 
+    "discipline.teacherHelp.menuLabel": "Help",
+    "discipline.teacherHelp.close": "Got it",
+    "discipline.teacherHelp.events.title": "How to use the Events tab",
+    "discipline.teacherHelp.events.section1Title": "Filter by student",
+    "discipline.teacherHelp.events.section1Body":
+      "Choose a student from the list to only show their events, or leave it empty to see the whole class.",
+    "discipline.teacherHelp.events.section2Title": "Report an event",
+    "discipline.teacherHelp.events.section2Body":
+      "Tap the + button to report an absence, a tardy, a sanction or a punishment.",
+    "discipline.teacherHelp.carnets.title": "How to use the Booklets tab",
+    "discipline.teacherHelp.carnets.section1Title": "Check a student's booklet",
+    "discipline.teacherHelp.carnets.section1Body":
+      "Choose a student to see the summary of their absences, tardies, sanctions and punishments.",
+
+    "onboardingTour.teacherDiscipline.step1Title": "Two tabs",
+    "onboardingTour.teacherDiscipline.step1Body":
+      "Switch from the class's recent events to a student's detailed booklet.",
+    "onboardingTour.teacherDiscipline.step2Title": "Filter by student",
+    "onboardingTour.teacherDiscipline.step2Body":
+      "Choose a student from the list to only show their events.",
+    "onboardingTour.teacherDiscipline.step3Title": "Report an event",
+    "onboardingTour.teacherDiscipline.step3Body":
+      "Tap this button to report an absence, a tardy, a sanction or a punishment.",
+    "onboardingTour.teacherDiscipline.step4Title": "Help is always available",
+    "onboardingTour.teacherDiscipline.step4Body":
+      'Tap this button at any time, then "Help" in the menu, for a reminder tailored to the tab you\'re viewing.',
+
     "discipline.filters.title": "Filters",
     "discipline.filters.student": "Student",
     "discipline.filters.allStudents": "All students",
@@ -3569,6 +4613,27 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.tabs.agenda": "Homework agenda",
     "homework.tabs.week": "Week",
     "homework.tabs.month": "Month",
+
+    "homework.tourFallback.title": "Example: Exercises page 42",
+    "homework.tourFallback.subject": "Mathematics",
+    "homework.tourFallback.author": "Your teacher",
+
+    "homework.help.menuLabel": "Help",
+    "homework.help.close": "Close",
+    "homework.help.list.title": "Homework — List",
+    "homework.help.list.section1Title": "The List view",
+    "homework.help.list.section1Body":
+      'This view shows your upcoming homework one after another, from the nearest due date to the farthest. Tap "Agenda" at the top of the screen to see it organized by week or month instead.',
+    "homework.help.agenda.title": "Homework — Agenda",
+    "homework.help.agenda.section1Title": "The Agenda view",
+    "homework.help.agenda.section1Body":
+      'This view organizes your homework by week or month: a dot appears under each day that has at least one homework. Tap a marked day to show that day\'s homework. Tap "List" at the top of the screen to go back to the simple chronological order.',
+    "homework.help.section2Title": "A homework card",
+    "homework.help.section2Body":
+      "Each card shows the subject, the homework title and its due date. Tap a card to see the full instructions and any attachments. The bubble icon shows comments already posted and lets you add a new one, visible to the teacher and the other students in the class.",
+    "homework.help.section3Title": "Mark as done",
+    "homework.help.section3Body":
+      'Once the homework is finished, tap the "Mark done" toggle to let your teacher know: the homework stays visible but appears as completed. You can tap the same toggle again to undo it if you made a mistake.',
 
     "homework.form.validation.subjectRequired": "Subject is required.",
     "homework.form.validation.titleRequired": "Title is required.",
@@ -3803,6 +4868,41 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.filters.apply": "Apply",
     "resources.filters.close": "Close",
 
+    "resources.help.menuLabel": "Help",
+    "resources.help.close": "Close",
+    "resources.help.ASSESSMENT.title": "How to use the Assessments tab",
+    "resources.help.EXAM.title": "How to use the Exams tab",
+    "resources.help.browse.section1Title": "Search and filter",
+    "resources.help.browse.section1Body":
+      "Use the search field to find a resource by title. Tap the filter icon to narrow down by academic year, school, level, sequence, or exam type depending on the tab you're on.",
+    "resources.help.browse.section2Title": "View a resource",
+    "resources.help.browse.section2Body":
+      "Tap a card to open its statement or, if available, its correction.",
+    "resources.help.browse.section3Title": "Add to favorites",
+    "resources.help.browse.section3Body":
+      "Tap the favorite icon on a card to add it to your favorites and find it again quickly from the Favorites tab.",
+    "resources.help.mine.title": "How to use the My resources tab",
+    "resources.help.mine.section1Title": "Track your submissions' status",
+    "resources.help.mine.section1Body":
+      "Each resource you submitted shows the status of its statement and, if present, its correction: pending, approved, or rejected by moderation — so you know whether your submission is already visible to other users.",
+    "resources.help.mine.section2Title": "Edit a submission",
+    "resources.help.mine.section2Body":
+      "Tap Edit on one of your resources to correct its content, before or after moderation approval.",
+    "resources.help.favorites.title": "How to use the Favorites tab",
+    "resources.help.favorites.section1Title": "Find your favorite resources",
+    "resources.help.favorites.section1Body":
+      "This tab gathers every resource you added to favorites from the Assessments and Exams tabs. Tap the favorite icon again on a card to remove it from this list.",
+
+    "onboardingTour.resources.step1Title": "Resource types",
+    "onboardingTour.resources.step1Body":
+      "Switch between Assessments, Exams and your Favorites with these tabs.",
+    "onboardingTour.resources.step2Title": "Search and filter",
+    "onboardingTour.resources.step2Body":
+      "Search for a resource by title, or tap the filter icon to narrow down by year, school, level or type.",
+    "onboardingTour.resources.step3Title": "Need help?",
+    "onboardingTour.resources.step3Body":
+      'Tap this button, then "Help" in the menu, to find these explanations again at any time.',
+
     "resources.form.duplicateWarningTitle": "This resource may already exist",
     "resources.form.duplicateWarningMessage":
       "One or more similar resources already exist. Do you really want to create this one?",
@@ -3926,14 +5026,17 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.childAgenda.detail.time": "Time:",
     "timetable.childAgenda.detail.teacher": "Teacher:",
     "timetable.childAgenda.detail.room": "Room:",
-    "timetable.childAgenda.help.toggleOpen": "Need help with this page?",
-    "timetable.childAgenda.help.toggleClose": "Hide help",
+    "timetable.childAgenda.help.menuLabel": "Help",
     "timetable.childAgenda.help.title": "How to use this page",
-    "timetable.childAgenda.help.body1":
+    "timetable.childAgenda.help.close": "Got it",
+    "timetable.childAgenda.help.section1Title": "Switch views",
+    "timetable.childAgenda.help.section1Body":
       "Switch between Day, Week and Month to change how your child's timetable is displayed.",
-    "timetable.childAgenda.help.body2":
+    "timetable.childAgenda.help.section2Title": "Navigate through time",
+    "timetable.childAgenda.help.section2Body":
       "Use the arrows or tap the period label to move through time: jump several months ahead to find a specific slot, or return to \"today\" for today's or tomorrow's agenda.",
-    "timetable.childAgenda.help.body3":
+    "timetable.childAgenda.help.section3Title": "Check a course's details",
+    "timetable.childAgenda.help.section3Body":
       "Tap a course card to see its time, teacher and room at a glance.",
 
     "timetable.classesScreen.headerTitle": "My classes",
@@ -4012,6 +5115,44 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.teacherAgenda.admin.selectionBanner.userPrefix": "Schedule for",
     "timetable.teacherAgenda.admin.selectionBanner.classPrefix": "Class",
     "timetable.teacherAgenda.admin.selectionBanner.clear": "Clear selection",
+
+    "timetable.teacherAgenda.help.menuLabel": "Help",
+    "timetable.teacherAgenda.help.close": "Got it",
+    "timetable.teacherAgenda.help.mine.title": "How to use your agenda",
+    "timetable.teacherAgenda.help.mine.section1Title": "Switch views",
+    "timetable.teacherAgenda.help.mine.section1Body":
+      "Tap Day, Week or Month to change how your personal schedule is displayed.",
+    "timetable.teacherAgenda.help.mine.section2Title": "Navigate through time",
+    "timetable.teacherAgenda.help.mine.section2Body":
+      "Use the arrows to move to the previous or next period, or tap the label to jump back to today.",
+    "timetable.teacherAgenda.help.mine.section3Title": "Check a course",
+    "timetable.teacherAgenda.help.mine.section3Body":
+      "Tap a course card to see the class, subject, room, and to edit or cancel that slot if needed.",
+    "timetable.teacherAgenda.help.classes.title":
+      "How to use your classes' agenda",
+    "timetable.teacherAgenda.help.classes.section1Title": "Choose a class",
+    "timetable.teacherAgenda.help.classes.section1Body":
+      "Tap a class in the list at the top of the screen to display its full timetable.",
+    "timetable.teacherAgenda.help.classes.section2Title":
+      "Switch views and navigate",
+    "timetable.teacherAgenda.help.classes.section2Body":
+      "Just like your personal agenda, switch between Day/Week/Month and use the arrows to change period.",
+    "timetable.teacherAgenda.help.classes.section3Title": "Check a course",
+    "timetable.teacherAgenda.help.classes.section3Body":
+      "Tap a course card to see the full detail of that slot for this class.",
+
+    "onboardingTour.teacherAgenda.step1Title": "Two views",
+    "onboardingTour.teacherAgenda.step1Body":
+      "Tap a tab to switch between your personal agenda and your classes' timetable.",
+    "onboardingTour.teacherAgenda.step2Title": "Switch views",
+    "onboardingTour.teacherAgenda.step2Body":
+      "Tap Day, Week or Month to change how the schedule is displayed.",
+    "onboardingTour.teacherAgenda.step3Title": "Navigate through time",
+    "onboardingTour.teacherAgenda.step3Body":
+      "Use the arrows to move to the previous or next period, or tap the label to jump back to today.",
+    "onboardingTour.teacherAgenda.step4Title": "Help is always available",
+    "onboardingTour.teacherAgenda.step4Body":
+      'Tap this button at any time, then "Help" in the menu, for a reminder tailored to the tab you\'re viewing.',
 
     "timetable.classManager.defaultTitle": "Timetable",
     "timetable.classManager.headerSubtitle": "Class timetable",
@@ -4250,6 +5391,26 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.list.unknownSender": "Unknown sender",
     "messaging.list.recipientSingular": "1 recipient",
     "messaging.list.recipientPlural": "{count} recipients",
+
+    "messaging.help.menuLabel": "Help",
+    "messaging.help.title": "Messaging",
+    "messaging.help.close": "Close",
+    "messaging.help.section1Title": "Organize your messages",
+    "messaging.help.section1Body":
+      "Use the Inbox, Sent, Drafts and Archive tabs to find your messages by status.",
+    "messaging.help.section2Title": "Write a message",
+    "messaging.help.section2Body":
+      "Tap the + button to compose a new message. A message in progress is automatically saved in the Drafts tab.",
+
+    "onboardingTour.messages.step1Title": "Your folders",
+    "onboardingTour.messages.step1Body":
+      "Switch between Inbox, Sent, Drafts and Archive with these tabs.",
+    "onboardingTour.messages.step2Title": "Write a message",
+    "onboardingTour.messages.step2Body":
+      "Tap this button to compose a new message.",
+    "onboardingTour.messages.step3Title": "Need help?",
+    "onboardingTour.messages.step3Body":
+      'Tap this button, then "Help" in the menu, to find these explanations again at any time.',
 
     "messaging.compose.titleNew": "New message",
     "messaging.compose.titleReply": "Reply",
@@ -4552,7 +5713,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.tabs.messages": "Messages",
     "siteContentAdmin.contact.emailLabel": "Email",
     "siteContentAdmin.contact.phoneLabel": "Phone",
-    "siteContentAdmin.contact.addressLabel": "Address",
+    "siteContentAdmin.contact.addressStreetLabel": "Street",
+    "siteContentAdmin.contact.addressDistrictLabel": "District",
+    "siteContentAdmin.contact.addressCityLabel": "City",
+    "siteContentAdmin.contact.addressCountryLabel": "Country",
     "siteContentAdmin.contact.legalRepresentativeFirstNameLabel":
       "Legal representative — First name",
     "siteContentAdmin.contact.legalRepresentativeLastNameLabel":
@@ -4563,7 +5727,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.contact.saveError": "Unable to save contact details.",
     "siteContentAdmin.contact.error.email": "Invalid email.",
     "siteContentAdmin.contact.error.phone": "Phone number is required.",
-    "siteContentAdmin.contact.error.address": "Address is required.",
+    "siteContentAdmin.contact.error.addressStreet": "Street is required.",
+    "siteContentAdmin.contact.error.addressCity": "City is required.",
+    "siteContentAdmin.contact.error.addressCountry": "Country is required.",
+    "siteContentAdmin.contact.edit": "Edit",
+    "siteContentAdmin.contact.cancel": "Cancel",
+    "siteContentAdmin.contact.notProvided": "Not provided",
+    "siteContentAdmin.contact.addressGroupLabel": "Address",
     "siteContentAdmin.legal.slugLabel": "Document",
     "siteContentAdmin.legal.slug.cgu": "Terms of Service",
     "siteContentAdmin.legal.slug.mentions-legales": "Legal Notice",
@@ -4614,26 +5784,45 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.messages.read": "Message read",
     "siteContentAdmin.messages.reply": "Reply by email",
     "siteContentAdmin.help.toggle": "Help",
-    "siteContentAdmin.help.title": "Site content",
-    "siteContentAdmin.help.body1":
-      "This screen manages the public showcase site content: contact details, legal documents (Terms of Service, Legal Notice, Privacy Policy) and received contact submissions.",
-    "siteContentAdmin.help.body2":
-      "For a legal document, first pick the language, then start a new draft from the dedicated button. A draft can be freely edited until it is published.",
-    "siteContentAdmin.help.body3":
-      "Publishing a draft immediately replaces the version visible on the site for that language and document. Previously published versions stay visible in the history. The Messages tab lists submissions received through the public contact form.",
     "siteContentAdmin.help.close": "Got it",
+    "siteContentAdmin.help.contact.title": "How to use the Contact tab",
+    "siteContentAdmin.help.contact.section1Title":
+      "Review the public contact details",
+    "siteContentAdmin.help.contact.section1Body":
+      "This tab shows the contact details (email, phone, address, legal representative) publicly displayed on the school's showcase site.",
+    "siteContentAdmin.help.contact.section2Title": "Edit the contact details",
+    "siteContentAdmin.help.contact.section2Body":
+      "Tap Edit to correct any information, then Save. The update is immediately visible on the public site.",
+    "siteContentAdmin.help.legal.title": "How to use the Legal documents tab",
+    "siteContentAdmin.help.legal.section1Title":
+      "Pick the document and language",
+    "siteContentAdmin.help.legal.section1Body":
+      "Select the document (Terms of Service, Legal Notice, Privacy Policy) then the language to edit — each document exists independently for every language offered on the site.",
+    "siteContentAdmin.help.legal.section2Title": "Create or edit a draft",
+    "siteContentAdmin.help.legal.section2Body":
+      "Tap New draft to write a new version, or Edit on an existing draft. A draft can be freely corrected until it's published, without affecting the version visible on the site.",
+    "siteContentAdmin.help.legal.section3Title": "Publish or delete a document",
+    "siteContentAdmin.help.legal.section3Body":
+      "Publishing a draft immediately replaces the version visible on the site for that language and document; previously published versions stay viewable in the history. Delete permanently removes a draft that no longer needs to be kept.",
+    "siteContentAdmin.help.messages.title": "How to use the Messages tab",
+    "siteContentAdmin.help.messages.section1Title": "Review received messages",
+    "siteContentAdmin.help.messages.section1Body":
+      "This tab lists submissions sent through the site's public contact form, newest first. Tap a message to read its details — it is then marked as read.",
 
     "onboardingTour.siteContent.step1Title": "Contact, documents and messages",
     "onboardingTour.siteContent.step1Body":
       "Switch between the public contact details, the legal documents (Terms of Service, Legal Notice, Privacy Policy) and the submissions received through the public contact form.",
-    "onboardingTour.siteContent.step2Title": "Pick the document and language",
+    "onboardingTour.siteContent.step2Title": "Edit contact details",
     "onboardingTour.siteContent.step2Body":
-      "Select the document and language to see its versions (draft, published, archived).",
-    "onboardingTour.siteContent.step3Title": "Create a new version",
+      "Contact details are shown read-only. Tap this button to open the edit form, including the address (street, district, city, country).",
+    "onboardingTour.siteContent.step3Title": "Pick the document and language",
     "onboardingTour.siteContent.step3Body":
-      "Draft a new version, then publish it to replace the live one.",
-    "onboardingTour.siteContent.step4Title": "Need help?",
+      "Select the document and language to see its versions (draft, published, archived).",
+    "onboardingTour.siteContent.step4Title": "Create a new version",
     "onboardingTour.siteContent.step4Body":
+      "Draft a new version, then publish it to replace the live one.",
+    "onboardingTour.siteContent.step5Title": "Need help?",
+    "onboardingTour.siteContent.step5Body":
       "Come back to this button any time for a reminder of how this screen works.",
 
     "testsAdmin.title": "Tests (admin)",
@@ -4937,13 +6126,29 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.classLife.studentFallback": "Student",
     "feed.classLife.classWithId": "Class {classId}",
     "feed.classLife.classActive": "Active class",
-    "feed.classLife.help.title": "Search and filter",
-    "feed.classLife.help.body1":
-      "Use the search bar to find a post by keyword.",
-    "feed.classLife.help.body2":
-      "The filter button on the right opens a panel where you can combine several post types (featured, polls) and show only your own posts.",
-    "feed.classLife.help.body3":
-      "Once you've made your selection, confirm with Apply to update the list.",
+    "feed.classLife.help.title": "Class life",
+    "feed.classLife.help.menuLabel": "Help",
+    "feed.classLife.help.section1Title": "What this feed is for",
+    "feed.classLife.help.section1Body":
+      "This feed gathers every post for the class (announcements, messages, polls) in chronological order, most recent first. It acts as a shared memory: instead of scattering information across separate messages, everything about the class stays available in one place, even after several days.",
+    "feed.classLife.help.section2Title": "Search for a post",
+    "feed.classLife.help.section2Body":
+      "Use the search bar to find a post by keyword (in its title or text). This is useful once the feed holds several weeks of history and you need a specific piece of information (e.g. a field trip date) without scrolling through the whole list.",
+    "feed.classLife.help.section3Title": "Filter by type and by author",
+    "feed.classLife.help.section3Body":
+      'The filter button (funnel icon) opens a panel where you can combine several post types ("featured", polls) and show only your own posts. Useful to focus on a single topic, for example seeing only ongoing polls. Once you\'ve made your selection, confirm with "Apply" to update the list; the filter button stays highlighted while a filter is active, as a reminder that the list is restricted.',
+    "feed.classLife.help.section4Title": "Post types",
+    "feed.classLife.help.section4Body":
+      'A post marked with a star (sparkle icon) is "featured": highlighted by its author as particularly important, it stays visible even after being overtaken by more recent posts. A poll shows a question with choices: tap an option to vote, the result (vote count per option) appears immediately after you vote, and your vote can\'t be changed afterwards.',
+    "feed.classLife.help.section5Title": "Reacting to a post",
+    "feed.classLife.help.section5Body":
+      'The heart adds or removes a "like" and shows the total number of people who liked the post — a quick way to signal approval without writing a message. The comment bubble shows how many replies have already been posted and expands the comment list when tapped. The "React" button opens a text field with quick emojis you can add with a tap: write your reply (or insert an emoji) then confirm with "Send" to publish your comment, visible to the whole class.',
+    "feed.classLife.help.section6Title": "Attachments and images",
+    "feed.classLife.help.section6Body":
+      "A post can contain images inserted directly in the text (tap them to view full screen) and attached files (documents, PDFs...) listed below the text with their name and size: tap a file to open or download it.",
+    "feed.classLife.help.section7Title": "Publishing and managing your posts",
+    "feed.classLife.help.section7Body":
+      "The round button at the bottom of the screen opens the posting form: write some text, optionally add images or attachments, or create a poll. You can delete a post you created yourself using the trash icon that appears on it; posts from other class members can't be deleted from this screen.",
 
     "feed.page.title": "News feed",
     "feed.page.endOfList": "You have reached the end of the feed",
@@ -4973,6 +6178,24 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.tabs.notes": "Notes",
     "notes.tabs.council": "Class council",
     "notes.tabs.reports": "Reports",
+    "notes.tabs.decision": "Decision",
+
+    "notes.decision.intro":
+      "Yearly synthesis and promotion decision, restricted to the class's referent teacher.",
+    "notes.decision.synthesis.term1": "T1",
+    "notes.decision.synthesis.term2": "T2",
+    "notes.decision.synthesis.term3": "T3",
+    "notes.decision.synthesis.yearly": "Yearly avg.",
+    "notes.decision.synthesis.rankPrefix": "Rank",
+    "notes.decision.synthesis.rankSeparator": "/",
+    "notes.decision.empty.title": "No report",
+    "notes.decision.empty.message":
+      "No term 3 report is available for this class yet.",
+    "notes.decision.errors.load": "Unable to load decisions",
+    "notes.decision.errors.save": "Unable to save decision",
+    "notes.decision.success.saved": "Decision saved",
+    "notes.decision.decisionPlaceholder": "Decision",
+    "notes.decision.noDecision": "No decision",
 
     "notes.classes.title": "Grade book",
     "notes.classes.filterTitle": "Filter by school year",
@@ -5219,8 +6442,103 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.toast.updateTitle": "Evaluation updated",
     "notes.manager.toast.updateMessage": "The changes have been saved.",
 
+    "notes.manager.help.menuLabel": "Help",
+    "notes.manager.help.close": "Got it",
+    "notes.manager.help.evaluations.title": "How to use the Evaluations tab",
+    "notes.manager.help.evaluations.section1Title": "Search and filter",
+    "notes.manager.help.evaluations.section1Body":
+      "Use the search field to find an evaluation by title. Tap the filter icon to narrow the list by evaluation type, sequence, or entry status (complete or incomplete) — handy for quickly spotting evaluations still missing scores.",
+    "notes.manager.help.evaluations.section2Title": "Draft or published status",
+    "notes.manager.help.evaluations.section2Body":
+      "An evaluation created as a draft is not visible to students or parents, and its scores don't show up in their Notes tab until it's published. Publish it once its scale and date are final to make it visible; the Draft or Published badge on each card shows its current state.",
+    "notes.manager.help.evaluations.section3Title": "Track entry progress",
+    "notes.manager.help.evaluations.section3Body":
+      "Each card shows how many scores have been entered out of the class size. The scores icon changes color depending on whether entry is complete or still incomplete, so you can spot at a glance which evaluations still need finishing.",
+    "notes.manager.help.evaluations.section4Title": "Create an evaluation",
+    "notes.manager.help.evaluations.section4Body":
+      "Tap the + button to create a new evaluation: title, subject, type, sequence, date, scale and coefficient. Save it as a draft to prepare it in advance, or publish it right away if it's ready.",
+    "notes.manager.help.evaluations.section5Title":
+      "Edit or delete an evaluation",
+    "notes.manager.help.evaluations.section5Body":
+      "From each card, tap Details to review all the evaluation's information, Edit to correct its scale, date or type, or Delete to remove it permanently — useful if it was created by mistake, before any scores are attached to it.",
+    "notes.manager.help.evaluations.section6Title": "Enter or edit scores",
+    "notes.manager.help.evaluations.section6Body":
+      "Tap an evaluation, or its Scores action, to open score entry and enter or correct each student's score. While the evaluation stays in draft, a banner reminds you: entered scores stay invisible to families until it's published.",
+    "notes.manager.help.notes.title": "How to use the Notes tab",
+    "notes.manager.help.notes.section1Title": "Look up a student",
+    "notes.manager.help.notes.section1Body":
+      "Search for a student by name to see all their scores and averages, subject by subject.",
+    "notes.manager.help.notes.section2Title":
+      "Filter by subject, term or sequence",
+    "notes.manager.help.notes.section2Body":
+      "Tap the filter icon to narrow results down to a specific subject, term, or sequence — handy for quickly checking a given period's scores without scrolling through the student's whole history.",
+    "notes.manager.help.notes.section3Title": "Switch views",
+    "notes.manager.help.notes.section3Body":
+      "Switch between the evaluations list, subject averages, and progress charts to look at the student's results from whichever angle you need.",
+    "notes.manager.help.reports.title": "How to use the Reports tab",
+    "notes.manager.help.reports.section1Title":
+      "Find a student and pick a term",
+    "notes.manager.help.reports.section1Body":
+      "Search for a student, then tap the card for the term you want to open their full report: averages by sequence and by subject. Once the school generates the report, the publication date appears at the bottom of it.",
+    "notes.manager.help.reports.section2Title": "Write the subject remark",
+    "notes.manager.help.reports.section2Body":
+      "For each subject you teach, tap Edit to write or correct the remark that will appear on the student's report. Subjects you don't teach stay read-only.",
+    "notes.manager.help.reports.section3Title":
+      "Write the general remark (referent teacher)",
+    "notes.manager.help.reports.section3Body":
+      "If you are the class's referent teacher, a general class-council remark is also editable, in addition to the per-subject remarks — it sums up the council's opinion on the student's whole term.",
+    "notes.manager.help.decision.title": "How to use the Decision tab",
+    "notes.manager.help.decision.section1Title": "Open a student's card",
+    "notes.manager.help.decision.section1Body":
+      'Each student is first shown collapsed, with just their name and a red "No decision" badge until a decision has been saved. Tap the card to open it: it then shows the three term averages, the yearly average and the student\'s rank in class (e.g. 3rd out of 28) — enough to decide on promotion with full context.',
+    "notes.manager.help.decision.section2Title": "Choose the decision",
+    "notes.manager.help.decision.section2Body":
+      "Select Promoted, Repeated or Left for each student. This decision determines whether the student moves up to the next class, repeats the year, or leaves the school.",
+    "notes.manager.help.decision.section3Title":
+      "Target level suggested automatically",
+    "notes.manager.help.decision.section3Body":
+      "Unless Left is selected, pick the destination level for next year. The app suggests it automatically as soon as you choose Promoted (next level) or Repeated (same level) — you can always change it manually before saving. Only levels activated for your school in Settings > Levels appear in this list.",
+    "notes.manager.help.decision.section4Title": "Save",
+    "notes.manager.help.decision.section4Body":
+      'Tap Save to confirm this student\'s decision: the card closes automatically and now shows the decision taken instead of "No decision".',
+
+    "onboardingTour.teacherNotes.step1Title": "The tabs",
+    "onboardingTour.teacherNotes.step1Body":
+      "Switch from evaluations to per-student scores, then to class-council reports. If you're the class's referent teacher, an extra Decision tab appears to decide on promotion.",
+    "onboardingTour.teacherNotes.step2Title": "Search and filter",
+    "onboardingTour.teacherNotes.step2Body":
+      "Tap the filter icon to narrow down the evaluation list by type, sequence or entry status.",
+    "onboardingTour.teacherNotes.step3Title": "Create an evaluation",
+    "onboardingTour.teacherNotes.step3Body":
+      "Tap this button to create a new evaluation with its scale and date.",
+    "onboardingTour.teacherNotes.step4Title": "Help is always available",
+    "onboardingTour.teacherNotes.step4Body":
+      'Tap this button at any time, then "Help" in the menu, for a reminder tailored to the tab you\'re viewing.',
+
     "notes.child.title": "Evaluations and averages",
     "notes.child.subtitle.student": "Student",
+    "notes.child.help.menuLabel": "Help",
+    "notes.child.help.close": "Close",
+    "notes.child.help.notes.title": "Grades — Evaluations and averages",
+    "notes.child.help.notes.section1Title": "Filter the results",
+    "notes.child.help.notes.section1Body":
+      "The filter button changes the term you're viewing, the view (evaluations, averages or charts) and, when several sequences exist, the displayed sequence. These settings apply immediately to the list below.",
+    "notes.child.help.notes.section2Title": "Three ways to read the results",
+    "notes.child.help.notes.section2Body":
+      "The Evaluations view lists each grade received, subject by subject. The Averages view compares your child's average to the class average, to quickly spot a gap. The Charts view shows a year-long comparison and a per-subject radar, useful to visualize a trend or a recurring weak spot. Tap an evaluation or an average to see its detail (scale, coefficient, teacher's comment).",
+    "notes.child.help.reports.title": "Grades — Report cards",
+    "notes.child.help.reports.section1Title": "Viewing report cards",
+    "notes.child.help.reports.section1Body":
+      "This tab lists the report cards already published by the school, one per term. Tap a report card to open it: it details, subject by subject, the average achieved and the teacher's comment, plus a general comment from the class council if one was provided. A report card not yet published by the school does not appear in this list.",
+    "onboardingTour.childNotes.tabsTitle": "Two tabs",
+    "onboardingTour.childNotes.tabsBody":
+      "Grades shows the current term's evaluations and averages. Reports shows already published report cards.",
+    "onboardingTour.childNotes.filtersTitle": "Filter the view",
+    "onboardingTour.childNotes.filtersBody":
+      "Change the term, the view (evaluations, averages, charts) or the sequence from this button.",
+    "onboardingTour.childNotes.helpToggleTitle": "Help is always available",
+    "onboardingTour.childNotes.helpToggleBody":
+      'Tap this button, then "Help" in the menu, to find how this screen works at any time.',
     "notes.panel.notes": "Notes",
     "notes.panel.loading": "Loading published grades...",
     "notes.panel.emptyTitle": "No published grade",
@@ -5331,6 +6649,25 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Your session has expired. Please log in again.",
     "app.sessionExpired.reconnect": "Log in again",
 
+    "childHome.help.menuLabel": "Help",
+    "childHome.help.title": "Child home",
+    "childHome.help.close": "Close",
+    "childHome.help.section1Title": "Three indicators",
+    "childHome.help.section1Body":
+      "The overall average, undone homework and unread messages are summarized at a glance. Tap a card to open the matching module directly.",
+    "childHome.help.section2Title": "Summary blocks",
+    "childHome.help.section2Body":
+      'Each block (latest evaluations, news feed, unread messages) shows a preview. Tap "See more" at the top right of the block to open the full module.',
+    "onboardingTour.childHome.kpisTitle": "Three indicators",
+    "onboardingTour.childHome.kpisBody":
+      "Average, undone homework and unread messages: tap a card to open the matching module.",
+    "onboardingTour.childHome.sectionsTitle": "Summary blocks",
+    "onboardingTour.childHome.sectionsBody":
+      'Each block shows a preview of the module. Tap "See more" to open it fully.',
+    "onboardingTour.childHome.helpToggleTitle": "Help is always available",
+    "onboardingTour.childHome.helpToggleBody":
+      'Tap this button, then "Help" in the menu, to find how this screen works at any time.',
+
     // Home index — fallback
     "home.fallback.welcome": "Welcome, {firstName} {lastName}",
 
@@ -5391,6 +6728,50 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.parent.news.seeAll": "See all",
     "home.parent.news.empty.title": "No news yet",
     "home.parent.news.empty.subtitle": "School announcements will appear here",
+    "home.parent.help.toggle": "Help on this page",
+    "home.parent.help.title": "Your family space",
+    "home.parent.help.close": "Close",
+    "home.parent.help.section1Title": "Your children",
+    "home.parent.help.section1Body":
+      "Every child enrolled under your account appears as a card, with their name and class. The badge next to the title shows the total number of children linked to your account. Tap a child's card to open their personal space (timetable, grades, homework, school life, class feed...).",
+    "home.parent.help.section2Title": "Quick access",
+    "home.parent.help.section2Body":
+      'These four shortcuts take you straight to the most visited sections without going through the navigation menu: "News feed" (school and class posts), "Finance" (tuition fees and payments), "Messaging" (conversations with the school — a red badge shows the number of unread messages) and "Documents" (files shared by the school).',
+    "home.parent.help.section3Title": "School news",
+    "home.parent.help.section3Body":
+      'The most recent posts aimed at the whole school appear here as a preview. Tap "See all" to open the full feed and browse its history.',
+    "home.parent.help.section4Title": "Finding every other section",
+    "home.parent.help.section4Body":
+      "This page only shows the essentials. For everything else (account settings, other modules...), tap the Menu icon in the bottom bar: it opens the full navigation to every section available for your account.",
+
+    "home.teacher.help.toggle": "Help on this page",
+    "home.teacher.help.title": "Your teacher dashboard",
+    "home.teacher.help.section1Title": "Your classes",
+    "home.teacher.help.section1Body":
+      "Each card represents a class assigned to you, with its student count and a quick summary (number of open homework, number of evaluations awaiting scores). Tap a card to open that class's quick menu (timetable, grades, discipline, class life).",
+    "home.teacher.help.section2Title": "Unread messages",
+    "home.teacher.help.section2Body":
+      'This section shows your most recent unread messages, with sender and subject. The numbered badge shows how many messages are still unread. Tap a message to open it directly, or "Messaging" to access your full inbox.',
+    "home.teacher.help.section3Title": "Today's timetable",
+    "home.teacher.help.section3Body":
+      'This section lists today\'s lessons in chronological order, with their time slot and class. Tap "Agenda" to view the full weekly or monthly timetable.',
+    "home.teacher.help.section4Title": "Evaluations to grade",
+    "home.teacher.help.section4Body":
+      'This section lists your evaluations whose scores haven\'t been fully entered yet, with a badge showing their count. Tap "Grade book" to open the full module and complete the grading.',
+    "home.teacher.help.section5Title": "Ongoing homework",
+    "home.teacher.help.section5Body":
+      "This section lists the homework you've assigned whose due date hasn't passed yet, with its class and due date. Tap \"See all\" to manage all of your homework.",
+    "home.teacher.help.close": "Got it",
+
+    "onboardingTour.teacherHome.step1Title": "Your classes",
+    "onboardingTour.teacherHome.step1Body":
+      "Tap a class card to quickly open its timetable, grades, discipline or class life.",
+    "onboardingTour.teacherHome.step2Title": "Pending evaluations",
+    "onboardingTour.teacherHome.step2Body":
+      'Tap "Grade book" to enter scores for evaluations awaiting grading.',
+    "onboardingTour.teacherHome.step3Title": "Help is always available",
+    "onboardingTour.teacherHome.step3Body":
+      "Tap this button at any time to replay this dashboard overview.",
 
     // Placeholder screen
     "placeholder.subtitle": "Module under development",
@@ -5440,6 +6821,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Home header (AppHeader, home variant)
     "header.home.loginAction": "Sign in",
+    "header.home.menuAction": "Menu",
     "header.home.logoutAction": "Sign out",
     "header.home.logoutConfirmTitle": "Sign out?",
     "header.home.logoutConfirmMessage":
@@ -5740,6 +7122,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.role.SUPERVISOR": "Supervisors",
     "users.role.SCHOOL_ACCOUNTANT": "Accountants",
     "users.role.SCHOOL_STAFF": "Staff",
+    "users.role.SCHOOL_HEALTH_OFFICER": "Health officers",
     "users.role.short.TEACHER": "TEA",
     "users.role.short.PARENT": "PAR",
     "users.role.short.STUDENT": "STU",
@@ -5748,6 +7131,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.role.short.SUPERVISOR": "SUP",
     "users.role.short.SCHOOL_ACCOUNTANT": "ACC",
     "users.role.short.SCHOOL_STAFF": "STF",
+    "users.role.short.SCHOOL_HEALTH_OFFICER": "HLT",
     "users.account.ALL": "All",
     "users.account.WITH_ACCOUNT": "With account",
     "users.account.WITHOUT_ACCOUNT": "Without account",
@@ -5784,6 +7168,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.create.hero.SCHOOL_STAFF.title": "Create a staff member",
     "users.create.hero.SCHOOL_STAFF.subtitle":
       "Phone + PIN or email + initial password.",
+    "users.create.hero.SCHOOL_HEALTH_OFFICER.title": "Create a health officer",
+    "users.create.hero.SCHOOL_HEALTH_OFFICER.subtitle":
+      "Phone + PIN or email + initial password.",
     "users.create.contactMode.label": "Creation mode",
     "users.create.contactMode.phone": "Phone + PIN",
     "users.create.contactMode.email": "Email + password",
@@ -5803,9 +7190,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.create.field.level.placeholder": "Choose a level",
     "users.create.field.class.label": "Class",
     "users.create.field.class.placeholder": "Choose a class",
-    "users.create.field.access.sectionTitle": "Access (optional)",
+    "users.create.field.dateOfBirth.label": "Date of birth",
+    "users.create.field.dateOfBirth.placeholder": "Select a date",
+    "users.create.field.access.sectionTitle": "Access",
     "users.create.field.access.hint":
-      "Without an email or password, the student is created without an account — access can be granted later.",
+      'The student is created without an account. The account (username and password) is created afterwards via "Create access" on their profile.',
     "users.create.field.student.label": "Student to link",
     "users.create.field.student.placeholder": "Search for a student…",
     "users.create.field.student.noResults": "No student found.",
@@ -5818,6 +7207,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.create.submit.SUPERVISOR": "Create supervisor",
     "users.create.submit.SCHOOL_ACCOUNTANT": "Create accountant",
     "users.create.submit.SCHOOL_STAFF": "Create staff member",
+    "users.create.submit.SCHOOL_HEALTH_OFFICER": "Create health officer",
     "users.create.success.title": "User created",
     "users.create.success.message": "The account was created successfully.",
     "users.create.errors.title": "Unable to create",
@@ -5860,5 +7250,220 @@ export const translations: Record<Locale, Record<string, string>> = {
     "rooms.detail.loading": "Loading room...",
     "rooms.detail.errorLoad": "Unable to load this room.",
     "rooms.detail.notFound": "Room not found.",
+
+    "health.title": "Health",
+    "health.parent.help.menuLabel": "Help",
+    "health.parent.help.title": "Health",
+    "health.parent.help.close": "Close",
+    "health.parent.help.section1Title": "Conditions",
+    "health.parent.help.section1Body":
+      "The Conditions tab groups your child's allergies, pathologies and long-standing instructions, with an alert level (info, warning, emergency) visible at a glance.",
+    "health.parent.help.section2Title": "History",
+    "health.parent.help.section2Body":
+      "The History tab merges care received at school and events you report yourself, sorted from most recent to oldest.",
+    "health.parent.help.section3Title": "Report an event",
+    "health.parent.help.section3Body":
+      "The + button at the bottom of the screen adds a health condition from the Conditions tab, or reports an event (illness, accident...) from the History tab. The referent teacher is automatically notified for a report.",
+    "health.parent.tabs.conditions": "Conditions",
+    "health.parent.tabs.history": "History",
+    "health.parent.loading": "Loading…",
+    "health.parent.search.placeholderConditions": "Search a condition…",
+    "health.parent.search.placeholderHistory": "Search in history…",
+    "health.parent.search.accessibilityLabel": "Search",
+    "health.parent.filters.toggleAccessibilityLabel": "Filters",
+    "health.parent.filters.reset": "Reset",
+    "health.parent.filters.close": "Close",
+    "health.parent.filters.apply": "Apply",
+    "health.parent.filters.typeLabel": "Type",
+    "health.parent.filters.allTypes": "All",
+    "health.parent.filters.alertLevelLabel": "Alert level",
+    "health.parent.filters.allLevels": "All",
+    "health.parent.filters.statusLabel": "Status",
+    "health.parent.filters.status.all": "All",
+    "health.parent.filters.status.active": "Active",
+    "health.parent.filters.status.inactive": "Resolved",
+    "health.parent.filters.originLabel": "Origin",
+    "health.parent.filters.allOrigins": "All",
+    "health.parent.filters.originSchool": "School",
+    "health.parent.filters.originParent": "You",
+    "health.parent.filters.reportTypeLabel": "Report type",
+    "health.parent.filters.allReportTypes": "All",
+    "health.parent.empty.conditionsTitle": "No health condition",
+    "health.parent.empty.conditionsSearch": "No condition matches your search.",
+    "health.parent.empty.historyTitle": "No event",
+    "health.parent.empty.historySearch": "No event matches your search.",
+    "health.parent.fab.addCondition": "Add a condition",
+    "health.parent.fab.addReport": "Report an event",
+    "health.parent.form.cancel": "Cancel",
+    "health.parent.form.active": "Condition still active",
+    "health.parent.form.successTitle": "Saved",
+    "health.parent.form.errorTitle": "Error",
+    "health.parent.form.createConditionSuccess":
+      "The health condition was added.",
+    "health.parent.form.editConditionSuccess":
+      "The health condition was updated.",
+    "health.parent.form.createReportSuccess":
+      "The event was reported to the school.",
+    "health.parent.form.hero.createConditionTitle": "Add a condition",
+    "health.parent.form.hero.createConditionSubtitle":
+      "Allergy, pathology, treatment or special instruction.",
+    "health.parent.form.hero.editConditionTitle": "Edit the condition",
+    "health.parent.form.hero.editConditionSubtitle":
+      "Update the information or mark it as resolved.",
+    "health.parent.form.hero.createReportTitle": "Report an event",
+    "health.parent.form.hero.createReportSubtitle":
+      "Illness, accident, treatment... the referent teacher is automatically notified.",
+    "health.parent.detail.editAction": "Edit",
+    "health.parent.detail.statusLabel": "Status",
+    "health.parent.detail.visibleToTeachers": "Visible to the teaching team",
+    "health.parent.detail.careBy": "Handled by",
+    "health.parent.detail.reportedBy": "Reported by",
+    "health.parent.detail.followUpNeeded": "Follow-up needed",
+    "health.parent.detail.origin.school": "School",
+    "health.parent.detail.origin.parent": "You",
+    "health.parent.detail.yes": "Yes",
+    "health.parent.detail.no": "No",
+    "health.parent.card.active": "Active",
+    "health.parent.card.inactive": "Resolved",
+    "health.tabs.conditions": "Important information",
+    "health.tabs.care": "Care at school",
+    "health.tabs.reports": "Events outside school",
+    "health.tabs.history": "History",
+    "health.conditions.empty": "No health information recorded.",
+    "health.care.empty": "No care recorded at school.",
+    "health.reports.empty": "No event reported.",
+    "health.reports.acknowledged": "Acknowledged by the school",
+    "health.reports.pending": "Awaiting review by the school",
+    "health.reports.acknowledgeAction": "Mark as acknowledged",
+    "health.history.empty": "No item in the history.",
+    "health.form.conditionType": "Type",
+    "health.form.alertLevel": "Level",
+    "health.form.label": "Label",
+    "health.form.labelPlaceholder": "E.g. Peanut allergy",
+    "health.form.description": "Description",
+    "health.form.descriptionPlaceholder": "Describe the situation",
+    "health.form.submitCondition": "Add this information",
+    "health.form.reportType": "Event type",
+    "health.form.submitReport": "Report this event",
+    "health.form.sportRestriction": "Sport restriction attached",
+    "health.form.careSummaryPlaceholder": "E.g. Fell in the yard",
+    "health.form.submitCareEvent": "Record this care",
+    "health.validation.labelRequired": "Label is required.",
+    "health.validation.descriptionRequired": "Description is required.",
+    "health.errors.load": "Unable to load health information.",
+    "health.errors.createFailed": "Unable to save this information.",
+    "health.alertLevel.INFO": "Information",
+    "health.alertLevel.ATTENTION": "Attention",
+    "health.alertLevel.URGENT": "Urgent",
+    "health.conditionType.ALLERGY": "Allergy",
+    "health.conditionType.PATHOLOGY": "Pathology",
+    "health.conditionType.TREATMENT": "Treatment",
+    "health.conditionType.INSTRUCTION": "Special instruction",
+    "health.conditionType.OTHER": "Other",
+    "health.reportType.MALADIE": "Illness",
+    "health.reportType.TRAITEMENT": "Treatment",
+    "health.reportType.ACCIDENT": "Accident",
+    "health.reportType.CONSULTATION": "Medical consultation",
+    "health.reportType.HOSPITALISATION": "Hospitalization",
+    "health.reportType.VACCINATION": "Vaccination",
+    "health.reportType.RESTRICTION_SPORT": "Sport restriction",
+    "health.reportType.AUTRE": "Other",
+    "health.school.searchPlaceholder": "Search a student…",
+    "health.school.noStudent": "No student found.",
+    "health.school.urgencyTitle": "Critical information",
+    "health.school.contacts": "Contacts",
+    "health.admin.tabs.synthese": "Summary",
+    "health.admin.tabs.cares": "Cares",
+    "health.admin.tabs.eleves": "Students",
+    "health.admin.scope.school": "Whole school",
+    "health.admin.scope.classLabel": "Class",
+    "health.admin.scope.allClasses": "Whole school",
+    "health.admin.stats.activeConditions": "Active conditions",
+    "health.admin.stats.studentsWithConditions": "Students affected",
+    "health.admin.stats.careEvents7d": "Cares (last 7 days)",
+    "health.admin.stats.careEvents30d": "Cares (last 30 days)",
+    "health.admin.stats.reportsPending": "Pending reports",
+    "health.admin.stats.byAlertLevel": "Breakdown by alert level",
+    "health.admin.stats.loading": "Loading statistics…",
+    "health.admin.stats.error": "Unable to load statistics.",
+    "health.admin.cares.search.placeholder": "Search a student…",
+    "health.admin.cares.search.accessibilityLabel": "Search",
+    "health.admin.cares.filters.toggleAccessibilityLabel": "Filters",
+    "health.admin.cares.filters.reset": "Reset",
+    "health.admin.cares.filters.close": "Close",
+    "health.admin.cares.filters.apply": "Apply",
+    "health.admin.cares.filters.alertLevelLabel": "Alert level",
+    "health.admin.cares.filters.allLevels": "All",
+    "health.admin.cares.filters.reportTypeLabel": "Report type",
+    "health.admin.cares.filters.allReportTypes": "All",
+    "health.admin.cares.filters.statusLabel": "Status",
+    "health.admin.cares.filters.statusAll": "All",
+    "health.admin.cares.filters.statusAcknowledged": "Acknowledged",
+    "health.admin.cares.filters.statusPending": "Pending",
+    "health.admin.cares.empty.title": "No report",
+    "health.admin.cares.empty.default": "No report yet.",
+    "health.admin.cares.empty.search": "No report matches your search.",
+    "health.admin.cares.card.pending": "Pending",
+    "health.admin.cares.card.acknowledged": "Acknowledged",
+    "health.admin.eleves.search.placeholder": "Search a student…",
+    "health.admin.eleves.search.accessibilityLabel": "Search",
+    "health.admin.eleves.filters.toggleAccessibilityLabel": "Filters",
+    "health.admin.eleves.filters.reset": "Reset",
+    "health.admin.eleves.filters.close": "Close",
+    "health.admin.eleves.filters.apply": "Apply",
+    "health.admin.eleves.filters.classLabel": "Class",
+    "health.admin.eleves.filters.allClasses": "All",
+    "health.admin.eleves.empty.title": "No student",
+    "health.admin.eleves.empty.default": "No student yet.",
+    "health.admin.eleves.empty.search": "No student matches your search.",
+    "health.admin.eleves.card.ageUnit": "yo",
+    "health.admin.eleves.card.noClass": "No class",
+    "health.admin.profile.tabs.cares": "Cares",
+    "health.admin.profile.tabs.conditions": "Conditions",
+    "health.admin.profile.hero.noClass": "No class",
+    "health.admin.profile.hero.ageUnknown": "Age unknown",
+    "health.admin.profile.fab.addCare": "Add a care",
+    "health.admin.profile.form.hero.createTitle": "Add a care",
+    "health.admin.profile.form.hero.createSubtitle":
+      "Record a care given to the student.",
+    "health.admin.profile.form.hero.editTitle": "Edit the care",
+    "health.admin.profile.form.hero.editSubtitle":
+      "Update this care's information.",
+    "health.admin.profile.form.submitEdit": "Save changes",
+    "health.admin.profile.toasts.careCreatedTitle": "Care saved",
+    "health.admin.profile.toasts.careCreatedMessage":
+      "The care was added successfully.",
+    "health.admin.profile.toasts.careUpdatedTitle": "Care updated",
+    "health.admin.profile.toasts.careUpdatedMessage":
+      "The care was updated successfully.",
+    "health.admin.profile.errors.load": "Unable to load the health profile.",
+    "health.admin.profile.errors.saveGeneric": "Unable to save this care.",
+    "health.admin.profile.empty.caresTitle": "No care",
+    "health.admin.profile.empty.cares": "No care recorded.",
+    "health.admin.profile.empty.conditionsTitle": "No condition",
+    "health.admin.profile.empty.conditions": "No health condition recorded.",
+    "health.admin.profile.editAction": "Edit",
+    "health.admin.profile.byPrefix": "by",
+    "onboardingTour.healthParent.tabsTitle": "2 tabs to find things easily",
+    "onboardingTour.healthParent.tabsBody":
+      "Conditions groups allergies, pathologies and long-standing instructions. History groups care received at school and events you report, sorted by date.",
+    "onboardingTour.healthParent.searchTitle": "Search and filters",
+    "onboardingTour.healthParent.searchBody":
+      "Search by keyword and refine with filters (type, alert level...) on each tab.",
+    "onboardingTour.healthParent.fabTitle": "Add information",
+    "onboardingTour.healthParent.fabBody":
+      "The + button adds a health condition (Conditions tab) or reports an event outside school (History tab). The referent teacher is automatically notified for a report.",
+    "onboardingTour.healthParent.helpToggleTitle": "Help is always available",
+    "onboardingTour.healthParent.helpToggleBody":
+      'Tap this button, then "Help" in the menu, to find how this screen works at any time.',
+    "onboardingTour.healthSchool.tabsTitle": "3 tabs to find things easily",
+    "onboardingTour.healthSchool.tabsBody":
+      "Summary groups the school's or a class's statistics. Cares lists parent reports, from most recent to oldest. Students lets you find each student's health profile.",
+    "onboardingTour.healthSchool.searchTitle": "Search and filters",
+    "onboardingTour.healthSchool.searchBody":
+      "Search a student and refine results with filters (alert level, type, class…).",
+    "onboardingTour.healthSchool.studentFabTitle": "Student profile",
+    "onboardingTour.healthSchool.studentFabBody":
+      "Open a student's profile to see their cares and health conditions, and use the + button to record a new care.",
   },
 };

@@ -28,13 +28,11 @@ export interface CreateStudentPayload {
   firstName: string;
   lastName: string;
   classId: string;
-  email?: string;
-  password?: string;
+  dateOfBirth?: string;
 }
 
 export interface CreateStudentResponse {
   id: string;
-  user?: { id: string } | null;
 }
 
 export interface CreateParentPayload {
@@ -95,19 +93,11 @@ export const familyApi = {
     schoolSlug: string,
     payload: CreateStudentPayload,
   ): Promise<CreateStudentResponse> {
-    const raw = await apiFetch<{
-      id?: string;
-      user?: { id: string };
-      student?: { id: string };
-    }>(
+    return apiFetch<CreateStudentResponse>(
       `/schools/${schoolSlug}/admin/students`,
       { method: "POST", body: JSON.stringify(payload) },
       true,
     );
-    if (raw.student) {
-      return { id: raw.student.id, user: raw.user ?? null };
-    }
-    return { id: raw.id!, user: raw.user ?? null };
   },
 
   async createParent(

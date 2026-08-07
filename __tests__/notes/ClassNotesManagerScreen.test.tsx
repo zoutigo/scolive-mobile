@@ -12,11 +12,15 @@ import { useNotesStore } from "../../src/store/notes.store";
 import { teachersApi } from "../../src/api/teachers.api";
 import { notesApi } from "../../src/api/notes.api";
 import { downloadAndOpenAttachment } from "../../src/utils/attachment-download";
+import { promotionsApi } from "../../src/api/promotions.api";
+import { curriculumsApi } from "../../src/api/curriculums.api";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-document-picker", () => ({ getDocumentAsync: jest.fn() }));
 jest.mock("../../src/api/teachers.api");
 jest.mock("../../src/api/notes.api");
+jest.mock("../../src/api/promotions.api");
+jest.mock("../../src/api/curriculums.api");
 jest.mock("../../src/utils/attachment-download");
 const mockDownloadAndOpenAttachment =
   downloadAndOpenAttachment as jest.MockedFunction<
@@ -25,6 +29,8 @@ const mockDownloadAndOpenAttachment =
 
 const mockTeachersApi = teachersApi as jest.Mocked<typeof teachersApi>;
 const mockNotesApi = notesApi as jest.Mocked<typeof notesApi>;
+const mockPromotionsApi = promotionsApi as jest.Mocked<typeof promotionsApi>;
+const mockCurriculumsApi = curriculumsApi as jest.Mocked<typeof curriculumsApi>;
 
 const mockBack = jest.fn();
 let mockSearchParams: Record<string, string> = {
@@ -38,6 +44,12 @@ jest.mock("expo-router", () => ({
     navigate: jest.fn(),
   }),
   useLocalSearchParams: () => mockSearchParams,
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -237,6 +249,60 @@ describe("Rendu général", () => {
     render(<ClassNotesManagerScreen />);
     await flushAsync();
     expect(screen.getByText("Accès non autorisé")).toBeTruthy();
+  });
+});
+
+// ─── Onglet Décision (prof référent) ─────────────────────────────────────────
+
+describe("Onglet Décision — passage en classe supérieure", () => {
+  beforeEach(() => {
+    mockCurriculumsApi.listAcademicLevels.mockResolvedValue([
+      { id: "level-5e", code: "5e", label: "5e" },
+    ] as never);
+    mockCurriculumsApi.listActivatedAcademicLevels.mockResolvedValue([
+      { id: "level-5e", code: "5e", label: "5e", order: null },
+    ] as never);
+    mockPromotionsApi.listTermReportsForDecision.mockResolvedValue([
+      {
+        id: "report-1",
+        student: { id: "stu-1", firstName: "Lisa", lastName: "Ntamack" },
+        decision: null,
+        nextAcademicLevel: null,
+        nextTrack: null,
+        termAverages: { TERM_1: 10, TERM_2: 12, TERM_3: 14 },
+        yearlyAverage: 12,
+        rank: 1,
+        classSize: 2,
+        currentAcademicLevel: null,
+      },
+    ] as never);
+  });
+
+  it("n'affiche pas l'onglet Décision quand l'enseignant n'est pas référent de la classe", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+    expect(screen.queryByTestId("notes-tab-decision")).toBeNull();
+  });
+
+  it("affiche l'onglet Décision et la synthèse annuelle quand l'enseignant est référent", async () => {
+    setupStore({
+      teacherContext: {
+        ...TEACHER_CONTEXT,
+        class: { ...TEACHER_CONTEXT.class, isReferentTeacher: true },
+      },
+    });
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("notes-tab-decision"));
+
+    expect(
+      await screen.findByTestId("decision-card-report-1"),
+    ).toBeOnTheScreen();
+    expect(mockPromotionsApi.listTermReportsForDecision).toHaveBeenCalledWith(
+      "college-vogt",
+      "class-1",
+    );
   });
 });
 
@@ -1626,5 +1692,196 @@ describe("Mode enseignant — classId fourni par la route", () => {
     expect(screen.queryByTestId("class-notes-filter-level-trigger")).toBeNull();
     expect(screen.queryByTestId("class-notes-filter-class-trigger")).toBeNull();
     expect(mockTeachersApi.listClassrooms).not.toHaveBeenCalled();
+  });
+});
+
+describe("Onglet Reports — sauvegarde d'une appréciation (enseignant)", () => {
+  const SNAPSHOT_TERM_1 = {
+    term: "TERM_1" as const,
+    label: "1er trimestre",
+    councilLabel: "6e A • 1er trimestre",
+    generatedAtLabel: null,
+    generalAverage: { student: 14.5, class: 12.3, min: 6, max: 18 },
+    sequences: [],
+    subjects: [
+      {
+        id: "sub-1",
+        subjectLabel: "Mathématiques",
+        teachers: ["Valery Mbele"],
+        coefficient: 4,
+        studentAverage: 14.5,
+        classAverage: 12,
+        classMin: 5,
+        classMax: 18,
+        rank: 3,
+        classSize: 24,
+        evaluations: [],
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    useNotesStore.setState({
+      studentNotes: { "stu-1": [SNAPSHOT_TERM_1], "stu-2": [] },
+      loadStudentNotes: jest.fn().mockResolvedValue([SNAPSHOT_TERM_1]),
+    } as never);
+  });
+
+  it("envoie le payload au format `reports` attendu par l'API, pas `students`", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(screen.getByTestId("notes-tab-reports"));
+    await flushAsync();
+
+    fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_1"),
+    );
+    await flushAsync();
+
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-subject-sub-1-display"),
+    );
+    await flushAsync();
+
+    fireEvent.changeText(
+      screen.getByTestId("teacher-reports-subject-sub-1-input"),
+      "Bon élève",
+    );
+    fireEvent.press(screen.getByTestId("teacher-reports-subject-sub-1-save"));
+    await flushAsync();
+
+    expect(useNotesStore.getState().saveTermReports).toHaveBeenCalledWith(
+      "college-vogt",
+      "class-1",
+      "TERM_1",
+      expect.objectContaining({
+        reports: expect.arrayContaining([
+          expect.objectContaining({
+            studentId: "stu-1",
+            subjects: expect.arrayContaining([
+              expect.objectContaining({
+                subjectId: "sub-1",
+                appreciation: "Bon élève",
+              }),
+            ]),
+          }),
+        ]),
+      }),
+    );
+    const payload = (useNotesStore.getState().saveTermReports as jest.Mock).mock
+      .calls[0][3];
+    expect(payload.students).toBeUndefined();
+  });
+});
+
+describe("ClassNotesManagerScreen — modale d'aide (menu ...)", () => {
+  function openHelpFromMenu() {
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("class-notes-help-menu-item"));
+  }
+
+  it("n'affiche pas la modale d'aide par défaut", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    expect(screen.queryByTestId("class-notes-help-modal-title")).toBeNull();
+  });
+
+  it("ouvre la modale d'aide via « Aide » dans le menu ..., contenu de l'onglet Évaluations", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    openHelpFromMenu();
+
+    expect(
+      screen.getByTestId("class-notes-help-modal-title"),
+    ).toHaveTextContent("Comment utiliser l'onglet Évaluations");
+    expect(screen.getByText("Rechercher et filtrer")).toBeTruthy();
+    expect(screen.getByText("Statut brouillon ou publié")).toBeTruthy();
+    expect(screen.getByText("Suivre l'avancement de la saisie")).toBeTruthy();
+    expect(screen.getByText("Créer une évaluation")).toBeTruthy();
+    expect(
+      screen.getByText("Modifier ou supprimer une évaluation"),
+    ).toBeTruthy();
+    expect(screen.getByText("Saisir ou modifier les notes")).toBeTruthy();
+  });
+
+  it("ferme la modale d'aide au tap sur le bouton de fermeture", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    openHelpFromMenu();
+    expect(screen.getByTestId("class-notes-help-modal-title")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("class-notes-help-modal-close"));
+    expect(screen.queryByTestId("class-notes-help-modal-title")).toBeNull();
+  });
+
+  it("affiche un contenu différent et plus ciblé sur l'onglet Notes", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(screen.getByTestId("notes-tab-notes"));
+    await flushAsync();
+
+    openHelpFromMenu();
+
+    expect(
+      screen.getByTestId("class-notes-help-modal-title"),
+    ).toHaveTextContent("Comment utiliser l'onglet Notes");
+    expect(screen.getByText("Rechercher un élève")).toBeTruthy();
+    expect(
+      screen.getByText("Filtrer par matière, trimestre ou séquence"),
+    ).toBeTruthy();
+    expect(screen.getByText("Changer d'affichage")).toBeTruthy();
+    expect(screen.queryByText("Rechercher et filtrer")).toBeNull();
+  });
+
+  it("affiche un contenu différent et plus ciblé sur l'onglet Bulletins", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(screen.getByTestId("notes-tab-reports"));
+    await flushAsync();
+
+    openHelpFromMenu();
+
+    expect(
+      screen.getByTestId("class-notes-help-modal-title"),
+    ).toHaveTextContent("Comment utiliser l'onglet Bulletins");
+    expect(
+      screen.getByText("Rechercher un élève et choisir un trimestre"),
+    ).toBeTruthy();
+    expect(screen.getByText("Rédiger l'appréciation de matière")).toBeTruthy();
+    expect(
+      screen.getByText("Rédiger l'appréciation générale (professeur référent)"),
+    ).toBeTruthy();
+  });
+
+  it("n'affiche pas l'entrée Aide pour un rôle non enseignant (ex. school admin)", async () => {
+    useAuthStore.setState({
+      schoolSlug: "college-vogt",
+      user: {
+        id: "u2",
+        firstName: "Admin",
+        lastName: "École",
+        platformRoles: [],
+        memberships: [{ schoolId: "s1", role: "SCHOOL_ADMIN" }],
+        profileCompleted: true,
+        role: "SCHOOL_ADMIN",
+        activeRole: "SCHOOL_ADMIN",
+      },
+    } as never);
+    mockSearchParams = { schoolYearId: "y1" };
+
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    expect(screen.queryByTestId("class-notes-help-menu-item")).toBeNull();
   });
 });

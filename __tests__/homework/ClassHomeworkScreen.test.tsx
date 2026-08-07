@@ -31,6 +31,12 @@ jest.mock("../../src/store/family.store");
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: jest.fn() }),
   useLocalSearchParams: () => ({ classId: "class-1" }),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -204,11 +210,18 @@ const MY_TIMETABLE = {
   subjectStyles: [],
 };
 
+// useOnboardingTourTrigger reads useAuthStore via a selector
+// (`useAuthStore((state) => state.user)`), unlike this screen which
+// destructures the whole store. mockImplementation must apply the selector
+// itself (mirroring real zustand behavior) so both call styles work.
+function mockAuthState(state: { schoolSlug: string; user: unknown }) {
+  mockUseAuthStore.mockImplementation(((
+    selector?: (s: typeof state) => unknown,
+  ) => (selector ? selector(state) : state)) as never);
+}
+
 function setupTeacher() {
-  mockUseAuthStore.mockReturnValue({
-    schoolSlug: "college-vogt",
-    user: TEACHER_USER,
-  } as never);
+  mockAuthState({ schoolSlug: "college-vogt", user: TEACHER_USER });
   mockUseFamilyStore.mockReturnValue({
     children: [],
     activeChildId: null,
@@ -216,10 +229,7 @@ function setupTeacher() {
 }
 
 function setupParent() {
-  mockUseAuthStore.mockReturnValue({
-    schoolSlug: "college-vogt",
-    user: PARENT_USER,
-  } as never);
+  mockAuthState({ schoolSlug: "college-vogt", user: PARENT_USER });
   mockUseFamilyStore.mockReturnValue({
     children: [CHILD_RECORD],
     activeChildId: "child-1",
@@ -424,6 +434,18 @@ describe("ClassHomeworkScreen — vue enseignant", () => {
     expect(screen.queryByTestId("class-homework-toggle-done-hw-1")).toBeNull();
   });
 
+  it("n'affiche pas l'entrée « Aide » du menu pour l'enseignant (réservée à la vue élève)", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Exercices 1 à 3")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+
+    expect(screen.queryByTestId("class-homework-help-menu-item")).toBeNull();
+  });
+
   it("ouvre le panel commentaires et affiche le formulaire d'ajout", async () => {
     render(<ClassHomeworkScreen />);
 
@@ -539,6 +561,31 @@ describe("ClassHomeworkScreen — vue parent", () => {
     expect(screen.queryByTestId("class-homework-delete-hw-1")).toBeNull();
     expect(screen.queryByTestId("class-homework-control-hw-1")).toBeNull();
     expect(screen.queryByTestId("class-homework-fab")).toBeNull();
+  });
+
+  it("affiche l'entrée « Aide » du menu pour le parent et ouvre/ferme la modale", async () => {
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Exercices 1 à 3")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    expect(screen.getByTestId("class-homework-help-menu-item")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("class-homework-help-menu-item"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-homework-help-modal-title"),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-help-modal-close"));
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId("class-homework-help-modal-title"),
+      ).toBeNull(),
+    );
   });
 
   it("affiche le bouton 'Marquer fait' pour le parent", async () => {

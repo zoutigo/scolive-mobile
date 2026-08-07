@@ -25,6 +25,12 @@ jest.mock("expo-router", () => ({
     navigate: jest.fn(),
     push: mockRouterPush,
   }),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -41,6 +47,16 @@ jest.mock("@react-navigation/native", () => ({
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<
   typeof useAuthStore
 >;
+// useAuthStore is fully mocked (not the real zustand store), so it must
+// apply the selector itself when one is passed — otherwise selector-based
+// callers (e.g. useOnboardingTourTrigger's `(state) => state.user`) get the
+// whole mocked object back instead of just `.user`.
+function mockAuthUser(user: unknown) {
+  const state = { user };
+  mockUseAuthStore.mockImplementation(((
+    selector?: (s: typeof state) => unknown,
+  ) => (selector ? selector(state) : state)) as never);
+}
 const mockResourcesApi = resourcesApi as jest.Mocked<typeof resourcesApi>;
 const mockResourcesAdminApi = resourcesAdminApi as jest.Mocked<
   typeof resourcesAdminApi
@@ -166,7 +182,7 @@ describe("ResourcesScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     void AsyncStorage.clear();
-    mockUseAuthStore.mockReturnValue({ user: TEACHER_USER } as never);
+    mockAuthUser(TEACHER_USER);
     mockDefaults();
   });
 
@@ -183,7 +199,7 @@ describe("ResourcesScreen", () => {
   });
 
   it("affiche l'onglet Modération uniquement pour un platform role", async () => {
-    mockUseAuthStore.mockReturnValue({ user: ADMIN_USER } as never);
+    mockAuthUser(ADMIN_USER);
     mockResourcesAdminApi.listAdminSubmissions.mockResolvedValue({
       items: [],
       total: 0,
@@ -199,13 +215,11 @@ describe("ResourcesScreen", () => {
   });
 
   it("le FAB reste visible pour un parent (module national, aucun rôle scolaire n'est privilégié)", async () => {
-    mockUseAuthStore.mockReturnValue({
-      user: {
-        ...TEACHER_USER,
-        memberships: [{ schoolId: "school-1", role: "PARENT" as const }],
-        activeRole: "PARENT" as const,
-      },
-    } as never);
+    mockAuthUser({
+      ...TEACHER_USER,
+      memberships: [{ schoolId: "school-1", role: "PARENT" as const }],
+      activeRole: "PARENT" as const,
+    });
 
     render(<ResourcesScreen />);
 
@@ -216,15 +230,13 @@ describe("ResourcesScreen", () => {
   });
 
   it("le FAB n'est pas visible pour un rôle purement plateforme sans rattachement pédagogique", async () => {
-    mockUseAuthStore.mockReturnValue({
-      user: {
-        ...TEACHER_USER,
-        memberships: [] as never[],
-        platformRoles: ["SUPPORT"] as never[],
-        role: "SUPPORT" as const,
-        activeRole: "SUPPORT" as const,
-      },
-    } as never);
+    mockAuthUser({
+      ...TEACHER_USER,
+      memberships: [] as never[],
+      platformRoles: ["SUPPORT"] as never[],
+      role: "SUPPORT" as const,
+      activeRole: "SUPPORT" as const,
+    });
 
     render(<ResourcesScreen />);
 
@@ -1020,7 +1032,7 @@ describe("ResourcesScreen — recherche et filtres", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     void AsyncStorage.clear();
-    mockUseAuthStore.mockReturnValue({ user: TEACHER_USER } as never);
+    mockAuthUser(TEACHER_USER);
     mockDefaults();
   });
 
@@ -1373,7 +1385,7 @@ describe("ResourcesScreen — recherche et filtres sur l'onglet Examens", () => 
   beforeEach(() => {
     jest.clearAllMocks();
     void AsyncStorage.clear();
-    mockUseAuthStore.mockReturnValue({ user: TEACHER_USER } as never);
+    mockAuthUser(TEACHER_USER);
     mockDefaults();
   });
 
@@ -1456,7 +1468,7 @@ describe("ResourcesScreen — pagination", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     void AsyncStorage.clear();
-    mockUseAuthStore.mockReturnValue({ user: TEACHER_USER } as never);
+    mockAuthUser(TEACHER_USER);
     mockDefaults();
   });
 
@@ -1620,7 +1632,7 @@ describe("ResourcesScreen — modération", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     void AsyncStorage.clear();
-    mockUseAuthStore.mockReturnValue({ user: ADMIN_USER } as never);
+    mockAuthUser(ADMIN_USER);
     mockDefaults();
   });
 
@@ -1694,5 +1706,93 @@ describe("ResourcesScreen — modération", () => {
         expect.objectContaining({ part: "correction" }),
       ),
     );
+  });
+});
+
+describe("ResourcesScreen — aide parent", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    void AsyncStorage.clear();
+    mockDefaults();
+  });
+
+  it("n'affiche pas l'entrée Aide dans le menu pour un enseignant", async () => {
+    mockAuthUser(TEACHER_USER);
+
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-tab-ASSESSMENT")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    expect(screen.queryByTestId("resources-help-menu-item")).toBeNull();
+  });
+
+  it("un parent ouvre l'aide via le menu ⋮ et voit le contenu, puis la ferme", async () => {
+    mockAuthUser({
+      ...TEACHER_USER,
+      memberships: [{ schoolId: "school-1", role: "PARENT" as const }],
+      activeRole: "PARENT" as const,
+    });
+
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-tab-ASSESSMENT")).toBeTruthy(),
+    );
+
+    expect(screen.queryByTestId("resources-help-modal-title")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("resources-help-menu-item"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-help-modal-title")).toBeTruthy(),
+    );
+    expect(screen.getByTestId("resources-help-modal-title")).toHaveTextContent(
+      translate("fr", "resources.help.ASSESSMENT.title"),
+    );
+    expect(
+      screen.getByText(translate("fr", "resources.help.browse.section1Title")),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(translate("fr", "resources.help.browse.section2Title")),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(translate("fr", "resources.help.browse.section3Title")),
+    ).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("resources-help-modal-close"));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("resources-help-modal-title")).toBeNull(),
+    );
+  });
+
+  it("affiche un contenu d'aide différent et ciblé sur l'onglet Mes ressources et Favoris", async () => {
+    mockAuthUser({
+      ...TEACHER_USER,
+      memberships: [{ schoolId: "school-1", role: "PARENT" as const }],
+      activeRole: "PARENT" as const,
+    });
+
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-tab-favorites")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("resources-tab-favorites"));
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("resources-help-menu-item"));
+
+    expect(
+      await screen.findByTestId("resources-help-modal-title"),
+    ).toHaveTextContent(translate("fr", "resources.help.favorites.title"));
+    expect(
+      screen.getByText(
+        translate("fr", "resources.help.favorites.section1Title"),
+      ),
+    ).toBeTruthy();
   });
 });

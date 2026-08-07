@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   View,
@@ -15,6 +15,14 @@ import { useMessagingStore } from "../../store/messaging.store";
 import { buildChildHomeTarget } from "../navigation/nav-config";
 import { useHeaderScroll } from "../navigation/header-scroll-context";
 import { useTranslation } from "../../i18n/useTranslation";
+import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import { useHomeHeaderHelpAction } from "../../hooks/useHomeHeaderHelpAction";
+import { PageHelpModal } from "../help/PageHelpModal";
+import {
+  PARENT_LANDING_TOUR_ID,
+  PARENT_LANDING_TOUR_STEPS,
+  PARENT_LANDING_TOUR_TARGETS,
+} from "./parent-landing-tour.config";
 import type { AuthUser } from "../../types/auth.types";
 import type { ParentChild } from "../../types/family.types";
 
@@ -29,11 +37,27 @@ export function ParentHome({ schoolSlug }: ParentHomeProps) {
   const { unreadCount, loadUnreadCount } = useMessagingStore();
   const router = useRouter();
   const { onScroll } = useHeaderScroll();
+  const [helpVisible, setHelpVisible] = useState(false);
 
   useEffect(() => {
     if (!schoolSlug) return;
     loadUnreadCount(schoolSlug).catch(() => {});
   }, [loadUnreadCount, schoolSlug]);
+
+  useOnboardingTourTrigger({
+    tourId: PARENT_LANDING_TOUR_ID,
+    role: "parent",
+    steps: PARENT_LANDING_TOUR_STEPS,
+  });
+
+  useHomeHeaderHelpAction(
+    {
+      label: t("home.parent.help.toggle"),
+      testID: "parent-landing-help-toggle",
+      tourTargetId: PARENT_LANDING_TOUR_TARGETS.helpButton,
+    },
+    () => setHelpVisible(true),
+  );
 
   function handleChildPress(child: ParentChild) {
     setActiveChild(child.id);
@@ -58,157 +82,198 @@ export function ParentHome({ schoolSlug }: ParentHomeProps) {
   }
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-      onScroll={onScroll}
-      scrollEventThrottle={16}
-    >
-      {/* Hero */}
-      <View style={styles.banner}>
-        <Text style={styles.greeting}>
-          {t("home.hero.greeting")} {t("home.hero.role.parent")}
-        </Text>
-        <View style={[styles.rolePill, { backgroundColor: colors.warmAccent }]}>
-          <Text style={styles.rolePillText}>{t("home.hero.role.parent")}</Text>
-        </View>
-      </View>
-
-      {/* Mes enfants */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          {t("home.parent.children.title")}
-        </Text>
-        {children.length > 0 && (
-          <View style={styles.countBadge} testID="children-count-badge">
-            <Text style={styles.countBadgeText}>{children.length}</Text>
+    <>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+      >
+        {/* Hero */}
+        <View style={styles.banner}>
+          <Text style={styles.greeting}>
+            {t("home.hero.greeting")} {t("home.hero.role.parent")}
+          </Text>
+          <View
+            style={[styles.rolePill, { backgroundColor: colors.warmAccent }]}
+          >
+            <Text style={styles.rolePillText}>
+              {t("home.hero.role.parent")}
+            </Text>
           </View>
-        )}
-      </View>
-
-      {isLoading ? (
-        <View style={styles.loadingCard}>
-          <ActivityIndicator color={colors.primary} />
         </View>
-      ) : children.length === 0 ? (
-        <View style={styles.childrenCard}>
-          <View style={styles.childrenEmpty}>
+
+        {/* Mes enfants */}
+        <View>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {t("home.parent.children.title")}
+            </Text>
+            {children.length > 0 && (
+              <View style={styles.countBadge} testID="children-count-badge">
+                <Text style={styles.countBadgeText}>{children.length}</Text>
+              </View>
+            )}
+          </View>
+
+          {isLoading ? (
+            <View style={styles.loadingCard}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : children.length === 0 ? (
+            <View style={styles.childrenCard}>
+              <View style={styles.childrenEmpty}>
+                <Ionicons
+                  name="people-circle-outline"
+                  size={42}
+                  color={colors.warmBorder}
+                />
+                <Text style={styles.emptyTitle}>
+                  {t("home.parent.children.empty.title")}
+                </Text>
+                <Text style={styles.emptySub}>
+                  {t("home.parent.children.empty.subtitle")}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.childrenList}>
+              {children.map((child) => (
+                <ChildCard
+                  key={child.id}
+                  child={child}
+                  onPress={handleChildPress}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Accès rapides */}
+        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
+          {t("home.parent.quickAccess.title")}
+        </Text>
+        <View style={styles.quickGrid}>
+          {[
+            {
+              id: "fil-d-actualit",
+              icon: "newspaper-outline",
+              label: t("home.parent.quickAccess.feed.label"),
+              sub: t("home.parent.quickAccess.feed.sub"),
+              color: colors.primary,
+            },
+            {
+              id: "finances",
+              icon: "wallet-outline",
+              label: t("home.parent.quickAccess.finance.label"),
+              sub: t("home.parent.quickAccess.finance.sub"),
+              color: colors.accentTeal,
+            },
+            {
+              id: "messagerie",
+              icon: "chatbubble-outline",
+              label: t("home.parent.quickAccess.messaging.label"),
+              sub: t("home.parent.quickAccess.messaging.sub"),
+              color: "#6B5EA8",
+            },
+            {
+              id: "documents",
+              icon: "document-outline",
+              label: t("home.parent.quickAccess.documents.label"),
+              sub: t("home.parent.quickAccess.documents.sub"),
+              color: colors.warmAccent,
+            },
+          ].map((item) => {
+            const isMessaging = item.id === "messagerie";
+            return (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.quickCard}
+                activeOpacity={0.75}
+                onPress={() => handleQuickAccessPress(item.id, item.label)}
+                testID={`quick-link-${item.id}`}
+              >
+                {isMessaging && unreadCount > 0 ? (
+                  <View
+                    style={styles.quickBadge}
+                    testID="quick-link-messagerie-badge"
+                  >
+                    <Text style={styles.quickBadgeText}>
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </Text>
+                  </View>
+                ) : null}
+                <View
+                  style={[
+                    styles.quickIcon,
+                    { backgroundColor: item.color + "18" },
+                  ]}
+                >
+                  <Ionicons
+                    name={item.icon as "home"}
+                    size={24}
+                    color={item.color}
+                  />
+                </View>
+                <Text style={styles.quickLabel}>{item.label}</Text>
+                <Text style={styles.quickSub}>{item.sub}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Actualités */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>{t("home.parent.news.title")}</Text>
+          <TouchableOpacity onPress={() => router.push("/(home)/feed")}>
+            <Text style={styles.sectionLink}>
+              {t("home.parent.news.seeAll")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.newsCard}>
+          <View style={styles.newsEmpty}>
             <Ionicons
-              name="people-circle-outline"
-              size={42}
+              name="newspaper-outline"
+              size={36}
               color={colors.warmBorder}
             />
             <Text style={styles.emptyTitle}>
-              {t("home.parent.children.empty.title")}
+              {t("home.parent.news.empty.title")}
             </Text>
             <Text style={styles.emptySub}>
-              {t("home.parent.children.empty.subtitle")}
+              {t("home.parent.news.empty.subtitle")}
             </Text>
           </View>
         </View>
-      ) : (
-        <View style={styles.childrenList}>
-          {children.map((child) => (
-            <ChildCard
-              key={child.id}
-              child={child}
-              onPress={handleChildPress}
-            />
-          ))}
-        </View>
-      )}
-
-      {/* Accès rapides */}
-      <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
-        {t("home.parent.quickAccess.title")}
-      </Text>
-      <View style={styles.quickGrid}>
-        {[
+      </ScrollView>
+      <PageHelpModal
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        title={t("home.parent.help.title")}
+        sections={[
           {
-            id: "fil-d-actualit",
-            icon: "newspaper-outline",
-            label: t("home.parent.quickAccess.feed.label"),
-            sub: t("home.parent.quickAccess.feed.sub"),
-            color: colors.primary,
+            title: t("home.parent.help.section1Title"),
+            body: [t("home.parent.help.section1Body")],
           },
           {
-            id: "finances",
-            icon: "wallet-outline",
-            label: t("home.parent.quickAccess.finance.label"),
-            sub: t("home.parent.quickAccess.finance.sub"),
-            color: colors.accentTeal,
+            title: t("home.parent.help.section2Title"),
+            body: [t("home.parent.help.section2Body")],
           },
           {
-            id: "messagerie",
-            icon: "chatbubble-outline",
-            label: t("home.parent.quickAccess.messaging.label"),
-            sub: t("home.parent.quickAccess.messaging.sub"),
-            color: "#6B5EA8",
+            title: t("home.parent.help.section3Title"),
+            body: [t("home.parent.help.section3Body")],
           },
           {
-            id: "documents",
-            icon: "document-outline",
-            label: t("home.parent.quickAccess.documents.label"),
-            sub: t("home.parent.quickAccess.documents.sub"),
-            color: colors.warmAccent,
+            title: t("home.parent.help.section4Title"),
+            body: [t("home.parent.help.section4Body")],
           },
-        ].map((item) => (
-          <TouchableOpacity
-            key={item.id}
-            style={styles.quickCard}
-            activeOpacity={0.75}
-            onPress={() => handleQuickAccessPress(item.id, item.label)}
-            testID={`quick-link-${item.id}`}
-          >
-            {item.id === "messagerie" && unreadCount > 0 ? (
-              <View
-                style={styles.quickBadge}
-                testID="quick-link-messagerie-badge"
-              >
-                <Text style={styles.quickBadgeText}>
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </Text>
-              </View>
-            ) : null}
-            <View
-              style={[styles.quickIcon, { backgroundColor: item.color + "18" }]}
-            >
-              <Ionicons
-                name={item.icon as "home"}
-                size={24}
-                color={item.color}
-              />
-            </View>
-            <Text style={styles.quickLabel}>{item.label}</Text>
-            <Text style={styles.quickSub}>{item.sub}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Actualités */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{t("home.parent.news.title")}</Text>
-        <TouchableOpacity onPress={() => router.push("/(home)/feed")}>
-          <Text style={styles.sectionLink}>{t("home.parent.news.seeAll")}</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.newsCard}>
-        <View style={styles.newsEmpty}>
-          <Ionicons
-            name="newspaper-outline"
-            size={36}
-            color={colors.warmBorder}
-          />
-          <Text style={styles.emptyTitle}>
-            {t("home.parent.news.empty.title")}
-          </Text>
-          <Text style={styles.emptySub}>
-            {t("home.parent.news.empty.subtitle")}
-          </Text>
-        </View>
-      </View>
-    </ScrollView>
+        ]}
+        closeLabel={t("home.parent.help.close")}
+        testID="parent-landing-help-modal"
+      />
+    </>
   );
 }
 

@@ -9,7 +9,7 @@ import {
   timeLabelToMinute,
   toWeekdayMondayFirst,
 } from "../../src/utils/timetable";
-import { formatDayNavLabel } from "../../src/components/timetable/ChildTimetableScreen";
+import { formatDayNavLabel } from "../../src/components/timetable/StudentTimetableScreen";
 import { translate } from "../../src/i18n/useTranslation";
 import { DEFAULT_LOCALE } from "../../src/i18n/translations";
 

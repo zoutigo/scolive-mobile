@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -19,6 +20,7 @@ import { buildChildHomeTarget } from "../navigation/nav-config";
 import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { useNotesStore } from "../../store/notes.store";
+import { useSelfStudentContext } from "../../hooks/useSelfStudentContext";
 import { PeriodHero } from "./PeriodHero";
 import { SubjectReportCard } from "./SubjectReportCard";
 import type {
@@ -46,6 +48,14 @@ import {
   SectionCard,
 } from "../timetable/TimetableCommon";
 import { useTranslation, type TranslateFn } from "../../i18n/useTranslation";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { PageHelpModal } from "../help/PageHelpModal";
+import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import {
+  CHILD_NOTES_TOUR_ID,
+  CHILD_NOTES_TOUR_STEPS,
+  CHILD_NOTES_TOUR_TARGETS,
+} from "./child-notes-tour.config";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,6 +67,17 @@ type DetailState =
     }
   | { type: "average"; subject: StudentSubjectNotes }
   | null;
+
+function OnboardingTargetOrView({
+  id,
+  children,
+}: {
+  id?: string;
+  children: React.ReactNode;
+}) {
+  if (!id) return <>{children}</>;
+  return <OnboardingTarget id={id}>{children}</OnboardingTarget>;
+}
 
 function buildViewOptions(
   t: TranslateFn,
@@ -82,6 +103,8 @@ export type StudentNotesPanelProps = {
   sequence?: StudentNotesSequence | null;
   onSequenceChange?: (sequence: StudentNotesSequence | null) => void;
   hideSwitcher?: boolean;
+  /** Onboarding tour target id wrapping the filter toggle button, if it should be spotlighted. */
+  filterTourTargetId?: string;
 };
 
 // ─── StudentNotesPanel ───────────────────────────────────────────────────────
@@ -98,6 +121,7 @@ export function StudentNotesPanel({
   sequence,
   onSequenceChange,
   hideSwitcher = false,
+  filterTourTargetId,
 }: StudentNotesPanelProps) {
   const { t } = useTranslation();
   const {
@@ -286,25 +310,27 @@ export function StudentNotesPanel({
                   {summaryText}
                 </Text>
               </View>
-              <TouchableOpacity
-                style={[
-                  styles.filterToggle,
-                  hasNonDefaultFilters && styles.filterToggleActive,
-                ]}
-                onPress={toggleFilters}
-                testID="child-notes-filter-toggle"
-                accessibilityLabel={t(
-                  "notes.panel.filters.toggleAccessibilityLabel",
-                )}
-              >
-                <Ionicons
-                  name={hasNonDefaultFilters ? "filter" : "filter-outline"}
-                  size={18}
-                  color={
-                    hasNonDefaultFilters ? colors.white : colors.accentTeal
-                  }
-                />
-              </TouchableOpacity>
+              <OnboardingTargetOrView id={filterTourTargetId}>
+                <TouchableOpacity
+                  style={[
+                    styles.filterToggle,
+                    hasNonDefaultFilters && styles.filterToggleActive,
+                  ]}
+                  onPress={toggleFilters}
+                  testID="child-notes-filter-toggle"
+                  accessibilityLabel={t(
+                    "notes.panel.filters.toggleAccessibilityLabel",
+                  )}
+                >
+                  <Ionicons
+                    name={hasNonDefaultFilters ? "filter" : "filter-outline"}
+                    size={18}
+                    color={
+                      hasNonDefaultFilters ? colors.white : colors.accentTeal
+                    }
+                  />
+                </TouchableOpacity>
+              </OnboardingTargetOrView>
             </View>
 
             {filtersOpen ? (
@@ -493,34 +519,55 @@ export function StudentNotesPanel({
 
 type ChildNotesTabKey = "notes" | "reports";
 
-export function ChildNotesScreen() {
+export function StudentNotesScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ childId?: string }>();
-  const childId = typeof params.childId === "string" ? params.childId : "";
+  const routeChildId = typeof params.childId === "string" ? params.childId : "";
+  const isSelf = !routeChildId;
   const { schoolSlug } = useAuthStore();
   const { children, setActiveChild, updateChild } = useFamilyStore();
   const { studentNotes } = useNotesStore();
   const [childTab, setChildTab] = useState<ChildNotesTabKey>("notes");
+  const [helpVisible, setHelpVisible] = useState(false);
+  const selfContext = useSelfStudentContext(isSelf);
+
+  useOnboardingTourTrigger({
+    tourId: CHILD_NOTES_TOUR_ID,
+    role: "parent",
+    steps: CHILD_NOTES_TOUR_STEPS,
+  });
+
+  const childId = isSelf ? (selfContext.studentId ?? "") : routeChildId;
 
   useEffect(() => {
-    if (!childId) return;
-    setActiveChild(childId);
-  }, [childId, setActiveChild]);
+    if (!routeChildId) return;
+    setActiveChild(routeChildId);
+  }, [routeChildId, setActiveChild]);
 
   const snapshots = studentNotes[childId] ?? [];
   const currentSnapshot = snapshots[0] ?? null;
 
-  const child = children.find((entry) => entry.id === childId);
+  const child = children.find((entry) => entry.id === routeChildId);
   const title = t("notes.child.title");
-  const subtitle = buildHeaderSubtitle(child, currentSnapshot, t);
+  const subtitle = isSelf
+    ? `${selfContext.firstName ?? ""} ${selfContext.lastName ?? ""}`.trim()
+    : buildHeaderSubtitle(child, currentSnapshot, t);
   const classLabel = extractClassLabel(currentSnapshot?.councilLabel ?? "");
 
   useEffect(() => {
-    if (!childId || !classLabel) return;
-    updateChild(childId, { className: classLabel });
-  }, [childId, classLabel, updateChild]);
+    if (!routeChildId || !classLabel) return;
+    updateChild(routeChildId, { className: classLabel });
+  }, [routeChildId, classLabel, updateChild]);
+
+  if (isSelf && (selfContext.isLoading || !childId)) {
+    return (
+      <View style={styles.selfLoading} testID="student-notes-self-loading">
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -530,56 +577,79 @@ export function ChildNotesScreen() {
       <ModuleHeader
         title={title}
         subtitle={subtitle}
-        onBack={() => router.push(buildChildHomeTarget(childId) as never)}
+        onBack={() =>
+          router.push(
+            (routeChildId ? buildChildHomeTarget(routeChildId) : "/") as never,
+          )
+        }
         testID="child-notes-header"
         backTestID="child-notes-back"
         titleTestID="child-notes-header-title"
         subtitleTestID="child-notes-header-subtitle"
         topInset={insets.top}
+        helpAction={
+          !isSelf
+            ? {
+                label: t("notes.child.help.menuLabel"),
+                onPress: () => setHelpVisible(true),
+                testID: "child-notes-help-menu-item",
+              }
+            : undefined
+        }
+        menuTourTargetId={
+          !isSelf ? CHILD_NOTES_TOUR_TARGETS.helpToggle : undefined
+        }
       />
 
-      <View style={styles.childTabsBar} testID="child-notes-tabs">
-        <TouchableOpacity
-          style={[
-            styles.childTabButton,
-            childTab === "notes" && styles.childTabButtonActive,
-          ]}
-          onPress={() => setChildTab("notes")}
-          testID="child-notes-tab-notes"
-        >
-          <Text
+      <OnboardingTargetOrView
+        id={!isSelf ? CHILD_NOTES_TOUR_TARGETS.tabs : undefined}
+      >
+        <View style={styles.childTabsBar} testID="child-notes-tabs">
+          <TouchableOpacity
             style={[
-              styles.childTabLabel,
-              childTab === "notes" && styles.childTabLabelActive,
+              styles.childTabButton,
+              childTab === "notes" && styles.childTabButtonActive,
             ]}
+            onPress={() => setChildTab("notes")}
+            testID="child-notes-tab-notes"
           >
-            {t("notes.child.tabs.notes")}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.childTabButton,
-            childTab === "reports" && styles.childTabButtonActive,
-          ]}
-          onPress={() => setChildTab("reports")}
-          testID="child-notes-tab-reports"
-        >
-          <Text
+            <Text
+              style={[
+                styles.childTabLabel,
+                childTab === "notes" && styles.childTabLabelActive,
+              ]}
+            >
+              {t("notes.child.tabs.notes")}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[
-              styles.childTabLabel,
-              childTab === "reports" && styles.childTabLabelActive,
+              styles.childTabButton,
+              childTab === "reports" && styles.childTabButtonActive,
             ]}
+            onPress={() => setChildTab("reports")}
+            testID="child-notes-tab-reports"
           >
-            {t("notes.child.tabs.reports")}
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <Text
+              style={[
+                styles.childTabLabel,
+                childTab === "reports" && styles.childTabLabelActive,
+              ]}
+            >
+              {t("notes.child.tabs.reports")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </OnboardingTargetOrView>
 
       {childTab === "notes" ? (
         <StudentNotesPanel
           studentId={childId}
           schoolSlug={schoolSlug ?? ""}
           bottomInset={insets.bottom}
+          filterTourTargetId={
+            !isSelf ? CHILD_NOTES_TOUR_TARGETS.filters : undefined
+          }
         />
       ) : (
         <ChildPeriodReportTab
@@ -588,6 +658,39 @@ export function ChildNotesScreen() {
           bottomInset={insets.bottom}
         />
       )}
+
+      {!isSelf ? (
+        <PageHelpModal
+          visible={helpVisible}
+          onClose={() => setHelpVisible(false)}
+          title={
+            childTab === "reports"
+              ? t("notes.child.help.reports.title")
+              : t("notes.child.help.notes.title")
+          }
+          sections={
+            childTab === "reports"
+              ? [
+                  {
+                    title: t("notes.child.help.reports.section1Title"),
+                    body: [t("notes.child.help.reports.section1Body")],
+                  },
+                ]
+              : [
+                  {
+                    title: t("notes.child.help.notes.section1Title"),
+                    body: [t("notes.child.help.notes.section1Body")],
+                  },
+                  {
+                    title: t("notes.child.help.notes.section2Title"),
+                    body: [t("notes.child.help.notes.section2Body")],
+                  },
+                ]
+          }
+          closeLabel={t("notes.child.help.close")}
+          testID="child-notes-help-modal"
+        />
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
@@ -1581,6 +1684,12 @@ function ModalStat(props: { label: string; value: string; suffix?: string }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
+  selfLoading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.background,
+  },
   content: { paddingHorizontal: 16, gap: 14 },
   childTabsBar: {
     flexDirection: "row",

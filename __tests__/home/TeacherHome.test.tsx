@@ -4,9 +4,16 @@
  * emploi du temps, évaluations, devoirs), navigation au clic, context messaging.
  */
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native";
 import { TeacherHome } from "../../src/components/home/TeacherHome";
 import { useMessagingStore } from "../../src/store/messaging.store";
+import { useHomeHeaderHelpStore } from "../../src/store/home-header-help.store";
 import * as dashboardHook from "../../src/hooks/useTeacherDashboard";
 import type { TeacherDashboardData } from "../../src/hooks/useTeacherDashboard";
 import type { AuthUser } from "../../src/types/auth.types";
@@ -18,6 +25,12 @@ jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 
 jest.mock("../../src/hooks/useTeacherDashboard");
@@ -233,6 +246,7 @@ beforeEach(() => {
     removeLocal: jest.fn(),
     reset: jest.fn(),
   });
+  useHomeHeaderHelpStore.getState().setHelpAction(null);
 });
 
 // ── Banner ────────────────────────────────────────────────────────────────────
@@ -571,5 +585,53 @@ describe("Intégration — wiring du hook", () => {
     const loadingTexts = screen.getAllByText("Chargement…");
     // 5 sections × 1 = 5 textes Chargement (une par section vide)
     expect(loadingTexts.length).toBeGreaterThanOrEqual(5);
+  });
+});
+
+// ── Modale d'aide (déclenchée depuis le menu de l'en-tête partagé) ─────────
+
+describe("TeacherHome — modale d'aide", () => {
+  it("n'affiche pas la modale d'aide par défaut", () => {
+    render(<TeacherHome user={teacherUser} schoolSlug="college-vogt" />);
+
+    expect(screen.queryByTestId("teacher-home-help-modal-title")).toBeNull();
+  });
+
+  it("enregistre son entrée d'aide dans le store partagé de l'en-tête", () => {
+    render(<TeacherHome user={teacherUser} schoolSlug="college-vogt" />);
+
+    expect(useHomeHeaderHelpStore.getState().helpAction?.testID).toBe(
+      "teacher-home-help-toggle",
+    );
+  });
+
+  it("ouvre la modale d'aide quand l'entrée d'aide enregistrée est déclenchée", () => {
+    render(<TeacherHome user={teacherUser} schoolSlug="college-vogt" />);
+
+    act(() => {
+      useHomeHeaderHelpStore.getState().helpAction?.onPress();
+    });
+
+    expect(
+      screen.getByTestId("teacher-home-help-modal-title"),
+    ).toHaveTextContent("Votre tableau de bord enseignant");
+    const helpBody = within(screen.getByTestId("teacher-home-help-modal-body"));
+    expect(helpBody.getByText("Vos classes")).toBeTruthy();
+    expect(helpBody.getByText("Messages non lus")).toBeTruthy();
+    expect(helpBody.getByText("Emploi du temps du jour")).toBeTruthy();
+    expect(helpBody.getByText("Évaluations à saisir")).toBeTruthy();
+    expect(helpBody.getByText("Devoirs en cours")).toBeTruthy();
+  });
+
+  it("ferme la modale d'aide au tap sur le bouton de fermeture", () => {
+    render(<TeacherHome user={teacherUser} schoolSlug="college-vogt" />);
+
+    act(() => {
+      useHomeHeaderHelpStore.getState().helpAction?.onPress();
+    });
+    expect(screen.getByTestId("teacher-home-help-modal-title")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("teacher-home-help-modal-close"));
+    expect(screen.queryByTestId("teacher-home-help-modal-title")).toBeNull();
   });
 });

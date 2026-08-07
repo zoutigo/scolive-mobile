@@ -9,7 +9,7 @@ import { DEFAULT_LOCALE, translations } from "../../src/i18n/translations";
 import { useLocaleStore } from "../../src/store/locale.store";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useNotesStore } from "../../src/store/notes.store";
-import { StudentNotesPanel } from "../../src/components/notes/ChildNotesScreen";
+import { StudentNotesPanel } from "../../src/components/notes/StudentNotesScreen";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-router", () => ({

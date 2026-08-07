@@ -5,6 +5,7 @@ import {
   slugToDisplayName,
 } from "../../src/components/navigation/AppHeader";
 import { useAuthStore } from "../../src/store/auth.store";
+import { useHomeHeaderHelpStore } from "../../src/store/home-header-help.store";
 import type { AuthUser } from "../../src/types/auth.types";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
@@ -57,6 +58,7 @@ const teacherUser: AuthUser = {
 beforeEach(() => {
   jest.clearAllMocks();
   mockPathname = "/feed";
+  useHomeHeaderHelpStore.getState().setHelpAction(null);
 });
 
 function renderHeader(user: AuthUser | null, schoolSlug: string | null = null) {
@@ -173,15 +175,23 @@ describe("Variante accueil", () => {
     expect(screen.getByTestId("app-header-auth-btn")).toBeTruthy();
   });
 
-  it("ouvre la confirmation de déconnexion au clic sur le bouton auth", () => {
+  it("ouvre le menu (déconnexion + aide) au clic sur le bouton auth", () => {
     renderHeader(teacherUser, "college-vogt");
     fireEvent.press(screen.getByTestId("app-header-auth-btn"));
+    expect(screen.getByTestId("app-header-logout-menu-item")).toBeTruthy();
+  });
+
+  it("ouvre la confirmation de déconnexion au clic sur l'entrée Déconnexion du menu", () => {
+    renderHeader(teacherUser, "college-vogt");
+    fireEvent.press(screen.getByTestId("app-header-auth-btn"));
+    fireEvent.press(screen.getByTestId("app-header-logout-menu-item"));
     expect(screen.getByTestId("confirm-dialog-card")).toBeTruthy();
   });
 
   it("appelle logout() après confirmation", () => {
     renderHeader(teacherUser, "college-vogt");
     fireEvent.press(screen.getByTestId("app-header-auth-btn"));
+    fireEvent.press(screen.getByTestId("app-header-logout-menu-item"));
     fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
     expect(mockLogout).toHaveBeenCalledTimes(1);
   });
@@ -189,8 +199,29 @@ describe("Variante accueil", () => {
   it("n'appelle pas logout() si on annule la confirmation", () => {
     renderHeader(teacherUser, "college-vogt");
     fireEvent.press(screen.getByTestId("app-header-auth-btn"));
+    fireEvent.press(screen.getByTestId("app-header-logout-menu-item"));
     fireEvent.press(screen.getByTestId("confirm-dialog-cancel"));
     expect(mockLogout).not.toHaveBeenCalled();
+  });
+
+  it("n'affiche pas d'entrée Aide dans le menu si aucun écran ne l'a enregistrée", () => {
+    renderHeader(teacherUser, "college-vogt");
+    fireEvent.press(screen.getByTestId("app-header-auth-btn"));
+    expect(screen.queryByTestId("app-header-help-menu-item")).toBeNull();
+  });
+
+  it("affiche et déclenche l'entrée Aide enregistrée par l'écran d'accueil actif", () => {
+    const mockHelpPress = jest.fn();
+    useHomeHeaderHelpStore.getState().setHelpAction({
+      label: "Aide sur cette page",
+      onPress: mockHelpPress,
+      testID: "teacher-home-help-toggle",
+    });
+
+    renderHeader(teacherUser, "college-vogt");
+    fireEvent.press(screen.getByTestId("app-header-auth-btn"));
+    fireEvent.press(screen.getByTestId("teacher-home-help-toggle"));
+    expect(mockHelpPress).toHaveBeenCalledTimes(1);
   });
 
   it("propose une connexion si aucun utilisateur n'est présent", () => {

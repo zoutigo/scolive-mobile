@@ -23,6 +23,7 @@ import {
   FEED_FILTERS_TOUR_STEPS,
   FEED_FILTERS_TOUR_TARGETS,
 } from "./feed-filters-tour.config";
+import { FEED_HELP_SECTIONS } from "./feed-help.content";
 import type {
   CreateFeedPayload,
   FeedTypeFilter,
@@ -35,6 +36,7 @@ const FEED_ROLES: FeedViewerRole[] = [
   "SUPERVISOR",
   "SCHOOL_ACCOUNTANT",
   "SCHOOL_STAFF",
+  "SCHOOL_HEALTH_OFFICER",
   "TEACHER",
   "PARENT",
   "STUDENT",
@@ -49,7 +51,7 @@ function resolveViewerRole(
     : null;
 }
 
-export function ChildClassFeedScreen() {
+export function ClassLifeFeedScreen() {
   const { t } = useTranslation();
   const tRef = useRef(t);
   tRef.current = t;
@@ -67,7 +69,7 @@ export function ChildClassFeedScreen() {
 
   useOnboardingTourTrigger({
     tourId: FEED_FILTERS_TOUR_ID,
-    role: "parent",
+    role: childId ? "parent" : "student",
     steps: FEED_FILTERS_TOUR_STEPS,
   });
   const advanceOnboardingTourTarget = useOnboardingTourStore(
@@ -80,37 +82,43 @@ export function ChildClassFeedScreen() {
   }, [childId, setActiveChild]);
 
   const subtitle = useMemo(() => {
-    const childLabel = child
-      ? `${child.firstName} ${child.lastName}`
-      : t("feed.classLife.studentFallback");
+    const childLabel = childId
+      ? child
+        ? `${child.firstName} ${child.lastName}`
+        : t("feed.classLife.studentFallback")
+      : user
+        ? `${user.firstName} ${user.lastName}`
+        : t("feed.classLife.studentFallback");
     const resolvedClassLabel = className || child?.className?.trim() || "";
     return resolvedClassLabel
       ? `${childLabel} • ${resolvedClassLabel}`
       : childLabel;
-  }, [child, className, t]);
+  }, [child, childId, className, t, user]);
 
   const ensureContext = useCallback(async () => {
-    if (!schoolSlug || !childId) {
+    if (!schoolSlug) {
       throw new Error(tRef.current("feed.errors.childContextMissing"));
     }
 
-    if (child?.classId && child?.className) {
+    if (childId && child?.classId && child?.className) {
       setClassId(child.classId);
       setClassName(child.className);
       return child.classId;
     }
 
     const timetable = await timetableApi.getMyTimetable(schoolSlug, {
-      childId,
+      childId: childId || undefined,
     });
     setClassId(timetable.class.id);
     setClassName(timetable.class.name);
-    updateChild(childId, {
-      firstName: timetable.student.firstName,
-      lastName: timetable.student.lastName,
-      classId: timetable.class.id,
-      className: timetable.class.name,
-    });
+    if (childId) {
+      updateChild(childId, {
+        firstName: timetable.student.firstName,
+        lastName: timetable.student.lastName,
+        classId: timetable.class.id,
+        className: timetable.class.name,
+      });
+    }
     return timetable.class.id;
   }, [child, childId, schoolSlug, updateChild]);
 
@@ -161,24 +169,27 @@ export function ChildClassFeedScreen() {
           <ModuleHeader
             title={t("feed.classLife.title")}
             subtitle={subtitle}
-            onBack={() => router.push(buildChildHomeTarget(childId) as never)}
+            onBack={() =>
+              router.push(
+                (childId ? buildChildHomeTarget(childId) : "/") as never,
+              )
+            }
             testID="child-class-feed-header"
             backTestID="child-class-feed-back"
             titleTestID="child-class-feed-header-title"
             subtitleTestID="child-class-feed-header-subtitle"
             topInset={insets.top}
-            secondaryAction={{
-              icon: "help-circle-outline",
+            helpAction={{
+              label: t("feed.classLife.help.menuLabel"),
               onPress: () => {
                 openHelp();
                 advanceOnboardingTourTarget(
                   FEED_FILTERS_TOUR_TARGETS.helpToggle,
                 );
               },
-              testID: "child-class-feed-help-toggle",
-              accessibilityLabel: t("feed.help.toggle"),
+              testID: "child-class-feed-help-menu-item",
             }}
-            secondaryActionTourTargetId={FEED_FILTERS_TOUR_TARGETS.helpToggle}
+            menuTourTargetId={FEED_FILTERS_TOUR_TARGETS.helpToggle}
           />
         </View>
       )}
@@ -194,11 +205,7 @@ export function ChildClassFeedScreen() {
       onCreatePost={handleCreatePost}
       onUploadInlineImage={handleUploadInlineImage}
       helpTitle={t("feed.classLife.help.title")}
-      helpBody={[
-        t("feed.classLife.help.body1"),
-        t("feed.classLife.help.body2"),
-        t("feed.classLife.help.body3"),
-      ]}
+      helpSections={FEED_HELP_SECTIONS(t)}
     />
   );
 }

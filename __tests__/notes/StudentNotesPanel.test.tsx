@@ -6,7 +6,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
-import { StudentNotesPanel } from "../../src/components/notes/ChildNotesScreen";
+import { StudentNotesPanel } from "../../src/components/notes/StudentNotesScreen";
 import { useNotesStore } from "../../src/store/notes.store";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));

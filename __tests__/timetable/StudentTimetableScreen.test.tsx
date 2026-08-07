@@ -7,7 +7,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react-native";
-import { ChildTimetableScreen } from "../../src/components/timetable/ChildTimetableScreen";
+import { StudentTimetableScreen } from "../../src/components/timetable/StudentTimetableScreen";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useTimetableStore } from "../../src/store/timetable.store";
 import { colors } from "../../src/theme";
@@ -170,9 +170,9 @@ beforeEach(() => {
   } as never);
 });
 
-describe("ChildTimetableScreen", () => {
+describe("StudentTimetableScreen", () => {
   it("charge le planning au montage avec la plage du jour courant", async () => {
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
 
     await waitFor(() => {
       expect(mockLoadMyTimetable).toHaveBeenCalledWith("college-vogt", {
@@ -184,7 +184,7 @@ describe("ChildTimetableScreen", () => {
   });
 
   it("affiche la vue jour par defaut avec les creneaux du jour et leur couleur", () => {
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
 
     expect(screen.getByText(/Aujourd'hui/)).toBeTruthy();
     expect(screen.getByText("08:45 - 10:00 · Anglais")).toBeTruthy();
@@ -199,7 +199,7 @@ describe("ChildTimetableScreen", () => {
   });
 
   it("affiche un header compact pleine largeur avec le nom et la classe", () => {
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
 
     const header = screen.getByTestId("child-timetable-header");
     const title = screen.getByTestId("child-timetable-header-title");
@@ -220,7 +220,7 @@ describe("ChildTimetableScreen", () => {
   });
 
   it("le header n'est pas rendu à l'intérieur du ScrollView (pleine largeur, pas de padding hérité)", () => {
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
 
     expect(screen.getByTestId("child-timetable-header")).toBeTruthy();
 
@@ -233,7 +233,7 @@ describe("ChildTimetableScreen", () => {
   });
 
   it("revient à l'écran précédent via le bouton retour", () => {
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
     fireEvent.press(screen.getByTestId("child-timetable-back"));
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/(home)/children/[childId]",
@@ -242,7 +242,7 @@ describe("ChildTimetableScreen", () => {
   });
 
   it("permet de basculer en vue semaine et de consulter le detail d'un creneau", async () => {
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
 
     fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
 
@@ -261,7 +261,7 @@ describe("ChildTimetableScreen", () => {
   });
 
   it("permet de basculer en vue mois et d'afficher l'agenda du jour selectionne", async () => {
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
 
     fireEvent.press(screen.getByTestId("child-timetable-mode-month"));
 
@@ -280,7 +280,7 @@ describe("ChildTimetableScreen", () => {
   });
 
   it("rend la grille mensuelle en lignes explicites sans espace résiduel en bas (5 colonnes, pas de cours weekend)", () => {
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
 
     fireEvent.press(screen.getByTestId("child-timetable-mode-month"));
 
@@ -296,7 +296,7 @@ describe("ChildTimetableScreen", () => {
   });
 
   it("place les bons jours dans les bonnes lignes de la grille mensuelle", () => {
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
 
     fireEvent.press(screen.getByTestId("child-timetable-mode-month"));
 
@@ -356,7 +356,7 @@ describe("ChildTimetableScreen", () => {
       },
     });
 
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
     fireEvent.press(screen.getByTestId("child-timetable-mode-month"));
 
     // Samedi 18 avril doit être présent dans la grille
@@ -398,7 +398,7 @@ describe("ChildTimetableScreen", () => {
       },
     });
 
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
     fireEvent.press(screen.getByTestId("child-timetable-mode-month"));
 
     // En-tête de colonne S présent, D absent
@@ -407,7 +407,7 @@ describe("ChildTimetableScreen", () => {
   });
 
   it("masque les labels S et D en vue mois si aucun cours le week-end", () => {
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
     fireEvent.press(screen.getByTestId("child-timetable-mode-month"));
 
     // Ni S ni D dans l'en-tête de colonnes
@@ -419,46 +419,55 @@ describe("ChildTimetableScreen", () => {
   });
 });
 
-describe("ChildTimetableScreen — bloc d'aide", () => {
-  it("affiche le bloc d'aide replié par défaut, quelle que soit la vue", () => {
-    render(<ChildTimetableScreen />);
+describe("StudentTimetableScreen — modale d'aide (menu ...)", () => {
+  function openHelpFromMenu() {
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("child-timetable-help-menu-item"));
+  }
 
-    expect(screen.getByTestId("child-timetable-help-block")).toBeTruthy();
-    expect(
-      screen.queryByTestId("child-timetable-help-block-content"),
-    ).toBeNull();
-    expect(
-      screen.getByTestId("child-timetable-help-block-toggle"),
-    ).toHaveTextContent("Besoin d'aide sur cette page ?");
+  it("n'affiche pas la modale d'aide par défaut", () => {
+    render(<StudentTimetableScreen />);
+
+    expect(screen.queryByTestId("child-timetable-help-modal-title")).toBeNull();
   });
 
-  it("affiche le contenu d'aide au tap sur le toggle", () => {
-    render(<ChildTimetableScreen />);
+  it("ouvre la modale d'aide via « Aide » dans le menu ..., avec ses sous-chapitres", () => {
+    render(<StudentTimetableScreen />);
 
-    fireEvent.press(screen.getByTestId("child-timetable-help-block-toggle"));
+    openHelpFromMenu();
 
     expect(
-      screen.getByTestId("child-timetable-help-block-content"),
-    ).toBeTruthy();
-    expect(screen.getByText("Comment utiliser cette page")).toBeTruthy();
+      screen.getByTestId("child-timetable-help-modal-title"),
+    ).toHaveTextContent("Comment utiliser cette page");
+    expect(screen.getByText("Changer de vue")).toBeTruthy();
+    expect(screen.getByText("Naviguer dans le temps")).toBeTruthy();
+    expect(screen.getByText("Consulter le détail d'un cours")).toBeTruthy();
   });
 
-  it("reste visible et fonctionnel après un changement de vue (semaine/mois)", () => {
-    render(<ChildTimetableScreen />);
+  it("ferme la modale d'aide au tap sur le bouton de fermeture", () => {
+    render(<StudentTimetableScreen />);
+
+    openHelpFromMenu();
+    expect(screen.getByTestId("child-timetable-help-modal-title")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("child-timetable-help-modal-close"));
+    expect(screen.queryByTestId("child-timetable-help-modal-title")).toBeNull();
+  });
+
+  it("reste accessible après un changement de vue (semaine/mois)", () => {
+    render(<StudentTimetableScreen />);
     fireEvent.press(screen.getByTestId("child-timetable-mode-month"));
 
-    fireEvent.press(screen.getByTestId("child-timetable-help-block-toggle"));
+    openHelpFromMenu();
 
-    expect(
-      screen.getByTestId("child-timetable-help-block-content"),
-    ).toBeTruthy();
+    expect(screen.getByTestId("child-timetable-help-modal-title")).toBeTruthy();
   });
 });
 
 describe("WeekGrid — responsive (largeur colonnes)", () => {
   it("sur téléphone 360px, les colonnes jour ont la largeur minimale 56px", () => {
     mockUseWindowDimensions.mockReturnValue(screen$(360));
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
     fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
 
     // Sur téléphone le calcul donne raw < 56 → on clamp à 56
@@ -469,7 +478,7 @@ describe("WeekGrid — responsive (largeur colonnes)", () => {
 
   it("sur tablette 768px, les colonnes jour sont plus larges que 56px", () => {
     mockUseWindowDimensions.mockReturnValue(screen$(768, 1024));
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
     fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
 
     const col = screen.getByTestId("child-timetable-week-col-2");
@@ -480,7 +489,7 @@ describe("WeekGrid — responsive (largeur colonnes)", () => {
   it("sur tablette 768px / 5 jours, la largeur de colonne est 130px", () => {
     // raw = (768-68-36-10)/5 = 130.8 → floor = 130
     mockUseWindowDimensions.mockReturnValue(screen$(768, 1024));
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
     fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
 
     const col = screen.getByTestId("child-timetable-week-col-2");
@@ -490,7 +499,7 @@ describe("WeekGrid — responsive (largeur colonnes)", () => {
 
   it("sur tablette 768px, les colonnes jour ont toutes la même largeur", () => {
     mockUseWindowDimensions.mockReturnValue(screen$(768, 1024));
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
     fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
 
     // Récupérer la largeur d'une colonne corps
@@ -505,7 +514,7 @@ describe("WeekGrid — responsive (largeur colonnes)", () => {
 
   it("les créneaux restent cliquables sur tablette après adaptation de la largeur", async () => {
     mockUseWindowDimensions.mockReturnValue(screen$(768, 1024));
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
     fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
 
     fireEvent.press(
@@ -519,7 +528,7 @@ describe("WeekGrid — responsive (largeur colonnes)", () => {
 
   it("sur téléphone 375px, les créneaux sont toujours visibles et navigables", async () => {
     mockUseWindowDimensions.mockReturnValue(screen$(375, 812));
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
     fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
 
     expect(screen.getByTestId("child-timetable-week-grid")).toBeTruthy();
@@ -533,7 +542,7 @@ describe("WeekGrid — responsive (largeur colonnes)", () => {
   it("la grille s'adapte après un changement de dimensions (rotation)", () => {
     // Portrait
     mockUseWindowDimensions.mockReturnValue(screen$(360));
-    const { rerender } = render(<ChildTimetableScreen />);
+    const { rerender } = render(<StudentTimetableScreen />);
     fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
 
     const colPortrait = screen.getByTestId("child-timetable-week-col-2");
@@ -542,7 +551,7 @@ describe("WeekGrid — responsive (largeur colonnes)", () => {
 
     // Paysage (landscape) → réinitialiser les dimensions et re-render
     mockUseWindowDimensions.mockReturnValue(screen$(800, 360));
-    rerender(<ChildTimetableScreen />);
+    rerender(<StudentTimetableScreen />);
 
     const colLandscape = screen.getByTestId("child-timetable-week-col-2");
     const widthLandscape = StyleSheet.flatten(colLandscape.props.style).width;
@@ -550,7 +559,7 @@ describe("WeekGrid — responsive (largeur colonnes)", () => {
   });
 });
 
-describe("ChildTimetableScreen — samedi via occurrence one-off", () => {
+describe("StudentTimetableScreen — samedi via occurrence one-off", () => {
   function addSaturdayOneOff() {
     const state = useTimetableStore.getState();
     if (!state.myTimetable) throw new Error("Missing myTimetable fixture");
@@ -580,7 +589,7 @@ describe("ChildTimetableScreen — samedi via occurrence one-off", () => {
 
   it("vue Semaine : affiche la colonne Samedi si une occurrence one-off tombe le samedi", () => {
     addSaturdayOneOff();
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
     fireEvent.press(screen.getByTestId("child-timetable-mode-week"));
 
     expect(screen.getByTestId("child-timetable-week-col-6")).toBeTruthy();
@@ -589,7 +598,7 @@ describe("ChildTimetableScreen — samedi via occurrence one-off", () => {
 
   it("vue Mois : affiche la colonne Samedi si une occurrence one-off tombe un samedi du mois", () => {
     addSaturdayOneOff();
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
     fireEvent.press(screen.getByTestId("child-timetable-mode-month"));
 
     expect(
@@ -601,7 +610,7 @@ describe("ChildTimetableScreen — samedi via occurrence one-off", () => {
   });
 
   it("vue Jour : nav-next ne saute plus le samedi", () => {
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
     // Depuis mardi 14 avril, 4 presses = samedi 18 avril
     const navNext = screen.getByTestId("child-timetable-nav-next");
     fireEvent.press(navNext); // mer 15
@@ -612,7 +621,7 @@ describe("ChildTimetableScreen — samedi via occurrence one-off", () => {
   });
 
   it("vue Jour : nav-prev depuis lundi ne saute plus le dimanche/samedi", () => {
-    render(<ChildTimetableScreen />);
+    render(<StudentTimetableScreen />);
     // Depuis mardi 14, revenir à lundi 13 puis encore dimanche 12
     const navPrev = screen.getByTestId("child-timetable-nav-prev");
     fireEvent.press(navPrev); // lun 13

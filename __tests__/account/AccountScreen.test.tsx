@@ -54,6 +54,15 @@ const profileResponse = {
     { schoolId: "school-1", role: "TEACHER" as const },
   ],
   schoolSlug: "college-vogt",
+  activeSchoolId: "school-1",
+  schools: [
+    {
+      schoolId: "school-1",
+      slug: "college-vogt",
+      name: "Collège Vogt",
+      role: "PARENT" as const,
+    },
+  ],
   hasPassword: true,
   hasPhoneCredential: true,
 };

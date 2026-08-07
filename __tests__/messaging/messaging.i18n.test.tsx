@@ -22,6 +22,12 @@ jest.mock("expo-router", () => ({
   useRouter: () => mockRouter,
   usePathname: () => "/messages",
   useLocalSearchParams: () => ({}),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 
 jest.mock("../../src/store/messaging.store");
@@ -51,7 +57,11 @@ beforeEach(() => {
   (useMessagingStore as unknown as jest.Mock).mockReturnValue(
     defaultStoreState,
   );
-  (useAuthStore as unknown as jest.Mock).mockReturnValue({
+  // useAuthStore is fully mocked (not the real zustand store), so it must
+  // apply the selector itself when one is passed — otherwise selector-based
+  // callers (e.g. useOnboardingTourTrigger's `(state) => state.user`) get
+  // the whole mocked object back instead of just `.user`.
+  const authState = {
     user: {
       id: "parent-1",
       firstName: "Valery",
@@ -64,7 +74,11 @@ beforeEach(() => {
     },
     schoolSlug: "college-vogt",
     logout: jest.fn(),
-  });
+  };
+  (useAuthStore as unknown as jest.Mock).mockImplementation(
+    (selector?: (s: typeof authState) => unknown) =>
+      selector ? selector(authState) : authState,
+  );
   useFamilyStore.setState({
     children: [
       {

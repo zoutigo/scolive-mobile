@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -32,6 +31,15 @@ import {
   formatScore,
   getCurrentTerm,
 } from "../../utils/notes";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { OnboardingScrollView } from "../onboarding/OnboardingScrollView";
+import { PageHelpModal } from "../help/PageHelpModal";
+import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import {
+  CHILD_HOME_TOUR_ID,
+  CHILD_HOME_TOUR_STEPS,
+  CHILD_HOME_TOUR_TARGETS,
+} from "./child-home-tour.config";
 
 type DashboardState = {
   notes: StudentNotesResponse;
@@ -132,6 +140,13 @@ export function ChildHomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [helpVisible, setHelpVisible] = useState(false);
+
+  useOnboardingTourTrigger({
+    tourId: CHILD_HOME_TOUR_ID,
+    role: "parent",
+    steps: CHILD_HOME_TOUR_STEPS,
+  });
 
   const child = children.find((entry) => entry.id === childId);
 
@@ -288,9 +303,15 @@ export function ChildHomeScreen() {
         titleTestID="child-home-header-title"
         subtitleTestID="child-home-header-subtitle"
         topInset={insets.top}
+        helpAction={{
+          label: t("childHome.help.menuLabel"),
+          onPress: () => setHelpVisible(true),
+          testID: "child-home-help-menu-item",
+        }}
+        menuTourTargetId={CHILD_HOME_TOUR_TARGETS.helpToggle}
       />
 
-      <ScrollView
+      <OnboardingScrollView
         style={styles.root}
         contentContainerStyle={[
           styles.content,
@@ -315,71 +336,75 @@ export function ChildHomeScreen() {
           </View>
         ) : (
           <>
-            <View style={styles.kpiRow} testID="child-home-kpi-row">
-              <KpiCard
-                testID="child-home-kpi-average"
-                icon="school-outline"
-                label="Moyenne"
-                value={formatScore(snapshot?.generalAverage.student ?? null)}
-                sub={snapshot?.label ?? "Aucune période"}
-                accent={colors.primary}
-                tone="#DDEBFA"
-                onPress={goToNotes}
-              />
-              <KpiCard
-                testID="child-home-kpi-homework"
-                icon="book-outline"
-                label={t("homework.label")}
-                value={classId ? `${undoneHomework}` : "–"}
-                sub={
-                  classId
-                    ? t("homework.kpi.notDone")
-                    : t("homework.kpi.unknownClass")
-                }
-                accent={colors.warmAccent}
-                tone="#F8E9D8"
-                onPress={classId ? goToHomework : undefined}
-              />
-              <KpiCard
-                testID="child-home-kpi-messages"
-                icon="mail-outline"
-                label={t("messaging.nav.unreadMessagesLabel")}
-                value={`${state.unreadCount}`}
-                sub={t("messaging.nav.unreadMessagesSub")}
-                accent={colors.accentTeal}
-                tone="#DCF3EE"
-                onPress={goToMessages}
-              />
-            </View>
-
-            <SectionBlock
-              testID="child-home-evals-block"
-              title="Dernières évaluations"
-              icon="clipboard-outline"
-              iconColor={colors.primary}
-              iconTone="#DDEBFA"
-              onPress={goToNotes}
-              linkLabel="Toutes les notes"
-            >
-              {latestEvaluations.length === 0 ? (
-                <EmptyRow
-                  testID="child-home-evals-empty"
-                  label="Aucune évaluation publiée"
+            <OnboardingTarget id={CHILD_HOME_TOUR_TARGETS.kpis}>
+              <View style={styles.kpiRow} testID="child-home-kpi-row">
+                <KpiCard
+                  testID="child-home-kpi-average"
+                  icon="school-outline"
+                  label="Moyenne"
+                  value={formatScore(snapshot?.generalAverage.student ?? null)}
+                  sub={snapshot?.label ?? "Aucune période"}
+                  accent={colors.primary}
+                  tone="#DDEBFA"
+                  onPress={goToNotes}
                 />
-              ) : (
-                latestEvaluations.map((ev, idx) => (
-                  <EvalRow
-                    key={`${ev.subject}-${ev.recordedAt}-${idx}`}
-                    testID={`child-home-eval-row-${idx}`}
-                    subject={ev.subject}
-                    score={ev.score}
-                    maxScore={ev.maxScore}
-                    date={ev.recordedAt}
-                    isLast={idx === latestEvaluations.length - 1}
+                <KpiCard
+                  testID="child-home-kpi-homework"
+                  icon="book-outline"
+                  label={t("homework.label")}
+                  value={classId ? `${undoneHomework}` : "–"}
+                  sub={
+                    classId
+                      ? t("homework.kpi.notDone")
+                      : t("homework.kpi.unknownClass")
+                  }
+                  accent={colors.warmAccent}
+                  tone="#F8E9D8"
+                  onPress={classId ? goToHomework : undefined}
+                />
+                <KpiCard
+                  testID="child-home-kpi-messages"
+                  icon="mail-outline"
+                  label={t("messaging.nav.unreadMessagesLabel")}
+                  value={`${state.unreadCount}`}
+                  sub={t("messaging.nav.unreadMessagesSub")}
+                  accent={colors.accentTeal}
+                  tone="#DCF3EE"
+                  onPress={goToMessages}
+                />
+              </View>
+            </OnboardingTarget>
+
+            <OnboardingTarget id={CHILD_HOME_TOUR_TARGETS.sections}>
+              <SectionBlock
+                testID="child-home-evals-block"
+                title="Dernières évaluations"
+                icon="clipboard-outline"
+                iconColor={colors.primary}
+                iconTone="#DDEBFA"
+                onPress={goToNotes}
+                linkLabel="Toutes les notes"
+              >
+                {latestEvaluations.length === 0 ? (
+                  <EmptyRow
+                    testID="child-home-evals-empty"
+                    label="Aucune évaluation publiée"
                   />
-                ))
-              )}
-            </SectionBlock>
+                ) : (
+                  latestEvaluations.map((ev, idx) => (
+                    <EvalRow
+                      key={`${ev.subject}-${ev.recordedAt}-${idx}`}
+                      testID={`child-home-eval-row-${idx}`}
+                      subject={ev.subject}
+                      score={ev.score}
+                      maxScore={ev.maxScore}
+                      date={ev.recordedAt}
+                      isLast={idx === latestEvaluations.length - 1}
+                    />
+                  ))
+                )}
+              </SectionBlock>
+            </OnboardingTarget>
 
             <SectionBlock
               testID="child-home-feed-block"
@@ -444,7 +469,25 @@ export function ChildHomeScreen() {
             </SectionBlock>
           </>
         )}
-      </ScrollView>
+      </OnboardingScrollView>
+
+      <PageHelpModal
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        title={t("childHome.help.title")}
+        sections={[
+          {
+            title: t("childHome.help.section1Title"),
+            body: [t("childHome.help.section1Body")],
+          },
+          {
+            title: t("childHome.help.section2Title"),
+            body: [t("childHome.help.section2Body")],
+          },
+        ]}
+        closeLabel={t("childHome.help.close")}
+        testID="child-home-help-modal"
+      />
     </View>
   );
 }

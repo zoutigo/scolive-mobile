@@ -14,6 +14,7 @@ import { useAuthStore } from "../../src/store/auth.store";
 import { useFamilyStore } from "../../src/store/family.store";
 import { colors } from "../../src/theme";
 import { StyleSheet } from "react-native";
+import { useOnboardingTourStore } from "../../src/store/onboarding-tour.store";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -26,10 +27,27 @@ jest.mock("expo-router", () => ({
   useRouter: () => mockRouter,
   usePathname: () => "/messages",
   useLocalSearchParams: () => ({}),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 
 jest.mock("../../src/store/messaging.store");
 jest.mock("../../src/store/auth.store");
+
+// useAuthStore is fully mocked (not the real zustand store), so it must
+// apply the selector itself when one is passed — otherwise selector-based
+// callers (e.g. useOnboardingTourTrigger's `(state) => state.user`) get the
+// whole mocked object back instead of just `.user`.
+function mockAuthUser(state: Record<string, unknown>) {
+  (useAuthStore as unknown as jest.Mock).mockImplementation(
+    (selector?: (s: typeof state) => unknown) =>
+      selector ? selector(state) : state,
+  );
+}
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -72,7 +90,7 @@ beforeEach(() => {
   (useMessagingStore as unknown as jest.Mock).mockReturnValue(
     defaultStoreState,
   );
-  (useAuthStore as unknown as jest.Mock).mockReturnValue({
+  mockAuthUser({
     user: {
       id: "parent-1",
       firstName: "Valery",
@@ -396,7 +414,7 @@ describe("Infinite scroll", () => {
 
 describe("Vue plateforme (admin/super-admin)", () => {
   beforeEach(() => {
-    (useAuthStore as unknown as jest.Mock).mockReturnValue({
+    mockAuthUser({
       user: {
         id: "admin-1",
         firstName: "Root",
@@ -415,5 +433,108 @@ describe("Vue plateforme (admin/super-admin)", () => {
   it("charge la mailbox agrégée avec le scope 'platform' au lieu de rester bloqué sans schoolSlug", () => {
     render(<MessagesScreen />);
     expect(defaultStoreState.loadMessages).toHaveBeenCalledWith("platform");
+  });
+});
+
+// ── Aide parent (menu ⋮ → PageHelpModal) ────────────────────────────────────
+
+describe("Aide parent", () => {
+  it("affiche l'entrée Aide dans le menu pour un parent et ouvre/ferme la modale", async () => {
+    render(<MessagesScreen />);
+
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    expect(screen.getByTestId("messages-help-menu-item")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("messages-help-menu-item"));
+    await waitFor(() =>
+      expect(screen.getByTestId("messages-help-modal-title")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("messages-help-modal-close"));
+    await waitFor(() =>
+      expect(screen.queryByTestId("messages-help-modal-title")).toBeNull(),
+    );
+  });
+
+  it("n'affiche pas l'entrée Aide dans le menu pour un rôle ni parent ni enseignant", () => {
+    mockAuthUser({
+      user: {
+        id: "student-1",
+        firstName: "Lisa",
+        lastName: "Ntamack",
+        platformRoles: [],
+        memberships: [{ schoolId: "school-1", role: "STUDENT" }],
+        profileCompleted: true,
+        role: "STUDENT",
+        activeRole: "STUDENT",
+      },
+      schoolSlug: "college-vogt",
+      logout: jest.fn(),
+    });
+
+    render(<MessagesScreen />);
+
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    expect(screen.queryByTestId("messages-help-menu-item")).toBeNull();
+  });
+
+  it("affiche l'entrée Aide dans le menu et ouvre la modale pour un enseignant", async () => {
+    mockAuthUser({
+      user: {
+        id: "teacher-1",
+        firstName: "Paul",
+        lastName: "Martin",
+        platformRoles: [],
+        memberships: [{ schoolId: "school-1", role: "TEACHER" }],
+        profileCompleted: true,
+        role: "TEACHER",
+        activeRole: "TEACHER",
+      },
+      schoolSlug: "college-vogt",
+      logout: jest.fn(),
+    });
+
+    render(<MessagesScreen />);
+
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    expect(screen.getByTestId("messages-help-menu-item")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("messages-help-menu-item"));
+    await waitFor(() =>
+      expect(screen.getByTestId("messages-help-modal-title")).toBeTruthy(),
+    );
+  });
+
+  it("démarre le tour d'aide guidée avec le rôle 'teacher' pour un enseignant", async () => {
+    useOnboardingTourStore.setState({
+      activeTourId: null,
+      activeRole: null,
+      steps: [],
+      stepIndex: 0,
+      targetLayout: null,
+      completedTours: {},
+    });
+    mockAuthUser({
+      user: {
+        id: "teacher-1",
+        firstName: "Paul",
+        lastName: "Martin",
+        platformRoles: [],
+        memberships: [{ schoolId: "school-1", role: "TEACHER" }],
+        profileCompleted: true,
+        role: "TEACHER",
+        activeRole: "TEACHER",
+        onboardingHelpEnabled: true,
+      },
+      schoolSlug: "college-vogt",
+      logout: jest.fn(),
+    });
+
+    render(<MessagesScreen />);
+
+    await waitFor(() =>
+      expect(useOnboardingTourStore.getState().activeTourId).toBe("messages"),
+    );
+    expect(useOnboardingTourStore.getState().activeRole).toBe("teacher");
   });
 });

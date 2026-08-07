@@ -59,7 +59,7 @@ import {
   LoadingBlock,
   SectionCard,
 } from "../timetable/TimetableCommon";
-import { MonthGrid, buildWeekDays } from "../timetable/ChildTimetableScreen";
+import { MonthGrid, buildWeekDays } from "../timetable/StudentTimetableScreen";
 import {
   addDays,
   addMonths,
@@ -99,6 +99,15 @@ import type {
 } from "../../types/timetable.types";
 import { moduleBack } from "../../utils/moduleBack";
 import { useScrollToFirstError } from "../../hooks/useScrollToFirstError";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { PageHelpModal } from "../help/PageHelpModal";
+import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
+import {
+  HOMEWORK_TOUR_ID,
+  HOMEWORK_TOUR_STEPS,
+  HOMEWORK_TOUR_TARGETS,
+} from "./homework-tour.config";
 
 type TeacherSubjectOption = {
   value: string;
@@ -119,6 +128,7 @@ type HomeworkFormContext = {
 };
 
 const HOMEWORK_LIST_PAGE_SIZE = 10;
+const HOMEWORK_TOUR_FALLBACK_ID = "homework-tour-fallback";
 
 function buildHomeworkTabs(t: TranslateFn) {
   return [
@@ -291,6 +301,8 @@ function HomeworkCard(props: {
   inlineDetail?: HomeworkDetail | null;
   inlineLoading?: boolean;
   testIDPrefix?: string;
+  cardTourTargetId?: string;
+  markDoneTourTargetId?: string;
 }) {
   const { t } = useTranslation();
   const prefix = props.testIDPrefix ?? "class-homework";
@@ -316,14 +328,14 @@ function HomeworkCard(props: {
     }
   }
 
-  return (
-    <View
-      style={[
-        styles.cardShell,
-        { backgroundColor: tone.background, borderColor: tone.border },
-        done && styles.cardDone,
-      ]}
-    >
+  const cardShellStyle = [
+    styles.cardShell,
+    { backgroundColor: tone.background, borderColor: tone.border },
+    done && styles.cardDone,
+  ];
+
+  const cardContent = (
+    <>
       <TouchableOpacity
         style={styles.cardTapArea}
         onPress={props.onPressDetails}
@@ -404,29 +416,46 @@ function HomeworkCard(props: {
             </Text>
           </TouchableOpacity>
 
-          {props.canToggleDone ? (
-            <TouchableOpacity
-              style={[
-                styles.cardActionButton,
-                styles.cardActionButtonRow,
-                done && styles.cardActionDoneButton,
-              ]}
-              onPress={props.onToggleDone}
-              testID={`${prefix}-toggle-done-${props.item.id}`}
-            >
-              {done ? (
-                <Ionicons name="checkmark-circle" size={14} color="#0F766E" />
-              ) : null}
-              <Text
-                style={[
-                  styles.cardActionText,
-                  done && styles.cardActionDoneText,
-                ]}
-              >
-                {done ? t("homework.status.done") : t("homework.card.markDone")}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
+          {props.canToggleDone
+            ? (() => {
+                const markDoneButton = (
+                  <TouchableOpacity
+                    style={[
+                      styles.cardActionButton,
+                      styles.cardActionButtonRow,
+                      done && styles.cardActionDoneButton,
+                    ]}
+                    onPress={props.onToggleDone}
+                    testID={`${prefix}-toggle-done-${props.item.id}`}
+                  >
+                    {done ? (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={14}
+                        color="#0F766E"
+                      />
+                    ) : null}
+                    <Text
+                      style={[
+                        styles.cardActionText,
+                        done && styles.cardActionDoneText,
+                      ]}
+                    >
+                      {done
+                        ? t("homework.status.done")
+                        : t("homework.card.markDone")}
+                    </Text>
+                  </TouchableOpacity>
+                );
+                return props.markDoneTourTargetId ? (
+                  <OnboardingTarget id={props.markDoneTourTargetId}>
+                    {markDoneButton}
+                  </OnboardingTarget>
+                ) : (
+                  markDoneButton
+                );
+              })()
+            : null}
 
           {props.canManage ? (
             <TouchableOpacity
@@ -564,6 +593,23 @@ function HomeworkCard(props: {
           </View>
         ) : null}
       </View>
+    </>
+  );
+
+  return props.cardTourTargetId ? (
+    <OnboardingTarget
+      id={props.cardTourTargetId}
+      style={cardShellStyle}
+      testID={`${prefix}-card-shell-${props.item.id}`}
+    >
+      {cardContent}
+    </OnboardingTarget>
+  ) : (
+    <View
+      style={cardShellStyle}
+      testID={`${prefix}-card-shell-${props.item.id}`}
+    >
+      {cardContent}
     </View>
   );
 }
@@ -1015,8 +1061,26 @@ export function ClassHomeworkScreen({
 
   const viewType = user ? getViewType(user) : "unknown";
   const canManageAll = viewType === "teacher" || viewType === "school";
+  // Le tour + la modale d'aide sont utiles à l'élève qui consulte ses
+  // propres devoirs comme au parent qui consulte ceux d'un enfant — jamais
+  // aux vues enseignant/école qui gèrent la classe entière.
+  const isTourEligibleViewer = viewType === "student" || viewType === "parent";
   const today = useMemo(() => stripTime(new Date()), []);
   const [tab, setTab] = useState<HomeworkTabKey>("list");
+
+  useOnboardingTourTrigger({
+    tourId: HOMEWORK_TOUR_ID,
+    role: viewType === "parent" ? "parent" : "student",
+    steps: HOMEWORK_TOUR_STEPS,
+  });
+  const homeworkTourActiveTourId = useOnboardingTourStore(
+    (state) => state.activeTourId,
+  );
+  const homeworkTourActiveTargetKey = useOnboardingTourStore((state) =>
+    state.activeTourId ? state.steps[state.stepIndex]?.targetKey : undefined,
+  );
+  const isHomeworkTourActive = homeworkTourActiveTourId === HOMEWORK_TOUR_ID;
+  const [helpVisible, setHelpVisible] = useState(false);
   const [agendaMode, setAgendaMode] = useState<AgendaModeKey>("week");
   const [cursorDate, setCursorDate] = useState(today);
   const [selectedWeekDate, setSelectedWeekDate] = useState(today);
@@ -1169,6 +1233,42 @@ export function ClassHomeworkScreen({
   );
   const hasMoreListItems = listVisibleCount < listItems.length;
 
+  // A student with no upcoming homework would otherwise never see a card to
+  // spotlight during the tour ("List" tab shows the "No homework" empty
+  // state). Show one fake demo card only while the tour is active and the
+  // real list is empty; it disappears as soon as the tour ends.
+  const fallbackHomeworkItem = useMemo<HomeworkRow>(
+    () => ({
+      id: HOMEWORK_TOUR_FALLBACK_ID,
+      classId,
+      title: t("homework.tourFallback.title"),
+      contentHtml: null,
+      expectedAt: toIsoDateString(addDays(today, 1)),
+      createdAt: toIsoDateString(today),
+      updatedAt: toIsoDateString(today),
+      authorUserId: "",
+      authorDisplayName: t("homework.tourFallback.author"),
+      subject: {
+        id: "homework-tour-fallback-subject",
+        name: t("homework.tourFallback.subject"),
+        colorHex: colors.primary,
+      },
+      attachments: [],
+      commentsCount: 0,
+      summary: null,
+      myDoneAt: null,
+    }),
+    [classId, t, today],
+  );
+  const showFallbackHomeworkCard =
+    isTourEligibleViewer &&
+    isHomeworkTourActive &&
+    tab === "list" &&
+    visibleListItems.length === 0;
+  const listTabItems = showFallbackHomeworkCard
+    ? [fallbackHomeworkItem]
+    : visibleListItems;
+
   const monthCells = useMemo(
     () =>
       buildHomeworkMonthCells(
@@ -1313,6 +1413,20 @@ export function ClassHomeworkScreen({
       current === nextCount ? current : nextCount,
     );
   }, [listItems.length]);
+
+  // The card/mark-done tour steps only exist in the "List" tab. If the tabs
+  // step was left on "Agenda" (or the screen mounted there), force "List"
+  // back so those steps' target actually mounts instead of leaving the tour
+  // stuck with no visible overlay.
+  useEffect(() => {
+    if (
+      (homeworkTourActiveTargetKey === HOMEWORK_TOUR_TARGETS.card ||
+        homeworkTourActiveTargetKey === HOMEWORK_TOUR_TARGETS.markDone) &&
+      tab !== "list"
+    ) {
+      setTab("list");
+    }
+  }, [homeworkTourActiveTargetKey, tab]);
 
   function moveCursor(direction: -1 | 1) {
     if (agendaMode === "week") {
@@ -1593,6 +1707,16 @@ export function ClassHomeworkScreen({
             titleTestID="class-homework-header-title"
             subtitleTestID="class-homework-header-subtitle"
             topInset={insets.top}
+            {...(isTourEligibleViewer
+              ? {
+                  helpAction: {
+                    label: t("homework.help.menuLabel"),
+                    onPress: () => setHelpVisible(true),
+                    testID: "class-homework-help-menu-item",
+                  },
+                  menuTourTargetId: HOMEWORK_TOUR_TARGETS.helpToggle,
+                }
+              : {})}
           />
         ) : null}
 
@@ -1600,15 +1724,29 @@ export function ClassHomeworkScreen({
           <LoadingBlock label={t("homework.loading.module")} />
         ) : (
           <View style={styles.tabsSection} testID="class-homework-tabs-section">
-            <UnderlineTabs
-              items={buildHomeworkTabs(t).map((entry) => ({
-                key: entry.key,
-                label: entry.label,
-              }))}
-              activeKey={tab}
-              onSelect={setTab}
-              testIDPrefix="class-homework-tab"
-            />
+            {isTourEligibleViewer ? (
+              <OnboardingTarget id={HOMEWORK_TOUR_TARGETS.tabs}>
+                <UnderlineTabs
+                  items={buildHomeworkTabs(t).map((entry) => ({
+                    key: entry.key,
+                    label: entry.label,
+                  }))}
+                  activeKey={tab}
+                  onSelect={setTab}
+                  testIDPrefix="class-homework-tab"
+                />
+              </OnboardingTarget>
+            ) : (
+              <UnderlineTabs
+                items={buildHomeworkTabs(t).map((entry) => ({
+                  key: entry.key,
+                  label: entry.label,
+                }))}
+                activeKey={tab}
+                onSelect={setTab}
+                testIDPrefix="class-homework-tab"
+              />
+            )}
 
             {tab === "agenda" && (
               <View testID="class-homework-agenda-mode-tabs">
@@ -1673,6 +1811,7 @@ export function ClassHomeworkScreen({
       subtitle,
       insets.top,
       t,
+      viewType,
     ],
   );
 
@@ -2084,43 +2223,62 @@ export function ClassHomeworkScreen({
 
       {tab === "forms" ? null : tab === "list" ? (
         <InfiniteScrollList
-          data={visibleListItems}
+          data={listTabItems}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <HomeworkCard
-              item={item}
-              onPressDetails={() => void openDetail(item)}
-              canManage={canManageAll && item.authorUserId === user?.id}
-              canToggleDone={!canManageAll}
-              onEdit={() => openEditForm(item)}
-              onDelete={() => setDeleteTarget(item)}
-              onToggleComments={() => togglePanel(item, "comments")}
-              onToggleControl={() => openControlModal(item)}
-              onToggleDone={() => void handleCardToggleDone(item)}
-              onAddInlineComment={
-                schoolSlug
-                  ? async (body) => {
-                      await addComment(schoolSlug, classId, item.id, {
-                        body,
-                        studentId: studentIdForContext,
-                      });
-                      showSuccess({
-                        title: t("homework.toast.commentAddedTitle"),
-                        message: t("homework.toast.commentAddedMessage"),
-                      });
-                    }
-                  : undefined
-              }
-              commentsExpanded={expandedPanels[item.id] === "comments"}
-              controlExpanded={false}
-              inlineDetail={details[item.id] ?? null}
-              inlineLoading={
-                isLoadingDetail &&
-                !details[item.id] &&
-                expandedPanels[item.id] !== null
-              }
-            />
-          )}
+          renderItem={({ item, index }) => {
+            const isFallback = item.id === HOMEWORK_TOUR_FALLBACK_ID;
+            const isFirstTourTarget = isTourEligibleViewer && index === 0;
+            return (
+              <HomeworkCard
+                item={item}
+                onPressDetails={() => {
+                  if (isFallback) return;
+                  void openDetail(item);
+                }}
+                canManage={canManageAll && item.authorUserId === user?.id}
+                canToggleDone={!canManageAll}
+                onEdit={() => openEditForm(item)}
+                onDelete={() => setDeleteTarget(item)}
+                onToggleComments={() => {
+                  if (isFallback) return;
+                  togglePanel(item, "comments");
+                }}
+                onToggleControl={() => openControlModal(item)}
+                onToggleDone={() => {
+                  if (isFallback) return;
+                  void handleCardToggleDone(item);
+                }}
+                onAddInlineComment={
+                  schoolSlug && !isFallback
+                    ? async (body) => {
+                        await addComment(schoolSlug, classId, item.id, {
+                          body,
+                          studentId: studentIdForContext,
+                        });
+                        showSuccess({
+                          title: t("homework.toast.commentAddedTitle"),
+                          message: t("homework.toast.commentAddedMessage"),
+                        });
+                      }
+                    : undefined
+                }
+                commentsExpanded={expandedPanels[item.id] === "comments"}
+                controlExpanded={false}
+                inlineDetail={details[item.id] ?? null}
+                inlineLoading={
+                  isLoadingDetail &&
+                  !details[item.id] &&
+                  expandedPanels[item.id] !== null
+                }
+                cardTourTargetId={
+                  isFirstTourTarget ? HOMEWORK_TOUR_TARGETS.card : undefined
+                }
+                markDoneTourTargetId={
+                  isFirstTourTarget ? HOMEWORK_TOUR_TARGETS.markDone : undefined
+                }
+              />
+            );
+          }}
           emptyComponent={
             <EmptyState
               icon="checkmark-done-outline"
@@ -2364,6 +2522,39 @@ export function ClassHomeworkScreen({
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => void handleDeleteHomework()}
       />
+
+      {isTourEligibleViewer ? (
+        <PageHelpModal
+          visible={helpVisible}
+          onClose={() => setHelpVisible(false)}
+          title={
+            tab === "agenda"
+              ? t("homework.help.agenda.title")
+              : t("homework.help.list.title")
+          }
+          sections={[
+            tab === "agenda"
+              ? {
+                  title: t("homework.help.agenda.section1Title"),
+                  body: [t("homework.help.agenda.section1Body")],
+                }
+              : {
+                  title: t("homework.help.list.section1Title"),
+                  body: [t("homework.help.list.section1Body")],
+                },
+            {
+              title: t("homework.help.section2Title"),
+              body: [t("homework.help.section2Body")],
+            },
+            {
+              title: t("homework.help.section3Title"),
+              body: [t("homework.help.section3Body")],
+            },
+          ]}
+          closeLabel={t("homework.help.close")}
+          testID="class-homework-help-modal"
+        />
+      ) : null}
     </KeyboardAvoidingView>
   );
 }

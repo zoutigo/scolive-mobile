@@ -22,6 +22,7 @@ import { z } from "zod";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { OnboardingScrollView } from "../onboarding/OnboardingScrollView";
 import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
 import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import { ConfirmDialog } from "../ConfirmDialog";
@@ -66,7 +67,16 @@ function buildContactSchema(t: (key: string) => string) {
   return z.object({
     email: z.string().email(t("siteContentAdmin.contact.error.email")),
     phone: z.string().min(1, t("siteContentAdmin.contact.error.phone")),
-    address: z.string().min(1, t("siteContentAdmin.contact.error.address")),
+    addressStreet: z
+      .string()
+      .min(1, t("siteContentAdmin.contact.error.addressStreet")),
+    addressDistrict: z.string(),
+    addressCity: z
+      .string()
+      .min(1, t("siteContentAdmin.contact.error.addressCity")),
+    addressCountry: z
+      .string()
+      .min(1, t("siteContentAdmin.contact.error.addressCountry")),
     legalRepresentativeFirstName: z.string(),
     legalRepresentativeLastName: z.string(),
   });
@@ -131,16 +141,15 @@ export function SiteContentAdminScreen() {
         onBack={() => moduleBack(router)}
         topInset={insets.top}
         testID="site-content-admin-header"
-        secondaryAction={{
-          icon: "help-circle-outline",
+        helpAction={{
+          label: t("siteContentAdmin.help.toggle"),
           onPress: () => {
             setHelpVisible(true);
             advanceOnboardingTourTarget(SITE_CONTENT_TOUR_TARGETS.helpToggle);
           },
-          testID: "site-content-admin-help-toggle",
-          accessibilityLabel: t("siteContentAdmin.help.toggle"),
+          testID: "site-content-admin-help-menu-item",
         }}
-        secondaryActionTourTargetId={SITE_CONTENT_TOUR_TARGETS.helpToggle}
+        menuTourTargetId={SITE_CONTENT_TOUR_TARGETS.helpToggle}
       />
 
       {!isPlatformAdmin ? (
@@ -183,12 +192,16 @@ export function SiteContentAdminScreen() {
       <PageHelpModal
         visible={helpVisible}
         onClose={() => setHelpVisible(false)}
-        title={t("siteContentAdmin.help.title")}
-        body={[
-          t("siteContentAdmin.help.body1"),
-          t("siteContentAdmin.help.body2"),
-          t("siteContentAdmin.help.body3"),
-        ]}
+        title={t(`siteContentAdmin.help.${tab}.title`)}
+        sections={(tab === "legal"
+          ? [1, 2, 3]
+          : tab === "contact"
+            ? [1, 2]
+            : [1]
+        ).map((n) => ({
+          title: t(`siteContentAdmin.help.${tab}.section${n}Title`),
+          body: [t(`siteContentAdmin.help.${tab}.section${n}Body`)],
+        }))}
         closeLabel={t("siteContentAdmin.help.close")}
         testID="site-content-admin-help"
       />
@@ -196,7 +209,20 @@ export function SiteContentAdminScreen() {
   );
 }
 
+const EMPTY_CONTACT_FORM: ContactFormValues = {
+  email: "",
+  phone: "",
+  addressStreet: "",
+  addressDistrict: "",
+  addressCity: "",
+  addressCountry: "",
+  legalRepresentativeFirstName: "",
+  legalRepresentativeLastName: "",
+};
+
 function ContactTab({ t }: { t: (key: string) => string }) {
+  const [mode, setMode] = useState<"view" | "edit">("view");
+  const [contact, setContact] = useState<ContactFormValues | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -206,13 +232,7 @@ function ContactTab({ t }: { t: (key: string) => string }) {
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(schema),
     mode: "onChange",
-    defaultValues: {
-      email: "",
-      phone: "",
-      address: "",
-      legalRepresentativeFirstName: "",
-      legalRepresentativeLastName: "",
-    },
+    defaultValues: EMPTY_CONTACT_FORM,
   });
 
   useEffect(() => {
@@ -224,6 +244,7 @@ function ContactTab({ t }: { t: (key: string) => string }) {
     setLoadError(null);
     try {
       const info = await siteContentApi.getAdminContactInfo();
+      setContact(info);
       form.reset(info);
     } catch {
       setLoadError(t("siteContentAdmin.contact.loadError"));
@@ -232,11 +253,27 @@ function ContactTab({ t }: { t: (key: string) => string }) {
     }
   }
 
+  function startEdit() {
+    if (contact) {
+      form.reset(contact);
+    }
+    setMode("edit");
+  }
+
+  function cancelEdit() {
+    if (contact) {
+      form.reset(contact);
+    }
+    setMode("view");
+  }
+
   async function onValid(values: ContactFormValues) {
     setSaving(true);
     try {
       const updated = await siteContentApi.updateContactInfo(values);
+      setContact(updated);
       form.reset(updated);
+      setMode("view");
       showSuccess({
         title: t("siteContentAdmin.contact.save"),
         message: t("siteContentAdmin.contact.saveSuccess"),
@@ -267,6 +304,66 @@ function ContactTab({ t }: { t: (key: string) => string }) {
     );
   }
 
+  if (mode === "view" && contact) {
+    const legalRepresentativeName = [
+      contact.legalRepresentativeFirstName,
+      contact.legalRepresentativeLastName,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const addressLine = [
+      contact.addressStreet,
+      contact.addressDistrict,
+      contact.addressCity,
+      contact.addressCountry,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    return (
+      <ScrollView
+        contentContainerStyle={styles.formScrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.viewCard} testID="site-content-contact-view">
+          <ViewRow
+            label={t("siteContentAdmin.contact.emailLabel")}
+            value={contact.email}
+          />
+          <ViewRow
+            label={t("siteContentAdmin.contact.phoneLabel")}
+            value={contact.phone}
+          />
+          <ViewRow
+            label={t("siteContentAdmin.contact.addressGroupLabel")}
+            value={addressLine || t("siteContentAdmin.contact.notProvided")}
+          />
+          <ViewRow
+            label={t(
+              "siteContentAdmin.contact.legalRepresentativeFirstNameLabel",
+            )}
+            value={
+              legalRepresentativeName ||
+              t("siteContentAdmin.contact.notProvided")
+            }
+          />
+        </View>
+
+        <OnboardingTarget id={SITE_CONTENT_TOUR_TARGETS.contactEdit}>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={startEdit}
+            testID="site-content-contact-edit"
+          >
+            <Text style={styles.primaryBtnLabel}>
+              {t("siteContentAdmin.contact.edit")}
+            </Text>
+          </TouchableOpacity>
+        </OnboardingTarget>
+      </ScrollView>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -291,10 +388,28 @@ function ContactTab({ t }: { t: (key: string) => string }) {
           testID="site-content-contact-phone"
         />
         <Field
-          label={t("siteContentAdmin.contact.addressLabel")}
+          label={t("siteContentAdmin.contact.addressStreetLabel")}
           control={form.control}
-          name="address"
-          testID="site-content-contact-address"
+          name="addressStreet"
+          testID="site-content-contact-address-street"
+        />
+        <Field
+          label={t("siteContentAdmin.contact.addressDistrictLabel")}
+          control={form.control}
+          name="addressDistrict"
+          testID="site-content-contact-address-district"
+        />
+        <Field
+          label={t("siteContentAdmin.contact.addressCityLabel")}
+          control={form.control}
+          name="addressCity"
+          testID="site-content-contact-address-city"
+        />
+        <Field
+          label={t("siteContentAdmin.contact.addressCountryLabel")}
+          control={form.control}
+          name="addressCountry"
+          testID="site-content-contact-address-country"
         />
         <Field
           label={t(
@@ -311,18 +426,38 @@ function ContactTab({ t }: { t: (key: string) => string }) {
           testID="site-content-contact-legal-rep-last-name"
         />
 
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={form.handleSubmit(onValid)}
-          disabled={saving}
-          testID="site-content-contact-submit"
-        >
-          <Text style={styles.primaryBtnLabel}>
-            {t("siteContentAdmin.contact.save")}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.draftActions}>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={form.handleSubmit(onValid)}
+            disabled={saving}
+            testID="site-content-contact-submit"
+          >
+            <Text style={styles.primaryBtnLabel}>
+              {t("siteContentAdmin.contact.save")}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryBtn}
+            onPress={cancelEdit}
+            testID="site-content-contact-cancel"
+          >
+            <Text style={styles.secondaryBtnLabel}>
+              {t("siteContentAdmin.contact.cancel")}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+function ViewRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.viewRow}>
+      <Text style={styles.viewRowLabel}>{label}</Text>
+      <Text style={styles.viewRowValue}>{value}</Text>
+    </View>
   );
 }
 
@@ -338,7 +473,10 @@ function Field({
   name:
     | "email"
     | "phone"
-    | "address"
+    | "addressStreet"
+    | "addressDistrict"
+    | "addressCity"
+    | "addressCountry"
     | "legalRepresentativeFirstName"
     | "legalRepresentativeLastName";
   testID: string;
@@ -514,7 +652,7 @@ function LegalDocumentsTab({
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.formsKeyboardArea}
     >
-      <ScrollView
+      <OnboardingScrollView
         contentContainerStyle={styles.formScrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -712,7 +850,7 @@ function LegalDocumentsTab({
             )}
           </View>
         )}
-      </ScrollView>
+      </OnboardingScrollView>
 
       <ConfirmDialog
         visible={pendingAction !== null}
@@ -1015,6 +1153,24 @@ const styles = StyleSheet.create({
   formsKeyboardArea: { flex: 1 },
   formScrollContent: { padding: 16, gap: 12, paddingBottom: 32 },
   fieldWrap: { gap: 4 },
+  viewCard: {
+    gap: 14,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.warmSurface,
+    borderRadius: 6,
+    padding: 14,
+    marginBottom: 16,
+  },
+  viewRow: { gap: 2 },
+  viewRowLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    color: colors.textSecondary,
+  },
+  viewRowValue: { fontSize: 14, color: colors.textPrimary },
   fieldLabel: {
     fontSize: 13,
     fontWeight: "700",

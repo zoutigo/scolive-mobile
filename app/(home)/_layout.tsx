@@ -1,10 +1,34 @@
-import { Redirect, Stack } from "expo-router";
+import { useRouter, Stack } from "expo-router";
+import { useEffect, useRef } from "react";
 import { useAuthStore } from "../../src/store/auth.store";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { colors } from "../../src/theme";
 
 export default function HomeLayout() {
   const { isAuthenticated, isLoading } = useAuthStore();
+  const router = useRouter();
+  // `router.replace` déclenché une seule fois par transition : le rendre à
+  // chaque re-render (ex. via <Redirect>) entre en conflit avec le swap
+  // HomeScreen/LoginScreen de app/index.tsx sur le même changement de
+  // isAuthenticated (ex. logout depuis un écran imbriqué comme /account) et
+  // provoque un "Maximum update depth exceeded" qui gèle l'app en écran blanc.
+  const hasRedirectedRef = useRef(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      hasRedirectedRef.current = false;
+      return;
+    }
+    if (isLoading || hasRedirectedRef.current) {
+      return;
+    }
+    hasRedirectedRef.current = true;
+    // `dismissAll` dépile jusqu'à l'écran "/" déjà existant dans la pile
+    // plutôt que d'en empiler un second (ce que fait `replace`) : avec deux
+    // instances de l'écran "/" actives, chacune réagissant au même
+    // isAuthenticated, React Navigation entre en boucle de réconciliation.
+    router.dismissAll();
+  }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {
     return (
@@ -15,7 +39,7 @@ export default function HomeLayout() {
   }
 
   if (!isAuthenticated) {
-    return <Redirect href="/" />;
+    return <View style={styles.loader} testID="home-layout-redirecting" />;
   }
 
   return (
@@ -103,7 +127,7 @@ export default function HomeLayout() {
         options={{ animation: "slide_from_right" }}
       />
       <Stack.Screen
-        name="admin-classes/[classId]"
+        name="admin-classes/[classId]/index"
         options={{ animation: "slide_from_right" }}
       />
       <Stack.Screen

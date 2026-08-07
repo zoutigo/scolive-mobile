@@ -21,6 +21,12 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
   usePathname: () => "/",
   useLocalSearchParams: jest.fn(() => ({})),
+  useFocusEffect: (callback: () => void | (() => void)) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      return callback();
+    }, [callback]);
+  },
 }));
 jest.mock("../../src/api/auth.api");
 jest.mock("../../src/api/family.api");
@@ -268,8 +274,9 @@ describe("Flux écrans auth", () => {
 
     render(<HomeScreen />);
 
-    // Appuyer sur le bouton auth (déconnexion) du header accueil
+    // Ouvrir le menu du header accueil, puis son entrée Déconnexion
     fireEvent.press(screen.getByTestId("app-header-auth-btn"));
+    fireEvent.press(screen.getByTestId("app-header-logout-menu-item"));
 
     // Le ConfirmDialog doit apparaître — l'utilisateur n'est pas encore déconnecté
     await waitFor(() => {
@@ -298,6 +305,7 @@ describe("Flux écrans auth", () => {
     render(<HomeScreen />);
 
     fireEvent.press(screen.getByTestId("app-header-auth-btn"));
+    fireEvent.press(screen.getByTestId("app-header-logout-menu-item"));
 
     await waitFor(() => {
       expect(screen.getByTestId("confirm-dialog-card")).toBeOnTheScreen();

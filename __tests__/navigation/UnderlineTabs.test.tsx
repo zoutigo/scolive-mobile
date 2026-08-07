@@ -85,4 +85,38 @@ describe("UnderlineTabs", () => {
     fireEvent.press(screen.getByTestId("national-catalog-tab-help"));
     expect(onSelect).toHaveBeenCalledWith("help");
   });
+
+  it("reste tapable quand tourTargetId est fourni (scroll et fitWidth)", () => {
+    const onSelect = jest.fn();
+    const { rerender } = render(
+      <UnderlineTabs
+        items={[
+          { key: "events", label: "Événements" },
+          { key: "carnets", label: "Carnets" },
+        ]}
+        activeKey="events"
+        onSelect={onSelect}
+        testIDPrefix="discipline-tab"
+        tourTargetId="teacher-discipline-tour-tabs"
+      />,
+    );
+    fireEvent.press(screen.getByTestId("discipline-tab-carnets"));
+    expect(onSelect).toHaveBeenCalledWith("carnets");
+
+    rerender(
+      <UnderlineTabs
+        items={[
+          { key: "overview", label: "Aperçu" },
+          { key: "help", label: "Aide" },
+        ]}
+        activeKey="overview"
+        onSelect={onSelect}
+        testIDPrefix="national-catalog-tab"
+        fitWidth
+        tourTargetId="national-catalog-tour-tabs"
+      />,
+    );
+    fireEvent.press(screen.getByTestId("national-catalog-tab-help"));
+    expect(onSelect).toHaveBeenCalledWith("help");
+  });
 });
