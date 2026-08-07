@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
-  ScrollView,
   Dimensions,
 } from "react-native";
 import * as Application from "expo-application";
@@ -16,6 +15,7 @@ import { colors } from "../../theme";
 import { useFamilyStore } from "../../store/family.store";
 import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { OnboardingScrollView } from "../onboarding/OnboardingScrollView";
 import { PARENT_LANDING_TOUR_TARGETS } from "../home/parent-landing-tour.config";
 import { NavBadge } from "./NavBadge";
 import type {
@@ -363,7 +363,7 @@ export function AppDrawer({
         </View>
 
         {/* Nav — mode accordéon si parent avec enfants, sinon liste simple */}
-        <ScrollView
+        <OnboardingScrollView
           style={styles.navList}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.navContent}
@@ -695,7 +695,7 @@ export function AppDrawer({
                 );
               })
           )}
-        </ScrollView>
+        </OnboardingScrollView>
 
         {/* Version de l'application */}
         <View style={styles.versionRow} testID="drawer-app-version">

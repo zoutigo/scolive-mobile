@@ -22,6 +22,7 @@ import { z } from "zod";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { OnboardingScrollView } from "../onboarding/OnboardingScrollView";
 import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
 import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import { ConfirmDialog } from "../ConfirmDialog";
@@ -647,7 +648,7 @@ function LegalDocumentsTab({
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.formsKeyboardArea}
     >
-      <ScrollView
+      <OnboardingScrollView
         contentContainerStyle={styles.formScrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -845,7 +846,7 @@ function LegalDocumentsTab({
             )}
           </View>
         )}
-      </ScrollView>
+      </OnboardingScrollView>
 
       <ConfirmDialog
         visible={pendingAction !== null}

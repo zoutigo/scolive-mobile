@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -33,6 +32,7 @@ import {
   getCurrentTerm,
 } from "../../utils/notes";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { OnboardingScrollView } from "../onboarding/OnboardingScrollView";
 import { PageHelpModal } from "../help/PageHelpModal";
 import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
 import {
@@ -311,7 +311,7 @@ export function ChildHomeScreen() {
         menuTourTargetId={CHILD_HOME_TOUR_TARGETS.helpToggle}
       />
 
-      <ScrollView
+      <OnboardingScrollView
         style={styles.root}
         contentContainerStyle={[
           styles.content,
@@ -469,7 +469,7 @@ export function ChildHomeScreen() {
             </SectionBlock>
           </>
         )}
-      </ScrollView>
+      </OnboardingScrollView>
 
       <PageHelpModal
         visible={helpVisible}

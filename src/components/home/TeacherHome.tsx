@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Dimensions,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -25,6 +24,7 @@ import { minuteToTimeLabel, parseDateInput } from "../../utils/timetable";
 import { useTranslation } from "../../i18n/useTranslation";
 import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { OnboardingScrollView } from "../onboarding/OnboardingScrollView";
 import { PageHelpModal } from "../help/PageHelpModal";
 import {
   TEACHER_HOME_TOUR_ID,
@@ -218,7 +218,7 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
 
   return (
     <>
-      <ScrollView
+      <OnboardingScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -617,7 +617,7 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
             })
           )}
         </SectionCard>
-      </ScrollView>
+      </OnboardingScrollView>
       <PageHelpModal
         visible={helpVisible}
         onClose={() => setHelpVisible(false)}

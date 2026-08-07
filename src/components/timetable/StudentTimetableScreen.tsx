@@ -20,6 +20,7 @@ import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
 import { useTimetableStore } from "../../store/timetable.store";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { OnboardingScrollView } from "../onboarding/OnboardingScrollView";
 import { PageHelpModal } from "../help/PageHelpModal";
 import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
 import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
@@ -445,7 +446,7 @@ export function StudentTimetableScreen() {
         menuTourTargetId={CHILD_TIMETABLE_TOUR_TARGETS.helpToggle}
       />
 
-      <ScrollView
+      <OnboardingScrollView
         style={styles.root}
         contentContainerStyle={[
           styles.content,
@@ -604,7 +605,7 @@ export function StudentTimetableScreen() {
             />
           </View>
         )}
-      </ScrollView>
+      </OnboardingScrollView>
 
       <PageHelpModal
         visible={helpVisible}
