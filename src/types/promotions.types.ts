@@ -6,6 +6,14 @@ export type TermReportForDecisionRow = {
   decision: PromotionDecision | null;
   nextAcademicLevel: { id: string; label: string } | null;
   nextTrack: { id: string; label: string } | null;
+  termAverages: {
+    TERM_1: number | null;
+    TERM_2: number | null;
+    TERM_3: number | null;
+  };
+  yearlyAverage: number | null;
+  rank: number | null;
+  classSize: number | null;
 };
 
 export type SetTermReportDecisionPayload = {

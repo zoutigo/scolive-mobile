@@ -76,6 +76,10 @@ beforeEach(() => {
       decision: null,
       nextAcademicLevel: null,
       nextTrack: null,
+      termAverages: { TERM_1: null, TERM_2: null, TERM_3: null },
+      yearlyAverage: null,
+      rank: null,
+      classSize: null,
     },
   ]);
   promotionsApiMock.setTermReportDecision.mockResolvedValue({
@@ -84,6 +88,10 @@ beforeEach(() => {
     decision: "PROMOTED",
     nextAcademicLevel: { id: "level-ce2", label: "CE2" },
     nextTrack: null,
+    termAverages: { TERM_1: null, TERM_2: null, TERM_3: null },
+    yearlyAverage: null,
+    rank: null,
+    classSize: null,
   });
   promotionsApiMock.listWaitingEnrollments.mockResolvedValue([
     {

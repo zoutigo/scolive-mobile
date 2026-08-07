@@ -53,6 +53,23 @@ describe("Sélection d'onglet", () => {
   });
 });
 
+describe("Onglet Décision", () => {
+  it("n'affiche pas l'onglet Décision par défaut", () => {
+    renderTabs();
+    expect(screen.queryByTestId("notes-tab-decision")).toBeNull();
+  });
+
+  it("affiche l'onglet Décision quand showDecisionTab est vrai", () => {
+    render(
+      <NotesTabs activeTab="evaluations" onSelect={onSelect} showDecisionTab />,
+    );
+    expect(screen.getByTestId("notes-tab-decision")).toBeTruthy();
+    expect(screen.getByText("Décision")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("notes-tab-decision"));
+    expect(onSelect).toHaveBeenCalledWith("decision");
+  });
+});
+
 describe("tourTargetId", () => {
   it("rend normalement les onglets quand tourTargetId est fourni (sans casser la sélection)", () => {
     render(

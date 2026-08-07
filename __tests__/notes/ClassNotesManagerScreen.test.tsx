@@ -12,11 +12,15 @@ import { useNotesStore } from "../../src/store/notes.store";
 import { teachersApi } from "../../src/api/teachers.api";
 import { notesApi } from "../../src/api/notes.api";
 import { downloadAndOpenAttachment } from "../../src/utils/attachment-download";
+import { promotionsApi } from "../../src/api/promotions.api";
+import { curriculumsApi } from "../../src/api/curriculums.api";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-document-picker", () => ({ getDocumentAsync: jest.fn() }));
 jest.mock("../../src/api/teachers.api");
 jest.mock("../../src/api/notes.api");
+jest.mock("../../src/api/promotions.api");
+jest.mock("../../src/api/curriculums.api");
 jest.mock("../../src/utils/attachment-download");
 const mockDownloadAndOpenAttachment =
   downloadAndOpenAttachment as jest.MockedFunction<
@@ -25,6 +29,8 @@ const mockDownloadAndOpenAttachment =
 
 const mockTeachersApi = teachersApi as jest.Mocked<typeof teachersApi>;
 const mockNotesApi = notesApi as jest.Mocked<typeof notesApi>;
+const mockPromotionsApi = promotionsApi as jest.Mocked<typeof promotionsApi>;
+const mockCurriculumsApi = curriculumsApi as jest.Mocked<typeof curriculumsApi>;
 
 const mockBack = jest.fn();
 let mockSearchParams: Record<string, string> = {
@@ -243,6 +249,56 @@ describe("Rendu général", () => {
     render(<ClassNotesManagerScreen />);
     await flushAsync();
     expect(screen.getByText("Accès non autorisé")).toBeTruthy();
+  });
+});
+
+// ─── Onglet Décision (prof référent) ─────────────────────────────────────────
+
+describe("Onglet Décision — passage en classe supérieure", () => {
+  beforeEach(() => {
+    mockCurriculumsApi.listAcademicLevels.mockResolvedValue([
+      { id: "level-5e", code: "5e", label: "5e" },
+    ] as never);
+    mockPromotionsApi.listTermReportsForDecision.mockResolvedValue([
+      {
+        id: "report-1",
+        student: { id: "stu-1", firstName: "Lisa", lastName: "Ntamack" },
+        decision: null,
+        nextAcademicLevel: null,
+        nextTrack: null,
+        termAverages: { TERM_1: 10, TERM_2: 12, TERM_3: 14 },
+        yearlyAverage: 12,
+        rank: 1,
+        classSize: 2,
+      },
+    ] as never);
+  });
+
+  it("n'affiche pas l'onglet Décision quand l'enseignant n'est pas référent de la classe", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+    expect(screen.queryByTestId("notes-tab-decision")).toBeNull();
+  });
+
+  it("affiche l'onglet Décision et la synthèse annuelle quand l'enseignant est référent", async () => {
+    setupStore({
+      teacherContext: {
+        ...TEACHER_CONTEXT,
+        class: { ...TEACHER_CONTEXT.class, isReferentTeacher: true },
+      },
+    });
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("notes-tab-decision"));
+
+    expect(
+      await screen.findByTestId("decision-card-report-1"),
+    ).toBeOnTheScreen();
+    expect(mockPromotionsApi.listTermReportsForDecision).toHaveBeenCalledWith(
+      "college-vogt",
+      "class-1",
+    );
   });
 });
 

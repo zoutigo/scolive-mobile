@@ -79,6 +79,7 @@ import {
   type SchoolPeriodReportsHandle,
   type SchoolWideReportsStudent,
 } from "./SchoolPeriodReportsTab";
+import { TeacherPromotionDecisionTab } from "./TeacherPromotionDecisionTab";
 import { EvaluationForm } from "./EvaluationForm";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import {
@@ -886,6 +887,9 @@ export function ClassNotesManagerScreen({
         onSelect={handleTabSelect}
         tourTargetId={
           isTeacherView ? TEACHER_NOTES_TOUR_TARGETS.tabs : undefined
+        }
+        showDecisionTab={
+          !isAdminBrowsing && !!teacherContext?.class.isReferentTeacher
         }
       />
 
@@ -1998,6 +2002,15 @@ export function ClassNotesManagerScreen({
         </View>
       ) : null}
 
+      {/* ── Tab Décision : passage en classe supérieure (prof référent) ── */}
+      {tab === "decision" && teacherContext?.class.isReferentTeacher ? (
+        <TeacherPromotionDecisionTab
+          schoolSlug={schoolSlug ?? ""}
+          classId={teacherContext.class.id}
+          bottomInset={insets.bottom}
+        />
+      ) : null}
+
       {isTeacherView ? (
         <PageHelpModal
           visible={helpVisible}
@@ -2007,7 +2020,9 @@ export function ClassNotesManagerScreen({
               ? t("notes.manager.help.notes.title")
               : tab === "reports"
                 ? t("notes.manager.help.reports.title")
-                : t("notes.manager.help.evaluations.title")
+                : tab === "decision"
+                  ? t("notes.manager.help.decision.title")
+                  : t("notes.manager.help.evaluations.title")
           }
           sections={
             tab === "notes"
@@ -2024,20 +2039,39 @@ export function ClassNotesManagerScreen({
                       body: [t("notes.manager.help.reports.section1Body")],
                     },
                   ]
-                : [
-                    {
-                      title: t("notes.manager.help.evaluations.section1Title"),
-                      body: [t("notes.manager.help.evaluations.section1Body")],
-                    },
-                    {
-                      title: t("notes.manager.help.evaluations.section2Title"),
-                      body: [t("notes.manager.help.evaluations.section2Body")],
-                    },
-                    {
-                      title: t("notes.manager.help.evaluations.section3Title"),
-                      body: [t("notes.manager.help.evaluations.section3Body")],
-                    },
-                  ]
+                : tab === "decision"
+                  ? [
+                      {
+                        title: t("notes.manager.help.decision.section1Title"),
+                        body: [t("notes.manager.help.decision.section1Body")],
+                      },
+                    ]
+                  : [
+                      {
+                        title: t(
+                          "notes.manager.help.evaluations.section1Title",
+                        ),
+                        body: [
+                          t("notes.manager.help.evaluations.section1Body"),
+                        ],
+                      },
+                      {
+                        title: t(
+                          "notes.manager.help.evaluations.section2Title",
+                        ),
+                        body: [
+                          t("notes.manager.help.evaluations.section2Body"),
+                        ],
+                      },
+                      {
+                        title: t(
+                          "notes.manager.help.evaluations.section3Title",
+                        ),
+                        body: [
+                          t("notes.manager.help.evaluations.section3Body"),
+                        ],
+                      },
+                    ]
           }
           closeLabel={t("notes.manager.help.close")}
           testID="class-notes-help-modal"

@@ -2406,6 +2406,22 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.tabs.notes": "Notes",
     "notes.tabs.council": "Conseil classe",
     "notes.tabs.reports": "Bulletins",
+    "notes.tabs.decision": "Décision",
+
+    "notes.decision.intro":
+      "Synthèse annuelle et décision de passage, réservée au professeur référent de la classe.",
+    "notes.decision.synthesis.term1": "T1",
+    "notes.decision.synthesis.term2": "T2",
+    "notes.decision.synthesis.term3": "T3",
+    "notes.decision.synthesis.yearly": "Moy. annuelle",
+    "notes.decision.synthesis.rankPrefix": "Rang",
+    "notes.decision.synthesis.rankSeparator": "/",
+    "notes.decision.empty.title": "Aucun bulletin",
+    "notes.decision.empty.message":
+      "Aucun bulletin du 3ème trimestre n'est disponible pour cette classe.",
+    "notes.decision.errors.load": "Impossible de charger les décisions",
+    "notes.decision.errors.save": "Impossible d'enregistrer la décision",
+    "notes.decision.success.saved": "Décision enregistrée",
 
     "notes.classes.title": "Cahier de notes",
     "notes.classes.filterTitle": "Filtrer par année",
@@ -2677,10 +2693,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.help.reports.section1Title": "Rédiger les appréciations",
     "notes.manager.help.reports.section1Body":
       "Choisissez la séquence puis touchez un élève pour rédiger ou modifier son appréciation de conseil de classe.",
+    "notes.manager.help.decision.title": "Comment utiliser l'onglet Décision",
+    "notes.manager.help.decision.section1Title": "Statuer sur le passage",
+    "notes.manager.help.decision.section1Body":
+      "Consultez la moyenne de chaque trimestre, la moyenne annuelle et le rang de l'élève, puis choisissez Passage, Redoublement ou Départ et enregistrez.",
 
-    "onboardingTour.teacherNotes.step1Title": "Trois onglets",
+    "onboardingTour.teacherNotes.step1Title": "Les onglets",
     "onboardingTour.teacherNotes.step1Body":
-      "Passez des évaluations aux notes par élève, puis aux bulletins de conseil de classe.",
+      "Passez des évaluations aux notes par élève, puis aux bulletins de conseil de classe. Si vous êtes professeur référent de la classe, un onglet Décision apparaît en plus pour statuer sur le passage.",
     "onboardingTour.teacherNotes.step2Title": "Rechercher et filtrer",
     "onboardingTour.teacherNotes.step2Body":
       "Touchez l'icône filtre pour affiner la liste des évaluations par type, séquence ou statut de saisie.",
@@ -5968,6 +5988,22 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.tabs.notes": "Notes",
     "notes.tabs.council": "Class council",
     "notes.tabs.reports": "Reports",
+    "notes.tabs.decision": "Decision",
+
+    "notes.decision.intro":
+      "Yearly synthesis and promotion decision, restricted to the class's referent teacher.",
+    "notes.decision.synthesis.term1": "T1",
+    "notes.decision.synthesis.term2": "T2",
+    "notes.decision.synthesis.term3": "T3",
+    "notes.decision.synthesis.yearly": "Yearly avg.",
+    "notes.decision.synthesis.rankPrefix": "Rank",
+    "notes.decision.synthesis.rankSeparator": "/",
+    "notes.decision.empty.title": "No report",
+    "notes.decision.empty.message":
+      "No term 3 report is available for this class yet.",
+    "notes.decision.errors.load": "Unable to load decisions",
+    "notes.decision.errors.save": "Unable to save decision",
+    "notes.decision.success.saved": "Decision saved",
 
     "notes.classes.title": "Grade book",
     "notes.classes.filterTitle": "Filter by school year",
@@ -6234,10 +6270,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.help.reports.section1Title": "Write assessments",
     "notes.manager.help.reports.section1Body":
       "Choose the sequence then tap a student to write or edit their class-council assessment.",
+    "notes.manager.help.decision.title": "How to use the Decision tab",
+    "notes.manager.help.decision.section1Title": "Decide on promotion",
+    "notes.manager.help.decision.section1Body":
+      "Review each term average, the yearly average and the student's rank, then choose Promoted, Repeated or Left and save.",
 
-    "onboardingTour.teacherNotes.step1Title": "Three tabs",
+    "onboardingTour.teacherNotes.step1Title": "The tabs",
     "onboardingTour.teacherNotes.step1Body":
-      "Switch from evaluations to per-student scores, then to class-council reports.",
+      "Switch from evaluations to per-student scores, then to class-council reports. If you're the class's referent teacher, an extra Decision tab appears to decide on promotion.",
     "onboardingTour.teacherNotes.step2Title": "Search and filter",
     "onboardingTour.teacherNotes.step2Body":
       "Tap the filter icon to narrow down the evaluation list by type, sequence or entry status.",
