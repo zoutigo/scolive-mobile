@@ -193,7 +193,8 @@ describe("ClassLifeFeedScreen", () => {
 
     await waitFor(() => expect(api.list).toHaveBeenCalled());
 
-    fireEvent.press(screen.getByTestId("child-class-feed-help-toggle"));
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("child-class-feed-help-menu-item"));
 
     expect(screen.getByTestId("child-class-feed-help-title")).toBeTruthy();
   });
@@ -454,7 +455,8 @@ describe("ClassLifeFeedScreen — tour d'aide guidée sur les filtres", () => {
       FEED_FILTERS_TOUR_TARGETS.helpToggle,
     );
 
-    fireEvent.press(screen.getByTestId("child-class-feed-help-toggle"));
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("child-class-feed-help-menu-item"));
 
     expect(screen.getByTestId("child-class-feed-help-title")).toBeTruthy();
   });

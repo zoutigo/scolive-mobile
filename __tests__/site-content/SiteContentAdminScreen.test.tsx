@@ -340,7 +340,8 @@ describe("SiteContentAdminScreen", () => {
     await screen.findByTestId("site-content-contact-view");
     expect(screen.queryByTestId("site-content-admin-help-title")).toBeNull();
 
-    fireEvent.press(screen.getByTestId("site-content-admin-help-toggle"));
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("site-content-admin-help-menu-item"));
     expect(
       await screen.findByTestId("site-content-admin-help-title"),
     ).toHaveTextContent("Contenu du site");

@@ -140,16 +140,15 @@ export function SiteContentAdminScreen() {
         onBack={() => moduleBack(router)}
         topInset={insets.top}
         testID="site-content-admin-header"
-        secondaryAction={{
-          icon: "help-circle-outline",
+        helpAction={{
+          label: t("siteContentAdmin.help.toggle"),
           onPress: () => {
             setHelpVisible(true);
             advanceOnboardingTourTarget(SITE_CONTENT_TOUR_TARGETS.helpToggle);
           },
-          testID: "site-content-admin-help-toggle",
-          accessibilityLabel: t("siteContentAdmin.help.toggle"),
+          testID: "site-content-admin-help-menu-item",
         }}
-        secondaryActionTourTargetId={SITE_CONTENT_TOUR_TARGETS.helpToggle}
+        menuTourTargetId={SITE_CONTENT_TOUR_TARGETS.helpToggle}
       />
 
       {!isPlatformAdmin ? (

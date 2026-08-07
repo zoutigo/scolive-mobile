@@ -178,18 +178,17 @@ export function ClassLifeFeedScreen() {
             titleTestID="child-class-feed-header-title"
             subtitleTestID="child-class-feed-header-subtitle"
             topInset={insets.top}
-            secondaryAction={{
-              icon: "help-circle-outline",
+            helpAction={{
+              label: t("feed.classLife.help.menuLabel"),
               onPress: () => {
                 openHelp();
                 advanceOnboardingTourTarget(
                   FEED_FILTERS_TOUR_TARGETS.helpToggle,
                 );
               },
-              testID: "child-class-feed-help-toggle",
-              accessibilityLabel: t("feed.help.toggle"),
+              testID: "child-class-feed-help-menu-item",
             }}
-            secondaryActionTourTargetId={FEED_FILTERS_TOUR_TARGETS.helpToggle}
+            menuTourTargetId={FEED_FILTERS_TOUR_TARGETS.helpToggle}
           />
         </View>
       )}
