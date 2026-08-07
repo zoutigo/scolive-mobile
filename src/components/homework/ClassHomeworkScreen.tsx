@@ -2527,12 +2527,21 @@ export function ClassHomeworkScreen({
         <PageHelpModal
           visible={helpVisible}
           onClose={() => setHelpVisible(false)}
-          title={t("homework.help.title")}
+          title={
+            tab === "agenda"
+              ? t("homework.help.agenda.title")
+              : t("homework.help.list.title")
+          }
           sections={[
-            {
-              title: t("homework.help.section1Title"),
-              body: [t("homework.help.section1Body")],
-            },
+            tab === "agenda"
+              ? {
+                  title: t("homework.help.agenda.section1Title"),
+                  body: [t("homework.help.agenda.section1Body")],
+                }
+              : {
+                  title: t("homework.help.list.section1Title"),
+                  body: [t("homework.help.list.section1Body")],
+                },
             {
               title: t("homework.help.section2Title"),
               body: [t("homework.help.section2Body")],

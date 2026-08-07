@@ -663,21 +663,30 @@ export function StudentNotesScreen() {
         <PageHelpModal
           visible={helpVisible}
           onClose={() => setHelpVisible(false)}
-          title={t("notes.child.help.title")}
-          sections={[
-            {
-              title: t("notes.child.help.section1Title"),
-              body: [t("notes.child.help.section1Body")],
-            },
-            {
-              title: t("notes.child.help.section2Title"),
-              body: [t("notes.child.help.section2Body")],
-            },
-            {
-              title: t("notes.child.help.section3Title"),
-              body: [t("notes.child.help.section3Body")],
-            },
-          ]}
+          title={
+            childTab === "reports"
+              ? t("notes.child.help.reports.title")
+              : t("notes.child.help.notes.title")
+          }
+          sections={
+            childTab === "reports"
+              ? [
+                  {
+                    title: t("notes.child.help.reports.section1Title"),
+                    body: [t("notes.child.help.reports.section1Body")],
+                  },
+                ]
+              : [
+                  {
+                    title: t("notes.child.help.notes.section1Title"),
+                    body: [t("notes.child.help.notes.section1Body")],
+                  },
+                  {
+                    title: t("notes.child.help.notes.section2Title"),
+                    body: [t("notes.child.help.notes.section2Body")],
+                  },
+                ]
+          }
           closeLabel={t("notes.child.help.close")}
           testID="child-notes-help-modal"
         />

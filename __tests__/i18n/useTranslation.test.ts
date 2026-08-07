@@ -148,12 +148,18 @@ describe("onboardingTour.* translations", () => {
       "onboardingTour.vieScolaire.step3Title",
       "onboardingTour.vieScolaire.step3Body",
       "discipline.vieScolaire.help.menuLabel",
-      "discipline.vieScolaire.help.title",
       "discipline.vieScolaire.help.close",
-      "discipline.vieScolaire.help.section1Title",
-      "discipline.vieScolaire.help.section1Body",
-      "discipline.vieScolaire.help.section2Title",
-      "discipline.vieScolaire.help.section2Body",
+      "discipline.vieScolaire.help.synthese.title",
+      "discipline.vieScolaire.help.synthese.section1Title",
+      "discipline.vieScolaire.help.synthese.section1Body",
+      "discipline.vieScolaire.help.synthese.section2Title",
+      "discipline.vieScolaire.help.synthese.section2Body",
+      "discipline.vieScolaire.help.absences.title",
+      "discipline.vieScolaire.help.absences.section1Title",
+      "discipline.vieScolaire.help.absences.section1Body",
+      "discipline.vieScolaire.help.sanctions.title",
+      "discipline.vieScolaire.help.sanctions.section1Title",
+      "discipline.vieScolaire.help.sanctions.section1Body",
     ];
 
     for (const key of requiredKeys) {
@@ -286,6 +292,14 @@ describe("onboardingTour.* translations", () => {
       "feed.classLife.help.section2Body",
       "feed.classLife.help.section3Title",
       "feed.classLife.help.section3Body",
+      "feed.classLife.help.section4Title",
+      "feed.classLife.help.section4Body",
+      "feed.classLife.help.section5Title",
+      "feed.classLife.help.section5Body",
+      "feed.classLife.help.section6Title",
+      "feed.classLife.help.section6Body",
+      "feed.classLife.help.section7Title",
+      "feed.classLife.help.section7Body",
     ];
 
     for (const key of requiredKeys) {
@@ -308,6 +322,12 @@ describe("onboardingTour.* translations", () => {
       "home.teacher.help.section1Body",
       "home.teacher.help.section2Title",
       "home.teacher.help.section2Body",
+      "home.teacher.help.section3Title",
+      "home.teacher.help.section3Body",
+      "home.teacher.help.section4Title",
+      "home.teacher.help.section4Body",
+      "home.teacher.help.section5Title",
+      "home.teacher.help.section5Body",
       "home.teacher.help.close",
     ];
 
@@ -321,9 +341,14 @@ describe("onboardingTour.* translations", () => {
     const requiredKeys = [
       "home.parent.help.toggle",
       "home.parent.help.title",
-      "home.parent.help.body1",
-      "home.parent.help.body2",
-      "home.parent.help.body3",
+      "home.parent.help.section1Title",
+      "home.parent.help.section1Body",
+      "home.parent.help.section2Title",
+      "home.parent.help.section2Body",
+      "home.parent.help.section3Title",
+      "home.parent.help.section3Body",
+      "home.parent.help.section4Title",
+      "home.parent.help.section4Body",
       "home.parent.help.close",
     ];
 

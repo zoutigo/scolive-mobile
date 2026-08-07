@@ -688,14 +688,26 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.header.student": "Élève",
 
     "discipline.vieScolaire.help.menuLabel": "Aide",
-    "discipline.vieScolaire.help.title": "Vie scolaire",
     "discipline.vieScolaire.help.close": "Fermer",
-    "discipline.vieScolaire.help.section1Title": "Trois onglets",
-    "discipline.vieScolaire.help.section1Body":
-      "« Synthèse » résume vos absences, retards, sanctions et punitions de l'année. « Absences » liste vos absences et retards. « Sanctions » liste vos sanctions et punitions.",
-    "discipline.vieScolaire.help.section2Title": "Filtrer par indicateur",
-    "discipline.vieScolaire.help.section2Body":
-      "Dans l'onglet Synthèse, touchez une carte (absences, retards, sanctions, punitions) pour n'afficher que les événements de ce type. Touchez « Tout voir » pour revenir à la liste complète.",
+    "discipline.vieScolaire.help.synthese.title": "Vie scolaire — Synthèse",
+    "discipline.vieScolaire.help.synthese.section1Title":
+      "Les compteurs de l'année",
+    "discipline.vieScolaire.help.synthese.section1Body":
+      "Les cartes en haut de l'écran totalisent, depuis le début de l'année scolaire, le nombre d'absences, de retards, de sanctions et de punitions. Ces chiffres se mettent à jour automatiquement dès qu'un nouvel événement est enregistré par l'établissement — vous n'avez rien à faire pour les actualiser.",
+    "discipline.vieScolaire.help.synthese.section2Title":
+      "Filtrer les événements récents",
+    "discipline.vieScolaire.help.synthese.section2Body":
+      "Touchez une carte (absences, retards, sanctions ou punitions) pour n'afficher, dans la liste « Événements récents » juste en dessous, que les événements de ce type — pratique pour vérifier rapidement, par exemple, si un retard signalé oralement a bien été enregistré. Touchez à nouveau la même carte (ou « Tout voir ») pour revenir à la liste complète sans filtre.",
+    "discipline.vieScolaire.help.absences.title": "Vie scolaire — Absences",
+    "discipline.vieScolaire.help.absences.section1Title":
+      "L'historique complet des absences et retards",
+    "discipline.vieScolaire.help.absences.section1Body":
+      "Cet onglet liste, du plus récent au plus ancien, chaque absence et chaque retard enregistrés par l'établissement, avec leur date et leur motif si l'établissement en a précisé un. Cette liste est en lecture seule : elle reflète ce que l'établissement a saisi, elle ne peut pas être modifiée depuis l'application.",
+    "discipline.vieScolaire.help.sanctions.title": "Vie scolaire — Sanctions",
+    "discipline.vieScolaire.help.sanctions.section1Title":
+      "L'historique complet des sanctions et punitions",
+    "discipline.vieScolaire.help.sanctions.section1Body":
+      "Cet onglet liste, du plus récent au plus ancien, chaque sanction et chaque punition enregistrées par l'établissement, avec leur date et leur motif. Comme l'onglet Absences, cette liste est en lecture seule et reflète uniquement ce que l'établissement a saisi.",
 
     "discipline.fab.addEvent": "Ajouter un événement de discipline",
 
@@ -811,17 +823,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.tourFallback.author": "Votre enseignant",
 
     "homework.help.menuLabel": "Aide",
-    "homework.help.title": "Comprendre vos devoirs",
     "homework.help.close": "Fermer",
-    "homework.help.section1Title": "Changer de vue",
-    "homework.help.section1Body":
-      "« Liste » affiche vos prochains devoirs les uns après les autres. « Agenda » les organise par semaine ou par mois, avec un point sur chaque jour ayant un devoir.",
+    "homework.help.list.title": "Devoirs — Liste",
+    "homework.help.list.section1Title": "La vue Liste",
+    "homework.help.list.section1Body":
+      "Cette vue affiche vos prochains devoirs les uns après les autres, du plus proche au plus lointain dans le temps. Touchez « Agenda » en haut de l'écran pour les voir organisés par semaine ou par mois à la place.",
+    "homework.help.agenda.title": "Devoirs — Agenda",
+    "homework.help.agenda.section1Title": "La vue Agenda",
+    "homework.help.agenda.section1Body":
+      "Cette vue organise vos devoirs par semaine ou par mois : un point apparaît sous chaque jour qui contient au moins un devoir. Touchez un jour marqué pour afficher les devoirs de ce jour-là. Touchez « Liste » en haut de l'écran pour revenir à l'ordre chronologique simple.",
     "homework.help.section2Title": "La carte d'un devoir",
     "homework.help.section2Body":
-      "Touchez une carte pour voir la consigne complète et les pièces jointes. L'icône bulle affiche et permet d'ajouter des commentaires.",
+      "Chaque carte affiche la matière, le titre du devoir et sa date d'échéance. Touchez une carte pour voir la consigne complète et les pièces jointes éventuelles. L'icône bulle affiche les commentaires déjà postés et permet d'en ajouter un nouveau, visible par l'enseignant et les autres élèves de la classe.",
     "homework.help.section3Title": "Marquer comme fait",
     "homework.help.section3Body":
-      "Une fois le devoir terminé, touchez la pastille « Marquer fait » pour le signaler à votre enseignant. Vous pouvez la retoucher pour l'annuler.",
+      "Une fois le devoir terminé, touchez la pastille « Marquer fait » pour le signaler à votre enseignant : le devoir reste visible mais apparaît comme traité. Vous pouvez retoucher la même pastille pour annuler ce marquage si vous vous êtes trompé.",
 
     "homework.form.validation.subjectRequired": "La matière est obligatoire.",
     "homework.form.validation.titleRequired": "Le titre est obligatoire.",
@@ -2337,23 +2353,29 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.classLife.studentFallback": "Élève",
     "feed.classLife.classWithId": "Classe {classId}",
     "feed.classLife.classActive": "Classe active",
-    "feed.classLife.help.title": "Rechercher et filtrer",
-    "feed.classLife.help.body1":
-      "Utilisez la barre de recherche pour retrouver une publication par mot-clé.",
-    "feed.classLife.help.body2":
-      "Le bouton filtre à droite ouvre un panneau où vous pouvez combiner plusieurs types de publication (à la une, sondages) et n'afficher que vos propres publications.",
-    "feed.classLife.help.body3":
-      "Une fois votre sélection faite, validez avec Appliquer pour mettre à jour la liste.",
+    "feed.classLife.help.title": "Vie de classe",
     "feed.classLife.help.menuLabel": "Aide",
-    "feed.classLife.help.section1Title": "Rechercher une publication",
+    "feed.classLife.help.section1Title": "À quoi sert ce fil",
     "feed.classLife.help.section1Body":
-      "Utilisez la barre de recherche pour retrouver une publication par mot-clé.",
-    "feed.classLife.help.section2Title": "Filtrer par type",
+      "Ce fil regroupe toutes les publications de la classe (annonces, messages, sondages) dans l'ordre chronologique, les plus récentes en premier. Il sert de mémoire commune : plutôt que de disperser l'information dans des messages séparés, tout ce qui concerne la classe reste consultable à un seul endroit, y compris après plusieurs jours.",
+    "feed.classLife.help.section2Title": "Rechercher une publication",
     "feed.classLife.help.section2Body":
-      "Le bouton filtre à droite ouvre un panneau où vous pouvez combiner plusieurs types de publication (à la une, sondages) et n'afficher que vos propres publications.",
-    "feed.classLife.help.section3Title": "Appliquer les filtres",
+      "Utilisez la barre de recherche pour retrouver une publication par mot-clé (dans son titre ou son texte). C'est utile dès que le fil contient plusieurs semaines d'historique et que vous cherchez une information précise (ex. une date de sortie scolaire) sans faire défiler toute la liste.",
+    "feed.classLife.help.section3Title": "Filtrer par type et par auteur",
     "feed.classLife.help.section3Body":
-      "Une fois votre sélection faite, validez avec Appliquer pour mettre à jour la liste.",
+      "Le bouton filtre (icône entonnoir) ouvre un panneau où vous pouvez combiner plusieurs types de publication (« à la une », sondages) et n'afficher que vos propres publications. Utile pour se concentrer sur un seul sujet, par exemple ne voir que les sondages en cours. Une fois votre sélection faite, validez avec « Appliquer » pour mettre à jour la liste ; le bouton filtre reste teinté tant qu'un filtre est actif, pour vous rappeler que la liste est restreinte.",
+    "feed.classLife.help.section4Title": "Types de publications",
+    "feed.classLife.help.section4Body":
+      "Une publication marquée d'une étoile (icône scintillante) est « à la une » : mise en avant par l'auteur car jugée particulièrement importante, elle reste visible même après avoir été dépassée par des publications plus récentes. Un sondage affiche une question et des options à choix : touchez une option pour voter, le résultat (nombre de voix par option) apparaît immédiatement après votre vote, qui n'est pas modifiable ensuite.",
+    "feed.classLife.help.section5Title": "Réagir à une publication",
+    "feed.classLife.help.section5Body":
+      "Le cœur ajoute ou retire un « j'aime » et affiche le nombre total de personnes ayant aimé la publication — un signal rapide d'approbation sans écrire de message. La bulle de commentaires affiche le nombre de réponses déjà postées et déplie la liste des commentaires en la touchant. Le bouton « Réagir » ouvre un champ de texte avec des émojis rapides à ajouter d'un tap : écrivez votre réponse (ou insérez un émoji) puis validez avec « Envoyer » pour publier votre commentaire, visible par toute la classe.",
+    "feed.classLife.help.section6Title": "Pièces jointes et images",
+    "feed.classLife.help.section6Body":
+      "Une publication peut contenir des images insérées directement dans le texte (touchez-les pour les afficher en plein écran) et des fichiers joints (documents, PDF...) listés sous le texte avec leur nom et leur taille : touchez un fichier pour l'ouvrir ou le télécharger.",
+    "feed.classLife.help.section7Title": "Publier et gérer vos publications",
+    "feed.classLife.help.section7Body":
+      "Le bouton rond en bas de l'écran ouvre le formulaire de publication : rédigez un texte, ajoutez éventuellement des images ou pièces jointes, ou créez un sondage. Vous pouvez supprimer une publication que vous avez vous-même créée grâce à l'icône corbeille qui apparaît sur celle-ci ; les publications des autres membres de la classe ne peuvent pas être supprimées depuis cet écran.",
 
     "feed.page.title": "Fil d'actualité",
     "feed.page.endOfList": "Vous avez atteint la fin du fil",
@@ -2672,17 +2694,19 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.child.title": "Évaluations et moyennes",
     "notes.child.subtitle.student": "Élève",
     "notes.child.help.menuLabel": "Aide",
-    "notes.child.help.title": "Notes",
     "notes.child.help.close": "Fermer",
-    "notes.child.help.section1Title": "Deux onglets",
-    "notes.child.help.section1Body":
-      "L'onglet Notes affiche les évaluations et moyennes du trimestre en cours. L'onglet Bulletins affiche les bulletins publiés, trimestre par trimestre, avec l'appréciation de chaque matière.",
-    "notes.child.help.section2Title": "Filtrer les résultats",
-    "notes.child.help.section2Body":
-      "Le bouton filtre change le trimestre consulté, la vue (évaluations, moyennes ou graphiques) et, si plusieurs séquences existent, la séquence affichée.",
-    "notes.child.help.section3Title": "Trois façons de lire les résultats",
-    "notes.child.help.section3Body":
-      "La vue Évaluations liste chaque note obtenue. La vue Moyennes compare la moyenne de votre enfant à celle de la classe. La vue Graphiques affiche un comparatif et un radar par matière sur l'année. Touchez une évaluation ou une moyenne pour voir son détail.",
+    "notes.child.help.notes.title": "Notes — Évaluations et moyennes",
+    "notes.child.help.notes.section1Title": "Filtrer les résultats",
+    "notes.child.help.notes.section1Body":
+      "Le bouton filtre change le trimestre consulté, la vue (évaluations, moyennes ou graphiques) et, si plusieurs séquences existent, la séquence affichée. Ces réglages s'appliquent immédiatement à la liste ci-dessous.",
+    "notes.child.help.notes.section2Title":
+      "Trois façons de lire les résultats",
+    "notes.child.help.notes.section2Body":
+      "La vue Évaluations liste chaque note obtenue, matière par matière. La vue Moyennes compare la moyenne de votre enfant à celle de la classe pour repérer rapidement un écart. La vue Graphiques affiche un comparatif et un radar par matière sur l'année, utile pour visualiser une évolution ou un point faible récurrent. Touchez une évaluation ou une moyenne pour voir son détail (barème, coefficient, appréciation de l'enseignant).",
+    "notes.child.help.reports.title": "Notes — Bulletins",
+    "notes.child.help.reports.section1Title": "Consulter les bulletins",
+    "notes.child.help.reports.section1Body":
+      "Cet onglet liste les bulletins déjà publiés par l'établissement, un par trimestre. Touchez un bulletin pour l'ouvrir : il détaille, matière par matière, la moyenne obtenue et l'appréciation rédigée par l'enseignant, ainsi qu'une appréciation générale du conseil de classe si elle a été renseignée. Un bulletin non encore publié par l'établissement n'apparaît pas dans cette liste.",
     "onboardingTour.childNotes.tabsTitle": "Deux onglets",
     "onboardingTour.childNotes.tabsBody":
       "Notes affiche les évaluations et moyennes du trimestre en cours. Bulletins affiche les bulletins déjà publiés.",
@@ -2886,22 +2910,37 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Les informations de l'établissement apparaîtront ici",
     "home.parent.help.toggle": "Aide sur cette page",
     "home.parent.help.title": "Votre espace parent",
-    "home.parent.help.body1":
-      "Cette page regroupe l'essentiel : vos enfants, vos accès rapides (fil d'actualité, situation financière, messagerie, documents) et les dernières actualités de l'école.",
-    "home.parent.help.body2":
-      "Pour tout le reste — messagerie, espace d'un enfant, paramètres du compte — touchez l'icône Menu en bas de l'écran : elle ouvre le menu de navigation qui donne accès à toutes les rubriques.",
-    "home.parent.help.body3":
-      "Vous pouvez revoir le parcours de découverte du menu à tout moment en touchant à nouveau cette icône d'aide.",
     "home.parent.help.close": "Fermer",
+    "home.parent.help.section1Title": "Vos enfants",
+    "home.parent.help.section1Body":
+      "Chaque enfant scolarisé sous votre compte apparaît sous forme de carte, avec son nom et sa classe. Le badge à côté du titre indique le nombre total d'enfants rattachés à votre compte. Touchez la carte d'un enfant pour ouvrir son espace personnel (emploi du temps, notes, devoirs, vie scolaire, fil de classe...).",
+    "home.parent.help.section2Title": "Accès rapides",
+    "home.parent.help.section2Body":
+      "Ces quatre raccourcis mènent directement aux rubriques les plus consultées, sans passer par le menu de navigation : « Fil d'actualité » (publications de l'école et des classes), « Finances » (frais de scolarité et paiements), « Messagerie » (échanges avec l'établissement — un badge rouge indique le nombre de messages non lus) et « Documents » (fichiers partagés par l'école).",
+    "home.parent.help.section3Title": "Actualités de l'école",
+    "home.parent.help.section3Body":
+      "Les publications les plus récentes destinées à l'ensemble de l'école s'affichent ici en aperçu. Touchez « Voir tout » pour ouvrir le fil complet et consulter l'historique.",
+    "home.parent.help.section4Title": "Retrouver toutes les rubriques",
+    "home.parent.help.section4Body":
+      "Cette page ne montre que l'essentiel. Pour tout le reste (paramètres du compte, autres modules...), touchez l'icône Menu dans la barre du bas : elle ouvre la navigation complète vers toutes les rubriques disponibles pour votre compte.",
 
     "home.teacher.help.toggle": "Aide sur cette page",
     "home.teacher.help.title": "Votre tableau de bord enseignant",
-    "home.teacher.help.section1Title": "Accéder à une classe",
+    "home.teacher.help.section1Title": "Vos classes",
     "home.teacher.help.section1Body":
-      "Touchez une carte de classe pour ouvrir son menu rapide (emploi du temps, notes, discipline, vie de classe).",
-    "home.teacher.help.section2Title": "Suivre les évaluations",
+      "Chaque carte représente une classe qui vous est assignée, avec son nombre d'élèves et un résumé rapide (nombre de devoirs ouverts, nombre d'évaluations en attente de saisie). Touchez une carte pour ouvrir le menu rapide de cette classe (emploi du temps, notes, discipline, vie de classe).",
+    "home.teacher.help.section2Title": "Messages non lus",
     "home.teacher.help.section2Body":
-      "La section « Évaluations à saisir » liste vos évaluations en attente de notes ; touchez « Cahier de notes » pour ouvrir le module complet.",
+      "Cette section affiche vos messages non lus les plus récents, avec l'expéditeur et l'objet. Le badge numéroté indique combien de messages restent à lire. Touchez un message pour l'ouvrir directement, ou « Messagerie » pour accéder à toute votre boîte de réception.",
+    "home.teacher.help.section3Title": "Emploi du temps du jour",
+    "home.teacher.help.section3Body":
+      "Cette section liste vos cours du jour dans l'ordre chronologique, avec leur horaire et la classe concernée. Touchez « Agenda » pour consulter l'emploi du temps complet de la semaine ou du mois.",
+    "home.teacher.help.section4Title": "Évaluations à saisir",
+    "home.teacher.help.section4Body":
+      "Cette section liste vos évaluations dont les notes n'ont pas encore été entièrement saisies, avec un badge indiquant leur nombre. Touchez « Cahier de notes » pour ouvrir le module complet et compléter la saisie.",
+    "home.teacher.help.section5Title": "Devoirs en cours",
+    "home.teacher.help.section5Body":
+      "Cette section liste les devoirs que vous avez donnés et dont l'échéance n'est pas encore passée, avec leur classe et leur date d'échéance. Touchez « Voir tout » pour gérer l'ensemble de vos devoirs.",
     "home.teacher.help.close": "J'ai compris",
 
     "onboardingTour.teacherHome.step1Title": "Vos classes",
@@ -4271,14 +4310,25 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.header.student": "Student",
 
     "discipline.vieScolaire.help.menuLabel": "Help",
-    "discipline.vieScolaire.help.title": "School life",
     "discipline.vieScolaire.help.close": "Close",
-    "discipline.vieScolaire.help.section1Title": "Three tabs",
-    "discipline.vieScolaire.help.section1Body":
-      '"Summary" gives an overview of your absences, lateness, sanctions and punishments for the year. "Absences" lists your absences and lateness. "Sanctions" lists your sanctions and punishments.',
-    "discipline.vieScolaire.help.section2Title": "Filter by indicator",
-    "discipline.vieScolaire.help.section2Body":
-      'In the Summary tab, tap a card (absences, lateness, sanctions, punishments) to only show events of that type. Tap "Show all" to go back to the full list.',
+    "discipline.vieScolaire.help.synthese.title": "School life — Summary",
+    "discipline.vieScolaire.help.synthese.section1Title": "The year's counters",
+    "discipline.vieScolaire.help.synthese.section1Body":
+      "The cards at the top of the screen total, since the start of the school year, the number of absences, lateness, sanctions and punishments. These numbers update automatically as soon as a new event is recorded by the school — you don't need to do anything to refresh them.",
+    "discipline.vieScolaire.help.synthese.section2Title":
+      "Filtering recent events",
+    "discipline.vieScolaire.help.synthese.section2Body":
+      'Tap a card (absences, lateness, sanctions or punishments) to only show, in the "Recent events" list just below, events of that type — useful to quickly check, for example, whether a lateness reported verbally was actually recorded. Tap the same card again (or "Show all") to go back to the full unfiltered list.',
+    "discipline.vieScolaire.help.absences.title": "School life — Absences",
+    "discipline.vieScolaire.help.absences.section1Title":
+      "The full history of absences and lateness",
+    "discipline.vieScolaire.help.absences.section1Body":
+      "This tab lists, most recent first, every absence and lateness recorded by the school, with its date and its reason if the school specified one. This list is read-only: it reflects what the school entered and cannot be edited from the app.",
+    "discipline.vieScolaire.help.sanctions.title": "School life — Sanctions",
+    "discipline.vieScolaire.help.sanctions.section1Title":
+      "The full history of sanctions and punishments",
+    "discipline.vieScolaire.help.sanctions.section1Body":
+      "This tab lists, most recent first, every sanction and punishment recorded by the school, with its date and its reason. Like the Absences tab, this list is read-only and only reflects what the school entered.",
 
     "discipline.fab.addEvent": "Add a discipline event",
 
@@ -4389,17 +4439,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.tourFallback.author": "Your teacher",
 
     "homework.help.menuLabel": "Help",
-    "homework.help.title": "Understanding your homework",
     "homework.help.close": "Close",
-    "homework.help.section1Title": "Switch views",
-    "homework.help.section1Body":
-      '"List" shows your upcoming homework one after another. "Agenda" organizes it by week or month, with a dot on each day that has homework.',
+    "homework.help.list.title": "Homework — List",
+    "homework.help.list.section1Title": "The List view",
+    "homework.help.list.section1Body":
+      'This view shows your upcoming homework one after another, from the nearest due date to the farthest. Tap "Agenda" at the top of the screen to see it organized by week or month instead.',
+    "homework.help.agenda.title": "Homework — Agenda",
+    "homework.help.agenda.section1Title": "The Agenda view",
+    "homework.help.agenda.section1Body":
+      'This view organizes your homework by week or month: a dot appears under each day that has at least one homework. Tap a marked day to show that day\'s homework. Tap "List" at the top of the screen to go back to the simple chronological order.',
     "homework.help.section2Title": "A homework card",
     "homework.help.section2Body":
-      "Tap a card to see the full instructions and attachments. The bubble icon shows and lets you add comments.",
+      "Each card shows the subject, the homework title and its due date. Tap a card to see the full instructions and any attachments. The bubble icon shows comments already posted and lets you add a new one, visible to the teacher and the other students in the class.",
     "homework.help.section3Title": "Mark as done",
     "homework.help.section3Body":
-      'Once you\'re done, tap the "Mark done" toggle to let your teacher know. Tap it again to undo.',
+      'Once the homework is finished, tap the "Mark done" toggle to let your teacher know: the homework stays visible but appears as completed. You can tap the same toggle again to undo it if you made a mistake.',
 
     "homework.form.validation.subjectRequired": "Subject is required.",
     "homework.form.validation.titleRequired": "Title is required.",
@@ -5861,23 +5915,29 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.classLife.studentFallback": "Student",
     "feed.classLife.classWithId": "Class {classId}",
     "feed.classLife.classActive": "Active class",
-    "feed.classLife.help.title": "Search and filter",
-    "feed.classLife.help.body1":
-      "Use the search bar to find a post by keyword.",
-    "feed.classLife.help.body2":
-      "The filter button on the right opens a panel where you can combine several post types (featured, polls) and show only your own posts.",
-    "feed.classLife.help.body3":
-      "Once you've made your selection, confirm with Apply to update the list.",
+    "feed.classLife.help.title": "Class life",
     "feed.classLife.help.menuLabel": "Help",
-    "feed.classLife.help.section1Title": "Search for a post",
+    "feed.classLife.help.section1Title": "What this feed is for",
     "feed.classLife.help.section1Body":
-      "Use the search bar to find a post by keyword.",
-    "feed.classLife.help.section2Title": "Filter by type",
+      "This feed gathers every post for the class (announcements, messages, polls) in chronological order, most recent first. It acts as a shared memory: instead of scattering information across separate messages, everything about the class stays available in one place, even after several days.",
+    "feed.classLife.help.section2Title": "Search for a post",
     "feed.classLife.help.section2Body":
-      "The filter button on the right opens a panel where you can combine several post types (featured, polls) and show only your own posts.",
-    "feed.classLife.help.section3Title": "Apply the filters",
+      "Use the search bar to find a post by keyword (in its title or text). This is useful once the feed holds several weeks of history and you need a specific piece of information (e.g. a field trip date) without scrolling through the whole list.",
+    "feed.classLife.help.section3Title": "Filter by type and by author",
     "feed.classLife.help.section3Body":
-      "Once you've made your selection, confirm with Apply to update the list.",
+      'The filter button (funnel icon) opens a panel where you can combine several post types ("featured", polls) and show only your own posts. Useful to focus on a single topic, for example seeing only ongoing polls. Once you\'ve made your selection, confirm with "Apply" to update the list; the filter button stays highlighted while a filter is active, as a reminder that the list is restricted.',
+    "feed.classLife.help.section4Title": "Post types",
+    "feed.classLife.help.section4Body":
+      'A post marked with a star (sparkle icon) is "featured": highlighted by its author as particularly important, it stays visible even after being overtaken by more recent posts. A poll shows a question with choices: tap an option to vote, the result (vote count per option) appears immediately after you vote, and your vote can\'t be changed afterwards.',
+    "feed.classLife.help.section5Title": "Reacting to a post",
+    "feed.classLife.help.section5Body":
+      'The heart adds or removes a "like" and shows the total number of people who liked the post — a quick way to signal approval without writing a message. The comment bubble shows how many replies have already been posted and expands the comment list when tapped. The "React" button opens a text field with quick emojis you can add with a tap: write your reply (or insert an emoji) then confirm with "Send" to publish your comment, visible to the whole class.',
+    "feed.classLife.help.section6Title": "Attachments and images",
+    "feed.classLife.help.section6Body":
+      "A post can contain images inserted directly in the text (tap them to view full screen) and attached files (documents, PDFs...) listed below the text with their name and size: tap a file to open or download it.",
+    "feed.classLife.help.section7Title": "Publishing and managing your posts",
+    "feed.classLife.help.section7Body":
+      "The round button at the bottom of the screen opens the posting form: write some text, optionally add images or attachments, or create a poll. You can delete a post you created yourself using the trash icon that appears on it; posts from other class members can't be deleted from this screen.",
 
     "feed.page.title": "News feed",
     "feed.page.endOfList": "You have reached the end of the feed",
@@ -6190,17 +6250,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.child.title": "Evaluations and averages",
     "notes.child.subtitle.student": "Student",
     "notes.child.help.menuLabel": "Help",
-    "notes.child.help.title": "Grades",
     "notes.child.help.close": "Close",
-    "notes.child.help.section1Title": "Two tabs",
-    "notes.child.help.section1Body":
-      "The Grades tab shows the current term's evaluations and averages. The Reports tab shows published report cards, term by term, with each subject's appreciation.",
-    "notes.child.help.section2Title": "Filter the results",
-    "notes.child.help.section2Body":
-      "The filter button changes the term you're viewing, the view (evaluations, averages or charts) and, when several sequences exist, the displayed sequence.",
-    "notes.child.help.section3Title": "Three ways to read the results",
-    "notes.child.help.section3Body":
-      "The Evaluations view lists each grade received. The Averages view compares your child's average to the class average. The Charts view shows a year-long comparison and a per-subject radar. Tap an evaluation or an average to see its detail.",
+    "notes.child.help.notes.title": "Grades — Evaluations and averages",
+    "notes.child.help.notes.section1Title": "Filter the results",
+    "notes.child.help.notes.section1Body":
+      "The filter button changes the term you're viewing, the view (evaluations, averages or charts) and, when several sequences exist, the displayed sequence. These settings apply immediately to the list below.",
+    "notes.child.help.notes.section2Title": "Three ways to read the results",
+    "notes.child.help.notes.section2Body":
+      "The Evaluations view lists each grade received, subject by subject. The Averages view compares your child's average to the class average, to quickly spot a gap. The Charts view shows a year-long comparison and a per-subject radar, useful to visualize a trend or a recurring weak spot. Tap an evaluation or an average to see its detail (scale, coefficient, teacher's comment).",
+    "notes.child.help.reports.title": "Grades — Report cards",
+    "notes.child.help.reports.section1Title": "Viewing report cards",
+    "notes.child.help.reports.section1Body":
+      "This tab lists the report cards already published by the school, one per term. Tap a report card to open it: it details, subject by subject, the average achieved and the teacher's comment, plus a general comment from the class council if one was provided. A report card not yet published by the school does not appear in this list.",
     "onboardingTour.childNotes.tabsTitle": "Two tabs",
     "onboardingTour.childNotes.tabsBody":
       "Grades shows the current term's evaluations and averages. Reports shows already published report cards.",
@@ -6401,22 +6462,37 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.parent.news.empty.subtitle": "School announcements will appear here",
     "home.parent.help.toggle": "Help on this page",
     "home.parent.help.title": "Your family space",
-    "home.parent.help.body1":
-      "This page gathers the essentials: your children, quick access shortcuts (news feed, financial situation, messaging, documents) and the latest school news.",
-    "home.parent.help.body2":
-      "For everything else — messaging, a child's space, account settings — tap the Menu icon at the bottom of the screen: it opens the navigation menu with access to every section.",
-    "home.parent.help.body3":
-      "You can replay the menu discovery tour at any time by tapping this help icon again.",
     "home.parent.help.close": "Close",
+    "home.parent.help.section1Title": "Your children",
+    "home.parent.help.section1Body":
+      "Every child enrolled under your account appears as a card, with their name and class. The badge next to the title shows the total number of children linked to your account. Tap a child's card to open their personal space (timetable, grades, homework, school life, class feed...).",
+    "home.parent.help.section2Title": "Quick access",
+    "home.parent.help.section2Body":
+      'These four shortcuts take you straight to the most visited sections without going through the navigation menu: "News feed" (school and class posts), "Finance" (tuition fees and payments), "Messaging" (conversations with the school — a red badge shows the number of unread messages) and "Documents" (files shared by the school).',
+    "home.parent.help.section3Title": "School news",
+    "home.parent.help.section3Body":
+      'The most recent posts aimed at the whole school appear here as a preview. Tap "See all" to open the full feed and browse its history.',
+    "home.parent.help.section4Title": "Finding every other section",
+    "home.parent.help.section4Body":
+      "This page only shows the essentials. For everything else (account settings, other modules...), tap the Menu icon in the bottom bar: it opens the full navigation to every section available for your account.",
 
     "home.teacher.help.toggle": "Help on this page",
     "home.teacher.help.title": "Your teacher dashboard",
-    "home.teacher.help.section1Title": "Open a class",
+    "home.teacher.help.section1Title": "Your classes",
     "home.teacher.help.section1Body":
-      "Tap a class card to open its quick menu (timetable, grades, discipline, class life).",
-    "home.teacher.help.section2Title": "Track evaluations",
+      "Each card represents a class assigned to you, with its student count and a quick summary (number of open homework, number of evaluations awaiting scores). Tap a card to open that class's quick menu (timetable, grades, discipline, class life).",
+    "home.teacher.help.section2Title": "Unread messages",
     "home.teacher.help.section2Body":
-      'The "Evaluations to grade" section lists your evaluations awaiting scores; tap "Grade book" to open the full module.',
+      'This section shows your most recent unread messages, with sender and subject. The numbered badge shows how many messages are still unread. Tap a message to open it directly, or "Messaging" to access your full inbox.',
+    "home.teacher.help.section3Title": "Today's timetable",
+    "home.teacher.help.section3Body":
+      'This section lists today\'s lessons in chronological order, with their time slot and class. Tap "Agenda" to view the full weekly or monthly timetable.',
+    "home.teacher.help.section4Title": "Evaluations to grade",
+    "home.teacher.help.section4Body":
+      'This section lists your evaluations whose scores haven\'t been fully entered yet, with a badge showing their count. Tap "Grade book" to open the full module and complete the grading.',
+    "home.teacher.help.section5Title": "Ongoing homework",
+    "home.teacher.help.section5Body":
+      "This section lists the homework you've assigned whose due date hasn't passed yet, with its class and due date. Tap \"See all\" to manage all of your homework.",
     "home.teacher.help.close": "Got it",
 
     "onboardingTour.teacherHome.step1Title": "Your classes",

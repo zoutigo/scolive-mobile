@@ -257,10 +257,23 @@ export function ParentHome({ schoolSlug }: ParentHomeProps) {
         visible={helpVisible}
         onClose={() => setHelpVisible(false)}
         title={t("home.parent.help.title")}
-        body={[
-          t("home.parent.help.body1"),
-          t("home.parent.help.body2"),
-          t("home.parent.help.body3"),
+        sections={[
+          {
+            title: t("home.parent.help.section1Title"),
+            body: [t("home.parent.help.section1Body")],
+          },
+          {
+            title: t("home.parent.help.section2Title"),
+            body: [t("home.parent.help.section2Body")],
+          },
+          {
+            title: t("home.parent.help.section3Title"),
+            body: [t("home.parent.help.section3Body")],
+          },
+          {
+            title: t("home.parent.help.section4Title"),
+            body: [t("home.parent.help.section4Body")],
+          },
         ]}
         closeLabel={t("home.parent.help.close")}
         testID="parent-landing-help-modal"

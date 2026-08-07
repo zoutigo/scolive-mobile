@@ -631,6 +631,18 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
             title: t("home.teacher.help.section2Title"),
             body: [t("home.teacher.help.section2Body")],
           },
+          {
+            title: t("home.teacher.help.section3Title"),
+            body: [t("home.teacher.help.section3Body")],
+          },
+          {
+            title: t("home.teacher.help.section4Title"),
+            body: [t("home.teacher.help.section4Body")],
+          },
+          {
+            title: t("home.teacher.help.section5Title"),
+            body: [t("home.teacher.help.section5Body")],
+          },
         ]}
         closeLabel={t("home.teacher.help.close")}
         testID="teacher-home-help-modal"

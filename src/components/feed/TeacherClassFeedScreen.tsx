@@ -15,6 +15,7 @@ import {
   FEED_FILTERS_TOUR_STEPS,
   FEED_FILTERS_TOUR_TARGETS,
 } from "./feed-filters-tour.config";
+import { FEED_HELP_SECTIONS } from "./feed-help.content";
 import type {
   CreateFeedPayload,
   FeedTypeFilter,
@@ -173,20 +174,7 @@ export function TeacherClassFeedScreen({
       onCreatePost={handleCreatePost}
       onUploadInlineImage={handleUploadInlineImage}
       helpTitle={t("feed.classLife.help.title")}
-      helpSections={[
-        {
-          title: t("feed.classLife.help.section1Title"),
-          body: [t("feed.classLife.help.section1Body")],
-        },
-        {
-          title: t("feed.classLife.help.section2Title"),
-          body: [t("feed.classLife.help.section2Body")],
-        },
-        {
-          title: t("feed.classLife.help.section3Title"),
-          body: [t("feed.classLife.help.section3Body")],
-        },
-      ]}
+      helpSections={FEED_HELP_SECTIONS(t)}
     />
   );
 }

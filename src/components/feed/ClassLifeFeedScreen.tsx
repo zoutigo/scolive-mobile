@@ -23,6 +23,7 @@ import {
   FEED_FILTERS_TOUR_STEPS,
   FEED_FILTERS_TOUR_TARGETS,
 } from "./feed-filters-tour.config";
+import { FEED_HELP_SECTIONS } from "./feed-help.content";
 import type {
   CreateFeedPayload,
   FeedTypeFilter,
@@ -204,11 +205,7 @@ export function ClassLifeFeedScreen() {
       onCreatePost={handleCreatePost}
       onUploadInlineImage={handleUploadInlineImage}
       helpTitle={t("feed.classLife.help.title")}
-      helpBody={[
-        t("feed.classLife.help.body1"),
-        t("feed.classLife.help.body2"),
-        t("feed.classLife.help.body3"),
-      ]}
+      helpSections={FEED_HELP_SECTIONS(t)}
     />
   );
 }

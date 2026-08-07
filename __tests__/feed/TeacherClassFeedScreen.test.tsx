@@ -176,9 +176,13 @@ describe("TeacherClassFeedScreen", () => {
       body: string[];
     }>;
     expect(helpSections.map((section) => section.title)).toEqual([
+      "À quoi sert ce fil",
       "Rechercher une publication",
-      "Filtrer par type",
-      "Appliquer les filtres",
+      "Filtrer par type et par auteur",
+      "Types de publications",
+      "Réagir à une publication",
+      "Pièces jointes et images",
+      "Publier et gérer vos publications",
     ]);
     expect(capturedProps?.helpBody).toBeUndefined();
   });

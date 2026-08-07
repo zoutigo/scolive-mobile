@@ -4,7 +4,12 @@
  * emploi du temps, évaluations, devoirs), navigation au clic, context messaging.
  */
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native";
 import { TeacherHome } from "../../src/components/home/TeacherHome";
 import { useMessagingStore } from "../../src/store/messaging.store";
 import * as dashboardHook from "../../src/hooks/useTeacherDashboard";
@@ -597,8 +602,12 @@ describe("TeacherHome — modale d'aide", () => {
     expect(
       screen.getByTestId("teacher-home-help-modal-title"),
     ).toHaveTextContent("Votre tableau de bord enseignant");
-    expect(screen.getByText("Accéder à une classe")).toBeTruthy();
-    expect(screen.getByText("Suivre les évaluations")).toBeTruthy();
+    const helpBody = within(screen.getByTestId("teacher-home-help-modal-body"));
+    expect(helpBody.getByText("Vos classes")).toBeTruthy();
+    expect(helpBody.getByText("Messages non lus")).toBeTruthy();
+    expect(helpBody.getByText("Emploi du temps du jour")).toBeTruthy();
+    expect(helpBody.getByText("Évaluations à saisir")).toBeTruthy();
+    expect(helpBody.getByText("Devoirs en cours")).toBeTruthy();
   });
 
   it("ferme la modale d'aide au tap sur le bouton de fermeture", () => {

@@ -234,10 +234,10 @@ describe("Aide (modale) — vue élève", () => {
 
     expect(screen.getByTestId("class-homework-help-modal-title")).toBeTruthy();
     expect(
-      screen.getByText(translate("fr", "homework.help.title")),
+      screen.getByText(translate("fr", "homework.help.list.title")),
     ).toBeTruthy();
     expect(
-      screen.getByText(translate("fr", "homework.help.section1Title")),
+      screen.getByText(translate("fr", "homework.help.list.section1Title")),
     ).toBeTruthy();
     expect(
       screen.getByText(translate("fr", "homework.help.section2Title")),

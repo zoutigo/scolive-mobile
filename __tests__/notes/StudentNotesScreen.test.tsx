@@ -181,9 +181,11 @@ describe("StudentNotesScreen", () => {
 
     expect(
       screen.getByTestId("child-notes-help-modal-title"),
-    ).toHaveTextContent("Notes");
-    expect(screen.getByText("Deux onglets")).toBeOnTheScreen();
+    ).toHaveTextContent("Notes — Évaluations et moyennes");
     expect(screen.getByText("Filtrer les résultats")).toBeOnTheScreen();
+    expect(
+      screen.getByText("Trois façons de lire les résultats"),
+    ).toBeOnTheScreen();
 
     fireEvent.press(screen.getByTestId("child-notes-help-modal-close"));
     expect(screen.queryByTestId("child-notes-help-modal-title")).toBeNull();

@@ -142,9 +142,11 @@ describe("VieScolaireMeScreen (self, rôle élève)", () => {
 
     expect(
       screen.getByTestId("vie-scolaire-help-modal-title"),
-    ).toHaveTextContent("Vie scolaire");
-    expect(screen.getByText("Trois onglets")).toBeOnTheScreen();
-    expect(screen.getByText("Filtrer par indicateur")).toBeOnTheScreen();
+    ).toHaveTextContent("Vie scolaire — Synthèse");
+    expect(screen.getByText("Les compteurs de l'année")).toBeOnTheScreen();
+    expect(
+      screen.getByText("Filtrer les événements récents"),
+    ).toBeOnTheScreen();
 
     fireEvent.press(screen.getByTestId("vie-scolaire-help-modal-close"));
     expect(screen.queryByTestId("vie-scolaire-help-modal-title")).toBeNull();
