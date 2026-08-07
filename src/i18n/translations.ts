@@ -3001,6 +3001,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Home header (AppHeader, variante accueil)
     "header.home.loginAction": "Se connecter",
+    "header.home.menuAction": "Menu",
     "header.home.logoutAction": "Se déconnecter",
     "header.home.logoutConfirmTitle": "Se déconnecter ?",
     "header.home.logoutConfirmMessage":
@@ -6553,6 +6554,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Home header (AppHeader, home variant)
     "header.home.loginAction": "Sign in",
+    "header.home.menuAction": "Menu",
     "header.home.logoutAction": "Sign out",
     "header.home.logoutConfirmTitle": "Sign out?",
     "header.home.logoutConfirmMessage":

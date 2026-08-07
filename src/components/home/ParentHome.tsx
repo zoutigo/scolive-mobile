@@ -16,7 +16,7 @@ import { buildChildHomeTarget } from "../navigation/nav-config";
 import { useHeaderScroll } from "../navigation/header-scroll-context";
 import { useTranslation } from "../../i18n/useTranslation";
 import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
-import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { useHomeHeaderHelpAction } from "../../hooks/useHomeHeaderHelpAction";
 import { PageHelpModal } from "../help/PageHelpModal";
 import {
   PARENT_LANDING_TOUR_ID,
@@ -49,6 +49,15 @@ export function ParentHome({ schoolSlug }: ParentHomeProps) {
     role: "parent",
     steps: PARENT_LANDING_TOUR_STEPS,
   });
+
+  useHomeHeaderHelpAction(
+    {
+      label: t("home.parent.help.toggle"),
+      testID: "parent-landing-help-toggle",
+      tourTargetId: PARENT_LANDING_TOUR_TARGETS.helpButton,
+    },
+    () => setHelpVisible(true),
+  );
 
   function handleChildPress(child: ParentChild) {
     setActiveChild(child.id);
@@ -86,20 +95,6 @@ export function ParentHome({ schoolSlug }: ParentHomeProps) {
           <Text style={styles.greeting}>
             {t("home.hero.greeting")} {t("home.hero.role.parent")}
           </Text>
-          <OnboardingTarget id={PARENT_LANDING_TOUR_TARGETS.helpButton}>
-            <TouchableOpacity
-              style={styles.helpButton}
-              onPress={() => setHelpVisible(true)}
-              testID="parent-landing-help-toggle"
-              accessibilityLabel={t("home.parent.help.toggle")}
-            >
-              <Ionicons
-                name="help-circle-outline"
-                size={20}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
-          </OnboardingTarget>
           <View
             style={[styles.rolePill, { backgroundColor: colors.warmAccent }]}
           >
@@ -334,16 +329,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 5,
-  },
-  helpButton: {
-    flexShrink: 0,
-    marginLeft: 10,
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: `${colors.primary}14`,
   },
   rolePillText: { color: colors.white, fontSize: 11, fontWeight: "600" },
 

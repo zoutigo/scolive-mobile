@@ -6,10 +6,11 @@
  * - États : chargement, vide, avec enfants
  */
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react-native";
+import { act, render, screen, fireEvent } from "@testing-library/react-native";
 import { ParentHome } from "../../src/components/home/ParentHome";
 import { useFamilyStore } from "../../src/store/family.store";
 import { useMessagingStore } from "../../src/store/messaging.store";
+import { useHomeHeaderHelpStore } from "../../src/store/home-header-help.store";
 import type { AuthUser } from "../../src/types/auth.types";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
@@ -70,6 +71,7 @@ beforeEach(() => {
     unreadCount: 0,
     loadUnreadCount: jest.fn().mockResolvedValue(undefined),
   });
+  useHomeHeaderHelpStore.getState().setHelpAction(null);
 });
 
 // ── Rendu — état vide ─────────────────────────────────────────────────────────
@@ -246,7 +248,7 @@ describe("Accès rapides", () => {
     expect(screen.getByText("99+")).toBeTruthy();
   });
 
-  describe("modale d'aide", () => {
+  describe("modale d'aide (déclenchée depuis le menu de l'en-tête partagé)", () => {
     it("est masquée par défaut", () => {
       render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
 
@@ -255,10 +257,20 @@ describe("Accès rapides", () => {
       ).toBeNull();
     });
 
-    it("s'ouvre au tap sur le bouton d'aide et affiche titre/corps", () => {
+    it("enregistre son entrée d'aide dans le store partagé de l'en-tête", () => {
       render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
 
-      fireEvent.press(screen.getByTestId("parent-landing-help-toggle"));
+      expect(useHomeHeaderHelpStore.getState().helpAction?.testID).toBe(
+        "parent-landing-help-toggle",
+      );
+    });
+
+    it("s'ouvre quand l'entrée d'aide enregistrée est déclenchée et affiche titre/corps", () => {
+      render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+      act(() => {
+        useHomeHeaderHelpStore.getState().helpAction?.onPress();
+      });
 
       expect(
         screen.getByTestId("parent-landing-help-modal-title"),
@@ -269,7 +281,9 @@ describe("Accès rapides", () => {
     it("se ferme au tap sur le bouton de fermeture", () => {
       render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
 
-      fireEvent.press(screen.getByTestId("parent-landing-help-toggle"));
+      act(() => {
+        useHomeHeaderHelpStore.getState().helpAction?.onPress();
+      });
       fireEvent.press(screen.getByTestId("parent-landing-help-modal-close"));
 
       expect(

@@ -23,6 +23,7 @@ import { useHeaderScroll } from "../navigation/header-scroll-context";
 import { minuteToTimeLabel, parseDateInput } from "../../utils/timetable";
 import { useTranslation } from "../../i18n/useTranslation";
 import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import { useHomeHeaderHelpAction } from "../../hooks/useHomeHeaderHelpAction";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
 import { OnboardingScrollView } from "../onboarding/OnboardingScrollView";
 import { PageHelpModal } from "../help/PageHelpModal";
@@ -208,6 +209,15 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
     steps: TEACHER_HOME_TOUR_STEPS,
   });
 
+  useHomeHeaderHelpAction(
+    {
+      label: t("home.teacher.help.toggle"),
+      testID: "teacher-home-help-toggle",
+      tourTargetId: TEACHER_HOME_TOUR_TARGETS.helpButton,
+    },
+    () => setHelpVisible(true),
+  );
+
   const now = new Date();
   const todayLabel = `${DAY_LABELS[now.getDay()]} ${now.getDate()} ${MONTH_LABELS[now.getMonth()]} ${now.getFullYear()}`;
 
@@ -239,20 +249,6 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
             <Text style={styles.greeting} numberOfLines={1}>
               {t("home.hero.greeting")} {t("home.hero.role.teacher")}
             </Text>
-            <OnboardingTarget id={TEACHER_HOME_TOUR_TARGETS.helpButton}>
-              <TouchableOpacity
-                style={styles.helpButton}
-                onPress={() => setHelpVisible(true)}
-                testID="teacher-home-help-toggle"
-                accessibilityLabel={t("home.teacher.help.toggle")}
-              >
-                <Ionicons
-                  name="help-circle-outline"
-                  size={20}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
-            </OnboardingTarget>
             <View style={styles.rolePill}>
               <Text style={styles.rolePillText}>
                 {t("home.hero.role.teacher")}
@@ -675,16 +671,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
     color: colors.textPrimary,
-  },
-  helpButton: {
-    flexShrink: 0,
-    marginLeft: 10,
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: `${colors.primary}14`,
   },
   rolePill: {
     flexShrink: 0,
