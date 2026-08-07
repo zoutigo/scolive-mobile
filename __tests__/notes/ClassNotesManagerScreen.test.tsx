@@ -1635,6 +1635,89 @@ describe("Mode enseignant — classId fourni par la route", () => {
   });
 });
 
+describe("Onglet Reports — sauvegarde d'une appréciation (enseignant)", () => {
+  const SNAPSHOT_TERM_1 = {
+    term: "TERM_1" as const,
+    label: "1er trimestre",
+    councilLabel: "6e A • 1er trimestre",
+    generatedAtLabel: null,
+    generalAverage: { student: 14.5, class: 12.3, min: 6, max: 18 },
+    sequences: [],
+    subjects: [
+      {
+        id: "sub-1",
+        subjectLabel: "Mathématiques",
+        teachers: ["Valery Mbele"],
+        coefficient: 4,
+        studentAverage: 14.5,
+        classAverage: 12,
+        classMin: 5,
+        classMax: 18,
+        rank: 3,
+        classSize: 24,
+        evaluations: [],
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    useNotesStore.setState({
+      studentNotes: { "stu-1": [SNAPSHOT_TERM_1], "stu-2": [] },
+      loadStudentNotes: jest.fn().mockResolvedValue([SNAPSHOT_TERM_1]),
+    } as never);
+  });
+
+  it("envoie le payload au format `reports` attendu par l'API, pas `students`", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(screen.getByTestId("notes-tab-reports"));
+    await flushAsync();
+
+    fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_1"),
+    );
+    await flushAsync();
+
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-subject-sub-1-display"),
+    );
+    await flushAsync();
+
+    fireEvent.changeText(
+      screen.getByTestId("teacher-reports-subject-sub-1-input"),
+      "Bon élève",
+    );
+    fireEvent.press(screen.getByTestId("teacher-reports-subject-sub-1-save"));
+    await flushAsync();
+
+    expect(useNotesStore.getState().saveTermReports).toHaveBeenCalledWith(
+      "college-vogt",
+      "class-1",
+      "TERM_1",
+      expect.objectContaining({
+        reports: expect.arrayContaining([
+          expect.objectContaining({
+            studentId: "stu-1",
+            subjects: expect.arrayContaining([
+              expect.objectContaining({
+                subjectId: "sub-1",
+                appreciation: "Bon élève",
+              }),
+            ]),
+          }),
+        ]),
+      }),
+    );
+    const payload = (useNotesStore.getState().saveTermReports as jest.Mock).mock
+      .calls[0][3];
+    expect(payload.students).toBeUndefined();
+  });
+});
+
 describe("ClassNotesManagerScreen — modale d'aide (menu ...)", () => {
   function openHelpFromMenu() {
     fireEvent.press(screen.getByTestId("module-header-menu"));

@@ -791,7 +791,7 @@ export function ClassNotesManagerScreen({
       await saveTermReports(schoolSlug, classId, councilTerm, {
         status: councilStatus,
         councilHeldAt: councilHeldAt.trim() || null,
-        students: teacherContext.students.map((student) => ({
+        reports: teacherContext.students.map((student) => ({
           studentId: student.id,
           generalAppreciation:
             nextDrafts[student.id]?.generalAppreciation?.trim() || null,
