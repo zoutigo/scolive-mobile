@@ -68,6 +68,7 @@
   "jest": {
     "preset": "jest-expo",
     "workerIdleMemoryLimit": "512MB",
+    "maxWorkers": 4,
     "setupFilesAfterEnv": [
       "<rootDir>/jest.setup.ts"
     ],
