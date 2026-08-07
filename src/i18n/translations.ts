@@ -748,6 +748,36 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.sections.byClass.subtitle":
       "Sélectionnez une année et une classe.",
 
+    "discipline.teacherHelp.menuLabel": "Aide",
+    "discipline.teacherHelp.close": "J'ai compris",
+    "discipline.teacherHelp.events.title":
+      "Comment utiliser l'onglet Événements",
+    "discipline.teacherHelp.events.section1Title": "Filtrer par élève",
+    "discipline.teacherHelp.events.section1Body":
+      "Choisissez un élève dans la liste pour n'afficher que ses événements, ou laissez vide pour voir toute la classe.",
+    "discipline.teacherHelp.events.section2Title": "Signaler un événement",
+    "discipline.teacherHelp.events.section2Body":
+      "Touchez le bouton + pour signaler une absence, un retard, une sanction ou une punition.",
+    "discipline.teacherHelp.carnets.title": "Comment utiliser l'onglet Carnets",
+    "discipline.teacherHelp.carnets.section1Title":
+      "Consulter le carnet d'un élève",
+    "discipline.teacherHelp.carnets.section1Body":
+      "Choisissez un élève pour afficher la synthèse de ses absences, retards, sanctions et punitions.",
+
+    "onboardingTour.teacherDiscipline.step1Title": "Deux onglets",
+    "onboardingTour.teacherDiscipline.step1Body":
+      "Passez des événements récents de la classe au carnet détaillé d'un élève.",
+    "onboardingTour.teacherDiscipline.step2Title": "Filtrer par élève",
+    "onboardingTour.teacherDiscipline.step2Body":
+      "Choisissez un élève dans la liste pour n'afficher que ses événements.",
+    "onboardingTour.teacherDiscipline.step3Title": "Signaler un événement",
+    "onboardingTour.teacherDiscipline.step3Body":
+      "Touchez ce bouton pour signaler une absence, un retard, une sanction ou une punition.",
+    "onboardingTour.teacherDiscipline.step4Title":
+      "Une aide toujours disponible",
+    "onboardingTour.teacherDiscipline.step4Body":
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel adapté à l'onglet que vous consultez.",
+
     "discipline.filters.title": "Filtres",
     "discipline.filters.student": "Élève",
     "discipline.filters.allStudents": "Tous les élèves",
@@ -1035,6 +1065,26 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.filters.apply": "Appliquer",
     "resources.filters.close": "Fermer",
 
+    "resources.help.menuLabel": "Aide",
+    "resources.help.title": "Ressources",
+    "resources.help.close": "Fermer",
+    "resources.help.section1Title": "Trouver une ressource",
+    "resources.help.section1Body":
+      "Utilisez les onglets Évaluations/Examens pour changer de type de ressource, et le champ de recherche pour retrouver une ressource par son titre. Touchez l'icône de filtre pour affiner par année, établissement, niveau ou type.",
+    "resources.help.section2Title": "Consulter et suivre",
+    "resources.help.section2Body":
+      "Touchez une carte pour consulter l'énoncé ou le corrigé. L'icône favori permet de retrouver rapidement une ressource plus tard depuis l'onglet Favoris.",
+
+    "onboardingTour.resources.step1Title": "Types de ressources",
+    "onboardingTour.resources.step1Body":
+      "Basculez entre Évaluations, Examens et vos Favoris grâce à ces onglets.",
+    "onboardingTour.resources.step2Title": "Rechercher et filtrer",
+    "onboardingTour.resources.step2Body":
+      "Recherchez une ressource par titre, ou touchez l'icône de filtre pour affiner par année, établissement, niveau ou type.",
+    "onboardingTour.resources.step3Title": "Besoin d'aide ?",
+    "onboardingTour.resources.step3Body":
+      "Touchez ce bouton, puis « Aide » dans le menu, pour retrouver ces explications à tout moment.",
+
     "resources.form.duplicateWarningTitle":
       "Ressource peut-être déjà existante",
     "resources.form.duplicateWarningMessage":
@@ -1254,6 +1304,44 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.teacherAgenda.admin.selectionBanner.classPrefix": "Classe",
     "timetable.teacherAgenda.admin.selectionBanner.clear":
       "Effacer la sélection",
+
+    "timetable.teacherAgenda.help.menuLabel": "Aide",
+    "timetable.teacherAgenda.help.close": "J'ai compris",
+    "timetable.teacherAgenda.help.mine.title": "Comment utiliser mon agenda",
+    "timetable.teacherAgenda.help.mine.section1Title": "Changer de vue",
+    "timetable.teacherAgenda.help.mine.section1Body":
+      "Touchez Jour, Semaine ou Mois pour changer la façon d'afficher votre emploi du temps personnel.",
+    "timetable.teacherAgenda.help.mine.section2Title": "Naviguer dans le temps",
+    "timetable.teacherAgenda.help.mine.section2Body":
+      "Utilisez les flèches pour passer à la période précédente ou suivante, ou touchez le libellé pour revenir à aujourd'hui.",
+    "timetable.teacherAgenda.help.mine.section3Title": "Consulter un cours",
+    "timetable.teacherAgenda.help.mine.section3Body":
+      "Touchez une carte de cours pour voir la classe, la matière, la salle et modifier ou annuler ce créneau si besoin.",
+    "timetable.teacherAgenda.help.classes.title":
+      "Comment utiliser l'agenda de mes classes",
+    "timetable.teacherAgenda.help.classes.section1Title": "Choisir la classe",
+    "timetable.teacherAgenda.help.classes.section1Body":
+      "Touchez une classe dans la liste en haut de l'écran pour afficher son emploi du temps complet.",
+    "timetable.teacherAgenda.help.classes.section2Title":
+      "Changer de vue et naviguer",
+    "timetable.teacherAgenda.help.classes.section2Body":
+      "Comme pour votre agenda personnel, basculez entre Jour/Semaine/Mois et utilisez les flèches pour changer de période.",
+    "timetable.teacherAgenda.help.classes.section3Title": "Consulter un cours",
+    "timetable.teacherAgenda.help.classes.section3Body":
+      "Touchez une carte de cours pour voir le détail complet du créneau pour cette classe.",
+
+    "onboardingTour.teacherAgenda.step1Title": "Deux vues",
+    "onboardingTour.teacherAgenda.step1Body":
+      "Touchez un onglet pour passer de votre agenda personnel à l'emploi du temps de vos classes.",
+    "onboardingTour.teacherAgenda.step2Title": "Changez de vue",
+    "onboardingTour.teacherAgenda.step2Body":
+      "Touchez Jour, Semaine ou Mois pour changer la façon d'afficher l'emploi du temps.",
+    "onboardingTour.teacherAgenda.step3Title": "Naviguez dans le temps",
+    "onboardingTour.teacherAgenda.step3Body":
+      "Utilisez les flèches pour passer à la période précédente ou suivante, ou touchez le libellé pour revenir à aujourd'hui.",
+    "onboardingTour.teacherAgenda.step4Title": "Une aide toujours disponible",
+    "onboardingTour.teacherAgenda.step4Body":
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel adapté à l'onglet que vous consultez.",
 
     "timetable.classManager.defaultTitle": "Emploi du temps",
     "timetable.classManager.headerSubtitle": "Emploi du temps de la classe",
@@ -1504,6 +1592,26 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.list.unknownSender": "Expéditeur inconnu",
     "messaging.list.recipientSingular": "1 destinataire",
     "messaging.list.recipientPlural": "{count} destinataires",
+
+    "messaging.help.menuLabel": "Aide",
+    "messaging.help.title": "Messagerie",
+    "messaging.help.close": "Fermer",
+    "messaging.help.section1Title": "Organiser vos messages",
+    "messaging.help.section1Body":
+      "Utilisez les onglets Réception, Envoyés, Brouillons et Archives pour retrouver vos messages selon leur statut.",
+    "messaging.help.section2Title": "Écrire un message",
+    "messaging.help.section2Body":
+      "Touchez le bouton + pour composer un nouveau message. Un brouillon en cours d'écriture est automatiquement enregistré dans l'onglet Brouillons.",
+
+    "onboardingTour.messages.step1Title": "Vos dossiers",
+    "onboardingTour.messages.step1Body":
+      "Basculez entre Réception, Envoyés, Brouillons et Archives grâce à ces onglets.",
+    "onboardingTour.messages.step2Title": "Écrire un message",
+    "onboardingTour.messages.step2Body":
+      "Touchez ce bouton pour composer un nouveau message.",
+    "onboardingTour.messages.step3Title": "Besoin d'aide ?",
+    "onboardingTour.messages.step3Body":
+      "Touchez ce bouton, puis « Aide » dans le menu, pour retrouver ces explications à tout moment.",
 
     "messaging.compose.titleNew": "Nouveau message",
     "messaging.compose.titleReply": "Répondre",
@@ -2236,6 +2344,16 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Le bouton filtre à droite ouvre un panneau où vous pouvez combiner plusieurs types de publication (à la une, sondages) et n'afficher que vos propres publications.",
     "feed.classLife.help.body3":
       "Une fois votre sélection faite, validez avec Appliquer pour mettre à jour la liste.",
+    "feed.classLife.help.menuLabel": "Aide",
+    "feed.classLife.help.section1Title": "Rechercher une publication",
+    "feed.classLife.help.section1Body":
+      "Utilisez la barre de recherche pour retrouver une publication par mot-clé.",
+    "feed.classLife.help.section2Title": "Filtrer par type",
+    "feed.classLife.help.section2Body":
+      "Le bouton filtre à droite ouvre un panneau où vous pouvez combiner plusieurs types de publication (à la une, sondages) et n'afficher que vos propres publications.",
+    "feed.classLife.help.section3Title": "Appliquer les filtres",
+    "feed.classLife.help.section3Body":
+      "Une fois votre sélection faite, validez avec Appliquer pour mettre à jour la liste.",
 
     "feed.page.title": "Fil d'actualité",
     "feed.page.endOfList": "Vous avez atteint la fin du fil",
@@ -2516,6 +2634,41 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.toast.updateMessage":
       "Les modifications ont bien été enregistrées.",
 
+    "notes.manager.help.menuLabel": "Aide",
+    "notes.manager.help.close": "J'ai compris",
+    "notes.manager.help.evaluations.title":
+      "Comment utiliser l'onglet Évaluations",
+    "notes.manager.help.evaluations.section1Title": "Rechercher et filtrer",
+    "notes.manager.help.evaluations.section1Body":
+      "Utilisez la recherche pour retrouver une évaluation par titre, ou touchez l'icône filtre pour affiner par type, séquence ou statut de saisie.",
+    "notes.manager.help.evaluations.section2Title": "Créer une évaluation",
+    "notes.manager.help.evaluations.section2Body":
+      "Touchez le bouton + pour créer une nouvelle évaluation avec son barème et sa date.",
+    "notes.manager.help.evaluations.section3Title": "Saisir les notes",
+    "notes.manager.help.evaluations.section3Body":
+      "Touchez une évaluation pour voir son détail et saisir ou modifier les notes des élèves.",
+    "notes.manager.help.notes.title": "Comment utiliser l'onglet Notes",
+    "notes.manager.help.notes.section1Title": "Consulter un élève",
+    "notes.manager.help.notes.section1Body":
+      "Recherchez un élève pour consulter toutes ses notes et sa moyenne, matière par matière.",
+    "notes.manager.help.reports.title": "Comment utiliser l'onglet Bulletins",
+    "notes.manager.help.reports.section1Title": "Rédiger les appréciations",
+    "notes.manager.help.reports.section1Body":
+      "Choisissez la séquence puis touchez un élève pour rédiger ou modifier son appréciation de conseil de classe.",
+
+    "onboardingTour.teacherNotes.step1Title": "Trois onglets",
+    "onboardingTour.teacherNotes.step1Body":
+      "Passez des évaluations aux notes par élève, puis aux bulletins de conseil de classe.",
+    "onboardingTour.teacherNotes.step2Title": "Rechercher et filtrer",
+    "onboardingTour.teacherNotes.step2Body":
+      "Touchez l'icône filtre pour affiner la liste des évaluations par type, séquence ou statut de saisie.",
+    "onboardingTour.teacherNotes.step3Title": "Créer une évaluation",
+    "onboardingTour.teacherNotes.step3Body":
+      "Touchez ce bouton pour créer une nouvelle évaluation avec son barème et sa date.",
+    "onboardingTour.teacherNotes.step4Title": "Une aide toujours disponible",
+    "onboardingTour.teacherNotes.step4Body":
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel adapté à l'onglet que vous consultez.",
+
     "notes.child.title": "Évaluations et moyennes",
     "notes.child.subtitle.student": "Élève",
     "notes.child.help.menuLabel": "Aide",
@@ -2740,6 +2893,26 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.parent.help.body3":
       "Vous pouvez revoir le parcours de découverte du menu à tout moment en touchant à nouveau cette icône d'aide.",
     "home.parent.help.close": "Fermer",
+
+    "home.teacher.help.toggle": "Aide sur cette page",
+    "home.teacher.help.title": "Votre tableau de bord enseignant",
+    "home.teacher.help.section1Title": "Accéder à une classe",
+    "home.teacher.help.section1Body":
+      "Touchez une carte de classe pour ouvrir son menu rapide (emploi du temps, notes, discipline, vie de classe).",
+    "home.teacher.help.section2Title": "Suivre les évaluations",
+    "home.teacher.help.section2Body":
+      "La section « Évaluations à saisir » liste vos évaluations en attente de notes ; touchez « Cahier de notes » pour ouvrir le module complet.",
+    "home.teacher.help.close": "J'ai compris",
+
+    "onboardingTour.teacherHome.step1Title": "Vos classes",
+    "onboardingTour.teacherHome.step1Body":
+      "Touchez une carte de classe pour ouvrir rapidement son emploi du temps, ses notes, sa discipline ou sa vie de classe.",
+    "onboardingTour.teacherHome.step2Title": "Évaluations en attente",
+    "onboardingTour.teacherHome.step2Body":
+      "Touchez « Cahier de notes » pour saisir les notes des évaluations en attente.",
+    "onboardingTour.teacherHome.step3Title": "Une aide toujours disponible",
+    "onboardingTour.teacherHome.step3Body":
+      "Touchez ce bouton à tout moment pour revoir cette présentation du tableau de bord.",
 
     // Placeholder screen
     "placeholder.subtitle": "Module en cours de développement",
@@ -4156,6 +4329,33 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.sections.byClass.title": "By-class view",
     "discipline.sections.byClass.subtitle": "Select a year and a class.",
 
+    "discipline.teacherHelp.menuLabel": "Help",
+    "discipline.teacherHelp.close": "Got it",
+    "discipline.teacherHelp.events.title": "How to use the Events tab",
+    "discipline.teacherHelp.events.section1Title": "Filter by student",
+    "discipline.teacherHelp.events.section1Body":
+      "Choose a student from the list to only show their events, or leave it empty to see the whole class.",
+    "discipline.teacherHelp.events.section2Title": "Report an event",
+    "discipline.teacherHelp.events.section2Body":
+      "Tap the + button to report an absence, a tardy, a sanction or a punishment.",
+    "discipline.teacherHelp.carnets.title": "How to use the Booklets tab",
+    "discipline.teacherHelp.carnets.section1Title": "Check a student's booklet",
+    "discipline.teacherHelp.carnets.section1Body":
+      "Choose a student to see the summary of their absences, tardies, sanctions and punishments.",
+
+    "onboardingTour.teacherDiscipline.step1Title": "Two tabs",
+    "onboardingTour.teacherDiscipline.step1Body":
+      "Switch from the class's recent events to a student's detailed booklet.",
+    "onboardingTour.teacherDiscipline.step2Title": "Filter by student",
+    "onboardingTour.teacherDiscipline.step2Body":
+      "Choose a student from the list to only show their events.",
+    "onboardingTour.teacherDiscipline.step3Title": "Report an event",
+    "onboardingTour.teacherDiscipline.step3Body":
+      "Tap this button to report an absence, a tardy, a sanction or a punishment.",
+    "onboardingTour.teacherDiscipline.step4Title": "Help is always available",
+    "onboardingTour.teacherDiscipline.step4Body":
+      'Tap this button at any time, then "Help" in the menu, for a reminder tailored to the tab you\'re viewing.',
+
     "discipline.filters.title": "Filters",
     "discipline.filters.student": "Student",
     "discipline.filters.allStudents": "All students",
@@ -4434,6 +4634,26 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.filters.apply": "Apply",
     "resources.filters.close": "Close",
 
+    "resources.help.menuLabel": "Help",
+    "resources.help.title": "Resources",
+    "resources.help.close": "Close",
+    "resources.help.section1Title": "Find a resource",
+    "resources.help.section1Body":
+      "Use the Assessments/Exams tabs to switch resource type, and the search field to find a resource by title. Tap the filter icon to narrow down by year, school, level or type.",
+    "resources.help.section2Title": "View and track",
+    "resources.help.section2Body":
+      "Tap a card to view its statement or correction. The favorite icon lets you quickly find a resource again later from the Favorites tab.",
+
+    "onboardingTour.resources.step1Title": "Resource types",
+    "onboardingTour.resources.step1Body":
+      "Switch between Assessments, Exams and your Favorites with these tabs.",
+    "onboardingTour.resources.step2Title": "Search and filter",
+    "onboardingTour.resources.step2Body":
+      "Search for a resource by title, or tap the filter icon to narrow down by year, school, level or type.",
+    "onboardingTour.resources.step3Title": "Need help?",
+    "onboardingTour.resources.step3Body":
+      'Tap this button, then "Help" in the menu, to find these explanations again at any time.',
+
     "resources.form.duplicateWarningTitle": "This resource may already exist",
     "resources.form.duplicateWarningMessage":
       "One or more similar resources already exist. Do you really want to create this one?",
@@ -4646,6 +4866,44 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.teacherAgenda.admin.selectionBanner.userPrefix": "Schedule for",
     "timetable.teacherAgenda.admin.selectionBanner.classPrefix": "Class",
     "timetable.teacherAgenda.admin.selectionBanner.clear": "Clear selection",
+
+    "timetable.teacherAgenda.help.menuLabel": "Help",
+    "timetable.teacherAgenda.help.close": "Got it",
+    "timetable.teacherAgenda.help.mine.title": "How to use your agenda",
+    "timetable.teacherAgenda.help.mine.section1Title": "Switch views",
+    "timetable.teacherAgenda.help.mine.section1Body":
+      "Tap Day, Week or Month to change how your personal schedule is displayed.",
+    "timetable.teacherAgenda.help.mine.section2Title": "Navigate through time",
+    "timetable.teacherAgenda.help.mine.section2Body":
+      "Use the arrows to move to the previous or next period, or tap the label to jump back to today.",
+    "timetable.teacherAgenda.help.mine.section3Title": "Check a course",
+    "timetable.teacherAgenda.help.mine.section3Body":
+      "Tap a course card to see the class, subject, room, and to edit or cancel that slot if needed.",
+    "timetable.teacherAgenda.help.classes.title":
+      "How to use your classes' agenda",
+    "timetable.teacherAgenda.help.classes.section1Title": "Choose a class",
+    "timetable.teacherAgenda.help.classes.section1Body":
+      "Tap a class in the list at the top of the screen to display its full timetable.",
+    "timetable.teacherAgenda.help.classes.section2Title":
+      "Switch views and navigate",
+    "timetable.teacherAgenda.help.classes.section2Body":
+      "Just like your personal agenda, switch between Day/Week/Month and use the arrows to change period.",
+    "timetable.teacherAgenda.help.classes.section3Title": "Check a course",
+    "timetable.teacherAgenda.help.classes.section3Body":
+      "Tap a course card to see the full detail of that slot for this class.",
+
+    "onboardingTour.teacherAgenda.step1Title": "Two views",
+    "onboardingTour.teacherAgenda.step1Body":
+      "Tap a tab to switch between your personal agenda and your classes' timetable.",
+    "onboardingTour.teacherAgenda.step2Title": "Switch views",
+    "onboardingTour.teacherAgenda.step2Body":
+      "Tap Day, Week or Month to change how the schedule is displayed.",
+    "onboardingTour.teacherAgenda.step3Title": "Navigate through time",
+    "onboardingTour.teacherAgenda.step3Body":
+      "Use the arrows to move to the previous or next period, or tap the label to jump back to today.",
+    "onboardingTour.teacherAgenda.step4Title": "Help is always available",
+    "onboardingTour.teacherAgenda.step4Body":
+      'Tap this button at any time, then "Help" in the menu, for a reminder tailored to the tab you\'re viewing.',
 
     "timetable.classManager.defaultTitle": "Timetable",
     "timetable.classManager.headerSubtitle": "Class timetable",
@@ -4884,6 +5142,26 @@ export const translations: Record<Locale, Record<string, string>> = {
     "messaging.list.unknownSender": "Unknown sender",
     "messaging.list.recipientSingular": "1 recipient",
     "messaging.list.recipientPlural": "{count} recipients",
+
+    "messaging.help.menuLabel": "Help",
+    "messaging.help.title": "Messaging",
+    "messaging.help.close": "Close",
+    "messaging.help.section1Title": "Organize your messages",
+    "messaging.help.section1Body":
+      "Use the Inbox, Sent, Drafts and Archive tabs to find your messages by status.",
+    "messaging.help.section2Title": "Write a message",
+    "messaging.help.section2Body":
+      "Tap the + button to compose a new message. A message in progress is automatically saved in the Drafts tab.",
+
+    "onboardingTour.messages.step1Title": "Your folders",
+    "onboardingTour.messages.step1Body":
+      "Switch between Inbox, Sent, Drafts and Archive with these tabs.",
+    "onboardingTour.messages.step2Title": "Write a message",
+    "onboardingTour.messages.step2Body":
+      "Tap this button to compose a new message.",
+    "onboardingTour.messages.step3Title": "Need help?",
+    "onboardingTour.messages.step3Body":
+      'Tap this button, then "Help" in the menu, to find these explanations again at any time.',
 
     "messaging.compose.titleNew": "New message",
     "messaging.compose.titleReply": "Reply",
@@ -5590,6 +5868,16 @@ export const translations: Record<Locale, Record<string, string>> = {
       "The filter button on the right opens a panel where you can combine several post types (featured, polls) and show only your own posts.",
     "feed.classLife.help.body3":
       "Once you've made your selection, confirm with Apply to update the list.",
+    "feed.classLife.help.menuLabel": "Help",
+    "feed.classLife.help.section1Title": "Search for a post",
+    "feed.classLife.help.section1Body":
+      "Use the search bar to find a post by keyword.",
+    "feed.classLife.help.section2Title": "Filter by type",
+    "feed.classLife.help.section2Body":
+      "The filter button on the right opens a panel where you can combine several post types (featured, polls) and show only your own posts.",
+    "feed.classLife.help.section3Title": "Apply the filters",
+    "feed.classLife.help.section3Body":
+      "Once you've made your selection, confirm with Apply to update the list.",
 
     "feed.page.title": "News feed",
     "feed.page.endOfList": "You have reached the end of the feed",
@@ -5865,6 +6153,40 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.toast.updateTitle": "Evaluation updated",
     "notes.manager.toast.updateMessage": "The changes have been saved.",
 
+    "notes.manager.help.menuLabel": "Help",
+    "notes.manager.help.close": "Got it",
+    "notes.manager.help.evaluations.title": "How to use the Evaluations tab",
+    "notes.manager.help.evaluations.section1Title": "Search and filter",
+    "notes.manager.help.evaluations.section1Body":
+      "Use the search to find an evaluation by title, or tap the filter icon to narrow down by type, sequence or entry status.",
+    "notes.manager.help.evaluations.section2Title": "Create an evaluation",
+    "notes.manager.help.evaluations.section2Body":
+      "Tap the + button to create a new evaluation with its scale and date.",
+    "notes.manager.help.evaluations.section3Title": "Enter scores",
+    "notes.manager.help.evaluations.section3Body":
+      "Tap an evaluation to see its detail and enter or edit student scores.",
+    "notes.manager.help.notes.title": "How to use the Notes tab",
+    "notes.manager.help.notes.section1Title": "Look up a student",
+    "notes.manager.help.notes.section1Body":
+      "Search for a student to see all their scores and averages, subject by subject.",
+    "notes.manager.help.reports.title": "How to use the Reports tab",
+    "notes.manager.help.reports.section1Title": "Write assessments",
+    "notes.manager.help.reports.section1Body":
+      "Choose the sequence then tap a student to write or edit their class-council assessment.",
+
+    "onboardingTour.teacherNotes.step1Title": "Three tabs",
+    "onboardingTour.teacherNotes.step1Body":
+      "Switch from evaluations to per-student scores, then to class-council reports.",
+    "onboardingTour.teacherNotes.step2Title": "Search and filter",
+    "onboardingTour.teacherNotes.step2Body":
+      "Tap the filter icon to narrow down the evaluation list by type, sequence or entry status.",
+    "onboardingTour.teacherNotes.step3Title": "Create an evaluation",
+    "onboardingTour.teacherNotes.step3Body":
+      "Tap this button to create a new evaluation with its scale and date.",
+    "onboardingTour.teacherNotes.step4Title": "Help is always available",
+    "onboardingTour.teacherNotes.step4Body":
+      'Tap this button at any time, then "Help" in the menu, for a reminder tailored to the tab you\'re viewing.',
+
     "notes.child.title": "Evaluations and averages",
     "notes.child.subtitle.student": "Student",
     "notes.child.help.menuLabel": "Help",
@@ -6086,6 +6408,26 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.parent.help.body3":
       "You can replay the menu discovery tour at any time by tapping this help icon again.",
     "home.parent.help.close": "Close",
+
+    "home.teacher.help.toggle": "Help on this page",
+    "home.teacher.help.title": "Your teacher dashboard",
+    "home.teacher.help.section1Title": "Open a class",
+    "home.teacher.help.section1Body":
+      "Tap a class card to open its quick menu (timetable, grades, discipline, class life).",
+    "home.teacher.help.section2Title": "Track evaluations",
+    "home.teacher.help.section2Body":
+      'The "Evaluations to grade" section lists your evaluations awaiting scores; tap "Grade book" to open the full module.',
+    "home.teacher.help.close": "Got it",
+
+    "onboardingTour.teacherHome.step1Title": "Your classes",
+    "onboardingTour.teacherHome.step1Body":
+      "Tap a class card to quickly open its timetable, grades, discipline or class life.",
+    "onboardingTour.teacherHome.step2Title": "Pending evaluations",
+    "onboardingTour.teacherHome.step2Body":
+      'Tap "Grade book" to enter scores for evaluations awaiting grading.',
+    "onboardingTour.teacherHome.step3Title": "Help is always available",
+    "onboardingTour.teacherHome.step3Body":
+      "Tap this button at any time to replay this dashboard overview.",
 
     // Placeholder screen
     "placeholder.subtitle": "Module under development",

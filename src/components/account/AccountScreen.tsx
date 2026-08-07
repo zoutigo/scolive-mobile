@@ -151,10 +151,15 @@ function extractAvailableRoles(
   profile: AccountProfileResponse | null,
 ): AppRole[] {
   if (!profile) return [];
+  const activeSchoolId =
+    profile.activeSchoolId ?? profile.schools?.[0]?.schoolId ?? null;
   const roles = new Set<AppRole>();
   for (const role of profile.platformRoles ?? []) roles.add(role);
-  for (const membership of profile.memberships ?? [])
-    roles.add(membership.role);
+  for (const membership of profile.memberships ?? []) {
+    if (membership.schoolId === activeSchoolId) {
+      roles.add(membership.role);
+    }
+  }
   if (profile.role) roles.add(profile.role);
   if (profile.activeRole) roles.add(profile.activeRole);
   return Array.from(roles);

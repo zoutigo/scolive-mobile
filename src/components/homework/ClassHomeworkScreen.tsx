@@ -1061,12 +1061,16 @@ export function ClassHomeworkScreen({
 
   const viewType = user ? getViewType(user) : "unknown";
   const canManageAll = viewType === "teacher" || viewType === "school";
+  // Le tour + la modale d'aide sont utiles à l'élève qui consulte ses
+  // propres devoirs comme au parent qui consulte ceux d'un enfant — jamais
+  // aux vues enseignant/école qui gèrent la classe entière.
+  const isTourEligibleViewer = viewType === "student" || viewType === "parent";
   const today = useMemo(() => stripTime(new Date()), []);
   const [tab, setTab] = useState<HomeworkTabKey>("list");
 
   useOnboardingTourTrigger({
     tourId: HOMEWORK_TOUR_ID,
-    role: "student",
+    role: viewType === "parent" ? "parent" : "student",
     steps: HOMEWORK_TOUR_STEPS,
   });
   const homeworkTourActiveTourId = useOnboardingTourStore(
@@ -1257,7 +1261,7 @@ export function ClassHomeworkScreen({
     [classId, t, today],
   );
   const showFallbackHomeworkCard =
-    viewType === "student" &&
+    isTourEligibleViewer &&
     isHomeworkTourActive &&
     tab === "list" &&
     visibleListItems.length === 0;
@@ -1703,7 +1707,7 @@ export function ClassHomeworkScreen({
             titleTestID="class-homework-header-title"
             subtitleTestID="class-homework-header-subtitle"
             topInset={insets.top}
-            {...(viewType === "student"
+            {...(isTourEligibleViewer
               ? {
                   helpAction: {
                     label: t("homework.help.menuLabel"),
@@ -1720,7 +1724,7 @@ export function ClassHomeworkScreen({
           <LoadingBlock label={t("homework.loading.module")} />
         ) : (
           <View style={styles.tabsSection} testID="class-homework-tabs-section">
-            {viewType === "student" ? (
+            {isTourEligibleViewer ? (
               <OnboardingTarget id={HOMEWORK_TOUR_TARGETS.tabs}>
                 <UnderlineTabs
                   items={buildHomeworkTabs(t).map((entry) => ({
@@ -2223,7 +2227,7 @@ export function ClassHomeworkScreen({
           keyExtractor={(item) => item.id}
           renderItem={({ item, index }) => {
             const isFallback = item.id === HOMEWORK_TOUR_FALLBACK_ID;
-            const isFirstTourTarget = viewType === "student" && index === 0;
+            const isFirstTourTarget = isTourEligibleViewer && index === 0;
             return (
               <HomeworkCard
                 item={item}
@@ -2519,7 +2523,7 @@ export function ClassHomeworkScreen({
         onConfirm={() => void handleDeleteHomework()}
       />
 
-      {viewType === "student" ? (
+      {isTourEligibleViewer ? (
         <PageHelpModal
           visible={helpVisible}
           onClose={() => setHelpVisible(false)}

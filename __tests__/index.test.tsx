@@ -10,6 +10,12 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
   usePathname: () => "/",
   useLocalSearchParams: jest.fn(() => ({})),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<
@@ -34,7 +40,7 @@ function setupStore(overrides: {
   schoolSlug?: string | null;
   authErrorMessage?: string | null;
 }) {
-  mockUseAuthStore.mockReturnValue({
+  const state = {
     isAuthenticated: overrides.isAuthenticated,
     isLoading: overrides.isLoading,
     user: overrides.user ?? null,
@@ -43,7 +49,10 @@ function setupStore(overrides: {
     authErrorMessage: overrides.authErrorMessage ?? null,
     clearAuthError: jest.fn(),
     logout: jest.fn(),
-  } as ReturnType<typeof useAuthStore>);
+  } as ReturnType<typeof useAuthStore>;
+  mockUseAuthStore.mockImplementation(((
+    selector?: (s: typeof state) => unknown,
+  ) => (selector ? selector(state) : state)) as typeof useAuthStore);
 }
 
 beforeEach(() => {

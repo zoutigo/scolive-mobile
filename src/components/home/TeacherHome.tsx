@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -23,6 +23,14 @@ import { useDrawer } from "../navigation/AppShell";
 import { useHeaderScroll } from "../navigation/header-scroll-context";
 import { minuteToTimeLabel, parseDateInput } from "../../utils/timetable";
 import { useTranslation } from "../../i18n/useTranslation";
+import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { PageHelpModal } from "../help/PageHelpModal";
+import {
+  TEACHER_HOME_TOUR_ID,
+  TEACHER_HOME_TOUR_STEPS,
+  TEACHER_HOME_TOUR_TARGETS,
+} from "./teacher-home-tour.config";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const CARD_GAP = 8;
@@ -78,6 +86,7 @@ function SectionCard({
   onHeaderPress,
   children,
   testID,
+  linkTourTargetId,
 }: {
   title: string;
   icon: string;
@@ -88,7 +97,23 @@ function SectionCard({
   onHeaderPress?: () => void;
   children: React.ReactNode;
   testID?: string;
+  /** Onboarding tour target id wrapping the "Voir tout" link, if it should be spotlighted. */
+  linkTourTargetId?: string;
 }) {
+  const link = onHeaderPress ? (
+    <TouchableOpacity
+      style={styles.sectionLinkBtn}
+      onPress={onHeaderPress}
+      activeOpacity={0.7}
+      testID={testID ? `${testID}-link` : undefined}
+    >
+      <Text style={[styles.sectionLinkText, { color }]}>
+        {linkLabel ?? "Voir tout"}
+      </Text>
+      <Ionicons name="arrow-forward" size={11} color={color} />
+    </TouchableOpacity>
+  ) : null;
+
   return (
     <View style={styles.sectionCard} testID={testID}>
       <View style={styles.sectionHeader}>
@@ -110,19 +135,11 @@ function SectionCard({
             </View>
           ) : null}
         </View>
-        {onHeaderPress ? (
-          <TouchableOpacity
-            style={styles.sectionLinkBtn}
-            onPress={onHeaderPress}
-            activeOpacity={0.7}
-            testID={testID ? `${testID}-link` : undefined}
-          >
-            <Text style={[styles.sectionLinkText, { color }]}>
-              {linkLabel ?? "Voir tout"}
-            </Text>
-            <Ionicons name="arrow-forward" size={11} color={color} />
-          </TouchableOpacity>
-        ) : null}
+        {link && linkTourTargetId ? (
+          <OnboardingTarget id={linkTourTargetId}>{link}</OnboardingTarget>
+        ) : (
+          link
+        )}
       </View>
       <View style={styles.sectionBody}>{children}</View>
     </View>
@@ -183,6 +200,13 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
     schoolSlug,
     user.id,
   );
+  const [helpVisible, setHelpVisible] = useState(false);
+
+  useOnboardingTourTrigger({
+    tourId: TEACHER_HOME_TOUR_ID,
+    role: "teacher",
+    steps: TEACHER_HOME_TOUR_STEPS,
+  });
 
   const now = new Date();
   const todayLabel = `${DAY_LABELS[now.getDay()]} ${now.getDate()} ${MONTH_LABELS[now.getMonth()]} ${now.getFullYear()}`;
@@ -193,379 +217,425 @@ export function TeacherHome({ user, schoolSlug }: TeacherHomeProps) {
   }
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-      onScroll={onScroll}
-      scrollEventThrottle={16}
-      refreshControl={
-        <RefreshControl
-          refreshing={isLoading && !!data}
-          onRefresh={() => void refresh().catch(() => {})}
-          tintColor={colors.primary}
-        />
-      }
-      testID="teacher-home-scroll"
-    >
-      {/* Hero */}
-      <View style={styles.banner} testID="teacher-home-banner">
-        <View style={styles.bannerTop}>
-          <Text style={styles.greeting} numberOfLines={1}>
-            {t("home.hero.greeting")} {t("home.hero.role.teacher")}
-          </Text>
-          <View style={styles.rolePill}>
-            <Text style={styles.rolePillText}>
-              {t("home.hero.role.teacher")}
+    <>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading && !!data}
+            onRefresh={() => void refresh().catch(() => {})}
+            tintColor={colors.primary}
+          />
+        }
+        testID="teacher-home-scroll"
+      >
+        {/* Hero */}
+        <View style={styles.banner} testID="teacher-home-banner">
+          <View style={styles.bannerTop}>
+            <Text style={styles.greeting} numberOfLines={1}>
+              {t("home.hero.greeting")} {t("home.hero.role.teacher")}
+            </Text>
+            <OnboardingTarget id={TEACHER_HOME_TOUR_TARGETS.helpButton}>
+              <TouchableOpacity
+                style={styles.helpButton}
+                onPress={() => setHelpVisible(true)}
+                testID="teacher-home-help-toggle"
+                accessibilityLabel={t("home.teacher.help.toggle")}
+              >
+                <Ionicons
+                  name="help-circle-outline"
+                  size={20}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+            </OnboardingTarget>
+            <View style={styles.rolePill}>
+              <Text style={styles.rolePillText}>
+                {t("home.hero.role.teacher")}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.dateRow}>
+            <Text style={styles.dateText}>{todayLabel}</Text>
+          </View>
+        </View>
+
+        {/* Loading initial */}
+        {isLoading && !data ? (
+          <View style={styles.loadingCard} testID="dashboard-loading">
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.loadingText}>
+              Chargement du tableau de bord…
             </Text>
           </View>
-        </View>
-        <View style={styles.dateRow}>
-          <Text style={styles.dateText}>{todayLabel}</Text>
-        </View>
-      </View>
+        ) : null}
 
-      {/* Loading initial */}
-      {isLoading && !data ? (
-        <View style={styles.loadingCard} testID="dashboard-loading">
-          <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={styles.loadingText}>Chargement du tableau de bord…</Text>
-        </View>
-      ) : null}
-
-      {/* Erreur */}
-      {error && !data ? (
-        <View style={styles.errorCard} testID="dashboard-error">
-          <Ionicons
-            name="alert-circle-outline"
-            size={20}
-            color={ACCENT.evaluations}
-          />
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity
-            onPress={() => void refresh().catch(() => {})}
-            style={styles.retryBtn}
-            testID="dashboard-retry"
-          >
-            <Text style={styles.retryText}>Réessayer</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
-
-      {/* Grille classes — 3 colonnes, transparent, au flush du padding écran */}
-      <View style={styles.classesGrid} testID="section-classes">
-        {!data ? (
-          <EmptyRow icon="hourglass-outline" text="Chargement…" />
-        ) : data.classes.length === 0 ? (
-          <EmptyRow icon="school-outline" text="Aucune classe assignée" />
-        ) : (
-          <View style={styles.classesRow}>
-            {data.classes.map((cls, idx) => {
-              const bg = CLASS_PALETTE[idx % CLASS_PALETTE.length]!;
-              return (
-                <TouchableOpacity
-                  key={cls.classId}
-                  style={[styles.classCard, { backgroundColor: bg }]}
-                  onPress={() => openDrawerForClass(cls.classId)}
-                  activeOpacity={0.82}
-                  testID={`class-card-${cls.classId}`}
-                >
-                  {/* Cercle décoratif en filigrane */}
-                  <View style={styles.classCardDecor} pointerEvents="none" />
-
-                  {/* Ligne 1 : nom + nb élèves */}
-                  <View style={styles.classCardTopRow}>
-                    <Text style={styles.classCardName} numberOfLines={1}>
-                      {cls.className}
-                    </Text>
-                    <View style={styles.classCardCountPill}>
-                      <Text style={styles.classCardCountText}>
-                        {cls.studentCount}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Ligne 2 : devs + evals */}
-                  <Text style={styles.classCardStats}>
-                    {cls.openHomeworkCount}
-                    {" devs · "}
-                    {cls.pendingEvalCount}
-                    {" evals"}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+        {/* Erreur */}
+        {error && !data ? (
+          <View style={styles.errorCard} testID="dashboard-error">
+            <Ionicons
+              name="alert-circle-outline"
+              size={20}
+              color={ACCENT.evaluations}
+            />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity
+              onPress={() => void refresh().catch(() => {})}
+              style={styles.retryBtn}
+              testID="dashboard-retry"
+            >
+              <Text style={styles.retryText}>Réessayer</Text>
+            </TouchableOpacity>
           </View>
-        )}
-      </View>
+        ) : null}
 
-      {/* Messages non lus */}
-      <SectionCard
-        title={t("messaging.nav.unreadMessagesTitle")}
-        icon="chatbubble"
-        color={ACCENT.messages}
-        count={data?.unreadCount}
-        onHeaderPress={goToMessages}
-        linkLabel={t("messaging.title")}
-        testID="section-messages"
-      >
-        {!data ? (
-          <EmptyRow
-            icon="hourglass-outline"
-            text={t("messaging.nav.loading")}
-          />
-        ) : data.unreadCount === 0 ? (
-          <EmptyRow
-            icon="checkmark-circle-outline"
-            text={t("messaging.nav.noUnreadMessages")}
-          />
-        ) : (
-          data.unreadMessages.map((msg) => (
-            <DataRow
-              key={msg.id}
-              left={
-                <View
-                  style={[
-                    styles.rowIcon,
-                    { backgroundColor: ACCENT.messages + "1A" },
-                  ]}
-                >
-                  <Ionicons
-                    name="chatbubble-outline"
-                    size={15}
-                    color={ACCENT.messages}
-                  />
-                </View>
-              }
-              onPress={goToMessages}
-              testID={`message-row-${msg.id}`}
-            >
-              <Text style={styles.rowTitle} numberOfLines={1}>
-                {msg.subject}
-              </Text>
-              {msg.sender ? (
-                <Text style={styles.rowSubtitle} numberOfLines={1}>
-                  {msg.sender.firstName} {msg.sender.lastName}
-                </Text>
-              ) : null}
-            </DataRow>
-          ))
-        )}
-      </SectionCard>
-
-      {/* Emploi du temps du jour */}
-      <SectionCard
-        title="Emploi du temps du jour"
-        icon="calendar"
-        color={ACCENT.timetable}
-        subtitle={todayLabel}
-        onHeaderPress={() => router.push("/(home)/agenda")}
-        linkLabel="Agenda"
-        testID="section-timetable"
-      >
-        {!data ? (
-          <EmptyRow icon="hourglass-outline" text="Chargement…" />
-        ) : data.todaySlots.length === 0 ? (
-          <EmptyRow
-            icon="calendar-clear-outline"
-            text="Aucun cours planifié aujourd'hui"
-          />
-        ) : (
-          data.todaySlots.map((slot) => (
-            <DataRow
-              key={slot.id}
-              left={
-                <View
-                  style={[
-                    styles.timeBadge,
-                    {
-                      backgroundColor: ACCENT.timetable + "1A",
-                      borderColor: ACCENT.timetable + "30",
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[styles.timeBadgeText, { color: ACCENT.timetable }]}
+        {/* Grille classes — 3 colonnes, transparent, au flush du padding écran */}
+        <OnboardingTarget
+          id={TEACHER_HOME_TOUR_TARGETS.classesGrid}
+          style={styles.classesGrid}
+          testID="section-classes"
+        >
+          {!data ? (
+            <EmptyRow icon="hourglass-outline" text="Chargement…" />
+          ) : data.classes.length === 0 ? (
+            <EmptyRow icon="school-outline" text="Aucune classe assignée" />
+          ) : (
+            <View style={styles.classesRow}>
+              {data.classes.map((cls, idx) => {
+                const bg = CLASS_PALETTE[idx % CLASS_PALETTE.length]!;
+                return (
+                  <TouchableOpacity
+                    key={cls.classId}
+                    style={[styles.classCard, { backgroundColor: bg }]}
+                    onPress={() => openDrawerForClass(cls.classId)}
+                    activeOpacity={0.82}
+                    testID={`class-card-${cls.classId}`}
                   >
-                    {minuteToTimeLabel(slot.startMinute)}
-                  </Text>
-                  <Text style={styles.timeSep}>→</Text>
-                  <Text
-                    style={[styles.timeBadgeText, { color: ACCENT.timetable }]}
-                  >
-                    {minuteToTimeLabel(slot.endMinute)}
-                  </Text>
-                </View>
-              }
-              onPress={() => router.push("/(home)/agenda")}
-              testID={`timetable-slot-${slot.id}`}
-            >
-              <Text style={styles.rowTitle} numberOfLines={1}>
-                {slot.subject.name}
-              </Text>
-              <View style={styles.slotMeta}>
-                <Text style={styles.rowSubtitle}>{slot.className}</Text>
-                {slot.room ? (
-                  <Text style={styles.rowSubtitle}> · {slot.room}</Text>
-                ) : null}
-              </View>
-            </DataRow>
-          ))
-        )}
-      </SectionCard>
+                    {/* Cercle décoratif en filigrane */}
+                    <View style={styles.classCardDecor} pointerEvents="none" />
 
-      {/* Évaluations à saisir */}
-      <SectionCard
-        title="Évaluations à saisir"
-        icon="journal"
-        color={ACCENT.evaluations}
-        count={data?.pendingEvaluations.length}
-        onHeaderPress={() => router.push("/(home)/notes")}
-        linkLabel="Cahier de notes"
-        testID="section-evaluations"
-      >
-        {!data ? (
-          <EmptyRow icon="hourglass-outline" text="Chargement…" />
-        ) : data.pendingEvaluations.length === 0 ? (
-          <EmptyRow
-            icon="checkmark-circle-outline"
-            text="Toutes les notes sont à jour"
-          />
-        ) : (
-          data.pendingEvaluations.map((item) => (
-            <DataRow
-              key={item.evaluation.id}
-              left={
-                <View
-                  style={[
-                    styles.rowIcon,
-                    { backgroundColor: ACCENT.evaluations + "1A" },
-                  ]}
-                >
-                  <Ionicons
-                    name="create-outline"
-                    size={15}
-                    color={ACCENT.evaluations}
-                  />
-                </View>
-              }
-              right={
-                <View
-                  style={[
-                    styles.scoreBadge,
-                    { borderColor: ACCENT.evaluations + "40" },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.scoreBadgeText,
-                      { color: ACCENT.evaluations },
-                    ]}
-                  >
-                    {item.evaluation._count.scores}/{item.studentCount}
-                  </Text>
-                </View>
-              }
-              onPress={() =>
-                router.push(buildTeacherClassNotesTarget(item.classId))
-              }
-              testID={`eval-row-${item.evaluation.id}`}
-            >
-              <Text style={styles.rowTitle} numberOfLines={1}>
-                {item.evaluation.title}
-              </Text>
-              <Text style={styles.rowSubtitle} numberOfLines={1}>
-                {item.className}
-              </Text>
-            </DataRow>
-          ))
-        )}
-      </SectionCard>
+                    {/* Ligne 1 : nom + nb élèves */}
+                    <View style={styles.classCardTopRow}>
+                      <Text style={styles.classCardName} numberOfLines={1}>
+                        {cls.className}
+                      </Text>
+                      <View style={styles.classCardCountPill}>
+                        <Text style={styles.classCardCountText}>
+                          {cls.studentCount}
+                        </Text>
+                      </View>
+                    </View>
 
-      {/* Devoirs */}
-      <SectionCard
-        title={t("homework.label")}
-        icon="document-text"
-        color={ACCENT.homework}
-        count={data?.openHomework.length}
-        onHeaderPress={() => router.push("/(home)/notes")}
-        linkLabel="Voir tout"
-        testID="section-homework"
-      >
-        {!data ? (
-          <EmptyRow icon="hourglass-outline" text="Chargement…" />
-        ) : data.openHomework.length === 0 ? (
-          <EmptyRow
-            icon="checkmark-circle-outline"
-            text={t("homework.section.empty")}
-          />
-        ) : (
-          data.openHomework.map((item) => {
-            const done = item.homework.summary?.doneStudents ?? 0;
-            const total = item.totalStudents;
-            return (
+                    {/* Ligne 2 : devs + evals */}
+                    <Text style={styles.classCardStats}>
+                      {cls.openHomeworkCount}
+                      {" devs · "}
+                      {cls.pendingEvalCount}
+                      {" evals"}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </OnboardingTarget>
+
+        {/* Messages non lus */}
+        <SectionCard
+          title={t("messaging.nav.unreadMessagesTitle")}
+          icon="chatbubble"
+          color={ACCENT.messages}
+          count={data?.unreadCount}
+          onHeaderPress={goToMessages}
+          linkLabel={t("messaging.title")}
+          testID="section-messages"
+        >
+          {!data ? (
+            <EmptyRow
+              icon="hourglass-outline"
+              text={t("messaging.nav.loading")}
+            />
+          ) : data.unreadCount === 0 ? (
+            <EmptyRow
+              icon="checkmark-circle-outline"
+              text={t("messaging.nav.noUnreadMessages")}
+            />
+          ) : (
+            data.unreadMessages.map((msg) => (
               <DataRow
-                key={item.homework.id}
+                key={msg.id}
                 left={
                   <View
                     style={[
                       styles.rowIcon,
-                      { backgroundColor: ACCENT.homework + "1A" },
+                      { backgroundColor: ACCENT.messages + "1A" },
                     ]}
                   >
                     <Ionicons
-                      name="document-text-outline"
+                      name="chatbubble-outline"
                       size={15}
-                      color={ACCENT.homework}
+                      color={ACCENT.messages}
+                    />
+                  </View>
+                }
+                onPress={goToMessages}
+                testID={`message-row-${msg.id}`}
+              >
+                <Text style={styles.rowTitle} numberOfLines={1}>
+                  {msg.subject}
+                </Text>
+                {msg.sender ? (
+                  <Text style={styles.rowSubtitle} numberOfLines={1}>
+                    {msg.sender.firstName} {msg.sender.lastName}
+                  </Text>
+                ) : null}
+              </DataRow>
+            ))
+          )}
+        </SectionCard>
+
+        {/* Emploi du temps du jour */}
+        <SectionCard
+          title="Emploi du temps du jour"
+          icon="calendar"
+          color={ACCENT.timetable}
+          subtitle={todayLabel}
+          onHeaderPress={() => router.push("/(home)/agenda")}
+          linkLabel="Agenda"
+          testID="section-timetable"
+        >
+          {!data ? (
+            <EmptyRow icon="hourglass-outline" text="Chargement…" />
+          ) : data.todaySlots.length === 0 ? (
+            <EmptyRow
+              icon="calendar-clear-outline"
+              text="Aucun cours planifié aujourd'hui"
+            />
+          ) : (
+            data.todaySlots.map((slot) => (
+              <DataRow
+                key={slot.id}
+                left={
+                  <View
+                    style={[
+                      styles.timeBadge,
+                      {
+                        backgroundColor: ACCENT.timetable + "1A",
+                        borderColor: ACCENT.timetable + "30",
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.timeBadgeText,
+                        { color: ACCENT.timetable },
+                      ]}
+                    >
+                      {minuteToTimeLabel(slot.startMinute)}
+                    </Text>
+                    <Text style={styles.timeSep}>→</Text>
+                    <Text
+                      style={[
+                        styles.timeBadgeText,
+                        { color: ACCENT.timetable },
+                      ]}
+                    >
+                      {minuteToTimeLabel(slot.endMinute)}
+                    </Text>
+                  </View>
+                }
+                onPress={() => router.push("/(home)/agenda")}
+                testID={`timetable-slot-${slot.id}`}
+              >
+                <Text style={styles.rowTitle} numberOfLines={1}>
+                  {slot.subject.name}
+                </Text>
+                <View style={styles.slotMeta}>
+                  <Text style={styles.rowSubtitle}>{slot.className}</Text>
+                  {slot.room ? (
+                    <Text style={styles.rowSubtitle}> · {slot.room}</Text>
+                  ) : null}
+                </View>
+              </DataRow>
+            ))
+          )}
+        </SectionCard>
+
+        {/* Évaluations à saisir */}
+        <SectionCard
+          title="Évaluations à saisir"
+          icon="journal"
+          color={ACCENT.evaluations}
+          count={data?.pendingEvaluations.length}
+          onHeaderPress={() => router.push("/(home)/notes")}
+          linkLabel="Cahier de notes"
+          testID="section-evaluations"
+          linkTourTargetId={TEACHER_HOME_TOUR_TARGETS.evaluationsLink}
+        >
+          {!data ? (
+            <EmptyRow icon="hourglass-outline" text="Chargement…" />
+          ) : data.pendingEvaluations.length === 0 ? (
+            <EmptyRow
+              icon="checkmark-circle-outline"
+              text="Toutes les notes sont à jour"
+            />
+          ) : (
+            data.pendingEvaluations.map((item) => (
+              <DataRow
+                key={item.evaluation.id}
+                left={
+                  <View
+                    style={[
+                      styles.rowIcon,
+                      { backgroundColor: ACCENT.evaluations + "1A" },
+                    ]}
+                  >
+                    <Ionicons
+                      name="create-outline"
+                      size={15}
+                      color={ACCENT.evaluations}
                     />
                   </View>
                 }
                 right={
-                  <View style={styles.hwRight}>
-                    <View
+                  <View
+                    style={[
+                      styles.scoreBadge,
+                      { borderColor: ACCENT.evaluations + "40" },
+                    ]}
+                  >
+                    <Text
                       style={[
-                        styles.scoreBadge,
-                        { borderColor: ACCENT.homework + "40" },
+                        styles.scoreBadgeText,
+                        { color: ACCENT.evaluations },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.scoreBadgeText,
-                          { color: ACCENT.homework },
-                        ]}
-                      >
-                        {done}/{total}
-                      </Text>
-                    </View>
-                    <View style={styles.dueBadge}>
-                      <Ionicons
-                        name="calendar-outline"
-                        size={10}
-                        color={colors.textSecondary}
-                      />
-                      <Text style={styles.dueDateText}>
-                        {formatShortDate(item.homework.expectedAt)}
-                      </Text>
-                    </View>
+                      {item.evaluation._count.scores}/{item.studentCount}
+                    </Text>
                   </View>
                 }
                 onPress={() =>
-                  router.push(buildTeacherClassHomeworkTarget(item.classId))
+                  router.push(buildTeacherClassNotesTarget(item.classId))
                 }
-                testID={`homework-row-${item.homework.id}`}
+                testID={`eval-row-${item.evaluation.id}`}
               >
                 <Text style={styles.rowTitle} numberOfLines={1}>
-                  {item.homework.title}
+                  {item.evaluation.title}
                 </Text>
                 <Text style={styles.rowSubtitle} numberOfLines={1}>
                   {item.className}
                 </Text>
               </DataRow>
-            );
-          })
-        )}
-      </SectionCard>
-    </ScrollView>
+            ))
+          )}
+        </SectionCard>
+
+        {/* Devoirs */}
+        <SectionCard
+          title={t("homework.label")}
+          icon="document-text"
+          color={ACCENT.homework}
+          count={data?.openHomework.length}
+          onHeaderPress={() => router.push("/(home)/notes")}
+          linkLabel="Voir tout"
+          testID="section-homework"
+        >
+          {!data ? (
+            <EmptyRow icon="hourglass-outline" text="Chargement…" />
+          ) : data.openHomework.length === 0 ? (
+            <EmptyRow
+              icon="checkmark-circle-outline"
+              text={t("homework.section.empty")}
+            />
+          ) : (
+            data.openHomework.map((item) => {
+              const done = item.homework.summary?.doneStudents ?? 0;
+              const total = item.totalStudents;
+              return (
+                <DataRow
+                  key={item.homework.id}
+                  left={
+                    <View
+                      style={[
+                        styles.rowIcon,
+                        { backgroundColor: ACCENT.homework + "1A" },
+                      ]}
+                    >
+                      <Ionicons
+                        name="document-text-outline"
+                        size={15}
+                        color={ACCENT.homework}
+                      />
+                    </View>
+                  }
+                  right={
+                    <View style={styles.hwRight}>
+                      <View
+                        style={[
+                          styles.scoreBadge,
+                          { borderColor: ACCENT.homework + "40" },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.scoreBadgeText,
+                            { color: ACCENT.homework },
+                          ]}
+                        >
+                          {done}/{total}
+                        </Text>
+                      </View>
+                      <View style={styles.dueBadge}>
+                        <Ionicons
+                          name="calendar-outline"
+                          size={10}
+                          color={colors.textSecondary}
+                        />
+                        <Text style={styles.dueDateText}>
+                          {formatShortDate(item.homework.expectedAt)}
+                        </Text>
+                      </View>
+                    </View>
+                  }
+                  onPress={() =>
+                    router.push(buildTeacherClassHomeworkTarget(item.classId))
+                  }
+                  testID={`homework-row-${item.homework.id}`}
+                >
+                  <Text style={styles.rowTitle} numberOfLines={1}>
+                    {item.homework.title}
+                  </Text>
+                  <Text style={styles.rowSubtitle} numberOfLines={1}>
+                    {item.className}
+                  </Text>
+                </DataRow>
+              );
+            })
+          )}
+        </SectionCard>
+      </ScrollView>
+      <PageHelpModal
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        title={t("home.teacher.help.title")}
+        sections={[
+          {
+            title: t("home.teacher.help.section1Title"),
+            body: [t("home.teacher.help.section1Body")],
+          },
+          {
+            title: t("home.teacher.help.section2Title"),
+            body: [t("home.teacher.help.section2Body")],
+          },
+        ]}
+        closeLabel={t("home.teacher.help.close")}
+        testID="teacher-home-help-modal"
+      />
+    </>
   );
 }
 
@@ -593,6 +663,16 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
     color: colors.textPrimary,
+  },
+  helpButton: {
+    flexShrink: 0,
+    marginLeft: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: `${colors.primary}14`,
   },
   rolePill: {
     flexShrink: 0,

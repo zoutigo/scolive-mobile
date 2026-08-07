@@ -182,6 +182,141 @@ describe("onboardingTour.* translations", () => {
     }
   });
 
+  it("has the teacher-agenda tour steps and per-tab help modal content in both locales", () => {
+    const requiredKeys = [
+      "onboardingTour.teacherAgenda.step1Title",
+      "onboardingTour.teacherAgenda.step1Body",
+      "onboardingTour.teacherAgenda.step2Title",
+      "onboardingTour.teacherAgenda.step2Body",
+      "onboardingTour.teacherAgenda.step3Title",
+      "onboardingTour.teacherAgenda.step3Body",
+      "onboardingTour.teacherAgenda.step4Title",
+      "onboardingTour.teacherAgenda.step4Body",
+      "timetable.teacherAgenda.help.menuLabel",
+      "timetable.teacherAgenda.help.close",
+      "timetable.teacherAgenda.help.mine.title",
+      "timetable.teacherAgenda.help.mine.section1Title",
+      "timetable.teacherAgenda.help.mine.section1Body",
+      "timetable.teacherAgenda.help.mine.section2Title",
+      "timetable.teacherAgenda.help.mine.section2Body",
+      "timetable.teacherAgenda.help.mine.section3Title",
+      "timetable.teacherAgenda.help.mine.section3Body",
+      "timetable.teacherAgenda.help.classes.title",
+      "timetable.teacherAgenda.help.classes.section1Title",
+      "timetable.teacherAgenda.help.classes.section1Body",
+      "timetable.teacherAgenda.help.classes.section2Title",
+      "timetable.teacherAgenda.help.classes.section2Body",
+      "timetable.teacherAgenda.help.classes.section3Title",
+      "timetable.teacherAgenda.help.classes.section3Body",
+    ];
+
+    for (const key of requiredKeys) {
+      expect(translations.fr[key]).toBeTruthy();
+      expect(translations.en[key]).toBeTruthy();
+    }
+  });
+
+  it("has the teacher-notes tour steps and per-tab help modal content in both locales", () => {
+    const requiredKeys = [
+      "onboardingTour.teacherNotes.step1Title",
+      "onboardingTour.teacherNotes.step1Body",
+      "onboardingTour.teacherNotes.step2Title",
+      "onboardingTour.teacherNotes.step2Body",
+      "onboardingTour.teacherNotes.step3Title",
+      "onboardingTour.teacherNotes.step3Body",
+      "onboardingTour.teacherNotes.step4Title",
+      "onboardingTour.teacherNotes.step4Body",
+      "notes.manager.help.menuLabel",
+      "notes.manager.help.close",
+      "notes.manager.help.evaluations.title",
+      "notes.manager.help.evaluations.section1Title",
+      "notes.manager.help.evaluations.section1Body",
+      "notes.manager.help.evaluations.section2Title",
+      "notes.manager.help.evaluations.section2Body",
+      "notes.manager.help.evaluations.section3Title",
+      "notes.manager.help.evaluations.section3Body",
+      "notes.manager.help.notes.title",
+      "notes.manager.help.notes.section1Title",
+      "notes.manager.help.notes.section1Body",
+      "notes.manager.help.reports.title",
+      "notes.manager.help.reports.section1Title",
+      "notes.manager.help.reports.section1Body",
+    ];
+
+    for (const key of requiredKeys) {
+      expect(translations.fr[key]).toBeTruthy();
+      expect(translations.en[key]).toBeTruthy();
+    }
+  });
+
+  it("has the teacher-discipline tour steps and per-tab help modal content in both locales", () => {
+    const requiredKeys = [
+      "onboardingTour.teacherDiscipline.step1Title",
+      "onboardingTour.teacherDiscipline.step1Body",
+      "onboardingTour.teacherDiscipline.step2Title",
+      "onboardingTour.teacherDiscipline.step2Body",
+      "onboardingTour.teacherDiscipline.step3Title",
+      "onboardingTour.teacherDiscipline.step3Body",
+      "onboardingTour.teacherDiscipline.step4Title",
+      "onboardingTour.teacherDiscipline.step4Body",
+      "discipline.teacherHelp.menuLabel",
+      "discipline.teacherHelp.close",
+      "discipline.teacherHelp.events.title",
+      "discipline.teacherHelp.events.section1Title",
+      "discipline.teacherHelp.events.section1Body",
+      "discipline.teacherHelp.events.section2Title",
+      "discipline.teacherHelp.events.section2Body",
+      "discipline.teacherHelp.carnets.title",
+      "discipline.teacherHelp.carnets.section1Title",
+      "discipline.teacherHelp.carnets.section1Body",
+    ];
+
+    for (const key of requiredKeys) {
+      expect(translations.fr[key]).toBeTruthy();
+      expect(translations.en[key]).toBeTruthy();
+    }
+  });
+
+  it("has the teacher-class-feed (Vie de classe) sub-chapter help content in both locales", () => {
+    const requiredKeys = [
+      "feed.classLife.help.menuLabel",
+      "feed.classLife.help.section1Title",
+      "feed.classLife.help.section1Body",
+      "feed.classLife.help.section2Title",
+      "feed.classLife.help.section2Body",
+      "feed.classLife.help.section3Title",
+      "feed.classLife.help.section3Body",
+    ];
+
+    for (const key of requiredKeys) {
+      expect(translations.fr[key]).toBeTruthy();
+      expect(translations.en[key]).toBeTruthy();
+    }
+  });
+
+  it("has the teacher-home tour steps and help modal content in both locales", () => {
+    const requiredKeys = [
+      "onboardingTour.teacherHome.step1Title",
+      "onboardingTour.teacherHome.step1Body",
+      "onboardingTour.teacherHome.step2Title",
+      "onboardingTour.teacherHome.step2Body",
+      "onboardingTour.teacherHome.step3Title",
+      "onboardingTour.teacherHome.step3Body",
+      "home.teacher.help.toggle",
+      "home.teacher.help.title",
+      "home.teacher.help.section1Title",
+      "home.teacher.help.section1Body",
+      "home.teacher.help.section2Title",
+      "home.teacher.help.section2Body",
+      "home.teacher.help.close",
+    ];
+
+    for (const key of requiredKeys) {
+      expect(translations.fr[key]).toBeTruthy();
+      expect(translations.en[key]).toBeTruthy();
+    }
+  });
+
   it("has the parent-landing help modal content in both locales", () => {
     const requiredKeys = [
       "home.parent.help.toggle",

@@ -48,6 +48,15 @@ import { AdminSchedulePane } from "./AdminSchedulePane";
 import { TimetablePane, type OccurrenceContext } from "./TimetablePane";
 import { useTranslation } from "../../i18n/useTranslation";
 import { moduleBack } from "../../utils/moduleBack";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { PageHelpModal } from "../help/PageHelpModal";
+import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
+import {
+  TEACHER_AGENDA_TOUR_ID,
+  TEACHER_AGENDA_TOUR_STEPS,
+  TEACHER_AGENDA_TOUR_TARGETS,
+} from "./teacher-agenda-tour.config";
 
 const P = "teacher-agenda";
 
@@ -138,6 +147,30 @@ export function TeacherAgendaScreenInner({
       ? "classes"
       : (initialTab ?? (viewAsTeacherId ? "mine" : admin ? "users" : "mine")),
   );
+  const [helpVisible, setHelpVisible] = useState(false);
+
+  useOnboardingTourTrigger({
+    tourId: TEACHER_AGENDA_TOUR_ID,
+    role: "teacher",
+    steps: TEACHER_AGENDA_TOUR_STEPS,
+  });
+  const onboardingActiveTourTargetKey = useOnboardingTourStore((state) =>
+    state.activeTourId ? state.steps[state.stepIndex]?.targetKey : undefined,
+  );
+
+  // The mode-tabs/nav-row steps only exist inside the "mine" pane. If the
+  // screen landed on the "classes" tab (locked class view), force "mine"
+  // back so these steps' targets actually mount instead of leaving the tour
+  // stuck with no visible overlay (see create-help skill §2ter-c).
+  useEffect(() => {
+    if (
+      (onboardingActiveTourTargetKey === TEACHER_AGENDA_TOUR_TARGETS.modeTabs ||
+        onboardingActiveTourTargetKey === TEACHER_AGENDA_TOUR_TARGETS.navRow) &&
+      activeTab !== "mine"
+    ) {
+      setActiveTab("mine");
+    }
+  }, [onboardingActiveTourTargetKey, activeTab]);
 
   return (
     <KeyboardAvoidingView
@@ -152,12 +185,28 @@ export function TeacherAgendaScreenInner({
           testID={`${P}-header`}
           backTestID={`${P}-back`}
           topInset={insets.top}
+          helpAction={
+            admin
+              ? undefined
+              : {
+                  label: t("timetable.teacherAgenda.help.menuLabel"),
+                  onPress: () => setHelpVisible(true),
+                  testID: `${P}-help-menu-item`,
+                }
+          }
+          menuTourTargetId={
+            admin ? undefined : TEACHER_AGENDA_TOUR_TARGETS.helpToggle
+          }
         />
       ) : null}
 
       {/* Tab switcher */}
       {isAdminBrowsing ? null : (
-        <View style={styles.tabRow} testID={`${P}-tabs`}>
+        <OnboardingTarget
+          id={TEACHER_AGENDA_TOUR_TARGETS.tabs}
+          style={styles.tabRow}
+          testID={`${P}-tabs`}
+        >
           {admin ? (
             <>
               <TouchableOpacity
@@ -274,7 +323,7 @@ export function TeacherAgendaScreenInner({
               )}
             </>
           )}
-        </View>
+        </OnboardingTarget>
       )}
 
       {isAdminBrowsing ? (
@@ -294,6 +343,61 @@ export function TeacherAgendaScreenInner({
           hideClassPicker={hideClassPicker}
         />
       )}
+
+      <PageHelpModal
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        title={
+          activeTab === "classes"
+            ? t("timetable.teacherAgenda.help.classes.title")
+            : t("timetable.teacherAgenda.help.mine.title")
+        }
+        sections={
+          activeTab === "classes"
+            ? [
+                {
+                  title: t(
+                    "timetable.teacherAgenda.help.classes.section1Title",
+                  ),
+                  body: [
+                    t("timetable.teacherAgenda.help.classes.section1Body"),
+                  ],
+                },
+                {
+                  title: t(
+                    "timetable.teacherAgenda.help.classes.section2Title",
+                  ),
+                  body: [
+                    t("timetable.teacherAgenda.help.classes.section2Body"),
+                  ],
+                },
+                {
+                  title: t(
+                    "timetable.teacherAgenda.help.classes.section3Title",
+                  ),
+                  body: [
+                    t("timetable.teacherAgenda.help.classes.section3Body"),
+                  ],
+                },
+              ]
+            : [
+                {
+                  title: t("timetable.teacherAgenda.help.mine.section1Title"),
+                  body: [t("timetable.teacherAgenda.help.mine.section1Body")],
+                },
+                {
+                  title: t("timetable.teacherAgenda.help.mine.section2Title"),
+                  body: [t("timetable.teacherAgenda.help.mine.section2Body")],
+                },
+                {
+                  title: t("timetable.teacherAgenda.help.mine.section3Title"),
+                  body: [t("timetable.teacherAgenda.help.mine.section3Body")],
+                },
+              ]
+        }
+        closeLabel={t("timetable.teacherAgenda.help.close")}
+        testID={`${P}-help-modal`}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -474,6 +578,8 @@ function TeacherMyAgendaPane({
       getOccurrenceContext={getOccurrenceContext}
       schoolSlug={schoolSlug ?? ""}
       canCreate={allClasses.length > 0}
+      modeTabsTourTargetId={TEACHER_AGENDA_TOUR_TARGETS.modeTabs}
+      navRowTourTargetId={TEACHER_AGENDA_TOUR_TARGETS.navRow}
     />
   );
 }

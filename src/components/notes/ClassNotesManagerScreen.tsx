@@ -88,6 +88,15 @@ import {
   SectionCard,
 } from "../timetable/TimetableCommon";
 import { moduleBack } from "../../utils/moduleBack";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { PageHelpModal } from "../help/PageHelpModal";
+import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
+import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
+import {
+  TEACHER_NOTES_TOUR_ID,
+  TEACHER_NOTES_TOUR_STEPS,
+  TEACHER_NOTES_TOUR_TARGETS,
+} from "./teacher-notes-tour.config";
 
 const DANGER_COLOR = "#DC3545";
 
@@ -248,6 +257,34 @@ export function ClassNotesManagerScreen({
   } | null>(null);
   const reportsTabRef = useRef<TeacherPeriodReportsHandle>(null);
   const schoolReportsTabRef = useRef<SchoolPeriodReportsHandle>(null);
+  const [helpVisible, setHelpVisible] = useState(false);
+  const isTeacherView = viewType === "teacher" && !isAdminBrowsing;
+
+  useOnboardingTourTrigger({
+    tourId: TEACHER_NOTES_TOUR_ID,
+    role: "teacher",
+    steps: TEACHER_NOTES_TOUR_STEPS,
+  });
+  const onboardingActiveTourTargetKey = useOnboardingTourStore((state) =>
+    state.activeTourId ? state.steps[state.stepIndex]?.targetKey : undefined,
+  );
+
+  // The filter-toggle/create-fab steps only exist on the evaluations tab's
+  // list view. Force that state back if a prior step let the user navigate
+  // away, so these steps' targets actually mount instead of leaving the
+  // tour stuck with no visible overlay (see create-help skill §2ter-c).
+  useEffect(() => {
+    if (
+      (onboardingActiveTourTargetKey ===
+        TEACHER_NOTES_TOUR_TARGETS.filterToggle ||
+        onboardingActiveTourTargetKey ===
+          TEACHER_NOTES_TOUR_TARGETS.createFab) &&
+      (tab !== "evaluations" || evaluationView !== "list")
+    ) {
+      setTab("evaluations");
+      setEvaluationView("list");
+    }
+  }, [onboardingActiveTourTargetKey, tab, evaluationView]);
 
   function handleTabSelect(next: NotesTabKey) {
     setTab(next);
@@ -830,9 +867,27 @@ export function ClassNotesManagerScreen({
           backTestID="class-notes-back"
           titleTestID="class-notes-title"
           subtitleTestID="class-notes-subtitle"
+          helpAction={
+            isTeacherView
+              ? {
+                  label: t("notes.manager.help.menuLabel"),
+                  onPress: () => setHelpVisible(true),
+                  testID: "class-notes-help-menu-item",
+                }
+              : undefined
+          }
+          menuTourTargetId={
+            isTeacherView ? TEACHER_NOTES_TOUR_TARGETS.helpToggle : undefined
+          }
         />
       ) : null}
-      <NotesTabs activeTab={tab} onSelect={handleTabSelect} />
+      <NotesTabs
+        activeTab={tab}
+        onSelect={handleTabSelect}
+        tourTargetId={
+          isTeacherView ? TEACHER_NOTES_TOUR_TARGETS.tabs : undefined
+        }
+      />
 
       {/* ── Évaluations — vue liste ────────────────────────────── */}
       {tab === "evaluations" && evaluationView === "list" ? (
@@ -868,32 +923,43 @@ export function ClassNotesManagerScreen({
                 </TouchableOpacity>
               ) : null}
             </View>
-            <TouchableOpacity
-              style={[
-                styles.filterToggle,
-                hasActiveEvalFilters(appliedEvalFilters) &&
-                  styles.filterToggleActive,
-              ]}
-              onPress={toggleEvalFilters}
-              testID="class-notes-filter-toggle"
-              accessibilityLabel={t(
-                "notes.manager.filters.toggleAccessibilityLabel",
-              )}
-            >
-              <Ionicons
-                name={
-                  hasActiveEvalFilters(appliedEvalFilters)
-                    ? "filter"
-                    : "filter-outline"
-                }
-                size={18}
-                color={
-                  hasActiveEvalFilters(appliedEvalFilters)
-                    ? colors.white
-                    : colors.accentTeal
-                }
-              />
-            </TouchableOpacity>
+            {(() => {
+              const filterButton = (
+                <TouchableOpacity
+                  style={[
+                    styles.filterToggle,
+                    hasActiveEvalFilters(appliedEvalFilters) &&
+                      styles.filterToggleActive,
+                  ]}
+                  onPress={toggleEvalFilters}
+                  testID="class-notes-filter-toggle"
+                  accessibilityLabel={t(
+                    "notes.manager.filters.toggleAccessibilityLabel",
+                  )}
+                >
+                  <Ionicons
+                    name={
+                      hasActiveEvalFilters(appliedEvalFilters)
+                        ? "filter"
+                        : "filter-outline"
+                    }
+                    size={18}
+                    color={
+                      hasActiveEvalFilters(appliedEvalFilters)
+                        ? colors.white
+                        : colors.accentTeal
+                    }
+                  />
+                </TouchableOpacity>
+              );
+              return isTeacherView ? (
+                <OnboardingTarget id={TEACHER_NOTES_TOUR_TARGETS.filterToggle}>
+                  {filterButton}
+                </OnboardingTarget>
+              ) : (
+                filterButton
+              );
+            })()}
           </View>
 
           {evalFiltersOpen ? (
@@ -1365,6 +1431,11 @@ export function ClassNotesManagerScreen({
             <MultiActionFab
               bottom={insets.bottom + 16 + BOTTOM_TAB_BAR_HEIGHT}
               testID="class-notes-fab-create"
+              tourTargetId={
+                isTeacherView && extraFabActions.length === 0
+                  ? TEACHER_NOTES_TOUR_TARGETS.createFab
+                  : undefined
+              }
               actions={[
                 {
                   key: "add-evaluation",
@@ -1925,6 +1996,52 @@ export function ClassNotesManagerScreen({
         <View style={styles.centered}>
           <LoadingBlock label={t("notes.manager.loading.notebook")} />
         </View>
+      ) : null}
+
+      {isTeacherView ? (
+        <PageHelpModal
+          visible={helpVisible}
+          onClose={() => setHelpVisible(false)}
+          title={
+            tab === "notes"
+              ? t("notes.manager.help.notes.title")
+              : tab === "reports"
+                ? t("notes.manager.help.reports.title")
+                : t("notes.manager.help.evaluations.title")
+          }
+          sections={
+            tab === "notes"
+              ? [
+                  {
+                    title: t("notes.manager.help.notes.section1Title"),
+                    body: [t("notes.manager.help.notes.section1Body")],
+                  },
+                ]
+              : tab === "reports"
+                ? [
+                    {
+                      title: t("notes.manager.help.reports.section1Title"),
+                      body: [t("notes.manager.help.reports.section1Body")],
+                    },
+                  ]
+                : [
+                    {
+                      title: t("notes.manager.help.evaluations.section1Title"),
+                      body: [t("notes.manager.help.evaluations.section1Body")],
+                    },
+                    {
+                      title: t("notes.manager.help.evaluations.section2Title"),
+                      body: [t("notes.manager.help.evaluations.section2Body")],
+                    },
+                    {
+                      title: t("notes.manager.help.evaluations.section3Title"),
+                      body: [t("notes.manager.help.evaluations.section3Body")],
+                    },
+                  ]
+          }
+          closeLabel={t("notes.manager.help.close")}
+          testID="class-notes-help-modal"
+        />
       ) : null}
     </KeyboardAvoidingView>
   );

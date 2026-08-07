@@ -146,18 +146,17 @@ export function TeacherClassFeedScreen({
               titleTestID="teacher-class-feed-title"
               subtitleTestID="teacher-class-feed-subtitle"
               topInset={insets.top}
-              secondaryAction={{
-                icon: "help-circle-outline",
+              helpAction={{
+                label: t("feed.classLife.help.menuLabel"),
                 onPress: () => {
                   openHelp();
                   advanceOnboardingTourTarget(
                     FEED_FILTERS_TOUR_TARGETS.helpToggle,
                   );
                 },
-                testID: "teacher-class-feed-help-toggle",
-                accessibilityLabel: t("feed.help.toggle"),
+                testID: "teacher-class-feed-help-menu-item",
               }}
-              secondaryActionTourTargetId={FEED_FILTERS_TOUR_TARGETS.helpToggle}
+              menuTourTargetId={FEED_FILTERS_TOUR_TARGETS.helpToggle}
             />
           </View>
         ) : null
@@ -174,10 +173,19 @@ export function TeacherClassFeedScreen({
       onCreatePost={handleCreatePost}
       onUploadInlineImage={handleUploadInlineImage}
       helpTitle={t("feed.classLife.help.title")}
-      helpBody={[
-        t("feed.classLife.help.body1"),
-        t("feed.classLife.help.body2"),
-        t("feed.classLife.help.body3"),
+      helpSections={[
+        {
+          title: t("feed.classLife.help.section1Title"),
+          body: [t("feed.classLife.help.section1Body")],
+        },
+        {
+          title: t("feed.classLife.help.section2Title"),
+          body: [t("feed.classLife.help.section2Body")],
+        },
+        {
+          title: t("feed.classLife.help.section3Title"),
+          body: [t("feed.classLife.help.section3Body")],
+        },
       ]}
     />
   );

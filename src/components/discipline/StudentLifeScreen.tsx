@@ -72,7 +72,7 @@ export type StudentLifeScreenProps = {
   onClassLabelResolved?: (classLabel: string) => void;
   /** "student" quand l'élève consulte sa propre vie scolaire, "parent"
    * quand un parent consulte celle d'un enfant. L'aide guidée (tour +
-   * modale) est scopée à la vue élève. */
+   * modale) est déclenchée pour les deux rôles. */
   viewerRole: "student" | "parent";
 };
 
@@ -98,11 +98,10 @@ export function StudentLifeScreen({
   const [tab, setTab] = useState<TabKey>("synthese");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [helpVisible, setHelpVisible] = useState(false);
-  const isStudentSelfView = viewerRole === "student";
 
   useOnboardingTourTrigger({
     tourId: VIE_SCOLAIRE_TOUR_ID,
-    role: "student",
+    role: viewerRole,
     steps: VIE_SCOLAIRE_TOUR_STEPS,
   });
 
@@ -188,18 +187,12 @@ export function StudentLifeScreen({
           titleTestID="vie-scolaire-header-title"
           subtitleTestID="vie-scolaire-header-subtitle"
           topInset={insets.top}
-          helpAction={
-            isStudentSelfView
-              ? {
-                  label: t("discipline.vieScolaire.help.menuLabel"),
-                  onPress: () => setHelpVisible(true),
-                  testID: "vie-scolaire-help-menu-item",
-                }
-              : undefined
-          }
-          menuTourTargetId={
-            isStudentSelfView ? VIE_SCOLAIRE_TOUR_TARGETS.helpToggle : undefined
-          }
+          helpAction={{
+            label: t("discipline.vieScolaire.help.menuLabel"),
+            onPress: () => setHelpVisible(true),
+            testID: "vie-scolaire-help-menu-item",
+          }}
+          menuTourTargetId={VIE_SCOLAIRE_TOUR_TARGETS.helpToggle}
         />
       </View>
 
@@ -255,9 +248,7 @@ export function StudentLifeScreen({
             isLoading={isLoading && !isCached}
             isRefreshing={isRefreshing}
             onRefresh={refresh}
-            kpisTourTargetId={
-              isStudentSelfView ? VIE_SCOLAIRE_TOUR_TARGETS.kpis : undefined
-            }
+            kpisTourTargetId={VIE_SCOLAIRE_TOUR_TARGETS.kpis}
           />
         )}
 
@@ -288,25 +279,23 @@ export function StudentLifeScreen({
         )}
       </View>
 
-      {isStudentSelfView ? (
-        <PageHelpModal
-          visible={helpVisible}
-          onClose={() => setHelpVisible(false)}
-          title={t("discipline.vieScolaire.help.title")}
-          sections={[
-            {
-              title: t("discipline.vieScolaire.help.section1Title"),
-              body: [t("discipline.vieScolaire.help.section1Body")],
-            },
-            {
-              title: t("discipline.vieScolaire.help.section2Title"),
-              body: [t("discipline.vieScolaire.help.section2Body")],
-            },
-          ]}
-          closeLabel={t("discipline.vieScolaire.help.close")}
-          testID="vie-scolaire-help-modal"
-        />
-      ) : null}
+      <PageHelpModal
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        title={t("discipline.vieScolaire.help.title")}
+        sections={[
+          {
+            title: t("discipline.vieScolaire.help.section1Title"),
+            body: [t("discipline.vieScolaire.help.section1Body")],
+          },
+          {
+            title: t("discipline.vieScolaire.help.section2Title"),
+            body: [t("discipline.vieScolaire.help.section2Body")],
+          },
+        ]}
+        closeLabel={t("discipline.vieScolaire.help.close")}
+        testID="vie-scolaire-help-modal"
+      />
     </View>
   );
 }

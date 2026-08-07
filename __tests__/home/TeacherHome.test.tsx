@@ -18,6 +18,12 @@ jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 
 jest.mock("../../src/hooks/useTeacherDashboard");
@@ -571,5 +577,37 @@ describe("Intégration — wiring du hook", () => {
     const loadingTexts = screen.getAllByText("Chargement…");
     // 5 sections × 1 = 5 textes Chargement (une par section vide)
     expect(loadingTexts.length).toBeGreaterThanOrEqual(5);
+  });
+});
+
+// ── Modale d'aide (bouton "?" du banner) ────────────────────────────────────
+
+describe("TeacherHome — modale d'aide", () => {
+  it("n'affiche pas la modale d'aide par défaut", () => {
+    render(<TeacherHome user={teacherUser} schoolSlug="college-vogt" />);
+
+    expect(screen.queryByTestId("teacher-home-help-modal-title")).toBeNull();
+  });
+
+  it("ouvre la modale d'aide au tap sur le bouton d'aide du banner", () => {
+    render(<TeacherHome user={teacherUser} schoolSlug="college-vogt" />);
+
+    fireEvent.press(screen.getByTestId("teacher-home-help-toggle"));
+
+    expect(
+      screen.getByTestId("teacher-home-help-modal-title"),
+    ).toHaveTextContent("Votre tableau de bord enseignant");
+    expect(screen.getByText("Accéder à une classe")).toBeTruthy();
+    expect(screen.getByText("Suivre les évaluations")).toBeTruthy();
+  });
+
+  it("ferme la modale d'aide au tap sur le bouton de fermeture", () => {
+    render(<TeacherHome user={teacherUser} schoolSlug="college-vogt" />);
+
+    fireEvent.press(screen.getByTestId("teacher-home-help-toggle"));
+    expect(screen.getByTestId("teacher-home-help-modal-title")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("teacher-home-help-modal-close"));
+    expect(screen.queryByTestId("teacher-home-help-modal-title")).toBeNull();
   });
 });

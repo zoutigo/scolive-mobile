@@ -10,6 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { colors } from "../../theme";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
 
 export type FabAction = {
   key: string;
@@ -30,10 +31,13 @@ export function MultiActionFab({
   actions,
   bottom,
   testID = "multi-action-fab",
+  tourTargetId,
 }: {
   actions: FabAction[];
   bottom: number;
   testID?: string;
+  /** Onboarding tour target id wrapping the FAB, if it should be spotlighted (single-action only). */
+  tourTargetId?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -41,9 +45,9 @@ export function MultiActionFab({
 
   if (actions.length === 1) {
     const action = actions[0];
-    return (
+    const button = (
       <TouchableOpacity
-        style={[styles.fab, { bottom }]}
+        style={tourTargetId ? styles.fabInner : [styles.fab, { bottom }]}
         onPress={action.onPress}
         testID={action.testID}
         accessibilityLabel={action.label}
@@ -51,6 +55,13 @@ export function MultiActionFab({
       >
         <Ionicons name={action.icon} size={26} color={colors.white} />
       </TouchableOpacity>
+    );
+    return tourTargetId ? (
+      <OnboardingTarget id={tourTargetId} style={[styles.fab, { bottom }]}>
+        {button}
+      </OnboardingTarget>
+    ) : (
+      button
     );
   }
 
@@ -121,6 +132,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
+  },
+  fabInner: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   backdrop: {
     flex: 1,

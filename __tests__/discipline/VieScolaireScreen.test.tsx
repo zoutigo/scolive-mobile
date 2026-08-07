@@ -175,7 +175,7 @@ describe("VieScolaireScreen", () => {
     });
   });
 
-  it("n'affiche pas l'entrée d'aide dans le menu (vue parent)", () => {
+  it("affiche l'entrée d'aide dans le menu et ouvre/ferme la modale (vue parent)", async () => {
     useDisciplineStore.setState({
       eventsMap: { "child-1": [makeLifeEvent({ studentId: "child-1" })] },
     });
@@ -183,8 +183,17 @@ describe("VieScolaireScreen", () => {
     render(<VieScolaireScreen />);
 
     fireEvent.press(screen.getByTestId("module-header-menu"));
+    expect(screen.getByTestId("vie-scolaire-help-menu-item")).toBeTruthy();
 
-    expect(screen.queryByTestId("vie-scolaire-help-menu-item")).toBeNull();
+    fireEvent.press(screen.getByTestId("vie-scolaire-help-menu-item"));
+    await waitFor(() =>
+      expect(screen.getByTestId("vie-scolaire-help-modal-title")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("vie-scolaire-help-modal-close"));
+    await waitFor(() =>
+      expect(screen.queryByTestId("vie-scolaire-help-modal-title")).toBeNull(),
+    );
   });
 
   it("filtre les evenements inline depuis le KPI dans l'onglet synthese", () => {

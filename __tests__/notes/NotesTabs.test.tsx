@@ -52,3 +52,18 @@ describe("Sélection d'onglet", () => {
     expect(onSelect).toHaveBeenCalledWith("evaluations");
   });
 });
+
+describe("tourTargetId", () => {
+  it("rend normalement les onglets quand tourTargetId est fourni (sans casser la sélection)", () => {
+    render(
+      <NotesTabs
+        activeTab="evaluations"
+        onSelect={onSelect}
+        tourTargetId="teacher-notes-tour-tabs"
+      />,
+    );
+    expect(screen.getByTestId("notes-tab-notes")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("notes-tab-notes"));
+    expect(onSelect).toHaveBeenCalledWith("notes");
+  });
+});

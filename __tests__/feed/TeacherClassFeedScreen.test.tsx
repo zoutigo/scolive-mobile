@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 import { TeacherClassFeedScreen } from "../../src/components/feed/TeacherClassFeedScreen";
 import { feedApi } from "../../src/api/feed.api";
 
@@ -165,5 +165,38 @@ describe("TeacherClassFeedScreen", () => {
     expect(screen.getByTestId("teacher-class-feed-subtitle")).toHaveTextContent(
       "6e C",
     );
+  });
+
+  it("passe un contenu d'aide en sous-chapitres (nouveau standard) au module de fil", () => {
+    render(<TeacherClassFeedScreen />);
+
+    expect(capturedProps).not.toBeNull();
+    const helpSections = capturedProps?.helpSections as Array<{
+      title: string;
+      body: string[];
+    }>;
+    expect(helpSections.map((section) => section.title)).toEqual([
+      "Rechercher une publication",
+      "Filtrer par type",
+      "Appliquer les filtres",
+    ]);
+    expect(capturedProps?.helpBody).toBeUndefined();
+  });
+
+  it("ouvre l'aide via l'entrée « Aide » du menu ... (pas une icône séparée)", () => {
+    render(<TeacherClassFeedScreen />);
+
+    const openHelp = jest.fn();
+    const renderHeader = capturedProps?.renderHeader as (controls: {
+      openHelp: () => void;
+    }) => React.ReactNode;
+    render(<>{renderHeader({ openHelp })}</>);
+
+    expect(screen.queryByTestId("teacher-class-feed-help-toggle")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("teacher-class-feed-help-menu-item"));
+
+    expect(openHelp).toHaveBeenCalledTimes(1);
   });
 });

@@ -39,6 +39,7 @@ import {
 } from "./StudentTimetableScreen";
 import { EmptyState, ErrorBanner, LoadingBlock } from "./TimetableCommon";
 import { useTranslation } from "../../i18n/useTranslation";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
 
 // Context metadata attached to each occurrence at aggregation time
 export type OccurrenceContext = {
@@ -79,6 +80,10 @@ export interface TimetablePaneProps {
   prefilledClassId?: string;
   /** En mode admin user pane : pré-sélectionne cet enseignant dans le formulaire de création */
   prefilledTeacherId?: string;
+  /** Onboarding tour target id wrapping the mode tabs (Day/Week/Month), if this pane should be spotlighted. */
+  modeTabsTourTargetId?: string;
+  /** Onboarding tour target id wrapping the period navigation row, if this pane should be spotlighted. */
+  navRowTourTargetId?: string;
 }
 
 export function TimetablePane({
@@ -110,6 +115,8 @@ export function TimetablePane({
   canCreate,
   prefilledClassId,
   prefilledTeacherId,
+  modeTabsTourTargetId,
+  navRowTourTargetId,
 }: TimetablePaneProps) {
   const { t, locale } = useTranslation();
   const router = useRouter();
@@ -299,61 +306,101 @@ export function TimetablePane({
         ) : (
           <View style={styles.moduleCard}>
             {/* Mode tabs */}
-            <View style={styles.modeTabs} testID={`${testIDPrefix}-mode-tabs`}>
-              {modeOptions.map((entry) => {
-                const active = viewMode === entry.value;
-                return (
-                  <TouchableOpacity
-                    key={entry.value}
-                    style={[styles.modeTab, active && styles.modeTabActive]}
-                    onPress={() => setViewMode(entry.value)}
-                    testID={`${testIDPrefix}-mode-${entry.value}`}
-                  >
-                    <Text
-                      style={[
-                        styles.modeTabText,
-                        active && styles.modeTabTextActive,
-                      ]}
-                    >
-                      {entry.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            {(() => {
+              const modeTabsContent = (
+                <>
+                  {modeOptions.map((entry) => {
+                    const active = viewMode === entry.value;
+                    return (
+                      <TouchableOpacity
+                        key={entry.value}
+                        style={[styles.modeTab, active && styles.modeTabActive]}
+                        onPress={() => setViewMode(entry.value)}
+                        testID={`${testIDPrefix}-mode-${entry.value}`}
+                      >
+                        <Text
+                          style={[
+                            styles.modeTabText,
+                            active && styles.modeTabTextActive,
+                          ]}
+                        >
+                          {entry.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </>
+              );
+              return modeTabsTourTargetId ? (
+                <OnboardingTarget
+                  id={modeTabsTourTargetId}
+                  style={styles.modeTabs}
+                  testID={`${testIDPrefix}-mode-tabs`}
+                >
+                  {modeTabsContent}
+                </OnboardingTarget>
+              ) : (
+                <View
+                  style={styles.modeTabs}
+                  testID={`${testIDPrefix}-mode-tabs`}
+                >
+                  {modeTabsContent}
+                </View>
+              );
+            })()}
 
             {/* Period navigation */}
-            <View style={styles.periodNavRow}>
-              <TouchableOpacity
-                style={styles.periodNavButton}
-                onPress={() => moveCursor(-1)}
-                testID={`${testIDPrefix}-nav-prev`}
-              >
-                <Ionicons
-                  name="chevron-back"
-                  size={18}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.periodLabelButton}
-                onPress={resetToToday}
-                testID={`${testIDPrefix}-nav-label`}
-              >
-                <Text style={styles.periodLabelText}>{periodLabel}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.periodNavButton}
-                onPress={() => moveCursor(1)}
-                testID={`${testIDPrefix}-nav-next`}
-              >
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
-            </View>
+            {(() => {
+              const navRowContent = (
+                <>
+                  <TouchableOpacity
+                    style={styles.periodNavButton}
+                    onPress={() => moveCursor(-1)}
+                    testID={`${testIDPrefix}-nav-prev`}
+                  >
+                    <Ionicons
+                      name="chevron-back"
+                      size={18}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.periodLabelButton}
+                    onPress={resetToToday}
+                    testID={`${testIDPrefix}-nav-label`}
+                  >
+                    <Text style={styles.periodLabelText}>{periodLabel}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.periodNavButton}
+                    onPress={() => moveCursor(1)}
+                    testID={`${testIDPrefix}-nav-next`}
+                  >
+                    <Ionicons
+                      name="chevron-forward"
+                      size={18}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                </>
+              );
+              return navRowTourTargetId ? (
+                <OnboardingTarget
+                  id={navRowTourTargetId}
+                  style={styles.periodNavRow}
+                  testID={`${testIDPrefix}-nav-row`}
+                >
+                  {navRowContent}
+                </OnboardingTarget>
+              ) : (
+                <View
+                  style={styles.periodNavRow}
+                  testID={`${testIDPrefix}-nav-row`}
+                >
+                  {navRowContent}
+                </View>
+              );
+            })()}
 
             {/* Day view */}
             {viewMode === "day" ? (

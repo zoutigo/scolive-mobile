@@ -38,6 +38,12 @@ jest.mock("expo-router", () => ({
     navigate: jest.fn(),
   }),
   useLocalSearchParams: () => mockSearchParams,
+  useFocusEffect: (callback: () => void) => {
+    const { useEffect } = require("react");
+    useEffect(() => {
+      callback();
+    }, [callback]);
+  },
 }));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -1626,5 +1632,98 @@ describe("Mode enseignant — classId fourni par la route", () => {
     expect(screen.queryByTestId("class-notes-filter-level-trigger")).toBeNull();
     expect(screen.queryByTestId("class-notes-filter-class-trigger")).toBeNull();
     expect(mockTeachersApi.listClassrooms).not.toHaveBeenCalled();
+  });
+});
+
+describe("ClassNotesManagerScreen — modale d'aide (menu ...)", () => {
+  function openHelpFromMenu() {
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("class-notes-help-menu-item"));
+  }
+
+  it("n'affiche pas la modale d'aide par défaut", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    expect(screen.queryByTestId("class-notes-help-modal-title")).toBeNull();
+  });
+
+  it("ouvre la modale d'aide via « Aide » dans le menu ..., contenu de l'onglet Évaluations", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    openHelpFromMenu();
+
+    expect(
+      screen.getByTestId("class-notes-help-modal-title"),
+    ).toHaveTextContent("Comment utiliser l'onglet Évaluations");
+    expect(screen.getByText("Rechercher et filtrer")).toBeTruthy();
+    expect(screen.getByText("Créer une évaluation")).toBeTruthy();
+    expect(screen.getByText("Saisir les notes")).toBeTruthy();
+  });
+
+  it("ferme la modale d'aide au tap sur le bouton de fermeture", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    openHelpFromMenu();
+    expect(screen.getByTestId("class-notes-help-modal-title")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("class-notes-help-modal-close"));
+    expect(screen.queryByTestId("class-notes-help-modal-title")).toBeNull();
+  });
+
+  it("affiche un contenu différent et plus ciblé sur l'onglet Notes", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(screen.getByTestId("notes-tab-notes"));
+    await flushAsync();
+
+    openHelpFromMenu();
+
+    expect(
+      screen.getByTestId("class-notes-help-modal-title"),
+    ).toHaveTextContent("Comment utiliser l'onglet Notes");
+    expect(screen.getByText("Consulter un élève")).toBeTruthy();
+    expect(screen.queryByText("Rechercher et filtrer")).toBeNull();
+  });
+
+  it("affiche un contenu différent et plus ciblé sur l'onglet Bulletins", async () => {
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(screen.getByTestId("notes-tab-reports"));
+    await flushAsync();
+
+    openHelpFromMenu();
+
+    expect(
+      screen.getByTestId("class-notes-help-modal-title"),
+    ).toHaveTextContent("Comment utiliser l'onglet Bulletins");
+    expect(screen.getByText("Rédiger les appréciations")).toBeTruthy();
+  });
+
+  it("n'affiche pas l'entrée Aide pour un rôle non enseignant (ex. school admin)", async () => {
+    useAuthStore.setState({
+      schoolSlug: "college-vogt",
+      user: {
+        id: "u2",
+        firstName: "Admin",
+        lastName: "École",
+        platformRoles: [],
+        memberships: [{ schoolId: "s1", role: "SCHOOL_ADMIN" }],
+        profileCompleted: true,
+        role: "SCHOOL_ADMIN",
+        activeRole: "SCHOOL_ADMIN",
+      },
+    } as never);
+    mockSearchParams = { schoolYearId: "y1" };
+
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    expect(screen.queryByTestId("class-notes-help-menu-item")).toBeNull();
   });
 });

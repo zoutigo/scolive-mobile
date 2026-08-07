@@ -563,7 +563,7 @@ describe("ClassHomeworkScreen — vue parent", () => {
     expect(screen.queryByTestId("class-homework-fab")).toBeNull();
   });
 
-  it("n'affiche pas l'entrée « Aide » du menu pour le parent (réservée à la vue élève)", async () => {
+  it("affiche l'entrée « Aide » du menu pour le parent et ouvre/ferme la modale", async () => {
     render(<ClassHomeworkScreen />);
 
     await waitFor(() =>
@@ -571,8 +571,21 @@ describe("ClassHomeworkScreen — vue parent", () => {
     );
 
     fireEvent.press(screen.getByTestId("module-header-menu"));
+    expect(screen.getByTestId("class-homework-help-menu-item")).toBeTruthy();
 
-    expect(screen.queryByTestId("class-homework-help-menu-item")).toBeNull();
+    fireEvent.press(screen.getByTestId("class-homework-help-menu-item"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-homework-help-modal-title"),
+      ).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("class-homework-help-modal-close"));
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId("class-homework-help-modal-title"),
+      ).toBeNull(),
+    );
   });
 
   it("affiche le bouton 'Marquer fait' pour le parent", async () => {
