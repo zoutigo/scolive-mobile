@@ -88,6 +88,38 @@ export const translations: Record<Locale, Record<string, string>> = {
     "promotionsAdmin.waiting.assign": "Affecter",
     "promotionsAdmin.waiting.empty":
       "Aucun élève en attente d'affectation pour ces filtres.",
+
+    "schoolSettings.title": "Paramètres de l'école",
+    "schoolSettings.tabs.levels": "Niveaux",
+    "schoolSettings.lockedTitle": "Accès réservé",
+    "schoolSettings.lockedMessage":
+      "Seuls les administrateurs et directeurs de l'école peuvent accéder aux paramètres.",
+    "schoolSettings.errors.load": "Impossible de charger les niveaux.",
+    "schoolSettings.levels.intro":
+      "Activez les niveaux nationaux utilisés par cette école. Les niveaux propres à l'école sont toujours actifs. L'ordre détermine le niveau suivant proposé automatiquement lors d'une décision de passage.",
+    "schoolSettings.levels.own": "Niveau propre à l'école",
+    "schoolSettings.levels.national": "Niveau national",
+    "schoolSettings.levels.alwaysActive": "Toujours actif",
+    "schoolSettings.levels.orderLabel": "Ordre",
+    "schoolSettings.levels.empty.title": "Aucun niveau",
+    "schoolSettings.levels.empty.message":
+      "Aucun niveau académique n'est disponible pour cette école.",
+    "schoolSettings.levels.errors.toggle":
+      "Impossible de modifier l'activation de ce niveau.",
+    "schoolSettings.levels.errors.save": "Impossible d'enregistrer l'ordre.",
+    "schoolSettings.levels.errors.invalidOrder":
+      "L'ordre doit être un nombre entier positif.",
+    "schoolSettings.levels.success.saved": "Modification enregistrée.",
+    "schoolSettings.help.menuLabel": "Aide",
+    "schoolSettings.help.close": "Fermer",
+    "schoolSettings.help.title": "Aide — Paramètres de l'école",
+    "schoolSettings.help.section1Title": "Activer un niveau",
+    "schoolSettings.help.section1Body":
+      "Les niveaux nationaux du catalogue plateforme n'apparaissent pas tous automatiquement pour votre école : activez uniquement ceux que votre école utilise réellement. Les niveaux propres à votre école sont toujours actifs et n'ont pas besoin d'être activés.",
+    "schoolSettings.help.section2Title": "L'ordre et la décision de passage",
+    "schoolSettings.help.section2Body":
+      "Le champ Ordre (modifiable sur vos niveaux propres) définit la progression pédagogique. Quand un enseignant enregistre une décision « Promu » dans l'onglet Décision de Notes, l'application propose automatiquement le niveau actif suivant dans cet ordre.",
+
     "settings.language.title": "Langue de cet appareil",
     "settings.language.subtitle": "Choisissez la langue de l'application",
     "settings.language.hint":
@@ -210,6 +242,15 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Chaque carte affiche l'horaire, la matière, l'enseignant et la salle du cours.",
     "onboardingTour.childTimetable.step4Title": "Une aide toujours disponible",
     "onboardingTour.childTimetable.step4Body":
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel sur l'utilisation de cette page.",
+    "onboardingTour.schoolSettings.step1Title": "Onglet Niveaux",
+    "onboardingTour.schoolSettings.step1Body":
+      "Cet onglet regroupe les niveaux académiques utilisés par votre école. D'autres réglages viendront s'y ajouter au fil du temps.",
+    "onboardingTour.schoolSettings.step2Title": "Activer un niveau",
+    "onboardingTour.schoolSettings.step2Body":
+      "Le bouton active ou désactive un niveau national pour votre école : seuls les niveaux actifs apparaissent ensuite comme cible possible dans l'onglet Décision de Notes. Les niveaux propres à votre école sont toujours actifs. Le champ Ordre (sur vos niveaux propres) détermine quel niveau est proposé automatiquement quand un enseignant enregistre une décision « Promu ».",
+    "onboardingTour.schoolSettings.step3Title": "Une aide toujours disponible",
+    "onboardingTour.schoolSettings.step3Body":
       "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel sur l'utilisation de cette page.",
     "onboardingTour.vieScolaire.step1Title": "Trois onglets",
     "onboardingTour.vieScolaire.step1Body":
@@ -2459,6 +2500,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.decision.errors.load": "Impossible de charger les décisions",
     "notes.decision.errors.save": "Impossible d'enregistrer la décision",
     "notes.decision.success.saved": "Décision enregistrée",
+    "notes.decision.decisionPlaceholder": "Décision",
+    "notes.decision.noDecision": "Aucune décision",
 
     "notes.classes.title": "Cahier de notes",
     "notes.classes.filterTitle": "Filtrer par année",
@@ -2760,17 +2803,19 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.help.reports.section3Body":
       "Si vous êtes professeur référent de la classe, une appréciation générale de conseil de classe est également modifiable, en plus des appréciations par matière — elle résume l'avis du conseil sur l'ensemble du trimestre de l'élève.",
     "notes.manager.help.decision.title": "Comment utiliser l'onglet Décision",
-    "notes.manager.help.decision.section1Title":
-      "Consulter la synthèse de l'élève",
+    "notes.manager.help.decision.section1Title": "Ouvrir la carte d'un élève",
     "notes.manager.help.decision.section1Body":
-      "Chaque carte affiche les moyennes des trois trimestres, la moyenne annuelle et le rang de l'élève dans sa classe (ex. 3e sur 28) — de quoi statuer en connaissance de cause sur son passage.",
+      "Chaque élève est d'abord affiché replié, avec juste son nom et une pastille rouge « Aucune décision » tant qu'aucune décision n'a été enregistrée. Touchez la carte pour l'ouvrir : elle affiche alors les moyennes des trois trimestres, la moyenne annuelle et le rang de l'élève dans sa classe (ex. 3e sur 28) — de quoi statuer en connaissance de cause sur son passage.",
     "notes.manager.help.decision.section2Title": "Choisir la décision",
     "notes.manager.help.decision.section2Body":
       "Sélectionnez Passage, Redoublement ou Départ pour chaque élève. Cette décision détermine si l'élève poursuit dans la classe supérieure, refait son année, ou quitte l'établissement.",
     "notes.manager.help.decision.section3Title":
-      "Choisir la classe de destination et enregistrer",
+      "Niveau cible proposé automatiquement",
     "notes.manager.help.decision.section3Body":
-      "Sauf en cas de Départ, indiquez la classe de destination pour l'année suivante (classe supérieure en cas de passage, même niveau en cas de redoublement), puis touchez Enregistrer pour valider la décision de cet élève.",
+      "Sauf en cas de Départ, indiquez le niveau de destination pour l'année suivante. L'application le propose automatiquement dès que vous choisissez Passage (niveau suivant) ou Redoublement (même niveau) — vous pouvez toujours le changer manuellement avant d'enregistrer. Seuls les niveaux activés pour votre école dans Paramètres > Niveaux apparaissent dans cette liste.",
+    "notes.manager.help.decision.section4Title": "Enregistrer",
+    "notes.manager.help.decision.section4Body":
+      "Touchez Enregistrer pour valider la décision de cet élève : la carte se referme automatiquement et affiche désormais la décision prise à la place de « Aucune décision ».",
 
     "onboardingTour.teacherNotes.step1Title": "Les onglets",
     "onboardingTour.teacherNotes.step1Body":
@@ -3835,6 +3880,37 @@ export const translations: Record<Locale, Record<string, string>> = {
     "promotionsAdmin.waiting.empty":
       "No student waiting for assignment with these filters.",
 
+    "schoolSettings.title": "School settings",
+    "schoolSettings.tabs.levels": "Levels",
+    "schoolSettings.lockedTitle": "Restricted access",
+    "schoolSettings.lockedMessage":
+      "Only school admins and managers can access the school settings.",
+    "schoolSettings.errors.load": "Unable to load the levels.",
+    "schoolSettings.levels.intro":
+      "Activate the national levels used by this school. Levels created for this school are always active. The order determines the level automatically suggested for the next promotion decision.",
+    "schoolSettings.levels.own": "School-owned level",
+    "schoolSettings.levels.national": "National level",
+    "schoolSettings.levels.alwaysActive": "Always active",
+    "schoolSettings.levels.orderLabel": "Order",
+    "schoolSettings.levels.empty.title": "No level",
+    "schoolSettings.levels.empty.message":
+      "No academic level is available for this school.",
+    "schoolSettings.levels.errors.toggle":
+      "Unable to change this level's activation.",
+    "schoolSettings.levels.errors.save": "Unable to save the order.",
+    "schoolSettings.levels.errors.invalidOrder":
+      "The order must be a positive integer.",
+    "schoolSettings.levels.success.saved": "Change saved.",
+    "schoolSettings.help.menuLabel": "Help",
+    "schoolSettings.help.close": "Close",
+    "schoolSettings.help.title": "Help — School settings",
+    "schoolSettings.help.section1Title": "Activating a level",
+    "schoolSettings.help.section1Body":
+      "Not every national level from the platform catalog automatically applies to your school — activate only the ones your school actually uses. Levels created for your school are always active and never need activating.",
+    "schoolSettings.help.section2Title": "Order and the promotion decision",
+    "schoolSettings.help.section2Body":
+      'The Order field (editable on your own levels) defines the pedagogical progression. When a teacher records a "Promoted" decision in the Decision tab of Notes, the app automatically suggests the next active level in that order.',
+
     "settings.language.title": "Language of this device",
     "settings.language.subtitle": "Choose the application language",
     "settings.language.hint":
@@ -3953,6 +4029,15 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Each card shows the time, subject, teacher and room for the course.",
     "onboardingTour.childTimetable.step4Title": "Help is always available",
     "onboardingTour.childTimetable.step4Body":
+      'Tap this button at any time, then "Help" in the menu, to see a reminder of how to use this page.',
+    "onboardingTour.schoolSettings.step1Title": "Levels tab",
+    "onboardingTour.schoolSettings.step1Body":
+      "This tab groups the academic levels used by your school. More settings will be added here over time.",
+    "onboardingTour.schoolSettings.step2Title": "Activate a level",
+    "onboardingTour.schoolSettings.step2Body":
+      'This switch activates or deactivates a national level for your school: only active levels then appear as a possible target in the Decision tab of Notes. Levels created for your school are always active. The Order field (on your own levels) determines which level is automatically suggested when a teacher records a "Promoted" decision.',
+    "onboardingTour.schoolSettings.step3Title": "Help is always available",
+    "onboardingTour.schoolSettings.step3Body":
       'Tap this button at any time, then "Help" in the menu, to see a reminder of how to use this page.',
     "onboardingTour.vieScolaire.step1Title": "Three tabs",
     "onboardingTour.vieScolaire.step1Body":
@@ -6109,6 +6194,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.decision.errors.load": "Unable to load decisions",
     "notes.decision.errors.save": "Unable to save decision",
     "notes.decision.success.saved": "Decision saved",
+    "notes.decision.decisionPlaceholder": "Decision",
+    "notes.decision.noDecision": "No decision",
 
     "notes.classes.title": "Grade book",
     "notes.classes.filterTitle": "Filter by school year",
@@ -6401,16 +6488,19 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.help.reports.section3Body":
       "If you are the class's referent teacher, a general class-council remark is also editable, in addition to the per-subject remarks — it sums up the council's opinion on the student's whole term.",
     "notes.manager.help.decision.title": "How to use the Decision tab",
-    "notes.manager.help.decision.section1Title": "Review the student's summary",
+    "notes.manager.help.decision.section1Title": "Open a student's card",
     "notes.manager.help.decision.section1Body":
-      "Each card shows the three term averages, the yearly average and the student's rank in class (e.g. 3rd out of 28) — enough to decide on promotion with full context.",
+      'Each student is first shown collapsed, with just their name and a red "No decision" badge until a decision has been saved. Tap the card to open it: it then shows the three term averages, the yearly average and the student\'s rank in class (e.g. 3rd out of 28) — enough to decide on promotion with full context.',
     "notes.manager.help.decision.section2Title": "Choose the decision",
     "notes.manager.help.decision.section2Body":
       "Select Promoted, Repeated or Left for each student. This decision determines whether the student moves up to the next class, repeats the year, or leaves the school.",
     "notes.manager.help.decision.section3Title":
-      "Pick the destination class and save",
+      "Target level suggested automatically",
     "notes.manager.help.decision.section3Body":
-      "Unless Left is selected, pick the destination class for next year (the next level if promoted, the same level if repeating), then tap Save to confirm this student's decision.",
+      "Unless Left is selected, pick the destination level for next year. The app suggests it automatically as soon as you choose Promoted (next level) or Repeated (same level) — you can always change it manually before saving. Only levels activated for your school in Settings > Levels appear in this list.",
+    "notes.manager.help.decision.section4Title": "Save",
+    "notes.manager.help.decision.section4Body":
+      'Tap Save to confirm this student\'s decision: the card closes automatically and now shows the decision taken instead of "No decision".',
 
     "onboardingTour.teacherNotes.step1Title": "The tabs",
     "onboardingTour.teacherNotes.step1Body":

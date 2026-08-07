@@ -359,6 +359,12 @@ const SCHOOL_NAV: NavItem[] = [
     icon: "chatbubble-outline",
     route: "/messages",
   },
+  {
+    key: "school-settings",
+    label: "Paramètres de l'école",
+    icon: "options-outline",
+    route: "/school-settings",
+  },
   accountItem(),
 ];
 

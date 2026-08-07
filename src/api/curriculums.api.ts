@@ -201,4 +201,32 @@ export const curriculumsApi = {
       true,
     );
   },
+
+  listActivatedAcademicLevels(
+    schoolSlug: string,
+  ): Promise<CurriculumAcademicLevel[]> {
+    return apiFetch(
+      buildAdminPath(schoolSlug, "academic-levels/active"),
+      {},
+      true,
+    );
+  },
+
+  setAcademicLevelActivation(
+    schoolSlug: string,
+    academicLevelId: string,
+    activated: boolean,
+  ): Promise<{ success: boolean; activated: boolean }> {
+    return apiFetch(
+      buildAdminPath(
+        schoolSlug,
+        `academic-levels/${academicLevelId}/activation`,
+      ),
+      {
+        method: "PATCH",
+        body: JSON.stringify({ activated }),
+      },
+      true,
+    );
+  },
 };

@@ -80,6 +80,7 @@ beforeEach(() => {
       yearlyAverage: null,
       rank: null,
       classSize: null,
+      currentAcademicLevel: null,
     },
   ]);
   promotionsApiMock.setTermReportDecision.mockResolvedValue({
@@ -92,6 +93,7 @@ beforeEach(() => {
     yearlyAverage: null,
     rank: null,
     classSize: null,
+    currentAcademicLevel: null,
   });
   promotionsApiMock.listWaitingEnrollments.mockResolvedValue([
     {

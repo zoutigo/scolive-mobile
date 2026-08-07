@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import {
   ScrollView,
   StyleSheet,
@@ -28,9 +29,43 @@ type Props = {
 };
 
 type DecisionDraft = {
-  decision: PromotionDecision;
+  decision: PromotionDecision | "";
   nextAcademicLevelId: string;
 };
+
+/**
+ * Niveau cible propose automatiquement selon la decision choisie :
+ * - REPEATED -> le niveau actuel de la classe (si toujours actif pour l'ecole)
+ * - PROMOTED -> le niveau actif dont l'ordre est immediatement superieur
+ * Ne s'applique que si le champ n'a pas deja une valeur (ne jamais ecraser
+ * un choix manuel).
+ */
+function suggestNextAcademicLevelId(
+  decision: PromotionDecision | "",
+  currentAcademicLevel: TermReportForDecisionRow["currentAcademicLevel"],
+  activatedLevels: CurriculumAcademicLevel[],
+): string {
+  if (!currentAcademicLevel) return "";
+  if (decision === "REPEATED") {
+    const stillActive = activatedLevels.some(
+      (level) => level.id === currentAcademicLevel.id,
+    );
+    return stillActive ? currentAcademicLevel.id : "";
+  }
+  if (decision === "PROMOTED") {
+    if (currentAcademicLevel.order === null) return "";
+    const next = activatedLevels
+      .filter(
+        (level) =>
+          level.order !== null &&
+          level.order !== undefined &&
+          level.order > currentAcademicLevel.order!,
+      )
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))[0];
+    return next?.id ?? "";
+  }
+  return "";
+}
 
 export function TeacherPromotionDecisionTab({
   schoolSlug,
@@ -45,6 +80,7 @@ export function TeacherPromotionDecisionTab({
   const [rows, setRows] = useState<TermReportForDecisionRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [drafts, setDrafts] = useState<Record<string, DecisionDraft>>({});
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [savingReportId, setSavingReportId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -52,7 +88,7 @@ export function TeacherPromotionDecisionTab({
     setIsLoading(true);
     try {
       const [levelRows, reportRows] = await Promise.all([
-        curriculumsApi.listAcademicLevels(schoolSlug),
+        curriculumsApi.listActivatedAcademicLevels(schoolSlug),
         promotionsApi.listTermReportsForDecision(schoolSlug, classId),
       ]);
       setLevels(levelRows);
@@ -62,7 +98,7 @@ export function TeacherPromotionDecisionTab({
           reportRows.map((row) => [
             row.id,
             {
-              decision: row.decision ?? "PROMOTED",
+              decision: row.decision ?? "",
               nextAcademicLevelId: row.nextAcademicLevel?.id ?? "",
             },
           ]),
@@ -87,7 +123,7 @@ export function TeacherPromotionDecisionTab({
   async function saveDecision(reportId: string) {
     if (!schoolSlug) return;
     const draft = drafts[reportId];
-    if (!draft) return;
+    if (!draft || !draft.decision) return;
     setSavingReportId(reportId);
     try {
       await promotionsApi.setTermReportDecision(schoolSlug, reportId, {
@@ -98,6 +134,7 @@ export function TeacherPromotionDecisionTab({
             : draft.nextAcademicLevelId || undefined,
       });
       showSuccess({ title: t("notes.decision.success.saved"), message: "" });
+      setExpandedId((current) => (current === reportId ? null : current));
       await load();
     } catch (error) {
       showError({
@@ -121,6 +158,21 @@ export function TeacherPromotionDecisionTab({
     ],
     [t],
   );
+
+  function updateDraft(row: TermReportForDecisionRow, next: DecisionDraft) {
+    setDrafts((current) => ({ ...current, [row.id]: next }));
+  }
+
+  function handleDecisionChange(
+    row: TermReportForDecisionRow,
+    decision: PromotionDecision,
+  ) {
+    const current = drafts[row.id] ?? { decision: "", nextAcademicLevelId: "" };
+    const nextAcademicLevelId =
+      current.nextAcademicLevelId ||
+      suggestNextAcademicLevelId(decision, row.currentAcademicLevel, levels);
+    updateDraft(row, { decision, nextAcademicLevelId });
+  }
 
   if (isLoading) {
     return (
@@ -157,106 +209,138 @@ export function TeacherPromotionDecisionTab({
 
       {rows.map((row) => {
         const draft = drafts[row.id];
+        const isDecided = row.decision !== null;
+        const isExpanded = expandedId === row.id;
+
         return (
           <View
             key={row.id}
-            style={styles.card}
+            style={[styles.card, !isDecided && styles.cardUndecided]}
             testID={`decision-card-${row.id}`}
           >
-            <Text style={styles.cardTitle}>
-              {row.student.lastName} {row.student.firstName}
-            </Text>
-
-            <View style={styles.synthesisRow}>
-              <View style={styles.synthesisCell}>
-                <Text style={styles.synthesisLabel}>
-                  {t("notes.decision.synthesis.term1")}
-                </Text>
-                <Text style={styles.synthesisValue}>
-                  {formatScore(row.termAverages.TERM_1)}
-                </Text>
-              </View>
-              <View style={styles.synthesisCell}>
-                <Text style={styles.synthesisLabel}>
-                  {t("notes.decision.synthesis.term2")}
-                </Text>
-                <Text style={styles.synthesisValue}>
-                  {formatScore(row.termAverages.TERM_2)}
-                </Text>
-              </View>
-              <View style={styles.synthesisCell}>
-                <Text style={styles.synthesisLabel}>
-                  {t("notes.decision.synthesis.term3")}
-                </Text>
-                <Text style={styles.synthesisValue}>
-                  {formatScore(row.termAverages.TERM_3)}
-                </Text>
-              </View>
-              <View style={styles.synthesisCell}>
-                <Text style={styles.synthesisLabel}>
-                  {t("notes.decision.synthesis.yearly")}
-                </Text>
-                <Text style={[styles.synthesisValue, styles.synthesisYearly]}>
-                  {formatScore(row.yearlyAverage)}
-                </Text>
-              </View>
-            </View>
-
-            {row.rank !== null && row.classSize !== null ? (
-              <Text style={styles.rankText}>
-                {t("notes.decision.synthesis.rankPrefix")} {row.rank}
-                {t("notes.decision.synthesis.rankSeparator")} {row.classSize}
-              </Text>
-            ) : null}
-
-            <InlineSelectDropDown
-              options={decisionOptions}
-              value={draft?.decision ?? "PROMOTED"}
-              onChange={(value) =>
-                setDrafts((current) => ({
-                  ...current,
-                  [row.id]: {
-                    ...current[row.id],
-                    decision: value as PromotionDecision,
-                  },
-                }))
+            <TouchableOpacity
+              style={styles.cardHeader}
+              activeOpacity={0.7}
+              onPress={() =>
+                setExpandedId((current) => (current === row.id ? null : row.id))
               }
-              testID={`decision-card-${row.id}-decision`}
-            />
-
-            {draft?.decision !== "LEFT" ? (
-              <View style={styles.field}>
-                <Text style={styles.fieldLabel}>
-                  {t("promotionsAdmin.decisions.nextLevel")}
-                </Text>
-                <InlineSelectDropDown
-                  options={levelOptions}
-                  value={draft?.nextAcademicLevelId ?? ""}
-                  onChange={(value) =>
-                    setDrafts((current) => ({
-                      ...current,
-                      [row.id]: {
-                        ...current[row.id],
-                        nextAcademicLevelId: value,
-                      },
-                    }))
+              testID={`decision-card-${row.id}-toggle`}
+            >
+              <Text style={styles.cardTitle}>
+                {row.student.lastName} {row.student.firstName}
+              </Text>
+              <View style={styles.cardHeaderRight}>
+                <Text
+                  style={
+                    isDecided ? styles.decisionBadge : styles.noDecisionBadge
                   }
-                  testID={`decision-card-${row.id}-level`}
+                  testID={`decision-card-${row.id}-status`}
+                >
+                  {isDecided && row.decision
+                    ? t(`promotionsAdmin.decision.${row.decision}`)
+                    : t("notes.decision.noDecision")}
+                </Text>
+                <Ionicons
+                  name={isExpanded ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={colors.textSecondary}
                 />
               </View>
-            ) : null}
-
-            <TouchableOpacity
-              style={[
-                styles.submitButton,
-                savingReportId === row.id && styles.submitButtonDisabled,
-              ]}
-              disabled={savingReportId === row.id}
-              onPress={() => saveDecision(row.id)}
-              testID={`decision-card-${row.id}-save`}
-            >
-              <Text style={styles.submitButtonText}>{t("common.save")}</Text>
             </TouchableOpacity>
+
+            {isExpanded ? (
+              <View style={styles.cardBody}>
+                <View style={styles.synthesisRow}>
+                  <View style={styles.synthesisCell}>
+                    <Text style={styles.synthesisLabel}>
+                      {t("notes.decision.synthesis.term1")}
+                    </Text>
+                    <Text style={styles.synthesisValue}>
+                      {formatScore(row.termAverages.TERM_1)}
+                    </Text>
+                  </View>
+                  <View style={styles.synthesisCell}>
+                    <Text style={styles.synthesisLabel}>
+                      {t("notes.decision.synthesis.term2")}
+                    </Text>
+                    <Text style={styles.synthesisValue}>
+                      {formatScore(row.termAverages.TERM_2)}
+                    </Text>
+                  </View>
+                  <View style={styles.synthesisCell}>
+                    <Text style={styles.synthesisLabel}>
+                      {t("notes.decision.synthesis.term3")}
+                    </Text>
+                    <Text style={styles.synthesisValue}>
+                      {formatScore(row.termAverages.TERM_3)}
+                    </Text>
+                  </View>
+                  <View style={styles.synthesisCell}>
+                    <Text style={styles.synthesisLabel}>
+                      {t("notes.decision.synthesis.yearly")}
+                    </Text>
+                    <Text
+                      style={[styles.synthesisValue, styles.synthesisYearly]}
+                    >
+                      {formatScore(row.yearlyAverage)}
+                    </Text>
+                  </View>
+                </View>
+
+                {row.rank !== null && row.classSize !== null ? (
+                  <Text style={styles.rankText}>
+                    {t("notes.decision.synthesis.rankPrefix")} {row.rank}
+                    {t("notes.decision.synthesis.rankSeparator")}{" "}
+                    {row.classSize}
+                  </Text>
+                ) : null}
+
+                <InlineSelectDropDown
+                  options={decisionOptions}
+                  value={draft?.decision ?? ""}
+                  placeholder={t("notes.decision.decisionPlaceholder")}
+                  onChange={(value) =>
+                    handleDecisionChange(row, value as PromotionDecision)
+                  }
+                  testID={`decision-card-${row.id}-decision`}
+                />
+
+                {draft?.decision === "PROMOTED" ||
+                draft?.decision === "REPEATED" ? (
+                  <View style={styles.field}>
+                    <Text style={styles.fieldLabel}>
+                      {t("promotionsAdmin.decisions.nextLevel")}
+                    </Text>
+                    <InlineSelectDropDown
+                      options={levelOptions}
+                      value={draft?.nextAcademicLevelId ?? ""}
+                      onChange={(value) =>
+                        updateDraft(row, {
+                          decision: draft.decision,
+                          nextAcademicLevelId: value,
+                        })
+                      }
+                      testID={`decision-card-${row.id}-level`}
+                    />
+                  </View>
+                ) : null}
+
+                <TouchableOpacity
+                  style={[
+                    styles.submitButton,
+                    (savingReportId === row.id || !draft?.decision) &&
+                      styles.submitButtonDisabled,
+                  ]}
+                  disabled={savingReportId === row.id || !draft?.decision}
+                  onPress={() => saveDecision(row.id)}
+                  testID={`decision-card-${row.id}-save`}
+                >
+                  <Text style={styles.submitButtonText}>
+                    {t("common.save")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
           </View>
         );
       })}
@@ -273,10 +357,46 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    padding: 14,
+    overflow: "hidden",
+  },
+  cardUndecided: {
+    borderColor: colors.notification,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 14,
     gap: 10,
   },
-  cardTitle: { fontSize: 14, fontWeight: "700", color: colors.textPrimary },
+  cardHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  cardBody: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    gap: 10,
+  },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  decisionBadge: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.accentTealDark,
+  },
+  noDecisionBadge: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.notification,
+    textTransform: "uppercase",
+  },
   synthesisRow: { flexDirection: "row", gap: 8 },
   synthesisCell: {
     flex: 1,

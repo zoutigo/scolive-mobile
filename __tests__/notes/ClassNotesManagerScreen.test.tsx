@@ -259,6 +259,9 @@ describe("Onglet Décision — passage en classe supérieure", () => {
     mockCurriculumsApi.listAcademicLevels.mockResolvedValue([
       { id: "level-5e", code: "5e", label: "5e" },
     ] as never);
+    mockCurriculumsApi.listActivatedAcademicLevels.mockResolvedValue([
+      { id: "level-5e", code: "5e", label: "5e", order: null },
+    ] as never);
     mockPromotionsApi.listTermReportsForDecision.mockResolvedValue([
       {
         id: "report-1",
@@ -270,6 +273,7 @@ describe("Onglet Décision — passage en classe supérieure", () => {
         yearlyAverage: 12,
         rank: 1,
         classSize: 2,
+        currentAcademicLevel: null,
       },
     ] as never);
   });

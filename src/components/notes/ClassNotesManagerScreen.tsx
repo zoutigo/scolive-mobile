@@ -2036,7 +2036,7 @@ export function ClassNotesManagerScreen({
                     body: [t(`notes.manager.help.reports.section${n}Body`)],
                   }))
                 : tab === "decision"
-                  ? [1, 2, 3].map((n) => ({
+                  ? [1, 2, 3, 4].map((n) => ({
                       title: t(`notes.manager.help.decision.section${n}Title`),
                       body: [t(`notes.manager.help.decision.section${n}Body`)],
                     }))

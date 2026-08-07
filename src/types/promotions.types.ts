@@ -14,6 +14,7 @@ export type TermReportForDecisionRow = {
   yearlyAverage: number | null;
   rank: number | null;
   classSize: number | null;
+  currentAcademicLevel: { id: string; order: number | null } | null;
 };
 
 export type SetTermReportDecisionPayload = {
