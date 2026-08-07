@@ -2026,52 +2026,28 @@ export function ClassNotesManagerScreen({
           }
           sections={
             tab === "notes"
-              ? [
-                  {
-                    title: t("notes.manager.help.notes.section1Title"),
-                    body: [t("notes.manager.help.notes.section1Body")],
-                  },
-                ]
+              ? [1, 2, 3].map((n) => ({
+                  title: t(`notes.manager.help.notes.section${n}Title`),
+                  body: [t(`notes.manager.help.notes.section${n}Body`)],
+                }))
               : tab === "reports"
-                ? [
-                    {
-                      title: t("notes.manager.help.reports.section1Title"),
-                      body: [t("notes.manager.help.reports.section1Body")],
-                    },
-                  ]
+                ? [1, 2, 3].map((n) => ({
+                    title: t(`notes.manager.help.reports.section${n}Title`),
+                    body: [t(`notes.manager.help.reports.section${n}Body`)],
+                  }))
                 : tab === "decision"
-                  ? [
-                      {
-                        title: t("notes.manager.help.decision.section1Title"),
-                        body: [t("notes.manager.help.decision.section1Body")],
-                      },
-                    ]
-                  : [
-                      {
-                        title: t(
-                          "notes.manager.help.evaluations.section1Title",
-                        ),
-                        body: [
-                          t("notes.manager.help.evaluations.section1Body"),
-                        ],
-                      },
-                      {
-                        title: t(
-                          "notes.manager.help.evaluations.section2Title",
-                        ),
-                        body: [
-                          t("notes.manager.help.evaluations.section2Body"),
-                        ],
-                      },
-                      {
-                        title: t(
-                          "notes.manager.help.evaluations.section3Title",
-                        ),
-                        body: [
-                          t("notes.manager.help.evaluations.section3Body"),
-                        ],
-                      },
-                    ]
+                  ? [1, 2, 3].map((n) => ({
+                      title: t(`notes.manager.help.decision.section${n}Title`),
+                      body: [t(`notes.manager.help.decision.section${n}Body`)],
+                    }))
+                  : [1, 2, 3, 4, 5, 6].map((n) => ({
+                      title: t(
+                        `notes.manager.help.evaluations.section${n}Title`,
+                      ),
+                      body: [
+                        t(`notes.manager.help.evaluations.section${n}Body`),
+                      ],
+                    }))
           }
           closeLabel={t("notes.manager.help.close")}
           testID="class-notes-help-modal"

@@ -344,12 +344,36 @@ describe("SiteContentAdminScreen", () => {
     fireEvent.press(screen.getByTestId("site-content-admin-help-menu-item"));
     expect(
       await screen.findByTestId("site-content-admin-help-title"),
-    ).toHaveTextContent("Contenu du site");
+    ).toHaveTextContent("Comment utiliser l'onglet Contact");
 
     fireEvent.press(screen.getByTestId("site-content-admin-help-close"));
     await waitFor(() =>
       expect(screen.queryByTestId("site-content-admin-help-title")).toBeNull(),
     );
+  });
+
+  it("affiche un contenu d'aide différent et ciblé par onglet", async () => {
+    mockUser(SUPER_ADMIN_USER);
+    render(<SiteContentAdminScreen />);
+
+    await screen.findByTestId("site-content-contact-view");
+
+    fireEvent.press(screen.getByTestId("site-content-admin-tab-legal"));
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("site-content-admin-help-menu-item"));
+    expect(
+      await screen.findByTestId("site-content-admin-help-title"),
+    ).toHaveTextContent("Comment utiliser l'onglet Documents légaux");
+    expect(screen.getByText("Choisir le document et la langue")).toBeTruthy();
+    fireEvent.press(screen.getByTestId("site-content-admin-help-close"));
+
+    fireEvent.press(screen.getByTestId("site-content-admin-tab-messages"));
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("site-content-admin-help-menu-item"));
+    expect(
+      await screen.findByTestId("site-content-admin-help-title"),
+    ).toHaveTextContent("Comment utiliser l'onglet Messages");
+    expect(screen.getByText("Consulter les messages reçus")).toBeTruthy();
   });
 
   it("avance le tour guidé quand on touche l'onglet mis en surbrillance", async () => {

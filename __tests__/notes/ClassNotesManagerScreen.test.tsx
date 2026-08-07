@@ -1797,8 +1797,13 @@ describe("ClassNotesManagerScreen — modale d'aide (menu ...)", () => {
       screen.getByTestId("class-notes-help-modal-title"),
     ).toHaveTextContent("Comment utiliser l'onglet Évaluations");
     expect(screen.getByText("Rechercher et filtrer")).toBeTruthy();
+    expect(screen.getByText("Statut brouillon ou publié")).toBeTruthy();
+    expect(screen.getByText("Suivre l'avancement de la saisie")).toBeTruthy();
     expect(screen.getByText("Créer une évaluation")).toBeTruthy();
-    expect(screen.getByText("Saisir les notes")).toBeTruthy();
+    expect(
+      screen.getByText("Modifier ou supprimer une évaluation"),
+    ).toBeTruthy();
+    expect(screen.getByText("Saisir ou modifier les notes")).toBeTruthy();
   });
 
   it("ferme la modale d'aide au tap sur le bouton de fermeture", async () => {
@@ -1824,7 +1829,11 @@ describe("ClassNotesManagerScreen — modale d'aide (menu ...)", () => {
     expect(
       screen.getByTestId("class-notes-help-modal-title"),
     ).toHaveTextContent("Comment utiliser l'onglet Notes");
-    expect(screen.getByText("Consulter un élève")).toBeTruthy();
+    expect(screen.getByText("Rechercher un élève")).toBeTruthy();
+    expect(
+      screen.getByText("Filtrer par matière, trimestre ou séquence"),
+    ).toBeTruthy();
+    expect(screen.getByText("Changer d'affichage")).toBeTruthy();
     expect(screen.queryByText("Rechercher et filtrer")).toBeNull();
   });
 
@@ -1840,7 +1849,13 @@ describe("ClassNotesManagerScreen — modale d'aide (menu ...)", () => {
     expect(
       screen.getByTestId("class-notes-help-modal-title"),
     ).toHaveTextContent("Comment utiliser l'onglet Bulletins");
-    expect(screen.getByText("Rédiger les appréciations")).toBeTruthy();
+    expect(
+      screen.getByText("Rechercher un élève et choisir un trimestre"),
+    ).toBeTruthy();
+    expect(screen.getByText("Rédiger l'appréciation de matière")).toBeTruthy();
+    expect(
+      screen.getByText("Rédiger l'appréciation générale (professeur référent)"),
+    ).toBeTruthy();
   });
 
   it("n'affiche pas l'entrée Aide pour un rôle non enseignant (ex. school admin)", async () => {

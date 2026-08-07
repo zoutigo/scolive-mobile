@@ -192,12 +192,16 @@ export function SiteContentAdminScreen() {
       <PageHelpModal
         visible={helpVisible}
         onClose={() => setHelpVisible(false)}
-        title={t("siteContentAdmin.help.title")}
-        body={[
-          t("siteContentAdmin.help.body1"),
-          t("siteContentAdmin.help.body2"),
-          t("siteContentAdmin.help.body3"),
-        ]}
+        title={t(`siteContentAdmin.help.${tab}.title`)}
+        sections={(tab === "legal"
+          ? [1, 2, 3]
+          : tab === "contact"
+            ? [1, 2]
+            : [1]
+        ).map((n) => ({
+          title: t(`siteContentAdmin.help.${tab}.section${n}Title`),
+          body: [t(`siteContentAdmin.help.${tab}.section${n}Body`)],
+        }))}
         closeLabel={t("siteContentAdmin.help.close")}
         testID="site-content-admin-help"
       />

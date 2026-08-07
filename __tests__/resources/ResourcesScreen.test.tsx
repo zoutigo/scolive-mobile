@@ -1749,11 +1749,17 @@ describe("ResourcesScreen — aide parent", () => {
     await waitFor(() =>
       expect(screen.getByTestId("resources-help-modal-title")).toBeTruthy(),
     );
+    expect(screen.getByTestId("resources-help-modal-title")).toHaveTextContent(
+      translate("fr", "resources.help.ASSESSMENT.title"),
+    );
     expect(
-      screen.getByText(translate("fr", "resources.help.section1Title")),
+      screen.getByText(translate("fr", "resources.help.browse.section1Title")),
     ).toBeTruthy();
     expect(
-      screen.getByText(translate("fr", "resources.help.section2Title")),
+      screen.getByText(translate("fr", "resources.help.browse.section2Title")),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(translate("fr", "resources.help.browse.section3Title")),
     ).toBeTruthy();
 
     fireEvent.press(screen.getByTestId("resources-help-modal-close"));
@@ -1761,5 +1767,32 @@ describe("ResourcesScreen — aide parent", () => {
     await waitFor(() =>
       expect(screen.queryByTestId("resources-help-modal-title")).toBeNull(),
     );
+  });
+
+  it("affiche un contenu d'aide différent et ciblé sur l'onglet Mes ressources et Favoris", async () => {
+    mockAuthUser({
+      ...TEACHER_USER,
+      memberships: [{ schoolId: "school-1", role: "PARENT" as const }],
+      activeRole: "PARENT" as const,
+    });
+
+    render(<ResourcesScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("resources-tab-favorites")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("resources-tab-favorites"));
+    fireEvent.press(screen.getByTestId("module-header-menu"));
+    fireEvent.press(screen.getByTestId("resources-help-menu-item"));
+
+    expect(
+      await screen.findByTestId("resources-help-modal-title"),
+    ).toHaveTextContent(translate("fr", "resources.help.favorites.title"));
+    expect(
+      screen.getByText(
+        translate("fr", "resources.help.favorites.section1Title"),
+      ),
+    ).toBeTruthy();
   });
 });

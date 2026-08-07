@@ -1203,19 +1203,35 @@ export function ResourcesScreen() {
       <PageHelpModal
         visible={helpVisible}
         onClose={() => setHelpVisible(false)}
-        title={t("resources.help.title")}
+        title={
+          tab === "mine"
+            ? t("resources.help.mine.title")
+            : tab === "favorites"
+              ? t("resources.help.favorites.title")
+              : tab === "EXAM"
+                ? t("resources.help.EXAM.title")
+                : t("resources.help.ASSESSMENT.title")
+        }
         closeLabel={t("resources.help.close")}
         testID="resources-help-modal"
-        sections={[
-          {
-            title: t("resources.help.section1Title"),
-            body: [t("resources.help.section1Body")],
-          },
-          {
-            title: t("resources.help.section2Title"),
-            body: [t("resources.help.section2Body")],
-          },
-        ]}
+        sections={
+          tab === "mine"
+            ? [1, 2].map((n) => ({
+                title: t(`resources.help.mine.section${n}Title`),
+                body: [t(`resources.help.mine.section${n}Body`)],
+              }))
+            : tab === "favorites"
+              ? [
+                  {
+                    title: t("resources.help.favorites.section1Title"),
+                    body: [t("resources.help.favorites.section1Body")],
+                  },
+                ]
+              : [1, 2, 3].map((n) => ({
+                  title: t(`resources.help.browse.section${n}Title`),
+                  body: [t(`resources.help.browse.section${n}Body`)],
+                }))
+        }
       />
     </View>
   );

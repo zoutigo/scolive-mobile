@@ -1082,14 +1082,30 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.filters.close": "Fermer",
 
     "resources.help.menuLabel": "Aide",
-    "resources.help.title": "Ressources",
     "resources.help.close": "Fermer",
-    "resources.help.section1Title": "Trouver une ressource",
-    "resources.help.section1Body":
-      "Utilisez les onglets Évaluations/Examens pour changer de type de ressource, et le champ de recherche pour retrouver une ressource par son titre. Touchez l'icône de filtre pour affiner par année, établissement, niveau ou type.",
-    "resources.help.section2Title": "Consulter et suivre",
-    "resources.help.section2Body":
-      "Touchez une carte pour consulter l'énoncé ou le corrigé. L'icône favori permet de retrouver rapidement une ressource plus tard depuis l'onglet Favoris.",
+    "resources.help.ASSESSMENT.title": "Comment utiliser l'onglet Évaluations",
+    "resources.help.EXAM.title": "Comment utiliser l'onglet Examens",
+    "resources.help.browse.section1Title": "Rechercher et filtrer",
+    "resources.help.browse.section1Body":
+      "Utilisez le champ de recherche pour retrouver une ressource par son titre. Touchez l'icône filtre pour affiner par année scolaire, établissement, niveau, séquence ou type d'examen selon l'onglet consulté.",
+    "resources.help.browse.section2Title": "Consulter une ressource",
+    "resources.help.browse.section2Body":
+      "Touchez une carte pour ouvrir l'énoncé ou, si disponible, le corrigé.",
+    "resources.help.browse.section3Title": "Ajouter aux favoris",
+    "resources.help.browse.section3Body":
+      "Touchez l'icône favori sur une carte pour l'ajouter à vos favoris et la retrouver rapidement depuis l'onglet Favoris.",
+    "resources.help.mine.title": "Comment utiliser l'onglet Mes ressources",
+    "resources.help.mine.section1Title": "Suivre le statut de vos propositions",
+    "resources.help.mine.section1Body":
+      "Chaque ressource que vous avez proposée affiche le statut de son énoncé et, si présent, de son corrigé : en attente, approuvé ou refusé par la modération — pour savoir si votre proposition est déjà visible des autres utilisateurs.",
+    "resources.help.mine.section2Title": "Modifier une proposition",
+    "resources.help.mine.section2Body":
+      "Touchez Modifier sur une de vos ressources pour corriger son contenu, avant ou après validation par la modération.",
+    "resources.help.favorites.title": "Comment utiliser l'onglet Favoris",
+    "resources.help.favorites.section1Title":
+      "Retrouver vos ressources favorites",
+    "resources.help.favorites.section1Body":
+      "Cet onglet regroupe toutes les ressources ajoutées en favori depuis les onglets Évaluations et Examens. Touchez à nouveau l'icône favori sur une carte pour la retirer de cette liste.",
 
     "onboardingTour.resources.step1Title": "Types de ressources",
     "onboardingTour.resources.step1Body":
@@ -2018,14 +2034,35 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.messages.read": "Message lu",
     "siteContentAdmin.messages.reply": "Répondre par email",
     "siteContentAdmin.help.toggle": "Aide",
-    "siteContentAdmin.help.title": "Contenu du site",
-    "siteContentAdmin.help.body1":
-      "Cet écran gère le contenu public du site vitrine : les coordonnées de contact, les documents légaux (CGU, mentions légales, confidentialité) et les prises de contact reçues.",
-    "siteContentAdmin.help.body2":
-      "Pour un document légal, choisissez d'abord la langue puis créez un nouveau brouillon depuis le bouton dédié. Un brouillon peut être modifié librement tant qu'il n'est pas publié.",
-    "siteContentAdmin.help.body3":
-      "Publier un brouillon remplace immédiatement la version visible sur le site pour cette langue et ce document. Les anciennes versions publiées restent visibles dans l'historique. L'onglet Messages liste les demandes reçues via le formulaire de contact public.",
     "siteContentAdmin.help.close": "J'ai compris",
+    "siteContentAdmin.help.contact.title": "Comment utiliser l'onglet Contact",
+    "siteContentAdmin.help.contact.section1Title":
+      "Consulter les coordonnées publiques",
+    "siteContentAdmin.help.contact.section1Body":
+      "Cet onglet affiche les coordonnées de contact (email, téléphone, adresse, représentant légal) affichées publiquement sur le site vitrine de l'école.",
+    "siteContentAdmin.help.contact.section2Title": "Modifier les coordonnées",
+    "siteContentAdmin.help.contact.section2Body":
+      "Touchez Modifier pour corriger une information, puis Enregistrer. La mise à jour est immédiatement visible sur le site public.",
+    "siteContentAdmin.help.legal.title":
+      "Comment utiliser l'onglet Documents légaux",
+    "siteContentAdmin.help.legal.section1Title":
+      "Choisir le document et la langue",
+    "siteContentAdmin.help.legal.section1Body":
+      "Sélectionnez le document (CGU, mentions légales, confidentialité) puis la langue à modifier — chaque document existe indépendamment pour chaque langue proposée sur le site.",
+    "siteContentAdmin.help.legal.section2Title":
+      "Créer ou modifier un brouillon",
+    "siteContentAdmin.help.legal.section2Body":
+      "Touchez Nouveau brouillon pour rédiger une nouvelle version, ou Modifier sur un brouillon existant. Un brouillon peut être corrigé librement tant qu'il n'est pas publié, sans affecter la version visible sur le site.",
+    "siteContentAdmin.help.legal.section3Title":
+      "Publier ou supprimer un document",
+    "siteContentAdmin.help.legal.section3Body":
+      "Publier un brouillon remplace immédiatement la version visible sur le site pour cette langue et ce document ; les anciennes versions publiées restent consultables dans l'historique. Supprimer retire définitivement un brouillon qui ne doit plus être conservé.",
+    "siteContentAdmin.help.messages.title":
+      "Comment utiliser l'onglet Messages",
+    "siteContentAdmin.help.messages.section1Title":
+      "Consulter les messages reçus",
+    "siteContentAdmin.help.messages.section1Body":
+      "Cet onglet liste les demandes envoyées via le formulaire de contact public du site, des plus récentes aux plus anciennes. Touchez un message pour lire son détail — il est alors marqué comme lu.",
 
     "onboardingTour.siteContent.step1Title": "Contact, documents et messages",
     "onboardingTour.siteContent.step1Body":
@@ -2678,25 +2715,62 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Comment utiliser l'onglet Évaluations",
     "notes.manager.help.evaluations.section1Title": "Rechercher et filtrer",
     "notes.manager.help.evaluations.section1Body":
-      "Utilisez la recherche pour retrouver une évaluation par titre, ou touchez l'icône filtre pour affiner par type, séquence ou statut de saisie.",
-    "notes.manager.help.evaluations.section2Title": "Créer une évaluation",
+      "Utilisez la recherche pour retrouver une évaluation par titre. Touchez l'icône filtre pour affiner la liste par type d'évaluation, par séquence ou par statut de saisie (complète ou incomplète) — utile pour repérer rapidement les évaluations auxquelles il manque encore des notes.",
+    "notes.manager.help.evaluations.section2Title":
+      "Statut brouillon ou publié",
     "notes.manager.help.evaluations.section2Body":
-      "Touchez le bouton + pour créer une nouvelle évaluation avec son barème et sa date.",
-    "notes.manager.help.evaluations.section3Title": "Saisir les notes",
+      "Une évaluation créée en brouillon n'est visible ni par les élèves ni par les parents, et ses notes n'apparaissent pas dans leur onglet Notes tant qu'elle n'est pas publiée. Publiez-la dès que son barème et sa date sont définitifs pour la rendre visible ; le badge Brouillon ou Publié sur chaque carte indique son état actuel.",
+    "notes.manager.help.evaluations.section3Title":
+      "Suivre l'avancement de la saisie",
     "notes.manager.help.evaluations.section3Body":
-      "Touchez une évaluation pour voir son détail et saisir ou modifier les notes des élèves.",
+      "Chaque carte affiche le nombre de notes déjà saisies sur l'effectif de la classe. L'icône de saisie change de couleur selon que la saisie est complète ou encore incomplète, pour repérer d'un coup d'œil les évaluations à finaliser.",
+    "notes.manager.help.evaluations.section4Title": "Créer une évaluation",
+    "notes.manager.help.evaluations.section4Body":
+      "Touchez le bouton + pour créer une nouvelle évaluation : titre, matière, type, séquence, date, barème et coefficient. Enregistrez-la comme brouillon pour la préparer à l'avance, ou publiez-la directement si elle est prête.",
+    "notes.manager.help.evaluations.section5Title":
+      "Modifier ou supprimer une évaluation",
+    "notes.manager.help.evaluations.section5Body":
+      "Depuis chaque carte, touchez Détails pour consulter toutes les informations de l'évaluation, Modifier pour corriger son barème, sa date ou son type, ou Supprimer pour la retirer définitivement — utile en cas d'erreur de création, avant que des notes n'y soient rattachées.",
+    "notes.manager.help.evaluations.section6Title":
+      "Saisir ou modifier les notes",
+    "notes.manager.help.evaluations.section6Body":
+      "Touchez une évaluation, ou l'action Notes de sa carte, pour ouvrir la saisie et entrer ou corriger la note de chaque élève. Tant que l'évaluation reste en brouillon, un bandeau le rappelle : les notes saisies restent invisibles des familles jusqu'à la publication.",
     "notes.manager.help.notes.title": "Comment utiliser l'onglet Notes",
-    "notes.manager.help.notes.section1Title": "Consulter un élève",
+    "notes.manager.help.notes.section1Title": "Rechercher un élève",
     "notes.manager.help.notes.section1Body":
-      "Recherchez un élève pour consulter toutes ses notes et sa moyenne, matière par matière.",
+      "Recherchez un élève par nom pour consulter toutes ses notes et sa moyenne, matière par matière.",
+    "notes.manager.help.notes.section2Title":
+      "Filtrer par matière, trimestre ou séquence",
+    "notes.manager.help.notes.section2Body":
+      "Touchez l'icône filtre pour restreindre les résultats à une matière, un trimestre ou une séquence précise — utile pour vérifier rapidement les notes d'une période donnée sans faire défiler tout l'historique de l'élève.",
+    "notes.manager.help.notes.section3Title": "Changer d'affichage",
+    "notes.manager.help.notes.section3Body":
+      "Basculez entre la liste des évaluations, les moyennes par matière et les graphiques d'évolution pour analyser les résultats de l'élève sous l'angle qui vous intéresse.",
     "notes.manager.help.reports.title": "Comment utiliser l'onglet Bulletins",
-    "notes.manager.help.reports.section1Title": "Rédiger les appréciations",
+    "notes.manager.help.reports.section1Title":
+      "Rechercher un élève et choisir un trimestre",
     "notes.manager.help.reports.section1Body":
-      "Choisissez la séquence puis touchez un élève pour rédiger ou modifier son appréciation de conseil de classe.",
+      "Recherchez un élève, puis touchez la carte du trimestre souhaité pour ouvrir son bulletin complet : moyennes par séquence et par matière. Une fois le bulletin généré par l'école, la date de publication apparaît en bas du bulletin.",
+    "notes.manager.help.reports.section2Title":
+      "Rédiger l'appréciation de matière",
+    "notes.manager.help.reports.section2Body":
+      "Pour chaque matière que vous enseignez, touchez Modifier pour rédiger ou corriger l'appréciation qui apparaîtra sur le bulletin de l'élève. Les matières que vous n'enseignez pas restent en lecture seule.",
+    "notes.manager.help.reports.section3Title":
+      "Rédiger l'appréciation générale (professeur référent)",
+    "notes.manager.help.reports.section3Body":
+      "Si vous êtes professeur référent de la classe, une appréciation générale de conseil de classe est également modifiable, en plus des appréciations par matière — elle résume l'avis du conseil sur l'ensemble du trimestre de l'élève.",
     "notes.manager.help.decision.title": "Comment utiliser l'onglet Décision",
-    "notes.manager.help.decision.section1Title": "Statuer sur le passage",
+    "notes.manager.help.decision.section1Title":
+      "Consulter la synthèse de l'élève",
     "notes.manager.help.decision.section1Body":
-      "Consultez la moyenne de chaque trimestre, la moyenne annuelle et le rang de l'élève, puis choisissez Passage, Redoublement ou Départ et enregistrez.",
+      "Chaque carte affiche les moyennes des trois trimestres, la moyenne annuelle et le rang de l'élève dans sa classe (ex. 3e sur 28) — de quoi statuer en connaissance de cause sur son passage.",
+    "notes.manager.help.decision.section2Title": "Choisir la décision",
+    "notes.manager.help.decision.section2Body":
+      "Sélectionnez Passage, Redoublement ou Départ pour chaque élève. Cette décision détermine si l'élève poursuit dans la classe supérieure, refait son année, ou quitte l'établissement.",
+    "notes.manager.help.decision.section3Title":
+      "Choisir la classe de destination et enregistrer",
+    "notes.manager.help.decision.section3Body":
+      "Sauf en cas de Départ, indiquez la classe de destination pour l'année suivante (classe supérieure en cas de passage, même niveau en cas de redoublement), puis touchez Enregistrer pour valider la décision de cet élève.",
 
     "onboardingTour.teacherNotes.step1Title": "Les onglets",
     "onboardingTour.teacherNotes.step1Body":
@@ -4710,14 +4784,29 @@ export const translations: Record<Locale, Record<string, string>> = {
     "resources.filters.close": "Close",
 
     "resources.help.menuLabel": "Help",
-    "resources.help.title": "Resources",
     "resources.help.close": "Close",
-    "resources.help.section1Title": "Find a resource",
-    "resources.help.section1Body":
-      "Use the Assessments/Exams tabs to switch resource type, and the search field to find a resource by title. Tap the filter icon to narrow down by year, school, level or type.",
-    "resources.help.section2Title": "View and track",
-    "resources.help.section2Body":
-      "Tap a card to view its statement or correction. The favorite icon lets you quickly find a resource again later from the Favorites tab.",
+    "resources.help.ASSESSMENT.title": "How to use the Assessments tab",
+    "resources.help.EXAM.title": "How to use the Exams tab",
+    "resources.help.browse.section1Title": "Search and filter",
+    "resources.help.browse.section1Body":
+      "Use the search field to find a resource by title. Tap the filter icon to narrow down by academic year, school, level, sequence, or exam type depending on the tab you're on.",
+    "resources.help.browse.section2Title": "View a resource",
+    "resources.help.browse.section2Body":
+      "Tap a card to open its statement or, if available, its correction.",
+    "resources.help.browse.section3Title": "Add to favorites",
+    "resources.help.browse.section3Body":
+      "Tap the favorite icon on a card to add it to your favorites and find it again quickly from the Favorites tab.",
+    "resources.help.mine.title": "How to use the My resources tab",
+    "resources.help.mine.section1Title": "Track your submissions' status",
+    "resources.help.mine.section1Body":
+      "Each resource you submitted shows the status of its statement and, if present, its correction: pending, approved, or rejected by moderation — so you know whether your submission is already visible to other users.",
+    "resources.help.mine.section2Title": "Edit a submission",
+    "resources.help.mine.section2Body":
+      "Tap Edit on one of your resources to correct its content, before or after moderation approval.",
+    "resources.help.favorites.title": "How to use the Favorites tab",
+    "resources.help.favorites.section1Title": "Find your favorite resources",
+    "resources.help.favorites.section1Body":
+      "This tab gathers every resource you added to favorites from the Assessments and Exams tabs. Tap the favorite icon again on a card to remove it from this list.",
 
     "onboardingTour.resources.step1Title": "Resource types",
     "onboardingTour.resources.step1Body":
@@ -5610,14 +5699,30 @@ export const translations: Record<Locale, Record<string, string>> = {
     "siteContentAdmin.messages.read": "Message read",
     "siteContentAdmin.messages.reply": "Reply by email",
     "siteContentAdmin.help.toggle": "Help",
-    "siteContentAdmin.help.title": "Site content",
-    "siteContentAdmin.help.body1":
-      "This screen manages the public showcase site content: contact details, legal documents (Terms of Service, Legal Notice, Privacy Policy) and received contact submissions.",
-    "siteContentAdmin.help.body2":
-      "For a legal document, first pick the language, then start a new draft from the dedicated button. A draft can be freely edited until it is published.",
-    "siteContentAdmin.help.body3":
-      "Publishing a draft immediately replaces the version visible on the site for that language and document. Previously published versions stay visible in the history. The Messages tab lists submissions received through the public contact form.",
     "siteContentAdmin.help.close": "Got it",
+    "siteContentAdmin.help.contact.title": "How to use the Contact tab",
+    "siteContentAdmin.help.contact.section1Title":
+      "Review the public contact details",
+    "siteContentAdmin.help.contact.section1Body":
+      "This tab shows the contact details (email, phone, address, legal representative) publicly displayed on the school's showcase site.",
+    "siteContentAdmin.help.contact.section2Title": "Edit the contact details",
+    "siteContentAdmin.help.contact.section2Body":
+      "Tap Edit to correct any information, then Save. The update is immediately visible on the public site.",
+    "siteContentAdmin.help.legal.title": "How to use the Legal documents tab",
+    "siteContentAdmin.help.legal.section1Title":
+      "Pick the document and language",
+    "siteContentAdmin.help.legal.section1Body":
+      "Select the document (Terms of Service, Legal Notice, Privacy Policy) then the language to edit — each document exists independently for every language offered on the site.",
+    "siteContentAdmin.help.legal.section2Title": "Create or edit a draft",
+    "siteContentAdmin.help.legal.section2Body":
+      "Tap New draft to write a new version, or Edit on an existing draft. A draft can be freely corrected until it's published, without affecting the version visible on the site.",
+    "siteContentAdmin.help.legal.section3Title": "Publish or delete a document",
+    "siteContentAdmin.help.legal.section3Body":
+      "Publishing a draft immediately replaces the version visible on the site for that language and document; previously published versions stay viewable in the history. Delete permanently removes a draft that no longer needs to be kept.",
+    "siteContentAdmin.help.messages.title": "How to use the Messages tab",
+    "siteContentAdmin.help.messages.section1Title": "Review received messages",
+    "siteContentAdmin.help.messages.section1Body":
+      "This tab lists submissions sent through the site's public contact form, newest first. Tap a message to read its details — it is then marked as read.",
 
     "onboardingTour.siteContent.step1Title": "Contact, documents and messages",
     "onboardingTour.siteContent.step1Body":
@@ -6255,25 +6360,57 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.manager.help.evaluations.title": "How to use the Evaluations tab",
     "notes.manager.help.evaluations.section1Title": "Search and filter",
     "notes.manager.help.evaluations.section1Body":
-      "Use the search to find an evaluation by title, or tap the filter icon to narrow down by type, sequence or entry status.",
-    "notes.manager.help.evaluations.section2Title": "Create an evaluation",
+      "Use the search field to find an evaluation by title. Tap the filter icon to narrow the list by evaluation type, sequence, or entry status (complete or incomplete) — handy for quickly spotting evaluations still missing scores.",
+    "notes.manager.help.evaluations.section2Title": "Draft or published status",
     "notes.manager.help.evaluations.section2Body":
-      "Tap the + button to create a new evaluation with its scale and date.",
-    "notes.manager.help.evaluations.section3Title": "Enter scores",
+      "An evaluation created as a draft is not visible to students or parents, and its scores don't show up in their Notes tab until it's published. Publish it once its scale and date are final to make it visible; the Draft or Published badge on each card shows its current state.",
+    "notes.manager.help.evaluations.section3Title": "Track entry progress",
     "notes.manager.help.evaluations.section3Body":
-      "Tap an evaluation to see its detail and enter or edit student scores.",
+      "Each card shows how many scores have been entered out of the class size. The scores icon changes color depending on whether entry is complete or still incomplete, so you can spot at a glance which evaluations still need finishing.",
+    "notes.manager.help.evaluations.section4Title": "Create an evaluation",
+    "notes.manager.help.evaluations.section4Body":
+      "Tap the + button to create a new evaluation: title, subject, type, sequence, date, scale and coefficient. Save it as a draft to prepare it in advance, or publish it right away if it's ready.",
+    "notes.manager.help.evaluations.section5Title":
+      "Edit or delete an evaluation",
+    "notes.manager.help.evaluations.section5Body":
+      "From each card, tap Details to review all the evaluation's information, Edit to correct its scale, date or type, or Delete to remove it permanently — useful if it was created by mistake, before any scores are attached to it.",
+    "notes.manager.help.evaluations.section6Title": "Enter or edit scores",
+    "notes.manager.help.evaluations.section6Body":
+      "Tap an evaluation, or its Scores action, to open score entry and enter or correct each student's score. While the evaluation stays in draft, a banner reminds you: entered scores stay invisible to families until it's published.",
     "notes.manager.help.notes.title": "How to use the Notes tab",
     "notes.manager.help.notes.section1Title": "Look up a student",
     "notes.manager.help.notes.section1Body":
-      "Search for a student to see all their scores and averages, subject by subject.",
+      "Search for a student by name to see all their scores and averages, subject by subject.",
+    "notes.manager.help.notes.section2Title":
+      "Filter by subject, term or sequence",
+    "notes.manager.help.notes.section2Body":
+      "Tap the filter icon to narrow results down to a specific subject, term, or sequence — handy for quickly checking a given period's scores without scrolling through the student's whole history.",
+    "notes.manager.help.notes.section3Title": "Switch views",
+    "notes.manager.help.notes.section3Body":
+      "Switch between the evaluations list, subject averages, and progress charts to look at the student's results from whichever angle you need.",
     "notes.manager.help.reports.title": "How to use the Reports tab",
-    "notes.manager.help.reports.section1Title": "Write assessments",
+    "notes.manager.help.reports.section1Title":
+      "Find a student and pick a term",
     "notes.manager.help.reports.section1Body":
-      "Choose the sequence then tap a student to write or edit their class-council assessment.",
+      "Search for a student, then tap the card for the term you want to open their full report: averages by sequence and by subject. Once the school generates the report, the publication date appears at the bottom of it.",
+    "notes.manager.help.reports.section2Title": "Write the subject remark",
+    "notes.manager.help.reports.section2Body":
+      "For each subject you teach, tap Edit to write or correct the remark that will appear on the student's report. Subjects you don't teach stay read-only.",
+    "notes.manager.help.reports.section3Title":
+      "Write the general remark (referent teacher)",
+    "notes.manager.help.reports.section3Body":
+      "If you are the class's referent teacher, a general class-council remark is also editable, in addition to the per-subject remarks — it sums up the council's opinion on the student's whole term.",
     "notes.manager.help.decision.title": "How to use the Decision tab",
-    "notes.manager.help.decision.section1Title": "Decide on promotion",
+    "notes.manager.help.decision.section1Title": "Review the student's summary",
     "notes.manager.help.decision.section1Body":
-      "Review each term average, the yearly average and the student's rank, then choose Promoted, Repeated or Left and save.",
+      "Each card shows the three term averages, the yearly average and the student's rank in class (e.g. 3rd out of 28) — enough to decide on promotion with full context.",
+    "notes.manager.help.decision.section2Title": "Choose the decision",
+    "notes.manager.help.decision.section2Body":
+      "Select Promoted, Repeated or Left for each student. This decision determines whether the student moves up to the next class, repeats the year, or leaves the school.",
+    "notes.manager.help.decision.section3Title":
+      "Pick the destination class and save",
+    "notes.manager.help.decision.section3Body":
+      "Unless Left is selected, pick the destination class for next year (the next level if promoted, the same level if repeating), then tap Save to confirm this student's decision.",
 
     "onboardingTour.teacherNotes.step1Title": "The tabs",
     "onboardingTour.teacherNotes.step1Body":
