@@ -239,3 +239,194 @@ describe("DatePickerField — navigation entre mois", () => {
     expect(row0.children).toHaveLength(7);
   });
 });
+
+// ─── Sélecteur rapide année / mois (remonter 18 ans en arrière) ──────────────
+
+describe("DatePickerField — sélecteur d'année", () => {
+  it("appuyer sur le libellé du mois ouvre la grille des années", async () => {
+    await openPicker({ value: "2026-06-15" });
+    fireEvent.press(screen.getByTestId("dp-open-years"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-year-2026")).toBeTruthy(),
+    );
+    // La grille des jours n'est plus affichée
+    expect(screen.queryByTestId("dp-day-2026-06-15")).toBeNull();
+  });
+
+  it("la pagination des années permet de reculer par paquets de 12 ans (18 ans en 2 clics)", async () => {
+    await openPicker({ value: "2026-06-15" });
+    fireEvent.press(screen.getByTestId("dp-open-years"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-year-2026")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("dp-prev-years"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-year-2014")).toBeTruthy(),
+    );
+    expect(screen.getByTestId("dp-year-2008")).toBeTruthy();
+  });
+
+  it("sélectionner une année ouvre la grille des mois de cette année", async () => {
+    await openPicker({ value: "2026-06-15" });
+    fireEvent.press(screen.getByTestId("dp-open-years"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-year-2026")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("dp-prev-years"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-year-2008")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("dp-year-2008"));
+    await waitFor(() => expect(screen.getByTestId("dp-month-0")).toBeTruthy());
+    expect(screen.getByText("2008")).toBeTruthy();
+  });
+
+  it("sélectionner un mois ouvre la grille des jours du mois choisi", async () => {
+    await openPicker({ value: "2026-06-15" });
+    fireEvent.press(screen.getByTestId("dp-open-years"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-year-2026")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("dp-prev-years"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-year-2008")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("dp-year-2008"));
+    await waitFor(() => expect(screen.getByTestId("dp-month-2")).toBeTruthy());
+    // mars (index 2)
+    fireEvent.press(screen.getByTestId("dp-month-2"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-day-2008-03-01")).toBeTruthy(),
+    );
+  });
+
+  it("permet de sélectionner et confirmer une date née 18 ans plus tôt via année → mois → jour", async () => {
+    const { onChange } = await openPicker({ value: "2026-06-15" });
+    fireEvent.press(screen.getByTestId("dp-open-years"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-year-2026")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("dp-prev-years"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-year-2008")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("dp-year-2008"));
+    await waitFor(() => expect(screen.getByTestId("dp-month-8")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("dp-month-8")); // septembre
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-day-2008-09-10")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("dp-day-2008-09-10"));
+    fireEvent.press(screen.getByTestId("dp-confirm"));
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith("2008-09-10"));
+  });
+
+  it("depuis la grille des mois, le libellé de l'année rouvre la grille des années", async () => {
+    await openPicker({ value: "2026-06-15" });
+    fireEvent.press(screen.getByTestId("dp-open-years"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-year-2026")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("dp-year-2026"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-open-years-from-months")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("dp-open-years-from-months"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-year-2026")).toBeTruthy(),
+    );
+  });
+
+  it("les flèches prev/next année depuis la grille des mois changent d'année", async () => {
+    await openPicker({ value: "2026-06-15" });
+    fireEvent.press(screen.getByTestId("dp-open-years"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-year-2026")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("dp-year-2026"));
+    await waitFor(() => expect(screen.getByText("2026")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("dp-prev-year"));
+    await waitFor(() => expect(screen.getByText("2025")).toBeTruthy());
+  });
+
+  it("réouvrir le picker réinitialise le mode sur la grille des jours", async () => {
+    const onChange = jest.fn();
+    const { unmount } = render(
+      <DatePickerField value="2026-06-15" onChange={onChange} testID="dp" />,
+    );
+    fireEvent.press(screen.getByTestId("dp"));
+    await waitFor(() => expect(screen.getByTestId("dp-modal")).toBeTruthy());
+    fireEvent.press(screen.getByTestId("dp-open-years"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-year-2026")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("dp-cancel"));
+    await waitFor(() => expect(screen.queryByTestId("dp-modal")).toBeNull());
+
+    fireEvent.press(screen.getByTestId("dp"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-day-2026-06-15")).toBeTruthy(),
+    );
+    unmount();
+  });
+});
+
+// ─── Bornes minimumDate / maximumDate ─────────────────────────────────────────
+
+describe("DatePickerField — bornes minimumDate / maximumDate", () => {
+  it("désactive les jours postérieurs à maximumDate", async () => {
+    await openPicker({
+      value: "2026-06-15",
+      maximumDate: new Date(2026, 5, 10),
+    });
+    const dayAfterMax = screen.getByTestId("dp-day-2026-06-15");
+    expect(dayAfterMax.props.accessibilityState?.disabled).toBe(true);
+  });
+
+  it("n'affecte pas les jours antérieurs ou égaux à maximumDate", async () => {
+    await openPicker({
+      value: "2026-06-15",
+      maximumDate: new Date(2026, 5, 10),
+    });
+    const dayBeforeMax = screen.getByTestId("dp-day-2026-06-05");
+    expect(dayBeforeMax.props.accessibilityState?.disabled).toBeFalsy();
+  });
+
+  it("désactive les années postérieures à maximumDate dans la grille des années", async () => {
+    await openPicker({
+      value: "2020-06-15",
+      maximumDate: new Date(2020, 5, 10),
+    });
+    fireEvent.press(screen.getByTestId("dp-open-years"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-year-2021")).toBeTruthy(),
+    );
+    expect(
+      screen.getByTestId("dp-year-2021").props.accessibilityState?.disabled,
+    ).toBe(true);
+    expect(
+      screen.getByTestId("dp-year-2020").props.accessibilityState?.disabled,
+    ).toBeFalsy();
+  });
+
+  it("désactive les mois postérieurs à maximumDate dans la grille des mois de l'année courante", async () => {
+    await openPicker({
+      value: "2020-06-15",
+      maximumDate: new Date(2020, 5, 10),
+    });
+    fireEvent.press(screen.getByTestId("dp-open-years"));
+    await waitFor(() =>
+      expect(screen.getByTestId("dp-year-2020")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("dp-year-2020"));
+    await waitFor(() => expect(screen.getByTestId("dp-month-6")).toBeTruthy());
+    // juillet (index 6) est après juin (maximumDate) → désactivé
+    expect(
+      screen.getByTestId("dp-month-6").props.accessibilityState?.disabled,
+    ).toBe(true);
+    // mai (index 4) reste sélectionnable
+    expect(
+      screen.getByTestId("dp-month-4").props.accessibilityState?.disabled,
+    ).toBeFalsy();
+  });
+});

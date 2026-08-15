@@ -25,7 +25,19 @@ type Props = {
   disabled?: boolean;
   hasError?: boolean;
   testID?: string;
+  minimumDate?: Date;
+  maximumDate?: Date;
 };
+
+type PickerMode = "days" | "months" | "years";
+
+const YEARS_PER_PAGE = 12;
+
+const MONTH_LABELS = Array.from({ length: 12 }, (_, index) =>
+  new Intl.DateTimeFormat("fr-FR", { month: "short" }).format(
+    new Date(2000, index, 1),
+  ),
+);
 
 function buildMonthRows(cursorDate: Date): Array<Array<Date | null>> {
   const year = cursorDate.getFullYear();
@@ -52,6 +64,60 @@ function buildMonthRows(cursorDate: Date): Array<Array<Date | null>> {
   return rows;
 }
 
+function buildYearsPage(pageStart: number): number[] {
+  return Array.from(
+    { length: YEARS_PER_PAGE },
+    (_, index) => pageStart + index,
+  );
+}
+
+function isYearDisabled(
+  year: number,
+  minimumDate?: Date,
+  maximumDate?: Date,
+): boolean {
+  if (minimumDate && year < minimumDate.getFullYear()) return true;
+  if (maximumDate && year > maximumDate.getFullYear()) return true;
+  return false;
+}
+
+function isMonthDisabled(
+  year: number,
+  month: number,
+  minimumDate?: Date,
+  maximumDate?: Date,
+): boolean {
+  if (
+    minimumDate &&
+    (year < minimumDate.getFullYear() ||
+      (year === minimumDate.getFullYear() && month < minimumDate.getMonth()))
+  ) {
+    return true;
+  }
+  if (
+    maximumDate &&
+    (year > maximumDate.getFullYear() ||
+      (year === maximumDate.getFullYear() && month > maximumDate.getMonth()))
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function isDayDisabled(
+  date: Date,
+  minimumDate?: Date,
+  maximumDate?: Date,
+): boolean {
+  if (minimumDate && date < stripTime(minimumDate)) return true;
+  if (maximumDate && date > stripTime(maximumDate)) return true;
+  return false;
+}
+
+function stripTime(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
 function formatDisplayDate(value: string) {
   const parsed = parseDateInput(value);
   if (!parsed) return value;
@@ -74,19 +140,34 @@ export function DatePickerField({
   disabled = false,
   hasError = false,
   testID,
+  minimumDate,
+  maximumDate,
 }: Props) {
   const parsedValue = useMemo(() => parseDateInput(value), [value]);
   const [visible, setVisible] = useState(false);
+  const [mode, setMode] = useState<PickerMode>("days");
   const [cursorDate, setCursorDate] = useState(parsedValue ?? new Date());
   const [draftDate, setDraftDate] = useState<Date | null>(parsedValue);
+  const [yearsPageStart, setYearsPageStart] = useState(() => {
+    const year = (parsedValue ?? new Date()).getFullYear();
+    return year - (year % YEARS_PER_PAGE);
+  });
 
   const monthRows = useMemo(() => buildMonthRows(cursorDate), [cursorDate]);
+  const yearsPage = useMemo(
+    () => buildYearsPage(yearsPageStart),
+    [yearsPageStart],
+  );
 
   function openPicker() {
     const nextValue = parseDateInput(value);
     const fallback = nextValue ?? new Date();
     setCursorDate(fallback);
     setDraftDate(nextValue);
+    setYearsPageStart(
+      fallback.getFullYear() - (fallback.getFullYear() % YEARS_PER_PAGE),
+    );
+    setMode("days");
     setVisible(true);
   }
 
@@ -100,6 +181,23 @@ export function DatePickerField({
       onChange(toIsoDateString(draftDate));
     }
     closePicker();
+  }
+
+  function openYearsPicker() {
+    setYearsPageStart(
+      cursorDate.getFullYear() - (cursorDate.getFullYear() % YEARS_PER_PAGE),
+    );
+    setMode("years");
+  }
+
+  function selectYear(year: number) {
+    setCursorDate((current) => new Date(year, current.getMonth(), 1));
+    setMode("months");
+  }
+
+  function selectMonth(monthIndex: number) {
+    setCursorDate((current) => new Date(current.getFullYear(), monthIndex, 1));
+    setMode("days");
   }
 
   return (
@@ -156,86 +254,259 @@ export function DatePickerField({
               </Text>
             </View>
 
-            <View style={styles.monthNavRow}>
-              <TouchableOpacity
-                style={styles.navButton}
-                onPress={() =>
-                  setCursorDate((current) => addMonths(current, -1))
-                }
-                testID={testID ? `${testID}-prev-month` : undefined}
-              >
-                <Ionicons
-                  name="chevron-back"
-                  size={18}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
-              <Text style={styles.monthLabel}>
-                {formatMonthLabel(cursorDate)}
-              </Text>
-              <TouchableOpacity
-                style={styles.navButton}
-                onPress={() =>
-                  setCursorDate((current) => addMonths(current, 1))
-                }
-                testID={testID ? `${testID}-next-month` : undefined}
-              >
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
-            </View>
+            {mode === "days" ? (
+              <>
+                <View style={styles.monthNavRow}>
+                  <TouchableOpacity
+                    style={styles.navButton}
+                    onPress={() =>
+                      setCursorDate((current) => addMonths(current, -1))
+                    }
+                    testID={testID ? `${testID}-prev-month` : undefined}
+                  >
+                    <Ionicons
+                      name="chevron-back"
+                      size={18}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.monthLabelButton}
+                    onPress={openYearsPicker}
+                    testID={testID ? `${testID}-open-years` : undefined}
+                  >
+                    <Text style={styles.monthLabel}>
+                      {formatMonthLabel(cursorDate)}
+                    </Text>
+                    <Ionicons
+                      name="chevron-down"
+                      size={14}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.navButton}
+                    onPress={() =>
+                      setCursorDate((current) => addMonths(current, 1))
+                    }
+                    testID={testID ? `${testID}-next-month` : undefined}
+                  >
+                    <Ionicons
+                      name="chevron-forward"
+                      size={18}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                </View>
 
-            <View style={styles.weekdayRow}>
-              {WEEKDAY_LABELS.map((label, index) => (
-                <Text key={index} style={styles.weekdayText}>
-                  {label}
-                </Text>
-              ))}
-            </View>
+                <View style={styles.weekdayRow}>
+                  {WEEKDAY_LABELS.map((label, index) => (
+                    <Text key={index} style={styles.weekdayText}>
+                      {label}
+                    </Text>
+                  ))}
+                </View>
 
-            <View style={styles.grid}>
-              {monthRows.map((row, rowIndex) => (
-                <View
-                  key={rowIndex}
-                  style={styles.gridRow}
-                  testID={testID ? `${testID}-row-${rowIndex}` : undefined}
-                >
-                  {row.map((cell, colIndex) => {
-                    const iso = cell ? toIsoDateString(cell) : null;
-                    const selected =
-                      iso && draftDate
-                        ? iso === toIsoDateString(draftDate)
-                        : false;
+                <View style={styles.grid}>
+                  {monthRows.map((row, rowIndex) => (
+                    <View
+                      key={rowIndex}
+                      style={styles.gridRow}
+                      testID={testID ? `${testID}-row-${rowIndex}` : undefined}
+                    >
+                      {row.map((cell, colIndex) => {
+                        const iso = cell ? toIsoDateString(cell) : null;
+                        const selected =
+                          iso && draftDate
+                            ? iso === toIsoDateString(draftDate)
+                            : false;
+                        const disabled =
+                          !cell ||
+                          isDayDisabled(cell, minimumDate, maximumDate);
+                        return (
+                          <TouchableOpacity
+                            key={iso ?? `empty-${rowIndex}-${colIndex}`}
+                            style={[
+                              styles.dayCell,
+                              selected && styles.dayCellSelected,
+                            ]}
+                            onPress={() => cell && setDraftDate(cell)}
+                            disabled={disabled}
+                            testID={
+                              iso && testID ? `${testID}-day-${iso}` : undefined
+                            }
+                          >
+                            <Text
+                              style={[
+                                styles.dayText,
+                                selected && styles.dayTextSelected,
+                                disabled && styles.dayTextDisabled,
+                              ]}
+                            >
+                              {cell ? String(cell.getDate()) : ""}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  ))}
+                </View>
+              </>
+            ) : null}
+
+            {mode === "years" ? (
+              <>
+                <View style={styles.monthNavRow}>
+                  <TouchableOpacity
+                    style={styles.navButton}
+                    onPress={() =>
+                      setYearsPageStart((current) => current - YEARS_PER_PAGE)
+                    }
+                    testID={testID ? `${testID}-prev-years` : undefined}
+                  >
+                    <Ionicons
+                      name="chevron-back"
+                      size={18}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                  <Text style={styles.monthLabel}>
+                    {yearsPageStart} - {yearsPageStart + YEARS_PER_PAGE - 1}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.navButton}
+                    onPress={() =>
+                      setYearsPageStart((current) => current + YEARS_PER_PAGE)
+                    }
+                    testID={testID ? `${testID}-next-years` : undefined}
+                  >
+                    <Ionicons
+                      name="chevron-forward"
+                      size={18}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.optionGrid}>
+                  {yearsPage.map((year) => {
+                    const disabled = isYearDisabled(
+                      year,
+                      minimumDate,
+                      maximumDate,
+                    );
+                    const selected = cursorDate.getFullYear() === year;
                     return (
                       <TouchableOpacity
-                        key={iso ?? `empty-${rowIndex}-${colIndex}`}
+                        key={year}
                         style={[
-                          styles.dayCell,
-                          selected && styles.dayCellSelected,
+                          styles.optionCell,
+                          selected && styles.optionCellSelected,
                         ]}
-                        onPress={() => cell && setDraftDate(cell)}
-                        disabled={!cell}
-                        testID={
-                          iso && testID ? `${testID}-day-${iso}` : undefined
-                        }
+                        onPress={() => selectYear(year)}
+                        disabled={disabled}
+                        testID={testID ? `${testID}-year-${year}` : undefined}
                       >
                         <Text
                           style={[
-                            styles.dayText,
-                            selected && styles.dayTextSelected,
+                            styles.optionText,
+                            selected && styles.optionTextSelected,
+                            disabled && styles.dayTextDisabled,
                           ]}
                         >
-                          {cell ? String(cell.getDate()) : ""}
+                          {year}
                         </Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
-              ))}
-            </View>
+              </>
+            ) : null}
+
+            {mode === "months" ? (
+              <>
+                <View style={styles.monthNavRow}>
+                  <TouchableOpacity
+                    style={styles.navButton}
+                    onPress={() =>
+                      setCursorDate((current) => addMonths(current, -12))
+                    }
+                    testID={testID ? `${testID}-prev-year` : undefined}
+                  >
+                    <Ionicons
+                      name="chevron-back"
+                      size={18}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.monthLabelButton}
+                    onPress={openYearsPicker}
+                    testID={
+                      testID ? `${testID}-open-years-from-months` : undefined
+                    }
+                  >
+                    <Text style={styles.monthLabel}>
+                      {cursorDate.getFullYear()}
+                    </Text>
+                    <Ionicons
+                      name="chevron-down"
+                      size={14}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.navButton}
+                    onPress={() =>
+                      setCursorDate((current) => addMonths(current, 12))
+                    }
+                    testID={testID ? `${testID}-next-year` : undefined}
+                  >
+                    <Ionicons
+                      name="chevron-forward"
+                      size={18}
+                      color={colors.primary}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.optionGrid}>
+                  {MONTH_LABELS.map((label, monthIndex) => {
+                    const disabled = isMonthDisabled(
+                      cursorDate.getFullYear(),
+                      monthIndex,
+                      minimumDate,
+                      maximumDate,
+                    );
+                    const selected = cursorDate.getMonth() === monthIndex;
+                    return (
+                      <TouchableOpacity
+                        key={monthIndex}
+                        style={[
+                          styles.optionCell,
+                          selected && styles.optionCellSelected,
+                        ]}
+                        onPress={() => selectMonth(monthIndex)}
+                        disabled={disabled}
+                        testID={
+                          testID ? `${testID}-month-${monthIndex}` : undefined
+                        }
+                      >
+                        <Text
+                          style={[
+                            styles.optionText,
+                            selected && styles.optionTextSelected,
+                            disabled && styles.dayTextDisabled,
+                          ]}
+                        >
+                          {label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </>
+            ) : null}
 
             <View style={styles.actions}>
               <TouchableOpacity
@@ -341,6 +612,14 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     textTransform: "capitalize",
   },
+  monthLabelButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+  },
   weekdayRow: {
     flexDirection: "row",
   },
@@ -373,6 +652,37 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   dayTextSelected: {
+    color: colors.white,
+  },
+  dayTextDisabled: {
+    color: colors.textSecondary,
+    opacity: 0.4,
+  },
+  optionGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  optionCell: {
+    width: "31%",
+    minHeight: 44,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#E0D0BA",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  optionCellSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  optionText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.textPrimary,
+    textTransform: "capitalize",
+  },
+  optionTextSelected: {
     color: colors.white,
   },
   actions: {

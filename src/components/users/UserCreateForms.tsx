@@ -808,6 +808,7 @@ export function StudentCreateFormContent(props: {
                 placeholder={t("users.create.field.dateOfBirth.placeholder")}
                 hasError={!!errors.dateOfBirth}
                 testID="users-create-student-date-of-birth"
+                maximumDate={new Date()}
               />
             )}
           />
