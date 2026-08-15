@@ -42,10 +42,11 @@ Un utilisateur peut avoir plusieurs rôles (plusieurs `memberships` école, plus
 **Après toute modification du code (correction de bug, nouvelle fonctionnalité, correctif), terminer systématiquement par :**
 
 1. Des tests approfondis unitaires, fonctionnels et d'intégration, front ET back, y compris la gestion des erreurs.
-2. Les vérifications précommit (format, lint, typecheck, build).
+2. Les vérifications précommit (format, lint, typecheck, tests unitaires — le build Android n'est plus vérifié en local, il l'est en CI).
 3. Un commit.
+4. Un push vers `origin/dev`, automatique et sans attendre d'instruction explicite : c'est le déclencheur de la CI (`android-build`, typecheck, lint, tests), qui ne couvre plus rien en local.
 
-**Le push sur le remote reste soumis à une instruction explicite de l'utilisateur** (voir `/release-ci` pour le cycle complet push → PR → CI → merge).
+**Le cycle complet PR → CI → merge vers `main`** (voir `/release-ci`) reste soumis à une instruction explicite de l'utilisateur.
 
 **Sauf indication explicite contraire de l'utilisateur, tout le développement se fait sur la branche `dev`.**
 Si la branche courante n'est pas `dev`, basculer dessus avant toute modification ou signaler clairement le blocage.
