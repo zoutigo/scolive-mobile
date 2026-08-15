@@ -1,5 +1,5 @@
 /**
- * Tests unitaires : PromoteToUserSheet
+ * Tests unitaires : PromoteToUserFormContent
  */
 import React from "react";
 import {
@@ -8,7 +8,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
-import { PromoteToUserSheet } from "../../src/components/users/PromoteToUserSheet";
+import { PromoteToUserFormContent } from "../../src/components/users/PromoteToUserSheet";
 import { usersApi } from "../../src/api/users.api";
 import { useSuccessToastStore } from "../../src/store/success-toast.store";
 
@@ -18,10 +18,6 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 jest.mock("../../src/api/users.api");
 jest.mock("../../src/store/success-toast.store");
-// expo-clipboard est utilisé par CredentialDisplaySheet (rendu imbriqué)
-jest.mock("expo-clipboard", () => ({
-  setStringAsync: jest.fn().mockResolvedValue(undefined),
-}));
 
 const mockUsersApi = usersApi as jest.Mocked<typeof usersApi>;
 const mockUseSuccessToastStore = useSuccessToastStore as jest.MockedFunction<
@@ -31,11 +27,10 @@ const mockUseSuccessToastStore = useSuccessToastStore as jest.MockedFunction<
 const mockShowError = jest.fn();
 
 const DEFAULT_PROPS = {
-  visible: true,
-  onClose: jest.fn(),
   schoolSlug: "college-vogt",
   studentId: "student-42",
   studentName: "Amina Fouda",
+  onCancel: jest.fn(),
   onSuccess: jest.fn(),
 };
 
@@ -53,9 +48,9 @@ beforeEach(() => {
   mockUsersApi.suggestUsername.mockResolvedValue({ username: "amina.fouda" });
 });
 
-describe("PromoteToUserSheet — au mount", () => {
+describe("PromoteToUserFormContent — au mount", () => {
   it("appelle suggestUsername au mount avec schoolSlug et studentId", async () => {
-    render(<PromoteToUserSheet {...DEFAULT_PROPS} />);
+    render(<PromoteToUserFormContent {...DEFAULT_PROPS} />);
 
     await waitFor(() =>
       expect(mockUsersApi.suggestUsername).toHaveBeenCalledWith(
@@ -66,7 +61,7 @@ describe("PromoteToUserSheet — au mount", () => {
   });
 
   it("pré-remplit le champ username avec la suggestion retournée par l'API", async () => {
-    render(<PromoteToUserSheet {...DEFAULT_PROPS} />);
+    render(<PromoteToUserFormContent {...DEFAULT_PROPS} />);
 
     await waitFor(() =>
       expect(screen.getByDisplayValue("amina.fouda")).toBeOnTheScreen(),
@@ -81,7 +76,7 @@ describe("PromoteToUserSheet — au mount", () => {
         }),
     );
 
-    render(<PromoteToUserSheet {...DEFAULT_PROPS} />);
+    render(<PromoteToUserFormContent {...DEFAULT_PROPS} />);
 
     expect(screen.getByDisplayValue("AminaFouda")).toBeOnTheScreen();
     await waitFor(() =>
@@ -93,7 +88,7 @@ describe("PromoteToUserSheet — au mount", () => {
     mockUsersApi.suggestUsername.mockRejectedValueOnce(
       new Error("Network error"),
     );
-    render(<PromoteToUserSheet {...DEFAULT_PROPS} />);
+    render(<PromoteToUserFormContent {...DEFAULT_PROPS} />);
 
     expect(screen.getByDisplayValue("AminaFouda")).toBeOnTheScreen();
     await waitFor(() =>
@@ -102,9 +97,9 @@ describe("PromoteToUserSheet — au mount", () => {
   });
 });
 
-describe("PromoteToUserSheet — champ username", () => {
+describe("PromoteToUserFormContent — champ username", () => {
   it("permet de modifier le champ username", async () => {
-    render(<PromoteToUserSheet {...DEFAULT_PROPS} />);
+    render(<PromoteToUserFormContent {...DEFAULT_PROPS} />);
 
     await waitFor(() => screen.getByTestId("input-username-promote"));
 
@@ -117,9 +112,9 @@ describe("PromoteToUserSheet — champ username", () => {
   });
 });
 
-describe("PromoteToUserSheet — validation Zod", () => {
+describe("PromoteToUserFormContent — validation Zod", () => {
   it("affiche une erreur si le username fait moins de 3 caractères", async () => {
-    render(<PromoteToUserSheet {...DEFAULT_PROPS} />);
+    render(<PromoteToUserFormContent {...DEFAULT_PROPS} />);
 
     await waitFor(() => screen.getByTestId("input-username-promote"));
 
@@ -127,7 +122,9 @@ describe("PromoteToUserSheet — validation Zod", () => {
     fireEvent.press(screen.getByTestId("promote-student-submit"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("error-username-promote")).toBeOnTheScreen(),
+      expect(
+        screen.getByTestId("input-username-promote-error"),
+      ).toBeOnTheScreen(),
     );
     expect(
       screen.getByText("L'identifiant doit faire au moins 3 caractères."),
@@ -136,7 +133,7 @@ describe("PromoteToUserSheet — validation Zod", () => {
   });
 
   it("affiche une erreur si le username contient des caractères non alphanumériques (espace)", async () => {
-    render(<PromoteToUserSheet {...DEFAULT_PROPS} />);
+    render(<PromoteToUserFormContent {...DEFAULT_PROPS} />);
 
     await waitFor(() => screen.getByTestId("input-username-promote"));
 
@@ -147,7 +144,9 @@ describe("PromoteToUserSheet — validation Zod", () => {
     fireEvent.press(screen.getByTestId("promote-student-submit"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("error-username-promote")).toBeOnTheScreen(),
+      expect(
+        screen.getByTestId("input-username-promote-error"),
+      ).toBeOnTheScreen(),
     );
     expect(
       screen.getByText("Lettres et chiffres uniquement."),
@@ -156,7 +155,7 @@ describe("PromoteToUserSheet — validation Zod", () => {
   });
 
   it("affiche une erreur si le username contient un point (non alphanumérique)", async () => {
-    render(<PromoteToUserSheet {...DEFAULT_PROPS} />);
+    render(<PromoteToUserFormContent {...DEFAULT_PROPS} />);
 
     await waitFor(() => screen.getByTestId("input-username-promote"));
 
@@ -167,20 +166,22 @@ describe("PromoteToUserSheet — validation Zod", () => {
     fireEvent.press(screen.getByTestId("promote-student-submit"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("error-username-promote")).toBeOnTheScreen(),
+      expect(
+        screen.getByTestId("input-username-promote-error"),
+      ).toBeOnTheScreen(),
     );
     expect(mockUsersApi.promoteStudent).not.toHaveBeenCalled();
   });
 });
 
-describe("PromoteToUserSheet — submit success", () => {
+describe("PromoteToUserFormContent — submit success", () => {
   it("appelle promoteStudent avec le bon username", async () => {
     mockUsersApi.promoteStudent.mockResolvedValueOnce({
       username: "amina42",
       temporaryPassword: "TmpPwd123",
     });
 
-    render(<PromoteToUserSheet {...DEFAULT_PROPS} />);
+    render(<PromoteToUserFormContent {...DEFAULT_PROPS} />);
 
     await waitFor(() => screen.getByTestId("input-username-promote"));
 
@@ -199,57 +200,16 @@ describe("PromoteToUserSheet — submit success", () => {
     );
   });
 
-  it("appelle onSuccess après un submit réussi", async () => {
+  it("appelle onSuccess avec les identifiants après un submit réussi", async () => {
     const onSuccess = jest.fn();
     mockUsersApi.promoteStudent.mockResolvedValueOnce({
       username: "amina42",
       temporaryPassword: "TmpPwd123",
     });
 
-    render(<PromoteToUserSheet {...DEFAULT_PROPS} onSuccess={onSuccess} />);
-
-    await waitFor(() => screen.getByTestId("input-username-promote"));
-
-    fireEvent.changeText(
-      screen.getByTestId("input-username-promote"),
-      "amina42",
+    render(
+      <PromoteToUserFormContent {...DEFAULT_PROPS} onSuccess={onSuccess} />,
     );
-    fireEvent.press(screen.getByTestId("promote-student-submit"));
-
-    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
-  });
-
-  it("appelle onClose après un submit réussi", async () => {
-    const onClose = jest.fn();
-    mockUsersApi.promoteStudent.mockResolvedValueOnce({
-      username: "amina42",
-      temporaryPassword: "TmpPwd123",
-    });
-
-    render(<PromoteToUserSheet {...DEFAULT_PROPS} onClose={onClose} />);
-
-    await waitFor(() => screen.getByTestId("input-username-promote"));
-
-    fireEvent.changeText(
-      screen.getByTestId("input-username-promote"),
-      "amina42",
-    );
-    fireEvent.press(screen.getByTestId("promote-student-submit"));
-
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
-  });
-});
-
-describe("PromoteToUserSheet — erreur API", () => {
-  it("affiche une erreur inline sur le champ si le username est déjà pris", async () => {
-    mockUsersApi.promoteStudent.mockRejectedValueOnce(
-      Object.assign(new Error('Username "amina42" is already taken'), {
-        statusCode: 409,
-      }),
-    );
-
-    const onClose = jest.fn();
-    render(<PromoteToUserSheet {...DEFAULT_PROPS} onClose={onClose} />);
 
     await waitFor(() => screen.getByTestId("input-username-promote"));
 
@@ -260,7 +220,65 @@ describe("PromoteToUserSheet — erreur API", () => {
     fireEvent.press(screen.getByTestId("promote-student-submit"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("error-username-promote")).toBeOnTheScreen(),
+      expect(onSuccess).toHaveBeenCalledWith({
+        username: "amina42",
+        temporaryPassword: "TmpPwd123",
+      }),
+    );
+  });
+
+  it("n'appelle pas onCancel après un submit réussi (redirection gérée par le parent)", async () => {
+    const onCancel = jest.fn();
+    mockUsersApi.promoteStudent.mockResolvedValueOnce({
+      username: "amina42",
+      temporaryPassword: "TmpPwd123",
+    });
+
+    render(<PromoteToUserFormContent {...DEFAULT_PROPS} onCancel={onCancel} />);
+
+    await waitFor(() => screen.getByTestId("input-username-promote"));
+
+    fireEvent.changeText(
+      screen.getByTestId("input-username-promote"),
+      "amina42",
+    );
+    fireEvent.press(screen.getByTestId("promote-student-submit"));
+
+    await waitFor(() => expect(mockUsersApi.promoteStudent).toHaveBeenCalled());
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+});
+
+describe("PromoteToUserFormContent — erreur API", () => {
+  it("affiche une erreur inline sur le champ si le username est déjà pris", async () => {
+    mockUsersApi.promoteStudent.mockRejectedValueOnce(
+      Object.assign(new Error('Username "amina42" is already taken'), {
+        statusCode: 409,
+      }),
+    );
+
+    const onCancel = jest.fn();
+    const onSuccess = jest.fn();
+    render(
+      <PromoteToUserFormContent
+        {...DEFAULT_PROPS}
+        onCancel={onCancel}
+        onSuccess={onSuccess}
+      />,
+    );
+
+    await waitFor(() => screen.getByTestId("input-username-promote"));
+
+    fireEvent.changeText(
+      screen.getByTestId("input-username-promote"),
+      "amina42",
+    );
+    fireEvent.press(screen.getByTestId("promote-student-submit"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("input-username-promote-error"),
+      ).toBeOnTheScreen(),
     );
     expect(
       screen.getByText(
@@ -268,7 +286,8 @@ describe("PromoteToUserSheet — erreur API", () => {
       ),
     ).toBeOnTheScreen();
     expect(mockShowError).not.toHaveBeenCalled();
-    expect(onClose).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 
   it("affiche le message d'erreur via showError si l'API échoue pour une autre raison", async () => {
@@ -276,7 +295,7 @@ describe("PromoteToUserSheet — erreur API", () => {
       new Error("Network error"),
     );
 
-    render(<PromoteToUserSheet {...DEFAULT_PROPS} />);
+    render(<PromoteToUserFormContent {...DEFAULT_PROPS} />);
 
     await waitFor(() => screen.getByTestId("input-username-promote"));
 
@@ -297,58 +316,14 @@ describe("PromoteToUserSheet — erreur API", () => {
   });
 });
 
-describe("PromoteToUserSheet — bouton annuler", () => {
-  it("appelle onClose si on clique Annuler", async () => {
-    const onClose = jest.fn();
-    render(<PromoteToUserSheet {...DEFAULT_PROPS} onClose={onClose} />);
+describe("PromoteToUserFormContent — bouton annuler", () => {
+  it("appelle onCancel si on clique Annuler", async () => {
+    const onCancel = jest.fn();
+    render(<PromoteToUserFormContent {...DEFAULT_PROPS} onCancel={onCancel} />);
 
     await waitFor(() => screen.getByTestId("promote-student-cancel"));
 
     fireEvent.press(screen.getByTestId("promote-student-cancel"));
-    expect(onClose).toHaveBeenCalled();
-  });
-});
-
-describe("PromoteToUserSheet — affichage des identifiants après fermeture du formulaire", () => {
-  // Reproduit l'usage réel (UserDetailModal) : `visible` est piloté par le
-  // parent et bascule à `false` dans `onClose`, exactement comme au submit
-  // réussi (setCredentials -> onClose -> setCredSheetVisible). Régression :
-  // les identifiants générés ne devaient jamais s'afficher car l'effet de
-  // nettoyage sur `!visible` remettait `credentials` à `null` avant que
-  // CredentialDisplaySheet ait pu être visible pour l'utilisateur.
-  function PromoteHarness() {
-    const [visible, setVisible] = React.useState(true);
-    return (
-      <PromoteToUserSheet
-        {...DEFAULT_PROPS}
-        visible={visible}
-        onClose={() => setVisible(false)}
-      />
-    );
-  }
-
-  it("affiche et conserve les identifiants générés une fois le formulaire refermé", async () => {
-    mockUsersApi.promoteStudent.mockResolvedValueOnce({
-      username: "amina42",
-      temporaryPassword: "TmpPwd123",
-    });
-
-    render(<PromoteHarness />);
-
-    await waitFor(() => screen.getByTestId("input-username-promote"));
-    fireEvent.changeText(
-      screen.getByTestId("input-username-promote"),
-      "amina42",
-    );
-    fireEvent.press(screen.getByTestId("promote-student-submit"));
-
-    await waitFor(() => expect(screen.getByText("amina42")).toBeOnTheScreen());
-    expect(screen.getByText("TmpPwd123")).toBeOnTheScreen();
-
-    // Les identifiants doivent rester affichés après le re-render déclenché
-    // par la fermeture du formulaire (visible: true -> false), pas disparaître.
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(screen.getByText("amina42")).toBeOnTheScreen();
-    expect(screen.getByText("TmpPwd123")).toBeOnTheScreen();
+    expect(onCancel).toHaveBeenCalled();
   });
 });

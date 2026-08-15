@@ -45,8 +45,11 @@ Un utilisateur peut avoir plusieurs rôles (plusieurs `memberships` école, plus
 2. Les vérifications précommit (format, lint, typecheck, tests unitaires — le build Android n'est plus vérifié en local, il l'est en CI).
 3. Un commit.
 4. Un push vers `origin/dev`, automatique et sans attendre d'instruction explicite : c'est le déclencheur de la CI (`android-build`, typecheck, lint, tests), qui ne couvre plus rien en local.
+5. Le monitoring du run CI déclenché par ce push (`gh run watch` ou équivalent), jusqu'à son issue (succès ou échec).
 
-**Le cycle complet PR → CI → merge vers `main`** (voir `/release-ci`) reste soumis à une instruction explicite de l'utilisateur.
+**Une tâche de modification de code n'est considérée terminée que lorsque ce cycle des 5 étapes est intégralement exécuté** — tests → précommit → commit → push → monitoring du run CI. S'arrêter avant l'étape 4 ou 5 (par exemple laisser des changements committés mais non poussés, ou pousser sans surveiller le résultat de la CI) n'est pas un état final acceptable ; il faut soit compléter le cycle, soit signaler explicitement à l'utilisateur pourquoi il est resté incomplet (échec bloquant, instruction contraire, etc.).
+
+**Le cycle complet PR → CI → merge vers `main`** (voir `/release-ci`) reste soumis à une instruction explicite de l'utilisateur — il est distinct et postérieur au cycle ci-dessus.
 
 **Sauf indication explicite contraire de l'utilisateur, tout le développement se fait sur la branche `dev`.**
 Si la branche courante n'est pas `dev`, basculer dessus avant toute modification ou signaler clairement le blocage.

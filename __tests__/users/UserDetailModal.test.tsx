@@ -806,7 +806,7 @@ describe("UserDetailModal", () => {
       );
       fireEvent.press(screen.getByTestId("action-edit-roles"));
       await waitFor(() =>
-        expect(screen.getByTestId("edit-roles-sheet")).toBeOnTheScreen(),
+        expect(screen.getByTestId("edit-roles-form-content")).toBeOnTheScreen(),
       );
     });
 
@@ -876,7 +876,7 @@ describe("UserDetailModal", () => {
       fireEvent.press(screen.getByTestId("action-teacher-assignments"));
       await waitFor(() =>
         expect(
-          screen.getByTestId("teacher-assignment-sheet"),
+          screen.getByTestId("teacher-assignment-form-content"),
         ).toBeOnTheScreen(),
       );
     });
@@ -939,7 +939,9 @@ describe("UserDetailModal", () => {
       );
       fireEvent.press(screen.getByTestId("action-assign-child"));
       await waitFor(() =>
-        expect(screen.getByTestId("assign-child-sheet")).toBeOnTheScreen(),
+        expect(
+          screen.getByTestId("assign-child-form-content"),
+        ).toBeOnTheScreen(),
       );
     });
 
@@ -976,7 +978,9 @@ describe("UserDetailModal", () => {
       );
       fireEvent.press(screen.getByTestId("action-assign-child"));
       await waitFor(() =>
-        expect(screen.getByTestId("assign-child-sheet")).toBeOnTheScreen(),
+        expect(
+          screen.getByTestId("assign-child-form-content"),
+        ).toBeOnTheScreen(),
       );
 
       await act(async () => {
@@ -1142,7 +1146,9 @@ describe("UserDetailModal", () => {
         fireEvent.press(screen.getByTestId("action-assign-parent"));
       });
       await waitFor(() =>
-        expect(screen.getByTestId("assign-parent-sheet")).toBeOnTheScreen(),
+        expect(
+          screen.getByTestId("assign-parent-form-content"),
+        ).toBeOnTheScreen(),
       );
       expect(screen.getByTestId("assign-parent-search")).toBeOnTheScreen();
     });
@@ -1390,6 +1396,431 @@ describe("UserDetailModal", () => {
       ).toBeOnTheScreen();
       expect(screen.getByText("Tchalla Marie")).toBeOnTheScreen();
       expect(screen.getByText("+237 699 000 111")).toBeOnTheScreen();
+    });
+  });
+
+  // ── Navigation forms inline (pas de Modal) ──────────────────────────────────
+
+  describe("Formulaires inline — navigation et pas de Modal bloquante", () => {
+    it("la flèche du header ramène au détail (pas onClose) quand un formulaire est ouvert", async () => {
+      mockUsersApi.get.mockResolvedValue(makeSchoolUserDetail(TEACHER_USER));
+      const onClose = jest.fn();
+      render(
+        <UserDetailModal
+          user={TEACHER_USER}
+          schoolSlug={SLUG}
+          onClose={onClose}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-edit-roles")).toBeOnTheScreen(),
+      );
+      fireEvent.press(screen.getByTestId("action-edit-roles"));
+      await waitFor(() =>
+        expect(screen.getByTestId("edit-roles-form-content")).toBeOnTheScreen(),
+      );
+
+      fireEvent.press(screen.getByTestId("user-detail-close"));
+
+      expect(onClose).not.toHaveBeenCalled();
+      await waitFor(() =>
+        expect(screen.queryByTestId("edit-roles-form-content")).toBeNull(),
+      );
+      expect(screen.getByTestId("action-edit-roles")).toBeOnTheScreen();
+    });
+
+    it("la flèche du header appelle onClose depuis la vue détail (pas de formulaire ouvert)", async () => {
+      mockUsersApi.get.mockResolvedValue(makeSchoolUserDetail(TEACHER_USER));
+      const onClose = jest.fn();
+      render(
+        <UserDetailModal
+          user={TEACHER_USER}
+          schoolSlug={SLUG}
+          onClose={onClose}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("user-detail-close")).toBeOnTheScreen(),
+      );
+      fireEvent.press(screen.getByTestId("user-detail-close"));
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("le bouton Annuler du formulaire Rôles ramène au détail", async () => {
+      mockUsersApi.get.mockResolvedValue(makeSchoolUserDetail(TEACHER_USER));
+      render(
+        <UserDetailModal
+          user={TEACHER_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-edit-roles")).toBeOnTheScreen(),
+      );
+      fireEvent.press(screen.getByTestId("action-edit-roles"));
+      await waitFor(() =>
+        expect(screen.getByTestId("edit-roles-form-content")).toBeOnTheScreen(),
+      );
+      fireEvent.press(screen.getByTestId("edit-roles-cancel"));
+      await waitFor(() =>
+        expect(screen.queryByTestId("edit-roles-form-content")).toBeNull(),
+      );
+      expect(mockUsersApi.updateRoles).not.toHaveBeenCalled();
+    });
+
+    it("soumettre le formulaire Rôles met à jour les rôles puis revient au détail", async () => {
+      mockUsersApi.get.mockResolvedValue(makeSchoolUserDetail(TEACHER_USER));
+      mockUsersApi.updateRoles.mockResolvedValueOnce(undefined as never);
+      render(
+        <UserDetailModal
+          user={TEACHER_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-edit-roles")).toBeOnTheScreen(),
+      );
+      fireEvent.press(screen.getByTestId("action-edit-roles"));
+      await waitFor(() =>
+        expect(screen.getByTestId("role-check-parent")).toBeOnTheScreen(),
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("role-check-parent"));
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("edit-roles-submit"));
+      });
+
+      await waitFor(() =>
+        expect(mockUsersApi.updateRoles).toHaveBeenCalledWith(
+          SLUG,
+          TEACHER_USER.id,
+          expect.arrayContaining(["TEACHER", "PARENT"]),
+        ),
+      );
+      await waitFor(() =>
+        expect(screen.queryByTestId("edit-roles-form-content")).toBeNull(),
+      );
+    });
+
+    it("affiche une erreur si la mise à jour des rôles échoue et reste sur le formulaire", async () => {
+      mockUsersApi.get.mockResolvedValue(makeSchoolUserDetail(TEACHER_USER));
+      mockUsersApi.updateRoles.mockRejectedValueOnce(
+        new Error("Network error"),
+      );
+      render(
+        <UserDetailModal
+          user={TEACHER_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-edit-roles")).toBeOnTheScreen(),
+      );
+      fireEvent.press(screen.getByTestId("action-edit-roles"));
+      await waitFor(() =>
+        expect(screen.getByTestId("edit-roles-form-content")).toBeOnTheScreen(),
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("edit-roles-submit"));
+      });
+
+      // Le formulaire reste ouvert (pas de retour au détail) après une erreur
+      expect(screen.getByTestId("edit-roles-form-content")).toBeOnTheScreen();
+    });
+
+    it("l'affectation enseignant ramène au détail après succès", async () => {
+      mockUsersApi.get.mockResolvedValue(makeSchoolUserDetail(TEACHER_USER));
+      render(
+        <UserDetailModal
+          user={TEACHER_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(
+          screen.getByTestId("action-teacher-assignments"),
+        ).toBeOnTheScreen(),
+      );
+      fireEvent.press(screen.getByTestId("action-teacher-assignments"));
+      await waitFor(() =>
+        expect(
+          screen.getByTestId("teacher-assignment-form-content"),
+        ).toBeOnTheScreen(),
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("teacher-assignment-submit"));
+      });
+
+      // Sans classe/matière choisies, la validation bloque l'appel API
+      expect(mockUsersApi.get).toHaveBeenCalled();
+    });
+  });
+
+  // ── Gestion des erreurs — recherche (affecter enfant / associer parent) ─────
+
+  describe("Formulaires de recherche — gestion des erreurs", () => {
+    it("affiche une erreur inline si le chargement des élèves échoue (Affecter un enfant)", async () => {
+      mockUsersApi.get.mockResolvedValueOnce(
+        makeSchoolUserDetail({ ...PARENT_USER, children: [] }),
+      );
+      mockFamilyApi.listAdminStudents.mockRejectedValue(
+        new Error("Network error"),
+      );
+      render(
+        <UserDetailModal
+          user={PARENT_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-assign-child")).toBeOnTheScreen(),
+      );
+      fireEvent.press(screen.getByTestId("action-assign-child"));
+
+      await waitFor(() =>
+        expect(screen.getByTestId("assign-child-load-error")).toBeOnTheScreen(),
+      );
+      expect(screen.getByText("Network error")).toBeOnTheScreen();
+    });
+
+    it("affiche une erreur inline si le chargement des parents échoue (Associer un parent)", async () => {
+      const detail = makeSchoolUserDetail({ ...STUDENT_USER, enrollments: [] });
+      mockUsersApi.get.mockResolvedValueOnce(detail);
+      mockUsersApi.list.mockRejectedValue(new Error("Network error"));
+      render(
+        <UserDetailModal
+          user={STUDENT_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-assign-parent")).toBeOnTheScreen(),
+      );
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("action-assign-parent"));
+      });
+
+      await waitFor(() =>
+        expect(
+          screen.getByTestId("assign-parent-load-error"),
+        ).toBeOnTheScreen(),
+      );
+      expect(screen.getByText("Network error")).toBeOnTheScreen();
+    });
+
+    it("affiche une erreur si l'association d'un parent existant échoue côté API", async () => {
+      const detail = makeSchoolUserDetail({ ...STUDENT_USER, enrollments: [] });
+      mockUsersApi.get.mockResolvedValue(detail);
+      const parentRow = {
+        type: "user" as const,
+        id: "par-err-1",
+        studentId: null,
+        hasAccount: true as const,
+        firstName: "Alain",
+        lastName: "Bello",
+        email: "a.bello@gmail.com",
+        phone: null,
+        gender: null,
+        avatarUrl: null,
+        roles: ["PARENT" as const],
+        activationStatus: "ACTIVE" as const,
+        profileCompleted: true,
+        createdAt: "2025-01-01T00:00:00Z",
+      };
+      mockUsersApi.list.mockResolvedValue({
+        data: [parentRow],
+        total: 1,
+        page: 1,
+        limit: 20,
+        hasMore: false,
+      });
+      mockFamilyApi.linkExistingParent.mockRejectedValueOnce(
+        new Error("Network error"),
+      );
+
+      render(
+        <UserDetailModal
+          user={STUDENT_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-assign-parent")).toBeOnTheScreen(),
+      );
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("action-assign-parent"));
+      });
+      await waitFor(() =>
+        expect(
+          screen.getByTestId("assign-parent-user-par-err-1"),
+        ).toBeOnTheScreen(),
+      );
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("assign-parent-user-par-err-1"));
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("assign-parent-submit"));
+      });
+
+      // Le formulaire reste ouvert après l'échec API
+      await waitFor(() =>
+        expect(
+          screen.getByTestId("assign-parent-form-content"),
+        ).toBeOnTheScreen(),
+      );
+    });
+  });
+
+  // ── Créer un accès élève / réinitialiser mot de passe ───────────────────────
+
+  describe("Créer un accès élève", () => {
+    it("le bouton Créer un accès ouvre le formulaire inline pour un student-only", async () => {
+      const studentOnly = makeStudentOnlyUser({
+        id: "student-only-access",
+        studentId: "student-access-1",
+      });
+      mockUsersApi.getStudentProfile.mockResolvedValueOnce({
+        type: "student-only",
+        studentId: "student-access-1",
+        firstName: "Amina",
+        lastName: "Fouda",
+        enrollments: [],
+        studentParents: [],
+      } as never);
+      mockUsersApi.suggestUsername.mockResolvedValue({
+        username: "amina.fouda",
+      });
+
+      render(
+        <UserDetailModal
+          user={studentOnly}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-create-access")).toBeOnTheScreen(),
+      );
+      fireEvent.press(screen.getByTestId("action-create-access"));
+
+      await waitFor(() =>
+        expect(
+          screen.getByTestId("promote-to-user-form-content"),
+        ).toBeOnTheScreen(),
+      );
+    });
+
+    it("un accès créé avec succès affiche les identifiants puis revient au détail", async () => {
+      const studentOnly = makeStudentOnlyUser({
+        id: "student-only-access-2",
+        studentId: "student-access-2",
+      });
+      mockUsersApi.getStudentProfile.mockResolvedValue({
+        type: "student-only",
+        studentId: "student-access-2",
+        firstName: "Amina",
+        lastName: "Fouda",
+        enrollments: [],
+        studentParents: [],
+      } as never);
+      mockUsersApi.suggestUsername.mockResolvedValue({
+        username: "aminafouda",
+      });
+      mockUsersApi.promoteStudent.mockResolvedValueOnce({
+        username: "aminafouda",
+        temporaryPassword: "TmpPwd123",
+      });
+
+      render(
+        <UserDetailModal
+          user={studentOnly}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-create-access")).toBeOnTheScreen(),
+      );
+      fireEvent.press(screen.getByTestId("action-create-access"));
+      await waitFor(() =>
+        expect(screen.getByDisplayValue("aminafouda")).toBeOnTheScreen(),
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("promote-student-submit"));
+      });
+
+      await waitFor(() =>
+        expect(
+          screen.getByTestId("credential-display-sheet"),
+        ).toBeOnTheScreen(),
+      );
+      expect(screen.getByText("TmpPwd123")).toBeOnTheScreen();
+      expect(screen.queryByTestId("promote-to-user-form-content")).toBeNull();
+    });
+
+    it("le bouton Réinitialiser MDP affiche les nouveaux identifiants", async () => {
+      mockUsersApi.get.mockResolvedValue(makeSchoolUserDetail(STUDENT_USER));
+      mockUsersApi.resetStudentPassword.mockResolvedValueOnce({
+        temporaryPassword: "NewTmp456",
+      } as never);
+
+      render(
+        <UserDetailModal
+          user={STUDENT_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-reset-password")).toBeOnTheScreen(),
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("action-reset-password"));
+      });
+
+      await waitFor(() =>
+        expect(
+          screen.getByTestId("credential-display-sheet"),
+        ).toBeOnTheScreen(),
+      );
+      expect(screen.getByText("NewTmp456")).toBeOnTheScreen();
+    });
+
+    it("affiche une erreur si la réinitialisation du mot de passe échoue", async () => {
+      mockUsersApi.get.mockResolvedValue(makeSchoolUserDetail(STUDENT_USER));
+      mockUsersApi.resetStudentPassword.mockRejectedValueOnce(
+        new Error("Network error"),
+      );
+
+      render(
+        <UserDetailModal
+          user={STUDENT_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-reset-password")).toBeOnTheScreen(),
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("action-reset-password"));
+      });
+
+      expect(screen.queryByTestId("credential-display-sheet")).toBeNull();
     });
   });
 });
