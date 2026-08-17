@@ -2557,6 +2557,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.reports.detail.appreciationPlaceholder": "Saisir une appréciation…",
     "notes.reports.detail.appreciationRequired":
       "L'appréciation ne peut pas être vide.",
+    "notes.reports.yearly.councilLabel":
+      "Synthèse annuelle — moyenne des trimestres disponibles",
 
     "notes.child.tabs.notes": "Notes",
     "notes.child.tabs.reports": "Bulletins",
@@ -2564,6 +2566,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.terms.term1": "Trimestre 1",
     "notes.terms.term2": "Trimestre 2",
     "notes.terms.term3": "Trimestre 3",
+    "notes.terms.yearly": "Année",
     "notes.sequences.seq1": "T1 — Séquence 1",
     "notes.sequences.seq2": "T1 — Séquence 2 (examen)",
     "notes.sequences.seq3": "T2 — Séquence 3",
@@ -6297,6 +6300,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.reports.detail.appreciationPlaceholder": "Enter an assessment…",
     "notes.reports.detail.appreciationRequired":
       "The assessment cannot be empty.",
+    "notes.reports.yearly.councilLabel":
+      "Yearly synthesis — average of available terms",
 
     "notes.child.tabs.notes": "Notes",
     "notes.child.tabs.reports": "Reports",
@@ -6304,6 +6309,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.terms.term1": "Term 1",
     "notes.terms.term2": "Term 2",
     "notes.terms.term3": "Term 3",
+    "notes.terms.yearly": "Year",
     "notes.sequences.seq1": "T1 — Sequence 1",
     "notes.sequences.seq2": "T1 — Sequence 2 (exam)",
     "notes.sequences.seq3": "T2 — Sequence 3",

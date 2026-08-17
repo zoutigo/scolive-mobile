@@ -5,6 +5,8 @@ import type {
 } from "./timetable.types";
 
 export type StudentNotesTerm = "TERM_1" | "TERM_2" | "TERM_3";
+/** Term réel (persisté / envoyé à l'API) ou synthèse annuelle calculée côté client. */
+export type StudentNotesTermOrYearly = StudentNotesTerm | "YEARLY";
 export type StudentNotesSequence =
   | "SEQ_1"
   | "SEQ_2"
@@ -79,6 +81,29 @@ export type StudentNotesTermSnapshot = {
 };
 
 export type StudentNotesResponse = StudentNotesTermSnapshot[];
+
+/**
+ * Synthèse annuelle : calculée côté client à partir des 3 bulletins de
+ * trimestre déjà chargés (jamais persistée, jamais éditable) — voir
+ * `computeYearlySnapshot` dans `utils/notes.ts`.
+ */
+export type YearlySubjectNotes = StudentSubjectNotes & {
+  termAverages: Partial<Record<StudentNotesTerm, number | null>>;
+};
+
+export type YearlyNotesSnapshot = {
+  term: "YEARLY";
+  label: string;
+  councilLabel: string;
+  generatedAtLabel: string;
+  generalAverage: {
+    student: number | null;
+    class: number | null;
+    min: number | null;
+    max: number | null;
+  };
+  subjects: YearlySubjectNotes[];
+};
 
 export type EvaluationAttachmentDraft = {
   id?: string;

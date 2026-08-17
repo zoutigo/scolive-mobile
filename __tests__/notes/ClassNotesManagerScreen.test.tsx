@@ -304,6 +304,28 @@ describe("Onglet Décision — passage en classe supérieure", () => {
       "class-1",
     );
   });
+
+  it("tap sur un trimestre dans Decision bascule vers Reports et ouvre le bulletin de l'élève", async () => {
+    setupStore({
+      teacherContext: {
+        ...TEACHER_CONTEXT,
+        class: { ...TEACHER_CONTEXT.class, isReferentTeacher: true },
+      },
+    });
+    useNotesStore.setState({
+      loadStudentNotes: jest.fn().mockResolvedValue([]),
+    } as never);
+    render(<ClassNotesManagerScreen />);
+    await flushAsync();
+
+    fireEvent.press(await screen.findByTestId("notes-tab-decision"));
+    fireEvent.press(await screen.findByTestId("decision-card-report-1-toggle"));
+    fireEvent.press(screen.getByTestId("decision-card-report-1-open-TERM_2"));
+    await flushAsync();
+
+    expect(screen.getByTestId("teacher-reports-detail")).toBeOnTheScreen();
+    expect(screen.queryByTestId("decision-tab")).toBeNull();
+  });
 });
 
 // ─── Vue liste + recherche ────────────────────────────────────────────────────
