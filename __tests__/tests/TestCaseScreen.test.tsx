@@ -73,7 +73,19 @@ const DETAIL_NO_RESULTS = {
 
 const DETAIL_WITH_RESULTS = {
   ...DETAIL_NO_RESULTS,
+  latestOwnExecution: EXECUTION,
   executions: [EXECUTION],
+};
+
+const OTHER_TESTER_EXECUTION = {
+  ...EXECUTION,
+  id: "exec-2",
+  user: { id: "u2", fullName: "Autre Testeur" },
+};
+
+const DETAIL_WITH_OTHER_TESTER_RESULTS_ONLY = {
+  ...DETAIL_NO_RESULTS,
+  executions: [OTHER_TESTER_EXECUTION],
 };
 
 describe("TestCaseScreen", () => {
@@ -141,5 +153,18 @@ describe("TestCaseScreen", () => {
       pathname: "/(home)/tests/executions/[executionId]",
       params: { executionId: "exec-1", campaignId: "camp-1" },
     });
+  });
+
+  it("does not show the view results button when only other testers have results", async () => {
+    (testsApi.getTestCase as jest.Mock).mockResolvedValue(
+      DETAIL_WITH_OTHER_TESTER_RESULTS_ONLY,
+    );
+    render(<TestCaseScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("test-case-hero")).toBeTruthy();
+    });
+
+    expect(screen.queryByTestId("tests-view-results-btn")).toBeNull();
   });
 });

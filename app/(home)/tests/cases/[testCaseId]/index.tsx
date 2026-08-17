@@ -82,14 +82,14 @@ function TestCaseScreen() {
     }, [load]),
   );
 
-  const hasResults = (detail?.executions.length ?? 0) > 0;
+  const hasResults = !!detail?.latestOwnExecution;
 
   function openResults() {
-    if (!detail || detail.executions.length === 0) return;
+    if (!detail?.latestOwnExecution) return;
     router.push({
       pathname: "/(home)/tests/executions/[executionId]" as never,
       params: {
-        executionId: detail.executions[0].id,
+        executionId: detail.latestOwnExecution.id,
         campaignId: detail.campaign.id,
       },
     });
