@@ -21,7 +21,11 @@ import { useNotesStore } from "../../store/notes.store";
 import { EmptyState, LoadingBlock } from "../timetable/TimetableCommon";
 import { PeriodHero } from "./PeriodHero";
 import { AppreciationEditor, SubjectReportCard } from "./SubjectReportCard";
-import { computeYearlySnapshot, formatScore, termLabel } from "../../utils/notes";
+import {
+  computeYearlySnapshot,
+  formatScore,
+  termLabel,
+} from "../../utils/notes";
 import type {
   CouncilDrafts,
   NotesTeacherContext,
@@ -461,8 +465,8 @@ export const TeacherPeriodReportsTab = forwardRef<
                     {ALL_CARDS.map((term) => {
                       const average =
                         term === "YEARLY"
-                          ? (computeYearlySnapshot(snapshots, t)
-                              ?.generalAverage.student ?? null)
+                          ? (computeYearlySnapshot(snapshots, t)?.generalAverage
+                              .student ?? null)
                           : (snapshots.find((entry) => entry.term === term)
                               ?.generalAverage.student ?? null);
                       return (

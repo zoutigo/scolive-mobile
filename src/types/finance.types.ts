@@ -52,7 +52,11 @@ export type WalletTransactionEntry = {
 
 export type ChildFinanceStatus = {
   student: { id: string; firstName: string; lastName: string };
-  status: "DECISION_PENDING" | "ALREADY_REINSCRIBED" | "READY_TO_REINSCRIBE";
+  status:
+    | "DECISION_PENDING"
+    | "NEXT_YEAR_NOT_OPEN"
+    | "ALREADY_REINSCRIBED"
+    | "READY_TO_REINSCRIBE";
   targetSchoolYearId?: string;
   targetSchoolYearLabel?: string;
   requiredAmount?: number | null;

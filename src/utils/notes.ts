@@ -285,7 +285,9 @@ export function buildRadarChart(subjects: StudentSubjectNotes[]) {
 function averageOf(values: Array<number | null | undefined>): number | null {
   const valid = values.filter((value): value is number => value != null);
   if (valid.length === 0) return null;
-  return Number((valid.reduce((sum, v) => sum + v, 0) / valid.length).toFixed(2));
+  return Number(
+    (valid.reduce((sum, v) => sum + v, 0) / valid.length).toFixed(2),
+  );
 }
 
 /**
@@ -317,7 +319,9 @@ export function computeYearlySnapshot(
     const termAverages: Partial<Record<StudentNotesTerm, number | null>> = {};
     let reference: StudentSubjectNotes | null = null;
     for (const snapshot of snapshots) {
-      const found = snapshot.subjects.find((subject) => subject.id === subjectId);
+      const found = snapshot.subjects.find(
+        (subject) => subject.id === subjectId,
+      );
       termAverages[snapshot.term] = found?.studentAverage ?? null;
       if (found) reference = found;
     }

@@ -63,6 +63,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "promotionsAdmin.title": "Passages de classe",
     "promotionsAdmin.tab.decisions": "Décisions",
     "promotionsAdmin.tab.waiting": "Attente",
+    "promotionsAdmin.tab.years": "Années",
     "promotionsAdmin.decisions.selectClass": "Classe (année en cours)",
     "promotionsAdmin.decisions.empty":
       "Aucun bulletin du dernier trimestre pour cette classe.",
@@ -88,6 +89,25 @@ export const translations: Record<Locale, Record<string, string>> = {
     "promotionsAdmin.waiting.assign": "Affecter",
     "promotionsAdmin.waiting.empty":
       "Aucun élève en attente d'affectation pour ces filtres.",
+    "promotionsAdmin.years.alert":
+      "Aucune année scolaire suivante n'existe encore pour cette école. Créez-la pour permettre les réinscriptions, même sans l'activer tout de suite.",
+    "promotionsAdmin.years.active": "Active",
+    "promotionsAdmin.years.activate": "Rendre active",
+    "promotionsAdmin.years.create.title": "Créer une année scolaire",
+    "promotionsAdmin.years.create.label": "Libellé (ex: 2026-2027)",
+    "promotionsAdmin.years.create.submit": "Créer",
+    "promotionsAdmin.years.rollover.title": "Dupliquer les classes",
+    "promotionsAdmin.years.rollover.source": "Année source",
+    "promotionsAdmin.years.rollover.target": "Année cible",
+    "promotionsAdmin.years.rollover.submit": "Dupliquer les classes",
+    "promotionsAdmin.years.success.created": "Année scolaire créée.",
+    "promotionsAdmin.years.success.activated": "Année scolaire activée.",
+    "promotionsAdmin.years.success.rolledOver": "Classes dupliquées.",
+    "promotionsAdmin.years.errors.create":
+      "Création de l'année scolaire impossible.",
+    "promotionsAdmin.years.errors.activate": "Activation impossible.",
+    "promotionsAdmin.years.errors.rollover":
+      "Duplication des classes impossible.",
 
     "schoolSettings.title": "Paramètres de l'école",
     "schoolSettings.tabs.levels": "Niveaux",
@@ -228,6 +248,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "finSituation.children.empty": "Aucun enfant rattache a votre compte.",
     "finSituation.children.status.DECISION_PENDING":
       "En attente de la decision du conseil de classe",
+    "finSituation.children.status.NEXT_YEAR_NOT_OPEN":
+      "Decision prise, en attente de l'ouverture de l'annee scolaire suivante par l'ecole",
     "finSituation.children.status.ALREADY_REINSCRIBED": "Deja reinscrit(e)",
     "finSituation.children.status.READY_TO_REINSCRIBE":
       "Pret(e) a etre reinscrit(e)",
@@ -3908,6 +3930,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "promotionsAdmin.title": "Grade promotion",
     "promotionsAdmin.tab.decisions": "Decisions",
     "promotionsAdmin.tab.waiting": "Waiting",
+    "promotionsAdmin.tab.years": "Years",
     "promotionsAdmin.decisions.selectClass": "Class (current year)",
     "promotionsAdmin.decisions.empty":
       "No last-term report card for this class.",
@@ -3930,6 +3953,23 @@ export const translations: Record<Locale, Record<string, string>> = {
     "promotionsAdmin.waiting.assign": "Assign",
     "promotionsAdmin.waiting.empty":
       "No student waiting for assignment with these filters.",
+    "promotionsAdmin.years.alert":
+      "No next school year exists yet for this school. Create it to allow re-enrollments, even without activating it right away.",
+    "promotionsAdmin.years.active": "Active",
+    "promotionsAdmin.years.activate": "Set as active",
+    "promotionsAdmin.years.create.title": "Create a school year",
+    "promotionsAdmin.years.create.label": "Label (e.g. 2026-2027)",
+    "promotionsAdmin.years.create.submit": "Create",
+    "promotionsAdmin.years.rollover.title": "Duplicate classes",
+    "promotionsAdmin.years.rollover.source": "Source year",
+    "promotionsAdmin.years.rollover.target": "Target year",
+    "promotionsAdmin.years.rollover.submit": "Duplicate classes",
+    "promotionsAdmin.years.success.created": "School year created.",
+    "promotionsAdmin.years.success.activated": "School year activated.",
+    "promotionsAdmin.years.success.rolledOver": "Classes duplicated.",
+    "promotionsAdmin.years.errors.create": "Unable to create the school year.",
+    "promotionsAdmin.years.errors.activate": "Unable to activate.",
+    "promotionsAdmin.years.errors.rollover": "Unable to duplicate classes.",
 
     "schoolSettings.title": "School settings",
     "schoolSettings.tabs.levels": "Levels",
@@ -4067,6 +4107,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "finSituation.children.empty": "No child linked to your account.",
     "finSituation.children.status.DECISION_PENDING":
       "Waiting on the class council decision",
+    "finSituation.children.status.NEXT_YEAR_NOT_OPEN":
+      "Decision made, waiting for the school to open next school year",
     "finSituation.children.status.ALREADY_REINSCRIBED": "Already re-enrolled",
     "finSituation.children.status.READY_TO_REINSCRIBE": "Ready to re-enroll",
     "onboardingTour.childTimetable.step1Title": "Switch views",
