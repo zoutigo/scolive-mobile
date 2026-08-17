@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { Controller, useForm } from "react-hook-form";
@@ -13,19 +15,21 @@ import { colors } from "../../theme";
 import { usersApi } from "../../api/users.api";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { extractApiError } from "../../utils/api-error";
-import { ModalFrame, FormActions } from "../teachers/TeacherSheetCommons";
-import { CredentialDisplaySheet } from "./CredentialDisplaySheet";
+import { FormActions, TextFormField } from "../teachers/TeacherSheetCommons";
+import { useTranslation } from "../../i18n/useTranslation";
 import type { PromoteStudentResponse } from "../../types/users.types";
 
-const promoteSchema = z.object({
-  username: z
-    .string()
-    .trim()
-    .min(3, "L'identifiant doit faire au moins 3 caractères.")
-    .regex(/^[a-zA-Z0-9]+$/, "Lettres et chiffres uniquement."),
-});
+function buildPromoteSchema(t: ReturnType<typeof useTranslation>["t"]) {
+  return z.object({
+    username: z
+      .string()
+      .trim()
+      .min(3, t("users.detail.forms.createAccess.errorMin"))
+      .regex(/^[a-zA-Z0-9]+$/, t("users.detail.forms.createAccess.errorAlnum")),
+  });
+}
 
-type PromoteFormValues = z.infer<typeof promoteSchema>;
+type PromoteFormValues = { username: string };
 
 function isUsernameTakenError(message: string): boolean {
   const normalized = message.trim().toLowerCase();
@@ -43,32 +47,27 @@ function buildLocalUsernameFallback(studentName: string): string {
     .replace(/[^a-zA-Z0-9]/g, "");
 }
 
-interface PromoteToUserSheetProps {
-  visible: boolean;
-  onClose: () => void;
+interface PromoteToUserFormContentProps {
   schoolSlug: string;
   studentId: string;
   studentName: string;
-  onSuccess: () => void;
+  onCancel: () => void;
+  onSuccess: (credentials: PromoteStudentResponse) => void;
 }
 
-export function PromoteToUserSheet({
-  visible,
-  onClose,
+export function PromoteToUserFormContent({
   schoolSlug,
   studentId,
   studentName,
+  onCancel,
   onSuccess,
-}: PromoteToUserSheetProps) {
+}: PromoteToUserFormContentProps) {
+  const { t } = useTranslation();
   const showError = useSuccessToastStore((s) => s.showError);
 
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [credentials, setCredentials] = useState<PromoteStudentResponse | null>(
-    null,
-  );
-  const [credSheetVisible, setCredSheetVisible] = useState(false);
 
   const {
     control,
@@ -77,21 +76,15 @@ export function PromoteToUserSheet({
     setValue,
     setError,
     getValues,
-    formState: { errors },
+    setFocus,
   } = useForm<PromoteFormValues>({
-    resolver: zodResolver(promoteSchema),
+    resolver: zodResolver(buildPromoteSchema(t)),
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: { username: "" },
   });
 
   useEffect(() => {
-    if (!visible) {
-      reset({ username: "" });
-      setSuggestionError(null);
-      return;
-    }
-
     let active = true;
     async function loadSuggestion() {
       const localFallback = buildLocalUsernameFallback(studentName);
@@ -111,7 +104,7 @@ export function PromoteToUserSheet({
       } catch {
         if (active) {
           setSuggestionError(
-            "Suggestion automatique indisponible. Vérifie l'identifiant avant de créer l'accès.",
+            t("users.detail.forms.createAccess.suggestionError"),
           );
         }
       } finally {
@@ -123,71 +116,67 @@ export function PromoteToUserSheet({
     return () => {
       active = false;
     };
-  }, [visible, schoolSlug, studentId, studentName, setValue, reset, getValues]);
+  }, [schoolSlug, studentId, studentName]);
 
-  const doSubmit = handleSubmit(async (values) => {
-    setIsSubmitting(true);
-    try {
-      const result = await usersApi.promoteStudent(
-        schoolSlug,
-        studentId,
-        values.username.trim(),
-      );
-      setCredentials(result);
-      onClose();
-      setCredSheetVisible(true);
-      onSuccess();
-    } catch (err) {
-      const message = extractApiError(err);
-      if (isUsernameTakenError(message)) {
-        setError("username", {
-          type: "server",
-          message: "Cet identifiant est déjà utilisé. Choisis-en un autre.",
-        });
-        return;
+  const doSubmit = handleSubmit(
+    async (values) => {
+      setIsSubmitting(true);
+      try {
+        const result = await usersApi.promoteStudent(
+          schoolSlug,
+          studentId,
+          values.username.trim(),
+        );
+        onSuccess(result);
+      } catch (err) {
+        const message = extractApiError(err);
+        if (isUsernameTakenError(message)) {
+          setError("username", {
+            type: "server",
+            message: t("users.detail.forms.createAccess.errorTaken"),
+          });
+          return;
+        }
+        showError({ title: "Erreur", message });
+      } finally {
+        setIsSubmitting(false);
       }
-      showError({ title: "Erreur", message });
-    } finally {
-      setIsSubmitting(false);
-    }
-  });
+    },
+    (errs) => {
+      const first = Object.keys(errs)[0];
+      if (first) setFocus(first as Parameters<typeof setFocus>[0]);
+    },
+  );
 
   return (
-    <>
-      <ModalFrame
-        visible={visible}
-        eyebrow="Gestion des accès"
-        title="Créer un accès élève"
-        subtitle={`Création d'un identifiant pour ${studentName}.`}
-        onClose={onClose}
-        testID="promote-to-user-sheet"
-        footer={
-          <FormActions
-            submitLabel="Créer l'accès"
-            isSubmitting={isSubmitting}
-            onCancel={onClose}
-            onSubmit={() => void doSubmit()}
-            testIDPrefix="promote-student"
-          />
-        }
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="promote-to-user-form-content"
+    >
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Identifiant</Text>
           <Controller
             control={control}
             name="username"
             render={({ field, fieldState }) => (
-              <TextInput
+              <TextFormField
                 ref={field.ref}
                 testID="input-username-promote"
+                label={t("users.detail.forms.createAccess.usernameLabel")}
                 value={field.value}
                 onBlur={field.onBlur}
                 onChangeText={field.onChange}
                 autoCapitalize="none"
-                autoCorrect={false}
-                placeholder="ex: JeanDUPONT"
-                placeholderTextColor={colors.textSecondary}
-                style={[styles.input, fieldState.error && styles.inputError]}
+                placeholder={t(
+                  "users.detail.forms.createAccess.usernamePlaceholder",
+                )}
+                error={fieldState.error?.message}
               />
             )}
           />
@@ -195,7 +184,7 @@ export function PromoteToUserSheet({
             <View style={styles.loadingRow}>
               <ActivityIndicator size="small" color={colors.primary} />
               <Text style={styles.loadingText}>
-                Génération de l'identifiant unique…
+                {t("users.detail.forms.createAccess.suggestionLoading")}
               </Text>
             </View>
           ) : null}
@@ -204,64 +193,51 @@ export function PromoteToUserSheet({
               {suggestionError}
             </Text>
           ) : null}
-          {errors.username ? (
-            <Text style={styles.fieldError} testID="error-username-promote">
-              {errors.username.message}
-            </Text>
-          ) : null}
         </View>
 
         <View style={styles.infoBox}>
           <Text style={styles.infoText}>
-            Un mot de passe temporaire sera généré automatiquement. L'élève
-            devra le changer à la première connexion.
+            {t("users.detail.forms.createAccess.info")}
           </Text>
         </View>
-      </ModalFrame>
-
-      {credentials ? (
-        <CredentialDisplaySheet
-          visible={credSheetVisible}
-          onClose={() => {
-            setCredSheetVisible(false);
-            setCredentials(null);
-          }}
-          username={credentials.username}
-          temporaryPassword={credentials.temporaryPassword}
-          title="Accès créé"
+      </ScrollView>
+      <View style={styles.formActionsBar}>
+        <FormActions
+          submitLabel={t("users.detail.forms.createAccess.submit")}
+          isSubmitting={isSubmitting}
+          onCancel={onCancel}
+          onSubmit={() => void doSubmit()}
+          testIDPrefix="promote-student"
         />
-      ) : null}
-    </>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  formsKeyboardArea: {
+    flex: 1,
+  },
+  formScroll: {
+    flex: 1,
+  },
+  formScrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    gap: 16,
+  },
+  formActionsBar: {
+    backgroundColor: colors.warmSurface,
+    borderTopWidth: 1,
+    borderTopColor: colors.warmBorder,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    flexDirection: "row",
+    gap: 10,
+  },
   fieldGroup: {
     gap: 6,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    letterSpacing: 0.1,
-  },
-  input: {
-    backgroundColor: colors.background,
-    borderWidth: 1.5,
-    borderColor: colors.warmBorder,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: colors.textPrimary,
-  },
-  inputError: {
-    borderColor: "#FCA5A5",
-  },
-  fieldError: {
-    color: "#B91C1C",
-    fontSize: 12,
-    fontWeight: "600",
   },
   fieldHint: {
     color: colors.textSecondary,
@@ -280,7 +256,7 @@ const styles = StyleSheet.create({
   },
   infoBox: {
     backgroundColor: "#EBF1F8",
-    borderRadius: 10,
+    borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },

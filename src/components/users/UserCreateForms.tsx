@@ -16,11 +16,8 @@ import { z } from "zod";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
 import { familyApi, type AdminStudentRow } from "../../api/family.api";
-import {
-  CompactSelectField,
-  FormActions,
-  TextFormField,
-} from "../teachers/TeacherSheetCommons";
+import { FormActions, TextFormField } from "../teachers/TeacherSheetCommons";
+import { InlineSelectDropDown } from "../InlineSelectDropDown";
 import { SecureTextField } from "../SecureTextField";
 import { DatePickerField } from "../DatePickerField";
 import {
@@ -643,17 +640,21 @@ export function StaffCreateFormContent(props: {
           mode={mode}
           testIDPrefix="users-create-staff"
         />
-        <CompactSelectField
-          label={t("users.create.field.function.label")}
-          value={functionId}
-          options={props.functionOptions.map((fn) => ({
-            value: fn.id,
-            label: fn.name,
-          }))}
-          placeholder={t("users.create.field.function.placeholder")}
-          onChange={(value) => setValue("functionId", value)}
-          testID="users-create-staff-function"
-        />
+        <View style={styles.formField}>
+          <Text style={styles.formLabel}>
+            {t("users.create.field.function.label")}
+          </Text>
+          <InlineSelectDropDown
+            options={props.functionOptions.map((fn) => ({
+              value: fn.id,
+              label: fn.name,
+            }))}
+            value={functionId}
+            onChange={(value) => setValue("functionId", value)}
+            placeholder={t("users.create.field.function.placeholder")}
+            testID="users-create-staff-function"
+          />
+        </View>
       </ScrollView>
 
       <View style={styles.formActionsBar}>
@@ -761,37 +762,61 @@ export function StudentCreateFormContent(props: {
             />
           )}
         />
-        <CompactSelectField
-          label={t("users.create.field.level.label")}
-          value={levelId}
-          options={levelOptions}
-          placeholder={t("users.create.field.level.placeholder")}
-          onChange={(value) => {
-            setValue("levelId", value, { shouldValidate: true });
-            if (
-              classId &&
-              !props.classrooms.some(
-                (room) =>
-                  room.id === classId && room.academicLevel?.id === value,
-              )
-            ) {
-              setValue("classId", "", { shouldValidate: true });
+        <View style={styles.formField}>
+          <Text style={styles.formLabel}>
+            {t("users.create.field.level.label")}
+          </Text>
+          <InlineSelectDropDown
+            options={levelOptions}
+            value={levelId}
+            onChange={(value) => {
+              setValue("levelId", value, { shouldValidate: true });
+              if (
+                classId &&
+                !props.classrooms.some(
+                  (room) =>
+                    room.id === classId && room.academicLevel?.id === value,
+                )
+              ) {
+                setValue("classId", "", { shouldValidate: true });
+              }
+            }}
+            placeholder={t("users.create.field.level.placeholder")}
+            hasError={!!errors.levelId}
+            testID="users-create-student-level"
+          />
+          {errors.levelId ? (
+            <Text
+              style={styles.formError}
+              testID="users-create-student-level-error"
+            >
+              {errors.levelId.message}
+            </Text>
+          ) : null}
+        </View>
+        <View style={styles.formField}>
+          <Text style={styles.formLabel}>
+            {t("users.create.field.class.label")}
+          </Text>
+          <InlineSelectDropDown
+            options={classOptions}
+            value={classId}
+            onChange={(value) =>
+              setValue("classId", value, { shouldValidate: true })
             }
-          }}
-          error={errors.levelId?.message}
-          testID="users-create-student-level"
-        />
-        <CompactSelectField
-          label={t("users.create.field.class.label")}
-          value={classId}
-          options={classOptions}
-          placeholder={t("users.create.field.class.placeholder")}
-          onChange={(value) =>
-            setValue("classId", value, { shouldValidate: true })
-          }
-          error={errors.classId?.message}
-          testID="users-create-student-class"
-        />
+            placeholder={t("users.create.field.class.placeholder")}
+            hasError={!!errors.classId}
+            testID="users-create-student-class"
+          />
+          {errors.classId ? (
+            <Text
+              style={styles.formError}
+              testID="users-create-student-class-error"
+            >
+              {errors.classId.message}
+            </Text>
+          ) : null}
+        </View>
 
         <View style={styles.formField}>
           <Text style={styles.formLabel}>
@@ -808,6 +833,7 @@ export function StudentCreateFormContent(props: {
                 placeholder={t("users.create.field.dateOfBirth.placeholder")}
                 hasError={!!errors.dateOfBirth}
                 testID="users-create-student-date-of-birth"
+                maximumDate={new Date()}
               />
             )}
           />
@@ -857,8 +883,10 @@ const styles = StyleSheet.create({
   formsKeyboardArea: { flex: 1 },
   formScroll: { flex: 1 },
   formScrollContent: {
-    padding: 16,
-    gap: 14,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    gap: 16,
   },
   formActionsBar: {
     flexDirection: "row",
@@ -879,7 +907,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.white,
-    borderRadius: 16,
+    borderRadius: 6,
     paddingHorizontal: 14,
     paddingVertical: 12,
     color: colors.textPrimary,
@@ -915,30 +943,32 @@ const styles = StyleSheet.create({
   },
   modeChip: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.white,
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.warmSurface,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     alignItems: "center",
   },
   modeChipActive: {
-    backgroundColor: colors.primary,
     borderColor: colors.primary,
+    backgroundColor: "#EEF5FB",
   },
   modeChipLabel: {
+    color: colors.textSecondary,
     fontSize: 12,
     fontWeight: "700",
-    color: colors.textSecondary,
+    textAlign: "center",
   },
   modeChipLabelActive: {
-    color: colors.white,
+    color: colors.primary,
   },
   studentSelectedChip: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    borderRadius: 12,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.primary,
     backgroundColor: "#F1F7FC",
@@ -961,7 +991,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   studentResultRow: {
-    borderRadius: 12,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.white,

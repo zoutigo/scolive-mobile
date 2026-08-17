@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,9 +23,15 @@ import { teachersApi } from "../../api/teachers.api";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { BOTTOM_TAB_BAR_HEIGHT } from "../navigation/BottomTabBar";
 import { ROLE_LABELS, ROLE_COLORS } from "./UserCard";
-import { ModalFrame, FormActions } from "../teachers/TeacherSheetCommons";
-import { TeacherAssignmentSheet } from "../teachers/TeacherAssignmentSheet";
-import { PromoteToUserSheet } from "./PromoteToUserSheet";
+import { FormActions } from "../teachers/TeacherSheetCommons";
+import { InlineSelectDropDown } from "../InlineSelectDropDown";
+import { FormHero } from "../forms/FormHero";
+import { useScrollToFirstError } from "../../hooks/useScrollToFirstError";
+import {
+  teacherAssignmentFormSchema,
+  type TeacherAssignmentFormValues,
+} from "../teachers/TeacherAssignmentSheet";
+import { PromoteToUserFormContent } from "./PromoteToUserSheet";
 import { CredentialDisplaySheet } from "./CredentialDisplaySheet";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { extractApiError } from "../../utils/api-error";
@@ -43,11 +51,10 @@ import type {
   SchoolUserTeachingClass,
   SchoolUserParent,
   SchoolUserStaffFunction,
-  ResetStudentPasswordResponse,
+  PromoteStudentResponse,
   UserItem,
 } from "../../types/users.types";
 import type {
-  TeacherRow,
   TeacherSchoolYearOption,
   TeacherClassroomOption,
   TeacherSubjectOption,
@@ -130,6 +137,58 @@ const ADMIN_ROLES: SchoolRole[] = [
   "SUPERVISOR",
   "SCHOOL_ACCOUNTANT",
 ];
+
+// ── Form hero config ─────────────────────────────────────────────────────────
+
+type DetailFormType =
+  | "edit-roles"
+  | "assign-teacher"
+  | "assign-child"
+  | "assign-parent"
+  | "create-access";
+
+function buildFormHeroConfig(t: ReturnType<typeof useTranslation>["t"]): Record<
+  DetailFormType,
+  {
+    icon: keyof typeof Ionicons.glyphMap;
+    title: string;
+    subtitle: string;
+    palette: "teal" | "warm" | "primary";
+  }
+> {
+  return {
+    "edit-roles": {
+      icon: "shield-checkmark-outline",
+      title: t("users.detail.forms.editRoles.title"),
+      subtitle: t("users.detail.forms.editRoles.subtitle"),
+      palette: "warm",
+    },
+    "assign-teacher": {
+      icon: "link-outline",
+      title: t("users.detail.forms.assignTeacher.title"),
+      subtitle: t("users.detail.forms.assignTeacher.subtitle"),
+      palette: "warm",
+    },
+    "assign-child": {
+      icon: "link-outline",
+      title: t("users.detail.forms.assignChild.title"),
+      subtitle: t("users.detail.forms.assignChild.subtitle"),
+      palette: "warm",
+    },
+    "assign-parent": {
+      icon: "link-outline",
+      title: t("users.detail.forms.assignParent.title"),
+      subtitle: t("users.detail.forms.assignParent.subtitle"),
+      palette: "warm",
+    },
+    "create-access": {
+      icon: "person-add-outline",
+      title: t("users.detail.forms.createAccess.title"),
+      subtitle: t("users.detail.forms.createAccess.subtitle"),
+      palette: "teal",
+    },
+  };
+}
 
 // ── Zod schemas ───────────────────────────────────────────────────────────────
 
@@ -658,25 +717,23 @@ function AdminRoleSection({ role }: { role: SchoolRole }) {
   );
 }
 
-// ── EditRolesSheet ────────────────────────────────────────────────────────────
+// ── EditRolesFormContent ─────────────────────────────────────────────────────
 
-function EditRolesSheet({
-  visible,
+function EditRolesFormContent({
   currentRoles,
   isSubmitting,
-  onClose,
+  onCancel,
   onSubmit,
 }: {
-  visible: boolean;
   currentRoles: SchoolRole[];
   isSubmitting: boolean;
-  onClose: () => void;
+  onCancel: () => void;
   onSubmit: (roles: SchoolRole[]) => void;
 }) {
+  const { t } = useTranslation();
   const {
     control,
     handleSubmit,
-    reset,
     formState: { errors },
   } = useForm<EditRolesValues>({
     resolver: zodResolver(editRolesSchema),
@@ -684,120 +741,304 @@ function EditRolesSheet({
     defaultValues: { roles: currentRoles },
   });
 
-  useEffect(() => {
-    if (visible) reset({ roles: currentRoles });
-  }, [visible, currentRoles, reset]);
-
   const doSubmit = (values: EditRolesValues) => {
     onSubmit(values.roles as SchoolRole[]);
   };
 
   return (
-    <ModalFrame
-      visible={visible}
-      eyebrow="Gestion des accès"
-      title="Modifier les rôles"
-      subtitle="Cochez les rôles à attribuer à cet utilisateur."
-      onClose={onClose}
-      testID="edit-roles-sheet"
-      footer={
-        <FormActions
-          submitLabel="Enregistrer les rôles"
-          isSubmitting={isSubmitting}
-          onCancel={onClose}
-          onSubmit={handleSubmit(doSubmit)}
-          testIDPrefix="edit-roles"
-        />
-      }
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="edit-roles-form-content"
     >
-      <Controller
-        control={control}
-        name="roles"
-        render={({ field: { value, onChange } }) => (
-          <View style={styles.roleCheckList}>
-            {ALL_ROLES.map((role) => {
-              const theme = ROLE_SECTION_COLORS[role] ?? {
-                bg: colors.warmSurface,
-                border: colors.primary,
-                icon: colors.primary,
-              };
-              const checked = value.includes(role);
-              return (
-                <TouchableOpacity
-                  key={role}
-                  style={[
-                    styles.roleCheckRow,
-                    checked && {
-                      backgroundColor: theme.bg,
-                      borderColor: theme.border,
-                    },
-                  ]}
-                  onPress={() => {
-                    onChange(
-                      checked
-                        ? value.filter((r) => r !== role)
-                        : [...value, role],
-                    );
-                  }}
-                  testID={`role-check-${role.toLowerCase()}`}
-                >
-                  <View
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Controller
+          control={control}
+          name="roles"
+          render={({ field: { value, onChange } }) => (
+            <View style={styles.roleCheckList}>
+              {ALL_ROLES.map((role) => {
+                const theme = ROLE_SECTION_COLORS[role] ?? {
+                  bg: colors.warmSurface,
+                  border: colors.primary,
+                  icon: colors.primary,
+                };
+                const checked = value.includes(role);
+                return (
+                  <TouchableOpacity
+                    key={role}
                     style={[
-                      styles.roleCheckBox,
+                      styles.roleCheckRow,
                       checked && {
-                        backgroundColor: theme.border,
+                        backgroundColor: theme.bg,
                         borderColor: theme.border,
                       },
                     ]}
+                    onPress={() => {
+                      onChange(
+                        checked
+                          ? value.filter((r) => r !== role)
+                          : [...value, role],
+                      );
+                    }}
+                    testID={`role-check-${role.toLowerCase()}`}
                   >
-                    {checked ? (
-                      <Ionicons
-                        name="checkmark"
-                        size={12}
-                        color={colors.white}
-                      />
-                    ) : null}
-                  </View>
-                  <Text
-                    style={[
-                      styles.roleCheckLabel,
-                      checked && { color: theme.border, fontWeight: "700" },
-                    ]}
-                  >
-                    {ROLE_LABELS[role] ?? role}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-            {errors.roles ? (
-              <Text style={styles.rolesError}>{errors.roles.message}</Text>
-            ) : null}
-          </View>
-        )}
-      />
-    </ModalFrame>
+                    <View
+                      style={[
+                        styles.roleCheckBox,
+                        checked && {
+                          backgroundColor: theme.border,
+                          borderColor: theme.border,
+                        },
+                      ]}
+                    >
+                      {checked ? (
+                        <Ionicons
+                          name="checkmark"
+                          size={12}
+                          color={colors.white}
+                        />
+                      ) : null}
+                    </View>
+                    <Text
+                      style={[
+                        styles.roleCheckLabel,
+                        checked && { color: theme.border, fontWeight: "700" },
+                      ]}
+                    >
+                      {ROLE_LABELS[role] ?? role}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+              {errors.roles ? (
+                <Text style={styles.rolesError} testID="edit-roles-error">
+                  {errors.roles.message}
+                </Text>
+              ) : null}
+            </View>
+          )}
+        />
+      </ScrollView>
+      <View style={styles.formActionsBar}>
+        <FormActions
+          submitLabel={t("users.detail.forms.editRoles.submit")}
+          isSubmitting={isSubmitting}
+          onCancel={onCancel}
+          onSubmit={handleSubmit(doSubmit)}
+          testIDPrefix="edit-roles"
+        />
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
-// ── AssignChildToParentSheet ──────────────────────────────────────────────────
+// ── TeacherAssignmentFormContent ─────────────────────────────────────────────
 
-function AssignChildToParentSheet({
-  visible,
-  schoolSlug,
+function TeacherAssignmentFormContent({
   isSubmitting,
-  onClose,
+  teacherUserId,
+  schoolYears,
+  classrooms,
+  subjects,
+  onCancel,
   onSubmit,
 }: {
-  visible: boolean;
-  parentId: string;
+  isSubmitting: boolean;
+  teacherUserId: string;
+  schoolYears: TeacherSchoolYearOption[];
+  classrooms: TeacherClassroomOption[];
+  subjects: TeacherSubjectOption[];
+  onCancel: () => void;
+  onSubmit: (values: TeacherAssignmentFormValues) => void;
+}) {
+  const { t } = useTranslation();
+  const activeSchoolYear =
+    schoolYears.find((y) => y.isActive) ?? schoolYears[0];
+
+  const {
+    control,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<TeacherAssignmentFormValues>({
+    resolver: zodResolver(teacherAssignmentFormSchema),
+    mode: "onChange",
+    defaultValues: {
+      schoolYearId: activeSchoolYear?.id ?? "",
+      teacherUserId,
+      classId: "",
+      subjectId: subjects[0]?.id ?? "",
+    },
+  });
+
+  const schoolYearId = watch("schoolYearId");
+
+  const { scrollViewRef, registerFieldOffset, focusFirstInvalidField } =
+    useScrollToFirstError<keyof TeacherAssignmentFormValues>();
+  const FIELD_ORDER: Array<keyof TeacherAssignmentFormValues> = [
+    "schoolYearId",
+    "classId",
+    "subjectId",
+  ];
+
+  const schoolYearOptions = schoolYears.map((y) => ({
+    value: y.id,
+    label: y.isActive ? `${y.label} ✓` : y.label,
+  }));
+  const classOptions = classrooms
+    .filter((c) => !schoolYearId || c.schoolYear.id === schoolYearId)
+    .map((c) => ({ value: c.id, label: c.name }));
+  const subjectOptions = subjects.map((s) => ({ value: s.id, label: s.name }));
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="teacher-assignment-form-content"
+    >
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Controller
+          control={control}
+          name="schoolYearId"
+          render={({ field: { value, onChange } }) => (
+            <View
+              style={styles.formField}
+              onLayout={registerFieldOffset("schoolYearId")}
+            >
+              <Text style={styles.formLabel}>
+                {t("users.detail.forms.assignTeacher.schoolYear.label")}
+              </Text>
+              <InlineSelectDropDown
+                options={schoolYearOptions}
+                value={value}
+                onChange={onChange}
+                placeholder={t(
+                  "users.detail.forms.assignTeacher.schoolYear.placeholder",
+                )}
+                hasError={!!errors.schoolYearId}
+                testID="teacher-assignment-school-year"
+              />
+              {errors.schoolYearId ? (
+                <Text
+                  style={styles.formError}
+                  testID="teacher-assignment-school-year-error"
+                >
+                  {errors.schoolYearId.message}
+                </Text>
+              ) : null}
+            </View>
+          )}
+        />
+        <Controller
+          control={control}
+          name="classId"
+          render={({ field: { value, onChange } }) => (
+            <View
+              style={styles.formField}
+              onLayout={registerFieldOffset("classId")}
+            >
+              <Text style={styles.formLabel}>
+                {t("users.detail.forms.assignTeacher.class.label")}
+              </Text>
+              <InlineSelectDropDown
+                options={classOptions}
+                value={value}
+                onChange={onChange}
+                placeholder={t(
+                  "users.detail.forms.assignTeacher.class.placeholder",
+                )}
+                hasError={!!errors.classId}
+                testID="teacher-assignment-class"
+              />
+              {errors.classId ? (
+                <Text
+                  style={styles.formError}
+                  testID="teacher-assignment-class-error"
+                >
+                  {errors.classId.message}
+                </Text>
+              ) : null}
+            </View>
+          )}
+        />
+        <Controller
+          control={control}
+          name="subjectId"
+          render={({ field: { value, onChange } }) => (
+            <View
+              style={styles.formField}
+              onLayout={registerFieldOffset("subjectId")}
+            >
+              <Text style={styles.formLabel}>
+                {t("users.detail.forms.assignTeacher.subject.label")}
+              </Text>
+              <InlineSelectDropDown
+                options={subjectOptions}
+                value={value}
+                onChange={onChange}
+                placeholder={t(
+                  "users.detail.forms.assignTeacher.subject.placeholder",
+                )}
+                hasError={!!errors.subjectId}
+                testID="teacher-assignment-subject"
+              />
+              {errors.subjectId ? (
+                <Text
+                  style={styles.formError}
+                  testID="teacher-assignment-subject-error"
+                >
+                  {errors.subjectId.message}
+                </Text>
+              ) : null}
+            </View>
+          )}
+        />
+      </ScrollView>
+      <View style={styles.formActionsBar}>
+        <FormActions
+          submitLabel={t("users.detail.forms.assignTeacher.submit")}
+          isSubmitting={isSubmitting}
+          onCancel={onCancel}
+          onSubmit={handleSubmit(onSubmit, (errs) =>
+            focusFirstInvalidField(FIELD_ORDER, errs),
+          )}
+          testIDPrefix="teacher-assignment"
+        />
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+// ── AssignChildFormContent ───────────────────────────────────────────────────
+
+function AssignChildFormContent({
+  schoolSlug,
+  isSubmitting,
+  onCancel,
+  onSubmit,
+}: {
   schoolSlug: string;
   isSubmitting: boolean;
-  onClose: () => void;
+  onCancel: () => void;
   onSubmit: (studentId: string) => void;
 }) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [students, setStudents] = useState<AdminStudentRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<AdminStudentRow | null>(null);
 
   const loadStudents = useCallback(
@@ -807,8 +1048,10 @@ function AssignChildToParentSheet({
       try {
         const res = await familyApi.listAdminStudents(schoolSlug, { search });
         setStudents(res.students ?? []);
-      } catch {
+        setLoadError(null);
+      } catch (err) {
         setStudents([]);
+        setLoadError(extractApiError(err));
       } finally {
         setIsLoading(false);
       }
@@ -817,14 +1060,8 @@ function AssignChildToParentSheet({
   );
 
   useEffect(() => {
-    if (!visible) {
-      setQuery("");
-      setSelected(null);
-      setStudents([]);
-      return;
-    }
     void loadStudents("");
-  }, [visible, loadStudents]);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -834,90 +1071,100 @@ function AssignChildToParentSheet({
   }, [query, loadStudents]);
 
   return (
-    <ModalFrame
-      visible={visible}
-      eyebrow="Gestion de la famille"
-      title="Affecter un enfant"
-      subtitle="Recherchez l'élève à rattacher à ce parent."
-      onClose={onClose}
-      testID="assign-child-sheet"
-      footer={
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="assign-child-form-content"
+    >
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t("users.detail.forms.assignChild.searchPlaceholder")}
+          placeholderTextColor={colors.textSecondary}
+          style={styles.searchInput}
+          testID="assign-child-search"
+        />
+        {isLoading ? (
+          <ActivityIndicator
+            color={colors.primary}
+            size="small"
+            style={{ marginTop: 12 }}
+          />
+        ) : loadError ? (
+          <Text style={styles.formError} testID="assign-child-load-error">
+            {loadError}
+          </Text>
+        ) : (
+          <View style={styles.studentList}>
+            {students.map((student) => {
+              const isSelected = selected?.id === student.id;
+              return (
+                <TouchableOpacity
+                  key={student.id}
+                  style={[
+                    styles.studentRow,
+                    isSelected && styles.studentRowSelected,
+                  ]}
+                  onPress={() => setSelected(isSelected ? null : student)}
+                  testID={`assign-child-student-${student.id}`}
+                >
+                  <View style={styles.studentRowText}>
+                    <Text
+                      style={[
+                        styles.studentName,
+                        isSelected && styles.studentNameSelected,
+                      ]}
+                    >
+                      {student.lastName} {student.firstName}
+                    </Text>
+                    {student.currentEnrollment ? (
+                      <Text style={styles.studentClass}>
+                        {student.currentEnrollment.class.name} ·{" "}
+                        {student.currentEnrollment.schoolYear.label}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {isSelected ? (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={20}
+                      color={colors.primary}
+                    />
+                  ) : null}
+                </TouchableOpacity>
+              );
+            })}
+            {!isLoading && students.length === 0 ? (
+              <Text style={styles.noStudents}>
+                {t("users.detail.forms.assignChild.empty")}
+              </Text>
+            ) : null}
+          </View>
+        )}
+      </ScrollView>
+      <View style={styles.formActionsBar}>
         <FormActions
-          submitLabel="Affecter l'enfant"
+          submitLabel={t("users.detail.forms.assignChild.submit")}
           isSubmitting={isSubmitting}
           submitDisabled={!selected}
-          onCancel={onClose}
+          onCancel={onCancel}
           onSubmit={() => {
             if (selected) onSubmit(selected.id);
           }}
           testIDPrefix="assign-child"
         />
-      }
-    >
-      <TextInput
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Nom ou prénom de l'élève..."
-        placeholderTextColor={colors.textSecondary}
-        style={styles.searchInput}
-        testID="assign-child-search"
-      />
-      {isLoading ? (
-        <ActivityIndicator
-          color={colors.primary}
-          size="small"
-          style={{ marginTop: 12 }}
-        />
-      ) : (
-        <View style={styles.studentList}>
-          {students.map((student) => {
-            const isSelected = selected?.id === student.id;
-            return (
-              <TouchableOpacity
-                key={student.id}
-                style={[
-                  styles.studentRow,
-                  isSelected && styles.studentRowSelected,
-                ]}
-                onPress={() => setSelected(isSelected ? null : student)}
-                testID={`assign-child-student-${student.id}`}
-              >
-                <View style={styles.studentRowText}>
-                  <Text
-                    style={[
-                      styles.studentName,
-                      isSelected && styles.studentNameSelected,
-                    ]}
-                  >
-                    {student.lastName} {student.firstName}
-                  </Text>
-                  {student.currentEnrollment ? (
-                    <Text style={styles.studentClass}>
-                      {student.currentEnrollment.class.name} ·{" "}
-                      {student.currentEnrollment.schoolYear.label}
-                    </Text>
-                  ) : null}
-                </View>
-                {isSelected ? (
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={20}
-                    color={colors.primary}
-                  />
-                ) : null}
-              </TouchableOpacity>
-            );
-          })}
-          {!isLoading && students.length === 0 ? (
-            <Text style={styles.noStudents}>Aucun élève trouvé.</Text>
-          ) : null}
-        </View>
-      )}
-    </ModalFrame>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
-// ── AssignParentToStudentSheet ────────────────────────────────────────────────
+// ── AssignParentFormContent ──────────────────────────────────────────────────
 
 function NewParentInlineForm({
   isSubmitting,
@@ -950,7 +1197,7 @@ function NewParentInlineForm({
   const mode = watch("mode");
 
   return (
-    <View testID="assign-parent-new-form">
+    <View style={styles.newParentForm} testID="assign-parent-new-form">
       <ContactModeFields
         control={control}
         errors={errors}
@@ -971,18 +1218,16 @@ function NewParentInlineForm({
   );
 }
 
-function AssignParentToStudentSheet({
-  visible,
+function AssignParentFormContent({
   schoolSlug,
   isSubmitting,
-  onClose,
+  onCancel,
   onSubmitExisting,
   onSubmitNew,
 }: {
-  visible: boolean;
   schoolSlug: string;
   isSubmitting: boolean;
-  onClose: () => void;
+  onCancel: () => void;
   onSubmitExisting: (parentUserId: string) => void;
   onSubmitNew: (values: ContactOnlyCreateFormValues) => void;
 }) {
@@ -991,6 +1236,7 @@ function AssignParentToStudentSheet({
   const [query, setQuery] = useState("");
   const [parents, setParents] = useState<UserItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<UserItem | null>(null);
 
   const loadParents = useCallback(
@@ -1004,8 +1250,10 @@ function AssignParentToStudentSheet({
           page: 1,
         });
         setParents(res.data.filter((u): u is UserItem => u.hasAccount));
-      } catch {
+        setLoadError(null);
+      } catch (err) {
         setParents([]);
+        setLoadError(extractApiError(err));
       } finally {
         setIsLoading(false);
       }
@@ -1014,15 +1262,8 @@ function AssignParentToStudentSheet({
   );
 
   useEffect(() => {
-    if (!visible) {
-      setSubMode("existing");
-      setQuery("");
-      setSelected(null);
-      setParents([]);
-      return;
-    }
     void loadParents("");
-  }, [visible, loadParents]);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -1032,129 +1273,146 @@ function AssignParentToStudentSheet({
   }, [query, loadParents]);
 
   return (
-    <ModalFrame
-      visible={visible}
-      eyebrow="Gestion de la famille"
-      title="Associer un parent"
-      subtitle="Recherchez le parent à rattacher à cet élève."
-      onClose={onClose}
-      testID="assign-parent-sheet"
-      footer={
-        subMode === "existing" ? (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.formsKeyboardArea}
+      testID="assign-parent-form-content"
+    >
+      <ScrollView
+        style={styles.formScroll}
+        contentContainerStyle={styles.formScrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.modeRow} testID="assign-parent-submode">
+          <TouchableOpacity
+            style={[
+              styles.modeChip,
+              subMode === "existing" && styles.modeChipActive,
+            ]}
+            onPress={() => setSubMode("existing")}
+            testID="assign-parent-submode-existing"
+          >
+            <Text
+              style={[
+                styles.modeChipLabel,
+                subMode === "existing" && styles.modeChipLabelActive,
+              ]}
+            >
+              {t("users.assignParent.mode.existing")}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.modeChip,
+              subMode === "new" && styles.modeChipActive,
+            ]}
+            onPress={() => setSubMode("new")}
+            testID="assign-parent-submode-new"
+          >
+            <Text
+              style={[
+                styles.modeChipLabel,
+                subMode === "new" && styles.modeChipLabelActive,
+              ]}
+            >
+              {t("users.assignParent.mode.new")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {subMode === "new" ? (
+          <NewParentInlineForm
+            isSubmitting={isSubmitting}
+            onCancel={onCancel}
+            onSubmit={onSubmitNew}
+          />
+        ) : (
+          <>
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder={t(
+                "users.detail.forms.assignParent.searchPlaceholder",
+              )}
+              placeholderTextColor={colors.textSecondary}
+              style={styles.searchInput}
+              testID="assign-parent-search"
+            />
+            {isLoading ? (
+              <ActivityIndicator
+                color={colors.primary}
+                size="small"
+                style={{ marginTop: 12 }}
+              />
+            ) : loadError ? (
+              <Text style={styles.formError} testID="assign-parent-load-error">
+                {loadError}
+              </Text>
+            ) : (
+              <View style={styles.studentList}>
+                {parents.map((parent) => {
+                  const isSelected = selected?.id === parent.id;
+                  return (
+                    <TouchableOpacity
+                      key={parent.id}
+                      style={[
+                        styles.studentRow,
+                        isSelected && styles.studentRowSelected,
+                      ]}
+                      onPress={() => setSelected(isSelected ? null : parent)}
+                      testID={`assign-parent-user-${parent.id}`}
+                    >
+                      <View style={styles.studentRowText}>
+                        <Text
+                          style={[
+                            styles.studentName,
+                            isSelected && styles.studentNameSelected,
+                          ]}
+                        >
+                          {parent.lastName} {parent.firstName}
+                        </Text>
+                        {parent.phone ? (
+                          <Text style={styles.studentClass}>
+                            {parent.phone}
+                          </Text>
+                        ) : null}
+                      </View>
+                      {isSelected ? (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={20}
+                          color={colors.primary}
+                        />
+                      ) : null}
+                    </TouchableOpacity>
+                  );
+                })}
+                {!isLoading && parents.length === 0 ? (
+                  <Text style={styles.noStudents}>
+                    {t("users.detail.forms.assignParent.empty")}
+                  </Text>
+                ) : null}
+              </View>
+            )}
+          </>
+        )}
+      </ScrollView>
+      {subMode === "existing" ? (
+        <View style={styles.formActionsBar}>
           <FormActions
-            submitLabel="Associer le parent"
+            submitLabel={t("users.detail.forms.assignParent.submit")}
             isSubmitting={isSubmitting}
             submitDisabled={!selected}
-            onCancel={onClose}
+            onCancel={onCancel}
             onSubmit={() => {
               if (selected) onSubmitExisting(selected.id);
             }}
             testIDPrefix="assign-parent"
           />
-        ) : null
-      }
-    >
-      <View style={styles.modeRow} testID="assign-parent-submode">
-        <TouchableOpacity
-          style={[
-            styles.modeChip,
-            subMode === "existing" && styles.modeChipActive,
-          ]}
-          onPress={() => setSubMode("existing")}
-          testID="assign-parent-submode-existing"
-        >
-          <Text
-            style={[
-              styles.modeChipLabel,
-              subMode === "existing" && styles.modeChipLabelActive,
-            ]}
-          >
-            {t("users.assignParent.mode.existing")}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.modeChip, subMode === "new" && styles.modeChipActive]}
-          onPress={() => setSubMode("new")}
-          testID="assign-parent-submode-new"
-        >
-          <Text
-            style={[
-              styles.modeChipLabel,
-              subMode === "new" && styles.modeChipLabelActive,
-            ]}
-          >
-            {t("users.assignParent.mode.new")}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {subMode === "new" ? (
-        <NewParentInlineForm
-          isSubmitting={isSubmitting}
-          onCancel={onClose}
-          onSubmit={onSubmitNew}
-        />
-      ) : (
-        <>
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Nom ou prénom du parent..."
-            placeholderTextColor={colors.textSecondary}
-            style={styles.searchInput}
-            testID="assign-parent-search"
-          />
-          {isLoading ? (
-            <ActivityIndicator
-              color={colors.primary}
-              size="small"
-              style={{ marginTop: 12 }}
-            />
-          ) : (
-            <View style={styles.studentList}>
-              {parents.map((parent) => {
-                const isSelected = selected?.id === parent.id;
-                return (
-                  <TouchableOpacity
-                    key={parent.id}
-                    style={[
-                      styles.studentRow,
-                      isSelected && styles.studentRowSelected,
-                    ]}
-                    onPress={() => setSelected(isSelected ? null : parent)}
-                    testID={`assign-parent-user-${parent.id}`}
-                  >
-                    <View style={styles.studentRowText}>
-                      <Text
-                        style={[
-                          styles.studentName,
-                          isSelected && styles.studentNameSelected,
-                        ]}
-                      >
-                        {parent.lastName} {parent.firstName}
-                      </Text>
-                      {parent.phone ? (
-                        <Text style={styles.studentClass}>{parent.phone}</Text>
-                      ) : null}
-                    </View>
-                    {isSelected ? (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={20}
-                        color={colors.primary}
-                      />
-                    ) : null}
-                  </TouchableOpacity>
-                );
-              })}
-              {!isLoading && parents.length === 0 ? (
-                <Text style={styles.noStudents}>Aucun parent trouvé.</Text>
-              ) : null}
-            </View>
-          )}
-        </>
-      )}
-    </ModalFrame>
+        </View>
+      ) : null}
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1184,27 +1442,34 @@ export function UserDetailModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Modales
-  const [editRolesVisible, setEditRolesVisible] = useState(false);
+  // ── Forms (inline, no Modal — see skill improve-mobile-form) ────────────────
+  const { t: tDetail } = useTranslation();
+  const [view, setView] = useState<"detail" | "forms">("detail");
+  const [formType, setFormType] = useState<DetailFormType | null>(null);
+
+  function exitForms() {
+    setView("detail");
+    setFormType(null);
+  }
+
   const [isSubmittingRoles, setIsSubmittingRoles] = useState(false);
 
-  const [assignmentVisible, setAssignmentVisible] = useState(false);
   const [isSubmittingAssignment, setIsSubmittingAssignment] = useState(false);
-  const [teacherOptions, setTeacherOptions] = useState<TeacherRow[]>([]);
   const [schoolYears, setSchoolYears] = useState<TeacherSchoolYearOption[]>([]);
   const [classrooms, setClassrooms] = useState<TeacherClassroomOption[]>([]);
   const [subjects, setSubjects] = useState<TeacherSubjectOption[]>([]);
 
-  const [assignChildVisible, setAssignChildVisible] = useState(false);
   const [isSubmittingChild, setIsSubmittingChild] = useState(false);
 
-  const [assignParentVisible, setAssignParentVisible] = useState(false);
   const [isSubmittingParent, setIsSubmittingParent] = useState(false);
 
-  const [promoteVisible, setPromoteVisible] = useState(false);
-  const [resetPwdCredentials, setResetPwdCredentials] =
-    useState<ResetStudentPasswordResponse | null>(null);
-  const [resetCredSheetVisible, setResetCredSheetVisible] = useState(false);
+  type CredentialsDisplay = {
+    username: string;
+    temporaryPassword: string;
+    title: string;
+  };
+  const [credentialsDisplay, setCredentialsDisplay] =
+    useState<CredentialsDisplay | null>(null);
 
   const normalizeStudentOnlyDetail = useCallback(
     (data: StudentOnlyDetail): StudentOnlyDetail => ({
@@ -1261,7 +1526,8 @@ export function UserDetailModal({
   }, [user, onClose, router]);
 
   const handleOpenEditRoles = useCallback(() => {
-    setEditRolesVisible(true);
+    setFormType("edit-roles");
+    setView("forms");
   }, []);
 
   const handleSubmitRoles = useCallback(
@@ -1270,7 +1536,7 @@ export function UserDetailModal({
       setIsSubmittingRoles(true);
       try {
         await usersApi.updateRoles(schoolSlug, user.id, roles);
-        setEditRolesVisible(false);
+        exitForms();
         await loadDetail();
         showSuccess({
           title: "Rôles mis à jour",
@@ -1286,20 +1552,19 @@ export function UserDetailModal({
   );
 
   const handleOpenAssignment = useCallback(async () => {
-    setAssignmentVisible(true);
+    setFormType("assign-teacher");
+    setView("forms");
     try {
-      const [years, rooms, subs, teachers] = await Promise.all([
+      const [years, rooms, subs] = await Promise.all([
         teachersApi.listSchoolYears(schoolSlug),
         teachersApi.listClassrooms(schoolSlug),
         teachersApi.listSubjects(schoolSlug),
-        teachersApi.listTeachers(schoolSlug),
       ]);
       setSchoolYears(years);
       setClassrooms(rooms);
       setSubjects(subs);
-      setTeacherOptions(teachers);
     } catch {
-      // affectation sheet handles its own errors via empty options
+      // le formulaire d'affectation gère ses erreurs via des options vides
     }
   }, [schoolSlug]);
 
@@ -1319,7 +1584,7 @@ export function UserDetailModal({
           subjectId: values.subjectId,
         };
         await teachersApi.createAssignment(schoolSlug, payload);
-        setAssignmentVisible(false);
+        exitForms();
         await loadDetail();
         showSuccess({
           title: "Affectation créée",
@@ -1335,7 +1600,8 @@ export function UserDetailModal({
   );
 
   const handleOpenAssignChild = useCallback(() => {
-    setAssignChildVisible(true);
+    setFormType("assign-child");
+    setView("forms");
   }, []);
 
   const handleSubmitAssignChild = useCallback(
@@ -1347,7 +1613,7 @@ export function UserDetailModal({
           studentId,
           parentUserId: user.id,
         });
-        setAssignChildVisible(false);
+        exitForms();
         await loadDetail();
         showSuccess({
           title: "Enfant affecté",
@@ -1363,7 +1629,8 @@ export function UserDetailModal({
   );
 
   const handleOpenAssignParent = useCallback(() => {
-    setAssignParentVisible(true);
+    setFormType("assign-parent");
+    setView("forms");
   }, []);
 
   const handleSubmitAssignParent = useCallback(
@@ -1376,7 +1643,7 @@ export function UserDetailModal({
           studentId,
           parentUserId,
         });
-        setAssignParentVisible(false);
+        exitForms();
         await loadDetail();
         showSuccess({
           title: "Parent associé",
@@ -1403,7 +1670,7 @@ export function UserDetailModal({
             ? { phone: values.phone, pin: values.pin }
             : { email: values.email, password: values.password }),
         });
-        setAssignParentVisible(false);
+        exitForms();
         await loadDetail();
         showSuccess({
           title: "Parent associé",
@@ -1465,24 +1732,37 @@ export function UserDetailModal({
   }, [user, detail, onClose, router]);
 
   const handleCreateAccess = useCallback(() => {
-    setPromoteVisible(true);
+    setFormType("create-access");
+    setView("forms");
   }, []);
 
-  const handlePromoteSuccess = useCallback(async () => {
-    await loadDetail();
-    showSuccess({
-      title: "Accès créé",
-      message: "L'élève peut maintenant se connecter avec son identifiant.",
-    });
-  }, [loadDetail, showSuccess]);
+  const handlePromoteSuccess = useCallback(
+    async (credentials: PromoteStudentResponse) => {
+      exitForms();
+      await loadDetail();
+      setCredentialsDisplay({
+        username: credentials.username,
+        temporaryPassword: credentials.temporaryPassword,
+        title: "Accès créé",
+      });
+      showSuccess({
+        title: "Accès créé",
+        message: "L'élève peut maintenant se connecter avec son identifiant.",
+      });
+    },
+    [loadDetail, showSuccess],
+  );
 
   const handleResetPassword = useCallback(async () => {
     if (!user) return;
     const studentId = user.type === "student-only" ? user.studentId : user.id;
     try {
       const result = await usersApi.resetStudentPassword(schoolSlug, studentId);
-      setResetPwdCredentials(result);
-      setResetCredSheetVisible(true);
+      setCredentialsDisplay({
+        username: user.hasAccount && "id" in user ? user.id : "",
+        temporaryPassword: result.temporaryPassword,
+        title: "Mot de passe réinitialisé",
+      });
     } catch (err) {
       showError({ title: "Erreur", message: extractApiError(err) });
     }
@@ -1527,6 +1807,7 @@ export function UserDetailModal({
     : null;
   const studentIdForActions =
     user.type === "student-only" ? user.studentId : user.id;
+  const formHeroConfig = buildFormHeroConfig(tDetail);
 
   function renderRoleSections() {
     if (!detail) return null;
@@ -1619,7 +1900,7 @@ export function UserDetailModal({
           <ModuleHeader
             title="Utilisateurs"
             subtitle={fullName}
-            onBack={onClose}
+            onBack={() => (view === "forms" ? exitForms() : onClose())}
             topInset={insets.top}
             testID="user-detail-header"
             backTestID="user-detail-close"
@@ -1628,285 +1909,285 @@ export function UserDetailModal({
           />
         </View>
 
-        <ScrollView
-          style={styles.body}
-          contentContainerStyle={[
-            styles.bodyContent,
-            { paddingBottom: insets.bottom + BOTTOM_TAB_BAR_HEIGHT + 24 },
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Carte profil */}
-          <View style={styles.profileCard} testID="user-detail-profile">
-            <View style={styles.profileMainRow} testID="user-detail-fullname">
-              <Text style={styles.profileFullName}>{fullName}</Text>
-              {statusCfg ? (
-                <View style={styles.profileStatusChip}>
-                  <Ionicons
-                    name={statusCfg.icon}
-                    size={12}
-                    color={statusCfg.color}
-                  />
-                  <Text
-                    style={[
-                      styles.profileStatusLabel,
-                      { color: statusCfg.color },
-                    ]}
-                  >
-                    {statusCfg.label}
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.profileStatusChip}>
-                  <Text
-                    style={[
-                      styles.profileStatusLabel,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    Sans compte
-                  </Text>
-                </View>
-              )}
+        {view === "forms" && formType ? (
+          <View style={styles.formsTabContent} testID="user-detail-forms-tab">
+            <View style={styles.heroWrapper}>
+              <FormHero
+                icon={formHeroConfig[formType].icon}
+                title={formHeroConfig[formType].title}
+                subtitle={formHeroConfig[formType].subtitle}
+                palette={formHeroConfig[formType].palette}
+                testID="user-detail-form-hero"
+              />
             </View>
-            <View style={styles.profileRolesRow}>
-              {user.roles.map((role) => {
-                const badge = ROLE_COLORS[role as SchoolRole] ?? {
-                  bg: colors.warmAccent,
-                  text: colors.white,
-                };
-                return (
-                  <View
-                    key={role}
-                    style={[
-                      styles.profileRoleBadge,
-                      { backgroundColor: badge.bg },
-                    ]}
-                  >
-                    <Text
-                      style={[styles.profileRoleText, { color: badge.text }]}
-                    >
-                      {ROLE_LABELS[role as SchoolRole] ?? role}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-            {/* Actions communes (masquées pour student-only) */}
-            {user.hasAccount ? (
-              <>
-                <View
-                  style={[
-                    styles.sectionDivider,
-                    { borderTopColor: colors.warmBorder },
-                  ]}
-                />
-                <CommonActionsFooter
-                  member={user}
-                  onMessagePress={handleSendMessage}
-                  onEditRolesPress={handleOpenEditRoles}
-                />
-              </>
+            {formType === "edit-roles" ? (
+              <EditRolesFormContent
+                currentRoles={
+                  (detail && "roles" in detail
+                    ? (detail.roles as SchoolRole[])
+                    : null) ??
+                  user?.roles ??
+                  []
+                }
+                isSubmitting={isSubmittingRoles}
+                onCancel={exitForms}
+                onSubmit={(roles) => void handleSubmitRoles(roles)}
+              />
+            ) : null}
+            {formType === "assign-teacher" ? (
+              <TeacherAssignmentFormContent
+                isSubmitting={isSubmittingAssignment}
+                teacherUserId={user.id}
+                schoolYears={schoolYears}
+                classrooms={classrooms}
+                subjects={subjects}
+                onCancel={exitForms}
+                onSubmit={(values) => void handleSubmitAssignment(values)}
+              />
+            ) : null}
+            {formType === "assign-child" ? (
+              <AssignChildFormContent
+                schoolSlug={schoolSlug}
+                isSubmitting={isSubmittingChild}
+                onCancel={exitForms}
+                onSubmit={(studentId) =>
+                  void handleSubmitAssignChild(studentId)
+                }
+              />
+            ) : null}
+            {formType === "assign-parent" ? (
+              <AssignParentFormContent
+                schoolSlug={schoolSlug}
+                isSubmitting={isSubmittingParent}
+                onCancel={exitForms}
+                onSubmitExisting={(parentUserId) =>
+                  void handleSubmitAssignParent(parentUserId)
+                }
+                onSubmitNew={(values) => void handleCreateNewParent(values)}
+              />
+            ) : null}
+            {formType === "create-access" ? (
+              <PromoteToUserFormContent
+                schoolSlug={schoolSlug}
+                studentId={studentIdForActions}
+                studentName={fullName}
+                onCancel={exitForms}
+                onSuccess={(credentials) =>
+                  void handlePromoteSuccess(credentials)
+                }
+              />
             ) : null}
           </View>
-
-          {isLoading ? (
-            <View style={styles.loadingWrap} testID="user-detail-loading">
-              <ActivityIndicator color={colors.primary} size="large" />
-              <Text style={styles.loadingText}>Chargement du profil…</Text>
-            </View>
-          ) : error ? (
-            <View style={styles.errorWrap} testID="user-detail-error">
-              <Ionicons
-                name="alert-circle-outline"
-                size={28}
-                color={colors.warmAccent}
-              />
-              <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity
-                style={styles.retryBtn}
-                onPress={() => void loadDetail()}
-              >
-                <Text style={styles.retryText}>Réessayer</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <>
-              <View
-                style={styles.roleSectionsWrap}
-                testID="user-detail-role-sections"
-              >
-                {renderRoleSections()}
+        ) : (
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={[
+              styles.bodyContent,
+              { paddingBottom: insets.bottom + BOTTOM_TAB_BAR_HEIGHT + 24 },
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Carte profil */}
+            <View style={styles.profileCard} testID="user-detail-profile">
+              <View style={styles.profileMainRow} testID="user-detail-fullname">
+                <Text style={styles.profileFullName}>{fullName}</Text>
+                {statusCfg ? (
+                  <View style={styles.profileStatusChip}>
+                    <Ionicons
+                      name={statusCfg.icon}
+                      size={12}
+                      color={statusCfg.color}
+                    />
+                    <Text
+                      style={[
+                        styles.profileStatusLabel,
+                        { color: statusCfg.color },
+                      ]}
+                    >
+                      {statusCfg.label}
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.profileStatusChip}>
+                    <Text
+                      style={[
+                        styles.profileStatusLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Sans compte
+                    </Text>
+                  </View>
+                )}
               </View>
-
-              {/* Contact — masqué pour student-only */}
+              <View style={styles.profileRolesRow}>
+                {user.roles.map((role) => {
+                  const badge = ROLE_COLORS[role as SchoolRole] ?? {
+                    bg: colors.warmAccent,
+                    text: colors.white,
+                  };
+                  return (
+                    <View
+                      key={role}
+                      style={[
+                        styles.profileRoleBadge,
+                        { backgroundColor: badge.bg },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.profileRoleText, { color: badge.text }]}
+                      >
+                        {ROLE_LABELS[role as SchoolRole] ?? role}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+              {/* Actions communes (masquées pour student-only) */}
               {user.hasAccount ? (
-                <View style={styles.section} testID="user-detail-contact">
-                  <Text style={styles.sectionTitle}>Contact</Text>
-                  <InfoRow
-                    icon="mail-outline"
-                    label="Adresse e-mail"
-                    value={
-                      (detail && "email" in detail ? detail.email : null) ??
-                      user.email ??
-                      "Non renseigné"
-                    }
-                    testID="user-detail-email"
+                <>
+                  <View
+                    style={[
+                      styles.sectionDivider,
+                      { borderTopColor: colors.warmBorder },
+                    ]}
                   />
-                  <InfoRow
-                    icon="call-outline"
-                    label="Téléphone"
-                    value={
-                      (detail && "phone" in detail ? detail.phone : null) ??
-                      user.phone ??
-                      "Non renseigné"
-                    }
-                    testID="user-detail-phone"
+                  <CommonActionsFooter
+                    member={user}
+                    onMessagePress={handleSendMessage}
+                    onEditRolesPress={handleOpenEditRoles}
                   />
-                  {((detail && "gender" in detail ? detail.gender : null) ??
-                  user.gender) ? (
-                    <InfoRow
-                      icon="person-outline"
-                      label="Genre"
-                      value={
-                        GENDER_LABELS[
-                          ((detail && "gender" in detail
-                            ? detail.gender
-                            : null) ?? user.gender)!
-                        ] ?? "—"
-                      }
-                      testID="user-detail-gender"
-                    />
-                  ) : null}
-                </View>
+                </>
               ) : null}
+            </View>
 
-              {/* Activité — masquée pour student-only */}
-              {user.hasAccount ? (
-                <View style={styles.section} testID="user-detail-activity">
-                  <Text style={styles.sectionTitle}>Activité</Text>
-                  <InfoRow
-                    icon="calendar-outline"
-                    label="Membre depuis"
-                    value={formatDate(
-                      (detail && "createdAt" in detail
-                        ? detail.createdAt
-                        : null) ?? user.createdAt,
-                    )}
-                    testID="user-detail-created-at"
-                  />
-                  {detail &&
-                  "lastLoginAt" in detail &&
-                  detail.lastLoginAt !== undefined ? (
-                    <InfoRow
-                      icon="log-in-outline"
-                      label="Dernière connexion"
-                      value={
-                        detail.lastLoginAt
-                          ? formatDateTime(detail.lastLoginAt)
-                          : "Jamais connecté"
-                      }
-                      testID="user-detail-last-login"
-                    />
-                  ) : null}
-                  <InfoRow
-                    icon="shield-checkmark-outline"
-                    label="Profil complété"
-                    value={
-                      ((detail && "profileCompleted" in detail
-                        ? detail.profileCompleted
-                        : null) ?? user.profileCompleted)
-                        ? "Oui"
-                        : "Non"
-                    }
-                    testID="user-detail-profile-completed"
-                  />
+            {isLoading ? (
+              <View style={styles.loadingWrap} testID="user-detail-loading">
+                <ActivityIndicator color={colors.primary} size="large" />
+                <Text style={styles.loadingText}>Chargement du profil…</Text>
+              </View>
+            ) : error ? (
+              <View style={styles.errorWrap} testID="user-detail-error">
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={28}
+                  color={colors.warmAccent}
+                />
+                <Text style={styles.errorText}>{error}</Text>
+                <TouchableOpacity
+                  style={styles.retryBtn}
+                  onPress={() => void loadDetail()}
+                >
+                  <Text style={styles.retryText}>Réessayer</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <View
+                  style={styles.roleSectionsWrap}
+                  testID="user-detail-role-sections"
+                >
+                  {renderRoleSections()}
                 </View>
-              ) : null}
-            </>
-          )}
-        </ScrollView>
+
+                {/* Contact — masqué pour student-only */}
+                {user.hasAccount ? (
+                  <View style={styles.section} testID="user-detail-contact">
+                    <Text style={styles.sectionTitle}>Contact</Text>
+                    <InfoRow
+                      icon="mail-outline"
+                      label="Adresse e-mail"
+                      value={
+                        (detail && "email" in detail ? detail.email : null) ??
+                        user.email ??
+                        "Non renseigné"
+                      }
+                      testID="user-detail-email"
+                    />
+                    <InfoRow
+                      icon="call-outline"
+                      label="Téléphone"
+                      value={
+                        (detail && "phone" in detail ? detail.phone : null) ??
+                        user.phone ??
+                        "Non renseigné"
+                      }
+                      testID="user-detail-phone"
+                    />
+                    {((detail && "gender" in detail ? detail.gender : null) ??
+                    user.gender) ? (
+                      <InfoRow
+                        icon="person-outline"
+                        label="Genre"
+                        value={
+                          GENDER_LABELS[
+                            ((detail && "gender" in detail
+                              ? detail.gender
+                              : null) ?? user.gender)!
+                          ] ?? "—"
+                        }
+                        testID="user-detail-gender"
+                      />
+                    ) : null}
+                  </View>
+                ) : null}
+
+                {/* Activité — masquée pour student-only */}
+                {user.hasAccount ? (
+                  <View style={styles.section} testID="user-detail-activity">
+                    <Text style={styles.sectionTitle}>Activité</Text>
+                    <InfoRow
+                      icon="calendar-outline"
+                      label="Membre depuis"
+                      value={formatDate(
+                        (detail && "createdAt" in detail
+                          ? detail.createdAt
+                          : null) ?? user.createdAt,
+                      )}
+                      testID="user-detail-created-at"
+                    />
+                    {detail &&
+                    "lastLoginAt" in detail &&
+                    detail.lastLoginAt !== undefined ? (
+                      <InfoRow
+                        icon="log-in-outline"
+                        label="Dernière connexion"
+                        value={
+                          detail.lastLoginAt
+                            ? formatDateTime(detail.lastLoginAt)
+                            : "Jamais connecté"
+                        }
+                        testID="user-detail-last-login"
+                      />
+                    ) : null}
+                    <InfoRow
+                      icon="shield-checkmark-outline"
+                      label="Profil complété"
+                      value={
+                        ((detail && "profileCompleted" in detail
+                          ? detail.profileCompleted
+                          : null) ?? user.profileCompleted)
+                          ? "Oui"
+                          : "Non"
+                      }
+                      testID="user-detail-profile-completed"
+                    />
+                  </View>
+                ) : null}
+              </>
+            )}
+          </ScrollView>
+        )}
       </View>
 
-      {/* Modale rôles (uniquement pour les users avec compte) */}
-      <EditRolesSheet
-        visible={editRolesVisible}
-        currentRoles={
-          (detail && "roles" in detail
-            ? (detail.roles as SchoolRole[])
-            : null) ??
-          user?.roles ??
-          []
-        }
-        isSubmitting={isSubmittingRoles}
-        onClose={() => setEditRolesVisible(false)}
-        onSubmit={(roles) => void handleSubmitRoles(roles)}
-      />
-
-      {/* Modale affectation enseignant */}
-      <TeacherAssignmentSheet
-        visible={assignmentVisible}
-        mode="create"
-        item={null}
-        isSubmitting={isSubmittingAssignment}
-        teacherOptions={teacherOptions}
-        schoolYears={schoolYears}
-        classrooms={classrooms}
-        subjects={subjects}
-        lockedTeacherUserId={user?.id}
-        onClose={() => setAssignmentVisible(false)}
-        onSubmit={(values) => void handleSubmitAssignment(values)}
-      />
-
-      {/* Modale affectation enfant au parent */}
-      {user && user.hasAccount && (
-        <AssignChildToParentSheet
-          visible={assignChildVisible}
-          parentId={user.id}
-          schoolSlug={schoolSlug}
-          isSubmitting={isSubmittingChild}
-          onClose={() => setAssignChildVisible(false)}
-          onSubmit={(studentId) => void handleSubmitAssignChild(studentId)}
-        />
-      )}
-
-      {/* Modale association parent à l'élève */}
-      {user && (
-        <AssignParentToStudentSheet
-          visible={assignParentVisible}
-          schoolSlug={schoolSlug}
-          isSubmitting={isSubmittingParent}
-          onClose={() => setAssignParentVisible(false)}
-          onSubmitExisting={(parentUserId) =>
-            void handleSubmitAssignParent(parentUserId)
-          }
-          onSubmitNew={(values) => void handleCreateNewParent(values)}
-        />
-      )}
-
-      {/* Modale création accès élève */}
-      {user && (
-        <PromoteToUserSheet
-          visible={promoteVisible}
-          onClose={() => setPromoteVisible(false)}
-          schoolSlug={schoolSlug}
-          studentId={studentIdForActions}
-          studentName={fullName}
-          onSuccess={() => void handlePromoteSuccess()}
-        />
-      )}
-
-      {/* Sheet affichage credentials réinitialisation */}
-      {resetPwdCredentials ? (
+      {/* Sheet affichage credentials (accès créé / mot de passe réinitialisé) */}
+      {credentialsDisplay ? (
         <CredentialDisplaySheet
-          visible={resetCredSheetVisible}
-          onClose={() => {
-            setResetCredSheetVisible(false);
-            setResetPwdCredentials(null);
-          }}
-          username={user?.hasAccount && "id" in user ? user.id : ""}
-          temporaryPassword={resetPwdCredentials.temporaryPassword}
-          title="Mot de passe réinitialisé"
+          visible={!!credentialsDisplay}
+          onClose={() => setCredentialsDisplay(null)}
+          username={credentialsDisplay.username}
+          temporaryPassword={credentialsDisplay.temporaryPassword}
+          title={credentialsDisplay.title}
         />
       ) : null}
     </>
@@ -1921,6 +2202,62 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   headerWrap: {},
+
+  // ── Forms (inline, no Modal) ────────────────────────────────────────────
+  formsTabContent: {
+    flex: 1,
+  },
+  heroWrapper: {
+    padding: 16,
+  },
+  formsKeyboardArea: {
+    flex: 1,
+  },
+  formScroll: {
+    flex: 1,
+  },
+  formScrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    gap: 16,
+  },
+  formActionsBar: {
+    backgroundColor: colors.warmSurface,
+    borderTopWidth: 1,
+    borderTopColor: colors.warmBorder,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    flexDirection: "row",
+    gap: 10,
+  },
+  formField: {
+    gap: 8,
+  },
+  formLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.primary,
+    textTransform: "uppercase",
+  },
+  formInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    borderRadius: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: colors.textPrimary,
+    fontSize: 14,
+  },
+  formInputError: {
+    borderColor: "#B84A3B",
+  },
+  formError: {
+    color: "#B84A3B",
+    fontSize: 12,
+    lineHeight: 16,
+  },
 
   // Profile card
   profileCard: {
@@ -2238,7 +2575,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     backgroundColor: colors.warmSurface,
@@ -2267,7 +2604,7 @@ const styles = StyleSheet.create({
   // AssignChildToParentSheet
   searchInput: {
     backgroundColor: colors.white,
-    borderRadius: 12,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: 14,
@@ -2277,36 +2614,41 @@ const styles = StyleSheet.create({
   },
   modeRow: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
+    gap: 10,
+  },
+  newParentForm: {
+    gap: 16,
+    marginTop: 16,
   },
   modeChip: {
     flex: 1,
-    paddingVertical: 10,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.white,
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.warmSurface,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
     alignItems: "center",
   },
   modeChipActive: {
-    backgroundColor: colors.primary,
     borderColor: colors.primary,
+    backgroundColor: "#EEF5FB",
   },
   modeChipLabel: {
+    color: colors.textSecondary,
     fontSize: 12,
     fontWeight: "700",
-    color: colors.textSecondary,
+    textAlign: "center",
   },
   modeChipLabelActive: {
-    color: colors.white,
+    color: colors.primary,
   },
   studentList: { gap: 6, marginTop: 8 },
   studentRow: {
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.warmBorder,
     backgroundColor: colors.warmSurface,

@@ -3543,6 +3543,54 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.assignParent.mode.existing": "Parent existant",
     "users.assignParent.mode.new": "Nouveau parent",
     "users.assignParent.new.submit": "Créer et associer le parent",
+    "users.detail.forms.editRoles.title": "Modifier les rôles",
+    "users.detail.forms.editRoles.subtitle":
+      "Cochez les rôles à attribuer à cet utilisateur.",
+    "users.detail.forms.editRoles.submit": "Enregistrer les rôles",
+    "users.detail.forms.assignTeacher.title": "Nouvelle affectation",
+    "users.detail.forms.assignTeacher.subtitle":
+      "Associez cet enseignant à une classe et une matière.",
+    "users.detail.forms.assignTeacher.submit": "Créer l'affectation",
+    "users.detail.forms.assignTeacher.schoolYear.label": "Année scolaire",
+    "users.detail.forms.assignTeacher.schoolYear.placeholder":
+      "Choisir une année",
+    "users.detail.forms.assignTeacher.class.label": "Classe",
+    "users.detail.forms.assignTeacher.class.placeholder": "Choisir une classe",
+    "users.detail.forms.assignTeacher.subject.label": "Matière",
+    "users.detail.forms.assignTeacher.subject.placeholder":
+      "Choisir une matière",
+    "users.detail.forms.assignChild.title": "Affecter un enfant",
+    "users.detail.forms.assignChild.subtitle":
+      "Recherchez l'élève à rattacher à ce parent.",
+    "users.detail.forms.assignChild.submit": "Affecter l'enfant",
+    "users.detail.forms.assignChild.searchPlaceholder":
+      "Nom ou prénom de l'élève...",
+    "users.detail.forms.assignChild.empty": "Aucun élève trouvé.",
+    "users.detail.forms.assignParent.title": "Associer un parent",
+    "users.detail.forms.assignParent.subtitle":
+      "Recherchez un parent existant ou créez-en un nouveau.",
+    "users.detail.forms.assignParent.submit": "Associer le parent",
+    "users.detail.forms.assignParent.searchPlaceholder":
+      "Nom ou prénom du parent...",
+    "users.detail.forms.assignParent.empty": "Aucun parent trouvé.",
+    "users.detail.forms.createAccess.title": "Créer un accès élève",
+    "users.detail.forms.createAccess.subtitle":
+      "Génère un identifiant et un mot de passe temporaire.",
+    "users.detail.forms.createAccess.submit": "Créer l'accès",
+    "users.detail.forms.createAccess.usernameLabel": "Identifiant",
+    "users.detail.forms.createAccess.usernamePlaceholder": "ex: JeanDUPONT",
+    "users.detail.forms.createAccess.info":
+      "Un mot de passe temporaire sera généré automatiquement. L'élève devra le changer à la première connexion.",
+    "users.detail.forms.createAccess.suggestionLoading":
+      "Génération de l'identifiant unique…",
+    "users.detail.forms.createAccess.suggestionError":
+      "Suggestion automatique indisponible. Vérifie l'identifiant avant de créer l'accès.",
+    "users.detail.forms.createAccess.errorMin":
+      "L'identifiant doit faire au moins 3 caractères.",
+    "users.detail.forms.createAccess.errorAlnum":
+      "Lettres et chiffres uniquement.",
+    "users.detail.forms.createAccess.errorTaken":
+      "Cet identifiant est déjà utilisé. Choisis-en un autre.",
     "rooms.search.placeholder": "Rechercher une salle",
     "rooms.search.accessibilityLabel": "Rechercher une salle",
     "rooms.filters.toggleAccessibilityLabel": "Filtres des salles",
@@ -7214,6 +7262,51 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.assignParent.mode.existing": "Existing parent",
     "users.assignParent.mode.new": "New parent",
     "users.assignParent.new.submit": "Create and link the parent",
+    "users.detail.forms.editRoles.title": "Edit roles",
+    "users.detail.forms.editRoles.subtitle":
+      "Check the roles to grant to this user.",
+    "users.detail.forms.editRoles.submit": "Save roles",
+    "users.detail.forms.assignTeacher.title": "New assignment",
+    "users.detail.forms.assignTeacher.subtitle":
+      "Link this teacher to a class and a subject.",
+    "users.detail.forms.assignTeacher.submit": "Create assignment",
+    "users.detail.forms.assignTeacher.schoolYear.label": "School year",
+    "users.detail.forms.assignTeacher.schoolYear.placeholder": "Choose a year",
+    "users.detail.forms.assignTeacher.class.label": "Class",
+    "users.detail.forms.assignTeacher.class.placeholder": "Choose a class",
+    "users.detail.forms.assignTeacher.subject.label": "Subject",
+    "users.detail.forms.assignTeacher.subject.placeholder": "Choose a subject",
+    "users.detail.forms.assignChild.title": "Assign a child",
+    "users.detail.forms.assignChild.subtitle":
+      "Search for the student to link to this parent.",
+    "users.detail.forms.assignChild.submit": "Assign child",
+    "users.detail.forms.assignChild.searchPlaceholder":
+      "Student first or last name...",
+    "users.detail.forms.assignChild.empty": "No student found.",
+    "users.detail.forms.assignParent.title": "Link a parent",
+    "users.detail.forms.assignParent.subtitle":
+      "Search for an existing parent or create a new one.",
+    "users.detail.forms.assignParent.submit": "Link parent",
+    "users.detail.forms.assignParent.searchPlaceholder":
+      "Parent first or last name...",
+    "users.detail.forms.assignParent.empty": "No parent found.",
+    "users.detail.forms.createAccess.title": "Create a student access",
+    "users.detail.forms.createAccess.subtitle":
+      "Generates a username and a temporary password.",
+    "users.detail.forms.createAccess.submit": "Create access",
+    "users.detail.forms.createAccess.usernameLabel": "Username",
+    "users.detail.forms.createAccess.usernamePlaceholder": "e.g. JohnDOE",
+    "users.detail.forms.createAccess.info":
+      "A temporary password will be generated automatically. The student will have to change it on first login.",
+    "users.detail.forms.createAccess.suggestionLoading":
+      "Generating a unique username…",
+    "users.detail.forms.createAccess.suggestionError":
+      "Automatic suggestion unavailable. Check the username before creating the access.",
+    "users.detail.forms.createAccess.errorMin":
+      "The username must be at least 3 characters long.",
+    "users.detail.forms.createAccess.errorAlnum": "Letters and digits only.",
+    "users.detail.forms.createAccess.errorTaken":
+      "This username is already taken. Choose another one.",
     "rooms.search.placeholder": "Search for a room",
     "rooms.search.accessibilityLabel": "Search for a room",
     "rooms.filters.toggleAccessibilityLabel": "Room filters",
