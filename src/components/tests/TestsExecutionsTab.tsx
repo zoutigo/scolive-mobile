@@ -142,9 +142,7 @@ export function TestsExecutionsTab({ campaigns }: Props) {
             placeholderTextColor={colors.textSecondary}
             returnKeyType="search"
             autoCapitalize="none"
-            accessibilityLabel={t(
-              "tests.executions.search.accessibilityLabel",
-            )}
+            accessibilityLabel={t("tests.executions.search.accessibilityLabel")}
             testID="tests-executions-search-input"
           />
           {searchInput.length > 0 ? (

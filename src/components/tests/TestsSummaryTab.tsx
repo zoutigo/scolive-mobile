@@ -48,10 +48,7 @@ export function TestsSummaryTab({ campaigns, onCampaignsFilterPress }: Props) {
     };
   }
 
-  const kpis: TestsKpiData = useMemo(
-    () => computeKpis(campaigns),
-    [campaigns],
-  );
+  const kpis: TestsKpiData = useMemo(() => computeKpis(campaigns), [campaigns]);
 
   const hasAssignedCampaigns = useMemo(
     () => campaigns.some((campaign) => campaign.assignedToMe),

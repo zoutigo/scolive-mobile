@@ -149,9 +149,7 @@ describe("TestsToRedoTab", () => {
   });
 
   it("does not show the campaign filter when items span a single campaign", () => {
-    render(
-      <TestsToRedoTab items={[ITEMS[0]]} campaigns={CAMPAIGNS} />,
-    );
+    render(<TestsToRedoTab items={[ITEMS[0]]} campaigns={CAMPAIGNS} />);
 
     expect(
       screen.queryByTestId("tests-to-redo-filter-campaign-trigger"),

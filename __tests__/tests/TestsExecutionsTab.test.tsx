@@ -7,7 +7,10 @@ import {
 } from "@testing-library/react-native";
 import { TestsExecutionsTab } from "../../src/components/tests/TestsExecutionsTab";
 import { testsApi } from "../../src/api/tests.api";
-import type { TestCampaignSummary, TestExecutionRow } from "../../src/types/tests.types";
+import type {
+  TestCampaignSummary,
+  TestExecutionRow,
+} from "../../src/types/tests.types";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("expo-router", () => ({ useRouter: () => ({ push: jest.fn() }) }));
@@ -101,7 +104,10 @@ describe("TestsExecutionsTab", () => {
   it("filters executions by search text on test case and campaign title", async () => {
     (testsApi.listExecutions as jest.Mock).mockResolvedValue({
       items: [
-        makeExecution({ id: "exec-1", testCase: { id: "c1", title: "Connexion" } }),
+        makeExecution({
+          id: "exec-1",
+          testCase: { id: "c1", title: "Connexion" },
+        }),
         makeExecution({
           id: "exec-2",
           testCase: { id: "c2", title: "Envoi de message" },
@@ -145,7 +151,10 @@ describe("TestsExecutionsTab", () => {
   it("defaults the mine-only toggle to on when the user has assigned campaigns", async () => {
     (testsApi.listExecutions as jest.Mock).mockResolvedValue({
       items: [
-        makeExecution({ id: "exec-1", testCase: { id: "c1", title: "Connexion" } }),
+        makeExecution({
+          id: "exec-1",
+          testCase: { id: "c1", title: "Connexion" },
+        }),
         makeExecution({
           id: "exec-2",
           testCase: { id: "c2", title: "Envoi de message" },

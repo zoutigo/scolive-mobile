@@ -110,9 +110,7 @@ describe("TestsCampaignsTab", () => {
   it("shows a Start button for a campaign the user has not completed anything on", () => {
     render(<ControlledTestsCampaignsTab campaigns={CAMPAIGNS} />);
 
-    expect(
-      screen.getByTestId("test-campaign-action-upcoming-1"),
-    ).toBeTruthy();
+    expect(screen.getByTestId("test-campaign-action-upcoming-1")).toBeTruthy();
     expect(screen.getAllByText("Démarrer").length).toBeGreaterThan(0);
   });
 

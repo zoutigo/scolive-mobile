@@ -5775,7 +5775,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.help.title": "Help — Tests",
     "tests.help.section1Title": "Summary",
     "tests.help.section1Body":
-      "This tab gives an overview: number of campaigns, campaigns in progress/upcoming/completed, total test cases and remaining tests. The \"To do today\" card highlights the most urgent campaign (nearest due date) you still have to finish, with a button to start it directly. Tapping a stat card (Campaigns, In progress, etc.) opens the Campaigns tab filtered on that status.",
+      'This tab gives an overview: number of campaigns, campaigns in progress/upcoming/completed, total test cases and remaining tests. The "To do today" card highlights the most urgent campaign (nearest due date) you still have to finish, with a button to start it directly. Tapping a stat card (Campaigns, In progress, etc.) opens the Campaigns tab filtered on that status.',
     "tests.help.section2Title": "Campaigns",
     "tests.help.section2Body":
       "A campaign groups several test cases to run. Use the search bar to find a campaign by its title or description, the All/In progress/Upcoming/Completed filters to narrow by status, and the person-shaped button to show only campaigns specifically assigned to you by an administrator (this filter is on by default when you have assigned campaigns). Each card shows your progress as {done}/{total} and the due date if any. Tap the card, or the Start/Review button, to open the campaign and begin or continue testing: the button reads Start until you have completed at least one case, then Review once you have submitted at least one result.",

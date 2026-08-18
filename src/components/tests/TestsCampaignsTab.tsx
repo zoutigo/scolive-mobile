@@ -144,9 +144,7 @@ export function TestsCampaignsTab({
           size={42}
           color={colors.warmBorder}
         />
-        <Text style={styles.emptyTitle}>
-          {t("tests.campaigns.emptyTitle")}
-        </Text>
+        <Text style={styles.emptyTitle}>{t("tests.campaigns.emptyTitle")}</Text>
         <Text style={styles.emptyBody}>
           {t("tests.campaigns.emptyMessage")}
         </Text>
@@ -231,11 +229,7 @@ export function TestsCampaignsTab({
 
       {filtered.length === 0 ? (
         <View style={styles.emptySearch} testID="tests-campaigns-no-results">
-          <Ionicons
-            name="search-outline"
-            size={32}
-            color={colors.warmBorder}
-          />
+          <Ionicons name="search-outline" size={32} color={colors.warmBorder} />
           <Text style={styles.emptyTitle}>
             {t("tests.campaigns.emptySearchTitle")}
           </Text>
@@ -268,10 +262,7 @@ export function TestsCampaignsTab({
                 <View style={styles.cardHeader}>
                   <Text style={styles.cardTitle}>{campaign.title}</Text>
                   <View
-                    style={[
-                      styles.statusPill,
-                      { backgroundColor: palette.bg },
-                    ]}
+                    style={[styles.statusPill, { backgroundColor: palette.bg }]}
                   >
                     <Text
                       style={[styles.statusPillText, { color: palette.text }]}
@@ -289,8 +280,14 @@ export function TestsCampaignsTab({
                   <View style={styles.metaCompact}>
                     <Text style={styles.metaCompactText}>
                       {t("tests.campaigns.progressCompact")
-                        .replace("{done}", String(campaign.summary.completedCases))
-                        .replace("{total}", String(campaign.summary.totalCases))}
+                        .replace(
+                          "{done}",
+                          String(campaign.summary.completedCases),
+                        )
+                        .replace(
+                          "{total}",
+                          String(campaign.summary.totalCases),
+                        )}
                     </Text>
                     {campaign.dueAt ? (
                       <Text style={styles.metaCompactText}>

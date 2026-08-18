@@ -11,7 +11,10 @@ import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
 import { SelectField } from "../tests-admin/SelectField";
-import type { TestCampaignSummary, TestCaseToRedo } from "../../types/tests.types";
+import type {
+  TestCampaignSummary,
+  TestCaseToRedo,
+} from "../../types/tests.types";
 
 type Props = {
   items: TestCaseToRedo[];
@@ -121,9 +124,7 @@ export function TestsToRedoTab({ items, campaigns }: Props) {
           style={[styles.mineToggle, mineOnly && styles.mineToggleActive]}
           onPress={() => setMineOnly((value) => !value)}
           testID="tests-to-redo-mine-toggle"
-          accessibilityLabel={t(
-            "tests.toRedo.filters.mineAccessibilityLabel",
-          )}
+          accessibilityLabel={t("tests.toRedo.filters.mineAccessibilityLabel")}
         >
           <Ionicons
             name={mineOnly ? "person" : "person-outline"}
