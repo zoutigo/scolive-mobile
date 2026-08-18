@@ -21,6 +21,7 @@ import { z } from "zod";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppShell } from "../../../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../../../src/components/navigation/ModuleHeader";
+import { InlineSelectDropDown } from "../../../../../src/components/InlineSelectDropDown";
 import { testsApi } from "../../../../../src/api/tests.api";
 import { useSuccessToastStore } from "../../../../../src/store/success-toast.store";
 import { useTranslation } from "../../../../../src/i18n/useTranslation";
@@ -52,14 +53,10 @@ type FormValues = {
 
 function buildSchema(t: (key: string) => string, evidenceRequired: boolean) {
   return z.object({
-    status: z.enum([
-      "PASSED",
-      "FAILED",
-      "BLOCKED",
-      "SKIPPED",
-      "IN_PROGRESS",
-      "TODO",
-    ]),
+    status: z.enum(
+      ["PASSED", "FAILED", "BLOCKED", "SKIPPED", "IN_PROGRESS", "TODO"],
+      { message: t("tests.detail.validation.statusRequired") },
+    ),
     resultText: z
       .string()
       .trim()
@@ -111,6 +108,7 @@ function SubmitResultScreen() {
   const [attachments, setAttachments] = useState<LocalAttachment[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const resultInputRef = useRef<TextInput>(null);
+  const scrollRef = useRef<ScrollView>(null);
   const schema = buildSchema(t, isEvidenceRequired);
 
   const {
@@ -123,7 +121,7 @@ function SubmitResultScreen() {
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
-      status: "PASSED",
+      status: undefined as unknown as TestExecutionStatus,
       resultText: "",
       comment: "",
       attachmentsCount: 0,
@@ -262,7 +260,9 @@ function SubmitResultScreen() {
       }
     },
     (formErrors) => {
-      if (formErrors.resultText) {
+      if (formErrors.status) {
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+      } else if (formErrors.resultText) {
         resultInputRef.current?.focus();
       }
     },
@@ -319,47 +319,32 @@ function SubmitResultScreen() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
+          ref={scrollRef}
           style={styles.flex}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Status chips — horizontal scroll so they stay on one line */}
           <Controller
             control={control}
             name="status"
             render={({ field: { value, onChange } }) => (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.statusWrap}
-              >
-                {SUBMIT_STATUSES.map((entry) => {
-                  const selected = entry === value;
-                  return (
-                    <TouchableOpacity
-                      key={entry}
-                      style={[
-                        styles.statusChip,
-                        selected && styles.statusChipSelected,
-                      ]}
-                      onPress={() => onChange(entry)}
-                      testID={`test-execution-status-${entry}`}
-                    >
-                      <Text
-                        style={[
-                          styles.statusChipText,
-                          selected && styles.statusChipTextSelected,
-                        ]}
-                      >
-                        {statusLabel(t, entry)}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+              <InlineSelectDropDown
+                options={SUBMIT_STATUSES.map((entry) => ({
+                  value: entry,
+                  label: statusLabel(t, entry),
+                }))}
+                value={value ?? ""}
+                onChange={(next) => onChange(next as TestExecutionStatus)}
+                placeholder={t("tests.detail.statusPlaceholder")}
+                hasError={!!errors.status}
+                testID="tests-submit-status"
+              />
             )}
           />
+          {errors.status ? (
+            <Text style={styles.fieldError}>{errors.status.message}</Text>
+          ) : null}
 
           <Controller
             control={control}
@@ -539,24 +524,6 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     gap: 12,
   },
-  statusWrap: { flexDirection: "row", gap: 8, paddingVertical: 2 },
-  statusChip: {
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#D9CBBF",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  statusChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  statusChipText: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  statusChipTextSelected: { color: colors.white },
   input: {
     borderRadius: 6,
     borderWidth: 1,

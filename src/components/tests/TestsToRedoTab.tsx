@@ -1,34 +1,39 @@
 import React, { useMemo, useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
-import { SelectField } from "../tests-admin/SelectField";
 import type {
   TestCampaignSummary,
   TestCaseToRedo,
 } from "../../types/tests.types";
+import {
+  FilterDropdownGroup,
+  FilterToggleGroup,
+  TestsFilterPanel,
+  TestsSearchRow,
+} from "./TestsFilterPanel";
 
 type Props = {
   items: TestCaseToRedo[];
   campaigns: TestCampaignSummary[];
 };
 
+type DraftFilters = { campaignId: string; mineOnly: boolean };
+
 export function TestsToRedoTab({ items, campaigns }: Props) {
   const { t, locale } = useTranslation();
   const router = useRouter();
   const [searchInput, setSearchInput] = useState("");
   const [campaignId, setCampaignId] = useState("");
-  const [mineOnly, setMineOnly] = useState(() =>
+  const [appliedMineOnly, setAppliedMineOnly] = useState(() =>
     campaigns.some((campaign) => campaign.assignedToMe),
   );
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<DraftFilters>({
+    campaignId,
+    mineOnly: appliedMineOnly,
+  });
 
   const assignedCampaignIds = useMemo(
     () =>
@@ -45,20 +50,17 @@ export function TestsToRedoTab({ items, campaigns }: Props) {
     for (const item of items) {
       unique.set(item.campaign.id, item.campaign.title);
     }
-    return [
-      { value: "", label: t("tests.toRedo.filters.campaignAll") },
-      ...Array.from(unique.entries()).map(([value, label]) => ({
-        value,
-        label,
-      })),
-    ];
-  }, [items, t]);
+    return Array.from(unique.entries()).map(([value, label]) => ({
+      value,
+      label,
+    }));
+  }, [items]);
 
   const searchNormalized = searchInput.trim().toLowerCase();
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       if (campaignId && item.campaign.id !== campaignId) return false;
-      if (mineOnly && !assignedCampaignIds.has(item.campaign.id)) {
+      if (appliedMineOnly && !assignedCampaignIds.has(item.campaign.id)) {
         return false;
       }
       if (searchNormalized) {
@@ -67,7 +69,32 @@ export function TestsToRedoTab({ items, campaigns }: Props) {
       }
       return true;
     });
-  }, [items, campaignId, searchNormalized, mineOnly, assignedCampaignIds]);
+  }, [items, campaignId, searchNormalized, appliedMineOnly, assignedCampaignIds]);
+
+  const hasActiveFilters = campaignId !== "" || appliedMineOnly;
+
+  function openFilters() {
+    setDraftFilters({ campaignId, mineOnly: appliedMineOnly });
+    setFiltersOpen(true);
+  }
+  function closeFilters() {
+    setDraftFilters({ campaignId, mineOnly: appliedMineOnly });
+    setFiltersOpen(false);
+  }
+  function toggleFilters() {
+    if (filtersOpen) closeFilters();
+    else openFilters();
+  }
+  function applyFilters() {
+    setCampaignId(draftFilters.campaignId);
+    setAppliedMineOnly(draftFilters.mineOnly);
+    setFiltersOpen(false);
+  }
+  function resetFilters() {
+    setDraftFilters({ campaignId: "", mineOnly: false });
+    setCampaignId("");
+    setAppliedMineOnly(false);
+  }
 
   function openCase(item: TestCaseToRedo) {
     router.push({
@@ -90,63 +117,58 @@ export function TestsToRedoTab({ items, campaigns }: Props) {
 
   return (
     <View style={styles.container} testID="tests-to-redo-tab">
-      <View style={styles.searchRow}>
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={16} color={colors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            value={searchInput}
-            onChangeText={setSearchInput}
-            placeholder={t("tests.toRedo.search.placeholder")}
-            placeholderTextColor={colors.textSecondary}
-            returnKeyType="search"
-            autoCapitalize="none"
-            accessibilityLabel={t("tests.toRedo.search.accessibilityLabel")}
-            testID="tests-to-redo-search-input"
-          />
-          {searchInput.length > 0 ? (
-            <TouchableOpacity
-              onPress={() => setSearchInput("")}
-              testID="tests-to-redo-search-clear"
-              accessibilityLabel={t(
-                "tests.toRedo.search.clearAccessibilityLabel",
-              )}
-            >
-              <Ionicons
-                name="close-circle"
-                size={16}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-        <TouchableOpacity
-          style={[styles.mineToggle, mineOnly && styles.mineToggleActive]}
-          onPress={() => setMineOnly((value) => !value)}
-          testID="tests-to-redo-mine-toggle"
-          accessibilityLabel={t("tests.toRedo.filters.mineAccessibilityLabel")}
-        >
-          <Ionicons
-            name={mineOnly ? "person" : "person-outline"}
-            size={18}
-            color={mineOnly ? colors.white : colors.accentTeal}
-          />
-        </TouchableOpacity>
-      </View>
+      <TestsSearchRow
+        value={searchInput}
+        onChangeText={setSearchInput}
+        placeholder={t("tests.toRedo.search.placeholder")}
+        accessibilityLabel={t("tests.toRedo.search.accessibilityLabel")}
+        clearAccessibilityLabel={t(
+          "tests.toRedo.search.clearAccessibilityLabel",
+        )}
+        filtersActive={hasActiveFilters}
+        onToggleFilters={toggleFilters}
+        toggleAccessibilityLabel={t("tests.filters.toggleAccessibilityLabel")}
+        testIDPrefix="tests-to-redo"
+      />
 
-      {campaignOptions.length > 2 ? (
-        <SelectField
-          label={t("tests.toRedo.filters.campaign")}
-          value={campaignId}
-          options={campaignOptions}
-          onChange={setCampaignId}
-          placeholder={t("tests.toRedo.filters.campaignAll")}
-          closeLabel={t("tests.common.cancel")}
-          testIDPrefix="tests-to-redo-filter-campaign"
+      <TestsFilterPanel
+        visible={filtersOpen}
+        titleLabel={t("tests.filters.panelTitle")}
+        resetLabel={t("tests.filters.reset")}
+        closeLabel={t("tests.filters.close")}
+        applyLabel={t("tests.filters.apply")}
+        onReset={resetFilters}
+        onClose={closeFilters}
+        onApply={applyFilters}
+        testIDPrefix="tests-to-redo"
+      >
+        {campaignOptions.length > 1 ? (
+          <FilterDropdownGroup
+            label={t("tests.toRedo.filters.campaign")}
+            allLabel={t("tests.toRedo.filters.campaignAll")}
+            options={campaignOptions}
+            value={draftFilters.campaignId || null}
+            onChange={(value) =>
+              setDraftFilters((current) => ({
+                ...current,
+                campaignId: value ?? "",
+              }))
+            }
+            testID="tests-to-redo-filter-campaign"
+          />
+        ) : null}
+        <FilterToggleGroup
+          label={t("tests.toRedo.filters.mineAccessibilityLabel")}
+          activeLabel={t("tests.filters.mineOnlyLabel")}
+          value={draftFilters.mineOnly}
+          onChange={(value) =>
+            setDraftFilters((current) => ({ ...current, mineOnly: value }))
+          }
+          testIDPrefix="tests-to-redo-filter-mine"
         />
-      ) : null}
+      </TestsFilterPanel>
 
-      {filteredItems.length === 0 ? (
+      {filtersOpen ? null : filteredItems.length === 0 ? (
         <View style={styles.empty} testID="tests-to-redo-no-results">
           <Text style={styles.emptyTitle}>
             {t("tests.toRedo.emptySearchTitle")}
@@ -202,39 +224,6 @@ function formatDateTime(value: string, locale: "fr" | "en") {
 
 const styles = StyleSheet.create({
   container: { gap: 14 },
-  searchRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  searchBox: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    height: 40,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.textPrimary,
-    paddingVertical: 0,
-  },
-  mineToggle: {
-    width: 40,
-    height: 40,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: `${colors.accentTeal}55`,
-    backgroundColor: colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  mineToggleActive: {
-    backgroundColor: colors.accentTeal,
-    borderColor: colors.accentTeal,
-  },
   empty: { paddingVertical: 40, alignItems: "center", gap: 6 },
   emptyTitle: { fontSize: 16, fontWeight: "700", color: colors.textPrimary },
   emptyBody: {

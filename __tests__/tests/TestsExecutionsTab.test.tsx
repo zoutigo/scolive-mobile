@@ -168,10 +168,129 @@ describe("TestsExecutionsTab", () => {
 
     expect(screen.queryByText("Connexion")).toBeNull();
 
-    fireEvent.press(screen.getByTestId("tests-executions-mine-toggle"));
+    fireEvent.press(screen.getByTestId("tests-executions-filter-toggle"));
+    fireEvent.press(screen.getByTestId("tests-executions-filter-mine"));
+    fireEvent.press(screen.getByTestId("tests-executions-filter-apply"));
 
     await waitFor(() => {
       expect(screen.getByText("Connexion")).toBeTruthy();
+    });
+  });
+
+  describe("status and campaign filters", () => {
+    it("hides the list and status/campaign options while the filter panel is open", async () => {
+      (testsApi.listExecutions as jest.Mock).mockResolvedValue({
+        items: [makeExecution()],
+      });
+
+      render(<TestsExecutionsTab campaigns={CAMPAIGNS} />);
+      await screen.findByText("Connexion");
+
+      fireEvent.press(screen.getByTestId("tests-executions-filter-toggle"));
+
+      expect(screen.queryByText("Connexion")).toBeNull();
+      expect(screen.getByTestId("tests-executions-filter-status")).toBeTruthy();
+      expect(
+        screen.getByTestId("tests-executions-filter-campaign"),
+      ).toBeTruthy();
+    });
+
+    it("refetches with the selected status once applied", async () => {
+      (testsApi.listExecutions as jest.Mock).mockResolvedValue({
+        items: [makeExecution()],
+      });
+
+      render(<TestsExecutionsTab campaigns={CAMPAIGNS} />);
+      await screen.findByText("Connexion");
+
+      fireEvent.press(screen.getByTestId("tests-executions-filter-toggle"));
+      fireEvent.press(screen.getByTestId("tests-executions-filter-status"));
+      fireEvent.press(
+        screen.getByTestId("tests-executions-filter-status-option-FAILED"),
+      );
+      fireEvent.press(screen.getByTestId("tests-executions-filter-apply"));
+
+      await waitFor(() => {
+        expect(testsApi.listExecutions).toHaveBeenLastCalledWith(
+          expect.objectContaining({ status: "FAILED" }),
+        );
+      });
+    });
+
+    it("refetches with the selected campaign once applied", async () => {
+      (testsApi.listExecutions as jest.Mock).mockResolvedValue({
+        items: [makeExecution()],
+      });
+
+      render(<TestsExecutionsTab campaigns={CAMPAIGNS} />);
+      await screen.findByText("Connexion");
+
+      fireEvent.press(screen.getByTestId("tests-executions-filter-toggle"));
+      fireEvent.press(screen.getByTestId("tests-executions-filter-campaign"));
+      fireEvent.press(
+        screen.getByTestId("tests-executions-filter-campaign-option-camp-2"),
+      );
+      fireEvent.press(screen.getByTestId("tests-executions-filter-apply"));
+
+      await waitFor(() => {
+        expect(testsApi.listExecutions).toHaveBeenLastCalledWith(
+          expect.objectContaining({ campaignId: "camp-2" }),
+        );
+      });
+    });
+
+    it("resets status and campaign filters back to all", async () => {
+      (testsApi.listExecutions as jest.Mock).mockResolvedValue({
+        items: [makeExecution()],
+      });
+
+      render(<TestsExecutionsTab campaigns={CAMPAIGNS} />);
+      await screen.findByText("Connexion");
+
+      fireEvent.press(screen.getByTestId("tests-executions-filter-toggle"));
+      fireEvent.press(screen.getByTestId("tests-executions-filter-status"));
+      fireEvent.press(
+        screen.getByTestId("tests-executions-filter-status-option-FAILED"),
+      );
+      fireEvent.press(screen.getByTestId("tests-executions-filter-apply"));
+
+      await waitFor(() => {
+        expect(testsApi.listExecutions).toHaveBeenLastCalledWith(
+          expect.objectContaining({ status: "FAILED" }),
+        );
+      });
+
+      fireEvent.press(screen.getByTestId("tests-executions-filter-toggle"));
+      fireEvent.press(screen.getByTestId("tests-executions-filter-reset"));
+
+      await waitFor(() => {
+        expect(testsApi.listExecutions).toHaveBeenLastCalledWith({
+          status: undefined,
+          campaignId: undefined,
+        });
+      });
+    });
+
+    it("does not apply a draft status change when the panel is closed", async () => {
+      (testsApi.listExecutions as jest.Mock).mockResolvedValue({
+        items: [makeExecution()],
+      });
+
+      render(<TestsExecutionsTab campaigns={CAMPAIGNS} />);
+      await screen.findByText("Connexion");
+      const callsBefore = (testsApi.listExecutions as jest.Mock).mock.calls
+        .length;
+
+      fireEvent.press(screen.getByTestId("tests-executions-filter-toggle"));
+      fireEvent.press(screen.getByTestId("tests-executions-filter-status"));
+      fireEvent.press(
+        screen.getByTestId("tests-executions-filter-status-option-FAILED"),
+      );
+      fireEvent.press(screen.getByTestId("tests-executions-filter-close"));
+
+      expect(
+        (testsApi.listExecutions as jest.Mock).mock.calls.length,
+      ).toBe(callsBefore);
     });
   });
 });

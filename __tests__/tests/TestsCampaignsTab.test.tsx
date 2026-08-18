@@ -66,6 +66,10 @@ const CAMPAIGNS: TestCampaignSummary[] = [
   },
 ];
 
+function openFilterPanel() {
+  fireEvent.press(screen.getByTestId("tests-campaigns-filter-toggle"));
+}
+
 describe("TestsCampaignsTab", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -79,14 +83,70 @@ describe("TestsCampaignsTab", () => {
     expect(screen.getByText("Campagne terminée")).toBeTruthy();
   });
 
-  it("filters to only show in-progress campaigns when selected", () => {
+  it("filters to only show in-progress campaigns when applied from the filter panel", () => {
     render(<ControlledTestsCampaignsTab campaigns={CAMPAIGNS} />);
 
-    fireEvent.press(screen.getByTestId("tests-campaigns-filter-IN_PROGRESS"));
+    openFilterPanel();
+    fireEvent.press(
+      screen.getByTestId("tests-campaigns-filter-status-IN_PROGRESS"),
+    );
+    fireEvent.press(screen.getByTestId("tests-campaigns-filter-apply"));
 
     expect(screen.getByText("Campagne en cours")).toBeTruthy();
     expect(screen.queryByText("Campagne à venir")).toBeNull();
     expect(screen.queryByText("Campagne terminée")).toBeNull();
+  });
+
+  it("shows the filter toggle as active once a status filter is applied", () => {
+    render(<ControlledTestsCampaignsTab campaigns={CAMPAIGNS} />);
+
+    const toggle = () => screen.getByTestId("tests-campaigns-filter-toggle");
+    expect(
+      StyleSheet_flatten(toggle().props.style).backgroundColor,
+    ).not.toBe("#247C72");
+
+    openFilterPanel();
+    fireEvent.press(
+      screen.getByTestId("tests-campaigns-filter-status-IN_PROGRESS"),
+    );
+    fireEvent.press(screen.getByTestId("tests-campaigns-filter-apply"));
+
+    expect(StyleSheet_flatten(toggle().props.style).backgroundColor).toBe(
+      "#247C72",
+    );
+  });
+
+  it("does not apply a draft filter when the panel is closed instead of applied", () => {
+    render(<ControlledTestsCampaignsTab campaigns={CAMPAIGNS} />);
+
+    openFilterPanel();
+    fireEvent.press(
+      screen.getByTestId("tests-campaigns-filter-status-IN_PROGRESS"),
+    );
+    fireEvent.press(screen.getByTestId("tests-campaigns-filter-close"));
+
+    expect(screen.getByText("Campagne en cours")).toBeTruthy();
+    expect(screen.getByText("Campagne à venir")).toBeTruthy();
+    expect(screen.getByText("Campagne terminée")).toBeTruthy();
+  });
+
+  it("resets applied filters when Reset is pressed", () => {
+    render(<ControlledTestsCampaignsTab campaigns={CAMPAIGNS} />);
+
+    openFilterPanel();
+    fireEvent.press(
+      screen.getByTestId("tests-campaigns-filter-status-IN_PROGRESS"),
+    );
+    fireEvent.press(screen.getByTestId("tests-campaigns-filter-apply"));
+    expect(screen.queryByText("Campagne terminée")).toBeNull();
+
+    openFilterPanel();
+    fireEvent.press(screen.getByTestId("tests-campaigns-filter-reset"));
+    fireEvent.press(screen.getByTestId("tests-campaigns-filter-close"));
+
+    expect(screen.getByText("Campagne en cours")).toBeTruthy();
+    expect(screen.getByText("Campagne à venir")).toBeTruthy();
+    expect(screen.getByText("Campagne terminée")).toBeTruthy();
   });
 
   it("navigates to the campaign screen when a card is pressed", () => {
@@ -211,7 +271,7 @@ describe("TestsCampaignsTab", () => {
       expect(screen.getByText("Campagne terminée")).toBeTruthy();
     });
 
-    it("toggles mine-only filtering when the toggle button is pressed", () => {
+    it("toggles mine-only filtering from the filter panel", () => {
       const withAssignment: TestCampaignSummary[] = [
         { ...CAMPAIGNS[0], assignedToMe: true },
         CAMPAIGNS[1],
@@ -221,7 +281,9 @@ describe("TestsCampaignsTab", () => {
 
       expect(screen.queryByText("Campagne en cours")).toBeNull();
 
-      fireEvent.press(screen.getByTestId("tests-campaigns-mine-toggle"));
+      openFilterPanel();
+      fireEvent.press(screen.getByTestId("tests-campaigns-filter-mine"));
+      fireEvent.press(screen.getByTestId("tests-campaigns-filter-apply"));
 
       expect(screen.getByText("Campagne en cours")).toBeTruthy();
       expect(screen.getByText("Campagne à venir")).toBeTruthy();
@@ -229,3 +291,7 @@ describe("TestsCampaignsTab", () => {
     });
   });
 });
+
+function StyleSheet_flatten(style: unknown) {
+  return Object.assign({}, ...(Array.isArray(style) ? style : [style]));
+}

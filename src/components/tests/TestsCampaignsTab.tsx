@@ -1,12 +1,5 @@
 import React, { useMemo, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { colors } from "../../theme";
@@ -24,11 +17,15 @@ import {
   TESTS_TOUR_ID,
   TESTS_TOUR_TARGETS,
 } from "./tests-tour.config";
+import {
+  FilterChipsGroup,
+  FilterToggleGroup,
+  TestsFilterPanel,
+  TestsSearchRow,
+} from "./TestsFilterPanel";
 
 export type TestsCampaignsFilter = "ALL" | CampaignDisplayStatus;
 export const ALL_CAMPAIGNS_FILTER: TestsCampaignsFilter = "ALL";
-
-type FilterKey = TestsCampaignsFilter;
 
 const STATUS_PALETTE: Record<
   CampaignDisplayStatus,
@@ -38,6 +35,8 @@ const STATUS_PALETTE: Record<
   UPCOMING: { accent: colors.warmAccent, bg: "#FFF3DD", text: "#9A6700" },
   COMPLETED: { accent: "#9C958B", bg: "#F1ECE7", text: colors.textSecondary },
 };
+
+type DraftFilters = { status: TestsCampaignsFilter; mineOnly: boolean };
 
 interface Props {
   campaigns: TestCampaignSummary[];
@@ -54,9 +53,14 @@ export function TestsCampaignsTab({
   const router = useRouter();
 
   const [searchInput, setSearchInput] = useState("");
-  const [mineOnly, setMineOnly] = useState(() =>
+  const [appliedMineOnly, setAppliedMineOnly] = useState(() =>
     campaigns.some((campaign) => campaign.assignedToMe),
   );
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<DraftFilters>({
+    status: filter,
+    mineOnly: appliedMineOnly,
+  });
 
   const currentTourTargetKey = useOnboardingTourStore((state) =>
     state.activeTourId === TESTS_TOUR_ID
@@ -87,6 +91,7 @@ export function TestsCampaignsTab({
   );
 
   const searchNormalized = searchInput.trim().toLowerCase();
+  const hasActiveFilters = filter !== "ALL" || appliedMineOnly;
 
   const filtered = useMemo(() => {
     if (isCampaignActionTourStep) return [fallbackCampaign];
@@ -94,7 +99,7 @@ export function TestsCampaignsTab({
       if (filter !== "ALL" && getCampaignDisplayStatus(campaign) !== filter) {
         return false;
       }
-      if (mineOnly && !campaign.assignedToMe) {
+      if (appliedMineOnly && !campaign.assignedToMe) {
         return false;
       }
       if (searchNormalized) {
@@ -109,16 +114,38 @@ export function TestsCampaignsTab({
   }, [
     sorted,
     filter,
-    mineOnly,
+    appliedMineOnly,
     searchNormalized,
     isCampaignActionTourStep,
     fallbackCampaign,
   ]);
 
+  function openFilters() {
+    setDraftFilters({ status: filter, mineOnly: appliedMineOnly });
+    setFiltersOpen(true);
+  }
+  function closeFilters() {
+    setDraftFilters({ status: filter, mineOnly: appliedMineOnly });
+    setFiltersOpen(false);
+  }
+  function toggleFilters() {
+    if (filtersOpen) closeFilters();
+    else openFilters();
+  }
+  function applyFilters() {
+    onFilterChange(draftFilters.status);
+    setAppliedMineOnly(draftFilters.mineOnly);
+    setFiltersOpen(false);
+  }
+  function resetFilters() {
+    setDraftFilters({ status: ALL_CAMPAIGNS_FILTER, mineOnly: false });
+    onFilterChange(ALL_CAMPAIGNS_FILTER);
+    setAppliedMineOnly(false);
+  }
+
   function resetSearchAndFilters() {
     setSearchInput("");
-    setMineOnly(false);
-    onFilterChange(ALL_CAMPAIGNS_FILTER);
+    resetFilters();
   }
 
   function goToCampaign(campaignId: string) {
@@ -129,11 +156,13 @@ export function TestsCampaignsTab({
     });
   }
 
-  const filters: Array<{ key: FilterKey; label: string }> = [
-    { key: "ALL", label: t("tests.campaigns.filters.all") },
-    { key: "IN_PROGRESS", label: t("tests.campaigns.filters.inProgress") },
-    { key: "UPCOMING", label: t("tests.campaigns.filters.upcoming") },
-    { key: "COMPLETED", label: t("tests.campaigns.filters.completed") },
+  const statusOptions: Array<{
+    value: CampaignDisplayStatus;
+    label: string;
+  }> = [
+    { value: "IN_PROGRESS", label: t("tests.campaigns.filters.inProgress") },
+    { value: "UPCOMING", label: t("tests.campaigns.filters.upcoming") },
+    { value: "COMPLETED", label: t("tests.campaigns.filters.completed") },
   ];
 
   if (campaigns.length === 0 && !isCampaignActionTourStep) {
@@ -154,80 +183,56 @@ export function TestsCampaignsTab({
 
   return (
     <View style={styles.container} testID="tests-campaigns-tab">
-      <View style={styles.searchRow} testID="tests-campaigns-search-row">
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={16} color={colors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            value={searchInput}
-            onChangeText={setSearchInput}
-            placeholder={t("tests.campaigns.search.placeholder")}
-            placeholderTextColor={colors.textSecondary}
-            returnKeyType="search"
-            autoCapitalize="none"
-            accessibilityLabel={t("tests.campaigns.search.accessibilityLabel")}
-            testID="tests-campaigns-search-input"
-          />
-          {searchInput.length > 0 ? (
-            <TouchableOpacity
-              onPress={() => setSearchInput("")}
-              testID="tests-campaigns-search-clear"
-              accessibilityLabel={t(
-                "tests.campaigns.search.clearAccessibilityLabel",
-              )}
-            >
-              <Ionicons
-                name="close-circle"
-                size={16}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-        <TouchableOpacity
-          style={[styles.mineToggle, mineOnly && styles.mineToggleActive]}
-          onPress={() => setMineOnly((value) => !value)}
-          testID="tests-campaigns-mine-toggle"
-          accessibilityLabel={t(
-            "tests.campaigns.filters.mineAccessibilityLabel",
-          )}
-        >
-          <Ionicons
-            name={mineOnly ? "person" : "person-outline"}
-            size={18}
-            color={mineOnly ? colors.white : colors.accentTeal}
-          />
-        </TouchableOpacity>
-      </View>
+      <TestsSearchRow
+        value={searchInput}
+        onChangeText={setSearchInput}
+        placeholder={t("tests.campaigns.search.placeholder")}
+        accessibilityLabel={t("tests.campaigns.search.accessibilityLabel")}
+        clearAccessibilityLabel={t(
+          "tests.campaigns.search.clearAccessibilityLabel",
+        )}
+        filtersActive={hasActiveFilters}
+        onToggleFilters={toggleFilters}
+        toggleAccessibilityLabel={t("tests.filters.toggleAccessibilityLabel")}
+        testIDPrefix="tests-campaigns"
+      />
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
+      <TestsFilterPanel
+        visible={filtersOpen}
+        titleLabel={t("tests.filters.panelTitle")}
+        resetLabel={t("tests.filters.reset")}
+        closeLabel={t("tests.filters.close")}
+        applyLabel={t("tests.filters.apply")}
+        onReset={resetFilters}
+        onClose={closeFilters}
+        onApply={applyFilters}
+        testIDPrefix="tests-campaigns"
       >
-        {filters.map((entry) => {
-          const isActive = entry.key === filter;
-          return (
-            <TouchableOpacity
-              key={entry.key}
-              style={[styles.filterChip, isActive && styles.filterChipActive]}
-              onPress={() => onFilterChange(entry.key)}
-              testID={`tests-campaigns-filter-${entry.key}`}
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  isActive && styles.filterChipTextActive,
-                ]}
-              >
-                {entry.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+        <FilterChipsGroup
+          label={t("tests.campaigns.filters.statusLabel")}
+          allLabel={t("tests.campaigns.filters.all")}
+          options={statusOptions}
+          value={draftFilters.status === "ALL" ? null : draftFilters.status}
+          onChange={(value) =>
+            setDraftFilters((current) => ({
+              ...current,
+              status: value ?? "ALL",
+            }))
+          }
+          testIDPrefix="tests-campaigns-filter-status"
+        />
+        <FilterToggleGroup
+          label={t("tests.campaigns.filters.mineAccessibilityLabel")}
+          activeLabel={t("tests.filters.mineOnlyLabel")}
+          value={draftFilters.mineOnly}
+          onChange={(value) =>
+            setDraftFilters((current) => ({ ...current, mineOnly: value }))
+          }
+          testIDPrefix="tests-campaigns-filter-mine"
+        />
+      </TestsFilterPanel>
 
-      {filtered.length === 0 ? (
+      {filtersOpen ? null : filtered.length === 0 ? (
         <View style={styles.emptySearch} testID="tests-campaigns-no-results">
           <Ionicons name="search-outline" size={32} color={colors.warmBorder} />
           <Text style={styles.emptyTitle}>
@@ -358,57 +363,6 @@ function formatDate(value: string, locale: "fr" | "en") {
 
 const styles = StyleSheet.create({
   container: { gap: 14 },
-  searchRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  searchBox: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    height: 40,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.textPrimary,
-    paddingVertical: 0,
-  },
-  mineToggle: {
-    width: 40,
-    height: 40,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: `${colors.accentTeal}55`,
-    backgroundColor: colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  mineToggleActive: {
-    backgroundColor: colors.accentTeal,
-    borderColor: colors.accentTeal,
-  },
-  filterRow: { gap: 8, paddingRight: 8 },
-  filterChip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#D9CBBF",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  filterChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  filterChipText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  filterChipTextActive: { color: colors.white },
   list: { gap: 12 },
   card: {
     borderRadius: 16,

@@ -57,10 +57,10 @@ describe("TestsSummaryTab", () => {
     });
   });
 
-  it("renders the CTA as a real button labelled 'Faire le test'", () => {
+  it("renders the CTA as a real button labelled 'Faire la campagne'", () => {
     render(<TestsSummaryTab campaigns={CAMPAIGNS} />);
 
-    expect(screen.getByText("Faire le test")).toBeTruthy();
+    expect(screen.getByText("Faire la campagne")).toBeTruthy();
   });
 
   it("renders the campaign badge next to the 'To do today' title", () => {

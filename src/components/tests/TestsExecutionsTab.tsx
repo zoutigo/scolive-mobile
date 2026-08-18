@@ -3,21 +3,24 @@ import {
   ActivityIndicator,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
 import { testsApi } from "../../api/tests.api";
-import { SelectField } from "../tests-admin/SelectField";
 import type {
   TestCampaignSummary,
   TestExecutionRow,
   TestExecutionStatus,
 } from "../../types/tests.types";
+import {
+  FilterDropdownGroup,
+  FilterToggleGroup,
+  TestsFilterPanel,
+  TestsSearchRow,
+} from "./TestsFilterPanel";
 
 type Props = {
   campaigns: TestCampaignSummary[];
@@ -32,6 +35,12 @@ const STATUS_OPTIONS: TestExecutionStatus[] = [
   "TODO",
 ];
 
+type DraftFilters = {
+  status: TestExecutionStatus | "";
+  campaignId: string;
+  mineOnly: boolean;
+};
+
 export function TestsExecutionsTab({ campaigns }: Props) {
   const { t, locale } = useTranslation();
   const router = useRouter();
@@ -41,9 +50,15 @@ export function TestsExecutionsTab({ campaigns }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
-  const [mineOnly, setMineOnly] = useState(() =>
+  const [appliedMineOnly, setAppliedMineOnly] = useState(() =>
     campaigns.some((campaign) => campaign.assignedToMe),
   );
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<DraftFilters>({
+    status,
+    campaignId,
+    mineOnly: appliedMineOnly,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -76,25 +91,21 @@ export function TestsExecutionsTab({ campaigns }: Props) {
   }, [status, campaignId]);
 
   const statusOptions = useMemo(
-    () => [
-      { value: "", label: t("tests.executions.filters.statusAll") },
-      ...STATUS_OPTIONS.map((value) => ({
+    () =>
+      STATUS_OPTIONS.map((value) => ({
         value,
         label: statusLabel(t, value),
       })),
-    ],
     [t],
   );
 
   const campaignOptions = useMemo(
-    () => [
-      { value: "", label: t("tests.executions.filters.campaignAll") },
-      ...campaigns.map((campaign) => ({
+    () =>
+      campaigns.map((campaign) => ({
         value: campaign.id,
         label: campaign.title,
       })),
-    ],
-    [campaigns, t],
+    [campaigns],
   );
 
   function openExecution(executionId: string) {
@@ -117,7 +128,7 @@ export function TestsExecutionsTab({ campaigns }: Props) {
   const searchNormalized = searchInput.trim().toLowerCase();
   const filteredItems = useMemo(() => {
     return items.filter((execution) => {
-      if (mineOnly && !assignedCampaignIds.has(execution.campaign.id)) {
+      if (appliedMineOnly && !assignedCampaignIds.has(execution.campaign.id)) {
         return false;
       }
       if (searchNormalized) {
@@ -127,82 +138,98 @@ export function TestsExecutionsTab({ campaigns }: Props) {
       }
       return true;
     });
-  }, [items, searchNormalized, mineOnly, assignedCampaignIds]);
+  }, [items, searchNormalized, appliedMineOnly, assignedCampaignIds]);
+
+  const hasActiveFilters =
+    status !== "" || campaignId !== "" || appliedMineOnly;
+
+  function openFilters() {
+    setDraftFilters({ status, campaignId, mineOnly: appliedMineOnly });
+    setFiltersOpen(true);
+  }
+  function closeFilters() {
+    setDraftFilters({ status, campaignId, mineOnly: appliedMineOnly });
+    setFiltersOpen(false);
+  }
+  function toggleFilters() {
+    if (filtersOpen) closeFilters();
+    else openFilters();
+  }
+  function applyFilters() {
+    setStatus(draftFilters.status);
+    setCampaignId(draftFilters.campaignId);
+    setAppliedMineOnly(draftFilters.mineOnly);
+    setFiltersOpen(false);
+  }
+  function resetFilters() {
+    setDraftFilters({ status: "", campaignId: "", mineOnly: false });
+    setStatus("");
+    setCampaignId("");
+    setAppliedMineOnly(false);
+  }
 
   return (
     <View style={styles.container} testID="tests-executions-tab">
-      <View style={styles.searchRow}>
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={16} color={colors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            value={searchInput}
-            onChangeText={setSearchInput}
-            placeholder={t("tests.executions.search.placeholder")}
-            placeholderTextColor={colors.textSecondary}
-            returnKeyType="search"
-            autoCapitalize="none"
-            accessibilityLabel={t("tests.executions.search.accessibilityLabel")}
-            testID="tests-executions-search-input"
-          />
-          {searchInput.length > 0 ? (
-            <TouchableOpacity
-              onPress={() => setSearchInput("")}
-              testID="tests-executions-search-clear"
-              accessibilityLabel={t(
-                "tests.executions.search.clearAccessibilityLabel",
-              )}
-            >
-              <Ionicons
-                name="close-circle"
-                size={16}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-        <TouchableOpacity
-          style={[styles.mineToggle, mineOnly && styles.mineToggleActive]}
-          onPress={() => setMineOnly((value) => !value)}
-          testID="tests-executions-mine-toggle"
-          accessibilityLabel={t(
-            "tests.executions.filters.mineAccessibilityLabel",
-          )}
-        >
-          <Ionicons
-            name={mineOnly ? "person" : "person-outline"}
-            size={18}
-            color={mineOnly ? colors.white : colors.accentTeal}
-          />
-        </TouchableOpacity>
-      </View>
+      <TestsSearchRow
+        value={searchInput}
+        onChangeText={setSearchInput}
+        placeholder={t("tests.executions.search.placeholder")}
+        accessibilityLabel={t("tests.executions.search.accessibilityLabel")}
+        clearAccessibilityLabel={t(
+          "tests.executions.search.clearAccessibilityLabel",
+        )}
+        filtersActive={hasActiveFilters}
+        onToggleFilters={toggleFilters}
+        toggleAccessibilityLabel={t("tests.filters.toggleAccessibilityLabel")}
+        testIDPrefix="tests-executions"
+      />
 
-      <View style={styles.filtersRow}>
-        <View style={styles.filterCol}>
-          <SelectField
-            label={t("tests.executions.filters.status")}
-            value={status}
-            options={statusOptions}
-            onChange={(value) => setStatus(value as TestExecutionStatus | "")}
-            placeholder={t("tests.executions.filters.statusAll")}
-            closeLabel={t("tests.common.cancel")}
-            testIDPrefix="tests-executions-filter-status"
-          />
-        </View>
-        <View style={styles.filterCol}>
-          <SelectField
-            label={t("tests.executions.filters.campaign")}
-            value={campaignId}
-            options={campaignOptions}
-            onChange={setCampaignId}
-            placeholder={t("tests.executions.filters.campaignAll")}
-            closeLabel={t("tests.common.cancel")}
-            testIDPrefix="tests-executions-filter-campaign"
-          />
-        </View>
-      </View>
+      <TestsFilterPanel
+        visible={filtersOpen}
+        titleLabel={t("tests.filters.panelTitle")}
+        resetLabel={t("tests.filters.reset")}
+        closeLabel={t("tests.filters.close")}
+        applyLabel={t("tests.filters.apply")}
+        onReset={resetFilters}
+        onClose={closeFilters}
+        onApply={applyFilters}
+        testIDPrefix="tests-executions"
+      >
+        <FilterDropdownGroup
+          label={t("tests.executions.filters.status")}
+          allLabel={t("tests.executions.filters.statusAll")}
+          options={statusOptions}
+          value={draftFilters.status || null}
+          onChange={(value) =>
+            setDraftFilters((current) => ({ ...current, status: value ?? "" }))
+          }
+          testID="tests-executions-filter-status"
+        />
+        <FilterDropdownGroup
+          label={t("tests.executions.filters.campaign")}
+          allLabel={t("tests.executions.filters.campaignAll")}
+          options={campaignOptions}
+          value={draftFilters.campaignId || null}
+          onChange={(value) =>
+            setDraftFilters((current) => ({
+              ...current,
+              campaignId: value ?? "",
+            }))
+          }
+          testID="tests-executions-filter-campaign"
+        />
+        <FilterToggleGroup
+          label={t("tests.executions.filters.mineAccessibilityLabel")}
+          activeLabel={t("tests.filters.mineOnlyLabel")}
+          value={draftFilters.mineOnly}
+          onChange={(value) =>
+            setDraftFilters((current) => ({ ...current, mineOnly: value }))
+          }
+          testIDPrefix="tests-executions-filter-mine"
+        />
+      </TestsFilterPanel>
 
-      {isLoading ? (
+      {filtersOpen ? null : isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -322,41 +349,6 @@ function formatDateTime(value: string, locale: "fr" | "en") {
 
 const styles = StyleSheet.create({
   container: { gap: 14 },
-  searchRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  searchBox: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    height: 40,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.textPrimary,
-    paddingVertical: 0,
-  },
-  mineToggle: {
-    width: 40,
-    height: 40,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: `${colors.accentTeal}55`,
-    backgroundColor: colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  mineToggleActive: {
-    backgroundColor: colors.accentTeal,
-    borderColor: colors.accentTeal,
-  },
-  filtersRow: { flexDirection: "row", gap: 12 },
-  filterCol: { flex: 1 },
   center: { paddingVertical: 40, alignItems: "center" },
   errorText: { fontSize: 14, color: colors.notification },
   empty: { paddingVertical: 40, alignItems: "center", gap: 6 },

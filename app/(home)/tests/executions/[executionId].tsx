@@ -17,6 +17,7 @@ import { z } from "zod";
 import { Ionicons } from "@expo/vector-icons";
 import { AppShell } from "../../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../../src/components/navigation/ModuleHeader";
+import { InlineSelectDropDown } from "../../../../src/components/InlineSelectDropDown";
 import { ExecutionsPager } from "../../../../src/components/tests/ExecutionsPager";
 import { ExecutionDetailCard } from "../../../../src/components/tests/ExecutionDetailCard";
 import { testsApi } from "../../../../src/api/tests.api";
@@ -297,37 +298,26 @@ function EditForm({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Controller
-          control={control}
-          name="status"
-          render={({ field: { value, onChange } }) => (
-            <View style={styles.statusWrap}>
-              {SUBMIT_STATUSES.map((entry) => {
-                const selected = entry === value;
-                return (
-                  <TouchableOpacity
-                    key={entry}
-                    style={[
-                      styles.statusChip,
-                      selected && styles.statusChipSelected,
-                    ]}
-                    onPress={() => onChange(entry)}
-                    testID={`edit-execution-status-${entry}`}
-                  >
-                    <Text
-                      style={[
-                        styles.statusChipText,
-                        selected && styles.statusChipTextSelected,
-                      ]}
-                    >
-                      {statusLabel(t, entry)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
-        />
+        <View style={styles.formField}>
+          <Text style={styles.formLabel}>
+            {t("tests.executions.filters.status")}
+          </Text>
+          <Controller
+            control={control}
+            name="status"
+            render={({ field: { value, onChange } }) => (
+              <InlineSelectDropDown
+                options={SUBMIT_STATUSES.map((entry) => ({
+                  value: entry,
+                  label: statusLabel(t, entry),
+                }))}
+                value={value}
+                onChange={(next) => onChange(next as TestExecutionStatus)}
+                testID="edit-execution-status"
+              />
+            )}
+          />
+        </View>
 
         <View style={styles.formField}>
           <Text style={styles.formLabel}>
@@ -557,26 +547,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.white,
   },
-
-  // Status chips
-  statusWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  statusChip: {
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: "#D9CBBF",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  statusChipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  statusChipText: {
-    color: colors.textPrimary,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  statusChipTextSelected: { color: colors.white },
 
   // Text input
   textInput: {

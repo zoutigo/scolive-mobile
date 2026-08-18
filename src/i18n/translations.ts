@@ -1911,6 +1911,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.campaigns.filters.mineAccessibilityLabel":
       "Afficher uniquement mes campagnes assignées",
     "tests.campaigns.filters.resetSearch": "Réinitialiser",
+    "tests.campaigns.filters.statusLabel": "Statut",
+    "tests.filters.panelTitle": "Filtres",
+    "tests.filters.toggleAccessibilityLabel": "Filtres",
+    "tests.filters.reset": "Réinitialiser",
+    "tests.filters.close": "Fermer",
+    "tests.filters.apply": "Appliquer",
+    "tests.filters.mineOnlyLabel": "Mes campagnes uniquement",
     "tests.campaigns.emptySearchTitle": "Aucun résultat",
     "tests.campaigns.emptySearchMessage":
       "Aucune campagne ne correspond à votre recherche ou vos filtres.",
@@ -1927,13 +1934,13 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Cet onglet donne une vue d'ensemble : nombre de campagnes, campagnes en cours/à venir/terminées, nombre total de cas de test et de tests restants. La carte « À faire aujourd'hui » met en avant la campagne la plus urgente (échéance la plus proche) qu'il vous reste à terminer, avec un bouton pour la démarrer directement. Toucher une carte de statistique (Campagnes, En cours, etc.) ouvre directement l'onglet Campagnes filtré sur ce statut.",
     "tests.help.section2Title": "Campagnes",
     "tests.help.section2Body":
-      "Une campagne regroupe plusieurs cas de test à réaliser. Utilisez la barre de recherche pour retrouver une campagne par son titre ou sa description, les filtres All/In progress/Upcoming/Completed pour restreindre par statut, et le bouton en forme de personne pour n'afficher que les campagnes qui vous sont spécifiquement assignées par un administrateur (ce filtre est activé par défaut si des campagnes vous ont été assignées). Chaque carte affiche votre progression au format {done}/{total} et l'échéance si elle existe. Touchez la carte, ou le bouton Démarrer/Consulter, pour ouvrir la campagne et commencer ou continuer les tests : le bouton affiche Démarrer tant qu'aucun test n'a été terminé, puis Consulter une fois qu'au moins un cas a été soumis.",
+      "Une campagne regroupe plusieurs cas de test à réaliser. Utilisez la barre de recherche pour retrouver une campagne par son titre ou sa description, et le bouton en forme d'entonnoir à droite pour ouvrir le panneau de filtres (statut All/In progress/Upcoming/Completed, et affichage limité à vos campagnes assignées — ce dernier filtre est activé par défaut si des campagnes vous ont été assignées). Chaque carte affiche votre progression au format {done}/{total} et l'échéance si elle existe. Touchez la carte, ou le bouton Démarrer/Consulter, pour ouvrir la campagne : le bouton affiche Démarrer tant qu'aucun test n'a été terminé, puis Consulter une fois qu'au moins un cas a été soumis. Dans une campagne, chaque cas de test a lui aussi son bouton Démarrer/Consulter ; une fois dessus, touchez « Voir la spec du test » pour déplier l'objectif, les prérequis, le résultat attendu et les étapes (repliés par défaut), puis le bouton « Saisir le résultat du test » en bas de l'écran pour enregistrer votre résultat.",
     "tests.help.section3Title": "Tests faits",
     "tests.help.section3Body":
-      "Retrouvez ici l'historique de vos résultats déjà soumis (réussi, échoué, bloqué, ignoré...). Recherchez un test par son titre ou celui de sa campagne, et filtrez par statut ou par campagne. Le bouton personne limite l'affichage aux campagnes qui vous sont assignées. Touchez un résultat pour en voir le détail (commentaire, captures, appareil utilisé).",
+      "Retrouvez ici l'historique de vos résultats déjà soumis (réussi, échoué, bloqué, ignoré...). Recherchez un test par son titre ou celui de sa campagne, et touchez le bouton entonnoir pour filtrer par statut, par campagne, ou pour limiter l'affichage à vos campagnes assignées. Touchez un résultat pour en voir le détail (commentaire, captures, appareil utilisé).",
     "tests.help.section4Title": "À refaire",
     "tests.help.section4Body":
-      "Un administrateur peut vous demander de reprendre un test après examen de votre résultat (avec une note explicative). Cet onglet regroupe ces demandes de reprise. Recherchez ou filtrez par campagne si vous en avez plusieurs, et utilisez le bouton personne pour ne voir que les demandes liées à vos campagnes assignées. Touchez une carte pour ouvrir le cas de test et soumettre un nouveau résultat.",
+      "Un administrateur peut vous demander de reprendre un test après examen de votre résultat (avec une note explicative). Cet onglet regroupe ces demandes de reprise. Recherchez ou utilisez le bouton entonnoir pour filtrer par campagne ou limiter l'affichage à vos campagnes assignées. Touchez une carte pour ouvrir le cas de test et soumettre un nouveau résultat.",
     "tests.cases.subtitle": "Liste des tests",
     "tests.cases.executionCount": "{count} résultats",
     "tests.detail.subtitle": "Détail du test",
@@ -1969,7 +1976,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.detail.attachments.image": "Image",
     "tests.detail.attachments.file": "Fichier",
     "tests.detail.heroSubtitle": "Renseignez le statut et les détails du test",
-    "tests.detail.fabAdd": "Saisir un résultat",
+    "tests.detail.viewSpecToggle": "Voir la spec du test",
+    "tests.detail.hideSpecToggle": "Masquer la spec du test",
+    "tests.detail.statusPlaceholder": "Sélectionnez le statut du test",
+    "tests.detail.validation.statusRequired":
+      "Sélectionnez un statut avant d'enregistrer.",
+    "tests.detail.fabAdd": "Saisir le résultat du test",
     "tests.detail.viewResults": "Voir les résultats",
     "tests.detail.formModalTitle": "Soumettre mon résultat",
     "tests.detail.toastSuccessTitle": "Résultat enregistré",
@@ -2055,7 +2067,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.summary.kpi.mineCaption": "dont {count} pour moi",
     "tests.summary.highlight.title": "À faire aujourd'hui",
     "tests.summary.highlight.campaignBadge": "Campagne",
-    "tests.summary.highlight.cta": "Faire le test",
+    "tests.summary.highlight.cta": "Faire la campagne",
     "tests.summary.highlight.empty":
       "Tous les tests visibles sont à jour. Bravo !",
     "tests.summary.emptyTitle": "Aucune campagne active",
@@ -5762,6 +5774,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.campaigns.filters.mineAccessibilityLabel":
       "Show only campaigns assigned to me",
     "tests.campaigns.filters.resetSearch": "Reset",
+    "tests.campaigns.filters.statusLabel": "Status",
+    "tests.filters.panelTitle": "Filters",
+    "tests.filters.toggleAccessibilityLabel": "Filters",
+    "tests.filters.reset": "Reset",
+    "tests.filters.close": "Close",
+    "tests.filters.apply": "Apply",
+    "tests.filters.mineOnlyLabel": "My campaigns only",
     "tests.campaigns.emptySearchTitle": "No results",
     "tests.campaigns.emptySearchMessage":
       "No campaign matches your search or filters.",
@@ -5778,13 +5797,13 @@ export const translations: Record<Locale, Record<string, string>> = {
       'This tab gives an overview: number of campaigns, campaigns in progress/upcoming/completed, total test cases and remaining tests. The "To do today" card highlights the most urgent campaign (nearest due date) you still have to finish, with a button to start it directly. Tapping a stat card (Campaigns, In progress, etc.) opens the Campaigns tab filtered on that status.',
     "tests.help.section2Title": "Campaigns",
     "tests.help.section2Body":
-      "A campaign groups several test cases to run. Use the search bar to find a campaign by its title or description, the All/In progress/Upcoming/Completed filters to narrow by status, and the person-shaped button to show only campaigns specifically assigned to you by an administrator (this filter is on by default when you have assigned campaigns). Each card shows your progress as {done}/{total} and the due date if any. Tap the card, or the Start/Review button, to open the campaign and begin or continue testing: the button reads Start until you have completed at least one case, then Review once you have submitted at least one result.",
+      'A campaign groups several test cases to run. Use the search bar to find a campaign by its title or description, and the funnel-shaped button on the right to open the filter panel (status All/In progress/Upcoming/Completed, and restricting the list to campaigns assigned to you — this filter is on by default when you have assigned campaigns). Each card shows your progress as {done}/{total} and the due date if any. Tap the card, or the Start/Review button, to open the campaign: the button reads Start until you have completed at least one case, then Review once you have submitted at least one result. Inside a campaign, each test case also has its own Start/Review button; once inside, tap "View test spec" to expand the objective, preconditions, expected result and steps (collapsed by default), then the "Enter the test result" button at the bottom of the screen to record your result.',
     "tests.help.section3Title": "Tests done",
     "tests.help.section3Body":
-      "Find here the history of results you already submitted (passed, failed, blocked, skipped...). Search a test by its title or its campaign's title, and filter by status or campaign. The person button restricts the list to campaigns assigned to you. Tap a result to see its detail (comment, screenshots, device used).",
+      "Find here the history of results you already submitted (passed, failed, blocked, skipped...). Search a test by its title or its campaign's title, and tap the funnel button to filter by status, by campaign, or to restrict the list to campaigns assigned to you. Tap a result to see its detail (comment, screenshots, device used).",
     "tests.help.section4Title": "To redo",
     "tests.help.section4Body":
-      "An administrator may ask you to redo a test after reviewing your result (with an explanatory note). This tab gathers these rework requests. Search or filter by campaign if you have several, and use the person button to only see requests tied to your assigned campaigns. Tap a card to open the test case and submit a new result.",
+      "An administrator may ask you to redo a test after reviewing your result (with an explanatory note). This tab gathers these rework requests. Search or use the funnel button to filter by campaign or restrict the list to campaigns assigned to you. Tap a card to open the test case and submit a new result.",
     "tests.cases.subtitle": "Test list",
     "tests.cases.executionCount": "{count} results",
     "tests.detail.subtitle": "Test details",
@@ -5818,7 +5837,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.detail.attachments.image": "Image",
     "tests.detail.attachments.file": "File",
     "tests.detail.heroSubtitle": "Fill in the result status and details",
-    "tests.detail.fabAdd": "Submit a result",
+    "tests.detail.viewSpecToggle": "View test spec",
+    "tests.detail.hideSpecToggle": "Hide test spec",
+    "tests.detail.statusPlaceholder": "Select the test status",
+    "tests.detail.validation.statusRequired":
+      "Select a status before saving.",
+    "tests.detail.fabAdd": "Enter the test result",
     "tests.detail.viewResults": "View results",
     "tests.detail.formModalTitle": "Submit my result",
     "tests.detail.toastSuccessTitle": "Result saved",
@@ -5900,7 +5924,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.summary.kpi.mineCaption": "incl. {count} for me",
     "tests.summary.highlight.title": "To do today",
     "tests.summary.highlight.campaignBadge": "Campaign",
-    "tests.summary.highlight.cta": "Take the test",
+    "tests.summary.highlight.cta": "Take the campaign",
     "tests.summary.highlight.empty":
       "Every visible test is up to date. Nice work!",
     "tests.summary.emptyTitle": "No active campaign",

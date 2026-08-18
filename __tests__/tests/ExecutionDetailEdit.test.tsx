@@ -288,6 +288,45 @@ describe("TestExecutionRoute — FAB modifier & formulaire inline", () => {
     );
   });
 
+  it("pré-remplit le statut avec la valeur existante depuis le dropdown", async () => {
+    setup(true, []);
+    render(<TestExecutionRoute />);
+    await waitFor(() =>
+      expect(screen.getByTestId("execution-edit-fab")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("execution-edit-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("execution-edit-form-hero")).toBeTruthy(),
+    );
+
+    expect(screen.getByText("Validé")).toBeTruthy();
+  });
+
+  it("soumet le nouveau statut choisi depuis le dropdown", async () => {
+    setup(true, []);
+    render(<TestExecutionRoute />);
+    await waitFor(() =>
+      expect(screen.getByTestId("execution-edit-fab")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("execution-edit-fab"));
+    await waitFor(() =>
+      expect(screen.getByTestId("execution-edit-form-hero")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("edit-execution-status"));
+    fireEvent.press(
+      screen.getByTestId("edit-execution-status-option-FAILED"),
+    );
+    fireEvent.press(screen.getByTestId("edit-execution-submit-btn"));
+
+    await waitFor(() => {
+      expect(testsApi.updateExecution).toHaveBeenCalledWith(
+        "exec-1",
+        expect.objectContaining({ status: "FAILED" }),
+      );
+    });
+  });
+
   it("erreur API : affiche showError, reste sur le formulaire", async () => {
     setup(true, []);
     (testsApi.updateExecution as jest.Mock).mockRejectedValue(

@@ -134,15 +134,15 @@ describe("TestsToRedoTab", () => {
     expect(screen.getByTestId("tests-to-redo-no-results")).toBeTruthy();
   });
 
-  it("filters by campaign using the campaign select", () => {
+  it("filters by campaign using the campaign filter panel", () => {
     render(<TestsToRedoTab items={ITEMS} campaigns={CAMPAIGNS} />);
 
-    fireEvent.press(
-      screen.getByTestId("tests-to-redo-filter-campaign-trigger"),
-    );
+    fireEvent.press(screen.getByTestId("tests-to-redo-filter-toggle"));
+    fireEvent.press(screen.getByTestId("tests-to-redo-filter-campaign"));
     fireEvent.press(
       screen.getByTestId("tests-to-redo-filter-campaign-option-camp-2"),
     );
+    fireEvent.press(screen.getByTestId("tests-to-redo-filter-apply"));
 
     expect(screen.queryByText("Connexion")).toBeNull();
     expect(screen.getByText("Envoi de message")).toBeTruthy();
@@ -151,9 +151,44 @@ describe("TestsToRedoTab", () => {
   it("does not show the campaign filter when items span a single campaign", () => {
     render(<TestsToRedoTab items={[ITEMS[0]]} campaigns={CAMPAIGNS} />);
 
+    fireEvent.press(screen.getByTestId("tests-to-redo-filter-toggle"));
+
     expect(
-      screen.queryByTestId("tests-to-redo-filter-campaign-trigger"),
+      screen.queryByTestId("tests-to-redo-filter-campaign"),
     ).toBeNull();
+  });
+
+  it("resets the campaign filter back to all", () => {
+    render(<TestsToRedoTab items={ITEMS} campaigns={CAMPAIGNS} />);
+
+    fireEvent.press(screen.getByTestId("tests-to-redo-filter-toggle"));
+    fireEvent.press(screen.getByTestId("tests-to-redo-filter-campaign"));
+    fireEvent.press(
+      screen.getByTestId("tests-to-redo-filter-campaign-option-camp-2"),
+    );
+    fireEvent.press(screen.getByTestId("tests-to-redo-filter-apply"));
+    expect(screen.queryByText("Connexion")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("tests-to-redo-filter-toggle"));
+    fireEvent.press(screen.getByTestId("tests-to-redo-filter-reset"));
+    fireEvent.press(screen.getByTestId("tests-to-redo-filter-close"));
+
+    expect(screen.getByText("Connexion")).toBeTruthy();
+    expect(screen.getByText("Envoi de message")).toBeTruthy();
+  });
+
+  it("does not apply a draft campaign change when the panel is closed", () => {
+    render(<TestsToRedoTab items={ITEMS} campaigns={CAMPAIGNS} />);
+
+    fireEvent.press(screen.getByTestId("tests-to-redo-filter-toggle"));
+    fireEvent.press(screen.getByTestId("tests-to-redo-filter-campaign"));
+    fireEvent.press(
+      screen.getByTestId("tests-to-redo-filter-campaign-option-camp-2"),
+    );
+    fireEvent.press(screen.getByTestId("tests-to-redo-filter-close"));
+
+    expect(screen.getByText("Connexion")).toBeTruthy();
+    expect(screen.getByText("Envoi de message")).toBeTruthy();
   });
 
   it("defaults the mine-only toggle to on when the user has assigned campaigns", () => {
@@ -164,7 +199,9 @@ describe("TestsToRedoTab", () => {
     expect(screen.queryByText("Connexion")).toBeNull();
     expect(screen.getByText("Envoi de message")).toBeTruthy();
 
-    fireEvent.press(screen.getByTestId("tests-to-redo-mine-toggle"));
+    fireEvent.press(screen.getByTestId("tests-to-redo-filter-toggle"));
+    fireEvent.press(screen.getByTestId("tests-to-redo-filter-mine"));
+    fireEvent.press(screen.getByTestId("tests-to-redo-filter-apply"));
 
     expect(screen.getByText("Connexion")).toBeTruthy();
   });

@@ -122,44 +122,73 @@ function TestCampaignScreen() {
         >
           <CampaignHero campaign={campaign} t={t} />
 
-          {campaign.testCases.map((testCase) => (
-            <TouchableOpacity
-              key={testCase.id}
-              style={styles.caseCard}
-              onPress={() =>
-                router.push({
-                  pathname: "/(home)/tests/cases/[testCaseId]",
-                  params: { testCaseId: testCase.id },
-                })
-              }
-            >
-              <View style={styles.caseHeader}>
-                <Text style={styles.caseTitle}>{testCase.title}</Text>
-                <StatusPill
-                  label={statusLabel(
-                    t,
-                    testCase.latestExecution?.status ?? null,
-                  )}
-                  tone={statusTone(testCase.latestExecution?.status ?? null)}
-                />
-              </View>
-              {testCase.module ? (
-                <Text style={styles.caseMeta}>{testCase.module}</Text>
-              ) : null}
-              <View style={styles.caseFooter}>
-                <StatusPill
-                  label={priorityLabel(t, testCase.priority)}
-                  tone="neutral"
-                />
-                <Text style={styles.executionCount}>
-                  {t("tests.cases.executionCount").replace(
-                    "{count}",
-                    String(testCase.totalExecutions),
-                  )}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+          {campaign.testCases.map((testCase) => {
+            const hasOwnResult = !!testCase.latestExecution;
+            return (
+              <TouchableOpacity
+                key={testCase.id}
+                style={styles.caseCard}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(home)/tests/cases/[testCaseId]",
+                    params: { testCaseId: testCase.id },
+                  })
+                }
+                testID={`test-case-card-${testCase.id}`}
+              >
+                <View style={styles.caseHeader}>
+                  <Text style={styles.caseTitle}>{testCase.title}</Text>
+                  <StatusPill
+                    label={statusLabel(
+                      t,
+                      testCase.latestExecution?.status ?? null,
+                    )}
+                    tone={statusTone(testCase.latestExecution?.status ?? null)}
+                  />
+                </View>
+                {testCase.module ? (
+                  <Text style={styles.caseMeta}>{testCase.module}</Text>
+                ) : null}
+                <View style={styles.caseFooter}>
+                  <View style={styles.caseFooterMeta}>
+                    <StatusPill
+                      label={priorityLabel(t, testCase.priority)}
+                      tone="neutral"
+                    />
+                    <Text style={styles.executionCount}>
+                      {t("tests.cases.executionCount").replace(
+                        "{count}",
+                        String(testCase.totalExecutions),
+                      )}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.caseActionButton}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(home)/tests/cases/[testCaseId]",
+                        params: { testCaseId: testCase.id },
+                      })
+                    }
+                    testID={`test-case-action-${testCase.id}`}
+                  >
+                    <Ionicons
+                      name={hasOwnResult ? "eye-outline" : "play"}
+                      size={13}
+                      color={colors.white}
+                    />
+                    <Text style={styles.caseActionButtonText}>
+                      {t(
+                        hasOwnResult
+                          ? "tests.campaigns.actions.review"
+                          : "tests.campaigns.actions.start",
+                      )}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       )}
     </View>
@@ -386,6 +415,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  caseFooterMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 1,
+  },
+  caseActionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.primary,
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  caseActionButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.white,
   },
   executionCount: { fontSize: 12, color: colors.textSecondary },
   pill: {
