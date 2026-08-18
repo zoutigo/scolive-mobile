@@ -22,16 +22,24 @@ jest.mock("../../src/store/auth.store", () => ({ useAuthStore: jest.fn() }));
 const mockDismissAll = jest.fn();
 const mockReplace = jest.fn();
 
-jest.mock("expo-router", () => ({
-  Stack: Object.assign(
-    ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-    { Screen: () => null },
-  ),
-  useRouter: () => ({
-    dismissAll: mockDismissAll,
-    replace: mockReplace,
-  }),
-}));
+// Le mock de Stack rend un wrapper avec testID pour pouvoir vérifier qu'il
+// reste monté pendant l'état de redirection (régression POP_TO_TOP non géré :
+// voir describe "régression POP_TO_TOP" plus bas).
+jest.mock("expo-router", () => {
+  const { View: MockView } = jest.requireActual("react-native");
+  return {
+    Stack: Object.assign(
+      ({ children }: { children?: React.ReactNode }) => (
+        <MockView testID="mock-stack">{children}</MockView>
+      ),
+      { Screen: () => null },
+    ),
+    useRouter: () => ({
+      dismissAll: mockDismissAll,
+      replace: mockReplace,
+    }),
+  };
+});
 
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<
   typeof useAuthStore
@@ -230,5 +238,62 @@ describe("HomeLayout — régression MaxUpdateDepth (logout depuis écran imbriq
     rerender(<HomeLayout />);
 
     expect(mockDismissAll).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ─── Tests de régression — "POP_TO_TOP was not handled by any navigator" ──────
+
+/**
+ * Reproduction confirmée sur émulateur Android (capture d'écran LogBox) :
+ * l'ancienne version retournait une <View> à la place du <Stack> dès que
+ * `isAuthenticated` passait à `false`, démontant le navigateur imbriqué dans
+ * le même commit que celui où l'effet allait déclencher `router.dismissAll()`
+ * (action POP_TO_TOP). L'action arrivait donc sans navigateur Stack monté
+ * pour la recevoir -> avertissement dev "POP_TO_TOP was not handled by any
+ * navigator".
+ *
+ * Le correctif garde le Stack monté pendant toute la redirection ; l'écran de
+ * redirection n'est plus qu'un overlay par-dessus. Ces tests vérifient que le
+ * Stack (mocké avec testID "mock-stack") reste présent au moment précis où
+ * dismissAll() est appelé, pas seulement avant.
+ */
+describe("HomeLayout — régression POP_TO_TOP non géré (Stack démonté avant dismissAll)", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("garde le Stack monté pendant l'affichage de la vue de redirection", () => {
+    setAuthState({ isAuthenticated: false, isLoading: false });
+    render(<HomeLayout />);
+
+    expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
+    expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
+  });
+
+  it("le Stack est toujours monté lors du passage authentifié -> déconnecté (moment de l'appel dismissAll)", () => {
+    setAuthState({ isAuthenticated: true, isLoading: false });
+    const { rerender } = render(<HomeLayout />);
+    expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
+
+    act(() => {
+      setAuthState({ isAuthenticated: false, isLoading: false });
+      rerender(<HomeLayout />);
+    });
+
+    // dismissAll a bien été appelé, ET le Stack est toujours dans l'arbre au
+    // même render : la régression testée ici est l'inverse (Stack démonté
+    // avant l'appel), ce qui n'est plus le cas.
+    expect(mockDismissAll).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
+  });
+
+  it("le Stack n'est jamais démonté pendant que isAuthenticated reste false sur plusieurs rerenders", () => {
+    setAuthState({ isAuthenticated: false, isLoading: false });
+    const { rerender } = render(<HomeLayout />);
+
+    for (let i = 0; i < 5; i += 1) {
+      rerender(<HomeLayout />);
+      expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
+    }
   });
 });

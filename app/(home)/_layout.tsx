@@ -38,137 +38,146 @@ export default function HomeLayout() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <View style={styles.loader} testID="home-layout-redirecting" />;
-  }
-
+  // Le Stack reste monté pendant la redirection (overlay par-dessus) : le
+  // démonter avant que l'effet ci-dessus déclenche `router.dismissAll()`
+  // (action POP_TO_TOP) laisse cette action sans navigateur pour la
+  // recevoir, d'où l'avertissement "POP_TO_TOP was not handled by any
+  // navigator" observé en dev.
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen
-        name="placeholder"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="messages"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="account"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen name="feed" options={{ animation: "slide_from_right" }} />
-      <Stack.Screen
-        name="agenda/index"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="agenda/slot-create"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="agenda/slot-edit"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="timetable/index"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="timetable/class/[classId]"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="timetable/child/[childId]"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="notes/index"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="notes/class/[classId]"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="notes/child/[childId]"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="children/[childId]/index"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="children/[childId]/vie-de-classe"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="classes/[classId]/feed"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="classes/[classId]/notes"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="classes/[classId]/discipline"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="classes/[classId]/timetable"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="classes/[classId]/homework"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="admin-classes/index"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="admin-classes/[classId]/index"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="salles/index"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="tickets/index"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="tickets/create"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="tickets/[ticketId]"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="tests/index"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="tests/[campaignId]"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="tests/cases/[testCaseId]/index"
-        options={{ animation: "slide_from_right" }}
-      />
-      <Stack.Screen
-        name="tests/cases/[testCaseId]/submit"
-        options={{ animation: "slide_from_right" }}
-      />
-    </Stack>
+    <View style={styles.flexFill}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen
+          name="placeholder"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="messages"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="account"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen name="feed" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen
+          name="agenda/index"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="agenda/slot-create"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="agenda/slot-edit"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="timetable/index"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="timetable/class/[classId]"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="timetable/child/[childId]"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="notes/index"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="notes/class/[classId]"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="notes/child/[childId]"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="children/[childId]/index"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="children/[childId]/vie-de-classe"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="classes/[classId]/feed"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="classes/[classId]/notes"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="classes/[classId]/discipline"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="classes/[classId]/timetable"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="classes/[classId]/homework"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="admin-classes/index"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="admin-classes/[classId]/index"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="salles/index"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="tickets/index"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="tickets/create"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="tickets/[ticketId]"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="tests/index"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="tests/[campaignId]"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="tests/cases/[testCaseId]/index"
+          options={{ animation: "slide_from_right" }}
+        />
+        <Stack.Screen
+          name="tests/cases/[testCaseId]/submit"
+          options={{ animation: "slide_from_right" }}
+        />
+      </Stack>
+      {!isAuthenticated && (
+        <View style={styles.loader} testID="home-layout-redirecting" />
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  loader: {
+  flexFill: {
     flex: 1,
+  },
+  loader: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: colors.background,
     justifyContent: "center",
     alignItems: "center",
