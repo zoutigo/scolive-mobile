@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppShell } from "../../../src/components/navigation/AppShell";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import { UnderlineTabs } from "../../../src/components/navigation/UnderlineTabs";
+import { PageHelpModal } from "../../../src/components/help/PageHelpModal";
 import { TestsSummaryTab } from "../../../src/components/tests/TestsSummaryTab";
 import {
   ALL_CAMPAIGNS_FILTER,
@@ -21,8 +22,15 @@ import {
 } from "../../../src/components/tests/TestsCampaignsTab";
 import { TestsExecutionsTab } from "../../../src/components/tests/TestsExecutionsTab";
 import { TestsToRedoTab } from "../../../src/components/tests/TestsToRedoTab";
+import {
+  TESTS_TOUR_ID,
+  TESTS_TOUR_ROLE,
+  TESTS_TOUR_STEPS,
+  TESTS_TOUR_TARGETS,
+} from "../../../src/components/tests/tests-tour.config";
 import { testsApi } from "../../../src/api/tests.api";
 import { useAuthStore } from "../../../src/store/auth.store";
+import { useOnboardingTourStore } from "../../../src/store/onboarding-tour.store";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import { colors } from "../../../src/theme";
 import type {
@@ -54,7 +62,17 @@ function TestsHomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [helpVisible, setHelpVisible] = useState(false);
   const isInitialLoad = useRef(true);
+
+  const activeTourId = useOnboardingTourStore((state) => state.activeTourId);
+  const startTour = useOnboardingTourStore((state) => state.startTour);
+  const isTourCompleted = useOnboardingTourStore((state) => state.isCompleted);
+  const onboardingActiveTourTargetKey = useOnboardingTourStore((state) =>
+    state.activeTourId === TESTS_TOUR_ID
+      ? state.steps[state.stepIndex]?.targetKey
+      : undefined,
+  );
 
   const load = useCallback(
     async (refresh = false) => {
@@ -105,6 +123,26 @@ function TestsHomeScreen() {
     }, [load]),
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.isTester) return;
+      if (user.onboardingHelpEnabled === false) return;
+      if (isTourCompleted(TESTS_TOUR_ROLE, TESTS_TOUR_ID)) return;
+      if (activeTourId) return;
+
+      const handle = requestIdleCallback(() => {
+        startTour(TESTS_TOUR_ID, TESTS_TOUR_ROLE, TESTS_TOUR_STEPS);
+      });
+      return () => cancelIdleCallback(handle);
+    }, [user, isTourCompleted, activeTourId, startTour]),
+  );
+
+  useEffect(() => {
+    if (onboardingActiveTourTargetKey === TESTS_TOUR_TARGETS.campaignAction) {
+      setActiveTab("campaigns");
+    }
+  }, [onboardingActiveTourTargetKey]);
+
   function openCampaignsWithFilter(filter: TestsCampaignsFilter) {
     setCampaignsFilter(filter);
     setActiveTab("campaigns");
@@ -118,6 +156,38 @@ function TestsHomeScreen() {
         onBack={() => moduleBack(router)}
         topInset={insets.top}
         testID="tests-header"
+        helpAction={{
+          label: t("tests.help.menuLabel"),
+          onPress: () => setHelpVisible(true),
+          testID: "tests-help-menu-item",
+        }}
+        menuTourTargetId={TESTS_TOUR_TARGETS.helpToggle}
+      />
+
+      <PageHelpModal
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        title={t("tests.help.title")}
+        closeLabel={t("tests.help.close")}
+        testID="tests-help-modal"
+        sections={[
+          {
+            title: t("tests.help.section1Title"),
+            body: [t("tests.help.section1Body")],
+          },
+          {
+            title: t("tests.help.section2Title"),
+            body: [t("tests.help.section2Body")],
+          },
+          {
+            title: t("tests.help.section3Title"),
+            body: [t("tests.help.section3Body")],
+          },
+          {
+            title: t("tests.help.section4Title"),
+            body: [t("tests.help.section4Body")],
+          },
+        ]}
       />
 
       {!user?.isTester ? (
@@ -152,6 +222,7 @@ function TestsHomeScreen() {
             activeKey={activeTab}
             onSelect={setActiveTab}
             testIDPrefix="tests-home-tab"
+            tourTargetId={TESTS_TOUR_TARGETS.tabs}
           />
           <ScrollView
             contentContainerStyle={styles.scrollContent}
@@ -176,7 +247,7 @@ function TestsHomeScreen() {
             ) : activeTab === "executions" ? (
               <TestsExecutionsTab campaigns={campaigns} />
             ) : (
-              <TestsToRedoTab items={toRedo} />
+              <TestsToRedoTab items={toRedo} campaigns={campaigns} />
             )}
           </ScrollView>
         </>

@@ -1,20 +1,29 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import type { TestCampaignSummary } from "../../types/tests.types";
 import {
   type CampaignDisplayStatus,
   getCampaignDisplayStatus,
   sortCampaignsByDisplayStatus,
 } from "./testCampaignStatus";
+import {
+  TESTS_TOUR_FALLBACK_CAMPAIGN_ID,
+  TESTS_TOUR_ID,
+  TESTS_TOUR_TARGETS,
+} from "./tests-tour.config";
 
 export type TestsCampaignsFilter = "ALL" | CampaignDisplayStatus;
 export const ALL_CAMPAIGNS_FILTER: TestsCampaignsFilter = "ALL";
@@ -44,17 +53,81 @@ export function TestsCampaignsTab({
   const { t, locale } = useTranslation();
   const router = useRouter();
 
+  const [searchInput, setSearchInput] = useState("");
+  const [mineOnly, setMineOnly] = useState(() =>
+    campaigns.some((campaign) => campaign.assignedToMe),
+  );
+
+  const currentTourTargetKey = useOnboardingTourStore((state) =>
+    state.activeTourId === TESTS_TOUR_ID
+      ? state.steps[state.stepIndex]?.targetKey
+      : undefined,
+  );
+  const isCampaignActionTourStep =
+    currentTourTargetKey === TESTS_TOUR_TARGETS.campaignAction;
+
+  const fallbackCampaign: TestCampaignSummary = useMemo(
+    () => ({
+      id: TESTS_TOUR_FALLBACK_CAMPAIGN_ID,
+      title: t("tests.tourFallback.title"),
+      description: t("tests.tourFallback.description"),
+      targetVersion: null,
+      startsAt: null,
+      dueAt: null,
+      status: "ACTIVE",
+      assignedToMe: true,
+      summary: { totalCases: 5, completedCases: 0, totalExecutions: 0 },
+    }),
+    [t],
+  );
+
   const sorted = useMemo(
     () => sortCampaignsByDisplayStatus(campaigns),
     [campaigns],
   );
 
+  const searchNormalized = searchInput.trim().toLowerCase();
+
   const filtered = useMemo(() => {
-    if (filter === "ALL") return sorted;
-    return sorted.filter(
-      (campaign) => getCampaignDisplayStatus(campaign) === filter,
-    );
-  }, [filter, sorted]);
+    if (isCampaignActionTourStep) return [fallbackCampaign];
+    return sorted.filter((campaign) => {
+      if (filter !== "ALL" && getCampaignDisplayStatus(campaign) !== filter) {
+        return false;
+      }
+      if (mineOnly && !campaign.assignedToMe) {
+        return false;
+      }
+      if (searchNormalized) {
+        const haystack =
+          `${campaign.title} ${campaign.description ?? ""}`.toLowerCase();
+        if (!haystack.includes(searchNormalized)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [
+    sorted,
+    filter,
+    mineOnly,
+    searchNormalized,
+    isCampaignActionTourStep,
+    fallbackCampaign,
+  ]);
+
+  function resetSearchAndFilters() {
+    setSearchInput("");
+    setMineOnly(false);
+    onFilterChange(ALL_CAMPAIGNS_FILTER);
+  }
+
+  function goToCampaign(campaignId: string) {
+    if (campaignId === TESTS_TOUR_FALLBACK_CAMPAIGN_ID) return;
+    router.push({
+      pathname: "/(home)/tests/[campaignId]",
+      params: { campaignId },
+    });
+  }
 
   const filters: Array<{ key: FilterKey; label: string }> = [
     { key: "ALL", label: t("tests.campaigns.filters.all") },
@@ -63,8 +136,72 @@ export function TestsCampaignsTab({
     { key: "COMPLETED", label: t("tests.campaigns.filters.completed") },
   ];
 
+  if (campaigns.length === 0 && !isCampaignActionTourStep) {
+    return (
+      <View style={styles.empty} testID="tests-campaigns-tab">
+        <Ionicons
+          name="clipboard-outline"
+          size={42}
+          color={colors.warmBorder}
+        />
+        <Text style={styles.emptyTitle}>
+          {t("tests.campaigns.emptyTitle")}
+        </Text>
+        <Text style={styles.emptyBody}>
+          {t("tests.campaigns.emptyMessage")}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container} testID="tests-campaigns-tab">
+      <View style={styles.searchRow} testID="tests-campaigns-search-row">
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={16} color={colors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            value={searchInput}
+            onChangeText={setSearchInput}
+            placeholder={t("tests.campaigns.search.placeholder")}
+            placeholderTextColor={colors.textSecondary}
+            returnKeyType="search"
+            autoCapitalize="none"
+            accessibilityLabel={t("tests.campaigns.search.accessibilityLabel")}
+            testID="tests-campaigns-search-input"
+          />
+          {searchInput.length > 0 ? (
+            <TouchableOpacity
+              onPress={() => setSearchInput("")}
+              testID="tests-campaigns-search-clear"
+              accessibilityLabel={t(
+                "tests.campaigns.search.clearAccessibilityLabel",
+              )}
+            >
+              <Ionicons
+                name="close-circle"
+                size={16}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+        <TouchableOpacity
+          style={[styles.mineToggle, mineOnly && styles.mineToggleActive]}
+          onPress={() => setMineOnly((value) => !value)}
+          testID="tests-campaigns-mine-toggle"
+          accessibilityLabel={t(
+            "tests.campaigns.filters.mineAccessibilityLabel",
+          )}
+        >
+          <Ionicons
+            name={mineOnly ? "person" : "person-outline"}
+            size={18}
+            color={mineOnly ? colors.white : colors.accentTeal}
+          />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -92,62 +229,113 @@ export function TestsCampaignsTab({
         })}
       </ScrollView>
 
-      <View style={styles.list}>
-        {filtered.map((campaign) => {
-          const status = getCampaignDisplayStatus(campaign);
-          const palette = STATUS_PALETTE[status];
-          return (
-            <TouchableOpacity
-              key={campaign.id}
-              style={[styles.card, { borderLeftColor: palette.accent }]}
-              onPress={() =>
-                router.push({
-                  pathname: "/(home)/tests/[campaignId]",
-                  params: { campaignId: campaign.id },
-                })
-              }
-              testID={`test-campaign-card-${campaign.id}`}
-            >
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>{campaign.title}</Text>
-                <View
-                  style={[styles.statusPill, { backgroundColor: palette.bg }]}
-                >
-                  <Text
-                    style={[styles.statusPillText, { color: palette.text }]}
+      {filtered.length === 0 ? (
+        <View style={styles.emptySearch} testID="tests-campaigns-no-results">
+          <Ionicons
+            name="search-outline"
+            size={32}
+            color={colors.warmBorder}
+          />
+          <Text style={styles.emptyTitle}>
+            {t("tests.campaigns.emptySearchTitle")}
+          </Text>
+          <Text style={styles.emptyBody}>
+            {t("tests.campaigns.emptySearchMessage")}
+          </Text>
+          <TouchableOpacity
+            style={styles.resetSearchButton}
+            onPress={resetSearchAndFilters}
+            testID="tests-campaigns-reset-search"
+          >
+            <Text style={styles.resetSearchButtonText}>
+              {t("tests.campaigns.filters.resetSearch")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.list}>
+          {filtered.map((campaign) => {
+            const status = getCampaignDisplayStatus(campaign);
+            const palette = STATUS_PALETTE[status];
+            const hasStarted = campaign.summary.completedCases > 0;
+            return (
+              <TouchableOpacity
+                key={campaign.id}
+                style={[styles.card, { borderLeftColor: palette.accent }]}
+                onPress={() => goToCampaign(campaign.id)}
+                testID={`test-campaign-card-${campaign.id}`}
+              >
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardTitle}>{campaign.title}</Text>
+                  <View
+                    style={[
+                      styles.statusPill,
+                      { backgroundColor: palette.bg },
+                    ]}
                   >
-                    {t(`tests.campaigns.status.${statusKey(status)}`)}
-                  </Text>
+                    <Text
+                      style={[styles.statusPillText, { color: palette.text }]}
+                    >
+                      {t(`tests.campaigns.status.${statusKey(status)}`)}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-              {campaign.description ? (
-                <Text style={styles.cardBody}>{campaign.description}</Text>
-              ) : null}
-              <View style={styles.metaRow}>
-                <LabelPill
-                  text={t("tests.campaigns.totalCases").replace(
-                    "{count}",
-                    String(campaign.summary.totalCases),
-                  )}
-                />
-                <LabelPill
-                  text={t("tests.campaigns.progressLabel")
-                    .replace("{done}", String(campaign.summary.completedCases))
-                    .replace("{total}", String(campaign.summary.totalCases))}
-                />
-                {campaign.dueAt ? (
-                  <LabelPill
-                    text={t("tests.campaigns.dueLabel").replace(
-                      "{date}",
-                      formatDate(campaign.dueAt, locale),
-                    )}
-                  />
+                {campaign.description ? (
+                  <Text style={styles.cardBody} numberOfLines={2}>
+                    {campaign.description}
+                  </Text>
                 ) : null}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+                <View style={styles.footerRow}>
+                  <View style={styles.metaCompact}>
+                    <Text style={styles.metaCompactText}>
+                      {t("tests.campaigns.progressCompact")
+                        .replace("{done}", String(campaign.summary.completedCases))
+                        .replace("{total}", String(campaign.summary.totalCases))}
+                    </Text>
+                    {campaign.dueAt ? (
+                      <Text style={styles.metaCompactText}>
+                        {t("tests.campaigns.dueLabel").replace(
+                          "{date}",
+                          formatDate(campaign.dueAt, locale),
+                        )}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {(() => {
+                    const actionButton = (
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => goToCampaign(campaign.id)}
+                        testID={`test-campaign-action-${campaign.id}`}
+                      >
+                        <Ionicons
+                          name={hasStarted ? "eye-outline" : "play"}
+                          size={14}
+                          color={colors.white}
+                        />
+                        <Text style={styles.actionButtonText}>
+                          {t(
+                            hasStarted
+                              ? "tests.campaigns.actions.review"
+                              : "tests.campaigns.actions.start",
+                          )}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                    return campaign.id === TESTS_TOUR_FALLBACK_CAMPAIGN_ID ? (
+                      <OnboardingTarget id={TESTS_TOUR_TARGETS.campaignAction}>
+                        {actionButton}
+                      </OnboardingTarget>
+                    ) : (
+                      actionButton
+                    );
+                  })()}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 }
@@ -163,14 +351,6 @@ function statusKey(status: CampaignDisplayStatus) {
   }
 }
 
-function LabelPill({ text }: { text: string }) {
-  return (
-    <View style={styles.pill}>
-      <Text style={styles.pillText}>{text}</Text>
-    </View>
-  );
-}
-
 function formatDate(value: string, locale: "fr" | "en") {
   return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "fr-FR", {
     day: "2-digit",
@@ -181,6 +361,39 @@ function formatDate(value: string, locale: "fr" | "en") {
 
 const styles = StyleSheet.create({
   container: { gap: 14 },
+  searchRow: { flexDirection: "row", gap: 8, alignItems: "center" },
+  searchBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    height: 40,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.textPrimary,
+    paddingVertical: 0,
+  },
+  mineToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}55`,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mineToggleActive: {
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.accentTeal,
+  },
   filterRow: { gap: 8, paddingRight: 8 },
   filterChip: {
     borderRadius: 999,
@@ -232,20 +445,69 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.textSecondary,
   },
-  metaRow: {
+  footerRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  metaCompact: { flex: 1, gap: 2 },
+  metaCompactText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.primary,
+    borderRadius: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  actionButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.white,
+  },
+  empty: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 28,
+    paddingTop: 60,
+    gap: 10,
+  },
+  emptySearch: {
+    alignItems: "center",
+    paddingVertical: 32,
+    paddingHorizontal: 20,
     gap: 8,
   },
-  pill: {
-    borderRadius: 999,
-    backgroundColor: "#F4E9DE",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: colors.textPrimary,
+    textAlign: "center",
   },
-  pillText: {
-    fontSize: 12,
-    color: colors.primary,
-    fontWeight: "600",
+  emptyBody: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: colors.textSecondary,
+    textAlign: "center",
+  },
+  resetSearchButton: {
+    marginTop: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.accentTeal,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  resetSearchButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.accentTeal,
   },
 });

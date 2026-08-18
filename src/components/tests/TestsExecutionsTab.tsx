@@ -3,9 +3,11 @@ import {
   ActivityIndicator,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
@@ -38,6 +40,10 @@ export function TestsExecutionsTab({ campaigns }: Props) {
   const [items, setItems] = useState<TestExecutionRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [mineOnly, setMineOnly] = useState(() =>
+    campaigns.some((campaign) => campaign.assignedToMe),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -98,8 +104,81 @@ export function TestsExecutionsTab({ campaigns }: Props) {
     });
   }
 
+  const assignedCampaignIds = useMemo(
+    () =>
+      new Set(
+        campaigns
+          .filter((campaign) => campaign.assignedToMe)
+          .map((campaign) => campaign.id),
+      ),
+    [campaigns],
+  );
+
+  const searchNormalized = searchInput.trim().toLowerCase();
+  const filteredItems = useMemo(() => {
+    return items.filter((execution) => {
+      if (mineOnly && !assignedCampaignIds.has(execution.campaign.id)) {
+        return false;
+      }
+      if (searchNormalized) {
+        const haystack =
+          `${execution.testCase.title} ${execution.campaign.title}`.toLowerCase();
+        if (!haystack.includes(searchNormalized)) return false;
+      }
+      return true;
+    });
+  }, [items, searchNormalized, mineOnly, assignedCampaignIds]);
+
   return (
     <View style={styles.container} testID="tests-executions-tab">
+      <View style={styles.searchRow}>
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={16} color={colors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            value={searchInput}
+            onChangeText={setSearchInput}
+            placeholder={t("tests.executions.search.placeholder")}
+            placeholderTextColor={colors.textSecondary}
+            returnKeyType="search"
+            autoCapitalize="none"
+            accessibilityLabel={t(
+              "tests.executions.search.accessibilityLabel",
+            )}
+            testID="tests-executions-search-input"
+          />
+          {searchInput.length > 0 ? (
+            <TouchableOpacity
+              onPress={() => setSearchInput("")}
+              testID="tests-executions-search-clear"
+              accessibilityLabel={t(
+                "tests.executions.search.clearAccessibilityLabel",
+              )}
+            >
+              <Ionicons
+                name="close-circle"
+                size={16}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+        <TouchableOpacity
+          style={[styles.mineToggle, mineOnly && styles.mineToggleActive]}
+          onPress={() => setMineOnly((value) => !value)}
+          testID="tests-executions-mine-toggle"
+          accessibilityLabel={t(
+            "tests.executions.filters.mineAccessibilityLabel",
+          )}
+        >
+          <Ionicons
+            name={mineOnly ? "person" : "person-outline"}
+            size={18}
+            color={mineOnly ? colors.white : colors.accentTeal}
+          />
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.filtersRow}>
         <View style={styles.filterCol}>
           <SelectField
@@ -140,9 +219,18 @@ export function TestsExecutionsTab({ campaigns }: Props) {
             {t("tests.executions.emptyMessage")}
           </Text>
         </View>
+      ) : filteredItems.length === 0 ? (
+        <View style={styles.empty} testID="tests-executions-no-results">
+          <Text style={styles.emptyTitle}>
+            {t("tests.executions.emptySearchTitle")}
+          </Text>
+          <Text style={styles.emptyBody}>
+            {t("tests.executions.emptySearchMessage")}
+          </Text>
+        </View>
       ) : (
         <View style={styles.list}>
-          {items.map((execution) => (
+          {filteredItems.map((execution) => (
             <TouchableOpacity
               key={execution.id}
               style={styles.card}
@@ -236,6 +324,39 @@ function formatDateTime(value: string, locale: "fr" | "en") {
 
 const styles = StyleSheet.create({
   container: { gap: 14 },
+  searchRow: { flexDirection: "row", gap: 8, alignItems: "center" },
+  searchBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    height: 40,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.textPrimary,
+    paddingVertical: 0,
+  },
+  mineToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: `${colors.accentTeal}55`,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mineToggleActive: {
+    backgroundColor: colors.accentTeal,
+    borderColor: colors.accentTeal,
+  },
   filtersRow: { flexDirection: "row", gap: 12 },
   filterCol: { flex: 1 },
   center: { paddingVertical: 40, alignItems: "center" },

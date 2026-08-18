@@ -77,4 +77,41 @@ describe("TestsSummaryKpis", () => {
       ALL_CAMPAIGNS_FILTER,
     );
   });
+
+  it("does not render a mine caption when mineData is not provided", () => {
+    render(<TestsSummaryKpis data={DATA} labels={LABELS} />);
+
+    expect(screen.queryByTestId("tests-kpi-total-campaigns-mine")).toBeNull();
+  });
+
+  it("renders a compact mine caption per card when mineData is provided", () => {
+    const mineData = {
+      totalCampaigns: 2,
+      inProgressCampaigns: 1,
+      completedCampaigns: 0,
+      upcomingCampaigns: 1,
+      totalCases: 5,
+      pendingCases: 3,
+    };
+
+    render(
+      <TestsSummaryKpis
+        data={DATA}
+        mineData={mineData}
+        mineCaption={(count) => `dont ${count} pour moi`}
+        labels={LABELS}
+      />,
+    );
+
+    expect(
+      within(screen.getByTestId("tests-kpi-total-campaigns")).getByText(
+        "dont 2 pour moi",
+      ),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByTestId("tests-kpi-completed")).getByText(
+        "dont 0 pour moi",
+      ),
+    ).toBeTruthy();
+  });
 });
