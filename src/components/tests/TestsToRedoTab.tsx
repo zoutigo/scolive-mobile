@@ -69,7 +69,13 @@ export function TestsToRedoTab({ items, campaigns }: Props) {
       }
       return true;
     });
-  }, [items, campaignId, searchNormalized, appliedMineOnly, assignedCampaignIds]);
+  }, [
+    items,
+    campaignId,
+    searchNormalized,
+    appliedMineOnly,
+    assignedCampaignIds,
+  ]);
 
   const hasActiveFilters = campaignId !== "" || appliedMineOnly;
 

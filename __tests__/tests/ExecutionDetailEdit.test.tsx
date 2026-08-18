@@ -314,9 +314,7 @@ describe("TestExecutionRoute — FAB modifier & formulaire inline", () => {
     );
 
     fireEvent.press(screen.getByTestId("edit-execution-status"));
-    fireEvent.press(
-      screen.getByTestId("edit-execution-status-option-FAILED"),
-    );
+    fireEvent.press(screen.getByTestId("edit-execution-status-option-FAILED"));
     fireEvent.press(screen.getByTestId("edit-execution-submit-btn"));
 
     await waitFor(() => {

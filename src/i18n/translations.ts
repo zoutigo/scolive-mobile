@@ -5840,8 +5840,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.detail.viewSpecToggle": "View test spec",
     "tests.detail.hideSpecToggle": "Hide test spec",
     "tests.detail.statusPlaceholder": "Select the test status",
-    "tests.detail.validation.statusRequired":
-      "Select a status before saving.",
+    "tests.detail.validation.statusRequired": "Select a status before saving.",
     "tests.detail.fabAdd": "Enter the test result",
     "tests.detail.viewResults": "View results",
     "tests.detail.formModalTitle": "Submit my result",

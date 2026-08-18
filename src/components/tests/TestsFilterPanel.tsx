@@ -1,5 +1,11 @@
 import React from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
 import { InlineSelectDropDown } from "../InlineSelectDropDown";
@@ -46,12 +52,19 @@ export function TestsSearchRow(props: {
             testID={`${props.testIDPrefix}-search-clear`}
             accessibilityLabel={props.clearAccessibilityLabel}
           >
-            <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+            <Ionicons
+              name="close-circle"
+              size={16}
+              color={colors.textSecondary}
+            />
           </TouchableOpacity>
         ) : null}
       </View>
       <TouchableOpacity
-        style={[styles.filterToggle, props.filtersActive && styles.filterToggleActive]}
+        style={[
+          styles.filterToggle,
+          props.filtersActive && styles.filterToggleActive,
+        ]}
         onPress={props.onToggleFilters}
         testID={`${props.testIDPrefix}-filter-toggle`}
         accessibilityLabel={props.toggleAccessibilityLabel}
@@ -80,10 +93,17 @@ export function TestsFilterPanel(props: {
 }) {
   if (!props.visible) return null;
   return (
-    <View style={styles.filterPanel} testID={`${props.testIDPrefix}-filter-panel`}>
+    <View
+      style={styles.filterPanel}
+      testID={`${props.testIDPrefix}-filter-panel`}
+    >
       <View style={styles.filterPanelHeader}>
         <View style={styles.filterPanelHeaderIcon}>
-          <Ionicons name="options-outline" size={16} color={colors.accentTealDark} />
+          <Ionicons
+            name="options-outline"
+            size={16}
+            color={colors.accentTealDark}
+          />
         </View>
         <Text style={styles.filterPanelHeaderTitle}>{props.titleLabel}</Text>
       </View>
@@ -131,7 +151,10 @@ export function FilterChipsGroup<TValue extends string>(props: {
       <Text style={styles.filterGroupLabel}>{props.label}</Text>
       <View style={styles.filterChipsRow}>
         <TouchableOpacity
-          style={[styles.filterChip, props.value == null && styles.filterChipActive]}
+          style={[
+            styles.filterChip,
+            props.value == null && styles.filterChipActive,
+          ]}
           onPress={() => props.onChange(null)}
           testID={`${props.testIDPrefix}-all`}
         >
@@ -154,7 +177,10 @@ export function FilterChipsGroup<TValue extends string>(props: {
               testID={`${props.testIDPrefix}-${option.value}`}
             >
               <Text
-                style={[styles.filterChipLabel, selected && styles.filterChipLabelActive]}
+                style={[
+                  styles.filterChipLabel,
+                  selected && styles.filterChipLabelActive,
+                ]}
               >
                 {option.label}
               </Text>
@@ -317,7 +343,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accentTeal,
     borderColor: colors.accentTeal,
   },
-  filterChipLabel: { fontSize: 12, fontWeight: "600", color: colors.textSecondary },
+  filterChipLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
   filterChipLabelWithIcon: {},
   filterChipLabelActive: { color: colors.white },
   filterActionsRow: {
@@ -338,7 +368,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 11,
   },
-  filterActionResetLabel: { color: colors.warmAccent, fontSize: 13, fontWeight: "700" },
+  filterActionResetLabel: {
+    color: colors.warmAccent,
+    fontSize: 13,
+    fontWeight: "700",
+  },
   filterActionClose: {
     flex: 1,
     borderRadius: 8,
@@ -349,7 +383,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 11,
   },
-  filterActionCloseLabel: { color: colors.textSecondary, fontSize: 13, fontWeight: "700" },
+  filterActionCloseLabel: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: "700",
+  },
   filterActionApply: {
     flex: 1.3,
     borderRadius: 8,
@@ -360,5 +398,9 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 11,
   },
-  filterActionApplyLabel: { color: colors.white, fontSize: 13, fontWeight: "700" },
+  filterActionApplyLabel: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: "700",
+  },
 });

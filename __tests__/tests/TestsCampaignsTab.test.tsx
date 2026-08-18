@@ -101,9 +101,9 @@ describe("TestsCampaignsTab", () => {
     render(<ControlledTestsCampaignsTab campaigns={CAMPAIGNS} />);
 
     const toggle = () => screen.getByTestId("tests-campaigns-filter-toggle");
-    expect(
-      StyleSheet_flatten(toggle().props.style).backgroundColor,
-    ).not.toBe("#247C72");
+    expect(StyleSheet_flatten(toggle().props.style).backgroundColor).not.toBe(
+      "#247C72",
+    );
 
     openFilterPanel();
     fireEvent.press(

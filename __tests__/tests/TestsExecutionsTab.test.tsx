@@ -288,9 +288,9 @@ describe("TestsExecutionsTab", () => {
       );
       fireEvent.press(screen.getByTestId("tests-executions-filter-close"));
 
-      expect(
-        (testsApi.listExecutions as jest.Mock).mock.calls.length,
-      ).toBe(callsBefore);
+      expect((testsApi.listExecutions as jest.Mock).mock.calls.length).toBe(
+        callsBefore,
+      );
     });
   });
 });

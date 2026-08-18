@@ -1,5 +1,10 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react-native";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import TestCampaignScreen from "../../app/(home)/tests/[campaignId]";
 import { useAuthStore } from "../../src/store/auth.store";
 import { testsApi } from "../../src/api/tests.api";

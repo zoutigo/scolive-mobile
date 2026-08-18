@@ -314,7 +314,8 @@ function TestCaseScreen() {
                 style={styles.submitResultButton}
                 onPress={() =>
                   router.push({
-                    pathname: "/(home)/tests/cases/[testCaseId]/submit" as never,
+                    pathname:
+                      "/(home)/tests/cases/[testCaseId]/submit" as never,
                     params: {
                       testCaseId,
                       evidenceRequired: detail.evidenceRequired ? "1" : "0",

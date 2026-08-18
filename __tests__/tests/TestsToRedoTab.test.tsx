@@ -153,9 +153,7 @@ describe("TestsToRedoTab", () => {
 
     fireEvent.press(screen.getByTestId("tests-to-redo-filter-toggle"));
 
-    expect(
-      screen.queryByTestId("tests-to-redo-filter-campaign"),
-    ).toBeNull();
+    expect(screen.queryByTestId("tests-to-redo-filter-campaign")).toBeNull();
   });
 
   it("resets the campaign filter back to all", () => {

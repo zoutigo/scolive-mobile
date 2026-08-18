@@ -132,9 +132,7 @@ describe("TestCaseScreen", () => {
 
   describe("spec toggle", () => {
     it("keeps the test spec collapsed by default", async () => {
-      (testsApi.getTestCase as jest.Mock).mockResolvedValue(
-        DETAIL_NO_RESULTS,
-      );
+      (testsApi.getTestCase as jest.Mock).mockResolvedValue(DETAIL_NO_RESULTS);
       render(<TestCaseScreen />);
 
       await waitFor(() => {
@@ -146,9 +144,7 @@ describe("TestCaseScreen", () => {
     });
 
     it("expands the spec box with objective/preconditions/expected result/steps when toggled", async () => {
-      (testsApi.getTestCase as jest.Mock).mockResolvedValue(
-        DETAIL_NO_RESULTS,
-      );
+      (testsApi.getTestCase as jest.Mock).mockResolvedValue(DETAIL_NO_RESULTS);
       render(<TestCaseScreen />);
 
       await waitFor(() => {
@@ -165,9 +161,7 @@ describe("TestCaseScreen", () => {
     });
 
     it("collapses the spec box again when toggled a second time", async () => {
-      (testsApi.getTestCase as jest.Mock).mockResolvedValue(
-        DETAIL_NO_RESULTS,
-      );
+      (testsApi.getTestCase as jest.Mock).mockResolvedValue(DETAIL_NO_RESULTS);
       render(<TestCaseScreen />);
 
       await waitFor(() => {

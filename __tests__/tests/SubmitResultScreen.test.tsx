@@ -76,9 +76,7 @@ describe("SubmitResultScreen", () => {
     render(<SubmitResultRoute />);
 
     fireEvent.press(screen.getByTestId("tests-submit-status"));
-    fireEvent.press(
-      screen.getByTestId("tests-submit-status-option-PASSED"),
-    );
+    fireEvent.press(screen.getByTestId("tests-submit-status-option-PASSED"));
     fireEvent.changeText(
       screen.getByTestId("tests-result-input"),
       "Tout fonctionne comme prévu",
@@ -99,9 +97,7 @@ describe("SubmitResultScreen", () => {
     render(<SubmitResultRoute />);
 
     fireEvent.press(screen.getByTestId("tests-submit-status"));
-    fireEvent.press(
-      screen.getByTestId("tests-submit-status-option-FAILED"),
-    );
+    fireEvent.press(screen.getByTestId("tests-submit-status-option-FAILED"));
     fireEvent.press(screen.getByTestId("tests-submit-btn"));
 
     await waitFor(() => {
