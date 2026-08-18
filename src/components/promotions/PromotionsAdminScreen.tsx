@@ -3,6 +3,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -32,7 +33,7 @@ import type {
   WaitingEnrollmentRow,
 } from "../../types/promotions.types";
 
-type SubTab = "decisions" | "waiting";
+type SubTab = "decisions" | "waiting" | "years";
 
 function roleAllowsPromotions(role: string | null | undefined) {
   return (
@@ -42,6 +43,14 @@ function roleAllowsPromotions(role: string | null | undefined) {
     role === "ADMIN" ||
     role === "SUPER_ADMIN"
   );
+}
+
+function roleCanManageYears(role: string | null | undefined) {
+  return role === "SCHOOL_ADMIN" || role === "ADMIN" || role === "SUPER_ADMIN";
+}
+
+function roleCanActivateYear(role: string | null | undefined) {
+  return roleCanManageYears(role) || role === "SCHOOL_MANAGER";
 }
 
 type DecisionDraft = {
@@ -80,6 +89,13 @@ export function PromotionsAdminScreen() {
   const [waiting, setWaiting] = useState<WaitingEnrollmentRow[]>([]);
   const [assignDrafts, setAssignDrafts] = useState<Record<string, string>>({});
   const [assigningId, setAssigningId] = useState<string | null>(null);
+
+  const [newYearLabel, setNewYearLabel] = useState("");
+  const [creatingYear, setCreatingYear] = useState(false);
+  const [activatingYearId, setActivatingYearId] = useState<string | null>(null);
+  const [rolloverSourceId, setRolloverSourceId] = useState("");
+  const [rolloverTargetId, setRolloverTargetId] = useState("");
+  const [rollingOver, setRollingOver] = useState(false);
 
   const loadReferenceData = useCallback(async () => {
     if (!schoolSlug) return;
@@ -212,6 +228,75 @@ export function PromotionsAdminScreen() {
     }
   }
 
+  async function createYear() {
+    if (!schoolSlug || !newYearLabel.trim()) return;
+    setCreatingYear(true);
+    try {
+      await promotionsApi.createSchoolYear(schoolSlug, {
+        label: newYearLabel.trim(),
+      });
+      showSuccess({
+        title: t("promotionsAdmin.years.success.created"),
+        message: "",
+      });
+      setNewYearLabel("");
+      await loadReferenceData();
+    } catch (error) {
+      showError({
+        title: t("promotionsAdmin.years.errors.create"),
+        message: extractApiError(error),
+      });
+    } finally {
+      setCreatingYear(false);
+    }
+  }
+
+  async function activateYear(schoolYearId: string) {
+    if (!schoolSlug) return;
+    setActivatingYearId(schoolYearId);
+    try {
+      await promotionsApi.activateSchoolYear(schoolSlug, schoolYearId);
+      showSuccess({
+        title: t("promotionsAdmin.years.success.activated"),
+        message: "",
+      });
+      await loadReferenceData();
+    } catch (error) {
+      showError({
+        title: t("promotionsAdmin.years.errors.activate"),
+        message: extractApiError(error),
+      });
+    } finally {
+      setActivatingYearId(null);
+    }
+  }
+
+  async function triggerRollover() {
+    if (!schoolSlug || !rolloverSourceId || !rolloverTargetId) return;
+    setRollingOver(true);
+    try {
+      await promotionsApi.rolloverSchoolYear(schoolSlug, {
+        sourceSchoolYearId: rolloverSourceId,
+        targetSchoolYearId: rolloverTargetId,
+      });
+      showSuccess({
+        title: t("promotionsAdmin.years.success.rolledOver"),
+        message: "",
+      });
+      await loadReferenceData();
+    } catch (error) {
+      showError({
+        title: t("promotionsAdmin.years.errors.rollover"),
+        message: extractApiError(error),
+      });
+    } finally {
+      setRollingOver(false);
+    }
+  }
+
+  const canManageYears = roleCanManageYears(effectiveRole);
+  const canActivateYear = roleCanActivateYear(effectiveRole);
+
   const classroomOptions = useMemo(
     () =>
       classrooms.map((c) => ({
@@ -280,7 +365,13 @@ export function PromotionsAdminScreen() {
       <UnderlineTabs<SubTab>
         items={[
           { key: "decisions", label: t("promotionsAdmin.tab.decisions") },
-          { key: "waiting", label: t("promotionsAdmin.tab.waiting") },
+          {
+            key: "waiting",
+            label: targetSchoolYearId
+              ? `${t("promotionsAdmin.tab.waiting")} (${waiting.length})`
+              : t("promotionsAdmin.tab.waiting"),
+          },
+          { key: "years", label: t("promotionsAdmin.tab.years") },
         ]}
         activeKey={subTab}
         onSelect={setSubTab}
@@ -294,6 +385,130 @@ export function PromotionsAdminScreen() {
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
         >
+          {schoolYears.length <= 1 ? (
+            <View style={styles.alertBox} testID="promotions-admin-years-alert">
+              <Text style={styles.alertText}>
+                {t("promotionsAdmin.years.alert")}
+              </Text>
+            </View>
+          ) : null}
+
+          {subTab === "years" ? (
+            <>
+              {schoolYears.map((year) => (
+                <View
+                  key={year.id}
+                  style={styles.card}
+                  testID={`school-year-${year.id}`}
+                >
+                  <Text style={styles.cardTitle}>{year.label}</Text>
+                  {year.isActive ? (
+                    <Text style={styles.activeLabel}>
+                      {t("promotionsAdmin.years.active")}
+                    </Text>
+                  ) : canActivateYear ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.submitButton,
+                        activatingYearId === year.id &&
+                          styles.submitButtonDisabled,
+                      ]}
+                      disabled={activatingYearId === year.id}
+                      onPress={() => activateYear(year.id)}
+                      testID={`school-year-${year.id}-activate`}
+                    >
+                      <Text style={styles.submitButtonText}>
+                        {t("promotionsAdmin.years.activate")}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              ))}
+
+              {canManageYears ? (
+                <>
+                  <View style={styles.card}>
+                    <Text style={styles.cardTitle}>
+                      {t("promotionsAdmin.years.create.title")}
+                    </Text>
+                    <View style={styles.field}>
+                      <Text style={styles.fieldLabel}>
+                        {t("promotionsAdmin.years.create.label")}
+                      </Text>
+                      <TextInput
+                        value={newYearLabel}
+                        onChangeText={setNewYearLabel}
+                        style={styles.textInput}
+                        testID="promotions-admin-new-year-label"
+                        placeholder="2026-2027"
+                      />
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.submitButton,
+                        (creatingYear || !newYearLabel.trim()) &&
+                          styles.submitButtonDisabled,
+                      ]}
+                      disabled={creatingYear || !newYearLabel.trim()}
+                      onPress={createYear}
+                      testID="promotions-admin-create-year-submit"
+                    >
+                      <Text style={styles.submitButtonText}>
+                        {t("promotionsAdmin.years.create.submit")}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.card}>
+                    <Text style={styles.cardTitle}>
+                      {t("promotionsAdmin.years.rollover.title")}
+                    </Text>
+                    <View style={styles.field}>
+                      <Text style={styles.fieldLabel}>
+                        {t("promotionsAdmin.years.rollover.source")}
+                      </Text>
+                      <InlineSelectDropDown
+                        options={yearOptions}
+                        value={rolloverSourceId}
+                        onChange={setRolloverSourceId}
+                        testID="promotions-admin-rollover-source"
+                      />
+                    </View>
+                    <View style={styles.field}>
+                      <Text style={styles.fieldLabel}>
+                        {t("promotionsAdmin.years.rollover.target")}
+                      </Text>
+                      <InlineSelectDropDown
+                        options={yearOptions}
+                        value={rolloverTargetId}
+                        onChange={setRolloverTargetId}
+                        testID="promotions-admin-rollover-target"
+                      />
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.submitButton,
+                        (rollingOver ||
+                          !rolloverSourceId ||
+                          !rolloverTargetId) &&
+                          styles.submitButtonDisabled,
+                      ]}
+                      disabled={
+                        rollingOver || !rolloverSourceId || !rolloverTargetId
+                      }
+                      onPress={triggerRollover}
+                      testID="promotions-admin-rollover-submit"
+                    >
+                      <Text style={styles.submitButtonText}>
+                        {t("promotionsAdmin.years.rollover.submit")}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : null}
+            </>
+          ) : null}
+
           {subTab === "decisions" ? (
             <>
               <View style={styles.field}>
@@ -377,7 +592,9 @@ export function PromotionsAdminScreen() {
                 </Text>
               ) : null}
             </>
-          ) : (
+          ) : null}
+
+          {subTab === "waiting" ? (
             <>
               <View style={styles.field}>
                 <Text style={styles.fieldLabel}>
@@ -451,7 +668,7 @@ export function PromotionsAdminScreen() {
                 </Text>
               ) : null}
             </>
-          )}
+          ) : null}
         </ScrollView>
       )}
     </View>
@@ -493,4 +710,23 @@ const styles = StyleSheet.create({
   },
   submitButtonDisabled: { opacity: 0.5 },
   submitButtonText: { fontSize: 13, fontWeight: "700", color: colors.white },
+  alertBox: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    padding: 12,
+  },
+  alertText: { fontSize: 12, color: colors.textSecondary },
+  activeLabel: { fontSize: 12, fontWeight: "700", color: colors.primary },
+  textInput: {
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
 });

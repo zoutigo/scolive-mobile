@@ -10,12 +10,17 @@ import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
 import { testsApi } from "../../api/tests.api";
-import { SelectField } from "../tests-admin/SelectField";
 import type {
   TestCampaignSummary,
   TestExecutionRow,
   TestExecutionStatus,
 } from "../../types/tests.types";
+import {
+  FilterDropdownGroup,
+  FilterToggleGroup,
+  TestsFilterPanel,
+  TestsSearchRow,
+} from "./TestsFilterPanel";
 
 type Props = {
   campaigns: TestCampaignSummary[];
@@ -30,6 +35,12 @@ const STATUS_OPTIONS: TestExecutionStatus[] = [
   "TODO",
 ];
 
+type DraftFilters = {
+  status: TestExecutionStatus | "";
+  campaignId: string;
+  mineOnly: boolean;
+};
+
 export function TestsExecutionsTab({ campaigns }: Props) {
   const { t, locale } = useTranslation();
   const router = useRouter();
@@ -38,6 +49,16 @@ export function TestsExecutionsTab({ campaigns }: Props) {
   const [items, setItems] = useState<TestExecutionRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedMineOnly, setAppliedMineOnly] = useState(() =>
+    campaigns.some((campaign) => campaign.assignedToMe),
+  );
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<DraftFilters>({
+    status,
+    campaignId,
+    mineOnly: appliedMineOnly,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -70,25 +91,21 @@ export function TestsExecutionsTab({ campaigns }: Props) {
   }, [status, campaignId]);
 
   const statusOptions = useMemo(
-    () => [
-      { value: "", label: t("tests.executions.filters.statusAll") },
-      ...STATUS_OPTIONS.map((value) => ({
+    () =>
+      STATUS_OPTIONS.map((value) => ({
         value,
         label: statusLabel(t, value),
       })),
-    ],
     [t],
   );
 
   const campaignOptions = useMemo(
-    () => [
-      { value: "", label: t("tests.executions.filters.campaignAll") },
-      ...campaigns.map((campaign) => ({
+    () =>
+      campaigns.map((campaign) => ({
         value: campaign.id,
         label: campaign.title,
       })),
-    ],
-    [campaigns, t],
+    [campaigns],
   );
 
   function openExecution(executionId: string) {
@@ -98,34 +115,121 @@ export function TestsExecutionsTab({ campaigns }: Props) {
     });
   }
 
+  const assignedCampaignIds = useMemo(
+    () =>
+      new Set(
+        campaigns
+          .filter((campaign) => campaign.assignedToMe)
+          .map((campaign) => campaign.id),
+      ),
+    [campaigns],
+  );
+
+  const searchNormalized = searchInput.trim().toLowerCase();
+  const filteredItems = useMemo(() => {
+    return items.filter((execution) => {
+      if (appliedMineOnly && !assignedCampaignIds.has(execution.campaign.id)) {
+        return false;
+      }
+      if (searchNormalized) {
+        const haystack =
+          `${execution.testCase.title} ${execution.campaign.title}`.toLowerCase();
+        if (!haystack.includes(searchNormalized)) return false;
+      }
+      return true;
+    });
+  }, [items, searchNormalized, appliedMineOnly, assignedCampaignIds]);
+
+  const hasActiveFilters =
+    status !== "" || campaignId !== "" || appliedMineOnly;
+
+  function openFilters() {
+    setDraftFilters({ status, campaignId, mineOnly: appliedMineOnly });
+    setFiltersOpen(true);
+  }
+  function closeFilters() {
+    setDraftFilters({ status, campaignId, mineOnly: appliedMineOnly });
+    setFiltersOpen(false);
+  }
+  function toggleFilters() {
+    if (filtersOpen) closeFilters();
+    else openFilters();
+  }
+  function applyFilters() {
+    setStatus(draftFilters.status);
+    setCampaignId(draftFilters.campaignId);
+    setAppliedMineOnly(draftFilters.mineOnly);
+    setFiltersOpen(false);
+  }
+  function resetFilters() {
+    setDraftFilters({ status: "", campaignId: "", mineOnly: false });
+    setStatus("");
+    setCampaignId("");
+    setAppliedMineOnly(false);
+  }
+
   return (
     <View style={styles.container} testID="tests-executions-tab">
-      <View style={styles.filtersRow}>
-        <View style={styles.filterCol}>
-          <SelectField
-            label={t("tests.executions.filters.status")}
-            value={status}
-            options={statusOptions}
-            onChange={(value) => setStatus(value as TestExecutionStatus | "")}
-            placeholder={t("tests.executions.filters.statusAll")}
-            closeLabel={t("tests.common.cancel")}
-            testIDPrefix="tests-executions-filter-status"
-          />
-        </View>
-        <View style={styles.filterCol}>
-          <SelectField
-            label={t("tests.executions.filters.campaign")}
-            value={campaignId}
-            options={campaignOptions}
-            onChange={setCampaignId}
-            placeholder={t("tests.executions.filters.campaignAll")}
-            closeLabel={t("tests.common.cancel")}
-            testIDPrefix="tests-executions-filter-campaign"
-          />
-        </View>
-      </View>
+      <TestsSearchRow
+        value={searchInput}
+        onChangeText={setSearchInput}
+        placeholder={t("tests.executions.search.placeholder")}
+        accessibilityLabel={t("tests.executions.search.accessibilityLabel")}
+        clearAccessibilityLabel={t(
+          "tests.executions.search.clearAccessibilityLabel",
+        )}
+        filtersActive={hasActiveFilters}
+        onToggleFilters={toggleFilters}
+        toggleAccessibilityLabel={t("tests.filters.toggleAccessibilityLabel")}
+        testIDPrefix="tests-executions"
+      />
 
-      {isLoading ? (
+      <TestsFilterPanel
+        visible={filtersOpen}
+        titleLabel={t("tests.filters.panelTitle")}
+        resetLabel={t("tests.filters.reset")}
+        closeLabel={t("tests.filters.close")}
+        applyLabel={t("tests.filters.apply")}
+        onReset={resetFilters}
+        onClose={closeFilters}
+        onApply={applyFilters}
+        testIDPrefix="tests-executions"
+      >
+        <FilterDropdownGroup
+          label={t("tests.executions.filters.status")}
+          allLabel={t("tests.executions.filters.statusAll")}
+          options={statusOptions}
+          value={draftFilters.status || null}
+          onChange={(value) =>
+            setDraftFilters((current) => ({ ...current, status: value ?? "" }))
+          }
+          testID="tests-executions-filter-status"
+        />
+        <FilterDropdownGroup
+          label={t("tests.executions.filters.campaign")}
+          allLabel={t("tests.executions.filters.campaignAll")}
+          options={campaignOptions}
+          value={draftFilters.campaignId || null}
+          onChange={(value) =>
+            setDraftFilters((current) => ({
+              ...current,
+              campaignId: value ?? "",
+            }))
+          }
+          testID="tests-executions-filter-campaign"
+        />
+        <FilterToggleGroup
+          label={t("tests.executions.filters.mineAccessibilityLabel")}
+          activeLabel={t("tests.filters.mineOnlyLabel")}
+          value={draftFilters.mineOnly}
+          onChange={(value) =>
+            setDraftFilters((current) => ({ ...current, mineOnly: value }))
+          }
+          testIDPrefix="tests-executions-filter-mine"
+        />
+      </TestsFilterPanel>
+
+      {filtersOpen ? null : isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -140,9 +244,18 @@ export function TestsExecutionsTab({ campaigns }: Props) {
             {t("tests.executions.emptyMessage")}
           </Text>
         </View>
+      ) : filteredItems.length === 0 ? (
+        <View style={styles.empty} testID="tests-executions-no-results">
+          <Text style={styles.emptyTitle}>
+            {t("tests.executions.emptySearchTitle")}
+          </Text>
+          <Text style={styles.emptyBody}>
+            {t("tests.executions.emptySearchMessage")}
+          </Text>
+        </View>
       ) : (
         <View style={styles.list}>
-          {items.map((execution) => (
+          {filteredItems.map((execution) => (
             <TouchableOpacity
               key={execution.id}
               style={styles.card}
@@ -236,8 +349,6 @@ function formatDateTime(value: string, locale: "fr" | "en") {
 
 const styles = StyleSheet.create({
   container: { gap: 14 },
-  filtersRow: { flexDirection: "row", gap: 12 },
-  filterCol: { flex: 1 },
   center: { paddingVertical: 40, alignItems: "center" },
   errorText: { fontSize: 14, color: colors.notification },
   empty: { paddingVertical: 40, alignItems: "center", gap: 6 },

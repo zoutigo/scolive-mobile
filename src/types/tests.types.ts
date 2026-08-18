@@ -16,6 +16,7 @@ export type TestCampaignSummary = {
   startsAt: string | null;
   dueAt: string | null;
   status: TestCampaignStatus;
+  assignedToMe: boolean;
   summary: {
     totalCases: number;
     completedCases: number;

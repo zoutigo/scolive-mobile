@@ -490,3 +490,34 @@ describe("siteContentAdmin.* and onboardingTour.siteContent.* translations", () 
     }
   });
 });
+
+describe("tests module tour steps and help modal content in both locales", () => {
+  it("has the tests tour steps and help modal sections", () => {
+    const requiredKeys = [
+      "onboardingTour.tests.step1Title",
+      "onboardingTour.tests.step1Body",
+      "onboardingTour.tests.step2Title",
+      "onboardingTour.tests.step2Body",
+      "onboardingTour.tests.step3Title",
+      "onboardingTour.tests.step3Body",
+      "tests.tourFallback.title",
+      "tests.tourFallback.description",
+      "tests.help.menuLabel",
+      "tests.help.close",
+      "tests.help.title",
+      "tests.help.section1Title",
+      "tests.help.section1Body",
+      "tests.help.section2Title",
+      "tests.help.section2Body",
+      "tests.help.section3Title",
+      "tests.help.section3Body",
+      "tests.help.section4Title",
+      "tests.help.section4Body",
+    ];
+
+    for (const key of requiredKeys) {
+      expect(translations.fr[key]).toBeTruthy();
+      expect(translations.en[key]).toBeTruthy();
+    }
+  });
+});

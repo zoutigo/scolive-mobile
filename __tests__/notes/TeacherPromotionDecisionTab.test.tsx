@@ -170,6 +170,56 @@ describe("TeacherPromotionDecisionTab", () => {
     expect(screen.getByTestId("decision-card-report-1-save")).toBeDisabled();
   });
 
+  it("ouvre le bulletin du trimestre tape via onOpenBulletin", async () => {
+    const onOpenBulletin = jest.fn();
+    render(
+      <TeacherPromotionDecisionTab
+        schoolSlug="college-vogt"
+        classId="class-6eb"
+        bottomInset={0}
+        onOpenBulletin={onOpenBulletin}
+      />,
+    );
+
+    fireEvent.press(await screen.findByTestId("decision-card-report-1-toggle"));
+    fireEvent.press(screen.getByTestId("decision-card-report-1-open-TERM_2"));
+
+    expect(onOpenBulletin).toHaveBeenCalledWith("student-1", "TERM_2");
+  });
+
+  it("ouvre le bulletin annuel via la cellule Moyenne annuelle", async () => {
+    const onOpenBulletin = jest.fn();
+    render(
+      <TeacherPromotionDecisionTab
+        schoolSlug="college-vogt"
+        classId="class-6eb"
+        bottomInset={0}
+        onOpenBulletin={onOpenBulletin}
+      />,
+    );
+
+    fireEvent.press(await screen.findByTestId("decision-card-report-1-toggle"));
+    fireEvent.press(screen.getByTestId("decision-card-report-1-open-YEARLY"));
+
+    expect(onOpenBulletin).toHaveBeenCalledWith("student-1", "YEARLY");
+  });
+
+  it("les cellules de synthese restent inertes sans onOpenBulletin fourni", async () => {
+    render(
+      <TeacherPromotionDecisionTab
+        schoolSlug="college-vogt"
+        classId="class-6eb"
+        bottomInset={0}
+      />,
+    );
+
+    fireEvent.press(await screen.findByTestId("decision-card-report-1-toggle"));
+
+    expect(
+      screen.getByTestId("decision-card-report-1-open-TERM_1"),
+    ).toBeDisabled();
+  });
+
   it("affiche un etat vide quand aucun bulletin de decision n'est disponible", async () => {
     promotionsApiMock.listTermReportsForDecision.mockResolvedValue([]);
     render(

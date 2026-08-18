@@ -1,25 +1,31 @@
-import React, { useMemo } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import React, { useMemo, useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
+import { OnboardingTarget } from "../onboarding/OnboardingTarget";
+import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import type { TestCampaignSummary } from "../../types/tests.types";
 import {
   type CampaignDisplayStatus,
   getCampaignDisplayStatus,
   sortCampaignsByDisplayStatus,
 } from "./testCampaignStatus";
+import {
+  TESTS_TOUR_FALLBACK_CAMPAIGN_ID,
+  TESTS_TOUR_ID,
+  TESTS_TOUR_TARGETS,
+} from "./tests-tour.config";
+import {
+  FilterChipsGroup,
+  FilterToggleGroup,
+  TestsFilterPanel,
+  TestsSearchRow,
+} from "./TestsFilterPanel";
 
 export type TestsCampaignsFilter = "ALL" | CampaignDisplayStatus;
 export const ALL_CAMPAIGNS_FILTER: TestsCampaignsFilter = "ALL";
-
-type FilterKey = TestsCampaignsFilter;
 
 const STATUS_PALETTE: Record<
   CampaignDisplayStatus,
@@ -29,6 +35,8 @@ const STATUS_PALETTE: Record<
   UPCOMING: { accent: colors.warmAccent, bg: "#FFF3DD", text: "#9A6700" },
   COMPLETED: { accent: "#9C958B", bg: "#F1ECE7", text: colors.textSecondary },
 };
+
+type DraftFilters = { status: TestsCampaignsFilter; mineOnly: boolean };
 
 interface Props {
   campaigns: TestCampaignSummary[];
@@ -44,110 +52,292 @@ export function TestsCampaignsTab({
   const { t, locale } = useTranslation();
   const router = useRouter();
 
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedMineOnly, setAppliedMineOnly] = useState(() =>
+    campaigns.some((campaign) => campaign.assignedToMe),
+  );
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<DraftFilters>({
+    status: filter,
+    mineOnly: appliedMineOnly,
+  });
+
+  const currentTourTargetKey = useOnboardingTourStore((state) =>
+    state.activeTourId === TESTS_TOUR_ID
+      ? state.steps[state.stepIndex]?.targetKey
+      : undefined,
+  );
+  const isCampaignActionTourStep =
+    currentTourTargetKey === TESTS_TOUR_TARGETS.campaignAction;
+
+  const fallbackCampaign: TestCampaignSummary = useMemo(
+    () => ({
+      id: TESTS_TOUR_FALLBACK_CAMPAIGN_ID,
+      title: t("tests.tourFallback.title"),
+      description: t("tests.tourFallback.description"),
+      targetVersion: null,
+      startsAt: null,
+      dueAt: null,
+      status: "ACTIVE",
+      assignedToMe: true,
+      summary: { totalCases: 5, completedCases: 0, totalExecutions: 0 },
+    }),
+    [t],
+  );
+
   const sorted = useMemo(
     () => sortCampaignsByDisplayStatus(campaigns),
     [campaigns],
   );
 
-  const filtered = useMemo(() => {
-    if (filter === "ALL") return sorted;
-    return sorted.filter(
-      (campaign) => getCampaignDisplayStatus(campaign) === filter,
-    );
-  }, [filter, sorted]);
+  const searchNormalized = searchInput.trim().toLowerCase();
+  const hasActiveFilters = filter !== "ALL" || appliedMineOnly;
 
-  const filters: Array<{ key: FilterKey; label: string }> = [
-    { key: "ALL", label: t("tests.campaigns.filters.all") },
-    { key: "IN_PROGRESS", label: t("tests.campaigns.filters.inProgress") },
-    { key: "UPCOMING", label: t("tests.campaigns.filters.upcoming") },
-    { key: "COMPLETED", label: t("tests.campaigns.filters.completed") },
+  const filtered = useMemo(() => {
+    if (isCampaignActionTourStep) return [fallbackCampaign];
+    return sorted.filter((campaign) => {
+      if (filter !== "ALL" && getCampaignDisplayStatus(campaign) !== filter) {
+        return false;
+      }
+      if (appliedMineOnly && !campaign.assignedToMe) {
+        return false;
+      }
+      if (searchNormalized) {
+        const haystack =
+          `${campaign.title} ${campaign.description ?? ""}`.toLowerCase();
+        if (!haystack.includes(searchNormalized)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [
+    sorted,
+    filter,
+    appliedMineOnly,
+    searchNormalized,
+    isCampaignActionTourStep,
+    fallbackCampaign,
+  ]);
+
+  function openFilters() {
+    setDraftFilters({ status: filter, mineOnly: appliedMineOnly });
+    setFiltersOpen(true);
+  }
+  function closeFilters() {
+    setDraftFilters({ status: filter, mineOnly: appliedMineOnly });
+    setFiltersOpen(false);
+  }
+  function toggleFilters() {
+    if (filtersOpen) closeFilters();
+    else openFilters();
+  }
+  function applyFilters() {
+    onFilterChange(draftFilters.status);
+    setAppliedMineOnly(draftFilters.mineOnly);
+    setFiltersOpen(false);
+  }
+  function resetFilters() {
+    setDraftFilters({ status: ALL_CAMPAIGNS_FILTER, mineOnly: false });
+    onFilterChange(ALL_CAMPAIGNS_FILTER);
+    setAppliedMineOnly(false);
+  }
+
+  function resetSearchAndFilters() {
+    setSearchInput("");
+    resetFilters();
+  }
+
+  function goToCampaign(campaignId: string) {
+    if (campaignId === TESTS_TOUR_FALLBACK_CAMPAIGN_ID) return;
+    router.push({
+      pathname: "/(home)/tests/[campaignId]",
+      params: { campaignId },
+    });
+  }
+
+  const statusOptions: Array<{
+    value: CampaignDisplayStatus;
+    label: string;
+  }> = [
+    { value: "IN_PROGRESS", label: t("tests.campaigns.filters.inProgress") },
+    { value: "UPCOMING", label: t("tests.campaigns.filters.upcoming") },
+    { value: "COMPLETED", label: t("tests.campaigns.filters.completed") },
   ];
+
+  if (campaigns.length === 0 && !isCampaignActionTourStep) {
+    return (
+      <View style={styles.empty} testID="tests-campaigns-tab">
+        <Ionicons
+          name="clipboard-outline"
+          size={42}
+          color={colors.warmBorder}
+        />
+        <Text style={styles.emptyTitle}>{t("tests.campaigns.emptyTitle")}</Text>
+        <Text style={styles.emptyBody}>
+          {t("tests.campaigns.emptyMessage")}
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container} testID="tests-campaigns-tab">
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-      >
-        {filters.map((entry) => {
-          const isActive = entry.key === filter;
-          return (
-            <TouchableOpacity
-              key={entry.key}
-              style={[styles.filterChip, isActive && styles.filterChipActive]}
-              onPress={() => onFilterChange(entry.key)}
-              testID={`tests-campaigns-filter-${entry.key}`}
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  isActive && styles.filterChipTextActive,
-                ]}
-              >
-                {entry.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      <TestsSearchRow
+        value={searchInput}
+        onChangeText={setSearchInput}
+        placeholder={t("tests.campaigns.search.placeholder")}
+        accessibilityLabel={t("tests.campaigns.search.accessibilityLabel")}
+        clearAccessibilityLabel={t(
+          "tests.campaigns.search.clearAccessibilityLabel",
+        )}
+        filtersActive={hasActiveFilters}
+        onToggleFilters={toggleFilters}
+        toggleAccessibilityLabel={t("tests.filters.toggleAccessibilityLabel")}
+        testIDPrefix="tests-campaigns"
+      />
 
-      <View style={styles.list}>
-        {filtered.map((campaign) => {
-          const status = getCampaignDisplayStatus(campaign);
-          const palette = STATUS_PALETTE[status];
-          return (
-            <TouchableOpacity
-              key={campaign.id}
-              style={[styles.card, { borderLeftColor: palette.accent }]}
-              onPress={() =>
-                router.push({
-                  pathname: "/(home)/tests/[campaignId]",
-                  params: { campaignId: campaign.id },
-                })
-              }
-              testID={`test-campaign-card-${campaign.id}`}
-            >
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>{campaign.title}</Text>
-                <View
-                  style={[styles.statusPill, { backgroundColor: palette.bg }]}
-                >
-                  <Text
-                    style={[styles.statusPillText, { color: palette.text }]}
+      <TestsFilterPanel
+        visible={filtersOpen}
+        titleLabel={t("tests.filters.panelTitle")}
+        resetLabel={t("tests.filters.reset")}
+        closeLabel={t("tests.filters.close")}
+        applyLabel={t("tests.filters.apply")}
+        onReset={resetFilters}
+        onClose={closeFilters}
+        onApply={applyFilters}
+        testIDPrefix="tests-campaigns"
+      >
+        <FilterChipsGroup
+          label={t("tests.campaigns.filters.statusLabel")}
+          allLabel={t("tests.campaigns.filters.all")}
+          options={statusOptions}
+          value={draftFilters.status === "ALL" ? null : draftFilters.status}
+          onChange={(value) =>
+            setDraftFilters((current) => ({
+              ...current,
+              status: value ?? "ALL",
+            }))
+          }
+          testIDPrefix="tests-campaigns-filter-status"
+        />
+        <FilterToggleGroup
+          label={t("tests.campaigns.filters.mineAccessibilityLabel")}
+          activeLabel={t("tests.filters.mineOnlyLabel")}
+          value={draftFilters.mineOnly}
+          onChange={(value) =>
+            setDraftFilters((current) => ({ ...current, mineOnly: value }))
+          }
+          testIDPrefix="tests-campaigns-filter-mine"
+        />
+      </TestsFilterPanel>
+
+      {filtersOpen ? null : filtered.length === 0 ? (
+        <View style={styles.emptySearch} testID="tests-campaigns-no-results">
+          <Ionicons name="search-outline" size={32} color={colors.warmBorder} />
+          <Text style={styles.emptyTitle}>
+            {t("tests.campaigns.emptySearchTitle")}
+          </Text>
+          <Text style={styles.emptyBody}>
+            {t("tests.campaigns.emptySearchMessage")}
+          </Text>
+          <TouchableOpacity
+            style={styles.resetSearchButton}
+            onPress={resetSearchAndFilters}
+            testID="tests-campaigns-reset-search"
+          >
+            <Text style={styles.resetSearchButtonText}>
+              {t("tests.campaigns.filters.resetSearch")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.list}>
+          {filtered.map((campaign) => {
+            const status = getCampaignDisplayStatus(campaign);
+            const palette = STATUS_PALETTE[status];
+            const hasStarted = campaign.summary.completedCases > 0;
+            return (
+              <TouchableOpacity
+                key={campaign.id}
+                style={[styles.card, { borderLeftColor: palette.accent }]}
+                onPress={() => goToCampaign(campaign.id)}
+                testID={`test-campaign-card-${campaign.id}`}
+              >
+                <View style={styles.cardHeader}>
+                  <Text style={styles.cardTitle}>{campaign.title}</Text>
+                  <View
+                    style={[styles.statusPill, { backgroundColor: palette.bg }]}
                   >
-                    {t(`tests.campaigns.status.${statusKey(status)}`)}
-                  </Text>
+                    <Text
+                      style={[styles.statusPillText, { color: palette.text }]}
+                    >
+                      {t(`tests.campaigns.status.${statusKey(status)}`)}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-              {campaign.description ? (
-                <Text style={styles.cardBody}>{campaign.description}</Text>
-              ) : null}
-              <View style={styles.metaRow}>
-                <LabelPill
-                  text={t("tests.campaigns.totalCases").replace(
-                    "{count}",
-                    String(campaign.summary.totalCases),
-                  )}
-                />
-                <LabelPill
-                  text={t("tests.campaigns.progressLabel")
-                    .replace("{done}", String(campaign.summary.completedCases))
-                    .replace("{total}", String(campaign.summary.totalCases))}
-                />
-                {campaign.dueAt ? (
-                  <LabelPill
-                    text={t("tests.campaigns.dueLabel").replace(
-                      "{date}",
-                      formatDate(campaign.dueAt, locale),
-                    )}
-                  />
+                {campaign.description ? (
+                  <Text style={styles.cardBody} numberOfLines={2}>
+                    {campaign.description}
+                  </Text>
                 ) : null}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+                <View style={styles.footerRow}>
+                  <View style={styles.metaCompact}>
+                    <Text style={styles.metaCompactText}>
+                      {t("tests.campaigns.progressCompact")
+                        .replace(
+                          "{done}",
+                          String(campaign.summary.completedCases),
+                        )
+                        .replace(
+                          "{total}",
+                          String(campaign.summary.totalCases),
+                        )}
+                    </Text>
+                    {campaign.dueAt ? (
+                      <Text style={styles.metaCompactText}>
+                        {t("tests.campaigns.dueLabel").replace(
+                          "{date}",
+                          formatDate(campaign.dueAt, locale),
+                        )}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {(() => {
+                    const actionButton = (
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => goToCampaign(campaign.id)}
+                        testID={`test-campaign-action-${campaign.id}`}
+                      >
+                        <Ionicons
+                          name={hasStarted ? "eye-outline" : "play"}
+                          size={14}
+                          color={colors.white}
+                        />
+                        <Text style={styles.actionButtonText}>
+                          {t(
+                            hasStarted
+                              ? "tests.campaigns.actions.review"
+                              : "tests.campaigns.actions.start",
+                          )}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                    return campaign.id === TESTS_TOUR_FALLBACK_CAMPAIGN_ID ? (
+                      <OnboardingTarget id={TESTS_TOUR_TARGETS.campaignAction}>
+                        {actionButton}
+                      </OnboardingTarget>
+                    ) : (
+                      actionButton
+                    );
+                  })()}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 }
@@ -163,14 +353,6 @@ function statusKey(status: CampaignDisplayStatus) {
   }
 }
 
-function LabelPill({ text }: { text: string }) {
-  return (
-    <View style={styles.pill}>
-      <Text style={styles.pillText}>{text}</Text>
-    </View>
-  );
-}
-
 function formatDate(value: string, locale: "fr" | "en") {
   return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "fr-FR", {
     day: "2-digit",
@@ -181,24 +363,6 @@ function formatDate(value: string, locale: "fr" | "en") {
 
 const styles = StyleSheet.create({
   container: { gap: 14 },
-  filterRow: { gap: 8, paddingRight: 8 },
-  filterChip: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#D9CBBF",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  filterChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  filterChipText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  filterChipTextActive: { color: colors.white },
   list: { gap: 12 },
   card: {
     borderRadius: 16,
@@ -232,20 +396,69 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.textSecondary,
   },
-  metaRow: {
+  footerRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  metaCompact: { flex: 1, gap: 2 },
+  metaCompactText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.primary,
+    borderRadius: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  actionButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.white,
+  },
+  empty: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 28,
+    paddingTop: 60,
+    gap: 10,
+  },
+  emptySearch: {
+    alignItems: "center",
+    paddingVertical: 32,
+    paddingHorizontal: 20,
     gap: 8,
   },
-  pill: {
-    borderRadius: 999,
-    backgroundColor: "#F4E9DE",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: colors.textPrimary,
+    textAlign: "center",
   },
-  pillText: {
-    fontSize: 12,
-    color: colors.primary,
-    fontWeight: "600",
+  emptyBody: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: colors.textSecondary,
+    textAlign: "center",
+  },
+  resetSearchButton: {
+    marginTop: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.accentTeal,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  resetSearchButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.accentTeal,
   },
 });

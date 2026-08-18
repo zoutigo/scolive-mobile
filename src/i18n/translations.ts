@@ -63,6 +63,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "promotionsAdmin.title": "Passages de classe",
     "promotionsAdmin.tab.decisions": "Décisions",
     "promotionsAdmin.tab.waiting": "Attente",
+    "promotionsAdmin.tab.years": "Années",
     "promotionsAdmin.decisions.selectClass": "Classe (année en cours)",
     "promotionsAdmin.decisions.empty":
       "Aucun bulletin du dernier trimestre pour cette classe.",
@@ -88,6 +89,25 @@ export const translations: Record<Locale, Record<string, string>> = {
     "promotionsAdmin.waiting.assign": "Affecter",
     "promotionsAdmin.waiting.empty":
       "Aucun élève en attente d'affectation pour ces filtres.",
+    "promotionsAdmin.years.alert":
+      "Aucune année scolaire suivante n'existe encore pour cette école. Créez-la pour permettre les réinscriptions, même sans l'activer tout de suite.",
+    "promotionsAdmin.years.active": "Active",
+    "promotionsAdmin.years.activate": "Rendre active",
+    "promotionsAdmin.years.create.title": "Créer une année scolaire",
+    "promotionsAdmin.years.create.label": "Libellé (ex: 2026-2027)",
+    "promotionsAdmin.years.create.submit": "Créer",
+    "promotionsAdmin.years.rollover.title": "Dupliquer les classes",
+    "promotionsAdmin.years.rollover.source": "Année source",
+    "promotionsAdmin.years.rollover.target": "Année cible",
+    "promotionsAdmin.years.rollover.submit": "Dupliquer les classes",
+    "promotionsAdmin.years.success.created": "Année scolaire créée.",
+    "promotionsAdmin.years.success.activated": "Année scolaire activée.",
+    "promotionsAdmin.years.success.rolledOver": "Classes dupliquées.",
+    "promotionsAdmin.years.errors.create":
+      "Création de l'année scolaire impossible.",
+    "promotionsAdmin.years.errors.activate": "Activation impossible.",
+    "promotionsAdmin.years.errors.rollover":
+      "Duplication des classes impossible.",
 
     "schoolSettings.title": "Paramètres de l'école",
     "schoolSettings.tabs.levels": "Niveaux",
@@ -228,6 +248,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "finSituation.children.empty": "Aucun enfant rattache a votre compte.",
     "finSituation.children.status.DECISION_PENDING":
       "En attente de la decision du conseil de classe",
+    "finSituation.children.status.NEXT_YEAR_NOT_OPEN":
+      "Decision prise, en attente de l'ouverture de l'annee scolaire suivante par l'ecole",
     "finSituation.children.status.ALREADY_REINSCRIBED": "Deja reinscrit(e)",
     "finSituation.children.status.READY_TO_REINSCRIBE":
       "Pret(e) a etre reinscrit(e)",
@@ -243,6 +265,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.childTimetable.step4Title": "Une aide toujours disponible",
     "onboardingTour.childTimetable.step4Body":
       "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel sur l'utilisation de cette page.",
+    "onboardingTour.tests.step1Title": "Repérez les onglets",
+    "onboardingTour.tests.step1Body":
+      "« Campagnes » liste les tests à réaliser, « Tests faits » garde l'historique de vos résultats, et « À refaire » regroupe les tests qu'un administrateur vous demande de reprendre.",
+    "onboardingTour.tests.step2Title": "Démarrez un test",
+    "onboardingTour.tests.step2Body":
+      "Dans une campagne, touchez le bouton Démarrer (ou Consulter si vous l'avez déjà fait) pour ouvrir le premier cas de test et enregistrer votre résultat.",
+    "onboardingTour.tests.step3Title": "Une aide toujours disponible",
+    "onboardingTour.tests.step3Body":
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour retrouver ce rappel sur l'utilisation du module.",
     "onboardingTour.schoolSettings.step1Title": "Onglet Niveaux",
     "onboardingTour.schoolSettings.step1Body":
       "Cet onglet regroupe les niveaux académiques utilisés par votre école. D'autres réglages viendront s'y ajouter au fil du temps.",
@@ -1873,6 +1904,43 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.campaigns.dueLabel": "Échéance {date}",
     "tests.campaigns.targetVersion": "Version cible {version}",
     "tests.campaigns.progressLabel": "{done} tests réalisés sur {total}",
+    "tests.campaigns.progressCompact": "{done}/{total} testés",
+    "tests.campaigns.search.placeholder": "Rechercher une campagne",
+    "tests.campaigns.search.accessibilityLabel": "Rechercher une campagne",
+    "tests.campaigns.search.clearAccessibilityLabel": "Effacer la recherche",
+    "tests.campaigns.filters.mineAccessibilityLabel":
+      "Afficher uniquement mes campagnes assignées",
+    "tests.campaigns.filters.resetSearch": "Réinitialiser",
+    "tests.campaigns.filters.statusLabel": "Statut",
+    "tests.filters.panelTitle": "Filtres",
+    "tests.filters.toggleAccessibilityLabel": "Filtres",
+    "tests.filters.reset": "Réinitialiser",
+    "tests.filters.close": "Fermer",
+    "tests.filters.apply": "Appliquer",
+    "tests.filters.mineOnlyLabel": "Mes campagnes uniquement",
+    "tests.campaigns.emptySearchTitle": "Aucun résultat",
+    "tests.campaigns.emptySearchMessage":
+      "Aucune campagne ne correspond à votre recherche ou vos filtres.",
+    "tests.campaigns.actions.start": "Démarrer",
+    "tests.campaigns.actions.review": "Consulter",
+    "tests.tourFallback.title": "Exemple de campagne",
+    "tests.tourFallback.description":
+      "Ceci est un exemple affiché uniquement pendant la visite guidée.",
+    "tests.help.menuLabel": "Aide",
+    "tests.help.close": "Fermer",
+    "tests.help.title": "Aide — Tests",
+    "tests.help.section1Title": "Résumé",
+    "tests.help.section1Body":
+      "Cet onglet donne une vue d'ensemble : nombre de campagnes, campagnes en cours/à venir/terminées, nombre total de cas de test et de tests restants. La carte « À faire aujourd'hui » met en avant la campagne la plus urgente (échéance la plus proche) qu'il vous reste à terminer, avec un bouton pour la démarrer directement. Toucher une carte de statistique (Campagnes, En cours, etc.) ouvre directement l'onglet Campagnes filtré sur ce statut.",
+    "tests.help.section2Title": "Campagnes",
+    "tests.help.section2Body":
+      "Une campagne regroupe plusieurs cas de test à réaliser. Utilisez la barre de recherche pour retrouver une campagne par son titre ou sa description, et le bouton en forme d'entonnoir à droite pour ouvrir le panneau de filtres (statut All/In progress/Upcoming/Completed, et affichage limité à vos campagnes assignées — ce dernier filtre est activé par défaut si des campagnes vous ont été assignées). Chaque carte affiche votre progression au format {done}/{total} et l'échéance si elle existe. Touchez la carte, ou le bouton Démarrer/Consulter, pour ouvrir la campagne : le bouton affiche Démarrer tant qu'aucun test n'a été terminé, puis Consulter une fois qu'au moins un cas a été soumis. Dans une campagne, chaque cas de test a lui aussi son bouton Démarrer/Consulter ; une fois dessus, touchez « Voir la spec du test » pour déplier l'objectif, les prérequis, le résultat attendu et les étapes (repliés par défaut), puis le bouton « Saisir le résultat du test » en bas de l'écran pour enregistrer votre résultat.",
+    "tests.help.section3Title": "Tests faits",
+    "tests.help.section3Body":
+      "Retrouvez ici l'historique de vos résultats déjà soumis (réussi, échoué, bloqué, ignoré...). Recherchez un test par son titre ou celui de sa campagne, et touchez le bouton entonnoir pour filtrer par statut, par campagne, ou pour limiter l'affichage à vos campagnes assignées. Touchez un résultat pour en voir le détail (commentaire, captures, appareil utilisé).",
+    "tests.help.section4Title": "À refaire",
+    "tests.help.section4Body":
+      "Un administrateur peut vous demander de reprendre un test après examen de votre résultat (avec une note explicative). Cet onglet regroupe ces demandes de reprise. Recherchez ou utilisez le bouton entonnoir pour filtrer par campagne ou limiter l'affichage à vos campagnes assignées. Touchez une carte pour ouvrir le cas de test et soumettre un nouveau résultat.",
     "tests.cases.subtitle": "Liste des tests",
     "tests.cases.executionCount": "{count} résultats",
     "tests.detail.subtitle": "Détail du test",
@@ -1908,7 +1976,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.detail.attachments.image": "Image",
     "tests.detail.attachments.file": "Fichier",
     "tests.detail.heroSubtitle": "Renseignez le statut et les détails du test",
-    "tests.detail.fabAdd": "Saisir un résultat",
+    "tests.detail.viewSpecToggle": "Voir la spec du test",
+    "tests.detail.hideSpecToggle": "Masquer la spec du test",
+    "tests.detail.statusPlaceholder": "Sélectionnez le statut du test",
+    "tests.detail.validation.statusRequired":
+      "Sélectionnez un statut avant d'enregistrer.",
+    "tests.detail.fabAdd": "Saisir le résultat du test",
     "tests.detail.viewResults": "Voir les résultats",
     "tests.detail.formModalTitle": "Soumettre mon résultat",
     "tests.detail.toastSuccessTitle": "Résultat enregistré",
@@ -1928,6 +2001,16 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.toRedo.emptyTitle": "Aucun test à refaire",
     "tests.toRedo.emptyMessage":
       "Les tests qu'un administrateur vous demande de refaire apparaîtront ici.",
+    "tests.toRedo.search.placeholder": "Rechercher un test",
+    "tests.toRedo.search.accessibilityLabel": "Rechercher un test",
+    "tests.toRedo.search.clearAccessibilityLabel": "Effacer la recherche",
+    "tests.toRedo.filters.campaign": "Campagne",
+    "tests.toRedo.filters.campaignAll": "Toutes campagnes",
+    "tests.toRedo.filters.mineAccessibilityLabel":
+      "Afficher uniquement mes campagnes assignées",
+    "tests.toRedo.emptySearchTitle": "Aucun résultat",
+    "tests.toRedo.emptySearchMessage":
+      "Aucun test à refaire ne correspond à votre recherche ou vos filtres.",
     "tests.toRedo.cardCampaign": "Campagne : {title}",
     "tests.toRedo.requestedOn": "Reprise demandée le {date}",
 
@@ -1944,6 +2027,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.executions.emptyTitle": "Aucun test réalisé",
     "tests.executions.emptyMessage":
       "Vos résultats de test apparaîtront ici une fois soumis.",
+    "tests.executions.search.placeholder": "Rechercher un test",
+    "tests.executions.search.accessibilityLabel": "Rechercher un test",
+    "tests.executions.search.clearAccessibilityLabel": "Effacer la recherche",
+    "tests.executions.emptySearchTitle": "Aucun résultat",
+    "tests.executions.emptySearchMessage":
+      "Aucun test réalisé ne correspond à votre recherche.",
+    "tests.executions.filters.mineAccessibilityLabel":
+      "Afficher uniquement mes campagnes assignées",
     "tests.executions.cardCampaign": "Campagne : {title}",
     "tests.executions.detail.subtitle": "Détail du résultat",
     "tests.executions.detail.resultLabel": "Résultat",
@@ -1973,9 +2064,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.summary.kpi.totalCases": "Cas de test",
     "tests.summary.kpi.myExecutions": "Mes résultats",
     "tests.summary.kpi.pending": "Tests restants",
+    "tests.summary.kpi.mineCaption": "dont {count} pour moi",
     "tests.summary.highlight.title": "À faire aujourd'hui",
     "tests.summary.highlight.campaignBadge": "Campagne",
-    "tests.summary.highlight.cta": "Ouvrir le test",
+    "tests.summary.highlight.cta": "Faire la campagne",
     "tests.summary.highlight.empty":
       "Tous les tests visibles sont à jour. Bravo !",
     "tests.summary.emptyTitle": "Aucune campagne active",
@@ -2557,6 +2649,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.reports.detail.appreciationPlaceholder": "Saisir une appréciation…",
     "notes.reports.detail.appreciationRequired":
       "L'appréciation ne peut pas être vide.",
+    "notes.reports.yearly.councilLabel":
+      "Synthèse annuelle — moyenne des trimestres disponibles",
 
     "notes.child.tabs.notes": "Notes",
     "notes.child.tabs.reports": "Bulletins",
@@ -2564,6 +2658,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.terms.term1": "Trimestre 1",
     "notes.terms.term2": "Trimestre 2",
     "notes.terms.term3": "Trimestre 3",
+    "notes.terms.yearly": "Année",
     "notes.sequences.seq1": "T1 — Séquence 1",
     "notes.sequences.seq2": "T1 — Séquence 2 (examen)",
     "notes.sequences.seq3": "T2 — Séquence 3",
@@ -3905,6 +4000,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "promotionsAdmin.title": "Grade promotion",
     "promotionsAdmin.tab.decisions": "Decisions",
     "promotionsAdmin.tab.waiting": "Waiting",
+    "promotionsAdmin.tab.years": "Years",
     "promotionsAdmin.decisions.selectClass": "Class (current year)",
     "promotionsAdmin.decisions.empty":
       "No last-term report card for this class.",
@@ -3927,6 +4023,23 @@ export const translations: Record<Locale, Record<string, string>> = {
     "promotionsAdmin.waiting.assign": "Assign",
     "promotionsAdmin.waiting.empty":
       "No student waiting for assignment with these filters.",
+    "promotionsAdmin.years.alert":
+      "No next school year exists yet for this school. Create it to allow re-enrollments, even without activating it right away.",
+    "promotionsAdmin.years.active": "Active",
+    "promotionsAdmin.years.activate": "Set as active",
+    "promotionsAdmin.years.create.title": "Create a school year",
+    "promotionsAdmin.years.create.label": "Label (e.g. 2026-2027)",
+    "promotionsAdmin.years.create.submit": "Create",
+    "promotionsAdmin.years.rollover.title": "Duplicate classes",
+    "promotionsAdmin.years.rollover.source": "Source year",
+    "promotionsAdmin.years.rollover.target": "Target year",
+    "promotionsAdmin.years.rollover.submit": "Duplicate classes",
+    "promotionsAdmin.years.success.created": "School year created.",
+    "promotionsAdmin.years.success.activated": "School year activated.",
+    "promotionsAdmin.years.success.rolledOver": "Classes duplicated.",
+    "promotionsAdmin.years.errors.create": "Unable to create the school year.",
+    "promotionsAdmin.years.errors.activate": "Unable to activate.",
+    "promotionsAdmin.years.errors.rollover": "Unable to duplicate classes.",
 
     "schoolSettings.title": "School settings",
     "schoolSettings.tabs.levels": "Levels",
@@ -4064,6 +4177,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "finSituation.children.empty": "No child linked to your account.",
     "finSituation.children.status.DECISION_PENDING":
       "Waiting on the class council decision",
+    "finSituation.children.status.NEXT_YEAR_NOT_OPEN":
+      "Decision made, waiting for the school to open next school year",
     "finSituation.children.status.ALREADY_REINSCRIBED": "Already re-enrolled",
     "finSituation.children.status.READY_TO_REINSCRIBE": "Ready to re-enroll",
     "onboardingTour.childTimetable.step1Title": "Switch views",
@@ -4078,6 +4193,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.childTimetable.step4Title": "Help is always available",
     "onboardingTour.childTimetable.step4Body":
       'Tap this button at any time, then "Help" in the menu, to see a reminder of how to use this page.',
+    "onboardingTour.tests.step1Title": "Find your way around the tabs",
+    "onboardingTour.tests.step1Body":
+      '"Campaigns" lists the tests to run, "Tests done" keeps a history of your results, and "To redo" gathers the tests an administrator asks you to redo.',
+    "onboardingTour.tests.step2Title": "Start a test",
+    "onboardingTour.tests.step2Body":
+      "Inside a campaign, tap Start (or Review if you already did it) to open the first test case and record your result.",
+    "onboardingTour.tests.step3Title": "Help is always available",
+    "onboardingTour.tests.step3Body":
+      'Tap this button at any time, then "Help" in the menu, to see this reminder about the module again.',
     "onboardingTour.schoolSettings.step1Title": "Levels tab",
     "onboardingTour.schoolSettings.step1Body":
       "This tab groups the academic levels used by your school. More settings will be added here over time.",
@@ -5643,6 +5767,43 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.campaigns.dueLabel": "Due {date}",
     "tests.campaigns.targetVersion": "Target version {version}",
     "tests.campaigns.progressLabel": "{done} tests completed out of {total}",
+    "tests.campaigns.progressCompact": "{done}/{total} completed",
+    "tests.campaigns.search.placeholder": "Search campaigns",
+    "tests.campaigns.search.accessibilityLabel": "Search campaigns",
+    "tests.campaigns.search.clearAccessibilityLabel": "Clear search",
+    "tests.campaigns.filters.mineAccessibilityLabel":
+      "Show only campaigns assigned to me",
+    "tests.campaigns.filters.resetSearch": "Reset",
+    "tests.campaigns.filters.statusLabel": "Status",
+    "tests.filters.panelTitle": "Filters",
+    "tests.filters.toggleAccessibilityLabel": "Filters",
+    "tests.filters.reset": "Reset",
+    "tests.filters.close": "Close",
+    "tests.filters.apply": "Apply",
+    "tests.filters.mineOnlyLabel": "My campaigns only",
+    "tests.campaigns.emptySearchTitle": "No results",
+    "tests.campaigns.emptySearchMessage":
+      "No campaign matches your search or filters.",
+    "tests.campaigns.actions.start": "Start",
+    "tests.campaigns.actions.review": "Review",
+    "tests.tourFallback.title": "Example campaign",
+    "tests.tourFallback.description":
+      "This is a sample shown only during the guided tour.",
+    "tests.help.menuLabel": "Help",
+    "tests.help.close": "Close",
+    "tests.help.title": "Help — Tests",
+    "tests.help.section1Title": "Summary",
+    "tests.help.section1Body":
+      'This tab gives an overview: number of campaigns, campaigns in progress/upcoming/completed, total test cases and remaining tests. The "To do today" card highlights the most urgent campaign (nearest due date) you still have to finish, with a button to start it directly. Tapping a stat card (Campaigns, In progress, etc.) opens the Campaigns tab filtered on that status.',
+    "tests.help.section2Title": "Campaigns",
+    "tests.help.section2Body":
+      'A campaign groups several test cases to run. Use the search bar to find a campaign by its title or description, and the funnel-shaped button on the right to open the filter panel (status All/In progress/Upcoming/Completed, and restricting the list to campaigns assigned to you — this filter is on by default when you have assigned campaigns). Each card shows your progress as {done}/{total} and the due date if any. Tap the card, or the Start/Review button, to open the campaign: the button reads Start until you have completed at least one case, then Review once you have submitted at least one result. Inside a campaign, each test case also has its own Start/Review button; once inside, tap "View test spec" to expand the objective, preconditions, expected result and steps (collapsed by default), then the "Enter the test result" button at the bottom of the screen to record your result.',
+    "tests.help.section3Title": "Tests done",
+    "tests.help.section3Body":
+      "Find here the history of results you already submitted (passed, failed, blocked, skipped...). Search a test by its title or its campaign's title, and tap the funnel button to filter by status, by campaign, or to restrict the list to campaigns assigned to you. Tap a result to see its detail (comment, screenshots, device used).",
+    "tests.help.section4Title": "To redo",
+    "tests.help.section4Body":
+      "An administrator may ask you to redo a test after reviewing your result (with an explanatory note). This tab gathers these rework requests. Search or use the funnel button to filter by campaign or restrict the list to campaigns assigned to you. Tap a card to open the test case and submit a new result.",
     "tests.cases.subtitle": "Test list",
     "tests.cases.executionCount": "{count} results",
     "tests.detail.subtitle": "Test details",
@@ -5676,7 +5837,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.detail.attachments.image": "Image",
     "tests.detail.attachments.file": "File",
     "tests.detail.heroSubtitle": "Fill in the result status and details",
-    "tests.detail.fabAdd": "Submit a result",
+    "tests.detail.viewSpecToggle": "View test spec",
+    "tests.detail.hideSpecToggle": "Hide test spec",
+    "tests.detail.statusPlaceholder": "Select the test status",
+    "tests.detail.validation.statusRequired": "Select a status before saving.",
+    "tests.detail.fabAdd": "Enter the test result",
     "tests.detail.viewResults": "View results",
     "tests.detail.formModalTitle": "Submit my result",
     "tests.detail.toastSuccessTitle": "Result saved",
@@ -5695,6 +5860,16 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.toRedo.emptyTitle": "No tests to redo",
     "tests.toRedo.emptyMessage":
       "Tests an administrator asks you to redo will appear here.",
+    "tests.toRedo.search.placeholder": "Search a test",
+    "tests.toRedo.search.accessibilityLabel": "Search a test",
+    "tests.toRedo.search.clearAccessibilityLabel": "Clear search",
+    "tests.toRedo.filters.campaign": "Campaign",
+    "tests.toRedo.filters.campaignAll": "All campaigns",
+    "tests.toRedo.filters.mineAccessibilityLabel":
+      "Show only campaigns assigned to me",
+    "tests.toRedo.emptySearchTitle": "No results",
+    "tests.toRedo.emptySearchMessage":
+      "No test to redo matches your search or filters.",
     "tests.toRedo.cardCampaign": "Campaign: {title}",
     "tests.toRedo.requestedOn": "Rework requested on {date}",
 
@@ -5711,6 +5886,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.executions.emptyTitle": "No test done yet",
     "tests.executions.emptyMessage":
       "Your test results will appear here once submitted.",
+    "tests.executions.search.placeholder": "Search a test",
+    "tests.executions.search.accessibilityLabel": "Search a test",
+    "tests.executions.search.clearAccessibilityLabel": "Clear search",
+    "tests.executions.emptySearchTitle": "No results",
+    "tests.executions.emptySearchMessage":
+      "No completed test matches your search.",
+    "tests.executions.filters.mineAccessibilityLabel":
+      "Show only campaigns assigned to me",
     "tests.executions.cardCampaign": "Campaign: {title}",
     "tests.executions.detail.subtitle": "Result detail",
     "tests.executions.detail.resultLabel": "Result",
@@ -5737,9 +5920,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.summary.kpi.totalCases": "Test cases",
     "tests.summary.kpi.myExecutions": "My results",
     "tests.summary.kpi.pending": "Remaining tests",
+    "tests.summary.kpi.mineCaption": "incl. {count} for me",
     "tests.summary.highlight.title": "To do today",
     "tests.summary.highlight.campaignBadge": "Campaign",
-    "tests.summary.highlight.cta": "Open test",
+    "tests.summary.highlight.cta": "Take the campaign",
     "tests.summary.highlight.empty":
       "Every visible test is up to date. Nice work!",
     "tests.summary.emptyTitle": "No active campaign",
@@ -6297,6 +6481,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.reports.detail.appreciationPlaceholder": "Enter an assessment…",
     "notes.reports.detail.appreciationRequired":
       "The assessment cannot be empty.",
+    "notes.reports.yearly.councilLabel":
+      "Yearly synthesis — average of available terms",
 
     "notes.child.tabs.notes": "Notes",
     "notes.child.tabs.reports": "Reports",
@@ -6304,6 +6490,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "notes.terms.term1": "Term 1",
     "notes.terms.term2": "Term 2",
     "notes.terms.term3": "Term 3",
+    "notes.terms.yearly": "Year",
     "notes.sequences.seq1": "T1 — Sequence 1",
     "notes.sequences.seq2": "T1 — Sequence 2 (exam)",
     "notes.sequences.seq3": "T2 — Sequence 3",

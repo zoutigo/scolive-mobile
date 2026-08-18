@@ -35,6 +35,7 @@ import type {
   EvaluationRow,
   StudentNotesSequence,
   StudentNotesTerm,
+  StudentNotesTermOrYearly,
   TermReport,
   UpsertEvaluationPayload,
 } from "../../types/notes.types";
@@ -254,7 +255,11 @@ export function ClassNotesManagerScreen({
   const [reportsDetailHeader, setReportsDetailHeader] = useState<{
     studentName: string;
     className: string;
-    term: StudentNotesTerm;
+    term: StudentNotesTermOrYearly;
+  } | null>(null);
+  const [reportsOpenTarget, setReportsOpenTarget] = useState<{
+    studentId: string;
+    term: StudentNotesTermOrYearly;
   } | null>(null);
   const reportsTabRef = useRef<TeacherPeriodReportsHandle>(null);
   const schoolReportsTabRef = useRef<SchoolPeriodReportsHandle>(null);
@@ -1994,6 +1999,8 @@ export function ClassNotesManagerScreen({
           onSaveAppreciation={saveAppreciation}
           isSubmitting={isSubmitting}
           onDetailChange={setReportsDetailHeader}
+          openTarget={reportsOpenTarget}
+          onOpenTargetConsumed={() => setReportsOpenTarget(null)}
         />
       ) : null}
       {tab === "reports" && !isAdminBrowsing && !teacherContext ? (
@@ -2006,6 +2013,10 @@ export function ClassNotesManagerScreen({
       {tab === "decision" && teacherContext?.class.isReferentTeacher ? (
         <TeacherPromotionDecisionTab
           schoolSlug={schoolSlug ?? ""}
+          onOpenBulletin={(studentId, term) => {
+            setReportsOpenTarget({ studentId, term });
+            handleTabSelect("reports");
+          }}
           classId={teacherContext.class.id}
           bottomInset={insets.bottom}
         />

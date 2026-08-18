@@ -9,6 +9,8 @@ import type {
   StudentNotesSequence,
   StudentNotesTermSnapshot,
   StudentSubjectNotes,
+  YearlyNotesSnapshot,
+  YearlySubjectNotes,
 } from "../types/notes.types";
 
 export function formatScore(value: number | null) {
@@ -60,7 +62,10 @@ export function formatPlainEvaluationScore(
   };
 }
 
-export function termLabel(term: StudentNotesTerm, t: TranslateFn = tFr) {
+export function termLabel(
+  term: StudentNotesTerm | "YEARLY",
+  t: TranslateFn = tFr,
+) {
   switch (term) {
     case "TERM_1":
       return t("notes.terms.term1");
@@ -68,6 +73,8 @@ export function termLabel(term: StudentNotesTerm, t: TranslateFn = tFr) {
       return t("notes.terms.term2");
     case "TERM_3":
       return t("notes.terms.term3");
+    case "YEARLY":
+      return t("notes.terms.yearly");
   }
 }
 
@@ -272,6 +279,76 @@ export function buildRadarChart(subjects: StudentSubjectNotes[]) {
     classPoints,
     studentSegments: buildSegments(studentPoints),
     classSegments: buildSegments(classPoints),
+  };
+}
+
+function averageOf(values: Array<number | null | undefined>): number | null {
+  const valid = values.filter((value): value is number => value != null);
+  if (valid.length === 0) return null;
+  return Number(
+    (valid.reduce((sum, v) => sum + v, 0) / valid.length).toFixed(2),
+  );
+}
+
+/**
+ * Synthèse annuelle calculée côté client à partir des bulletins de trimestre
+ * déjà chargés (jamais persistée ni éditable — voir `YearlyNotesSnapshot`).
+ * Moyenne annuelle générale et par matière = moyenne des trimestres
+ * disponibles (les trimestres sans donnée sont ignorés, jamais comptés à 0),
+ * pour rester cohérent avec le "yearlyAverage" déjà affiché dans l'onglet
+ * Decision (`promotions.service.ts#listTermReportsForDecision`).
+ */
+export function computeYearlySnapshot(
+  snapshots: StudentNotesTermSnapshot[],
+  t: TranslateFn = tFr,
+): YearlyNotesSnapshot | null {
+  if (snapshots.length === 0) return null;
+
+  const generalAverage = {
+    student: averageOf(snapshots.map((s) => s.generalAverage.student)),
+    class: averageOf(snapshots.map((s) => s.generalAverage.class)),
+    min: averageOf(snapshots.map((s) => s.generalAverage.min)),
+    max: averageOf(snapshots.map((s) => s.generalAverage.max)),
+  };
+
+  const subjectIds = Array.from(
+    new Set(snapshots.flatMap((s) => s.subjects.map((subject) => subject.id))),
+  );
+
+  const subjects: YearlySubjectNotes[] = subjectIds.map((subjectId) => {
+    const termAverages: Partial<Record<StudentNotesTerm, number | null>> = {};
+    let reference: StudentSubjectNotes | null = null;
+    for (const snapshot of snapshots) {
+      const found = snapshot.subjects.find(
+        (subject) => subject.id === subjectId,
+      );
+      termAverages[snapshot.term] = found?.studentAverage ?? null;
+      if (found) reference = found;
+    }
+    return {
+      id: subjectId,
+      subjectLabel: reference?.subjectLabel ?? "",
+      teachers: reference?.teachers ?? [],
+      coefficient: reference?.coefficient ?? 1,
+      studentAverage: averageOf(Object.values(termAverages)),
+      classAverage: null,
+      classMin: null,
+      classMax: null,
+      rank: null,
+      classSize: null,
+      appreciation: null,
+      evaluations: [],
+      termAverages,
+    };
+  });
+
+  return {
+    term: "YEARLY",
+    label: t("notes.terms.yearly"),
+    councilLabel: t("notes.reports.yearly.councilLabel"),
+    generatedAtLabel: "",
+    generalAverage,
+    subjects,
   };
 }
 

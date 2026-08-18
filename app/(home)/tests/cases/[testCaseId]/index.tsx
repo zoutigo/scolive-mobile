@@ -43,6 +43,7 @@ function TestCaseScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [specOpen, setSpecOpen] = useState(false);
   const isInitialLoad = useRef(true);
 
   const load = useCallback(
@@ -126,7 +127,7 @@ function TestCaseScreen() {
           <ScrollView
             contentContainerStyle={[
               styles.scrollContent,
-              hasResults && styles.scrollContentWithButton,
+              { paddingBottom: insets.bottom + BOTTOM_TAB_BAR_HEIGHT + 24 },
             ]}
             refreshControl={
               <RefreshControl
@@ -139,6 +140,71 @@ function TestCaseScreen() {
               campaignTitle={detail.campaign.title}
               testTitle={detail.title}
             />
+
+            <TouchableOpacity
+              style={styles.specToggle}
+              onPress={() => setSpecOpen((value) => !value)}
+              testID="test-case-spec-toggle"
+              accessibilityRole="button"
+            >
+              <Ionicons
+                name="document-text-outline"
+                size={18}
+                color={colors.primary}
+              />
+              <Text style={styles.specToggleText}>
+                {t(
+                  specOpen
+                    ? "tests.detail.hideSpecToggle"
+                    : "tests.detail.viewSpecToggle",
+                )}
+              </Text>
+              <Ionicons
+                name={specOpen ? "chevron-up" : "chevron-down"}
+                size={18}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+
+            {specOpen ? (
+              <View style={styles.specBox} testID="test-case-spec-box">
+                <SectionCard
+                  icon="flag-outline"
+                  title={t("tests.detail.objective")}
+                  value={detail.objective}
+                  noValue={t("tests.common.noValue")}
+                />
+                <SectionCard
+                  icon="key-outline"
+                  title={t("tests.detail.preconditions")}
+                  value={detail.preconditions}
+                  noValue={t("tests.common.noValue")}
+                />
+                <SectionCard
+                  icon="checkmark-circle-outline"
+                  title={t("tests.detail.expectedResult")}
+                  value={detail.expectedResult}
+                  noValue={t("tests.common.noValue")}
+                />
+                <View style={styles.card}>
+                  <CardHeader
+                    icon="list-outline"
+                    title={t("tests.detail.steps")}
+                  />
+                  {detail.steps.length === 0 ? (
+                    <Text style={styles.cardBody}>
+                      {t("tests.detail.noSteps")}
+                    </Text>
+                  ) : (
+                    detail.steps.map((step, index) => (
+                      <Text key={`${index}-${step}`} style={styles.stepLine}>
+                        {index + 1}. {step}
+                      </Text>
+                    ))
+                  )}
+                </View>
+              </View>
+            ) : null}
 
             {detail.latestOwnExecution?.reworkRequestedAt ? (
               <View
@@ -161,38 +227,6 @@ function TestCaseScreen() {
                 </Text>
               </View>
             ) : null}
-
-            <SectionCard
-              icon="flag-outline"
-              title={t("tests.detail.objective")}
-              value={detail.objective}
-              noValue={t("tests.common.noValue")}
-            />
-            <SectionCard
-              icon="key-outline"
-              title={t("tests.detail.preconditions")}
-              value={detail.preconditions}
-              noValue={t("tests.common.noValue")}
-            />
-            <SectionCard
-              icon="checkmark-circle-outline"
-              title={t("tests.detail.expectedResult")}
-              value={detail.expectedResult}
-              noValue={t("tests.common.noValue")}
-            />
-
-            <View style={styles.card}>
-              <CardHeader icon="list-outline" title={t("tests.detail.steps")} />
-              {detail.steps.length === 0 ? (
-                <Text style={styles.cardBody}>{t("tests.detail.noSteps")}</Text>
-              ) : (
-                detail.steps.map((step, index) => (
-                  <Text key={`${index}-${step}`} style={styles.stepLine}>
-                    {index + 1}. {step}
-                  </Text>
-                ))
-              )}
-            </View>
 
             <View style={styles.card}>
               <CardHeader
@@ -258,54 +292,52 @@ function TestCaseScreen() {
                 ))
               )}
             </View>
-          </ScrollView>
 
-          {hasResults ? (
-            <View
-              style={[
-                styles.bottomBar,
-                { paddingBottom: insets.bottom + BOTTOM_TAB_BAR_HEIGHT + 12 },
-              ]}
-            >
+            <View style={styles.bottomBar}>
+              {hasResults ? (
+                <TouchableOpacity
+                  style={styles.viewResultsButton}
+                  onPress={openResults}
+                  testID="tests-view-results-btn"
+                >
+                  <Ionicons
+                    name="list-outline"
+                    size={18}
+                    color={colors.white}
+                  />
+                  <Text style={styles.viewResultsText}>
+                    {t("tests.detail.viewResults")}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
               <TouchableOpacity
-                style={styles.viewResultsButton}
-                onPress={openResults}
-                testID="tests-view-results-btn"
+                style={styles.submitResultButton}
+                onPress={() =>
+                  router.push({
+                    pathname:
+                      "/(home)/tests/cases/[testCaseId]/submit" as never,
+                    params: {
+                      testCaseId,
+                      evidenceRequired: detail.evidenceRequired ? "1" : "0",
+                      reworkNote: detail.latestOwnExecution?.reworkRequestedAt
+                        ? (detail.latestOwnExecution.reworkNote ?? "")
+                        : undefined,
+                    },
+                  })
+                }
+                testID="tests-submit-result-btn"
               >
-                <Ionicons name="list-outline" size={18} color={colors.white} />
-                <Text style={styles.viewResultsText}>
-                  {t("tests.detail.viewResults")}
+                <Ionicons
+                  name="create-outline"
+                  size={18}
+                  color={colors.white}
+                />
+                <Text style={styles.submitResultButtonText}>
+                  {t("tests.detail.fabAdd")}
                 </Text>
               </TouchableOpacity>
             </View>
-          ) : null}
-
-          <TouchableOpacity
-            style={[
-              styles.fab,
-              {
-                bottom:
-                  insets.bottom +
-                  BOTTOM_TAB_BAR_HEIGHT +
-                  (hasResults ? 80 : 24),
-              },
-            ]}
-            onPress={() =>
-              router.push({
-                pathname: "/(home)/tests/cases/[testCaseId]/submit" as never,
-                params: {
-                  testCaseId,
-                  evidenceRequired: detail.evidenceRequired ? "1" : "0",
-                  reworkNote: detail.latestOwnExecution?.reworkRequestedAt
-                    ? (detail.latestOwnExecution.reworkNote ?? "")
-                    : undefined,
-                },
-              })
-            }
-            testID="tests-fab-add"
-          >
-            <Ionicons name="add" size={28} color={colors.white} />
-          </TouchableOpacity>
+          </ScrollView>
         </>
       )}
     </View>
@@ -442,8 +474,20 @@ const styles = StyleSheet.create({
   reworkBannerHeaderRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   reworkBannerTitle: { fontSize: 14, fontWeight: "800", color: "#B3261E" },
   reworkBannerBody: { fontSize: 13, lineHeight: 19, color: "#7A241D" },
-  scrollContent: { padding: 16, paddingBottom: 100, gap: 12 },
-  scrollContentWithButton: { paddingBottom: 160 },
+  scrollContent: { padding: 16, gap: 12 },
+  specToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    backgroundColor: colors.white,
+    paddingVertical: 12,
+  },
+  specToggleText: { fontSize: 14, fontWeight: "700", color: colors.primary },
+  specBox: { gap: 12 },
   card: {
     backgroundColor: colors.white,
     borderRadius: 18,
@@ -489,18 +533,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#EEE7DE",
   },
   bottomBar: {
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.warmBorder,
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    gap: 10,
+    marginTop: 4,
   },
   viewResultsButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.textSecondary,
     borderRadius: 6,
     paddingVertical: 14,
   },
@@ -509,20 +550,19 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.white,
   },
-  fab: {
-    position: "absolute",
-    right: 20,
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: colors.primary,
+  submitResultButton: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 6,
+    gap: 8,
+    backgroundColor: colors.primary,
+    borderRadius: 6,
+    paddingVertical: 14,
+  },
+  submitResultButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.white,
   },
   // Hero
   heroContainer: {

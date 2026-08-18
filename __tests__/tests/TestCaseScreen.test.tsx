@@ -103,19 +103,76 @@ describe("TestCaseScreen", () => {
     });
   });
 
-  it("navigates to the submit screen when the FAB is pressed", async () => {
+  it("navigates to the submit screen when the full-width submit button is pressed", async () => {
     (testsApi.getTestCase as jest.Mock).mockResolvedValue(DETAIL_NO_RESULTS);
     render(<TestCaseScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("tests-fab-add")).toBeTruthy();
+      expect(screen.getByTestId("tests-submit-result-btn")).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId("tests-fab-add"));
+    fireEvent.press(screen.getByTestId("tests-submit-result-btn"));
 
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/(home)/tests/cases/[testCaseId]/submit",
       params: { testCaseId: "case-1", evidenceRequired: "0" },
+    });
+  });
+
+  it("does not render the old FAB anymore", async () => {
+    (testsApi.getTestCase as jest.Mock).mockResolvedValue(DETAIL_NO_RESULTS);
+    render(<TestCaseScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("test-case-hero")).toBeTruthy();
+    });
+
+    expect(screen.queryByTestId("tests-fab-add")).toBeNull();
+  });
+
+  describe("spec toggle", () => {
+    it("keeps the test spec collapsed by default", async () => {
+      (testsApi.getTestCase as jest.Mock).mockResolvedValue(DETAIL_NO_RESULTS);
+      render(<TestCaseScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("test-case-spec-toggle")).toBeTruthy();
+      });
+
+      expect(screen.queryByTestId("test-case-spec-box")).toBeNull();
+      expect(screen.queryByText("Objectif")).toBeNull();
+    });
+
+    it("expands the spec box with objective/preconditions/expected result/steps when toggled", async () => {
+      (testsApi.getTestCase as jest.Mock).mockResolvedValue(DETAIL_NO_RESULTS);
+      render(<TestCaseScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("test-case-spec-toggle")).toBeTruthy();
+      });
+
+      fireEvent.press(screen.getByTestId("test-case-spec-toggle"));
+
+      expect(screen.getByTestId("test-case-spec-box")).toBeTruthy();
+      expect(screen.getByText("Objectif")).toBeTruthy();
+      expect(screen.getByText("Prérequis")).toBeTruthy();
+      expect(screen.getByText("Résultat attendu")).toBeTruthy();
+      expect(screen.getByText("Étapes")).toBeTruthy();
+    });
+
+    it("collapses the spec box again when toggled a second time", async () => {
+      (testsApi.getTestCase as jest.Mock).mockResolvedValue(DETAIL_NO_RESULTS);
+      render(<TestCaseScreen />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("test-case-spec-toggle")).toBeTruthy();
+      });
+
+      fireEvent.press(screen.getByTestId("test-case-spec-toggle"));
+      expect(screen.getByTestId("test-case-spec-box")).toBeTruthy();
+
+      fireEvent.press(screen.getByTestId("test-case-spec-toggle"));
+      expect(screen.queryByTestId("test-case-spec-box")).toBeNull();
     });
   });
 
@@ -137,6 +194,16 @@ describe("TestCaseScreen", () => {
     await waitFor(() => {
       expect(screen.getByTestId("tests-view-results-btn")).toBeTruthy();
     });
+  });
+
+  it("shows both the view results and submit-result buttons when executions exist", async () => {
+    (testsApi.getTestCase as jest.Mock).mockResolvedValue(DETAIL_WITH_RESULTS);
+    render(<TestCaseScreen />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("tests-view-results-btn")).toBeTruthy();
+    });
+    expect(screen.getByTestId("tests-submit-result-btn")).toBeTruthy();
   });
 
   it("navigates to the execution detail page when view results is pressed", async () => {

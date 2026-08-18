@@ -18,14 +18,14 @@ export function TestsSummaryTab({ campaigns, onCampaignsFilterPress }: Props) {
   const { t } = useTranslation();
   const router = useRouter();
 
-  const kpis: TestsKpiData = useMemo(() => {
+  function computeKpis(source: TestCampaignSummary[]): TestsKpiData {
     let inProgressCampaigns = 0;
     let completedCampaigns = 0;
     let upcomingCampaigns = 0;
     let totalCases = 0;
     let pendingCases = 0;
 
-    for (const campaign of campaigns) {
+    for (const campaign of source) {
       const status = getCampaignDisplayStatus(campaign);
       if (status === "IN_PROGRESS") inProgressCampaigns += 1;
       else if (status === "COMPLETED") completedCampaigns += 1;
@@ -39,14 +39,26 @@ export function TestsSummaryTab({ campaigns, onCampaignsFilterPress }: Props) {
     }
 
     return {
-      totalCampaigns: campaigns.length,
+      totalCampaigns: source.length,
       inProgressCampaigns,
       completedCampaigns,
       upcomingCampaigns,
       totalCases,
       pendingCases,
     };
-  }, [campaigns]);
+  }
+
+  const kpis: TestsKpiData = useMemo(() => computeKpis(campaigns), [campaigns]);
+
+  const hasAssignedCampaigns = useMemo(
+    () => campaigns.some((campaign) => campaign.assignedToMe),
+    [campaigns],
+  );
+
+  const mineKpis: TestsKpiData | undefined = useMemo(() => {
+    if (!hasAssignedCampaigns) return undefined;
+    return computeKpis(campaigns.filter((campaign) => campaign.assignedToMe));
+  }, [campaigns, hasAssignedCampaigns]);
 
   const highlight = useMemo(() => {
     const candidates = campaigns
@@ -84,6 +96,10 @@ export function TestsSummaryTab({ campaigns, onCampaignsFilterPress }: Props) {
     <View style={styles.container} testID="tests-summary-tab">
       <TestsSummaryKpis
         data={kpis}
+        mineData={mineKpis}
+        mineCaption={(count) =>
+          t("tests.summary.kpi.mineCaption").replace("{count}", String(count))
+        }
         labels={{
           totalCampaigns: t("tests.summary.kpi.totalCampaigns"),
           inProgress: t("tests.summary.kpi.inProgress"),
@@ -97,45 +113,49 @@ export function TestsSummaryTab({ campaigns, onCampaignsFilterPress }: Props) {
 
       <View style={styles.highlightCard} testID="tests-highlight-card">
         <View style={styles.highlightHeader}>
-          <Ionicons
-            name="sparkles-outline"
-            size={18}
-            color={colors.warmAccent}
-          />
-          <Text style={styles.highlightTitle}>
-            {t("tests.summary.highlight.title")}
-          </Text>
-        </View>
-
-        {highlight ? (
-          <TouchableOpacity
-            style={styles.highlightBody}
-            onPress={() =>
-              router.push({
-                pathname: "/(home)/tests/[campaignId]",
-                params: { campaignId: highlight.id },
-              })
-            }
-            testID="tests-highlight-cta"
-          >
+          <View style={styles.highlightHeaderLeft}>
+            <Ionicons
+              name="sparkles-outline"
+              size={18}
+              color={colors.warmAccent}
+            />
+            <Text style={styles.highlightTitle}>
+              {t("tests.summary.highlight.title")}
+            </Text>
+          </View>
+          {highlight ? (
             <View style={styles.highlightBadge}>
               <Text style={styles.highlightBadgeText}>
                 {t("tests.summary.highlight.campaignBadge")}
               </Text>
             </View>
+          ) : null}
+        </View>
+
+        {highlight ? (
+          <View style={styles.highlightBody}>
             <Text style={styles.highlightCampaignTitle}>{highlight.title}</Text>
             <Text style={styles.highlightMeta}>
               {t("tests.campaigns.progressLabel")
                 .replace("{done}", String(highlight.summary.completedCases))
                 .replace("{total}", String(highlight.summary.totalCases))}
             </Text>
-            <View style={styles.highlightCta}>
+            <TouchableOpacity
+              style={styles.highlightCta}
+              onPress={() =>
+                router.push({
+                  pathname: "/(home)/tests/[campaignId]",
+                  params: { campaignId: highlight.id },
+                })
+              }
+              testID="tests-highlight-cta"
+            >
+              <Ionicons name="play" size={14} color={colors.white} />
               <Text style={styles.highlightCtaText}>
                 {t("tests.summary.highlight.cta")}
               </Text>
-              <Ionicons name="arrow-forward" size={16} color={colors.primary} />
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
         ) : (
           <Text style={styles.highlightEmpty}>
             {t("tests.summary.highlight.empty")}
@@ -156,7 +176,13 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 10,
   },
-  highlightHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  highlightHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  highlightHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
   highlightTitle: {
     fontSize: 15,
     fontWeight: "700",
@@ -164,7 +190,6 @@ const styles = StyleSheet.create({
   },
   highlightBody: { gap: 8 },
   highlightBadge: {
-    alignSelf: "flex-start",
     backgroundColor: "#F4E9DE",
     borderRadius: 999,
     paddingHorizontal: 10,
@@ -184,10 +209,16 @@ const styles = StyleSheet.create({
   highlightCta: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 6,
     marginTop: 4,
+    alignSelf: "flex-start",
+    backgroundColor: colors.primary,
+    borderRadius: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
-  highlightCtaText: { fontSize: 13, fontWeight: "700", color: colors.primary },
+  highlightCtaText: { fontSize: 13, fontWeight: "700", color: colors.white },
   highlightEmpty: { fontSize: 14, color: colors.textSecondary, lineHeight: 20 },
   empty: {
     flex: 1,

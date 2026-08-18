@@ -3,6 +3,7 @@ import {
   buildRadarData,
   buildRadarChart,
   buildYearSubjects,
+  computeYearlySnapshot,
   formatDelta,
   formatPlainEvaluationScore,
   formatScore,
@@ -40,13 +41,19 @@ function makeSubject(
 function makeSnapshot(
   term: StudentNotesTermSnapshot["term"],
   subjects: StudentSubjectNotes[],
+  generalAverage: StudentNotesTermSnapshot["generalAverage"] = {
+    student: 13,
+    class: 12,
+    min: 7,
+    max: 18,
+  },
 ): StudentNotesTermSnapshot {
   return {
     term,
     label: `Trimestre ${term.slice(-1)}`,
     councilLabel: "6e A",
     generatedAtLabel: "Publié",
-    generalAverage: { student: 13, class: 12, min: 7, max: 18 },
+    generalAverage,
     sequences: [],
     subjects,
   };
@@ -375,5 +382,75 @@ describe("buildRadarChart — géométrie du radar", () => {
     const axisIds = chart.axes.map((axis) => axis.id);
     expect(new Set(axisIds).size).toBe(axisIds.length);
     expect(axisIds).toEqual(["subj-anglais-general", "subj-anglais-renforce"]);
+  });
+
+  describe("computeYearlySnapshot", () => {
+    it("retourne null si aucun bulletin de trimestre n'est chargé", () => {
+      expect(computeYearlySnapshot([], tFr)).toBeNull();
+    });
+
+    it("moyenne uniquement les trimestres disponibles (jamais compté à 0)", () => {
+      // T1 absent, T2 = 10, T3 = 16 -> annuelle = 13, pas (0+10+16)/3.
+      const snapshot = computeYearlySnapshot(
+        [
+          makeSnapshot(
+            "TERM_2",
+            [makeSubject({ id: "subj-1", studentAverage: 10 })],
+            { student: 10, class: 9, min: 4, max: 15 },
+          ),
+          makeSnapshot(
+            "TERM_3",
+            [makeSubject({ id: "subj-1", studentAverage: 16 })],
+            { student: 16, class: 13, min: 8, max: 19 },
+          ),
+        ],
+        tFr,
+      );
+
+      expect(snapshot?.generalAverage.student).toBe(13);
+      expect(snapshot?.term).toBe("YEARLY");
+      expect(snapshot?.label).toBe(tFr("notes.terms.yearly"));
+    });
+
+    it("calcule la moyenne annuelle par matière à partir des trimestres où elle est notée", () => {
+      const snapshot = computeYearlySnapshot([
+        makeSnapshot("TERM_1", [
+          makeSubject({ id: "subj-1", studentAverage: 12 }),
+        ]),
+        makeSnapshot("TERM_2", [
+          makeSubject({ id: "subj-1", studentAverage: 14 }),
+          makeSubject({ id: "subj-2", studentAverage: 8 }),
+        ]),
+        makeSnapshot("TERM_3", [
+          makeSubject({ id: "subj-1", studentAverage: 16 }),
+        ]),
+      ]);
+
+      const subj1 = snapshot?.subjects.find((s) => s.id === "subj-1");
+      const subj2 = snapshot?.subjects.find((s) => s.id === "subj-2");
+
+      expect(subj1?.studentAverage).toBe(14); // (12+14+16)/3
+      expect(subj1?.termAverages).toEqual({
+        TERM_1: 12,
+        TERM_2: 14,
+        TERM_3: 16,
+      });
+      expect(subj2?.studentAverage).toBe(8); // seule donnée : T2
+      expect(subj2?.termAverages).toEqual({
+        TERM_1: null,
+        TERM_2: 8,
+        TERM_3: null,
+      });
+    });
+
+    it("ignore les matières sans aucune moyenne notée pour n'importe quel trimestre", () => {
+      const snapshot = computeYearlySnapshot([
+        makeSnapshot("TERM_1", [
+          makeSubject({ id: "subj-1", studentAverage: null }),
+        ]),
+      ]);
+
+      expect(snapshot?.subjects[0]?.studentAverage).toBeNull();
+    });
   });
 });

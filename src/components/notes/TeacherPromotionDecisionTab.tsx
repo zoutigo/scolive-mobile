@@ -17,6 +17,7 @@ import { InlineSelectDropDown } from "../InlineSelectDropDown";
 import { EmptyState, LoadingBlock } from "../timetable/TimetableCommon";
 import { formatScore } from "../../utils/notes";
 import type { CurriculumAcademicLevel } from "../../types/curriculums.types";
+import type { StudentNotesTermOrYearly } from "../../types/notes.types";
 import type {
   PromotionDecision,
   TermReportForDecisionRow,
@@ -26,6 +27,8 @@ type Props = {
   schoolSlug: string;
   classId: string;
   bottomInset: number;
+  /** Ouvre le bulletin (trimestre ou synthèse annuelle) de l'élève dans l'onglet Reports. */
+  onOpenBulletin?: (studentId: string, term: StudentNotesTermOrYearly) => void;
 };
 
 type DecisionDraft = {
@@ -71,6 +74,7 @@ export function TeacherPromotionDecisionTab({
   schoolSlug,
   classId,
   bottomInset,
+  onOpenBulletin,
 }: Props) {
   const { t } = useTranslation();
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
@@ -251,31 +255,51 @@ export function TeacherPromotionDecisionTab({
             {isExpanded ? (
               <View style={styles.cardBody}>
                 <View style={styles.synthesisRow}>
-                  <View style={styles.synthesisCell}>
+                  <TouchableOpacity
+                    style={styles.synthesisCell}
+                    disabled={!onOpenBulletin}
+                    onPress={() => onOpenBulletin?.(row.student.id, "TERM_1")}
+                    testID={`decision-card-${row.id}-open-TERM_1`}
+                  >
                     <Text style={styles.synthesisLabel}>
                       {t("notes.decision.synthesis.term1")}
                     </Text>
                     <Text style={styles.synthesisValue}>
                       {formatScore(row.termAverages.TERM_1)}
                     </Text>
-                  </View>
-                  <View style={styles.synthesisCell}>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.synthesisCell}
+                    disabled={!onOpenBulletin}
+                    onPress={() => onOpenBulletin?.(row.student.id, "TERM_2")}
+                    testID={`decision-card-${row.id}-open-TERM_2`}
+                  >
                     <Text style={styles.synthesisLabel}>
                       {t("notes.decision.synthesis.term2")}
                     </Text>
                     <Text style={styles.synthesisValue}>
                       {formatScore(row.termAverages.TERM_2)}
                     </Text>
-                  </View>
-                  <View style={styles.synthesisCell}>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.synthesisCell}
+                    disabled={!onOpenBulletin}
+                    onPress={() => onOpenBulletin?.(row.student.id, "TERM_3")}
+                    testID={`decision-card-${row.id}-open-TERM_3`}
+                  >
                     <Text style={styles.synthesisLabel}>
                       {t("notes.decision.synthesis.term3")}
                     </Text>
                     <Text style={styles.synthesisValue}>
                       {formatScore(row.termAverages.TERM_3)}
                     </Text>
-                  </View>
-                  <View style={styles.synthesisCell}>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.synthesisCell}
+                    disabled={!onOpenBulletin}
+                    onPress={() => onOpenBulletin?.(row.student.id, "YEARLY")}
+                    testID={`decision-card-${row.id}-open-YEARLY`}
+                  >
                     <Text style={styles.synthesisLabel}>
                       {t("notes.decision.synthesis.yearly")}
                     </Text>
@@ -284,7 +308,7 @@ export function TeacherPromotionDecisionTab({
                     >
                       {formatScore(row.yearlyAverage)}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 </View>
 
                 {row.rank !== null && row.classSize !== null ? (

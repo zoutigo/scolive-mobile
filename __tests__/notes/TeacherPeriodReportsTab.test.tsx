@@ -171,7 +171,7 @@ describe("Liste des élèves", () => {
 });
 
 describe("Accordéon des 3 bulletins", () => {
-  it("déplie les 3 bulletins au tap sur un élève", async () => {
+  it("déplie les 3 bulletins + la synthèse annuelle au tap sur un élève", async () => {
     render(<TeacherPeriodReportsTab {...baseProps()} />);
     await flushAsync();
 
@@ -189,6 +189,9 @@ describe("Accordéon des 3 bulletins", () => {
     ).toBeTruthy();
     expect(
       screen.getByTestId("teacher-reports-bulletin-stu-1-TERM_3"),
+    ).toBeTruthy();
+    expect(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-YEARLY"),
     ).toBeTruthy();
   });
 
@@ -491,6 +494,90 @@ describe("Détail bulletin + appréciations inline", () => {
 
     expect(screen.queryByTestId("teacher-reports-general-input")).toBeNull();
     expect(screen.getByTestId("teacher-reports-general-display")).toBeTruthy();
+  });
+});
+
+describe("Bulletin annuel (synthèse calculée, lecture seule)", () => {
+  async function openYearly() {
+    render(<TeacherPeriodReportsTab {...baseProps()} />);
+    await flushAsync();
+    fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-YEARLY"),
+    );
+    await flushAsync();
+  }
+
+  it("ouvre un bulletin annuel avec la moyenne annuelle et les matières", async () => {
+    await openYearly();
+
+    expect(screen.getByTestId("teacher-reports-detail")).toBeTruthy();
+    expect(screen.getByTestId("notes-period-hero")).toBeTruthy();
+    expect(
+      screen.getByTestId("teacher-reports-yearly-subject-card-sub-1"),
+    ).toBeTruthy();
+    // Un seul trimestre chargé (TERM_1, moyenne 14.5) -> moyenne annuelle = 14.5.
+    expect(screen.getAllByText("14,50").length).toBeGreaterThan(0);
+  });
+
+  it("n'appelle jamais onTermChange avec YEARLY (ce n'est pas un trimestre persistable)", async () => {
+    const props = baseProps();
+    render(<TeacherPeriodReportsTab {...props} />);
+    await flushAsync();
+    fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-YEARLY"),
+    );
+
+    expect(props.onTermChange).not.toHaveBeenCalled();
+  });
+
+  it("informe le parent via onDetailChange avec le terme YEARLY", async () => {
+    const onDetailChange = jest.fn();
+    render(
+      <TeacherPeriodReportsTab
+        {...baseProps()}
+        onDetailChange={onDetailChange}
+      />,
+    );
+    await flushAsync();
+    fireEvent.press(screen.getByTestId("teacher-reports-row-stu-1"));
+    await flushAsync();
+    fireEvent.press(
+      screen.getByTestId("teacher-reports-bulletin-stu-1-YEARLY"),
+    );
+
+    expect(onDetailChange).toHaveBeenCalledWith({
+      studentName: "Ntamack Lisa",
+      className: "6e A",
+      term: "YEARLY",
+    });
+  });
+
+  it("n'affiche aucune appréciation éditable (synthèse en lecture seule)", async () => {
+    await openYearly();
+
+    expect(
+      screen.queryByTestId("teacher-reports-yearly-subject-sub-1-display"),
+    ).toBeNull();
+    expect(screen.queryByTestId("teacher-reports-general-display")).toBeNull();
+  });
+
+  it("ouvre automatiquement un bulletin via la prop openTarget puis notifie le parent", async () => {
+    const onOpenTargetConsumed = jest.fn();
+    render(
+      <TeacherPeriodReportsTab
+        {...baseProps()}
+        openTarget={{ studentId: "stu-1", term: "YEARLY" }}
+        onOpenTargetConsumed={onOpenTargetConsumed}
+      />,
+    );
+    await flushAsync();
+
+    expect(screen.getByTestId("teacher-reports-detail")).toBeTruthy();
+    expect(onOpenTargetConsumed).toHaveBeenCalledTimes(1);
   });
 });
 

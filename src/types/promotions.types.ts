@@ -29,3 +29,15 @@ export type WaitingEnrollmentRow = {
   academicLevel: { id: string; label: string } | null;
   track: { id: string; label: string } | null;
 };
+
+export type SchoolYearRow = {
+  id: string;
+  label: string;
+  isActive: boolean;
+};
+
+export type CreateSchoolYearPayload = {
+  label: string;
+  startsAt?: string;
+  endsAt?: string;
+};

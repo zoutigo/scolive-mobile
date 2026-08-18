@@ -106,6 +106,18 @@ beforeEach(() => {
   promotionsApiMock.assignEnrollmentToClass.mockResolvedValue({
     id: "enr-waiting-1",
   });
+  promotionsApiMock.createSchoolYear.mockResolvedValue({
+    id: "sy-2027",
+    label: "2027-2028",
+    isActive: false,
+  });
+  promotionsApiMock.activateSchoolYear.mockResolvedValue({
+    success: true,
+    activeSchoolYearId: "sy-2026",
+  });
+  promotionsApiMock.rolloverSchoolYear.mockResolvedValue({
+    createdClassesCount: 0,
+  });
 });
 
 describe("PromotionsAdminScreen", () => {
@@ -183,6 +195,50 @@ describe("PromotionsAdminScreen", () => {
     await waitFor(() =>
       expect(useSuccessToastStore.getState().title).toBe(
         "Élève affecté à la classe.",
+      ),
+    );
+  });
+
+  it("cree une annee scolaire sans l'activer", async () => {
+    render(<PromotionsAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("promotions-admin-tab-years"));
+
+    fireEvent.changeText(
+      await screen.findByTestId("promotions-admin-new-year-label"),
+      "2027-2028",
+    );
+    fireEvent.press(screen.getByTestId("promotions-admin-create-year-submit"));
+
+    await waitFor(() =>
+      expect(promotionsApiMock.createSchoolYear).toHaveBeenCalledWith(
+        "college-vogt",
+        { label: "2027-2028" },
+      ),
+    );
+    await waitFor(() =>
+      expect(useSuccessToastStore.getState().title).toBe(
+        "Année scolaire créée.",
+      ),
+    );
+  });
+
+  it("active une annee scolaire existante", async () => {
+    render(<PromotionsAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("promotions-admin-tab-years"));
+
+    fireEvent.press(await screen.findByTestId("school-year-sy-2026-activate"));
+
+    await waitFor(() =>
+      expect(promotionsApiMock.activateSchoolYear).toHaveBeenCalledWith(
+        "college-vogt",
+        "sy-2026",
+      ),
+    );
+    await waitFor(() =>
+      expect(useSuccessToastStore.getState().title).toBe(
+        "Année scolaire activée.",
       ),
     );
   });

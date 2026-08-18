@@ -21,11 +21,16 @@ import { useNotesStore } from "../../store/notes.store";
 import { EmptyState, LoadingBlock } from "../timetable/TimetableCommon";
 import { PeriodHero } from "./PeriodHero";
 import { AppreciationEditor, SubjectReportCard } from "./SubjectReportCard";
-import { formatScore, termLabel } from "../../utils/notes";
+import {
+  computeYearlySnapshot,
+  formatScore,
+  termLabel,
+} from "../../utils/notes";
 import type {
   CouncilDrafts,
   NotesTeacherContext,
   StudentNotesTerm,
+  StudentNotesTermOrYearly,
 } from "../../types/notes.types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -49,9 +54,17 @@ type Props = {
     info: {
       studentName: string;
       className: string;
-      term: StudentNotesTerm;
+      term: StudentNotesTermOrYearly;
     } | null,
   ) => void;
+  /**
+   * Bulletin à ouvrir automatiquement (ex : depuis l'onglet Decision, tap sur
+   * un trimestre ou la moyenne annuelle). Consommé une seule fois puis
+   * signalé au parent via `onOpenTargetConsumed` pour éviter une réouverture
+   * en boucle au re-render.
+   */
+  openTarget?: { studentId: string; term: StudentNotesTermOrYearly } | null;
+  onOpenTargetConsumed?: () => void;
 };
 
 export type TeacherPeriodReportsHandle = {
@@ -59,9 +72,15 @@ export type TeacherPeriodReportsHandle = {
   goBackFromDetail: () => boolean;
 };
 
-type DetailTarget = { studentId: string; term: StudentNotesTerm };
+type DetailTarget = { studentId: string; term: StudentNotesTermOrYearly };
 
 const ALL_TERMS: StudentNotesTerm[] = ["TERM_1", "TERM_2", "TERM_3"];
+const ALL_CARDS: StudentNotesTermOrYearly[] = [
+  "TERM_1",
+  "TERM_2",
+  "TERM_3",
+  "YEARLY",
+];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -78,6 +97,8 @@ export const TeacherPeriodReportsTab = forwardRef<
     onSaveAppreciation,
     isSubmitting,
     onDetailChange,
+    openTarget,
+    onOpenTargetConsumed,
   },
   ref,
 ) {
@@ -135,9 +156,12 @@ export const TeacherPeriodReportsTab = forwardRef<
     );
   }
 
-  function openBulletin(studentId: string, term: StudentNotesTerm) {
+  function openBulletin(studentId: string, term: StudentNotesTermOrYearly) {
     setDetail({ studentId, term });
-    onTermChange(term);
+    if (term !== "YEARLY") {
+      onTermChange(term);
+    }
+    setExpandedStudentId(studentId);
     setEditingGeneral(false);
     setEditingSubjectId(null);
     const student = sortedStudents.find((s) => s.id === studentId);
@@ -155,6 +179,14 @@ export const TeacherPeriodReportsTab = forwardRef<
     setEditingSubjectId(null);
     onDetailChange?.(null);
   }
+
+  useEffect(() => {
+    if (!openTarget) return;
+    openBulletin(openTarget.studentId, openTarget.term);
+    onOpenTargetConsumed?.();
+    // `openBulletin`/`onOpenTargetConsumed` sont recréés à chaque render :
+    // seul un changement de cible doit redéclencher l'ouverture.
+  }, [openTarget]);
 
   useImperativeHandle(
     ref,
@@ -199,8 +231,13 @@ export const TeacherPeriodReportsTab = forwardRef<
   // ── Vue détail : bulletin complet + appréciations inline ──────────
   if (detail && selectedStudent) {
     const snapshots = studentNotes[detail.studentId] ?? [];
-    const snapshot =
-      snapshots.find((entry) => entry.term === detail.term) ?? null;
+    const isYearly = detail.term === "YEARLY";
+    const snapshot = isYearly
+      ? null
+      : (snapshots.find((entry) => entry.term === detail.term) ?? null);
+    const yearlySnapshot = isYearly
+      ? computeYearlySnapshot(snapshots, t)
+      : null;
     const generalText = drafts[detail.studentId]?.generalAppreciation ?? "";
     const isReferentTeacher = teacherContext.class.isReferentTeacher;
 
@@ -210,8 +247,49 @@ export const TeacherPeriodReportsTab = forwardRef<
         contentContainerStyle={{ paddingBottom: bottomInset + 24 }}
         testID="teacher-reports-detail"
       >
-        {isLoadingStudentNotes && !snapshot ? (
+        {isLoadingStudentNotes && snapshots.length === 0 ? (
           <LoadingBlock label={t("notes.panel.loading")} />
+        ) : isYearly ? (
+          yearlySnapshot ? (
+            <>
+              <View style={styles.heroWrapper}>
+                <PeriodHero
+                  snapshot={yearlySnapshot}
+                  compactStats
+                  showPublished={false}
+                  inlineHeader
+                />
+              </View>
+
+              <View
+                style={styles.subjectsBlock}
+                testID="teacher-reports-yearly-subjects"
+              >
+                {yearlySnapshot.subjects.map((subject) => (
+                  <SubjectReportCard
+                    key={subject.id}
+                    subject={subject}
+                    sequenceRows={ALL_TERMS.map((termKey) => ({
+                      sequence: termKey,
+                      label: termLabel(termKey, t),
+                      studentAverage: subject.termAverages[termKey] ?? null,
+                    }))}
+                    editable={false}
+                    appreciationValue=""
+                    t={t}
+                    testID={`teacher-reports-yearly-subject-card-${subject.id}`}
+                    testIDPrefix={`teacher-reports-yearly-subject-${subject.id}`}
+                  />
+                ))}
+              </View>
+            </>
+          ) : (
+            <EmptyState
+              icon="document-text-outline"
+              title={t("notes.reports.empty.title")}
+              message={t("notes.reports.empty.message")}
+            />
+          )
         ) : snapshot ? (
           <>
             <View style={styles.heroWrapper}>
@@ -384,9 +462,13 @@ export const TeacherPeriodReportsTab = forwardRef<
                     style={styles.bulletinsRow}
                     testID={`teacher-reports-bulletins-${student.id}`}
                   >
-                    {ALL_TERMS.map((term) => {
-                      const snapshot =
-                        snapshots.find((entry) => entry.term === term) ?? null;
+                    {ALL_CARDS.map((term) => {
+                      const average =
+                        term === "YEARLY"
+                          ? (computeYearlySnapshot(snapshots, t)?.generalAverage
+                              .student ?? null)
+                          : (snapshots.find((entry) => entry.term === term)
+                              ?.generalAverage.student ?? null);
                       return (
                         <TouchableOpacity
                           key={term}
@@ -398,9 +480,7 @@ export const TeacherPeriodReportsTab = forwardRef<
                             {termLabel(term, t)}
                           </Text>
                           <Text style={styles.bulletinCardAverage}>
-                            {formatScore(
-                              snapshot?.generalAverage.student ?? null,
-                            )}
+                            {formatScore(average)}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -472,7 +552,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: `${colors.accentTeal}55`,
     backgroundColor: colors.surface,
-    paddingHorizontal: 10,
+    paddingHorizontal: 6,
     paddingVertical: 12,
     alignItems: "center",
     gap: 4,

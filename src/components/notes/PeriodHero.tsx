@@ -9,7 +9,10 @@ import {
   getBestSubject,
   getWatchSubject,
 } from "../../utils/notes";
-import type { StudentNotesTermSnapshot } from "../../types/notes.types";
+import type {
+  StudentNotesTermSnapshot,
+  YearlyNotesSnapshot,
+} from "../../types/notes.types";
 
 // Carte "hero" de synthèse d'une période (trimestre) : moyenne élève/classe,
 // meilleure matière, matière à surveiller. `compactStats`+`inlineHeader`
@@ -22,7 +25,7 @@ export function PeriodHero({
   showPublished = true,
   inlineHeader = false,
 }: {
-  snapshot: StudentNotesTermSnapshot;
+  snapshot: StudentNotesTermSnapshot | YearlyNotesSnapshot;
   compactStats?: boolean;
   showPublished?: boolean;
   inlineHeader?: boolean;
