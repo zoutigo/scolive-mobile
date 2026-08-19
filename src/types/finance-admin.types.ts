@@ -1,6 +1,4 @@
-export type ReinscriptionThresholdPolicy =
-  | "FIRST_INSTALLMENT"
-  | "FULL_PAYMENT";
+export type ReinscriptionThresholdPolicy = "FIRST_INSTALLMENT" | "FULL_PAYMENT";
 
 export type FinanceSettings = {
   reinscriptionThresholdPolicy: ReinscriptionThresholdPolicy;

@@ -261,6 +261,56 @@ export const translations: Record<Locale, Record<string, string>> = {
     "finSituation.children.status.ALREADY_REINSCRIBED": "Deja reinscrit(e)",
     "finSituation.children.status.READY_TO_REINSCRIBE":
       "Pret(e) a etre reinscrit(e)",
+
+    "reinscription.title": "Réinscription",
+    "reinscription.tabs.paiement": "Paiement",
+    "reinscription.tabs.fournitures": "Fournitures",
+    "reinscription.children.title": "Mes enfants",
+    "reinscription.children.allLoaded": "Tous les enfants ont ete charges",
+    "reinscription.children.empty": "Aucun enfant rattache a votre compte.",
+    "reinscription.supplies.notOpenYet":
+      "L'annee suivante n'est pas encore ouverte par l'ecole.",
+    "reinscription.supplies.empty":
+      "Aucune liste de fournitures definie pour ce niveau pour le moment.",
+    "reinscription.supplies.emptyList":
+      "Aucun enfant pret pour une liste de fournitures.",
+    "reinscription.supplies.allLoaded":
+      "Toutes les listes de fournitures ont ete chargees",
+    "reinscription.wallet.success.topUp": "Porte-monnaie credite.",
+    "reinscription.wallet.success.reinscribed":
+      "{firstName} est reinscrit(e) !",
+    "reinscription.wallet.errors.topUp": "Depot impossible.",
+    "reinscription.wallet.errors.reinscribe": "Reinscription impossible.",
+    "reinscription.errors.load": "Chargement impossible.",
+    "reinscription.help.menuLabel": "Aide",
+    "reinscription.help.title": "Aide — Réinscription",
+    "reinscription.help.close": "Fermer",
+    "reinscription.help.section1Title": "Payer et réinscrire",
+    "reinscription.help.section1Body":
+      "Dès qu'un enfant est promu par le conseil de classe, il apparaît dans l'onglet Paiement avec le montant restant dû (selon la politique de seuil définie par l'école : 1ère échéance ou paiement intégral) et la date limite. Créditez votre porte-monnaie puis touchez « Je paie et je réinscris » pour régler ce montant et confirmer la réinscription en un seul geste.",
+    "reinscription.help.section2Title": "Statuts affichés",
+    "reinscription.help.section2Body":
+      "« En attente de la décision du conseil de classe » signifie que le niveau de l'an prochain n'est pas encore décidé. « Prêt(e) à être réinscrit(e) » signifie que le paiement peut être effectué. « Déjà réinscrit(e) » confirme que la réinscription est actée.",
+    "reinscription.help.section3Title": "Fournitures scolaires",
+    "reinscription.help.section3Body":
+      "L'onglet Fournitures liste, pour chaque enfant, les articles nécessaires pour le niveau qu'il intègre l'an prochain (et non son niveau actuel). Cette liste est gérée par l'établissement.",
+
+    "onboardingTour.reinscription.walletTitle": "Votre porte-monnaie",
+    "onboardingTour.reinscription.walletBody":
+      "Créditez ce porte-monnaie pour pouvoir régler les frais de réinscription de vos enfants.",
+    "onboardingTour.reinscription.childrenTitle": "Vos enfants",
+    "onboardingTour.reinscription.childrenBody":
+      "Chaque enfant promu apparaît ici avec son statut et le montant restant dû.",
+    "onboardingTour.reinscription.reinscribeTitle": "Payer et réinscrire",
+    "onboardingTour.reinscription.reinscribeBody":
+      "Ce bouton débite le montant requis de votre porte-monnaie et confirme la réinscription en un seul geste.",
+    "onboardingTour.reinscription.suppliesTabTitle": "Fournitures scolaires",
+    "onboardingTour.reinscription.suppliesTabBody":
+      "Cet onglet liste les fournitures nécessaires pour le niveau que votre enfant intègre l'an prochain.",
+    "onboardingTour.reinscription.helpToggleTitle": "Besoin d'aide ?",
+    "onboardingTour.reinscription.helpToggleBody":
+      "Touchez ce bouton, puis « Aide » dans le menu, pour retrouver ces explications à tout moment.",
+
     "onboardingTour.childTimetable.step1Title": "Changez de vue",
     "onboardingTour.childTimetable.step1Body":
       "Touchez Jour, Semaine ou Mois pour changer la façon d'afficher l'emploi du temps.",
@@ -4197,6 +4247,55 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Decision made, waiting for the school to open next school year",
     "finSituation.children.status.ALREADY_REINSCRIBED": "Already re-enrolled",
     "finSituation.children.status.READY_TO_REINSCRIBE": "Ready to re-enroll",
+
+    "reinscription.title": "Re-enrollment",
+    "reinscription.tabs.paiement": "Payment",
+    "reinscription.tabs.fournitures": "Supplies",
+    "reinscription.children.title": "My children",
+    "reinscription.children.allLoaded": "All children have been loaded",
+    "reinscription.children.empty": "No child linked to your account.",
+    "reinscription.supplies.notOpenYet":
+      "Next year has not been opened by the school yet.",
+    "reinscription.supplies.empty":
+      "No supply list defined for this level yet.",
+    "reinscription.supplies.emptyList":
+      "No child ready for a supply list yet.",
+    "reinscription.supplies.allLoaded":
+      "All supply lists have been loaded",
+    "reinscription.wallet.success.topUp": "Wallet topped up.",
+    "reinscription.wallet.success.reinscribed": "{firstName} is re-enrolled!",
+    "reinscription.wallet.errors.topUp": "Unable to top up.",
+    "reinscription.wallet.errors.reinscribe": "Unable to re-enroll.",
+    "reinscription.errors.load": "Unable to load.",
+    "reinscription.help.menuLabel": "Help",
+    "reinscription.help.title": "Help — Re-enrollment",
+    "reinscription.help.close": "Close",
+    "reinscription.help.section1Title": "Pay and re-enroll",
+    "reinscription.help.section1Body":
+      "As soon as a child is promoted by the class council, they appear in the Payment tab with the remaining amount due (based on the threshold policy set by the school: first installment or full payment) and the deadline. Top up your wallet then tap \"Pay and re-enroll\" to settle that amount and confirm re-enrollment in one action.",
+    "reinscription.help.section2Title": "Displayed statuses",
+    "reinscription.help.section2Body":
+      "\"Awaiting class council decision\" means next year's level has not been decided yet. \"Ready to re-enroll\" means payment can be made. \"Already re-enrolled\" confirms re-enrollment is done.",
+    "reinscription.help.section3Title": "School supplies",
+    "reinscription.help.section3Body":
+      "The Supplies tab lists, for each child, the items needed for the level they are moving into next year (not their current level). This list is managed by the school.",
+
+    "onboardingTour.reinscription.walletTitle": "Your wallet",
+    "onboardingTour.reinscription.walletBody":
+      "Top up this wallet so you can pay your children's re-enrollment fees.",
+    "onboardingTour.reinscription.childrenTitle": "Your children",
+    "onboardingTour.reinscription.childrenBody":
+      "Every promoted child appears here with their status and remaining amount due.",
+    "onboardingTour.reinscription.reinscribeTitle": "Pay and re-enroll",
+    "onboardingTour.reinscription.reinscribeBody":
+      "This button debits the required amount from your wallet and confirms re-enrollment in one action.",
+    "onboardingTour.reinscription.suppliesTabTitle": "School supplies",
+    "onboardingTour.reinscription.suppliesTabBody":
+      "This tab lists the supplies needed for the level your child is moving into next year.",
+    "onboardingTour.reinscription.helpToggleTitle": "Need help?",
+    "onboardingTour.reinscription.helpToggleBody":
+      "Tap this button, then \"Help\" in the menu, to find these explanations again at any time.",
+
     "onboardingTour.childTimetable.step1Title": "Switch views",
     "onboardingTour.childTimetable.step1Body":
       "Tap Day, Week or Month to change how the schedule is displayed.",

@@ -402,6 +402,12 @@ const PARENT_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
   feedItem(),
   {
+    key: "reinscription",
+    label: "Réinscription",
+    icon: "school-outline",
+    route: "/(home)/reinscription",
+  },
+  {
     key: "finance",
     label: "Situation financière",
     icon: "wallet-outline",
