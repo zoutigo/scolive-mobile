@@ -11,6 +11,7 @@ import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { WalletBalanceCard } from "../finance/WalletBalanceCard";
 import { ChildFinanceCard } from "../finance/ChildFinanceCard";
 import { SupplyListCard } from "./SupplyListCard";
+import { InstallmentBreakdownCard } from "./InstallmentBreakdownCard";
 import { PageHelpModal } from "../help/PageHelpModal";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
 import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
@@ -229,6 +230,12 @@ function ReinscriptionScreenContent() {
                     : undefined
                 }
               />
+              {item.targetSchoolYearId ? (
+                <InstallmentBreakdownCard
+                  studentId={item.student.id}
+                  schoolYearId={item.targetSchoolYearId}
+                />
+              ) : null}
             </View>
           )}
           hasMore={false}

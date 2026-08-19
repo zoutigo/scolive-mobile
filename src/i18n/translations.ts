@@ -311,6 +311,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.reinscription.helpToggleBody":
       "Touchez ce bouton, puis « Aide » dans le menu, pour retrouver ces explications à tout moment.",
 
+    "reinscription.installments.show": "Voir l'échéancier",
+    "reinscription.installments.hide": "Masquer l'échéancier",
+    "reinscription.installments.dueDate": "Échéance :",
+    "reinscription.installments.error": "Échéancier indisponible.",
+    "reinscription.installments.status.PAID": "Payée",
+    "reinscription.installments.status.PARTIAL": "Partielle",
+    "reinscription.installments.status.UPCOMING": "À venir",
+    "reinscription.installments.status.OVERDUE": "En retard",
+
     "onboardingTour.childTimetable.step1Title": "Changez de vue",
     "onboardingTour.childTimetable.step1Body":
       "Touchez Jour, Semaine ou Mois pour changer la façon d'afficher l'emploi du temps.",
@@ -4300,6 +4309,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.reinscription.helpToggleTitle": "Need help?",
     "onboardingTour.reinscription.helpToggleBody":
       'Tap this button, then "Help" in the menu, to find these explanations again at any time.',
+
+    "reinscription.installments.show": "View schedule",
+    "reinscription.installments.hide": "Hide schedule",
+    "reinscription.installments.dueDate": "Due:",
+    "reinscription.installments.error": "Schedule unavailable.",
+    "reinscription.installments.status.PAID": "Paid",
+    "reinscription.installments.status.PARTIAL": "Partial",
+    "reinscription.installments.status.UPCOMING": "Upcoming",
+    "reinscription.installments.status.OVERDUE": "Overdue",
 
     "onboardingTour.childTimetable.step1Title": "Switch views",
     "onboardingTour.childTimetable.step1Body":

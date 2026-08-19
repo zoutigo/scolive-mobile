@@ -92,6 +92,35 @@ beforeEach(() => {
     requiredAmount: 30000,
     reinscriptionConfirmed: true,
   });
+  financeApiMock.getMyChildInstallmentBreakdown.mockResolvedValue({
+    student: { id: "student-1", firstName: "Remi", lastName: "Ntamack" },
+    schoolYearId: "sy-2026",
+    totalAmount: 100000,
+    totalPaid: 50000,
+    totalRemaining: 50000,
+    installments: [
+      {
+        id: "inst-1",
+        rank: 1,
+        label: "1ere echeance",
+        amount: 50000,
+        dueDate: "2026-10-01T00:00:00.000Z",
+        allocatedAmount: 50000,
+        remainingAmount: 0,
+        status: "PAID",
+      },
+      {
+        id: "inst-2",
+        rank: 2,
+        label: "2eme echeance",
+        amount: 50000,
+        dueDate: null,
+        allocatedAmount: 0,
+        remainingAmount: 50000,
+        status: "UPCOMING",
+      },
+    ],
+  });
   supplyListsApiMock.getMyChildSupplyList.mockResolvedValue({
     targetSchoolYearId: "sy-2026",
     targetSchoolYearLabel: "2026-2027",
@@ -186,6 +215,31 @@ describe("ReinscriptionScreen — onglet Paiement", () => {
         "reinscription-parent",
       ),
     );
+  });
+
+  it("affiche l'echeancier detaille au clic sur 'Voir l'echeancier'", async () => {
+    financeApiMock.getWalletSummary.mockResolvedValue(WALLET_ONE_CHILD_READY);
+    render(<ReinscriptionScreen />);
+
+    await screen.findByText("Remi Ntamack");
+    expect(
+      screen.queryByTestId("installment-list-student-1"),
+    ).toBeNull();
+
+    fireEvent.press(screen.getByTestId("installment-toggle-student-1"));
+
+    await waitFor(() =>
+      expect(financeApiMock.getMyChildInstallmentBreakdown).toHaveBeenCalledWith(
+        "college-vogt",
+        "student-1",
+        "sy-2026",
+      ),
+    );
+    expect(
+      await screen.findByTestId("installment-row-student-1-1"),
+    ).toBeOnTheScreen();
+    expect(screen.getByText("Payée")).toBeOnTheScreen();
+    expect(screen.getByText("À venir")).toBeOnTheScreen();
   });
 });
 

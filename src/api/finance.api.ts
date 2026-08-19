@@ -1,5 +1,8 @@
 import { apiFetch } from "./client";
-import type { WalletSummary } from "../types/finance.types";
+import type {
+  ChildInstallmentBreakdown,
+  WalletSummary,
+} from "../types/finance.types";
 import type {
   FeeScheduleRow,
   FinanceSettings,
@@ -16,6 +19,18 @@ function buildAdminPath(schoolSlug: string, path: string) {
 export const financeApi = {
   getWalletSummary(schoolSlug: string): Promise<WalletSummary> {
     return apiFetch(`/schools/${schoolSlug}/me/finance/wallet`, {}, true);
+  },
+
+  getMyChildInstallmentBreakdown(
+    schoolSlug: string,
+    studentId: string,
+    schoolYearId: string,
+  ): Promise<ChildInstallmentBreakdown> {
+    return apiFetch(
+      `/schools/${schoolSlug}/me/finance/students/${studentId}/schedule?schoolYearId=${schoolYearId}`,
+      {},
+      true,
+    );
   },
 
   getFinanceSettings(schoolSlug: string): Promise<FinanceSettings> {

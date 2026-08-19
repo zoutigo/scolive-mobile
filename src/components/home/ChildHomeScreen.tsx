@@ -444,17 +444,21 @@ export function ChildHomeScreen() {
                     label={t("childHome.supplies.empty")}
                   />
                 ) : (
-                  supplyList.items.slice(0, 3).map((item, idx) => (
-                    <DataRow
-                      key={item.id}
-                      testID={`child-home-supplies-row-${idx}`}
-                      main={`${item.quantity}× ${item.label}`}
-                      secondary={supplyList.targetSchoolYearLabel ?? ""}
-                      date=""
-                      isLast={idx === Math.min(supplyList.items.length, 3) - 1}
-                      onPress={goToReinscription}
-                    />
-                  ))
+                  supplyList.items
+                    .slice(0, 3)
+                    .map((item, idx) => (
+                      <DataRow
+                        key={item.id}
+                        testID={`child-home-supplies-row-${idx}`}
+                        main={`${item.quantity}× ${item.label}`}
+                        secondary={supplyList.targetSchoolYearLabel ?? ""}
+                        date=""
+                        isLast={
+                          idx === Math.min(supplyList.items.length, 3) - 1
+                        }
+                        onPress={goToReinscription}
+                      />
+                    ))
                 )}
               </SectionBlock>
             ) : null}
