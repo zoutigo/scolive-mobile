@@ -96,7 +96,13 @@ beforeEach(() => {
     targetSchoolYearId: "sy-2026",
     targetSchoolYearLabel: "2026-2027",
     items: [
-      { id: "item-1", rank: 1, label: "Cahier 100 pages", quantity: 3, note: null },
+      {
+        id: "item-1",
+        rank: 1,
+        label: "Cahier 100 pages",
+        quantity: 3,
+        note: null,
+      },
     ],
   });
 });

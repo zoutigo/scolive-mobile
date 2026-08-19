@@ -691,6 +691,9 @@ function applyTopLevelBadges(
     if (item.key === "messages") {
       return { ...item, unread: toUnread(badges.messagesUnread) };
     }
+    if (item.key === "reinscription") {
+      return { ...item, unread: toUnread(badges.reinscriptionPending) };
+    }
     return item;
   });
 }

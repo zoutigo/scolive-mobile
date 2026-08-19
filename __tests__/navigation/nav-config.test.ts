@@ -367,6 +367,7 @@ describe("buildDrawerNavigationConfig", () => {
       badges: {
         messagesUnread: 5,
         feedUnread: 2,
+        reinscriptionPending: 0,
         ticketsNeedingResponse: 0,
         ticketsUnreadReplies: 0,
         children: [
@@ -388,6 +389,9 @@ describe("buildDrawerNavigationConfig", () => {
     expect(
       config.navItems.find((item) => item.key === "messages")?.unread,
     ).toBe(5);
+    expect(
+      config.navItems.find((item) => item.key === "reinscription")?.unread,
+    ).toBeUndefined();
 
     const childItems = config.childSections?.[0].navItems ?? [];
     expect(
@@ -396,6 +400,33 @@ describe("buildDrawerNavigationConfig", () => {
     expect(
       childItems.find((item) => item.key === "child-child-1-life")?.unread,
     ).toBe(3);
+  });
+
+  it("affiche le badge du menu Reinscription quand des enfants sont prets a etre reinscrits", () => {
+    const parentUser = makeUser({
+      role: "PARENT",
+      activeRole: "PARENT",
+      memberships: [{ schoolId: "s1", role: "PARENT" }],
+    });
+
+    const config = buildDrawerNavigationConfig({
+      user: parentUser,
+      familyChildren: [],
+      badges: {
+        messagesUnread: 0,
+        feedUnread: 0,
+        reinscriptionPending: 2,
+        ticketsNeedingResponse: 0,
+        ticketsUnreadReplies: 0,
+        children: [],
+        teacherClasses: [],
+        total: 2,
+      },
+    });
+
+    expect(
+      config.navItems.find((item) => item.key === "reinscription")?.unread,
+    ).toBe(2);
   });
 
   it("applique le badge évaluations à saisir par classe pour un enseignant", () => {
@@ -420,6 +451,7 @@ describe("buildDrawerNavigationConfig", () => {
       badges: {
         messagesUnread: 0,
         feedUnread: 0,
+        reinscriptionPending: 0,
         ticketsNeedingResponse: 0,
         ticketsUnreadReplies: 0,
         children: [],
@@ -450,6 +482,7 @@ describe("buildDrawerNavigationConfig", () => {
       badges: {
         messagesUnread: 0,
         feedUnread: 0,
+        reinscriptionPending: 0,
         ticketsNeedingResponse: 0,
         ticketsUnreadReplies: 0,
         children: [],
@@ -488,6 +521,7 @@ describe("PLATFORM_NAV — Messagerie", () => {
     const items = getNavItems(superAdmin, {
       messagesUnread: 3,
       feedUnread: 0,
+      reinscriptionPending: 0,
       ticketsNeedingResponse: 0,
       ticketsUnreadReplies: 0,
       children: [],

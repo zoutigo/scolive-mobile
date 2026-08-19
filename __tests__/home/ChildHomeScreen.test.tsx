@@ -16,6 +16,7 @@ import { timetableApi } from "../../src/api/timetable.api";
 import { messagingApi } from "../../src/api/messaging.api";
 import { homeworkApi } from "../../src/api/homework.api";
 import { feedApi } from "../../src/api/feed.api";
+import { supplyListsApi } from "../../src/api/supply-lists.api";
 import { colors } from "../../src/theme";
 import { useDrawer } from "../../src/components/navigation/drawer-context";
 
@@ -27,6 +28,7 @@ jest.mock("../../src/api/timetable.api");
 jest.mock("../../src/api/messaging.api");
 jest.mock("../../src/api/homework.api");
 jest.mock("../../src/api/feed.api");
+jest.mock("../../src/api/supply-lists.api");
 
 const mockPush = jest.fn();
 
@@ -52,6 +54,7 @@ const mockTimetableApi = timetableApi as jest.Mocked<typeof timetableApi>;
 const mockMessagingApi = messagingApi as jest.Mocked<typeof messagingApi>;
 const mockHomeworkApi = homeworkApi as jest.Mocked<typeof homeworkApi>;
 const mockFeedApi = feedApi as jest.Mocked<typeof feedApi>;
+const mockSupplyListsApi = supplyListsApi as jest.Mocked<typeof supplyListsApi>;
 const mockUseDrawer = useDrawer as jest.MockedFunction<typeof useDrawer>;
 const mockOpenDrawer = jest.fn();
 
@@ -315,6 +318,10 @@ beforeEach(() => {
   mockMessagingApi.list.mockResolvedValue(INBOX_FIXTURE);
   mockHomeworkApi.listClassHomework.mockResolvedValue(HOMEWORK_FIXTURE);
   mockFeedApi.list.mockResolvedValue(FEED_FIXTURE);
+  mockSupplyListsApi.getMyChildSupplyList.mockResolvedValue({
+    targetSchoolYearId: null,
+    items: [],
+  });
 });
 
 // ── extractLatestEvaluations ──────────────────────────────────────────────────
@@ -657,6 +664,60 @@ describe("ChildHomeScreen — bloc messages non lus", () => {
     render(<ChildHomeScreen />);
     await waitForContent();
     expect(screen.getByTestId("child-home-unread-empty")).toBeTruthy();
+  });
+});
+
+describe("ChildHomeScreen — bloc fournitures scolaires", () => {
+  it("n'affiche pas le bloc si aucune annee suivante n'est encore ouverte", async () => {
+    render(<ChildHomeScreen />);
+    await waitForContent();
+    expect(screen.queryByTestId("child-home-supplies-block")).toBeNull();
+  });
+
+  it("affiche jusqu'a 3 articles de la liste scopee au niveau cible", async () => {
+    mockSupplyListsApi.getMyChildSupplyList.mockResolvedValue({
+      targetSchoolYearId: "sy-2026",
+      targetSchoolYearLabel: "2026-2027",
+      items: [
+        { id: "item-1", rank: 1, label: "Cahier 100 pages", quantity: 3, note: null },
+        { id: "item-2", rank: 2, label: "Stylo bleu", quantity: 5, note: null },
+      ],
+    });
+    render(<ChildHomeScreen />);
+    await waitForContent();
+
+    expect(screen.getByTestId("child-home-supplies-block")).toBeTruthy();
+    expect(
+      within(screen.getByTestId("child-home-supplies-row-0")).getByText(
+        "3× Cahier 100 pages",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("affiche un etat vide si la liste cible n'a pas encore d'articles", async () => {
+    mockSupplyListsApi.getMyChildSupplyList.mockResolvedValue({
+      targetSchoolYearId: "sy-2026",
+      targetSchoolYearLabel: "2026-2027",
+      items: [],
+    });
+    render(<ChildHomeScreen />);
+    await waitForContent();
+    expect(screen.getByTestId("child-home-supplies-empty")).toBeTruthy();
+  });
+
+  it("navigue vers l'ecran Reinscription au tap sur le bloc", async () => {
+    mockSupplyListsApi.getMyChildSupplyList.mockResolvedValue({
+      targetSchoolYearId: "sy-2026",
+      targetSchoolYearLabel: "2026-2027",
+      items: [
+        { id: "item-1", rank: 1, label: "Cahier 100 pages", quantity: 3, note: null },
+      ],
+    });
+    render(<ChildHomeScreen />);
+    await waitForContent();
+
+    fireEvent.press(screen.getByTestId("child-home-supplies-block-link"));
+    expect(mockPush).toHaveBeenCalledWith("/(home)/reinscription");
   });
 });
 

@@ -19,7 +19,10 @@ import {
   REINSCRIPTION_TOUR_STEPS,
   REINSCRIPTION_TOUR_TARGETS,
 } from "./reinscription-tour.config";
-import type { ChildFinanceStatus, WalletSummary } from "../../types/finance.types";
+import type {
+  ChildFinanceStatus,
+  WalletSummary,
+} from "../../types/finance.types";
 import type { ChildSupplyList } from "../../types/supply-lists.types";
 import { moduleBack } from "../../utils/moduleBack";
 import { useAuthStore } from "../../store/auth.store";
@@ -203,7 +206,9 @@ function ReinscriptionScreenContent() {
         onSelect={setTab}
         testIDPrefix="reinscription-tabs"
         tourTargetId={
-          tab === "paiement" ? REINSCRIPTION_TOUR_TARGETS.suppliesTab : undefined
+          tab === "paiement"
+            ? REINSCRIPTION_TOUR_TARGETS.suppliesTab
+            : undefined
         }
       />
 

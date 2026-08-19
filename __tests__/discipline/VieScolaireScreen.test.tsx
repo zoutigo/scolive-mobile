@@ -94,6 +94,7 @@ beforeEach(() => {
   mockBadgesApi.getUnreadSummary.mockResolvedValue({
     messagesUnread: 0,
     feedUnread: 0,
+    reinscriptionPending: 0,
     ticketsNeedingResponse: 0,
     ticketsUnreadReplies: 0,
     children: [],

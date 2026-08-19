@@ -3129,6 +3129,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "childHome.help.section2Title": "Des blocs résumés",
     "childHome.help.section2Body":
       "Chaque bloc (dernières évaluations, fil d'actualité, messages non lus) affiche un aperçu. Touchez « Voir plus » en haut à droite du bloc pour ouvrir le module complet.",
+    "childHome.help.section3Title": "Fournitures scolaires",
+    "childHome.help.section3Body":
+      "Dès que le conseil de classe a décidé du niveau que votre enfant intègre l'an prochain, un bloc « Fournitures » apparaît ici avec un aperçu des articles nécessaires pour ce niveau. Touchez ce bloc pour ouvrir l'écran Réinscription et voir la liste complète.",
+    "childHome.supplies.title": "Fournitures scolaires",
+    "childHome.supplies.linkLabel": "Voir tout",
+    "childHome.supplies.empty":
+      "Aucune liste de fournitures définie pour ce niveau pour le moment.",
     "onboardingTour.childHome.kpisTitle": "Trois indicateurs",
     "onboardingTour.childHome.kpisBody":
       "Moyenne, devoirs non faits et messages non lus : touchez une carte pour ouvrir le module correspondant.",
@@ -4258,10 +4265,8 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Next year has not been opened by the school yet.",
     "reinscription.supplies.empty":
       "No supply list defined for this level yet.",
-    "reinscription.supplies.emptyList":
-      "No child ready for a supply list yet.",
-    "reinscription.supplies.allLoaded":
-      "All supply lists have been loaded",
+    "reinscription.supplies.emptyList": "No child ready for a supply list yet.",
+    "reinscription.supplies.allLoaded": "All supply lists have been loaded",
     "reinscription.wallet.success.topUp": "Wallet topped up.",
     "reinscription.wallet.success.reinscribed": "{firstName} is re-enrolled!",
     "reinscription.wallet.errors.topUp": "Unable to top up.",
@@ -4272,10 +4277,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "reinscription.help.close": "Close",
     "reinscription.help.section1Title": "Pay and re-enroll",
     "reinscription.help.section1Body":
-      "As soon as a child is promoted by the class council, they appear in the Payment tab with the remaining amount due (based on the threshold policy set by the school: first installment or full payment) and the deadline. Top up your wallet then tap \"Pay and re-enroll\" to settle that amount and confirm re-enrollment in one action.",
+      'As soon as a child is promoted by the class council, they appear in the Payment tab with the remaining amount due (based on the threshold policy set by the school: first installment or full payment) and the deadline. Top up your wallet then tap "Pay and re-enroll" to settle that amount and confirm re-enrollment in one action.',
     "reinscription.help.section2Title": "Displayed statuses",
     "reinscription.help.section2Body":
-      "\"Awaiting class council decision\" means next year's level has not been decided yet. \"Ready to re-enroll\" means payment can be made. \"Already re-enrolled\" confirms re-enrollment is done.",
+      '"Awaiting class council decision" means next year\'s level has not been decided yet. "Ready to re-enroll" means payment can be made. "Already re-enrolled" confirms re-enrollment is done.',
     "reinscription.help.section3Title": "School supplies",
     "reinscription.help.section3Body":
       "The Supplies tab lists, for each child, the items needed for the level they are moving into next year (not their current level). This list is managed by the school.",
@@ -4294,7 +4299,7 @@ export const translations: Record<Locale, Record<string, string>> = {
       "This tab lists the supplies needed for the level your child is moving into next year.",
     "onboardingTour.reinscription.helpToggleTitle": "Need help?",
     "onboardingTour.reinscription.helpToggleBody":
-      "Tap this button, then \"Help\" in the menu, to find these explanations again at any time.",
+      'Tap this button, then "Help" in the menu, to find these explanations again at any time.',
 
     "onboardingTour.childTimetable.step1Title": "Switch views",
     "onboardingTour.childTimetable.step1Body":
@@ -7008,6 +7013,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "childHome.help.section2Title": "Summary blocks",
     "childHome.help.section2Body":
       'Each block (latest evaluations, news feed, unread messages) shows a preview. Tap "See more" at the top right of the block to open the full module.',
+    "childHome.help.section3Title": "School supplies",
+    "childHome.help.section3Body":
+      'As soon as the class council has decided which level your child is moving into next year, a "Supplies" block appears here with a preview of the items needed for that level. Tap this block to open the Re-enrollment screen and see the full list.',
+    "childHome.supplies.title": "School supplies",
+    "childHome.supplies.linkLabel": "See all",
+    "childHome.supplies.empty": "No supply list defined for this level yet.",
     "onboardingTour.childHome.kpisTitle": "Three indicators",
     "onboardingTour.childHome.kpisBody":
       "Average, undone homework and unread messages: tap a card to open the matching module.",
