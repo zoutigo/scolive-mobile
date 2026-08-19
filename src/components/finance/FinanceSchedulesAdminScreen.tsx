@@ -39,7 +39,10 @@ import type {
   CurriculumAcademicLevel,
   CurriculumTrack,
 } from "../../types/curriculums.types";
-import type { FeeScheduleRow } from "../../types/finance-admin.types";
+import type {
+  FeeScheduleRow,
+  ReinscriptionThresholdPolicy,
+} from "../../types/finance-admin.types";
 
 type TabKey = "schedules" | "forms";
 
@@ -86,6 +89,9 @@ export function FinanceSchedulesAdminScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<FeeScheduleRow | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [reinscriptionThresholdPolicy, setReinscriptionThresholdPolicy] =
+    useState<ReinscriptionThresholdPolicy>("FIRST_INSTALLMENT");
+  const [savingPolicy, setSavingPolicy] = useState(false);
 
   const effectiveRole = user?.activeRole ?? null;
   const canAccessModule = roleAllowsFinance(effectiveRole);
@@ -111,16 +117,19 @@ export function FinanceSchedulesAdminScreen() {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const [scheduleRows, yearRows, levelRows, trackRows] = await Promise.all([
-        financeApi.listFeeSchedules(schoolSlug),
-        teachersApi.listSchoolYears(schoolSlug),
-        curriculumsApi.listAcademicLevels(schoolSlug),
-        curriculumsApi.listTracks(schoolSlug),
-      ]);
+      const [scheduleRows, yearRows, levelRows, trackRows, settings] =
+        await Promise.all([
+          financeApi.listFeeSchedules(schoolSlug),
+          teachersApi.listSchoolYears(schoolSlug),
+          curriculumsApi.listAcademicLevels(schoolSlug),
+          curriculumsApi.listTracks(schoolSlug),
+          financeApi.getFinanceSettings(schoolSlug),
+        ]);
       setSchedules(scheduleRows);
       setSchoolYears(yearRows);
       setLevels(levelRows);
       setTracks(trackRows);
+      setReinscriptionThresholdPolicy(settings.reinscriptionThresholdPolicy);
     } catch (error) {
       setErrorMessage(extractApiError(error));
     } finally {
@@ -134,6 +143,31 @@ export function FinanceSchedulesAdminScreen() {
 
   function exitForms() {
     setTab("schedules");
+  }
+
+  async function onSelectPolicy(policy: ReinscriptionThresholdPolicy) {
+    if (!schoolSlug || policy === reinscriptionThresholdPolicy || savingPolicy)
+      return;
+    const previous = reinscriptionThresholdPolicy;
+    setReinscriptionThresholdPolicy(policy);
+    setSavingPolicy(true);
+    try {
+      await financeApi.updateFinanceSettings(schoolSlug, {
+        reinscriptionThresholdPolicy: policy,
+      });
+      showSuccess({
+        title: t("financeAdmin.settings.success"),
+        message: "",
+      });
+    } catch (error) {
+      setReinscriptionThresholdPolicy(previous);
+      showError({
+        title: t("financeAdmin.settings.errors.save"),
+        message: extractApiError(error),
+      });
+    } finally {
+      setSavingPolicy(false);
+    }
   }
 
   function openCreate() {
@@ -274,6 +308,57 @@ export function FinanceSchedulesAdminScreen() {
 
       {tab === "schedules" ? (
         <View style={styles.content}>
+          <View style={styles.policyCard} testID="reinscription-policy-card">
+            <Text style={styles.policyTitle}>
+              {t("financeAdmin.settings.title")}
+            </Text>
+            <Text style={styles.policyDescription}>
+              {t("financeAdmin.settings.description")}
+            </Text>
+            <View style={styles.policyOptions}>
+              <TouchableOpacity
+                style={[
+                  styles.policyOption,
+                  reinscriptionThresholdPolicy === "FIRST_INSTALLMENT" &&
+                    styles.policyOptionActive,
+                ]}
+                onPress={() => onSelectPolicy("FIRST_INSTALLMENT")}
+                disabled={savingPolicy}
+                testID="reinscription-policy-first-installment"
+              >
+                <Text
+                  style={[
+                    styles.policyOptionText,
+                    reinscriptionThresholdPolicy === "FIRST_INSTALLMENT" &&
+                      styles.policyOptionTextActive,
+                  ]}
+                >
+                  {t("financeAdmin.settings.firstInstallment")}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.policyOption,
+                  reinscriptionThresholdPolicy === "FULL_PAYMENT" &&
+                    styles.policyOptionActive,
+                ]}
+                onPress={() => onSelectPolicy("FULL_PAYMENT")}
+                disabled={savingPolicy}
+                testID="reinscription-policy-full-payment"
+              >
+                <Text
+                  style={[
+                    styles.policyOptionText,
+                    reinscriptionThresholdPolicy === "FULL_PAYMENT" &&
+                      styles.policyOptionTextActive,
+                  ]}
+                >
+                  {t("financeAdmin.settings.fullPayment")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
           {isLoading ? (
             <LoadingBlock label={t("common.loading")} />
@@ -575,6 +660,47 @@ const styles = StyleSheet.create({
   lockedWrap: { flex: 1, padding: 16, justifyContent: "center" },
   content: { flex: 1, gap: 12, paddingHorizontal: 16, paddingTop: 10 },
   listContent: { paddingBottom: 108, gap: 8 },
+  policyCard: {
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    padding: 14,
+    gap: 8,
+  },
+  policyTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  policyDescription: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  policyOptions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  policyOption: {
+    flex: 1,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  policyOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  policyOptionText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+  policyOptionTextActive: {
+    color: colors.white,
+  },
   entityRow: {
     borderRadius: 14,
     padding: 14,

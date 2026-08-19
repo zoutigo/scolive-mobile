@@ -224,8 +224,8 @@ export function FinancePaymentsAdminScreen() {
                 {summary.totalPaid.toLocaleString()}
               </Text>
               <Text style={styles.summaryLine}>
-                {t("financeAdmin.payments.summary.firstInstallment")}:{" "}
-                {summary.firstInstallmentAmount.toLocaleString()}
+                {t("financeAdmin.payments.summary.threshold")}:{" "}
+                {summary.thresholdAmount.toLocaleString()}
               </Text>
               <Text style={styles.summaryEligibility}>
                 {summary.reinscriptionEligible

@@ -1,3 +1,11 @@
+export type ReinscriptionThresholdPolicy =
+  | "FIRST_INSTALLMENT"
+  | "FULL_PAYMENT";
+
+export type FinanceSettings = {
+  reinscriptionThresholdPolicy: ReinscriptionThresholdPolicy;
+};
+
 export type FeeInstallmentRow = {
   id: string;
   rank: number;
@@ -41,7 +49,7 @@ export type StudentFinanceSummary = {
     installments: FeeInstallmentRow[];
   };
   totalPaid: number;
-  firstInstallmentAmount: number;
+  thresholdAmount: number;
   reinscriptionEligible: boolean;
 };
 
@@ -56,6 +64,6 @@ export type RecordDirectPaymentPayload = {
 export type RecordDirectPaymentResponse = {
   payment: { id: string };
   totalPaid: number;
-  firstInstallmentAmount: number;
+  thresholdAmount: number;
   reinscriptionConfirmed: boolean;
 };

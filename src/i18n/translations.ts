@@ -19,6 +19,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "financeAdmin.lockedTitle": "Module réservé au personnel administratif",
     "financeAdmin.lockedMessage":
       "Ce module mobile est disponible pour les comptes admin, gestionnaire ou comptable.",
+    "financeAdmin.settings.title": "Seuil de réinscription",
+    "financeAdmin.settings.description":
+      "Détermine à partir de quel montant versé un élève promu est considéré réinscrit.",
+    "financeAdmin.settings.firstInstallment": "1ère échéance payée",
+    "financeAdmin.settings.fullPayment": "Échéancier payé en totalité",
+    "financeAdmin.settings.success": "Politique de réinscription mise à jour.",
+    "financeAdmin.settings.errors.save":
+      "Impossible de mettre à jour la politique de réinscription.",
     "financeAdmin.schedules.title": "Échéanciers",
     "financeAdmin.schedules.empty": "Aucun échéancier défini pour le moment.",
     "financeAdmin.schedules.success.saved": "Échéancier enregistré.",
@@ -51,8 +59,8 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Paiement enregistré : la réinscription de l'élève est confirmée.",
     "financeAdmin.payments.targetYear": "Année scolaire (réinscription)",
     "financeAdmin.payments.summary.totalPaid": "Total déjà versé",
-    "financeAdmin.payments.summary.firstInstallment":
-      "Montant de la 1ère échéance",
+    "financeAdmin.payments.summary.threshold":
+      "Seuil de réinscription (selon la politique de l'école)",
     "financeAdmin.payments.summary.eligible":
       "Seuil atteint : élève réinscrit.",
     "financeAdmin.payments.summary.notEligible":
@@ -3957,6 +3965,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "financeAdmin.lockedTitle": "Module reserved for administrative staff",
     "financeAdmin.lockedMessage":
       "This mobile module is available for admin, manager or accountant accounts.",
+    "financeAdmin.settings.title": "Re-enrollment threshold",
+    "financeAdmin.settings.description":
+      "Determines how much a promoted student's family must pay to be considered re-enrolled.",
+    "financeAdmin.settings.firstInstallment": "First installment paid",
+    "financeAdmin.settings.fullPayment": "Full schedule paid",
+    "financeAdmin.settings.success": "Re-enrollment policy updated.",
+    "financeAdmin.settings.errors.save":
+      "Could not update the re-enrollment policy.",
     "financeAdmin.schedules.title": "Fee schedules",
     "financeAdmin.schedules.empty": "No fee schedule defined yet.",
     "financeAdmin.schedules.success.saved": "Fee schedule saved.",
@@ -3988,8 +4004,8 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Payment recorded: the student's re-enrollment is confirmed.",
     "financeAdmin.payments.targetYear": "School year (re-enrollment)",
     "financeAdmin.payments.summary.totalPaid": "Total already paid",
-    "financeAdmin.payments.summary.firstInstallment":
-      "First installment amount",
+    "financeAdmin.payments.summary.threshold":
+      "Re-enrollment threshold (per school policy)",
     "financeAdmin.payments.summary.eligible":
       "Threshold reached: student re-enrolled.",
     "financeAdmin.payments.summary.notEligible":

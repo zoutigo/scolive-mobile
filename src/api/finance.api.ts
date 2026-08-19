@@ -2,6 +2,7 @@ import { apiFetch } from "./client";
 import type { WalletSummary } from "../types/finance.types";
 import type {
   FeeScheduleRow,
+  FinanceSettings,
   RecordDirectPaymentPayload,
   RecordDirectPaymentResponse,
   StudentFinanceSummary,
@@ -15,6 +16,21 @@ function buildAdminPath(schoolSlug: string, path: string) {
 export const financeApi = {
   getWalletSummary(schoolSlug: string): Promise<WalletSummary> {
     return apiFetch(`/schools/${schoolSlug}/me/finance/wallet`, {}, true);
+  },
+
+  getFinanceSettings(schoolSlug: string): Promise<FinanceSettings> {
+    return apiFetch(buildAdminPath(schoolSlug, "finance/settings"), {}, true);
+  },
+
+  updateFinanceSettings(
+    schoolSlug: string,
+    payload: FinanceSettings,
+  ): Promise<FinanceSettings> {
+    return apiFetch(
+      buildAdminPath(schoolSlug, "finance/settings"),
+      { method: "PATCH", body: JSON.stringify(payload) },
+      true,
+    );
   },
 
   listFeeSchedules(
