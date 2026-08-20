@@ -47,11 +47,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "financeAdmin.schedules.deleteConfirm.title": "Supprimer l'échéancier",
 
     "supplyListsAdmin.title": "Fournitures scolaires",
-    "supplyListsAdmin.lockedTitle":
-      "Module réservé au personnel administratif",
+    "supplyListsAdmin.lockedTitle": "Module réservé au personnel administratif",
     "supplyListsAdmin.lockedMessage":
       "Ce module mobile est disponible pour les comptes admin, gestionnaire ou superviseur.",
-    "supplyListsAdmin.empty": "Aucune liste de fournitures définie pour le moment.",
+    "supplyListsAdmin.empty":
+      "Aucune liste de fournitures définie pour le moment.",
     "supplyListsAdmin.success.saved": "Liste de fournitures enregistrée.",
     "supplyListsAdmin.success.deleted": "Liste de fournitures supprimée.",
     "supplyListsAdmin.errors.save": "Enregistrement impossible.",
@@ -4100,7 +4100,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "supplyListsAdmin.errors.save": "Unable to save.",
     "supplyListsAdmin.errors.delete": "Unable to delete.",
     "supplyListsAdmin.form.title": "New supply list / update",
-    "supplyListsAdmin.form.subtitle": "Supplies by level, track and school year",
+    "supplyListsAdmin.form.subtitle":
+      "Supplies by level, track and school year",
     "supplyListsAdmin.form.schoolYear": "School year",
     "supplyListsAdmin.form.academicLevel": "Level",
     "supplyListsAdmin.form.track": "Track",

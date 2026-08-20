@@ -79,17 +79,13 @@ export function SupplyListsAdminScreen() {
 
   const [tab, setTab] = useState<TabKey>("lists");
   const [supplyLists, setSupplyLists] = useState<SupplyListRow[]>([]);
-  const [schoolYears, setSchoolYears] = useState<TeacherSchoolYearOption[]>(
-    [],
-  );
+  const [schoolYears, setSchoolYears] = useState<TeacherSchoolYearOption[]>([]);
   const [levels, setLevels] = useState<CurriculumAcademicLevel[]>([]);
   const [tracks, setTracks] = useState<CurriculumTrack[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<SupplyListRow | null>(
-    null,
-  );
+  const [deleteTarget, setDeleteTarget] = useState<SupplyListRow | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [helpVisible, setHelpVisible] = useState(false);
 
