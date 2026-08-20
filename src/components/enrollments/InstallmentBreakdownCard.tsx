@@ -35,12 +35,13 @@ function formatDate(value: string | null): string {
   }
 }
 
-const STATUS_STYLES: Record<InstallmentStatus, { bg: string; color: string }> = {
-  PAID: { bg: "#DCFCE7", color: "#166534" },
-  PARTIAL: { bg: "#FEF3C7", color: "#92400E" },
-  OVERDUE: { bg: "#FEE2E2", color: "#991B1B" },
-  UPCOMING: { bg: "#F1F5F9", color: "#475569" },
-};
+const STATUS_STYLES: Record<InstallmentStatus, { bg: string; color: string }> =
+  {
+    PAID: { bg: "#DCFCE7", color: "#166534" },
+    PARTIAL: { bg: "#FEF3C7", color: "#92400E" },
+    OVERDUE: { bg: "#FEE2E2", color: "#991B1B" },
+    UPCOMING: { bg: "#F1F5F9", color: "#475569" },
+  };
 
 export function InstallmentBreakdownCard({ studentId, schoolYearId }: Props) {
   const { t } = useTranslation();

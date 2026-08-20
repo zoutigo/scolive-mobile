@@ -222,18 +222,14 @@ describe("ReinscriptionScreen — onglet Paiement", () => {
     render(<ReinscriptionScreen />);
 
     await screen.findByText("Remi Ntamack");
-    expect(
-      screen.queryByTestId("installment-list-student-1"),
-    ).toBeNull();
+    expect(screen.queryByTestId("installment-list-student-1")).toBeNull();
 
     fireEvent.press(screen.getByTestId("installment-toggle-student-1"));
 
     await waitFor(() =>
-      expect(financeApiMock.getMyChildInstallmentBreakdown).toHaveBeenCalledWith(
-        "college-vogt",
-        "student-1",
-        "sy-2026",
-      ),
+      expect(
+        financeApiMock.getMyChildInstallmentBreakdown,
+      ).toHaveBeenCalledWith("college-vogt", "student-1", "sy-2026"),
     );
     expect(
       await screen.findByTestId("installment-row-student-1-1"),

@@ -324,6 +324,12 @@ const SCHOOL_NAV: NavItem[] = [
     route: "/finance-paiements",
   },
   {
+    key: "supply-lists",
+    label: "Fournitures scolaires",
+    icon: "bag-outline",
+    route: "/supply-lists",
+  },
+  {
     key: "users",
     label: "Utilisateurs",
     icon: "person-outline",
