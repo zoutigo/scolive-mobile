@@ -64,6 +64,17 @@ import type { AdminStudentRow } from "../../api/family.api";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// Un membre "user" (compte promu) référence l'élève d'origine via
+// `studentId` (nullable si l'API ne l'a pas résolu) ; ne jamais retomber
+// sur `id` (le User.id) sans passer par ce fallback, car les endpoints
+// scopés élève (parent-students, reset-password, discipline, notes,
+// agenda) attendent un Student.id, pas un User.id.
+function resolveStudentId(member: SchoolMember): string {
+  return member.type === "student-only"
+    ? member.studentId
+    : (member.studentId ?? member.id);
+}
+
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -1636,7 +1647,7 @@ export function UserDetailModal({
   const handleSubmitAssignParent = useCallback(
     async (parentUserId: string) => {
       if (!user) return;
-      const studentId = user.type === "student-only" ? user.studentId : user.id;
+      const studentId = resolveStudentId(user);
       setIsSubmittingParent(true);
       try {
         await familyApi.linkExistingParent(schoolSlug, {
@@ -1661,7 +1672,7 @@ export function UserDetailModal({
   const handleCreateNewParent = useCallback(
     async (values: ContactOnlyCreateFormValues) => {
       if (!user) return;
-      const studentId = user.type === "student-only" ? user.studentId : user.id;
+      const studentId = resolveStudentId(user);
       setIsSubmittingParent(true);
       try {
         await familyApi.createParent(schoolSlug, {
@@ -1700,7 +1711,7 @@ export function UserDetailModal({
     onClose();
     router.push({
       pathname: "/(home)/discipline-student/[studentId]",
-      params: { studentId: user.id },
+      params: { studentId: resolveStudentId(user) },
     } as never);
   }, [user, onClose, router]);
 
@@ -1709,7 +1720,7 @@ export function UserDetailModal({
     onClose();
     router.push({
       pathname: "/(home)/notes/child/[childId]",
-      params: { childId: user.id },
+      params: { childId: resolveStudentId(user) },
     } as never);
   }, [user, onClose, router]);
 
@@ -1718,7 +1729,7 @@ export function UserDetailModal({
     onClose();
     router.push({
       pathname: "/(home)/timetable/child/[childId]",
-      params: { childId: user.id },
+      params: { childId: resolveStudentId(user) },
     } as never);
   }, [user, onClose, router]);
 
@@ -1755,7 +1766,7 @@ export function UserDetailModal({
 
   const handleResetPassword = useCallback(async () => {
     if (!user) return;
-    const studentId = user.type === "student-only" ? user.studentId : user.id;
+    const studentId = resolveStudentId(user);
     try {
       const result = await usersApi.resetStudentPassword(schoolSlug, studentId);
       setCredentialsDisplay({
@@ -1805,8 +1816,7 @@ export function UserDetailModal({
   const statusCfg = user.hasAccount
     ? STATUS_CONFIG[user.activationStatus]
     : null;
-  const studentIdForActions =
-    user.type === "student-only" ? user.studentId : user.id;
+  const studentIdForActions = resolveStudentId(user);
   const formHeroConfig = buildFormHeroConfig(tDetail);
 
   function renderRoleSections() {
@@ -1865,7 +1875,7 @@ export function UserDetailModal({
             key={role}
             enrollments={userDetail.enrollments ?? []}
             parents={userDetail.studentParents ?? []}
-            studentId={user!.id}
+            studentId={resolveStudentId(user!)}
             hasAccount={true}
             isStudent={true}
             onDisciplinePress={handleStudentDiscipline}

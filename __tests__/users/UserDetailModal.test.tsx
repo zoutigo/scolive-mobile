@@ -19,6 +19,7 @@ import {
   TEACHER_USER,
   PARENT_USER,
   STUDENT_USER,
+  STUDENT_USER_WITH_STUDENT_ID,
   ADMIN_USER,
   makeSchoolUserDetail,
   makeStudentOnlyUser,
@@ -61,8 +62,9 @@ jest.mock("../../src/store/success-toast.store", () => ({
     return typeof selector === "function" ? selector(state) : state;
   },
 }));
+const mockRouterPush = jest.fn();
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ push: mockRouterPush, back: jest.fn() }),
 }));
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
@@ -1821,6 +1823,205 @@ describe("UserDetailModal", () => {
       });
 
       expect(screen.queryByTestId("credential-display-sheet")).toBeNull();
+    });
+  });
+
+  // Régression : un élève promu (compte créé) dont le User.id diffère du
+  // Student.id doit toujours utiliser ce dernier pour les actions scopées
+  // élève, jamais le User.id — sinon le backend répond 404 "Student not
+  // found" (bug constaté en production sur un compte réel).
+  describe("Élève promu — studentId distinct du userId", () => {
+    it("linkExistingParent utilise le studentId de l'élève, pas son userId", async () => {
+      const detail = makeSchoolUserDetail({
+        ...STUDENT_USER_WITH_STUDENT_ID,
+        enrollments: [],
+      });
+      mockUsersApi.get.mockResolvedValue(detail);
+      const parentRow = {
+        type: "user" as const,
+        id: "par-real-1",
+        studentId: null,
+        hasAccount: true as const,
+        firstName: "Alain",
+        lastName: "Bello",
+        email: "a.bello@gmail.com",
+        phone: null,
+        gender: null,
+        avatarUrl: null,
+        roles: ["PARENT" as const],
+        activationStatus: "ACTIVE" as const,
+        profileCompleted: true,
+        createdAt: "2025-01-01T00:00:00Z",
+      };
+      mockUsersApi.list.mockResolvedValue({
+        data: [parentRow],
+        total: 1,
+        page: 1,
+        limit: 20,
+        hasMore: false,
+      });
+      mockFamilyApi.linkExistingParent.mockResolvedValue(undefined);
+
+      render(
+        <UserDetailModal
+          user={STUDENT_USER_WITH_STUDENT_ID}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-assign-parent")).toBeOnTheScreen(),
+      );
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("action-assign-parent"));
+      });
+      await waitFor(() =>
+        expect(
+          screen.getByTestId("assign-parent-user-par-real-1"),
+        ).toBeOnTheScreen(),
+      );
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("assign-parent-user-par-real-1"));
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("assign-parent-submit"));
+      });
+
+      await waitFor(() => {
+        expect(mockFamilyApi.linkExistingParent).toHaveBeenCalledWith(
+          SLUG,
+          expect.objectContaining({
+            parentUserId: "par-real-1",
+            studentId: STUDENT_USER_WITH_STUDENT_ID.studentId,
+          }),
+        );
+      });
+      expect(mockFamilyApi.linkExistingParent).not.toHaveBeenCalledWith(
+        SLUG,
+        expect.objectContaining({ studentId: STUDENT_USER_WITH_STUDENT_ID.id }),
+      );
+    });
+
+    it("createParent (nouveau parent) utilise le studentId de l'élève, pas son userId", async () => {
+      const detail = makeSchoolUserDetail({
+        ...STUDENT_USER_WITH_STUDENT_ID,
+        enrollments: [],
+      });
+      mockUsersApi.get.mockResolvedValue(detail);
+      mockUsersApi.list.mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        hasMore: false,
+      });
+      mockFamilyApi.createParent.mockResolvedValue({
+        parentUserId: "new-parent-2",
+        studentId: STUDENT_USER_WITH_STUDENT_ID.studentId!,
+      });
+
+      render(
+        <UserDetailModal
+          user={STUDENT_USER_WITH_STUDENT_ID}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-assign-parent")).toBeOnTheScreen(),
+      );
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("action-assign-parent"));
+      });
+      await waitFor(() =>
+        expect(screen.getByTestId("assign-parent-search")).toBeOnTheScreen(),
+      );
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("assign-parent-submode-new"));
+      });
+      await act(async () => {
+        fireEvent.changeText(
+          screen.getByTestId("assign-parent-new-phone"),
+          "699001122",
+        );
+        fireEvent.changeText(
+          screen.getByTestId("assign-parent-new-pin"),
+          "123456",
+        );
+      });
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("assign-parent-new-submit"));
+      });
+
+      await waitFor(() => {
+        expect(mockFamilyApi.createParent).toHaveBeenCalledWith(
+          SLUG,
+          expect.objectContaining({
+            studentId: STUDENT_USER_WITH_STUDENT_ID.studentId,
+            phone: "699001122",
+            pin: "123456",
+          }),
+        );
+      });
+    });
+
+    it("le bouton Réinitialiser MDP utilise le studentId de l'élève, pas son userId", async () => {
+      mockUsersApi.get.mockResolvedValue(
+        makeSchoolUserDetail(STUDENT_USER_WITH_STUDENT_ID),
+      );
+      mockUsersApi.resetStudentPassword.mockResolvedValueOnce({
+        temporaryPassword: "NewTmp789",
+      } as never);
+
+      render(
+        <UserDetailModal
+          user={STUDENT_USER_WITH_STUDENT_ID}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-reset-password")).toBeOnTheScreen(),
+      );
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("action-reset-password"));
+      });
+
+      await waitFor(() =>
+        expect(mockUsersApi.resetStudentPassword).toHaveBeenCalledWith(
+          SLUG,
+          STUDENT_USER_WITH_STUDENT_ID.studentId,
+        ),
+      );
+    });
+
+    it("le bouton Discipline navigue avec le studentId de l'élève, pas son userId", async () => {
+      mockUsersApi.get.mockResolvedValue(
+        makeSchoolUserDetail(STUDENT_USER_WITH_STUDENT_ID),
+      );
+
+      render(
+        <UserDetailModal
+          user={STUDENT_USER_WITH_STUDENT_ID}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(
+          screen.getByTestId("action-student-discipline"),
+        ).toBeOnTheScreen(),
+      );
+      fireEvent.press(screen.getByTestId("action-student-discipline"));
+
+      expect(mockRouterPush).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: "/(home)/discipline-student/[studentId]",
+          params: expect.objectContaining({
+            studentId: STUDENT_USER_WITH_STUDENT_ID.studentId,
+          }),
+        }),
+      );
     });
   });
 });
