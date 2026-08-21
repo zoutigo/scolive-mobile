@@ -121,6 +121,21 @@ export const STUDENT_USER = makeSchoolUser({
   profileCompleted: false,
 });
 
+// Élève promu (compte créé) dont le studentId d'origine diffère du userId —
+// reproduit le cas réel où User.id !== Student.id (voir bug "Student not
+// found" sur l'affectation de parent).
+export const STUDENT_USER_WITH_STUDENT_ID = makeSchoolUser({
+  id: "user-student-2",
+  studentId: "student-real-2",
+  firstName: "Sanaga",
+  lastName: "Marie",
+  email: null,
+  phone: null,
+  roles: ["STUDENT"],
+  activationStatus: "ACTIVE",
+  profileCompleted: false,
+});
+
 export const PENDING_USER = makeSchoolUser({
   id: "user-pending-1",
   firstName: "Sophie",
