@@ -54,7 +54,7 @@ const SUMMARY: StudentFinanceSummary = {
     ],
   },
   totalPaid: 20000,
-  firstInstallmentAmount: 50000,
+  thresholdAmount: 50000,
   reinscriptionEligible: false,
 };
 
@@ -94,7 +94,7 @@ beforeEach(() => {
   financeApiMock.recordDirectPayment.mockResolvedValue({
     payment: { id: "payment-1" },
     totalPaid: 50000,
-    firstInstallmentAmount: 50000,
+    thresholdAmount: 50000,
     reinscriptionConfirmed: true,
   });
 });

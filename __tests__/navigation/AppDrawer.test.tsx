@@ -363,7 +363,14 @@ describe("Items de navigation — enseignant", () => {
 
 describe("Items de navigation — parent", () => {
   const items = getNavItems(parentUser);
-  const expectedKeys = ["home", "feed", "finance", "messages", "documents"];
+  const expectedKeys = [
+    "home",
+    "feed",
+    "reinscription",
+    "finance",
+    "messages",
+    "documents",
+  ];
 
   expectedKeys.forEach((key) => {
     it(`affiche l'item "${key}"`, () => {

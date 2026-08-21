@@ -68,6 +68,12 @@ beforeEach(() => {
   financeApiMock.listFeeSchedules.mockResolvedValue([SCHEDULE]);
   financeApiMock.upsertFeeSchedule.mockResolvedValue(SCHEDULE);
   financeApiMock.deleteFeeSchedule.mockResolvedValue({ success: true });
+  financeApiMock.getFinanceSettings.mockResolvedValue({
+    reinscriptionThresholdPolicy: "FIRST_INSTALLMENT",
+  });
+  financeApiMock.updateFinanceSettings.mockResolvedValue({
+    reinscriptionThresholdPolicy: "FULL_PAYMENT",
+  });
   teachersApiMock.listSchoolYears.mockResolvedValue([
     { id: "sy-1", label: "2026-2027", isActive: false },
   ]);
@@ -127,5 +133,47 @@ describe("FinanceSchedulesAdminScreen", () => {
         "Échéancier supprimé.",
       ),
     );
+  });
+
+  it("charge la politique de seuil courante et permet de la changer", async () => {
+    render(<FinanceSchedulesAdminScreen />);
+    await screen.findByTestId("fee-schedule-fee-1");
+
+    await waitFor(() =>
+      expect(financeApiMock.getFinanceSettings).toHaveBeenCalledWith(
+        "college-vogt",
+      ),
+    );
+
+    fireEvent.press(screen.getByTestId("reinscription-policy-full-payment"));
+
+    await waitFor(() =>
+      expect(financeApiMock.updateFinanceSettings).toHaveBeenCalledWith(
+        "college-vogt",
+        { reinscriptionThresholdPolicy: "FULL_PAYMENT" },
+      ),
+    );
+    await waitFor(() =>
+      expect(useSuccessToastStore.getState().title).toBe(
+        "Politique de réinscription mise à jour.",
+      ),
+    );
+  });
+
+  it("revient a la politique precedente si la mise a jour echoue", async () => {
+    financeApiMock.updateFinanceSettings.mockRejectedValue(
+      new Error("network error"),
+    );
+    render(<FinanceSchedulesAdminScreen />);
+    await screen.findByTestId("fee-schedule-fee-1");
+
+    fireEvent.press(screen.getByTestId("reinscription-policy-full-payment"));
+
+    await waitFor(() =>
+      expect(useSuccessToastStore.getState().title).toBe(
+        "Impossible de mettre à jour la politique de réinscription.",
+      ),
+    );
+    expect(useSuccessToastStore.getState().variant).toBe("error");
   });
 });

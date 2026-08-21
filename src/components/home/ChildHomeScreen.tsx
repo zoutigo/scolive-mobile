@@ -19,11 +19,13 @@ import { timetableApi } from "../../api/timetable.api";
 import { messagingApi } from "../../api/messaging.api";
 import { homeworkApi } from "../../api/homework.api";
 import { feedApi } from "../../api/feed.api";
+import { supplyListsApi } from "../../api/supply-lists.api";
 import type { MessageListItem } from "../../types/messaging.types";
 import type { StudentNotesResponse } from "../../types/notes.types";
 import type { MyTimetableResponse } from "../../types/timetable.types";
 import type { HomeworkRow } from "../../types/homework.types";
 import type { FeedPost } from "../../types/feed.types";
+import type { ChildSupplyList } from "../../types/supply-lists.types";
 import { useTranslation } from "../../i18n/useTranslation";
 import { ErrorBanner } from "../timetable/TimetableCommon";
 import {
@@ -141,6 +143,7 @@ export function ChildHomeScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [helpVisible, setHelpVisible] = useState(false);
+  const [supplyList, setSupplyList] = useState<ChildSupplyList | null>(null);
 
   useOnboardingTourTrigger({
     tourId: CHILD_HOME_TOUR_ID,
@@ -253,6 +256,22 @@ export function ChildHomeScreen() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (!schoolSlug || !childId) return;
+    let cancelled = false;
+    supplyListsApi
+      .getMyChildSupplyList(schoolSlug, childId)
+      .then((result) => {
+        if (!cancelled) setSupplyList(result);
+      })
+      .catch(() => {
+        if (!cancelled) setSupplyList(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolSlug, childId]);
+
   const currentTerm = useMemo(() => getCurrentTerm(), []);
   const snapshot =
     state.notes.find((entry) => entry.term === currentTerm) ??
@@ -284,6 +303,9 @@ export function ChildHomeScreen() {
   }
   function goToMessages() {
     router.push("/(home)/messages" as never);
+  }
+  function goToReinscription() {
+    router.push("/(home)/reinscription" as never);
   }
   function goToFeed() {
     router.push({
@@ -406,6 +428,41 @@ export function ChildHomeScreen() {
               </SectionBlock>
             </OnboardingTarget>
 
+            {supplyList && supplyList.targetSchoolYearId ? (
+              <SectionBlock
+                testID="child-home-supplies-block"
+                title={t("childHome.supplies.title")}
+                icon="bag-outline"
+                iconColor={colors.accentTealDark}
+                iconTone="#D5EEEA"
+                onPress={goToReinscription}
+                linkLabel={t("childHome.supplies.linkLabel")}
+              >
+                {supplyList.items.length === 0 ? (
+                  <EmptyRow
+                    testID="child-home-supplies-empty"
+                    label={t("childHome.supplies.empty")}
+                  />
+                ) : (
+                  supplyList.items
+                    .slice(0, 3)
+                    .map((item, idx) => (
+                      <DataRow
+                        key={item.id}
+                        testID={`child-home-supplies-row-${idx}`}
+                        main={`${item.quantity}× ${item.label}`}
+                        secondary={supplyList.targetSchoolYearLabel ?? ""}
+                        date=""
+                        isLast={
+                          idx === Math.min(supplyList.items.length, 3) - 1
+                        }
+                        onPress={goToReinscription}
+                      />
+                    ))
+                )}
+              </SectionBlock>
+            ) : null}
+
             <SectionBlock
               testID="child-home-feed-block"
               title="Fil d'actualité"
@@ -483,6 +540,10 @@ export function ChildHomeScreen() {
           {
             title: t("childHome.help.section2Title"),
             body: [t("childHome.help.section2Body")],
+          },
+          {
+            title: t("childHome.help.section3Title"),
+            body: [t("childHome.help.section3Body")],
           },
         ]}
         closeLabel={t("childHome.help.close")}

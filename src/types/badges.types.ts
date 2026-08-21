@@ -20,6 +20,7 @@ export type UnreadSummary = {
   feedUnread: number;
   ticketsNeedingResponse: number;
   ticketsUnreadReplies: number;
+  reinscriptionPending: number;
   children: ChildBadgeSummary[];
   teacherClasses: TeacherClassBadgeSummary[];
   total: number;

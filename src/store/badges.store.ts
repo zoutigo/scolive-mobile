@@ -27,6 +27,7 @@ const EMPTY_SUMMARY: Omit<UnreadSummary, "messagesUnread" | "total"> = {
   feedUnread: 0,
   ticketsNeedingResponse: 0,
   ticketsUnreadReplies: 0,
+  reinscriptionPending: 0,
   children: [],
   teacherClasses: [],
 };

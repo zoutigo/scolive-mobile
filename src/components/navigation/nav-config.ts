@@ -324,6 +324,12 @@ const SCHOOL_NAV: NavItem[] = [
     route: "/finance-paiements",
   },
   {
+    key: "supply-lists",
+    label: "Fournitures scolaires",
+    icon: "bag-outline",
+    route: "/supply-lists",
+  },
+  {
     key: "users",
     label: "Utilisateurs",
     icon: "person-outline",
@@ -401,6 +407,12 @@ const TEACHER_NAV: NavItem[] = [
 const PARENT_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
   feedItem(),
+  {
+    key: "reinscription",
+    label: "Réinscription",
+    icon: "school-outline",
+    route: "/(home)/reinscription",
+  },
   {
     key: "finance",
     label: "Situation financière",
@@ -684,6 +696,9 @@ function applyTopLevelBadges(
     }
     if (item.key === "messages") {
       return { ...item, unread: toUnread(badges.messagesUnread) };
+    }
+    if (item.key === "reinscription") {
+      return { ...item, unread: toUnread(badges.reinscriptionPending) };
     }
     return item;
   });

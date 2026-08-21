@@ -19,7 +19,7 @@ import { colors } from "../../theme";
 import { useAuthStore } from "../../store/auth.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { useTranslation } from "../../i18n/useTranslation";
-import { financeApi } from "../../api/finance.api";
+import { supplyListsApi } from "../../api/supply-lists.api";
 import { teachersApi } from "../../api/teachers.api";
 import { curriculumsApi } from "../../api/curriculums.api";
 import { extractApiError } from "../../utils/api-error";
@@ -28,6 +28,7 @@ import { ModuleHeader } from "../navigation/ModuleHeader";
 import { FormHero } from "../forms/FormHero";
 import { InlineSelectDropDown } from "../InlineSelectDropDown";
 import { ConfirmDialog } from "../ConfirmDialog";
+import { PageHelpModal } from "../help/PageHelpModal";
 import {
   EmptyState,
   ErrorBanner,
@@ -39,39 +40,36 @@ import type {
   CurriculumAcademicLevel,
   CurriculumTrack,
 } from "../../types/curriculums.types";
-import type {
-  FeeScheduleRow,
-  ReinscriptionThresholdPolicy,
-} from "../../types/finance-admin.types";
+import type { SupplyListRow } from "../../types/supply-lists.types";
 
-type TabKey = "schedules" | "forms";
+type TabKey = "lists" | "forms";
 
-function roleAllowsFinance(role: string | null | undefined) {
+function roleAllowsSupplyLists(role: string | null | undefined) {
   return (
     role === "SCHOOL_ADMIN" ||
     role === "SCHOOL_MANAGER" ||
-    role === "SCHOOL_ACCOUNTANT" ||
+    role === "SUPERVISOR" ||
     role === "ADMIN" ||
     role === "SUPER_ADMIN"
   );
 }
 
-const installmentSchema = z.object({
+const itemSchema = z.object({
   rank: z.coerce.number().int().min(1),
   label: z.string().trim().min(1, "Libellé requis"),
-  amount: z.coerce.number().min(0.01, "Montant requis"),
-  dueDate: z.string().optional(),
+  quantity: z.coerce.number().int().min(1, "Quantité requise"),
+  note: z.string().optional(),
 });
 
-const scheduleFormSchema = z.object({
+const supplyListFormSchema = z.object({
   schoolYearId: z.string().min(1, "Année scolaire requise"),
   academicLevelId: z.string().min(1, "Niveau requis"),
   trackId: z.string().optional(),
-  installments: z.array(installmentSchema).min(1, "Au moins une échéance"),
+  items: z.array(itemSchema).min(1, "Au moins un article"),
 });
-type ScheduleFormValues = z.input<typeof scheduleFormSchema>;
+type SupplyListFormValues = z.input<typeof supplyListFormSchema>;
 
-export function FinanceSchedulesAdminScreen() {
+export function SupplyListsAdminScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -79,37 +77,35 @@ export function FinanceSchedulesAdminScreen() {
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
 
-  const [tab, setTab] = useState<TabKey>("schedules");
-  const [schedules, setSchedules] = useState<FeeScheduleRow[]>([]);
+  const [tab, setTab] = useState<TabKey>("lists");
+  const [supplyLists, setSupplyLists] = useState<SupplyListRow[]>([]);
   const [schoolYears, setSchoolYears] = useState<TeacherSchoolYearOption[]>([]);
   const [levels, setLevels] = useState<CurriculumAcademicLevel[]>([]);
   const [tracks, setTracks] = useState<CurriculumTrack[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<FeeScheduleRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SupplyListRow | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [reinscriptionThresholdPolicy, setReinscriptionThresholdPolicy] =
-    useState<ReinscriptionThresholdPolicy>("FIRST_INSTALLMENT");
-  const [savingPolicy, setSavingPolicy] = useState(false);
+  const [helpVisible, setHelpVisible] = useState(false);
 
   const effectiveRole = user?.activeRole ?? null;
-  const canAccessModule = roleAllowsFinance(effectiveRole);
+  const canAccessModule = roleAllowsSupplyLists(effectiveRole);
 
-  const form = useForm<ScheduleFormValues>({
-    resolver: zodResolver(scheduleFormSchema),
+  const form = useForm<SupplyListFormValues>({
+    resolver: zodResolver(supplyListFormSchema),
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
       schoolYearId: "",
       academicLevelId: "",
       trackId: "",
-      installments: [{ rank: 1, label: "", amount: 0, dueDate: "" }],
+      items: [{ rank: 1, label: "", quantity: 1, note: "" }],
     },
   });
   const { fields, append, remove } = useFieldArray({
     control: form.control,
-    name: "installments",
+    name: "items",
   });
 
   const loadModuleData = useCallback(async () => {
@@ -117,19 +113,16 @@ export function FinanceSchedulesAdminScreen() {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const [scheduleRows, yearRows, levelRows, trackRows, settings] =
-        await Promise.all([
-          financeApi.listFeeSchedules(schoolSlug),
-          teachersApi.listSchoolYears(schoolSlug),
-          curriculumsApi.listAcademicLevels(schoolSlug),
-          curriculumsApi.listTracks(schoolSlug),
-          financeApi.getFinanceSettings(schoolSlug),
-        ]);
-      setSchedules(scheduleRows);
+      const [listRows, yearRows, levelRows, trackRows] = await Promise.all([
+        supplyListsApi.listSupplyLists(schoolSlug),
+        teachersApi.listSchoolYears(schoolSlug),
+        curriculumsApi.listAcademicLevels(schoolSlug),
+        curriculumsApi.listTracks(schoolSlug),
+      ]);
+      setSupplyLists(listRows);
       setSchoolYears(yearRows);
       setLevels(levelRows);
       setTracks(trackRows);
-      setReinscriptionThresholdPolicy(settings.reinscriptionThresholdPolicy);
     } catch (error) {
       setErrorMessage(extractApiError(error));
     } finally {
@@ -142,32 +135,7 @@ export function FinanceSchedulesAdminScreen() {
   }, [loadModuleData]);
 
   function exitForms() {
-    setTab("schedules");
-  }
-
-  async function onSelectPolicy(policy: ReinscriptionThresholdPolicy) {
-    if (!schoolSlug || policy === reinscriptionThresholdPolicy || savingPolicy)
-      return;
-    const previous = reinscriptionThresholdPolicy;
-    setReinscriptionThresholdPolicy(policy);
-    setSavingPolicy(true);
-    try {
-      await financeApi.updateFinanceSettings(schoolSlug, {
-        reinscriptionThresholdPolicy: policy,
-      });
-      showSuccess({
-        title: t("financeAdmin.settings.success"),
-        message: "",
-      });
-    } catch (error) {
-      setReinscriptionThresholdPolicy(previous);
-      showError({
-        title: t("financeAdmin.settings.errors.save"),
-        message: extractApiError(error),
-      });
-    } finally {
-      setSavingPolicy(false);
-    }
+    setTab("lists");
   }
 
   function openCreate() {
@@ -175,47 +143,47 @@ export function FinanceSchedulesAdminScreen() {
       schoolYearId: "",
       academicLevelId: "",
       trackId: "",
-      installments: [{ rank: 1, label: "", amount: 0, dueDate: "" }],
+      items: [{ rank: 1, label: "", quantity: 1, note: "" }],
     });
     setTab("forms");
   }
 
-  function openEdit(schedule: FeeScheduleRow) {
+  function openEdit(supplyList: SupplyListRow) {
     form.reset({
-      schoolYearId: schedule.schoolYear.id,
-      academicLevelId: schedule.academicLevel.id,
-      trackId: schedule.track?.id ?? "",
-      installments: schedule.installments
+      schoolYearId: supplyList.schoolYear.id,
+      academicLevelId: supplyList.academicLevel.id,
+      trackId: supplyList.track?.id ?? "",
+      items: supplyList.items
         .slice()
         .sort((a, b) => a.rank - b.rank)
-        .map((i) => ({
-          rank: i.rank,
-          label: i.label,
-          amount: i.amount,
-          dueDate: i.dueDate ?? "",
+        .map((item) => ({
+          rank: item.rank,
+          label: item.label,
+          quantity: item.quantity,
+          note: item.note ?? "",
         })),
     });
     setTab("forms");
   }
 
-  async function onSubmit(values: ScheduleFormValues) {
+  async function onSubmit(values: SupplyListFormValues) {
     if (!schoolSlug) return;
     setSubmitting(true);
     try {
-      await financeApi.upsertFeeSchedule(schoolSlug, {
+      await supplyListsApi.upsertSupplyList(schoolSlug, {
         schoolYearId: values.schoolYearId,
         academicLevelId: values.academicLevelId,
         trackId: values.trackId || undefined,
-        installments: values.installments.map((i) => ({
-          rank: Number(i.rank),
-          label: i.label,
-          amount: Number(i.amount),
-          dueDate: i.dueDate || undefined,
+        items: values.items.map((item) => ({
+          rank: Number(item.rank),
+          label: item.label,
+          quantity: Number(item.quantity),
+          note: item.note || undefined,
         })),
       });
       await loadModuleData();
       showSuccess({
-        title: t("financeAdmin.schedules.success.saved"),
+        title: t("supplyListsAdmin.success.saved"),
         message: "",
       });
       setTimeout(() => {
@@ -223,7 +191,7 @@ export function FinanceSchedulesAdminScreen() {
       }, 2000);
     } catch (error) {
       showError({
-        title: t("financeAdmin.schedules.errors.save"),
+        title: t("supplyListsAdmin.errors.save"),
         message: extractApiError(error),
       });
     } finally {
@@ -235,16 +203,16 @@ export function FinanceSchedulesAdminScreen() {
     if (!schoolSlug || !deleteTarget) return;
     setDeleting(true);
     try {
-      await financeApi.deleteFeeSchedule(schoolSlug, deleteTarget.id);
+      await supplyListsApi.deleteSupplyList(schoolSlug, deleteTarget.id);
       setDeleteTarget(null);
       await loadModuleData();
       showSuccess({
-        title: t("financeAdmin.schedules.success.deleted"),
+        title: t("supplyListsAdmin.success.deleted"),
         message: "",
       });
     } catch (error) {
       showError({
-        title: t("financeAdmin.schedules.errors.delete"),
+        title: t("supplyListsAdmin.errors.delete"),
         message: extractApiError(error),
       });
     } finally {
@@ -262,7 +230,7 @@ export function FinanceSchedulesAdminScreen() {
   );
   const trackOptions = useMemo(
     () => [
-      { value: "", label: t("financeAdmin.schedules.form.trackNone") },
+      { value: "", label: t("supplyListsAdmin.form.trackNone") },
       ...tracks.map((tr) => ({ value: tr.id, label: tr.label })),
     ],
     [tracks, t],
@@ -280,16 +248,16 @@ export function FinanceSchedulesAdminScreen() {
     return (
       <View style={styles.screen}>
         <ModuleHeader
-          title={t("financeAdmin.schedules.title")}
+          title={t("supplyListsAdmin.title")}
           onBack={() => moduleBack(router)}
           topInset={insets.top}
-          testID="finance-schedules-header"
+          testID="supply-lists-header"
         />
         <View style={styles.lockedWrap}>
           <EmptyState
-            icon="card-outline"
-            title={t("financeAdmin.lockedTitle")}
-            message={t("financeAdmin.lockedMessage")}
+            icon="bag-outline"
+            title={t("supplyListsAdmin.lockedTitle")}
+            message={t("supplyListsAdmin.lockedMessage")}
           />
         </View>
       </View>
@@ -299,109 +267,66 @@ export function FinanceSchedulesAdminScreen() {
   return (
     <View style={styles.screen}>
       <ModuleHeader
-        title={t("financeAdmin.schedules.title")}
+        title={t("supplyListsAdmin.title")}
         onBack={() => (tab === "forms" ? exitForms() : moduleBack(router))}
         topInset={insets.top}
-        testID="finance-schedules-header"
-        backTestID="finance-schedules-back-btn"
+        testID="supply-lists-header"
+        backTestID="supply-lists-back-btn"
+        helpAction={
+          tab === "lists"
+            ? {
+                label: t("supplyListsAdmin.help.menuLabel"),
+                onPress: () => setHelpVisible(true),
+                testID: "supply-lists-help-menu-item",
+              }
+            : undefined
+        }
       />
 
-      {tab === "schedules" ? (
+      {tab === "lists" ? (
         <View style={styles.content}>
-          <View style={styles.policyCard} testID="reinscription-policy-card">
-            <Text style={styles.policyTitle}>
-              {t("financeAdmin.settings.title")}
-            </Text>
-            <Text style={styles.policyDescription}>
-              {t("financeAdmin.settings.description")}
-            </Text>
-            <View style={styles.policyOptions}>
-              <TouchableOpacity
-                style={[
-                  styles.policyOption,
-                  reinscriptionThresholdPolicy === "FIRST_INSTALLMENT" &&
-                    styles.policyOptionActive,
-                ]}
-                onPress={() => onSelectPolicy("FIRST_INSTALLMENT")}
-                disabled={savingPolicy}
-                testID="reinscription-policy-first-installment"
-              >
-                <Text
-                  style={[
-                    styles.policyOptionText,
-                    reinscriptionThresholdPolicy === "FIRST_INSTALLMENT" &&
-                      styles.policyOptionTextActive,
-                  ]}
-                >
-                  {t("financeAdmin.settings.firstInstallment")}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.policyOption,
-                  reinscriptionThresholdPolicy === "FULL_PAYMENT" &&
-                    styles.policyOptionActive,
-                ]}
-                onPress={() => onSelectPolicy("FULL_PAYMENT")}
-                disabled={savingPolicy}
-                testID="reinscription-policy-full-payment"
-              >
-                <Text
-                  style={[
-                    styles.policyOptionText,
-                    reinscriptionThresholdPolicy === "FULL_PAYMENT" &&
-                      styles.policyOptionTextActive,
-                  ]}
-                >
-                  {t("financeAdmin.settings.fullPayment")}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
           {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
           {isLoading ? (
             <LoadingBlock label={t("common.loading")} />
-          ) : schedules.length === 0 ? (
+          ) : supplyLists.length === 0 ? (
             <EmptyState
-              icon="card-outline"
-              title={t("financeAdmin.schedules.empty")}
+              icon="bag-outline"
+              title={t("supplyListsAdmin.empty")}
               message=""
             />
           ) : (
             <ScrollView
               contentContainerStyle={styles.listContent}
-              testID="fee-schedules-list"
+              testID="supply-lists-list"
             >
-              {schedules.map((schedule) => (
+              {supplyLists.map((supplyList) => (
                 <View
-                  key={schedule.id}
+                  key={supplyList.id}
                   style={styles.entityRow}
-                  testID={`fee-schedule-${schedule.id}`}
+                  testID={`supply-list-${supplyList.id}`}
                 >
                   <View style={styles.entityMain}>
                     <Text style={styles.entityTitle}>
-                      {schedule.academicLevel.label}
-                      {schedule.track ? ` - ${schedule.track.label}` : ""}
+                      {supplyList.academicLevel.label}
+                      {supplyList.track ? ` - ${supplyList.track.label}` : ""}
                     </Text>
                     <Text style={styles.entityMeta}>
-                      {schedule.schoolYear.label}
+                      {supplyList.schoolYear.label}
                     </Text>
-                    {schedule.installments
+                    {supplyList.items
                       .slice()
                       .sort((a, b) => a.rank - b.rank)
-                      .map((installment) => (
-                        <Text key={installment.id} style={styles.entityMeta}>
-                          {installment.rank}. {installment.label} —{" "}
-                          {installment.amount.toLocaleString()}
+                      .map((item) => (
+                        <Text key={item.id} style={styles.entityMeta}>
+                          {item.rank}. {item.label} — x{item.quantity}
                         </Text>
                       ))}
                   </View>
                   <View style={styles.iconActions}>
                     <TouchableOpacity
                       style={styles.iconButton}
-                      onPress={() => openEdit(schedule)}
-                      testID={`fee-schedule-edit-${schedule.id}`}
+                      onPress={() => openEdit(supplyList)}
+                      testID={`supply-list-edit-${supplyList.id}`}
                     >
                       <Ionicons
                         name="create-outline"
@@ -411,9 +336,9 @@ export function FinanceSchedulesAdminScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.iconButton}
-                      onPress={() => setDeleteTarget(schedule)}
+                      onPress={() => setDeleteTarget(supplyList)}
                       disabled={deleting}
-                      testID={`fee-schedule-delete-${schedule.id}`}
+                      testID={`supply-list-delete-${supplyList.id}`}
                     >
                       <Ionicons
                         name="trash-outline"
@@ -430,14 +355,14 @@ export function FinanceSchedulesAdminScreen() {
       ) : null}
 
       {tab === "forms" ? (
-        <View style={styles.formsTabContent} testID="fee-schedule-forms-tab">
+        <View style={styles.formsTabContent} testID="supply-list-forms-tab">
           <View style={styles.heroWrapper}>
             <FormHero
               icon="add-circle-outline"
-              title={t("financeAdmin.schedules.form.title")}
-              subtitle={t("financeAdmin.schedules.form.subtitle")}
+              title={t("supplyListsAdmin.form.title")}
+              subtitle={t("supplyListsAdmin.form.subtitle")}
               palette="primary"
-              testID="fee-schedule-form-hero"
+              testID="supply-list-form-hero"
             />
           </View>
           <KeyboardAvoidingView
@@ -452,7 +377,7 @@ export function FinanceSchedulesAdminScreen() {
             >
               <View style={styles.formField}>
                 <Text style={styles.formLabel}>
-                  {t("financeAdmin.schedules.form.schoolYear")}
+                  {t("supplyListsAdmin.form.schoolYear")}
                 </Text>
                 <Controller
                   control={form.control}
@@ -463,7 +388,7 @@ export function FinanceSchedulesAdminScreen() {
                       value={value}
                       onChange={onChange}
                       hasError={!!form.formState.errors.schoolYearId}
-                      testID="fee-schedule-form-year"
+                      testID="supply-list-form-year"
                     />
                   )}
                 />
@@ -476,7 +401,7 @@ export function FinanceSchedulesAdminScreen() {
 
               <View style={styles.formField}>
                 <Text style={styles.formLabel}>
-                  {t("financeAdmin.schedules.form.academicLevel")}
+                  {t("supplyListsAdmin.form.academicLevel")}
                 </Text>
                 <Controller
                   control={form.control}
@@ -487,7 +412,7 @@ export function FinanceSchedulesAdminScreen() {
                       value={value}
                       onChange={onChange}
                       hasError={!!form.formState.errors.academicLevelId}
-                      testID="fee-schedule-form-level"
+                      testID="supply-list-form-level"
                     />
                   )}
                 />
@@ -500,7 +425,7 @@ export function FinanceSchedulesAdminScreen() {
 
               <View style={styles.formField}>
                 <Text style={styles.formLabel}>
-                  {t("financeAdmin.schedules.form.track")}
+                  {t("supplyListsAdmin.form.track")}
                 </Text>
                 <Controller
                   control={form.control}
@@ -510,65 +435,62 @@ export function FinanceSchedulesAdminScreen() {
                       options={trackOptions}
                       value={value ?? ""}
                       onChange={onChange}
-                      testID="fee-schedule-form-track"
+                      testID="supply-list-form-track"
                     />
                   )}
                 />
               </View>
 
               <Text style={styles.formLabel}>
-                {t("financeAdmin.schedules.form.installments")}
+                {t("supplyListsAdmin.form.items")}
               </Text>
               {fields.map((field, index) => (
-                <View key={field.id} style={styles.installmentRow}>
+                <View key={field.id} style={styles.itemRow}>
                   <Controller
                     control={form.control}
-                    name={`installments.${index}.rank`}
+                    name={`items.${index}.rank`}
                     render={({ field: { onChange, value } }) => (
                       <TextInput
-                        style={[styles.formInput, styles.installmentRankInput]}
+                        style={[styles.formInput, styles.itemRankInput]}
                         value={String(value ?? "")}
                         onChangeText={onChange}
                         keyboardType="numeric"
-                        testID={`fee-schedule-form-installment-${index}-rank`}
+                        testID={`supply-list-form-item-${index}-rank`}
                       />
                     )}
                   />
                   <Controller
                     control={form.control}
-                    name={`installments.${index}.label`}
+                    name={`items.${index}.label`}
                     render={({ field: { onChange, value } }) => (
                       <TextInput
-                        style={[styles.formInput, styles.installmentLabelInput]}
+                        style={[styles.formInput, styles.itemLabelInput]}
                         value={value ?? ""}
                         onChangeText={onChange}
-                        placeholder={t("financeAdmin.schedules.form.label")}
-                        testID={`fee-schedule-form-installment-${index}-label`}
+                        placeholder={t("supplyListsAdmin.form.label")}
+                        testID={`supply-list-form-item-${index}-label`}
                       />
                     )}
                   />
                   <Controller
                     control={form.control}
-                    name={`installments.${index}.amount`}
+                    name={`items.${index}.quantity`}
                     render={({ field: { onChange, value } }) => (
                       <TextInput
-                        style={[
-                          styles.formInput,
-                          styles.installmentAmountInput,
-                        ]}
+                        style={[styles.formInput, styles.itemQuantityInput]}
                         value={String(value ?? "")}
                         onChangeText={onChange}
                         keyboardType="numeric"
-                        placeholder={t("financeAdmin.schedules.form.amount")}
-                        testID={`fee-schedule-form-installment-${index}-amount`}
+                        placeholder={t("supplyListsAdmin.form.quantity")}
+                        testID={`supply-list-form-item-${index}-quantity`}
                       />
                     )}
                   />
                   <TouchableOpacity
-                    style={styles.removeInstallmentButton}
+                    style={styles.removeItemButton}
                     onPress={() => remove(index)}
                     disabled={fields.length === 1}
-                    testID={`fee-schedule-form-installment-${index}-remove`}
+                    testID={`supply-list-form-item-${index}-remove`}
                   >
                     <Ionicons
                       name="close"
@@ -578,25 +500,25 @@ export function FinanceSchedulesAdminScreen() {
                   </TouchableOpacity>
                 </View>
               ))}
-              {form.formState.errors.installments?.message ? (
+              {form.formState.errors.items?.message ? (
                 <Text style={styles.formError}>
-                  {form.formState.errors.installments.message}
+                  {form.formState.errors.items.message}
                 </Text>
               ) : null}
               <TouchableOpacity
-                style={styles.addInstallmentButton}
+                style={styles.addItemButton}
                 onPress={() =>
                   append({
                     rank: fields.length + 1,
                     label: "",
-                    amount: 0,
-                    dueDate: "",
+                    quantity: 1,
+                    note: "",
                   })
                 }
-                testID="fee-schedule-form-add-installment"
+                testID="supply-list-form-add-item"
               >
-                <Text style={styles.addInstallmentText}>
-                  {t("financeAdmin.schedules.form.addInstallment")}
+                <Text style={styles.addItemText}>
+                  {t("supplyListsAdmin.form.addItem")}
                 </Text>
               </TouchableOpacity>
             </ScrollView>
@@ -605,7 +527,7 @@ export function FinanceSchedulesAdminScreen() {
               <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={exitForms}
-                testID="fee-schedule-form-cancel"
+                testID="supply-list-form-cancel"
               >
                 <Text style={styles.cancelButtonText}>
                   {t("common.cancel")}
@@ -618,7 +540,7 @@ export function FinanceSchedulesAdminScreen() {
                 ]}
                 disabled={submitting}
                 onPress={form.handleSubmit(onSubmit)}
-                testID="fee-schedule-form-submit"
+                testID="supply-list-form-submit"
               >
                 <Text style={styles.submitButtonText}>{t("common.save")}</Text>
               </TouchableOpacity>
@@ -631,7 +553,7 @@ export function FinanceSchedulesAdminScreen() {
         <TouchableOpacity
           style={styles.fab}
           onPress={openCreate}
-          testID="fee-schedules-fab"
+          testID="supply-lists-fab"
         >
           <Ionicons name="add" size={26} color={colors.white} />
         </TouchableOpacity>
@@ -639,7 +561,7 @@ export function FinanceSchedulesAdminScreen() {
 
       <ConfirmDialog
         visible={deleteTarget != null}
-        title={t("financeAdmin.schedules.deleteConfirm.title")}
+        title={t("supplyListsAdmin.deleteConfirm.title")}
         message={
           deleteTarget
             ? `${deleteTarget.academicLevel.label}${deleteTarget.track ? ` - ${deleteTarget.track.label}` : ""} (${deleteTarget.schoolYear.label})`
@@ -651,6 +573,24 @@ export function FinanceSchedulesAdminScreen() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      <PageHelpModal
+        visible={helpVisible}
+        onClose={() => setHelpVisible(false)}
+        title={t("supplyListsAdmin.help.title")}
+        sections={[
+          {
+            title: t("supplyListsAdmin.help.section1Title"),
+            body: [t("supplyListsAdmin.help.section1Body")],
+          },
+          {
+            title: t("supplyListsAdmin.help.section2Title"),
+            body: [t("supplyListsAdmin.help.section2Body")],
+          },
+        ]}
+        closeLabel={t("supplyListsAdmin.help.close")}
+        testID="supply-lists-help-modal"
+      />
     </View>
   );
 }
@@ -660,47 +600,6 @@ const styles = StyleSheet.create({
   lockedWrap: { flex: 1, padding: 16, justifyContent: "center" },
   content: { flex: 1, gap: 12, paddingHorizontal: 16, paddingTop: 10 },
   listContent: { paddingBottom: 108, gap: 8 },
-  policyCard: {
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    padding: 14,
-    gap: 8,
-  },
-  policyTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  policyDescription: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  policyOptions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  policyOption: {
-    flex: 1,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  policyOptionActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  policyOptionText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  policyOptionTextActive: {
-    color: colors.white,
-  },
   entityRow: {
     borderRadius: 14,
     padding: 14,
@@ -776,11 +675,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   formError: { color: colors.notification, fontSize: 12, lineHeight: 16 },
-  installmentRow: { flexDirection: "row", gap: 6, alignItems: "center" },
-  installmentRankInput: { width: 44 },
-  installmentLabelInput: { flex: 1 },
-  installmentAmountInput: { width: 90 },
-  removeInstallmentButton: {
+  itemRow: { flexDirection: "row", gap: 6, alignItems: "center" },
+  itemRankInput: { width: 44 },
+  itemLabelInput: { flex: 1 },
+  itemQuantityInput: { width: 70 },
+  removeItemButton: {
     width: 30,
     height: 30,
     borderRadius: 8,
@@ -788,14 +687,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: colors.background,
   },
-  addInstallmentButton: {
+  addItemButton: {
     borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.border,
     paddingVertical: 10,
     alignItems: "center",
   },
-  addInstallmentText: {
+  addItemText: {
     fontSize: 13,
     fontWeight: "700",
     color: colors.primary,

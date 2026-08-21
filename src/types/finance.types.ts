@@ -68,3 +68,25 @@ export type WalletSummary = {
   transactions: WalletTransactionEntry[];
   children: ChildFinanceStatus[];
 };
+
+export type InstallmentStatus = "PAID" | "PARTIAL" | "UPCOMING" | "OVERDUE";
+
+export type InstallmentRow = {
+  id: string;
+  rank: number;
+  label: string;
+  amount: number;
+  dueDate: string | null;
+  allocatedAmount: number;
+  remainingAmount: number;
+  status: InstallmentStatus;
+};
+
+export type ChildInstallmentBreakdown = {
+  student: { id: string; firstName: string; lastName: string };
+  schoolYearId: string;
+  totalAmount: number;
+  totalPaid: number;
+  totalRemaining: number;
+  installments: InstallmentRow[];
+};

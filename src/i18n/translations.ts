@@ -19,6 +19,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "financeAdmin.lockedTitle": "Module réservé au personnel administratif",
     "financeAdmin.lockedMessage":
       "Ce module mobile est disponible pour les comptes admin, gestionnaire ou comptable.",
+    "financeAdmin.settings.title": "Seuil de réinscription",
+    "financeAdmin.settings.description":
+      "Détermine à partir de quel montant versé un élève promu est considéré réinscrit.",
+    "financeAdmin.settings.firstInstallment": "1ère échéance payée",
+    "financeAdmin.settings.fullPayment": "Échéancier payé en totalité",
+    "financeAdmin.settings.success": "Politique de réinscription mise à jour.",
+    "financeAdmin.settings.errors.save":
+      "Impossible de mettre à jour la politique de réinscription.",
     "financeAdmin.schedules.title": "Échéanciers",
     "financeAdmin.schedules.empty": "Aucun échéancier défini pour le moment.",
     "financeAdmin.schedules.success.saved": "Échéancier enregistré.",
@@ -38,6 +46,38 @@ export const translations: Record<Locale, Record<string, string>> = {
     "financeAdmin.schedules.form.addInstallment": "Ajouter une échéance",
     "financeAdmin.schedules.deleteConfirm.title": "Supprimer l'échéancier",
 
+    "supplyListsAdmin.title": "Fournitures scolaires",
+    "supplyListsAdmin.lockedTitle": "Module réservé au personnel administratif",
+    "supplyListsAdmin.lockedMessage":
+      "Ce module mobile est disponible pour les comptes admin, gestionnaire ou superviseur.",
+    "supplyListsAdmin.empty":
+      "Aucune liste de fournitures définie pour le moment.",
+    "supplyListsAdmin.success.saved": "Liste de fournitures enregistrée.",
+    "supplyListsAdmin.success.deleted": "Liste de fournitures supprimée.",
+    "supplyListsAdmin.errors.save": "Enregistrement impossible.",
+    "supplyListsAdmin.errors.delete": "Suppression impossible.",
+    "supplyListsAdmin.form.title": "Nouvelle liste / mise à jour",
+    "supplyListsAdmin.form.subtitle":
+      "Fournitures par niveau, filière et année scolaire",
+    "supplyListsAdmin.form.schoolYear": "Année scolaire",
+    "supplyListsAdmin.form.academicLevel": "Niveau",
+    "supplyListsAdmin.form.track": "Filière",
+    "supplyListsAdmin.form.trackNone": "Aucune filière",
+    "supplyListsAdmin.form.items": "Articles",
+    "supplyListsAdmin.form.label": "Libellé",
+    "supplyListsAdmin.form.quantity": "Quantité",
+    "supplyListsAdmin.form.addItem": "Ajouter un article",
+    "supplyListsAdmin.deleteConfirm.title": "Supprimer la liste de fournitures",
+    "supplyListsAdmin.help.menuLabel": "Aide",
+    "supplyListsAdmin.help.title": "Aide — Fournitures scolaires",
+    "supplyListsAdmin.help.close": "Fermer",
+    "supplyListsAdmin.help.section1Title": "À quoi sert cet écran",
+    "supplyListsAdmin.help.section1Body":
+      "Définissez, pour chaque niveau scolaire (et éventuellement chaque filière) d'une année donnée, la liste des fournitures que les parents doivent prévoir pour la rentrée. Cette liste est ensuite visible par les parents dans l'onglet Fournitures de l'écran Réinscription, scopée au niveau que leur enfant s'apprête à intégrer.",
+    "supplyListsAdmin.help.section2Title": "Créer ou modifier une liste",
+    "supplyListsAdmin.help.section2Body":
+      "Touchez le bouton + pour créer une nouvelle liste, ou l'icône crayon sur une liste existante pour la modifier. Choisissez l'année scolaire, le niveau, éventuellement une filière, puis ajoutez chaque article avec son rang d'affichage, son libellé et sa quantité. Une nouvelle année scolaire reprend automatiquement les listes de l'année précédente : il suffit ensuite de les ajuster si besoin plutôt que de les ressaisir entièrement.",
+
     "financeAdmin.payments.title": "Paiements",
     "financeAdmin.payments.search.placeholder": "Nom ou prénom",
     "financeAdmin.payments.search.button": "Rechercher",
@@ -51,8 +91,8 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Paiement enregistré : la réinscription de l'élève est confirmée.",
     "financeAdmin.payments.targetYear": "Année scolaire (réinscription)",
     "financeAdmin.payments.summary.totalPaid": "Total déjà versé",
-    "financeAdmin.payments.summary.firstInstallment":
-      "Montant de la 1ère échéance",
+    "financeAdmin.payments.summary.threshold":
+      "Seuil de réinscription (selon la politique de l'école)",
     "financeAdmin.payments.summary.eligible":
       "Seuil atteint : élève réinscrit.",
     "financeAdmin.payments.summary.notEligible":
@@ -253,6 +293,65 @@ export const translations: Record<Locale, Record<string, string>> = {
     "finSituation.children.status.ALREADY_REINSCRIBED": "Deja reinscrit(e)",
     "finSituation.children.status.READY_TO_REINSCRIBE":
       "Pret(e) a etre reinscrit(e)",
+
+    "reinscription.title": "Réinscription",
+    "reinscription.tabs.paiement": "Paiement",
+    "reinscription.tabs.fournitures": "Fournitures",
+    "reinscription.children.title": "Mes enfants",
+    "reinscription.children.allLoaded": "Tous les enfants ont ete charges",
+    "reinscription.children.empty": "Aucun enfant rattache a votre compte.",
+    "reinscription.supplies.notOpenYet":
+      "L'annee suivante n'est pas encore ouverte par l'ecole.",
+    "reinscription.supplies.empty":
+      "Aucune liste de fournitures definie pour ce niveau pour le moment.",
+    "reinscription.supplies.emptyList":
+      "Aucun enfant pret pour une liste de fournitures.",
+    "reinscription.supplies.allLoaded":
+      "Toutes les listes de fournitures ont ete chargees",
+    "reinscription.wallet.success.topUp": "Porte-monnaie credite.",
+    "reinscription.wallet.success.reinscribed":
+      "{firstName} est reinscrit(e) !",
+    "reinscription.wallet.errors.topUp": "Depot impossible.",
+    "reinscription.wallet.errors.reinscribe": "Reinscription impossible.",
+    "reinscription.errors.load": "Chargement impossible.",
+    "reinscription.help.menuLabel": "Aide",
+    "reinscription.help.title": "Aide — Réinscription",
+    "reinscription.help.close": "Fermer",
+    "reinscription.help.section1Title": "Payer et réinscrire",
+    "reinscription.help.section1Body":
+      "Dès qu'un enfant est promu par le conseil de classe, il apparaît dans l'onglet Paiement avec le montant restant dû (selon la politique de seuil définie par l'école : 1ère échéance ou paiement intégral) et la date limite. Créditez votre porte-monnaie puis touchez « Je paie et je réinscris » pour régler ce montant et confirmer la réinscription en un seul geste.",
+    "reinscription.help.section2Title": "Statuts affichés",
+    "reinscription.help.section2Body":
+      "« En attente de la décision du conseil de classe » signifie que le niveau de l'an prochain n'est pas encore décidé. « Prêt(e) à être réinscrit(e) » signifie que le paiement peut être effectué. « Déjà réinscrit(e) » confirme que la réinscription est actée.",
+    "reinscription.help.section3Title": "Fournitures scolaires",
+    "reinscription.help.section3Body":
+      "L'onglet Fournitures liste, pour chaque enfant, les articles nécessaires pour le niveau qu'il intègre l'an prochain (et non son niveau actuel). Cette liste est gérée par l'établissement.",
+
+    "onboardingTour.reinscription.walletTitle": "Votre porte-monnaie",
+    "onboardingTour.reinscription.walletBody":
+      "Créditez ce porte-monnaie pour pouvoir régler les frais de réinscription de vos enfants.",
+    "onboardingTour.reinscription.childrenTitle": "Vos enfants",
+    "onboardingTour.reinscription.childrenBody":
+      "Chaque enfant promu apparaît ici avec son statut et le montant restant dû.",
+    "onboardingTour.reinscription.reinscribeTitle": "Payer et réinscrire",
+    "onboardingTour.reinscription.reinscribeBody":
+      "Ce bouton débite le montant requis de votre porte-monnaie et confirme la réinscription en un seul geste.",
+    "onboardingTour.reinscription.suppliesTabTitle": "Fournitures scolaires",
+    "onboardingTour.reinscription.suppliesTabBody":
+      "Cet onglet liste les fournitures nécessaires pour le niveau que votre enfant intègre l'an prochain.",
+    "onboardingTour.reinscription.helpToggleTitle": "Besoin d'aide ?",
+    "onboardingTour.reinscription.helpToggleBody":
+      "Touchez ce bouton, puis « Aide » dans le menu, pour retrouver ces explications à tout moment.",
+
+    "reinscription.installments.show": "Voir l'échéancier",
+    "reinscription.installments.hide": "Masquer l'échéancier",
+    "reinscription.installments.dueDate": "Échéance :",
+    "reinscription.installments.error": "Échéancier indisponible.",
+    "reinscription.installments.status.PAID": "Payée",
+    "reinscription.installments.status.PARTIAL": "Partielle",
+    "reinscription.installments.status.UPCOMING": "À venir",
+    "reinscription.installments.status.OVERDUE": "En retard",
+
     "onboardingTour.childTimetable.step1Title": "Changez de vue",
     "onboardingTour.childTimetable.step1Body":
       "Touchez Jour, Semaine ou Mois pour changer la façon d'afficher l'emploi du temps.",
@@ -3071,6 +3170,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "childHome.help.section2Title": "Des blocs résumés",
     "childHome.help.section2Body":
       "Chaque bloc (dernières évaluations, fil d'actualité, messages non lus) affiche un aperçu. Touchez « Voir plus » en haut à droite du bloc pour ouvrir le module complet.",
+    "childHome.help.section3Title": "Fournitures scolaires",
+    "childHome.help.section3Body":
+      "Dès que le conseil de classe a décidé du niveau que votre enfant intègre l'an prochain, un bloc « Fournitures » apparaît ici avec un aperçu des articles nécessaires pour ce niveau. Touchez ce bloc pour ouvrir l'écran Réinscription et voir la liste complète.",
+    "childHome.supplies.title": "Fournitures scolaires",
+    "childHome.supplies.linkLabel": "Voir tout",
+    "childHome.supplies.empty":
+      "Aucune liste de fournitures définie pour ce niveau pour le moment.",
     "onboardingTour.childHome.kpisTitle": "Trois indicateurs",
     "onboardingTour.childHome.kpisBody":
       "Moyenne, devoirs non faits et messages non lus : touchez une carte pour ouvrir le module correspondant.",
@@ -3957,6 +4063,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "financeAdmin.lockedTitle": "Module reserved for administrative staff",
     "financeAdmin.lockedMessage":
       "This mobile module is available for admin, manager or accountant accounts.",
+    "financeAdmin.settings.title": "Re-enrollment threshold",
+    "financeAdmin.settings.description":
+      "Determines how much a promoted student's family must pay to be considered re-enrolled.",
+    "financeAdmin.settings.firstInstallment": "First installment paid",
+    "financeAdmin.settings.fullPayment": "Full schedule paid",
+    "financeAdmin.settings.success": "Re-enrollment policy updated.",
+    "financeAdmin.settings.errors.save":
+      "Could not update the re-enrollment policy.",
     "financeAdmin.schedules.title": "Fee schedules",
     "financeAdmin.schedules.empty": "No fee schedule defined yet.",
     "financeAdmin.schedules.success.saved": "Fee schedule saved.",
@@ -3976,6 +4090,37 @@ export const translations: Record<Locale, Record<string, string>> = {
     "financeAdmin.schedules.form.addInstallment": "Add installment",
     "financeAdmin.schedules.deleteConfirm.title": "Delete fee schedule",
 
+    "supplyListsAdmin.title": "School supplies",
+    "supplyListsAdmin.lockedTitle": "Module reserved for admin staff",
+    "supplyListsAdmin.lockedMessage":
+      "This mobile module is available for admin, manager or supervisor accounts.",
+    "supplyListsAdmin.empty": "No supply list defined yet.",
+    "supplyListsAdmin.success.saved": "Supply list saved.",
+    "supplyListsAdmin.success.deleted": "Supply list deleted.",
+    "supplyListsAdmin.errors.save": "Unable to save.",
+    "supplyListsAdmin.errors.delete": "Unable to delete.",
+    "supplyListsAdmin.form.title": "New supply list / update",
+    "supplyListsAdmin.form.subtitle":
+      "Supplies by level, track and school year",
+    "supplyListsAdmin.form.schoolYear": "School year",
+    "supplyListsAdmin.form.academicLevel": "Level",
+    "supplyListsAdmin.form.track": "Track",
+    "supplyListsAdmin.form.trackNone": "No track",
+    "supplyListsAdmin.form.items": "Items",
+    "supplyListsAdmin.form.label": "Label",
+    "supplyListsAdmin.form.quantity": "Quantity",
+    "supplyListsAdmin.form.addItem": "Add an item",
+    "supplyListsAdmin.deleteConfirm.title": "Delete supply list",
+    "supplyListsAdmin.help.menuLabel": "Help",
+    "supplyListsAdmin.help.title": "Help — School supplies",
+    "supplyListsAdmin.help.close": "Close",
+    "supplyListsAdmin.help.section1Title": "What this screen is for",
+    "supplyListsAdmin.help.section1Body":
+      "Define, for each school level (and optionally each track) of a given year, the list of supplies parents need to prepare for the new school year. This list is then visible to parents in the Supplies tab of the Re-enrollment screen, scoped to the level their child is about to enter.",
+    "supplyListsAdmin.help.section2Title": "Create or edit a list",
+    "supplyListsAdmin.help.section2Body":
+      "Tap the + button to create a new list, or the pencil icon on an existing list to edit it. Choose the school year, level, optionally a track, then add each item with its display rank, label and quantity. A new school year automatically carries forward the previous year's lists — you only need to adjust them if needed rather than re-entering everything.",
+
     "financeAdmin.payments.title": "Payments",
     "financeAdmin.payments.search.placeholder": "First or last name",
     "financeAdmin.payments.search.button": "Search",
@@ -3988,8 +4133,8 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Payment recorded: the student's re-enrollment is confirmed.",
     "financeAdmin.payments.targetYear": "School year (re-enrollment)",
     "financeAdmin.payments.summary.totalPaid": "Total already paid",
-    "financeAdmin.payments.summary.firstInstallment":
-      "First installment amount",
+    "financeAdmin.payments.summary.threshold":
+      "Re-enrollment threshold (per school policy)",
     "financeAdmin.payments.summary.eligible":
       "Threshold reached: student re-enrolled.",
     "financeAdmin.payments.summary.notEligible":
@@ -4181,6 +4326,62 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Decision made, waiting for the school to open next school year",
     "finSituation.children.status.ALREADY_REINSCRIBED": "Already re-enrolled",
     "finSituation.children.status.READY_TO_REINSCRIBE": "Ready to re-enroll",
+
+    "reinscription.title": "Re-enrollment",
+    "reinscription.tabs.paiement": "Payment",
+    "reinscription.tabs.fournitures": "Supplies",
+    "reinscription.children.title": "My children",
+    "reinscription.children.allLoaded": "All children have been loaded",
+    "reinscription.children.empty": "No child linked to your account.",
+    "reinscription.supplies.notOpenYet":
+      "Next year has not been opened by the school yet.",
+    "reinscription.supplies.empty":
+      "No supply list defined for this level yet.",
+    "reinscription.supplies.emptyList": "No child ready for a supply list yet.",
+    "reinscription.supplies.allLoaded": "All supply lists have been loaded",
+    "reinscription.wallet.success.topUp": "Wallet topped up.",
+    "reinscription.wallet.success.reinscribed": "{firstName} is re-enrolled!",
+    "reinscription.wallet.errors.topUp": "Unable to top up.",
+    "reinscription.wallet.errors.reinscribe": "Unable to re-enroll.",
+    "reinscription.errors.load": "Unable to load.",
+    "reinscription.help.menuLabel": "Help",
+    "reinscription.help.title": "Help — Re-enrollment",
+    "reinscription.help.close": "Close",
+    "reinscription.help.section1Title": "Pay and re-enroll",
+    "reinscription.help.section1Body":
+      'As soon as a child is promoted by the class council, they appear in the Payment tab with the remaining amount due (based on the threshold policy set by the school: first installment or full payment) and the deadline. Top up your wallet then tap "Pay and re-enroll" to settle that amount and confirm re-enrollment in one action.',
+    "reinscription.help.section2Title": "Displayed statuses",
+    "reinscription.help.section2Body":
+      '"Awaiting class council decision" means next year\'s level has not been decided yet. "Ready to re-enroll" means payment can be made. "Already re-enrolled" confirms re-enrollment is done.',
+    "reinscription.help.section3Title": "School supplies",
+    "reinscription.help.section3Body":
+      "The Supplies tab lists, for each child, the items needed for the level they are moving into next year (not their current level). This list is managed by the school.",
+
+    "onboardingTour.reinscription.walletTitle": "Your wallet",
+    "onboardingTour.reinscription.walletBody":
+      "Top up this wallet so you can pay your children's re-enrollment fees.",
+    "onboardingTour.reinscription.childrenTitle": "Your children",
+    "onboardingTour.reinscription.childrenBody":
+      "Every promoted child appears here with their status and remaining amount due.",
+    "onboardingTour.reinscription.reinscribeTitle": "Pay and re-enroll",
+    "onboardingTour.reinscription.reinscribeBody":
+      "This button debits the required amount from your wallet and confirms re-enrollment in one action.",
+    "onboardingTour.reinscription.suppliesTabTitle": "School supplies",
+    "onboardingTour.reinscription.suppliesTabBody":
+      "This tab lists the supplies needed for the level your child is moving into next year.",
+    "onboardingTour.reinscription.helpToggleTitle": "Need help?",
+    "onboardingTour.reinscription.helpToggleBody":
+      'Tap this button, then "Help" in the menu, to find these explanations again at any time.',
+
+    "reinscription.installments.show": "View schedule",
+    "reinscription.installments.hide": "Hide schedule",
+    "reinscription.installments.dueDate": "Due:",
+    "reinscription.installments.error": "Schedule unavailable.",
+    "reinscription.installments.status.PAID": "Paid",
+    "reinscription.installments.status.PARTIAL": "Partial",
+    "reinscription.installments.status.UPCOMING": "Upcoming",
+    "reinscription.installments.status.OVERDUE": "Overdue",
+
     "onboardingTour.childTimetable.step1Title": "Switch views",
     "onboardingTour.childTimetable.step1Body":
       "Tap Day, Week or Month to change how the schedule is displayed.",
@@ -6893,6 +7094,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "childHome.help.section2Title": "Summary blocks",
     "childHome.help.section2Body":
       'Each block (latest evaluations, news feed, unread messages) shows a preview. Tap "See more" at the top right of the block to open the full module.',
+    "childHome.help.section3Title": "School supplies",
+    "childHome.help.section3Body":
+      'As soon as the class council has decided which level your child is moving into next year, a "Supplies" block appears here with a preview of the items needed for that level. Tap this block to open the Re-enrollment screen and see the full list.',
+    "childHome.supplies.title": "School supplies",
+    "childHome.supplies.linkLabel": "See all",
+    "childHome.supplies.empty": "No supply list defined for this level yet.",
     "onboardingTour.childHome.kpisTitle": "Three indicators",
     "onboardingTour.childHome.kpisBody":
       "Average, undone homework and unread messages: tap a card to open the matching module.",
