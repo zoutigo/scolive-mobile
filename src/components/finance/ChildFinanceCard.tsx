@@ -39,11 +39,7 @@ function daysUntil(value: string): number {
   const now = new Date();
   const msPerDay = 24 * 60 * 60 * 1000;
   return Math.ceil(
-    (Date.UTC(
-      deadline.getFullYear(),
-      deadline.getMonth(),
-      deadline.getDate(),
-    ) -
+    (Date.UTC(deadline.getFullYear(), deadline.getMonth(), deadline.getDate()) -
       Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())) /
       msPerDay,
   );
@@ -120,10 +116,7 @@ export function ChildFinanceCard({
 
           {daysLeft !== null ? (
             <Text
-              style={[
-                styles.deadline,
-                daysLeft <= 3 && styles.deadlineUrgent,
-              ]}
+              style={[styles.deadline, daysLeft <= 3 && styles.deadlineUrgent]}
             >
               {daysLeft >= 0
                 ? t("finSituation.children.daysLeft").replace(

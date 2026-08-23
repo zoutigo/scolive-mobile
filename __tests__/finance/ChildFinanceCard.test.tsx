@@ -45,10 +45,10 @@ describe("ChildFinanceCard", () => {
         onPayAndReinscribe={jest.fn()}
       />,
     );
+    expect(screen.queryByTestId("insufficient-balance-student-1")).toBeNull();
     expect(
-      screen.queryByTestId("insufficient-balance-student-1"),
-    ).toBeNull();
-    expect(screen.getByTestId("pay-and-reinscribe-student-1")).not.toBeDisabled();
+      screen.getByTestId("pay-and-reinscribe-student-1"),
+    ).not.toBeDisabled();
   });
 
   it("affiche un message de solde insuffisant en permanence, avant tout clic, quand le wallet ne couvre pas le montant requis", () => {
