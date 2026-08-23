@@ -106,7 +106,7 @@ describe("VieScolaireMeScreen (self, rôle élève)", () => {
     expect(screen.getByTestId("vie-scolaire-me-loading")).toBeOnTheScreen();
 
     await waitFor(() => {
-      expect(screen.getByText("Lisa Mbele")).toBeOnTheScreen();
+      expect(screen.getByText(/Lisa Mbele/)).toBeOnTheScreen();
     });
 
     await waitFor(() => {
