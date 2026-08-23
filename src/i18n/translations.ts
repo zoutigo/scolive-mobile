@@ -292,6 +292,7 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Decision prise, en attente de l'ouverture de l'annee scolaire suivante par l'ecole",
     "finSituation.children.status.ALREADY_REINSCRIBED": "Deja reinscrit(e)",
     "finSituation.children.dateOfBirth": "Ne(e) le {date}",
+    "finSituation.children.schoolYearStart": "Rentree scolaire : {date}",
     "finSituation.children.daysLeft": "{count} jour(s) restant(s)",
     "finSituation.children.deadlinePassed": "Date limite depassee",
     "finSituation.children.insufficientBalance":
@@ -318,10 +319,10 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Aucun enfant pret pour une liste de fournitures.",
     "reinscription.supplies.allLoaded":
       "Toutes les listes de fournitures ont ete chargees",
-    "reinscription.wallet.success.topUp": "Porte-monnaie credite.",
+    "reinscription.wallet.balance": "Solde du porte-monnaie",
+    "reinscription.wallet.topUpLink": "Recharger",
     "reinscription.wallet.success.reinscribed":
       "{firstName} est reinscrit(e) !",
-    "reinscription.wallet.errors.topUp": "Depot impossible.",
     "reinscription.wallet.errors.reinscribe": "Reinscription impossible.",
     "reinscription.errors.load": "Chargement impossible.",
     "reinscription.help.menuLabel": "Aide",
@@ -329,7 +330,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "reinscription.help.close": "Fermer",
     "reinscription.help.section1Title": "Payer et réinscrire",
     "reinscription.help.section1Body":
-      "Dès qu'un enfant est promu par le conseil de classe, il apparaît dans l'onglet Paiement avec le montant restant dû (selon la politique de seuil définie par l'école : 1ère échéance ou paiement intégral) et la date limite. Créditez votre porte-monnaie puis touchez « Je paie et je réinscris » pour régler ce montant et confirmer la réinscription en un seul geste.",
+      "Dès qu'un enfant est promu par le conseil de classe, il apparaît dans l'onglet Paiement avec le montant restant dû (selon la politique de seuil définie par l'école : 1ère échéance ou paiement intégral) et la date limite. Rechargez votre porte-monnaie depuis Situation financière puis touchez « Je paie et je réinscris » pour régler ce montant et confirmer la réinscription en un seul geste.",
     "reinscription.help.section2Title": "Statuts affichés",
     "reinscription.help.section2Body":
       "« En attente de la décision du conseil de classe » signifie que le niveau de l'an prochain n'est pas encore décidé. « Prêt(e) à être réinscrit(e) » signifie que le paiement peut être effectué. « Déjà réinscrit(e) » confirme que la réinscription est actée.",
@@ -339,7 +340,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "onboardingTour.reinscription.walletTitle": "Votre porte-monnaie",
     "onboardingTour.reinscription.walletBody":
-      "Créditez ce porte-monnaie pour pouvoir régler les frais de réinscription de vos enfants.",
+      "Voici votre solde disponible. Touchez « Recharger » pour aller créditer votre porte-monnaie depuis Situation financière.",
     "onboardingTour.reinscription.childrenTitle": "Vos enfants",
     "onboardingTour.reinscription.childrenBody":
       "Chaque enfant promu apparaît ici avec son ancien et son nouveau niveau, la date limite de réinscription et le montant restant dû.",
@@ -4337,6 +4338,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "finSituation.children.status.ALREADY_REINSCRIBED": "Already re-enrolled",
     "finSituation.children.status.READY_TO_REINSCRIBE": "Ready to re-enroll",
     "finSituation.children.dateOfBirth": "Born on {date}",
+    "finSituation.children.schoolYearStart": "School year starts: {date}",
     "finSituation.children.daysLeft": "{count} day(s) left",
     "finSituation.children.deadlinePassed": "Deadline passed",
     "finSituation.children.insufficientBalance":
@@ -4358,9 +4360,9 @@ export const translations: Record<Locale, Record<string, string>> = {
       "No supply list defined for this level yet.",
     "reinscription.supplies.emptyList": "No child ready for a supply list yet.",
     "reinscription.supplies.allLoaded": "All supply lists have been loaded",
-    "reinscription.wallet.success.topUp": "Wallet topped up.",
+    "reinscription.wallet.balance": "Wallet balance",
+    "reinscription.wallet.topUpLink": "Top up",
     "reinscription.wallet.success.reinscribed": "{firstName} is re-enrolled!",
-    "reinscription.wallet.errors.topUp": "Unable to top up.",
     "reinscription.wallet.errors.reinscribe": "Unable to re-enroll.",
     "reinscription.errors.load": "Unable to load.",
     "reinscription.help.menuLabel": "Help",
@@ -4368,7 +4370,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "reinscription.help.close": "Close",
     "reinscription.help.section1Title": "Pay and re-enroll",
     "reinscription.help.section1Body":
-      'As soon as a child is promoted by the class council, they appear in the Payment tab with the remaining amount due (based on the threshold policy set by the school: first installment or full payment) and the deadline. Top up your wallet then tap "Pay and re-enroll" to settle that amount and confirm re-enrollment in one action.',
+      'As soon as a child is promoted by the class council, they appear in the Payment tab with the remaining amount due (based on the threshold policy set by the school: first installment or full payment) and the deadline. Top up your wallet from Financial situation then tap "Pay and re-enroll" to settle that amount and confirm re-enrollment in one action.',
     "reinscription.help.section2Title": "Displayed statuses",
     "reinscription.help.section2Body":
       '"Awaiting class council decision" means next year\'s level has not been decided yet. "Ready to re-enroll" means payment can be made. "Already re-enrolled" confirms re-enrollment is done.',
@@ -4378,7 +4380,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "onboardingTour.reinscription.walletTitle": "Your wallet",
     "onboardingTour.reinscription.walletBody":
-      "Top up this wallet so you can pay your children's re-enrollment fees.",
+      'This is your available balance. Tap "Top up" to go credit your wallet from Financial situation.',
     "onboardingTour.reinscription.childrenTitle": "Your children",
     "onboardingTour.reinscription.childrenBody":
       "Every promoted child appears here with their previous and new level, the re-enrollment deadline and the remaining amount due.",

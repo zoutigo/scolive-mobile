@@ -8,8 +8,8 @@ import { AppShell } from "../navigation/AppShell";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
-import { WalletBalanceCard } from "../finance/WalletBalanceCard";
-import { ChildFinanceCard } from "../finance/ChildFinanceCard";
+import { WalletSummaryLinkCard } from "../finance/WalletSummaryLinkCard";
+import { ChildReenrollmentCard } from "./ChildReenrollmentCard";
 import { SupplyListCard } from "./SupplyListCard";
 import { InstallmentBreakdownCard } from "./InstallmentBreakdownCard";
 import { PageHelpModal } from "../help/PageHelpModal";
@@ -53,7 +53,6 @@ function ReinscriptionScreenContent() {
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [walletLoading, setWalletLoading] = useState(false);
-  const [topUpSubmitting, setTopUpSubmitting] = useState(false);
   const [reinscribingId, setReinscribingId] = useState<string | null>(null);
   const [helpVisible, setHelpVisible] = useState(false);
   const [supplyLists, setSupplyLists] = useState<
@@ -130,26 +129,6 @@ function ReinscriptionScreenContent() {
     }, [tab, loadSupplyLists]),
   );
 
-  async function onTopUp(amount: number) {
-    if (!schoolSlug || amount <= 0) return;
-    setTopUpSubmitting(true);
-    try {
-      await financeApi.topUpWallet(schoolSlug, amount);
-      showSuccess({
-        title: t("reinscription.wallet.success.topUp"),
-        message: "",
-      });
-      await loadWallet();
-    } catch (error) {
-      showError({
-        title: t("reinscription.wallet.errors.topUp"),
-        message: error instanceof Error ? error.message : "",
-      });
-    } finally {
-      setTopUpSubmitting(false);
-    }
-  }
-
   async function onPayAndReinscribe(child: ChildFinanceStatus) {
     if (!schoolSlug || !child.targetSchoolYearId) return;
     setReinscribingId(child.student.id);
@@ -219,7 +198,7 @@ function ReinscriptionScreenContent() {
           keyExtractor={(item) => item.student.id}
           renderItem={({ item }) => (
             <View style={styles.cardWrap}>
-              <ChildFinanceCard
+              <ChildReenrollmentCard
                 item={item}
                 walletBalance={wallet?.balance ?? 0}
                 submitting={reinscribingId === item.student.id}
@@ -245,10 +224,9 @@ function ReinscriptionScreenContent() {
           ListHeaderComponent={
             <>
               <OnboardingTarget id={REINSCRIPTION_TOUR_TARGETS.wallet}>
-                <WalletBalanceCard
+                <WalletSummaryLinkCard
                   balance={wallet?.balance ?? 0}
-                  submitting={topUpSubmitting}
-                  onTopUp={onTopUp}
+                  onPress={() => router.push("/(home)/finance")}
                 />
               </OnboardingTarget>
               <OnboardingTarget id={REINSCRIPTION_TOUR_TARGETS.children}>

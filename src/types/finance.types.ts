@@ -64,6 +64,7 @@ export type ChildFinanceStatus = {
     | "READY_TO_REINSCRIBE";
   targetSchoolYearId?: string;
   targetSchoolYearLabel?: string;
+  targetSchoolYearStartsAt?: string | null;
   requiredAmount?: number | null;
   previousClassLabel?: string | null;
   previousLevelLabel?: string | null;

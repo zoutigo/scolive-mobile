@@ -11,7 +11,7 @@ import { FinanceTabs } from "./FinanceTabs";
 import { FinanceHero } from "./FinanceHero";
 import { LedgerRow } from "./LedgerRow";
 import { WalletBalanceCard } from "./WalletBalanceCard";
-import { ChildFinanceCard } from "./ChildFinanceCard";
+import { ChildReenrollmentCard } from "../enrollments/ChildReenrollmentCard";
 import { InvoiceCard } from "./InvoiceCard";
 import { PaymentChannelCard } from "./PaymentChannelCard";
 import type {
@@ -313,7 +313,7 @@ function FinanceScreenContent() {
           keyExtractor={(item) => item.student.id}
           renderItem={({ item }) => (
             <View style={styles.childCardWrap}>
-              <ChildFinanceCard
+              <ChildReenrollmentCard
                 item={item}
                 walletBalance={wallet?.balance ?? 0}
                 submitting={reinscribingId === item.student.id}

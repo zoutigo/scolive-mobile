@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
@@ -45,7 +46,11 @@ function daysUntil(value: string): number {
   );
 }
 
-export function ChildFinanceCard({
+function initials(firstName: string, lastName: string): string {
+  return `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase();
+}
+
+export function ChildReenrollmentCard({
   item,
   walletBalance,
   submitting,
@@ -62,30 +67,46 @@ export function ChildFinanceCard({
   const daysLeft = item.reinscriptionDeadline
     ? daysUntil(item.reinscriptionDeadline)
     : null;
+  const hasPromotion = Boolean(
+    item.nextAcademicLevelLabel &&
+    (item.previousLevelLabel || item.previousClassLabel),
+  );
 
   return (
     <View
-      style={[styles.card, isConfirmed && styles.cardConfirmed]}
-      testID={`child-finance-card-${item.student.id}`}
+      style={[
+        styles.card,
+        isReady && styles.cardReady,
+        isConfirmed && styles.cardConfirmed,
+      ]}
+      testID={`child-reenrollment-card-${item.student.id}`}
     >
       <View style={styles.headerRow}>
-        <Text style={styles.name} numberOfLines={2}>
-          {item.student.firstName} {item.student.lastName}
-        </Text>
-        <View
-          style={[
-            styles.badge,
-            item.status === "ALREADY_REINSCRIBED"
-              ? styles.badgeOk
-              : item.status === "READY_TO_REINSCRIBE"
-                ? styles.badgeWarn
-                : styles.badgeNeutral,
-          ]}
-        >
-          <Text style={styles.badgeText}>
-            {t(`finSituation.children.status.${item.status}`)}
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {initials(item.student.firstName, item.student.lastName)}
           </Text>
         </View>
+        <View style={styles.headerInfo}>
+          <Text style={styles.name} numberOfLines={1}>
+            {item.student.firstName} {item.student.lastName}
+          </Text>
+          {hasPromotion ? (
+            <Text style={styles.promotion} numberOfLines={1}>
+              {item.previousLevelLabel ?? item.previousClassLabel ?? "—"}
+              {"  →  "}
+              {item.nextAcademicLevelLabel}
+            </Text>
+          ) : null}
+        </View>
+        {isConfirmed ? (
+          <View style={styles.confirmedBadge}>
+            <Ionicons name="checkmark-circle" size={14} color="#166534" />
+            <Text style={styles.confirmedBadgeText}>
+              {t("finSituation.children.status.ALREADY_REINSCRIBED")}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       {item.student.dateOfBirth ? (
@@ -97,20 +118,30 @@ export function ChildFinanceCard({
         </Text>
       ) : null}
 
-      {item.nextAcademicLevelLabel ? (
-        <Text style={styles.meta}>
-          {item.previousLevelLabel ?? item.previousClassLabel ?? "—"}
-          {"  →  "}
-          {item.nextAcademicLevelLabel}
-        </Text>
+      {!isConfirmed ? (
+        <View
+          style={[styles.statusBanner, isReady && styles.statusBannerReady]}
+        >
+          <Text
+            style={[
+              styles.statusBannerText,
+              isReady && styles.statusBannerTextReady,
+            ]}
+          >
+            {t(`finSituation.children.status.${item.status}`)}
+          </Text>
+        </View>
       ) : null}
 
       {isReady ? (
-        <>
-          <Text style={styles.required}>
-            {t("finSituation.children.required")} {formatXaf(required)}
+        <View style={styles.amountBlock}>
+          <Text style={styles.amountLabel}>
+            {t("finSituation.children.required")}
+          </Text>
+          <Text style={styles.amountValue}>
+            {formatXaf(required)}
             {item.targetSchoolYearLabel
-              ? ` (${item.targetSchoolYearLabel})`
+              ? ` · ${item.targetSchoolYearLabel}`
               : ""}
           </Text>
 
@@ -126,6 +157,15 @@ export function ChildFinanceCard({
                 : t("finSituation.children.deadlinePassed")}
               {" — "}
               {formatDate(item.reinscriptionDeadline as string)}
+            </Text>
+          ) : null}
+
+          {item.targetSchoolYearStartsAt ? (
+            <Text style={styles.schoolYearStart}>
+              {t("finSituation.children.schoolYearStart").replace(
+                "{date}",
+                formatDate(item.targetSchoolYearStartsAt),
+              )}
             </Text>
           ) : null}
 
@@ -148,7 +188,7 @@ export function ChildFinanceCard({
             testID={`pay-and-reinscribe-${item.student.id}`}
             label={t("finSituation.children.payAndReinscribe")}
           />
-        </>
+        </View>
       ) : null}
 
       {isConfirmed ? (
@@ -159,6 +199,14 @@ export function ChildFinanceCard({
           <Text style={styles.confirmedMessage}>
             {t("finSituation.children.confirmed.message")}
           </Text>
+          {item.targetSchoolYearStartsAt ? (
+            <Text style={styles.confirmedMessage}>
+              {t("finSituation.children.schoolYearStart").replace(
+                "{date}",
+                formatDate(item.targetSchoolYearStartsAt),
+              )}
+            </Text>
+          ) : null}
           {onViewSupplies ? (
             <TouchableOpacity
               onPress={onViewSupplies}
@@ -182,7 +230,10 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.surface,
     padding: 16,
-    gap: 6,
+    gap: 10,
+  },
+  cardReady: {
+    borderColor: colors.warmAccent,
   },
   cardConfirmed: {
     backgroundColor: "#F0FDF4",
@@ -190,46 +241,104 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 8,
+    alignItems: "center",
+    gap: 12,
   },
-  name: {
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: colors.primary + "18",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  avatarText: {
     fontSize: 14,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: colors.primary,
+  },
+  headerInfo: {
     flex: 1,
-    flexShrink: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  confirmedBadge: {
+    flexShrink: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: 8,
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  confirmedBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#166534",
+  },
+  name: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  promotion: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
   meta: {
     fontSize: 12,
     color: colors.textSecondary,
   },
-  badge: {
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  statusBanner: {
+    borderRadius: 8,
+    backgroundColor: colors.background,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
-  badgeOk: { backgroundColor: "#DCFCE7" },
-  badgeWarn: { backgroundColor: "#FEF3C7" },
-  badgeNeutral: { backgroundColor: colors.background },
-  badgeText: {
-    fontSize: 11,
+  statusBannerReady: {
+    backgroundColor: "#FEF3C7",
+  },
+  statusBannerText: {
+    fontSize: 12,
     fontWeight: "600",
-    color: colors.textPrimary,
-  },
-  required: {
-    fontSize: 13,
     color: colors.textSecondary,
-    marginTop: 4,
+  },
+  statusBannerTextReady: {
+    color: "#92400E",
+  },
+  amountBlock: {
+    borderRadius: 10,
+    backgroundColor: colors.warmSurface,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    padding: 12,
+    gap: 4,
+  },
+  amountLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
+  amountValue: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: colors.textPrimary,
   },
   deadline: {
     fontSize: 12,
     fontWeight: "600",
     color: colors.textSecondary,
+    marginTop: 2,
   },
   deadlineUrgent: {
     color: "#991B1B",
+  },
+  schoolYearStart: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   insufficientBalance: {
     fontSize: 12,
@@ -238,13 +347,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#FEE2E2",
     borderRadius: 6,
     padding: 8,
+    marginTop: 2,
   },
   button: {
     borderRadius: 6,
     backgroundColor: colors.primary,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: "center",
-    marginTop: 4,
+    marginTop: 6,
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -255,7 +365,6 @@ const styles = StyleSheet.create({
     color: colors.surface,
   },
   confirmedBlock: {
-    marginTop: 4,
     gap: 4,
   },
   confirmedTitle: {
