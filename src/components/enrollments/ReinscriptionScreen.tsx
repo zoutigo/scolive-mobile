@@ -224,6 +224,7 @@ function ReinscriptionScreenContent() {
                 walletBalance={wallet?.balance ?? 0}
                 submitting={reinscribingId === item.student.id}
                 onPayAndReinscribe={onPayAndReinscribe}
+                onViewSupplies={() => setTab("fournitures")}
                 tourTargetId={
                   item.student.id === firstReadyChildId
                     ? REINSCRIPTION_TOUR_TARGETS.reinscribe

@@ -291,6 +291,16 @@ export const translations: Record<Locale, Record<string, string>> = {
     "finSituation.children.status.NEXT_YEAR_NOT_OPEN":
       "Decision prise, en attente de l'ouverture de l'annee scolaire suivante par l'ecole",
     "finSituation.children.status.ALREADY_REINSCRIBED": "Deja reinscrit(e)",
+    "finSituation.children.dateOfBirth": "Ne(e) le {date}",
+    "finSituation.children.daysLeft": "{count} jour(s) restant(s)",
+    "finSituation.children.deadlinePassed": "Date limite depassee",
+    "finSituation.children.insufficientBalance":
+      "Solde insuffisant : approvisionnez votre porte-monnaie de {amount} pour reinscrire.",
+    "finSituation.children.confirmed.title": "Inscription confirmee !",
+    "finSituation.children.confirmed.message":
+      "Preparez la rentree en consultant la liste des fournitures.",
+    "finSituation.children.confirmed.viewSupplies":
+      "Voir la liste des fournitures",
     "finSituation.children.status.READY_TO_REINSCRIBE":
       "Pret(e) a etre reinscrit(e)",
 
@@ -332,7 +342,7 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Créditez ce porte-monnaie pour pouvoir régler les frais de réinscription de vos enfants.",
     "onboardingTour.reinscription.childrenTitle": "Vos enfants",
     "onboardingTour.reinscription.childrenBody":
-      "Chaque enfant promu apparaît ici avec son statut et le montant restant dû.",
+      "Chaque enfant promu apparaît ici avec son ancien et son nouveau niveau, la date limite de réinscription et le montant restant dû.",
     "onboardingTour.reinscription.reinscribeTitle": "Payer et réinscrire",
     "onboardingTour.reinscription.reinscribeBody":
       "Ce bouton débite le montant requis de votre porte-monnaie et confirme la réinscription en un seul geste.",
@@ -4326,6 +4336,15 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Decision made, waiting for the school to open next school year",
     "finSituation.children.status.ALREADY_REINSCRIBED": "Already re-enrolled",
     "finSituation.children.status.READY_TO_REINSCRIBE": "Ready to re-enroll",
+    "finSituation.children.dateOfBirth": "Born on {date}",
+    "finSituation.children.daysLeft": "{count} day(s) left",
+    "finSituation.children.deadlinePassed": "Deadline passed",
+    "finSituation.children.insufficientBalance":
+      "Insufficient balance: top up your wallet by {amount} to re-enroll.",
+    "finSituation.children.confirmed.title": "Re-enrollment confirmed!",
+    "finSituation.children.confirmed.message":
+      "Get ready for the new school year by checking the supply list.",
+    "finSituation.children.confirmed.viewSupplies": "View the supply list",
 
     "reinscription.title": "Re-enrollment",
     "reinscription.tabs.paiement": "Payment",
@@ -4362,7 +4381,7 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Top up this wallet so you can pay your children's re-enrollment fees.",
     "onboardingTour.reinscription.childrenTitle": "Your children",
     "onboardingTour.reinscription.childrenBody":
-      "Every promoted child appears here with their status and remaining amount due.",
+      "Every promoted child appears here with their previous and new level, the re-enrollment deadline and the remaining amount due.",
     "onboardingTour.reinscription.reinscribeTitle": "Pay and re-enroll",
     "onboardingTour.reinscription.reinscribeBody":
       "This button debits the required amount from your wallet and confirms re-enrollment in one action.",
