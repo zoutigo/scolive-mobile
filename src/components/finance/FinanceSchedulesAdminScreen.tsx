@@ -107,7 +107,7 @@ export function FinanceSchedulesAdminScreen() {
       installments: [{ rank: 1, label: "", amount: 0, dueDate: "" }],
     },
   });
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: "installments",
   });
@@ -171,30 +171,34 @@ export function FinanceSchedulesAdminScreen() {
   }
 
   function openCreate() {
+    const installments = [{ rank: 1, label: "", amount: 0, dueDate: "" }];
     form.reset({
       schoolYearId: "",
       academicLevelId: "",
       trackId: "",
-      installments: [{ rank: 1, label: "", amount: 0, dueDate: "" }],
+      installments,
     });
+    replace(installments);
     setTab("forms");
   }
 
   function openEdit(schedule: FeeScheduleRow) {
+    const installments = schedule.installments
+      .slice()
+      .sort((a, b) => a.rank - b.rank)
+      .map((i) => ({
+        rank: i.rank,
+        label: i.label,
+        amount: i.amount,
+        dueDate: i.dueDate ?? "",
+      }));
     form.reset({
       schoolYearId: schedule.schoolYear.id,
       academicLevelId: schedule.academicLevel.id,
       trackId: schedule.track?.id ?? "",
-      installments: schedule.installments
-        .slice()
-        .sort((a, b) => a.rank - b.rank)
-        .map((i) => ({
-          rank: i.rank,
-          label: i.label,
-          amount: i.amount,
-          dueDate: i.dueDate ?? "",
-        })),
+      installments,
     });
+    replace(installments);
     setTab("forms");
   }
 
@@ -642,7 +646,22 @@ export function FinanceSchedulesAdminScreen() {
                   submitting && styles.submitButtonDisabled,
                 ]}
                 disabled={submitting}
-                onPress={form.handleSubmit(onSubmit)}
+                onPress={form.handleSubmit(onSubmit, (errs) => {
+                  if (errs.schoolYearId || errs.academicLevelId) return;
+                  const rowErrors = errs.installments;
+                  if (Array.isArray(rowErrors)) {
+                    const index = rowErrors.findIndex((e) => e);
+                    if (index >= 0) {
+                      const row = rowErrors[index];
+                      const field = row?.label
+                        ? "label"
+                        : row?.amount
+                          ? "amount"
+                          : "rank";
+                      form.setFocus(`installments.${index}.${field}`);
+                    }
+                  }
+                })}
                 testID="fee-schedule-form-submit"
               >
                 <Text style={styles.submitButtonText}>{t("common.save")}</Text>

@@ -1,0 +1,141 @@
+appId: com.zoutigo.scoliveapp
+name: Finance Fee Schedules CRUD
+tags:
+  - finance
+  - crud
+---
+- runFlow:
+    when:
+      visible: "Process system isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "System UI isn't responding"
+    commands:
+      - tapOn: "Wait"
+- runFlow:
+    when:
+      visible: "Not now"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible:
+      id: "submit-login"
+    timeout: 30000
+- tapOn:
+    id: "tab-email"
+- tapOn:
+    id: "input-email"
+- inputText: "admin@ecole.cm"
+- hideKeyboard
+- tapOn:
+    id: "input-password"
+- inputText: "TempPass11"
+- hideKeyboard
+- tapOn:
+    id: "submit-login"
+- runFlow:
+    when:
+      visible: "Save password to Google?"
+    commands:
+      - tapOn: "Not now"
+- extendedWaitUntil:
+    visible:
+      id: "header-menu-btn"
+    timeout: 20000
+- tapOn:
+    id: "header-menu-btn"
+- extendedWaitUntil:
+    visible:
+      id: "nav-item-finance-echeanciers"
+    timeout: 10000
+- tapOn:
+    id: "nav-item-finance-echeanciers"
+- extendedWaitUntil:
+    visible:
+      id: "fee-schedules-fab"
+    timeout: 15000
+- assertVisible: "Aucun échéancier défini pour le moment."
+
+# ── Create ──────────────────────────────────────────────
+- tapOn:
+    id: "fee-schedules-fab"
+- extendedWaitUntil:
+    visible:
+      id: "fee-schedule-forms-tab"
+    timeout: 10000
+- tapOn:
+    id: "fee-schedule-form-year"
+- tapOn:
+    id: "fee-schedule-form-year-option-sy-1"
+- tapOn:
+    id: "fee-schedule-form-level"
+- tapOn:
+    id: "fee-schedule-form-level-option-level-5eme"
+- tapOn:
+    id: "fee-schedule-form-installment-0-label"
+- inputText: "Tranche 1"
+- hideKeyboard
+- tapOn:
+    id: "fee-schedule-form-installment-0-amount"
+- inputText: "50000"
+- hideKeyboard
+- tapOn:
+    id: "fee-schedule-form-submit"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Échéancier enregistré."
+- tapOn:
+    id: "success-toast-close"
+- extendedWaitUntil:
+    visible:
+      id: "fee-schedule-fee-e2e-1"
+    timeout: 10000
+- assertVisible: "5ème"
+
+# ── Update ──────────────────────────────────────────────
+- tapOn:
+    id: "fee-schedule-edit-fee-e2e-1"
+- extendedWaitUntil:
+    visible:
+      id: "fee-schedule-forms-tab"
+    timeout: 10000
+- tapOn:
+    id: "fee-schedule-form-installment-0-label"
+- eraseText
+- inputText: "Tranche unique maj"
+- hideKeyboard
+- tapOn:
+    id: "fee-schedule-form-installment-0-amount"
+- eraseText
+- inputText: "75000"
+- hideKeyboard
+- tapOn:
+    id: "fee-schedule-form-submit"
+- extendedWaitUntil:
+    visible:
+      id: "success-toast-card"
+    timeout: 10000
+- assertVisible: "Échéancier enregistré."
+- tapOn:
+    id: "success-toast-close"
+- extendedWaitUntil:
+    visible:
+      id: "fee-schedule-fee-e2e-1"
+    timeout: 10000
+- assertVisible: "Tranche unique maj"
+
+# ── Delete ──────────────────────────────────────────────
+- tapOn:
+    id: "fee-schedule-delete-fee-e2e-1"
+- extendedWaitUntil:
+    visible: "Supprimer l'échéancier"
+    timeout: 10000
+- tapOn: "Supprimer"
+- extendedWaitUntil:
+    visible: "Aucun échéancier défini pour le moment."
+    timeout: 10000
+- assertVisible: "Aucun échéancier défini pour le moment."
