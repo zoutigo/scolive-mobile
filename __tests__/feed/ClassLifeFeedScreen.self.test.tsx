@@ -117,4 +117,17 @@ describe("ClassLifeFeedScreen — mode self (élève)", () => {
     fireEvent.press(screen.getByTestId("child-class-feed-back"));
     expect(mockPush).toHaveBeenCalledWith("/");
   });
+
+  it("reste pleinement interactif pour l'élève (FAB de publication visible)", async () => {
+    render(<ClassLifeFeedScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("child-class-feed-compose-fab"),
+      ).toBeOnTheScreen();
+    });
+
+    fireEvent.press(screen.getByTestId("child-class-feed-compose-fab"));
+    expect(screen.getByTestId("feed-composer-card")).toBeOnTheScreen();
+  });
 });

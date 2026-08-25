@@ -33,6 +33,10 @@ type Props = {
   onVote?: (postId: string, optionId: string) => void;
   onDelete?: (post: FeedPost) => void;
   onPress?: () => void;
+  /** Consultation seule : masque publication/commentaire/reaction, desactive
+   * like et vote, utilise quand un parent consulte le fil de classe de son
+   * enfant via le menu enfant. */
+  readOnly?: boolean;
 };
 
 const COMMENT_EMOJIS = ["😀", "👍", "❤️", "🎉", "👏"];
@@ -117,6 +121,7 @@ export function FeedPostCard({
   onVote,
   onDelete,
   onPress,
+  readOnly = false,
 }: Props) {
   const { t, locale } = useTranslation();
   const [commentsOpen, setCommentsOpen] = useState(false);
@@ -261,7 +266,7 @@ export function FeedPostCard({
                 votes={option.votes}
                 totalVotes={totalVotes}
                 selected={option.id === post.poll?.votedOptionId}
-                disabled={Boolean(post.poll?.votedOptionId)}
+                disabled={Boolean(post.poll?.votedOptionId) || readOnly}
                 onPress={() => onVote?.(post.id, option.id)}
               />
             ))}
@@ -277,6 +282,7 @@ export function FeedPostCard({
               styles.actionButtonLike,
               post.likedByViewer && styles.actionButtonLiked,
             ]}
+            disabled={readOnly}
             onPress={() => onToggleLike(post.id)}
             testID={`feed-post-like-${post.id}`}
             accessibilityLabel={`${t("feed.post.likesAria").replace("{count}", String(post.likesCount))}${post.likedByViewer ? t("feed.post.likedSuffix") : ""}`}
@@ -332,33 +338,41 @@ export function FeedPostCard({
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.actionButtonReact,
-              reactionOpen && styles.actionButtonReactActive,
-            ]}
-            onPress={() => setReactionOpen((value) => !value)}
-            testID={`feed-post-react-${post.id}`}
-            accessibilityLabel={
-              reactionOpen ? t("feed.post.hideReaction") : t("feed.post.react")
-            }
-          >
-            <Ionicons name="send-outline" size={18} color={colors.accentTeal} />
-            <Text
+          {!readOnly ? (
+            <TouchableOpacity
               style={[
-                styles.actionLabel,
-                reactionOpen && styles.actionLabelReactActive,
+                styles.actionButton,
+                styles.actionButtonReact,
+                reactionOpen && styles.actionButtonReactActive,
               ]}
+              onPress={() => setReactionOpen((value) => !value)}
+              testID={`feed-post-react-${post.id}`}
+              accessibilityLabel={
+                reactionOpen
+                  ? t("feed.post.hideReaction")
+                  : t("feed.post.react")
+              }
             >
-              {reactionOpen
-                ? t("feed.post.hideReaction")
-                : t("feed.post.react")}
-            </Text>
-          </TouchableOpacity>
+              <Ionicons
+                name="send-outline"
+                size={18}
+                color={colors.accentTeal}
+              />
+              <Text
+                style={[
+                  styles.actionLabel,
+                  reactionOpen && styles.actionLabelReactActive,
+                ]}
+              >
+                {reactionOpen
+                  ? t("feed.post.hideReaction")
+                  : t("feed.post.react")}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
 
-        {post.canManage && onDelete ? (
+        {post.canManage && onDelete && !readOnly ? (
           <TouchableOpacity
             style={[styles.actionButton, styles.actionButtonDelete]}
             onPress={() => onDelete(post)}
@@ -374,7 +388,7 @@ export function FeedPostCard({
         ) : null}
       </View>
 
-      {reactionOpen ? (
+      {!readOnly && reactionOpen ? (
         <View style={styles.reactionComposer}>
           <TextInput
             style={styles.reactionInput}

@@ -91,6 +91,9 @@ function MessagesScreenContent() {
     tourId: MESSAGES_TOUR_ID,
     role: isTeacherRole ? "teacher" : "parent",
     steps: MESSAGES_TOUR_STEPS,
+    // Le tour cible le FAB de composition (étape 2), masqué en consultation
+    // seule quand on parcourt la messagerie via le menu d'un enfant.
+    enabled: !activeChildId,
   });
 
   const load = useCallback(async () => {
@@ -119,7 +122,7 @@ function MessagesScreenContent() {
   }
 
   function handlePress(item: MessageListItem) {
-    if (item.status === "DRAFT") {
+    if (item.status === "DRAFT" && !activeChildId) {
       router.push({
         pathname: "/(home)/messages/compose",
         params: { draftId: item.id },
@@ -308,8 +311,10 @@ function MessagesScreenContent() {
         />
       )}
 
-      {/* FAB Compose — visible uniquement sur l'onglet Boîte de réception */}
-      {folder === "inbox" ? (
+      {/* FAB Compose — visible uniquement sur l'onglet Boîte de réception,
+          jamais quand on consulte la messagerie via le menu d'un enfant
+          (le parent ne peut alors que consulter, jamais agir). */}
+      {folder === "inbox" && !activeChildId ? (
         <OnboardingTarget
           id={MESSAGES_TOUR_TARGETS.compose}
           style={[

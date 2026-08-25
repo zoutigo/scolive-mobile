@@ -62,6 +62,10 @@ export function ClassLifeFeedScreen() {
   const { schoolSlug, user } = useAuthStore();
   const viewerRole = resolveViewerRole(user?.activeRole ?? user?.role ?? null);
   const { children, setActiveChild, updateChild } = useFamilyStore();
+  // Un parent qui consulte le fil de classe via le menu d'un enfant ne peut
+  // que consulter : publication, commentaire, reaction, like, vote et
+  // suppression sont desactives (l'API l'impose deja cote backend).
+  const readOnly = Boolean(childId);
   const [classId, setClassId] = useState<string | null>(null);
   const [className, setClassName] = useState<string | null>(null);
 
@@ -201,7 +205,8 @@ export function ClassLifeFeedScreen() {
       emptyMessage={t("feed.classLife.emptyMessageChild")}
       deleteSuccessMessage={t("feed.classLife.deleteSuccess")}
       deleteContextLabel={t("feed.classLife.context")}
-      canCompose
+      canCompose={!readOnly}
+      readOnly={readOnly}
       onCreatePost={handleCreatePost}
       onUploadInlineImage={handleUploadInlineImage}
       helpTitle={t("feed.classLife.help.title")}

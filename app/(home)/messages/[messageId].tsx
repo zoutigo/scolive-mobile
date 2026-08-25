@@ -19,6 +19,7 @@ import {
 } from "../../../src/api/messaging-client";
 import { useMessagingStore } from "../../../src/store/messaging.store";
 import { useAuthStore } from "../../../src/store/auth.store";
+import { useFamilyStore } from "../../../src/store/family.store";
 import { useBadgesStore } from "../../../src/store/badges.store";
 import { useSuccessToastStore } from "../../../src/store/success-toast.store";
 import { ConfirmDialog } from "../../../src/components/ConfirmDialog";
@@ -237,6 +238,11 @@ function MessageDetailPage({
   const { t } = useTranslation();
   const router = useRouter();
   const { user, schoolSlug } = useAuthStore();
+  const activeChildId = useFamilyStore((state) => state.activeChildId);
+  // Un parent qui consulte la messagerie via le menu d'un enfant ne peut que
+  // consulter : editer/repondre/transferer/marquer lu-non lu/archiver/
+  // supprimer sont desactives.
+  const readOnly = Boolean(activeChildId);
   const scope =
     user && getViewType(user) === "platform"
       ? PLATFORM_SCOPE
@@ -615,7 +621,7 @@ function MessageDetailPage({
               style={styles.heroActionIcons}
               testID={`message-detail-action-bar-${id}`}
             >
-              {message.status === "DRAFT" ? (
+              {message.status === "DRAFT" && !readOnly ? (
                 <TouchableOpacity
                   style={[
                     styles.heroActionIconBtn,
@@ -634,7 +640,7 @@ function MessageDetailPage({
                 </TouchableOpacity>
               ) : null}
 
-              {!message.isSender && (
+              {!message.isSender && !readOnly && (
                 <TouchableOpacity
                   style={[
                     styles.heroActionIconBtn,
@@ -653,21 +659,26 @@ function MessageDetailPage({
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity
-                style={[styles.heroActionIconBtn, styles.heroActionIconBtnBlue]}
-                onPress={handleForward}
-                disabled={isBusy}
-                testID={`forward-btn-${id}`}
-                accessibilityLabel={t("messaging.actions.forward")}
-              >
-                <Ionicons
-                  name="arrow-redo-outline"
-                  size={18}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
+              {!readOnly ? (
+                <TouchableOpacity
+                  style={[
+                    styles.heroActionIconBtn,
+                    styles.heroActionIconBtnBlue,
+                  ]}
+                  onPress={handleForward}
+                  disabled={isBusy}
+                  testID={`forward-btn-${id}`}
+                  accessibilityLabel={t("messaging.actions.forward")}
+                >
+                  <Ionicons
+                    name="arrow-redo-outline"
+                    size={18}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+              ) : null}
 
-              {!message.isSender && !!message.recipientState?.readAt && (
+              {!message.isSender && !!message.recipientState?.readAt && !readOnly && (
                 <TouchableOpacity
                   style={[
                     styles.heroActionIconBtn,
@@ -686,40 +697,47 @@ function MessageDetailPage({
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity
-                style={[styles.heroActionIconBtn, styles.heroActionIconBtnTeal]}
-                onPress={handleArchiveToggle}
-                disabled={isBusy}
-                testID={`archive-btn-${id}`}
-                accessibilityLabel={
-                  isArchived
-                    ? t("messaging.actions.unarchive")
-                    : t("messaging.actions.archive")
-                }
-              >
-                <Ionicons
-                  name={isArchived ? "archive" : "archive-outline"}
-                  size={18}
-                  color={colors.accentTeal}
-                />
-              </TouchableOpacity>
+              {!readOnly ? (
+                <TouchableOpacity
+                  style={[
+                    styles.heroActionIconBtn,
+                    styles.heroActionIconBtnTeal,
+                  ]}
+                  onPress={handleArchiveToggle}
+                  disabled={isBusy}
+                  testID={`archive-btn-${id}`}
+                  accessibilityLabel={
+                    isArchived
+                      ? t("messaging.actions.unarchive")
+                      : t("messaging.actions.archive")
+                  }
+                >
+                  <Ionicons
+                    name={isArchived ? "archive" : "archive-outline"}
+                    size={18}
+                    color={colors.accentTeal}
+                  />
+                </TouchableOpacity>
+              ) : null}
 
-              <TouchableOpacity
-                style={[
-                  styles.heroActionIconBtn,
-                  styles.heroActionIconBtnDanger,
-                ]}
-                onPress={() => setConfirmDelete(true)}
-                disabled={isBusy}
-                testID={`delete-btn-${id}`}
-                accessibilityLabel={t("messaging.actions.delete")}
-              >
-                <Ionicons
-                  name="trash-outline"
-                  size={18}
-                  color={colors.notification}
-                />
-              </TouchableOpacity>
+              {!readOnly ? (
+                <TouchableOpacity
+                  style={[
+                    styles.heroActionIconBtn,
+                    styles.heroActionIconBtnDanger,
+                  ]}
+                  onPress={() => setConfirmDelete(true)}
+                  disabled={isBusy}
+                  testID={`delete-btn-${id}`}
+                  accessibilityLabel={t("messaging.actions.delete")}
+                >
+                  <Ionicons
+                    name="trash-outline"
+                    size={18}
+                    color={colors.notification}
+                  />
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>
         </View>

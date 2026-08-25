@@ -143,8 +143,14 @@ beforeEach(() => {
   api.remove.mockResolvedValue(undefined);
 });
 
-describe("Child class feed integration", () => {
-  it("ajoute un like sur un post du fil de classe", async () => {
+/**
+ * Un parent qui consulte le fil de classe via le menu d'un enfant ne peut
+ * que le lire : ni like, ni commentaire, ni vote, ni publication ne doivent
+ * atteindre l'API. Régression du bug où un parent pouvait agir comme s'il
+ * était dans la classe de son enfant.
+ */
+describe("Child class feed integration — consultation seule du parent", () => {
+  it("n'appelle jamais toggleLike : le bouton like est désactivé", async () => {
     render(
       <>
         <ClassLifeFeedScreen />
@@ -158,12 +164,10 @@ describe("Child class feed integration", () => {
 
     fireEvent.press(screen.getByTestId("feed-post-like-post-1"));
 
-    await waitFor(() => {
-      expect(api.toggleLike).toHaveBeenCalledWith("college-vogt", "post-1");
-    });
+    expect(api.toggleLike).not.toHaveBeenCalled();
   });
 
-  it("ajoute un commentaire sur un post du fil de classe", async () => {
+  it("ne propose aucun moyen de commenter un post du fil de classe", async () => {
     render(
       <>
         <ClassLifeFeedScreen />
@@ -172,26 +176,15 @@ describe("Child class feed integration", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("feed-post-react-post-1")).toBeTruthy();
+      expect(screen.getByTestId("feed-post-post-1")).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId("feed-post-react-post-1"));
-    fireEvent.changeText(
-      screen.getByTestId("feed-comment-input-post-1"),
-      "Merci",
-    );
-    fireEvent.press(screen.getByTestId("feed-comment-submit-post-1"));
-
-    await waitFor(() => {
-      expect(api.addComment).toHaveBeenCalledWith(
-        "college-vogt",
-        "post-1",
-        "Merci",
-      );
-    });
+    expect(screen.queryByTestId("feed-post-react-post-1")).toBeNull();
+    expect(screen.queryByTestId("feed-comment-input-post-1")).toBeNull();
+    expect(api.addComment).not.toHaveBeenCalled();
   });
 
-  it("participe a un sondage du fil de classe", async () => {
+  it("n'autorise pas le vote sur un sondage du fil de classe", async () => {
     api.list.mockResolvedValue({
       items: [samplePollPost],
       meta: { page: 1, limit: 12, total: 1, totalPages: 1 },
@@ -210,16 +203,10 @@ describe("Child class feed integration", () => {
 
     fireEvent.press(screen.getByText("Jeudi"));
 
-    await waitFor(() => {
-      expect(api.votePoll).toHaveBeenCalledWith(
-        "college-vogt",
-        "poll-1",
-        "opt-2",
-      );
-    });
+    expect(api.votePoll).not.toHaveBeenCalled();
   });
 
-  it("crée une info depuis le FAB", async () => {
+  it("ne propose aucun FAB pour créer une info", async () => {
     render(
       <>
         <ClassLifeFeedScreen />
@@ -228,81 +215,10 @@ describe("Child class feed integration", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("child-class-feed-compose-fab")).toBeTruthy();
+      expect(screen.getByTestId("feed-post-post-1")).toBeTruthy();
     });
 
-    fireEvent.press(screen.getByTestId("child-class-feed-compose-fab"));
-    fireEvent.changeText(
-      screen.getByTestId("feed-composer-title"),
-      "Info familles",
-    );
-    fireEvent.press(screen.getByTestId("rich-editor-set-content"));
-    fireEvent.press(screen.getByTestId("feed-composer-submit"));
-
-    await waitFor(() => {
-      expect(api.create).toHaveBeenCalledWith(
-        "college-vogt",
-        expect.objectContaining({
-          type: "POST",
-          title: "Info familles",
-        }),
-      );
-    });
-    await waitFor(() => {
-      expect(screen.getByTestId("success-toast-title")).toHaveTextContent(
-        "Actualité publiée",
-      );
-    });
-  });
-
-  it("crée un sondage depuis le FAB", async () => {
-    render(
-      <>
-        <ClassLifeFeedScreen />
-        <SuccessToastHost />
-      </>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByTestId("child-class-feed-compose-fab")).toBeTruthy();
-    });
-
-    fireEvent.press(screen.getByTestId("child-class-feed-compose-fab"));
-    fireEvent.press(screen.getByTestId("feed-composer-type-poll"));
-    fireEvent.changeText(
-      screen.getByTestId("feed-composer-title"),
-      "Sondage sortie",
-    );
-    fireEvent.changeText(
-      screen.getByTestId("feed-composer-poll-question"),
-      "Quel jour vous convient ?",
-    );
-    fireEvent.changeText(
-      screen.getByTestId("feed-composer-poll-option-1"),
-      "Mardi",
-    );
-    fireEvent.changeText(
-      screen.getByTestId("feed-composer-poll-option-2"),
-      "Jeudi",
-    );
-    fireEvent.press(screen.getByTestId("rich-editor-set-content"));
-    fireEvent.press(screen.getByTestId("feed-composer-submit"));
-
-    await waitFor(() => {
-      expect(api.create).toHaveBeenCalledWith(
-        "college-vogt",
-        expect.objectContaining({
-          type: "POLL",
-          title: "Sondage sortie",
-          pollQuestion: "Quel jour vous convient ?",
-          pollOptions: ["Mardi", "Jeudi"],
-        }),
-      );
-    });
-    await waitFor(() => {
-      expect(screen.getByTestId("success-toast-title")).toHaveTextContent(
-        "Sondage publié",
-      );
-    });
+    expect(screen.queryByTestId("child-class-feed-compose-fab")).toBeNull();
+    expect(api.create).not.toHaveBeenCalled();
   });
 });

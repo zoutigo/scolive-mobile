@@ -184,7 +184,11 @@ describe("ClassLifeFeedScreen", () => {
     expect(headerStyle.backgroundColor).toBe(colors.primary);
     expect(screen.getByTestId("child-class-feed-search-input")).toBeTruthy();
     expect(screen.getByTestId("child-class-feed-filter-toggle")).toBeTruthy();
-    expect(screen.getByTestId("child-class-feed-compose-fab")).toBeTruthy();
+    // Consultation seule pour un parent en contexte enfant : pas de FAB de
+    // publication.
+    expect(
+      screen.queryByTestId("child-class-feed-compose-fab"),
+    ).toBeNull();
   });
 
   // Régression : le bouton d'aide du header n'était jamais branché.
@@ -334,52 +338,52 @@ describe("ClassLifeFeedScreen", () => {
     );
   });
 
-  it("ouvre le formulaire inline de reaction dans le fil de classe", async () => {
-    render(<ClassLifeFeedScreen />);
+  describe("consultation seule (parent en contexte enfant)", () => {
+    it("ne propose ni FAB de publication, ni bouton reagir, ni suppression", async () => {
+      render(<ClassLifeFeedScreen />);
 
-    await waitFor(() => {
-      expect(screen.getByTestId("feed-post-react-post-1")).toBeTruthy();
+      await waitFor(() => {
+        expect(screen.getByTestId("feed-post-post-1")).toBeTruthy();
+      });
+
+      expect(
+        screen.queryByTestId("child-class-feed-compose-fab"),
+      ).toBeNull();
+      expect(screen.queryByTestId("feed-post-react-post-1")).toBeNull();
+      expect(screen.queryByTestId("feed-post-react-post-2")).toBeNull();
+      expect(screen.queryByTestId("feed-comment-input-post-1")).toBeNull();
+      expect(screen.queryByTestId("feed-post-delete-post-1")).toBeNull();
     });
 
-    fireEvent.press(screen.getByTestId("feed-post-react-post-1"));
-    fireEvent.changeText(
-      screen.getByTestId("feed-comment-input-post-1"),
-      "Super",
-    );
-    fireEvent.press(screen.getByTestId("feed-comment-submit-post-1"));
+    it("desactive le bouton like sans masquer le compteur (consultation possible)", async () => {
+      render(<ClassLifeFeedScreen />);
 
-    await waitFor(() => {
-      expect(api.addComment).toHaveBeenCalledWith(
-        "college-vogt",
-        "post-1",
-        "Super",
-      );
-    });
-  });
+      await waitFor(() => {
+        expect(screen.getByTestId("feed-post-like-post-1")).toBeTruthy();
+      });
 
-  it("ouvre le composeur depuis le FAB", async () => {
-    render(<ClassLifeFeedScreen />);
+      const likeButton = screen.getByTestId("feed-post-like-post-1");
+      expect(likeButton.props.accessibilityState?.disabled).toBe(true);
 
-    await waitFor(() => {
-      expect(screen.getByTestId("child-class-feed-compose-fab")).toBeTruthy();
+      fireEvent.press(likeButton);
+      expect(api.toggleLike).not.toHaveBeenCalled();
     });
 
-    fireEvent.press(screen.getByTestId("child-class-feed-compose-fab"));
-    expect(screen.getByTestId("feed-composer-card")).toBeTruthy();
-  });
+    it("garde la consultation des commentaires existants possible", async () => {
+      render(<ClassLifeFeedScreen />);
 
-  it("ouvre le composeur en mode sondage depuis le FAB", async () => {
-    render(<ClassLifeFeedScreen />);
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("feed-post-comments-toggle-post-1"),
+        ).toBeTruthy();
+      });
 
-    await waitFor(() => {
-      expect(screen.getByTestId("child-class-feed-compose-fab")).toBeTruthy();
-    });
-
-    fireEvent.press(screen.getByTestId("child-class-feed-compose-fab"));
-    fireEvent.press(screen.getByTestId("feed-composer-type-poll"));
-    expect(screen.getByTestId("feed-composer-card")).toBeTruthy();
-    expect(screen.getByTestId("feed-composer-type-poll")).toHaveStyle({
-      backgroundColor: "#08467D",
+      // Le bouton de consultation des commentaires reste actif : ce n'est
+      // pas une action, seulement de la lecture.
+      fireEvent.press(screen.getByTestId("feed-post-comments-toggle-post-1"));
+      expect(
+        screen.getByTestId("feed-post-comments-toggle-post-1"),
+      ).toBeTruthy();
     });
   });
 

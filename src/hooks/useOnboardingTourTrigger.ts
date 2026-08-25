@@ -14,8 +14,11 @@ export function useOnboardingTourTrigger(options: {
   tourId: string;
   role: ViewType;
   steps: OnboardingTourStep[];
+  /** Desactive le declenchement (ex : cibles du tour absentes dans le mode
+   * courant de l'ecran, comme la consultation seule). Defaut : true. */
+  enabled?: boolean;
 }) {
-  const { tourId, role, steps } = options;
+  const { tourId, role, steps, enabled = true } = options;
   const user = useAuthStore((state) => state.user);
   const startTour = useOnboardingTourStore((state) => state.startTour);
   const isCompleted = useOnboardingTourStore((state) => state.isCompleted);
@@ -23,6 +26,7 @@ export function useOnboardingTourTrigger(options: {
 
   useFocusEffect(
     useCallback(() => {
+      if (!enabled) return;
       if (!user) return;
       if (user.onboardingHelpEnabled === false) return;
       if (getViewType(user) !== role) return;
@@ -36,6 +40,15 @@ export function useOnboardingTourTrigger(options: {
       });
 
       return () => cancelIdleCallback(handle);
-    }, [user, role, tourId, steps, isCompleted, activeTourId, startTour]),
+    }, [
+      enabled,
+      user,
+      role,
+      tourId,
+      steps,
+      isCompleted,
+      activeTourId,
+      startTour,
+    ]),
   );
 }
