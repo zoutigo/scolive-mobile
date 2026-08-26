@@ -14,12 +14,24 @@ jest.mock("../../src/store/auth.store", () => ({ useAuthStore: jest.fn() }));
  * (celui déjà dans la pile + celui recréé par le Redirect) font boucler
  * React Navigation -> "Maximum update depth exceeded" -> écran blanc figé.
  *
- * Le correctif déclenche `router.dismissAll()` une seule fois par transition
- * (via un ref, jamais au render) pour dépiler jusqu'à l'écran "/" déjà
- * existant au lieu d'en empiler un second. Reproduit puis vérifié corrigé
- * manuellement à plusieurs reprises sur device avant d'écrire ces tests.
+ * Le correctif déclenche `router.dismissTo("/")` une seule fois par
+ * transition (via un ref, jamais au render) pour dépiler jusqu'à l'écran "/"
+ * déjà existant au lieu d'en empiler un second. Reproduit puis vérifié
+ * corrigé manuellement à plusieurs reprises sur device avant d'écrire ces
+ * tests.
+ *
+ * Régression prod (2026-08-26) : la première version de ce correctif
+ * utilisait `router.dismissAll()` (action POP_TO_TOP), qui ne dépile QUE la
+ * pile Stack imbriquée de ce layout, jamais la pile racine. Quand la
+ * déconnexion est déclenchée depuis l'écran d'accueil lui-même (index de
+ * cette pile, donc déjà en position 0), POP_TO_TOP est un no-op — React
+ * Navigation ne bubble pas l'action vers le Stack racine. Résultat : l'app
+ * reste bloquée indéfiniment sur l'overlay `home-layout-redirecting`
+ * ci-dessous, écran blanc figé, jusqu'à ce que l'utilisateur force l'arrêt de
+ * l'app depuis les paramètres du téléphone. `dismissTo("/")` traverse les
+ * navigateurs imbriqués jusqu'à la route root, y compris dans ce cas.
  */
-const mockDismissAll = jest.fn();
+const mockDismissTo = jest.fn();
 const mockReplace = jest.fn();
 
 // Le mock de Stack rend un wrapper avec testID pour pouvoir vérifier qu'il
@@ -35,7 +47,7 @@ jest.mock("expo-router", () => {
       { Screen: () => null },
     ),
     useRouter: () => ({
-      dismissAll: mockDismissAll,
+      dismissTo: mockDismissTo,
       replace: mockReplace,
     }),
   };
@@ -65,10 +77,10 @@ describe("HomeLayout — tests unitaires", () => {
       expect(screen.getByTestId("home-layout-loading")).toBeOnTheScreen();
     });
 
-    it("ne déclenche pas dismissAll pendant le chargement", () => {
+    it("ne déclenche pas dismissTo pendant le chargement", () => {
       setAuthState({ isAuthenticated: false, isLoading: true });
       render(<HomeLayout />);
-      expect(mockDismissAll).not.toHaveBeenCalled();
+      expect(mockDismissTo).not.toHaveBeenCalled();
     });
   });
 
@@ -79,10 +91,10 @@ describe("HomeLayout — tests unitaires", () => {
       expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
     });
 
-    it("appelle router.dismissAll() exactement une fois", () => {
+    it("appelle router.dismissTo() exactement une fois", () => {
       setAuthState({ isAuthenticated: false, isLoading: false });
       render(<HomeLayout />);
-      expect(mockDismissAll).toHaveBeenCalledTimes(1);
+      expect(mockDismissTo).toHaveBeenCalledTimes(1);
     });
 
     it("n'appelle jamais router.replace (empilerait un second écran '/')", () => {
@@ -111,10 +123,10 @@ describe("HomeLayout — tests unitaires", () => {
       expect(screen.queryByTestId("home-layout-loading")).toBeNull();
     });
 
-    it("n'appelle pas dismissAll", () => {
+    it("n'appelle pas dismissTo", () => {
       setAuthState({ isAuthenticated: true, isLoading: false });
       render(<HomeLayout />);
-      expect(mockDismissAll).not.toHaveBeenCalled();
+      expect(mockDismissTo).not.toHaveBeenCalled();
     });
   });
 });
@@ -138,7 +150,7 @@ describe("HomeLayout — tests fonctionnels", () => {
     });
 
     expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
-    expect(mockDismissAll).toHaveBeenCalledTimes(1);
+    expect(mockDismissTo).toHaveBeenCalledTimes(1);
   });
 
   it("passe de spinner à la vue de redirection quand le chargement se termine sans auth", () => {
@@ -167,10 +179,10 @@ describe("HomeLayout — tests fonctionnels", () => {
 
     expect(screen.queryByTestId("home-layout-loading")).toBeNull();
     expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
-    expect(mockDismissAll).not.toHaveBeenCalled();
+    expect(mockDismissTo).not.toHaveBeenCalled();
   });
 
-  it("revient authentifié après une déconnexion sans redéclencher dismissAll", () => {
+  it("revient authentifié après une déconnexion sans redéclencher dismissTo", () => {
     setAuthState({ isAuthenticated: true, isLoading: false });
     const { rerender } = render(<HomeLayout />);
 
@@ -178,7 +190,7 @@ describe("HomeLayout — tests fonctionnels", () => {
       setAuthState({ isAuthenticated: false, isLoading: false });
       rerender(<HomeLayout />);
     });
-    expect(mockDismissAll).toHaveBeenCalledTimes(1);
+    expect(mockDismissTo).toHaveBeenCalledTimes(1);
 
     act(() => {
       setAuthState({ isAuthenticated: true, isLoading: false });
@@ -186,12 +198,12 @@ describe("HomeLayout — tests fonctionnels", () => {
     });
     expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
 
-    // Nouvelle déconnexion : le ref doit avoir été réarmé, dismissAll rappelé une fois de plus.
+    // Nouvelle déconnexion : le ref doit avoir été réarmé, dismissTo rappelé une fois de plus.
     act(() => {
       setAuthState({ isAuthenticated: false, isLoading: false });
       rerender(<HomeLayout />);
     });
-    expect(mockDismissAll).toHaveBeenCalledTimes(2);
+    expect(mockDismissTo).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -216,7 +228,7 @@ describe("HomeLayout — régression MaxUpdateDepth (logout depuis écran imbriq
     expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
   });
 
-  it("dismissAll n'est jamais appelé plus d'une fois même sur de nombreux rerenders", () => {
+  it("dismissTo n'est jamais appelé plus d'une fois même sur de nombreux rerenders", () => {
     setAuthState({ isAuthenticated: false, isLoading: false });
 
     const { rerender } = render(<HomeLayout />);
@@ -225,19 +237,19 @@ describe("HomeLayout — régression MaxUpdateDepth (logout depuis écran imbriq
     rerender(<HomeLayout />);
     rerender(<HomeLayout />);
 
-    expect(mockDismissAll).toHaveBeenCalledTimes(1);
+    expect(mockDismissTo).toHaveBeenCalledTimes(1);
   });
 
-  it("des changements d'état non liés à isAuthenticated ne redéclenchent pas dismissAll", () => {
+  it("des changements d'état non liés à isAuthenticated ne redéclenchent pas dismissTo", () => {
     setAuthState({ isAuthenticated: false, isLoading: false });
     const { rerender } = render(<HomeLayout />);
-    expect(mockDismissAll).toHaveBeenCalledTimes(1);
+    expect(mockDismissTo).toHaveBeenCalledTimes(1);
 
     // Simule un re-render provoqué par un autre champ du store (ex. authErrorMessage).
     rerender(<HomeLayout />);
     rerender(<HomeLayout />);
 
-    expect(mockDismissAll).toHaveBeenCalledTimes(1);
+    expect(mockDismissTo).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -247,7 +259,7 @@ describe("HomeLayout — régression MaxUpdateDepth (logout depuis écran imbriq
  * Reproduction confirmée sur émulateur Android (capture d'écran LogBox) :
  * l'ancienne version retournait une <View> à la place du <Stack> dès que
  * `isAuthenticated` passait à `false`, démontant le navigateur imbriqué dans
- * le même commit que celui où l'effet allait déclencher `router.dismissAll()`
+ * le même commit que celui où l'effet allait déclencher `router.dismissTo()`
  * (action POP_TO_TOP). L'action arrivait donc sans navigateur Stack monté
  * pour la recevoir -> avertissement dev "POP_TO_TOP was not handled by any
  * navigator".
@@ -255,9 +267,9 @@ describe("HomeLayout — régression MaxUpdateDepth (logout depuis écran imbriq
  * Le correctif garde le Stack monté pendant toute la redirection ; l'écran de
  * redirection n'est plus qu'un overlay par-dessus. Ces tests vérifient que le
  * Stack (mocké avec testID "mock-stack") reste présent au moment précis où
- * dismissAll() est appelé, pas seulement avant.
+ * dismissTo() est appelé, pas seulement avant.
  */
-describe("HomeLayout — régression POP_TO_TOP non géré (Stack démonté avant dismissAll)", () => {
+describe("HomeLayout — régression POP_TO_TOP non géré (Stack démonté avant dismissTo)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -270,7 +282,7 @@ describe("HomeLayout — régression POP_TO_TOP non géré (Stack démonté avan
     expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
   });
 
-  it("le Stack est toujours monté lors du passage authentifié -> déconnecté (moment de l'appel dismissAll)", () => {
+  it("le Stack est toujours monté lors du passage authentifié -> déconnecté (moment de l'appel dismissTo)", () => {
     setAuthState({ isAuthenticated: true, isLoading: false });
     const { rerender } = render(<HomeLayout />);
     expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
@@ -280,10 +292,10 @@ describe("HomeLayout — régression POP_TO_TOP non géré (Stack démonté avan
       rerender(<HomeLayout />);
     });
 
-    // dismissAll a bien été appelé, ET le Stack est toujours dans l'arbre au
+    // dismissTo a bien été appelé, ET le Stack est toujours dans l'arbre au
     // même render : la régression testée ici est l'inverse (Stack démonté
     // avant l'appel), ce qui n'est plus le cas.
-    expect(mockDismissAll).toHaveBeenCalledTimes(1);
+    expect(mockDismissTo).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
   });
 

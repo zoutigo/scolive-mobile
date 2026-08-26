@@ -15,7 +15,7 @@
  * gelant l'app sur un écran blanc — logout "qui ne fait rien".
  *
  * Le correctif remplace le <Redirect> déclaratif par un unique appel
- * `router.dismissAll()` déclenché dans un effect gardé par un ref (jamais
+ * `router.dismissTo()` déclenché dans un effect gardé par un ref (jamais
  * plus d'une fois par transition), qui dépile jusqu'à l'écran "/" déjà
  * existant au lieu d'en empiler un second.
  */
@@ -27,7 +27,7 @@ import type { AuthUser } from "../../src/types/auth.types";
 
 // ─── Mocks infrastructure ──────────────────────────────────────────────────────
 
-const mockDismissAll = jest.fn();
+const mockDismissTo = jest.fn();
 const mockReplace = jest.fn();
 
 jest.mock("expo-router", () => ({
@@ -36,7 +36,7 @@ jest.mock("expo-router", () => ({
     { Screen: () => null },
   ),
   useRouter: () => ({
-    dismissAll: mockDismissAll,
+    dismissTo: mockDismissTo,
     replace: mockReplace,
   }),
 }));
@@ -117,7 +117,7 @@ describe("HomeLayout + store auth réel — intégration", () => {
       render(<HomeLayout />);
 
       expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
-      expect(mockDismissAll).toHaveBeenCalledTimes(1);
+      expect(mockDismissTo).toHaveBeenCalledTimes(1);
     });
 
     it("rend le spinner quand le store est en chargement", () => {
@@ -127,7 +127,7 @@ describe("HomeLayout + store auth réel — intégration", () => {
 
       expect(screen.getByTestId("home-layout-loading")).toBeOnTheScreen();
       expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
-      expect(mockDismissAll).not.toHaveBeenCalled();
+      expect(mockDismissTo).not.toHaveBeenCalled();
     });
 
     it("rend le Stack navigateur quand le store est authentifié", () => {
@@ -137,7 +137,7 @@ describe("HomeLayout + store auth réel — intégration", () => {
 
       expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
       expect(screen.queryByTestId("home-layout-loading")).toBeNull();
-      expect(mockDismissAll).not.toHaveBeenCalled();
+      expect(mockDismissTo).not.toHaveBeenCalled();
     });
   });
 
@@ -155,7 +155,7 @@ describe("HomeLayout + store auth réel — intégration", () => {
       });
 
       expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
-      expect(mockDismissAll).toHaveBeenCalledTimes(1);
+      expect(mockDismissTo).toHaveBeenCalledTimes(1);
       expect(mockReplace).not.toHaveBeenCalled();
     });
 
@@ -187,10 +187,10 @@ describe("HomeLayout + store auth réel — intégration", () => {
       expect(useAuthStore.getState().isAuthenticated).toBe(false);
       expect(useAuthStore.getState().user).toBeNull();
       expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
-      expect(mockDismissAll).toHaveBeenCalledTimes(1);
+      expect(mockDismissTo).toHaveBeenCalledTimes(1);
     });
 
-    it("logout() vide le store et HomeLayout n'appelle dismissAll qu'une fois", async () => {
+    it("logout() vide le store et HomeLayout n'appelle dismissTo qu'une fois", async () => {
       useAuthStore.setState(AUTHENTICATED_STATE);
       render(<HomeLayout />);
 
@@ -198,7 +198,7 @@ describe("HomeLayout + store auth réel — intégration", () => {
         await useAuthStore.getState().logout();
       });
 
-      expect(mockDismissAll).toHaveBeenCalledTimes(1);
+      expect(mockDismissTo).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -219,17 +219,17 @@ describe("HomeLayout + store auth réel — intégration", () => {
       ).resolves.not.toThrow();
 
       // Une seule redirection malgré les changements d'état multiples.
-      expect(mockDismissAll).toHaveBeenCalledTimes(1);
+      expect(mockDismissTo).toHaveBeenCalledTimes(1);
     });
 
-    it("le composant ne redéclenche pas dismissAll après déconnexion", async () => {
+    it("le composant ne redéclenche pas dismissTo après déconnexion", async () => {
       useAuthStore.setState(AUTHENTICATED_STATE);
       render(<HomeLayout />);
 
       await act(async () => {
         useAuthStore.setState(UNAUTHENTICATED_STATE);
       });
-      expect(mockDismissAll).toHaveBeenCalledTimes(1);
+      expect(mockDismissTo).toHaveBeenCalledTimes(1);
 
       // Changements supplémentaires sans changer isAuthenticated (ex. le
       // ConfirmDialog "session expirée" de app/index.tsx pilote authErrorMessage).
@@ -238,9 +238,9 @@ describe("HomeLayout + store auth réel — intégration", () => {
         useAuthStore.setState({ authErrorMessage: null });
       });
 
-      // Toujours stable : un seul dismissAll, pas de boucle.
+      // Toujours stable : un seul dismissTo, pas de boucle.
       expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
-      expect(mockDismissAll).toHaveBeenCalledTimes(1);
+      expect(mockDismissTo).toHaveBeenCalledTimes(1);
     });
 
     it("logout depuis un écran imbriqué (isAuthenticated bascule alors qu'un autre re-render est déjà en cours) reste stable", async () => {
@@ -258,7 +258,7 @@ describe("HomeLayout + store auth réel — intégration", () => {
       });
 
       expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
-      expect(mockDismissAll).toHaveBeenCalledTimes(1);
+      expect(mockDismissTo).toHaveBeenCalledTimes(1);
     });
   });
 });

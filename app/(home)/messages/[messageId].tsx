@@ -678,24 +678,26 @@ function MessageDetailPage({
                 </TouchableOpacity>
               ) : null}
 
-              {!message.isSender && !!message.recipientState?.readAt && !readOnly && (
-                <TouchableOpacity
-                  style={[
-                    styles.heroActionIconBtn,
-                    styles.heroActionIconBtnWarm,
-                  ]}
-                  onPress={handleMarkUnread}
-                  disabled={isBusy}
-                  testID={`mark-unread-btn-${id}`}
-                  accessibilityLabel={t("messaging.actions.markUnread")}
-                >
-                  <Ionicons
-                    name="mail-unread-outline"
-                    size={18}
-                    color={colors.warmAccent}
-                  />
-                </TouchableOpacity>
-              )}
+              {!message.isSender &&
+                !!message.recipientState?.readAt &&
+                !readOnly && (
+                  <TouchableOpacity
+                    style={[
+                      styles.heroActionIconBtn,
+                      styles.heroActionIconBtnWarm,
+                    ]}
+                    onPress={handleMarkUnread}
+                    disabled={isBusy}
+                    testID={`mark-unread-btn-${id}`}
+                    accessibilityLabel={t("messaging.actions.markUnread")}
+                  >
+                    <Ionicons
+                      name="mail-unread-outline"
+                      size={18}
+                      color={colors.warmAccent}
+                    />
+                  </TouchableOpacity>
+                )}
 
               {!readOnly ? (
                 <TouchableOpacity

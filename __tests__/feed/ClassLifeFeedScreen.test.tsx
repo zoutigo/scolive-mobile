@@ -186,9 +186,7 @@ describe("ClassLifeFeedScreen", () => {
     expect(screen.getByTestId("child-class-feed-filter-toggle")).toBeTruthy();
     // Consultation seule pour un parent en contexte enfant : pas de FAB de
     // publication.
-    expect(
-      screen.queryByTestId("child-class-feed-compose-fab"),
-    ).toBeNull();
+    expect(screen.queryByTestId("child-class-feed-compose-fab")).toBeNull();
   });
 
   // Régression : le bouton d'aide du header n'était jamais branché.
@@ -346,9 +344,7 @@ describe("ClassLifeFeedScreen", () => {
         expect(screen.getByTestId("feed-post-post-1")).toBeTruthy();
       });
 
-      expect(
-        screen.queryByTestId("child-class-feed-compose-fab"),
-      ).toBeNull();
+      expect(screen.queryByTestId("child-class-feed-compose-fab")).toBeNull();
       expect(screen.queryByTestId("feed-post-react-post-1")).toBeNull();
       expect(screen.queryByTestId("feed-post-react-post-2")).toBeNull();
       expect(screen.queryByTestId("feed-comment-input-post-1")).toBeNull();

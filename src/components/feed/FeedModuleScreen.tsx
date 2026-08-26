@@ -806,7 +806,11 @@ export function FeedModuleScreen({
             </OnboardingTarget>
           </View>
         </View>
-      ) : composerOpen && canCompose && !readOnly && onCreatePost && onUploadInlineImage ? (
+      ) : composerOpen &&
+        canCompose &&
+        !readOnly &&
+        onCreatePost &&
+        onUploadInlineImage ? (
         <ScrollView
           style={styles.composerScroll}
           contentContainerStyle={[
@@ -899,7 +903,11 @@ export function FeedModuleScreen({
         />
       )}
 
-      {!filtersOpen && !composerOpen && detailIndex === null && canCompose && !readOnly ? (
+      {!filtersOpen &&
+      !composerOpen &&
+      detailIndex === null &&
+      canCompose &&
+      !readOnly ? (
         <TouchableOpacity
           style={[styles.fab, { bottom: listBottomPadding - 4 }]}
           onPress={() => setComposerOpen(true)}

@@ -896,7 +896,11 @@ describe("Consultation seule via le menu d'un enfant (activeChildId)", () => {
   it("ne propose pas de marquer non lu même sur un message déjà lu", async () => {
     api.get.mockResolvedValueOnce({
       ...messageDetail,
-      recipientState: { readAt: "2024-01-16T09:00:00Z", archivedAt: null, deletedAt: null },
+      recipientState: {
+        readAt: "2024-01-16T09:00:00Z",
+        archivedAt: null,
+        deletedAt: null,
+      },
     });
     await renderDetailAndWait();
 
