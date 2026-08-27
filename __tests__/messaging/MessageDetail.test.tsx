@@ -14,6 +14,7 @@ import MessageDetailScreen from "../../app/(home)/messages/[messageId]";
 import { messagingApi } from "../../src/api/messaging.api";
 import { useMessagingStore } from "../../src/store/messaging.store";
 import { useAuthStore } from "../../src/store/auth.store";
+import { useFamilyStore } from "../../src/store/family.store";
 import { useSuccessToastStore } from "../../src/store/success-toast.store";
 import { downloadAndOpenAttachment } from "../../src/utils/attachment-download";
 
@@ -135,6 +136,7 @@ beforeEach(() => {
   api.markRead.mockResolvedValue(undefined);
   api.archive.mockResolvedValue(undefined);
   api.remove.mockResolvedValue(undefined);
+  useFamilyStore.setState({ activeChildId: null });
 });
 
 async function renderDetailAndWait() {
@@ -870,5 +872,58 @@ describe("Navigation par swipe entre messages", () => {
     await screen.findByTestId("recipients-toggle-m3");
 
     expect(api.markRead).not.toHaveBeenCalledWith("college-vogt", "m3", true);
+  });
+});
+
+// Un parent qui consulte la messagerie via le menu d'un enfant ne peut que
+// consulter : aucune action (répondre/transférer/archiver/marquer non
+// lu/supprimer/modifier un brouillon) ne doit être proposée. Régression du
+// bug où toutes ces actions restaient actives dans ce contexte.
+describe("Consultation seule via le menu d'un enfant (activeChildId)", () => {
+  beforeEach(() => {
+    useFamilyStore.setState({ activeChildId: "child-1" });
+  });
+
+  it("ne propose ni répondre, ni transférer, ni archiver, ni supprimer", async () => {
+    await renderDetailAndWait();
+
+    expect(screen.queryByTestId("reply-btn-m1")).toBeNull();
+    expect(screen.queryByTestId("forward-btn-m1")).toBeNull();
+    expect(screen.queryByTestId("archive-btn-m1")).toBeNull();
+    expect(screen.queryByTestId("delete-btn-m1")).toBeNull();
+  });
+
+  it("ne propose pas de marquer non lu même sur un message déjà lu", async () => {
+    api.get.mockResolvedValueOnce({
+      ...messageDetail,
+      recipientState: {
+        readAt: "2024-01-16T09:00:00Z",
+        archivedAt: null,
+        deletedAt: null,
+      },
+    });
+    await renderDetailAndWait();
+
+    expect(screen.queryByTestId("mark-unread-btn-m1")).toBeNull();
+  });
+
+  it("ne propose pas de modifier un brouillon", async () => {
+    api.get.mockResolvedValueOnce({
+      ...messageDetail,
+      status: "DRAFT",
+      isSender: true,
+      recipientState: null,
+    });
+    await renderDetailAndWait();
+
+    expect(screen.queryByTestId("edit-draft-btn-m1")).toBeNull();
+  });
+
+  it("marque quand même le message comme lu à l'ouverture (effet de bord de la consultation, pas une action)", async () => {
+    await renderDetailAndWait();
+
+    await waitFor(() => {
+      expect(api.markRead).toHaveBeenCalledWith("college-vogt", "m1", true);
+    });
   });
 });

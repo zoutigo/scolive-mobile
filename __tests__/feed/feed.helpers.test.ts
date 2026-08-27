@@ -44,7 +44,7 @@ describe("feed.helpers", () => {
         id: "u2",
         fullName: "M Valery Mbele",
         civility: "M.",
-        roleLabel: "Vie scolaire",
+        roleLabel: "Discipline",
         avatarText: "VM",
       }),
     ).toBe("M. V.MBELE");

@@ -160,6 +160,124 @@ describe("FinanceSchedulesAdminScreen", () => {
     );
   });
 
+  it("affiche l'erreur sur une echeance invalide et bloque l'envoi sans aucun feedback visible autrement", async () => {
+    render(<FinanceSchedulesAdminScreen />);
+    await screen.findByTestId("fee-schedule-fee-1");
+
+    fireEvent.press(screen.getByTestId("fee-schedule-edit-fee-1"));
+    await screen.findByTestId("fee-schedule-forms-tab");
+
+    fireEvent.press(screen.getByTestId("fee-schedule-form-add-installment"));
+
+    fireEvent.press(screen.getByTestId("fee-schedule-form-submit"));
+
+    expect(
+      await screen.findByTestId("fee-schedule-form-installment-1-error"),
+    ).toHaveTextContent("Libellé requis");
+    expect(financeApiMock.upsertFeeSchedule).not.toHaveBeenCalled();
+  });
+
+  it("permet de corriger l'echeance invalide puis d'envoyer le formulaire", async () => {
+    render(<FinanceSchedulesAdminScreen />);
+    await screen.findByTestId("fee-schedule-fee-1");
+
+    fireEvent.press(screen.getByTestId("fee-schedule-edit-fee-1"));
+    await screen.findByTestId("fee-schedule-forms-tab");
+
+    fireEvent.press(screen.getByTestId("fee-schedule-form-add-installment"));
+    fireEvent.press(screen.getByTestId("fee-schedule-form-submit"));
+    await screen.findByTestId("fee-schedule-form-installment-1-error");
+
+    fireEvent.changeText(
+      screen.getByTestId("fee-schedule-form-installment-1-label"),
+      "2eme echeance",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("fee-schedule-form-installment-1-amount"),
+      "25000",
+    );
+
+    fireEvent.press(screen.getByTestId("fee-schedule-form-submit"));
+
+    await waitFor(() =>
+      expect(financeApiMock.upsertFeeSchedule).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({
+          installments: [
+            expect.objectContaining({
+              rank: 1,
+              label: "1ere echeance",
+              amount: 50000,
+            }),
+            expect.objectContaining({
+              rank: 2,
+              label: "2eme echeance",
+              amount: 25000,
+            }),
+          ],
+        }),
+      ),
+    );
+  });
+
+  it("ne garde aucune echeance fantome apres avoir quitte une edition avec tranches ajoutees puis ouvert une nouvelle creation", async () => {
+    render(<FinanceSchedulesAdminScreen />);
+    await screen.findByTestId("fee-schedule-fee-1");
+
+    fireEvent.press(screen.getByTestId("fee-schedule-edit-fee-1"));
+    await screen.findByTestId("fee-schedule-forms-tab");
+
+    fireEvent.press(screen.getByTestId("fee-schedule-form-add-installment"));
+    fireEvent.press(screen.getByTestId("fee-schedule-form-add-installment"));
+    expect(
+      screen.getByTestId("fee-schedule-form-installment-2-label"),
+    ).toBeOnTheScreen();
+
+    fireEvent.press(screen.getByTestId("fee-schedule-form-cancel"));
+    await waitFor(() =>
+      expect(screen.getByTestId("fee-schedules-fab")).toBeOnTheScreen(),
+    );
+
+    fireEvent.press(screen.getByTestId("fee-schedules-fab"));
+    await screen.findByTestId("fee-schedule-forms-tab");
+
+    expect(
+      screen.queryByTestId("fee-schedule-form-installment-1-label"),
+    ).not.toBeOnTheScreen();
+
+    fireEvent.press(screen.getByTestId("fee-schedule-form-year"));
+    fireEvent.press(screen.getByTestId("fee-schedule-form-year-option-sy-1"));
+    fireEvent.press(screen.getByTestId("fee-schedule-form-level"));
+    fireEvent.press(
+      screen.getByTestId("fee-schedule-form-level-option-level-1"),
+    );
+
+    fireEvent.changeText(
+      screen.getByTestId("fee-schedule-form-installment-0-label"),
+      "Tranche unique",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("fee-schedule-form-installment-0-amount"),
+      "10000",
+    );
+    fireEvent.press(screen.getByTestId("fee-schedule-form-submit"));
+
+    await waitFor(() =>
+      expect(financeApiMock.upsertFeeSchedule).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({
+          installments: [
+            expect.objectContaining({
+              rank: 1,
+              label: "Tranche unique",
+              amount: 10000,
+            }),
+          ],
+        }),
+      ),
+    );
+  });
+
   it("revient a la politique precedente si la mise a jour echoue", async () => {
     financeApiMock.updateFinanceSettings.mockRejectedValue(
       new Error("network error"),

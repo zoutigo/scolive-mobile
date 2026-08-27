@@ -457,9 +457,9 @@ const STUDENT_NAV: NavItem[] = [
   },
   {
     key: "life",
-    label: "Vie scolaire",
+    label: "Discipline",
     icon: "person-circle-outline",
-    route: "/vie-scolaire/me",
+    route: "/discipline/me",
   },
   {
     key: "class-life",
@@ -526,9 +526,9 @@ export function buildChildNavItems(
     },
     {
       key: `child-${childId}-life`,
-      label: "Vie scolaire",
+      label: "Discipline",
       icon: "person-circle-outline",
-      route: "/(home)/vie-scolaire/[childId]",
+      route: "/(home)/discipline/[childId]",
       params: { childId },
       unread: toUnread(childBadge?.disciplineUnread),
     },

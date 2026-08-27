@@ -51,7 +51,12 @@ export type WalletTransactionEntry = {
 };
 
 export type ChildFinanceStatus = {
-  student: { id: string; firstName: string; lastName: string };
+  student: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    dateOfBirth?: string | null;
+  };
   status:
     | "DECISION_PENDING"
     | "NEXT_YEAR_NOT_OPEN"
@@ -59,7 +64,12 @@ export type ChildFinanceStatus = {
     | "READY_TO_REINSCRIBE";
   targetSchoolYearId?: string;
   targetSchoolYearLabel?: string;
+  targetSchoolYearStartsAt?: string | null;
   requiredAmount?: number | null;
+  previousClassLabel?: string | null;
+  previousLevelLabel?: string | null;
+  nextAcademicLevelLabel?: string | null;
+  reinscriptionDeadline?: string | null;
 };
 
 export type WalletSummary = {

@@ -13,7 +13,7 @@ export type SelfStudentContext = {
 /**
  * Résout l'identité "élève connecté" (son propre studentId + sa classe
  * courante) via `/timetable/me` sans `childId`, déjà self-capable côté API
- * pour le rôle STUDENT. Utilisé par les écrans self (Vie scolaire, Vie de
+ * pour le rôle STUDENT. Utilisé par les écrans self (Discipline, Vie de
  * classe, Notes, Devoirs) qui ont besoin de cette identité pour appeler des
  * endpoints scopés par studentId/classId, à la différence de l'écran Emploi
  * du temps qui se résout lui-même sans dépendre de ce hook.

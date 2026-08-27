@@ -142,6 +142,38 @@ describe("useOnboardingTourTrigger", () => {
     expect(useOnboardingTourStore.getState().activeTourId).toBeNull();
   });
 
+  it("does not start when enabled=false, even if all other conditions are met", () => {
+    useAuthStore.setState({ user: makeParentUser() });
+
+    renderHook(() =>
+      useOnboardingTourTrigger({
+        tourId: "agenda",
+        role: "parent",
+        steps: STEPS,
+        enabled: false,
+      }),
+    );
+
+    expect(useOnboardingTourStore.getState().activeTourId).toBeNull();
+  });
+
+  it("starts when enabled is omitted (defaults to true)", async () => {
+    useAuthStore.setState({ user: makeParentUser() });
+
+    renderHook(() =>
+      useOnboardingTourTrigger({
+        tourId: "agenda",
+        role: "parent",
+        steps: STEPS,
+        enabled: true,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(useOnboardingTourStore.getState().activeTourId).toBe("agenda"),
+    );
+  });
+
   it("does not restart a different tour while one is already active", () => {
     useOnboardingTourStore.getState().startTour("other-tour", "parent", STEPS);
     useAuthStore.setState({ user: makeParentUser() });

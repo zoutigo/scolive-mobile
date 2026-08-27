@@ -907,6 +907,73 @@ let feedListErrorOnceConsumed = false;
 let lifeEventCounter = 10;
 let mockLifeEventsByStudent = createInitialLifeEventsByStudent();
 
+const mockFinanceSchoolYears = [
+  { id: "sy-1", label: "2025-2026", isActive: true },
+  { id: "sy-2", label: "2026-2027", isActive: false },
+];
+const mockFinanceAcademicLevels = [
+  { id: "level-ce2", code: "CE2", label: "CE2" },
+  { id: "level-5eme", code: "5EME", label: "5ème" },
+];
+const mockFinanceTracks = [];
+let mockFinanceSettings = { reinscriptionThresholdPolicy: "FIRST_INSTALLMENT" };
+let feeScheduleCounter = 0;
+let mockFeeSchedules = [];
+
+function upsertMockFeeSchedule(payload) {
+  const schoolYear = mockFinanceSchoolYears.find(
+    (year) => year.id === payload.schoolYearId,
+  ) || { id: payload.schoolYearId, label: payload.schoolYearId };
+  const academicLevel = mockFinanceAcademicLevels.find(
+    (level) => level.id === payload.academicLevelId,
+  ) || {
+    id: payload.academicLevelId,
+    code: payload.academicLevelId,
+    label: payload.academicLevelId,
+  };
+  const track = payload.trackId
+    ? mockFinanceTracks.find((item) => item.id === payload.trackId) || {
+        id: payload.trackId,
+        code: payload.trackId,
+        label: payload.trackId,
+      }
+    : null;
+  const installments = (payload.installments || []).map(
+    (installment, index) => ({
+      id: `fee-inst-${feeScheduleCounter}-${index + 1}`,
+      rank: Number(installment.rank),
+      label: installment.label,
+      amount: Number(installment.amount),
+      dueDate: installment.dueDate || null,
+    }),
+  );
+
+  const existingIndex = mockFeeSchedules.findIndex(
+    (row) =>
+      row.schoolYear.id === payload.schoolYearId &&
+      row.academicLevel.id === payload.academicLevelId &&
+      (row.track ? row.track.id : null) === (payload.trackId || null),
+  );
+
+  const row = {
+    id:
+      existingIndex >= 0
+        ? mockFeeSchedules[existingIndex].id
+        : `fee-e2e-${++feeScheduleCounter}`,
+    academicLevel,
+    track,
+    schoolYear,
+    installments,
+  };
+
+  if (existingIndex >= 0) {
+    mockFeeSchedules[existingIndex] = row;
+  } else {
+    mockFeeSchedules.push(row);
+  }
+  return row;
+}
+
 function resetMockState() {
   messageCounter = 10;
   attachmentCounter = 10;
@@ -924,6 +991,9 @@ function resetMockState() {
   mockNotesState = createInitialNotesState();
   lifeEventCounter = 10;
   mockLifeEventsByStudent = createInitialLifeEventsByStudent();
+  mockFinanceSettings = { reinscriptionThresholdPolicy: "FIRST_INSTALLMENT" };
+  feeScheduleCounter = 0;
+  mockFeeSchedules = [];
   mockAccountState = {
     emailAdded: false,
     passwordCreated: false,
@@ -1954,6 +2024,77 @@ function handleRequest(req, res) {
 
   if (method === "GET" && path === "/api/schools/ecole-demo/me") {
     return json(res, 200, MOCK_PARENT_ME);
+  }
+
+  // ── Échéanciers (Fee schedules) ────────────────────────────────
+  if (
+    method === "GET" &&
+    path === "/api/schools/ecole-demo/admin/school-years"
+  ) {
+    return json(res, 200, mockFinanceSchoolYears);
+  }
+
+  if (
+    method === "GET" &&
+    path === "/api/schools/ecole-demo/admin/academic-levels"
+  ) {
+    return json(res, 200, mockFinanceAcademicLevels);
+  }
+
+  if (method === "GET" && path === "/api/schools/ecole-demo/admin/tracks") {
+    return json(res, 200, mockFinanceTracks);
+  }
+
+  if (
+    method === "GET" &&
+    path === "/api/schools/ecole-demo/admin/finance/settings"
+  ) {
+    return json(res, 200, mockFinanceSettings);
+  }
+
+  if (
+    method === "PATCH" &&
+    path === "/api/schools/ecole-demo/admin/finance/settings"
+  ) {
+    readBody(req).then((raw) => {
+      const payload = parseJsonSafe(raw);
+      mockFinanceSettings = {
+        ...mockFinanceSettings,
+        ...payload,
+      };
+      return json(res, 200, mockFinanceSettings);
+    });
+    return;
+  }
+
+  if (
+    method === "GET" &&
+    path === "/api/schools/ecole-demo/admin/finance/fee-schedules"
+  ) {
+    return json(res, 200, mockFeeSchedules);
+  }
+
+  if (
+    method === "POST" &&
+    path === "/api/schools/ecole-demo/admin/finance/fee-schedules"
+  ) {
+    readBody(req).then((raw) => {
+      const payload = parseJsonSafe(raw);
+      const row = upsertMockFeeSchedule(payload);
+      return json(res, 200, row);
+    });
+    return;
+  }
+
+  const feeScheduleDeleteMatch = path.match(
+    /^\/api\/schools\/ecole-demo\/admin\/finance\/fee-schedules\/([^/]+)$/,
+  );
+  if (method === "DELETE" && feeScheduleDeleteMatch) {
+    const feeScheduleId = feeScheduleDeleteMatch[1];
+    mockFeeSchedules = mockFeeSchedules.filter(
+      (row) => row.id !== feeScheduleId,
+    );
+    return json(res, 200, { success: true });
   }
 
   if (

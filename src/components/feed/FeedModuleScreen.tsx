@@ -70,6 +70,10 @@ type Props = {
   deleteContextLabel: string;
   searchPlaceholder?: string;
   canCompose?: boolean;
+  /** Consultation seule : masque publication/commentaire/reaction, desactive
+   * like et vote, quel que soit `canCompose`. Utilise quand un parent
+   * consulte le fil de classe de son enfant via le menu enfant. */
+  readOnly?: boolean;
   onCreatePost?: (payload: CreateFeedPayload) => Promise<FeedPost>;
   onUploadInlineImage?: (file: {
     uri: string;
@@ -109,6 +113,7 @@ export function FeedModuleScreen({
   deleteContextLabel,
   searchPlaceholder,
   canCompose = false,
+  readOnly = false,
   onCreatePost,
   onUploadInlineImage,
   onUploadAttachment,
@@ -301,7 +306,7 @@ export function FeedModuleScreen({
   }, [load]);
 
   async function handleCreatePost(payload: CreateFeedPayload) {
-    if (!canCompose || !onCreatePost) return;
+    if (!canCompose || readOnly || !onCreatePost) return;
 
     try {
       const created = await onCreatePost(payload);
@@ -515,7 +520,10 @@ export function FeedModuleScreen({
                   onToggleLike={handleToggleLike}
                   onAddComment={handleAddComment}
                   onVote={handleVote}
-                  onDelete={item.canManage ? setDeleteCandidate : undefined}
+                  onDelete={
+                    item.canManage && !readOnly ? setDeleteCandidate : undefined
+                  }
+                  readOnly={readOnly}
                 />
               </ScrollView>
             </View>
@@ -798,7 +806,11 @@ export function FeedModuleScreen({
             </OnboardingTarget>
           </View>
         </View>
-      ) : composerOpen && canCompose && onCreatePost && onUploadInlineImage ? (
+      ) : composerOpen &&
+        canCompose &&
+        !readOnly &&
+        onCreatePost &&
+        onUploadInlineImage ? (
         <ScrollView
           style={styles.composerScroll}
           contentContainerStyle={[
@@ -834,8 +846,11 @@ export function FeedModuleScreen({
               onToggleLike={handleToggleLike}
               onAddComment={handleAddComment}
               onVote={handleVote}
-              onDelete={item.canManage ? setDeleteCandidate : undefined}
+              onDelete={
+                item.canManage && !readOnly ? setDeleteCandidate : undefined
+              }
               onPress={() => setDetailIndex(index)}
+              readOnly={readOnly}
             />
           )}
           refreshing={isRefreshing}
@@ -888,14 +903,18 @@ export function FeedModuleScreen({
         />
       )}
 
-      {!filtersOpen && !composerOpen && detailIndex === null && canCompose ? (
+      {!filtersOpen &&
+      !composerOpen &&
+      detailIndex === null &&
+      canCompose &&
+      !readOnly ? (
         <TouchableOpacity
           style={[styles.fab, { bottom: listBottomPadding - 4 }]}
           onPress={() => setComposerOpen(true)}
           activeOpacity={0.88}
           testID={`${testIDPrefix}-compose-fab`}
         >
-          <Ionicons name="create-outline" size={24} color={colors.white} />
+          <Ionicons name="add" size={26} color={colors.white} />
         </TouchableOpacity>
       ) : null}
 

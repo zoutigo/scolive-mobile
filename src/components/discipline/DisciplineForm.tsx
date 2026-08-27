@@ -1,5 +1,5 @@
 /**
- * Formulaire de saisie / modification d'un événement de vie scolaire.
+ * Formulaire de saisie / modification d'un événement de discipline.
  * Utilisé par les vues teacher et school_admin / manager / supervisor.
  */
 import React, { useEffect } from "react";

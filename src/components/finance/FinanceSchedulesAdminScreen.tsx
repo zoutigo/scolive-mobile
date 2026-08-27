@@ -107,7 +107,7 @@ export function FinanceSchedulesAdminScreen() {
       installments: [{ rank: 1, label: "", amount: 0, dueDate: "" }],
     },
   });
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: "installments",
   });
@@ -171,30 +171,34 @@ export function FinanceSchedulesAdminScreen() {
   }
 
   function openCreate() {
+    const installments = [{ rank: 1, label: "", amount: 0, dueDate: "" }];
     form.reset({
       schoolYearId: "",
       academicLevelId: "",
       trackId: "",
-      installments: [{ rank: 1, label: "", amount: 0, dueDate: "" }],
+      installments,
     });
+    replace(installments);
     setTab("forms");
   }
 
   function openEdit(schedule: FeeScheduleRow) {
+    const installments = schedule.installments
+      .slice()
+      .sort((a, b) => a.rank - b.rank)
+      .map((i) => ({
+        rank: i.rank,
+        label: i.label,
+        amount: i.amount,
+        dueDate: i.dueDate ?? "",
+      }));
     form.reset({
       schoolYearId: schedule.schoolYear.id,
       academicLevelId: schedule.academicLevel.id,
       trackId: schedule.track?.id ?? "",
-      installments: schedule.installments
-        .slice()
-        .sort((a, b) => a.rank - b.rank)
-        .map((i) => ({
-          rank: i.rank,
-          label: i.label,
-          amount: i.amount,
-          dueDate: i.dueDate ?? "",
-        })),
+      installments,
     });
+    replace(installments);
     setTab("forms");
   }
 
@@ -519,65 +523,90 @@ export function FinanceSchedulesAdminScreen() {
               <Text style={styles.formLabel}>
                 {t("financeAdmin.schedules.form.installments")}
               </Text>
-              {fields.map((field, index) => (
-                <View key={field.id} style={styles.installmentRow}>
-                  <Controller
-                    control={form.control}
-                    name={`installments.${index}.rank`}
-                    render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        style={[styles.formInput, styles.installmentRankInput]}
-                        value={String(value ?? "")}
-                        onChangeText={onChange}
-                        keyboardType="numeric"
-                        testID={`fee-schedule-form-installment-${index}-rank`}
+              {fields.map((field, index) => {
+                const rowErrors = form.formState.errors.installments?.[index];
+                const rowErrorMessage =
+                  rowErrors?.label?.message ?? rowErrors?.amount?.message;
+                return (
+                  <View key={field.id} style={styles.installmentRowWrap}>
+                    <View style={styles.installmentRow}>
+                      <Controller
+                        control={form.control}
+                        name={`installments.${index}.rank`}
+                        render={({ field: { onChange, value } }) => (
+                          <TextInput
+                            style={[
+                              styles.formInput,
+                              styles.installmentRankInput,
+                            ]}
+                            value={String(value ?? "")}
+                            onChangeText={onChange}
+                            keyboardType="numeric"
+                            testID={`fee-schedule-form-installment-${index}-rank`}
+                          />
+                        )}
                       />
-                    )}
-                  />
-                  <Controller
-                    control={form.control}
-                    name={`installments.${index}.label`}
-                    render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        style={[styles.formInput, styles.installmentLabelInput]}
-                        value={value ?? ""}
-                        onChangeText={onChange}
-                        placeholder={t("financeAdmin.schedules.form.label")}
-                        testID={`fee-schedule-form-installment-${index}-label`}
+                      <Controller
+                        control={form.control}
+                        name={`installments.${index}.label`}
+                        render={({ field: { onChange, value } }) => (
+                          <TextInput
+                            style={[
+                              styles.formInput,
+                              styles.installmentLabelInput,
+                              rowErrors?.label && styles.formInputError,
+                            ]}
+                            value={value ?? ""}
+                            onChangeText={onChange}
+                            placeholder={t("financeAdmin.schedules.form.label")}
+                            testID={`fee-schedule-form-installment-${index}-label`}
+                          />
+                        )}
                       />
-                    )}
-                  />
-                  <Controller
-                    control={form.control}
-                    name={`installments.${index}.amount`}
-                    render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        style={[
-                          styles.formInput,
-                          styles.installmentAmountInput,
-                        ]}
-                        value={String(value ?? "")}
-                        onChangeText={onChange}
-                        keyboardType="numeric"
-                        placeholder={t("financeAdmin.schedules.form.amount")}
-                        testID={`fee-schedule-form-installment-${index}-amount`}
+                      <Controller
+                        control={form.control}
+                        name={`installments.${index}.amount`}
+                        render={({ field: { onChange, value } }) => (
+                          <TextInput
+                            style={[
+                              styles.formInput,
+                              styles.installmentAmountInput,
+                              rowErrors?.amount && styles.formInputError,
+                            ]}
+                            value={String(value ?? "")}
+                            onChangeText={onChange}
+                            keyboardType="numeric"
+                            placeholder={t(
+                              "financeAdmin.schedules.form.amount",
+                            )}
+                            testID={`fee-schedule-form-installment-${index}-amount`}
+                          />
+                        )}
                       />
-                    )}
-                  />
-                  <TouchableOpacity
-                    style={styles.removeInstallmentButton}
-                    onPress={() => remove(index)}
-                    disabled={fields.length === 1}
-                    testID={`fee-schedule-form-installment-${index}-remove`}
-                  >
-                    <Ionicons
-                      name="close"
-                      size={16}
-                      color={colors.notification}
-                    />
-                  </TouchableOpacity>
-                </View>
-              ))}
+                      <TouchableOpacity
+                        style={styles.removeInstallmentButton}
+                        onPress={() => remove(index)}
+                        disabled={fields.length === 1}
+                        testID={`fee-schedule-form-installment-${index}-remove`}
+                      >
+                        <Ionicons
+                          name="close"
+                          size={16}
+                          color={colors.notification}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                    {rowErrorMessage ? (
+                      <Text
+                        style={styles.formError}
+                        testID={`fee-schedule-form-installment-${index}-error`}
+                      >
+                        {rowErrorMessage}
+                      </Text>
+                    ) : null}
+                  </View>
+                );
+              })}
               {form.formState.errors.installments?.message ? (
                 <Text style={styles.formError}>
                   {form.formState.errors.installments.message}
@@ -617,7 +646,22 @@ export function FinanceSchedulesAdminScreen() {
                   submitting && styles.submitButtonDisabled,
                 ]}
                 disabled={submitting}
-                onPress={form.handleSubmit(onSubmit)}
+                onPress={form.handleSubmit(onSubmit, (errs) => {
+                  if (errs.schoolYearId || errs.academicLevelId) return;
+                  const rowErrors = errs.installments;
+                  if (Array.isArray(rowErrors)) {
+                    const index = rowErrors.findIndex((e) => e);
+                    if (index >= 0) {
+                      const row = rowErrors[index];
+                      const field = row?.label
+                        ? "label"
+                        : row?.amount
+                          ? "amount"
+                          : "rank";
+                      form.setFocus(`installments.${index}.${field}`);
+                    }
+                  }
+                })}
                 testID="fee-schedule-form-submit"
               >
                 <Text style={styles.submitButtonText}>{t("common.save")}</Text>
@@ -776,6 +820,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   formError: { color: colors.notification, fontSize: 12, lineHeight: 16 },
+  formInputError: { borderColor: colors.notification },
+  installmentRowWrap: { gap: 4 },
   installmentRow: { flexDirection: "row", gap: 6, alignItems: "center" },
   installmentRankInput: { width: 44 },
   installmentLabelInput: { flex: 1 },

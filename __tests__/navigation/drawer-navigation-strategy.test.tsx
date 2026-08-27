@@ -281,7 +281,7 @@ describe("Flux parent — anti-empilement cross-section", () => {
     act(() => jest.runAllTimers());
 
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/(home)/vie-scolaire/[childId]",
+      pathname: "/(home)/discipline/[childId]",
       params: { childId: "c1" },
     });
     expect(mockReplace).not.toHaveBeenCalled();

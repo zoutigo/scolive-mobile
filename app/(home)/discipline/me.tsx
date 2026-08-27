@@ -2,19 +2,19 @@ import React from "react";
 import { View, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { AppShell } from "../../../src/components/navigation/AppShell";
-import { StudentLifeScreen } from "../../../src/components/discipline/StudentLifeScreen";
+import { DisciplineSelfScreen } from "../../../src/components/discipline/DisciplineSelfScreen";
 import { useSelfStudentContext } from "../../../src/hooks/useSelfStudentContext";
 import { colors } from "../../../src/theme";
 
-export default function VieScolaireMeRoute() {
+export default function DisciplineMeRoute() {
   return (
     <AppShell showHeader={false}>
-      <VieScolaireMeScreen />
+      <DisciplineMeScreen />
     </AppShell>
   );
 }
 
-function VieScolaireMeScreen() {
+function DisciplineMeScreen() {
   const router = useRouter();
   const { studentId, firstName, lastName, isLoading } = useSelfStudentContext();
 
@@ -27,7 +27,7 @@ function VieScolaireMeScreen() {
           justifyContent: "center",
           backgroundColor: colors.background,
         }}
-        testID="vie-scolaire-me-loading"
+        testID="discipline-me-loading"
       >
         <ActivityIndicator color={colors.primary} />
       </View>
@@ -35,7 +35,7 @@ function VieScolaireMeScreen() {
   }
 
   return (
-    <StudentLifeScreen
+    <DisciplineSelfScreen
       studentId={studentId}
       studentLabel={`${firstName} ${lastName}`}
       onBack={() => router.push("/")}

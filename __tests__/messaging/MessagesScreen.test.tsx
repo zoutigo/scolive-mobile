@@ -155,16 +155,23 @@ describe("Rendu initial", () => {
     expect(screen.getByTestId("folder-tab-sent")).toBeTruthy();
   });
 
-  it("affiche le FAB de composition sur l'onglet inbox", () => {
+  it("affiche le FAB de composition sur l'onglet inbox (messagerie propre au parent)", () => {
+    useFamilyStore.setState({ activeChildId: null });
     render(<MessagesScreen />);
     expect(screen.getByTestId("compose-fab")).toBeTruthy();
   });
 
   it("n'affiche pas le FAB hors de l'onglet inbox", () => {
+    useFamilyStore.setState({ activeChildId: null });
     (useMessagingStore as unknown as jest.Mock).mockReturnValue({
       ...defaultStoreState,
       folder: "drafts",
     });
+    render(<MessagesScreen />);
+    expect(screen.queryByTestId("compose-fab")).toBeNull();
+  });
+
+  it("n'affiche jamais le FAB quand on consulte la messagerie via le menu d'un enfant", () => {
     render(<MessagesScreen />);
     expect(screen.queryByTestId("compose-fab")).toBeNull();
   });
@@ -286,12 +293,14 @@ describe("Navigation", () => {
   });
 
   it("navigue vers compose quand on presse le FAB", () => {
+    useFamilyStore.setState({ activeChildId: null });
     render(<MessagesScreen />);
     fireEvent.press(screen.getByTestId("compose-fab"));
     expect(mockPush).toHaveBeenCalledWith("/(home)/messages/compose");
   });
 
   it("navigue vers compose prérempli quand on presse un brouillon", () => {
+    useFamilyStore.setState({ activeChildId: null });
     (useMessagingStore as unknown as jest.Mock).mockReturnValue({
       ...defaultStoreState,
       folder: "drafts",
@@ -303,6 +312,24 @@ describe("Navigation", () => {
       pathname: "/(home)/messages/compose",
       params: { draftId: "d1" },
     });
+  });
+
+  it("ouvre le brouillon en lecture seule (pas d'édition) via le menu d'un enfant", () => {
+    (useMessagingStore as unknown as jest.Mock).mockReturnValue({
+      ...defaultStoreState,
+      folder: "drafts",
+      messages: [{ ...mockMessage, id: "d1", status: "DRAFT" }],
+    });
+    render(<MessagesScreen />);
+    fireEvent.press(screen.getByTestId("message-row-d1"));
+    expect(mockPush).toHaveBeenCalledWith(
+      expect.objectContaining({ params: { messageId: "d1" } }),
+    );
+    expect(mockPush).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: "/(home)/messages/compose",
+      }),
+    );
   });
 
   it("appelle router.back() quand on presse la flèche retour", () => {
@@ -514,6 +541,7 @@ describe("Aide parent", () => {
       targetLayout: null,
       completedTours: {},
     });
+    useFamilyStore.setState({ activeChildId: null });
     mockAuthUser({
       user: {
         id: "teacher-1",
@@ -536,5 +564,22 @@ describe("Aide parent", () => {
       expect(useOnboardingTourStore.getState().activeTourId).toBe("messages"),
     );
     expect(useOnboardingTourStore.getState().activeRole).toBe("teacher");
+  });
+
+  it("ne démarre pas le tour quand un parent consulte la messagerie via le menu d'un enfant (le FAB ciblé est masqué)", async () => {
+    useOnboardingTourStore.setState({
+      activeTourId: null,
+      activeRole: null,
+      steps: [],
+      stepIndex: 0,
+      targetLayout: null,
+      completedTours: {},
+    });
+    // Le beforeEach global positionne déjà activeChildId="child-1".
+
+    render(<MessagesScreen />);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(useOnboardingTourStore.getState().activeTourId).toBeNull();
   });
 });

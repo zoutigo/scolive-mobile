@@ -19,10 +19,12 @@ jest.mock("../../src/api/supply-lists.api");
 jest.mock("../../src/components/navigation/AppShell", () => ({
   AppShell: ({ children }: { children: React.ReactNode }) => children,
 }));
+const mockPush = jest.fn();
+
 jest.mock("expo-router", () => ({
   useRouter: () => ({
     back: jest.fn(),
-    push: jest.fn(),
+    push: mockPush,
     canGoBack: () => false,
     navigate: jest.fn(),
   }),
@@ -150,26 +152,17 @@ describe("ReinscriptionScreen — onglet Paiement", () => {
     expect(screen.getByText(/Pret\(e\) a etre reinscrit/)).toBeOnTheScreen();
   });
 
-  it("credite le porte-monnaie via le formulaire de depot", async () => {
+  it("propose un lien vers Situation financiere pour recharger le porte-monnaie", async () => {
+    financeApiMock.getWalletSummary.mockResolvedValue(WALLET_ONE_CHILD_READY);
     render(<ReinscriptionScreen />);
     await waitFor(() =>
       expect(financeApiMock.getWalletSummary).toHaveBeenCalledTimes(1),
     );
 
-    fireEvent.changeText(screen.getByTestId("wallet-top-up-input"), "10000");
-    fireEvent.press(screen.getByTestId("wallet-top-up-submit"));
+    expect(screen.getByTestId("wallet-summary-card")).toBeOnTheScreen();
+    fireEvent.press(screen.getByTestId("wallet-summary-topup-link"));
 
-    await waitFor(() =>
-      expect(financeApiMock.topUpWallet).toHaveBeenCalledWith(
-        "college-vogt",
-        10000,
-      ),
-    );
-    await waitFor(() =>
-      expect(useSuccessToastStore.getState().title).toBe(
-        "Porte-monnaie credite.",
-      ),
-    );
+    expect(mockPush).toHaveBeenCalledWith("/(home)/finance");
   });
 
   it('appuie sur "Je paie et je reinscris" et confirme la reinscription', async () => {

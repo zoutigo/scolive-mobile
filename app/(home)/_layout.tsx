@@ -13,21 +13,55 @@ export default function HomeLayout() {
   // isAuthenticated (ex. logout depuis un écran imbriqué comme /account) et
   // provoque un "Maximum update depth exceeded" qui gèle l'app en écran blanc.
   const hasRedirectedRef = useRef(false);
+  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
       hasRedirectedRef.current = false;
+      if (fallbackTimerRef.current) {
+        clearTimeout(fallbackTimerRef.current);
+        fallbackTimerRef.current = null;
+      }
       return;
     }
     if (isLoading || hasRedirectedRef.current) {
       return;
     }
     hasRedirectedRef.current = true;
-    // `dismissAll` dépile jusqu'à l'écran "/" déjà existant dans la pile
-    // plutôt que d'en empiler un second (ce que fait `replace`) : avec deux
-    // instances de l'écran "/" actives, chacune réagissant au même
-    // isAuthenticated, React Navigation entre en boucle de réconciliation.
-    router.dismissAll();
+    // `dismissTo("/")` dépile jusqu'à l'écran "/" déjà existant dans la pile
+    // racine, quelle que soit la profondeur courante, plutôt que d'en empiler
+    // un second (ce que fait `replace`) : avec deux instances de l'écran "/"
+    // actives, chacune réagissant au même isAuthenticated, React Navigation
+    // entre en boucle de réconciliation.
+    // `dismissAll()` (POP_TO_TOP) a été utilisé ici avant, mais il ne dépile
+    // que la pile Stack imbriquée de ce layout : quand la déconnexion est
+    // déclenchée depuis l'écran d'accueil lui-même (index de cette pile, donc
+    // déjà en position 0), c'est un no-op qui laisse l'app bloquée sur l'
+    // overlay de redirection ci-dessous, écran blanc figé jusqu'au force-stop.
+    // `dismissTo` traverse les navigateurs imbriqués jusqu'à la route root.
+    router.dismissTo("/");
+    // Filet de sécurité (reproduit sur émulateur : session laissée ouverte
+    // une nuit entière, app relancée le lendemain matin directement sur un
+    // écran profond restauré par l'OS après que celui-ci a tué le process en
+    // arrière-plan) : dans ce cas, l'écran "/" n'a jamais été monté dans
+    // cette instance JS, donc `dismissTo("/")` ne trouve rien à dépiler et ne
+    // fait rien silencieusement — le Stack de ce layout reste monté (constaté
+    // via l'inspection native : `home-layout-redirecting` ET
+    // `home-loading-spinner` présents en même temps dans l'arbre), figé en
+    // écran blanc indéfiniment. Si l'overlay est toujours affiché après un
+    // court délai, on force un `replace("/")`, qui fonctionne même sans
+    // historique préexistant.
+    fallbackTimerRef.current = setTimeout(() => {
+      fallbackTimerRef.current = null;
+      router.replace("/");
+    }, 500);
+
+    return () => {
+      if (fallbackTimerRef.current) {
+        clearTimeout(fallbackTimerRef.current);
+        fallbackTimerRef.current = null;
+      }
+    };
   }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {

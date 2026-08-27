@@ -428,4 +428,82 @@ describe("FeedPostCard", () => {
     );
     expect(screen.queryByTestId("feed-post-delete-post-1")).toBeNull();
   });
+
+  describe("readOnly", () => {
+    it("désactive le like sans le masquer, ni appeler onToggleLike", () => {
+      const onToggleLike = jest.fn();
+      render(
+        <FeedPostCard
+          post={post}
+          onToggleLike={onToggleLike}
+          onAddComment={jest.fn()}
+          readOnly
+        />,
+      );
+      const likeButton = screen.getByTestId("feed-post-like-post-1");
+      expect(likeButton.props.accessibilityState?.disabled).toBe(true);
+      fireEvent.press(likeButton);
+      expect(onToggleLike).not.toHaveBeenCalled();
+      // Le compteur reste consultable.
+      expect(screen.getByLabelText("Réactions 2")).toBeTruthy();
+    });
+
+    it("masque le bouton 'réagir' : impossible d'ouvrir le composeur de commentaire", () => {
+      render(
+        <FeedPostCard
+          post={post}
+          onToggleLike={jest.fn()}
+          onAddComment={jest.fn()}
+          readOnly
+        />,
+      );
+      expect(screen.queryByTestId("feed-post-react-post-1")).toBeNull();
+      expect(screen.queryByTestId("feed-comment-input-post-1")).toBeNull();
+    });
+
+    it("garde la consultation des commentaires existants possible", () => {
+      render(
+        <FeedPostCard
+          post={post}
+          onToggleLike={jest.fn()}
+          onAddComment={jest.fn()}
+          readOnly
+        />,
+      );
+      fireEvent.press(screen.getByTestId("feed-post-comments-toggle-post-1"));
+      expect(screen.getByText("Robert Ntamack")).toBeTruthy();
+    });
+
+    it("masque la poubelle même si canManage est vrai", () => {
+      render(
+        <FeedPostCard
+          post={{ ...post, canManage: true }}
+          onToggleLike={jest.fn()}
+          onAddComment={jest.fn()}
+          onDelete={jest.fn()}
+          readOnly
+        />,
+      );
+      expect(screen.queryByTestId("feed-post-delete-post-1")).toBeNull();
+    });
+
+    it("désactive le vote sur un sondage sans appeler onVote", () => {
+      const onVote = jest.fn();
+      render(
+        <FeedPostCard
+          post={pollPost}
+          onToggleLike={jest.fn()}
+          onAddComment={jest.fn()}
+          onVote={onVote}
+          readOnly
+        />,
+      );
+      fireEvent.press(
+        screen.getByTestId(
+          `feed-post-poll-option-${pollPost.id}-${pollPost.poll.options[0].id}`,
+        ),
+      );
+      expect(onVote).not.toHaveBeenCalled();
+    });
+  });
 });
