@@ -4884,7 +4884,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.disciplineSelf.help.menuLabel": "Help",
     "discipline.disciplineSelf.help.close": "Close",
     "discipline.disciplineSelf.help.synthese.title": "Discipline — Summary",
-    "discipline.disciplineSelf.help.synthese.section1Title": "The year's counters",
+    "discipline.disciplineSelf.help.synthese.section1Title":
+      "The year's counters",
     "discipline.disciplineSelf.help.synthese.section1Body":
       "The cards at the top of the screen total, since the start of the school year, the number of absences, lateness, sanctions and punishments. These numbers update automatically as soon as a new event is recorded by the school — you don't need to do anything to refresh them.",
     "discipline.disciplineSelf.help.synthese.section2Title":

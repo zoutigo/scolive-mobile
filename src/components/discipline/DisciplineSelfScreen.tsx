@@ -197,7 +197,10 @@ export function DisciplineSelfScreen({
       </View>
 
       {/* Onglets */}
-      <OnboardingTarget id={DISCIPLINE_SELF_TOUR_TARGETS.tabs} style={styles.tabs}>
+      <OnboardingTarget
+        id={DISCIPLINE_SELF_TOUR_TARGETS.tabs}
+        style={styles.tabs}
+      >
         {TAB_KEYS.map((item) => (
           <TouchableOpacity
             key={item.key}
@@ -326,7 +329,9 @@ export function DisciplineSelfScreen({
                       "discipline.disciplineSelf.help.sanctions.section1Title",
                     ),
                     body: [
-                      t("discipline.disciplineSelf.help.sanctions.section1Body"),
+                      t(
+                        "discipline.disciplineSelf.help.sanctions.section1Body",
+                      ),
                     ],
                   },
                 ]

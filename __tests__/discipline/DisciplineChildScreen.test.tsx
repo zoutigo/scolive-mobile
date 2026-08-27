@@ -188,12 +188,16 @@ describe("DisciplineChildScreen", () => {
 
     fireEvent.press(screen.getByTestId("discipline-self-help-menu-item"));
     await waitFor(() =>
-      expect(screen.getByTestId("discipline-self-help-modal-title")).toBeTruthy(),
+      expect(
+        screen.getByTestId("discipline-self-help-modal-title"),
+      ).toBeTruthy(),
     );
 
     fireEvent.press(screen.getByTestId("discipline-self-help-modal-close"));
     await waitFor(() =>
-      expect(screen.queryByTestId("discipline-self-help-modal-title")).toBeNull(),
+      expect(
+        screen.queryByTestId("discipline-self-help-modal-title"),
+      ).toBeNull(),
     );
   });
 
