@@ -580,7 +580,7 @@ describe("TeacherClassDisciplineScreen — héros section carnets", () => {
 
     expect(
       screen.getByText(
-        "Sélectionnez un élève pour afficher sa synthèse vie scolaire.",
+        "Sélectionnez un élève pour afficher sa synthèse discipline.",
       ),
     ).toBeTruthy();
   });
@@ -603,7 +603,7 @@ describe("TeacherClassDisciplineScreen — héros section carnets", () => {
 });
 
 describe("TeacherClassDisciplineScreen — carnets", () => {
-  it("affiche l'onglet Carnets et réutilise la synthèse vie scolaire", async () => {
+  it("affiche l'onglet Carnets et réutilise la synthèse discipline", async () => {
     await renderLoaded();
 
     fireEvent.press(screen.getByTestId("teacher-class-discipline-tab-carnets"));

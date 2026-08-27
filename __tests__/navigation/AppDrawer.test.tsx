@@ -1788,11 +1788,11 @@ describe("Stratégie push/replace — navigation onglets enfant (même section)"
         childSections={childSecs}
       />,
     );
-    // Naviguer vers vie-scolaire du même enfant
+    // Naviguer vers discipline du même enfant
     fireEvent.press(screen.getByTestId("nav-item-child-c1-life"));
     act(() => jest.runAllTimers());
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/(home)/vie-scolaire/[childId]",
+      pathname: "/(home)/discipline/[childId]",
       params: { childId: "c1" },
     });
     expect(mockReplace).not.toHaveBeenCalled();

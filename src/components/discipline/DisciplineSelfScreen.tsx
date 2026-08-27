@@ -1,10 +1,10 @@
 /**
- * Écran Vie scolaire — composant central partagé (lecture seule).
+ * Écran Discipline — composant central partagé (lecture seule).
  *
  * Réutilisé par deux points d'entrée fins :
- *  - la vue Parent (`app/(home)/vie-scolaire/[childId].tsx`), qui résout
+ *  - la vue Parent (`app/(home)/discipline/[childId].tsx`), qui résout
  *    `studentId` depuis l'enfant sélectionné dans le family store ;
- *  - la vue Élève self (`app/(home)/vie-scolaire/me.tsx`), qui résout sa
+ *  - la vue Élève self (`app/(home)/discipline/me.tsx`), qui résout sa
  *    propre identité via `useSelfStudentContext`.
  *
  * 3 onglets :
@@ -29,10 +29,10 @@ import { OnboardingTarget } from "../onboarding/OnboardingTarget";
 import { PageHelpModal } from "../help/PageHelpModal";
 import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
 import {
-  VIE_SCOLAIRE_TOUR_ID,
-  VIE_SCOLAIRE_TOUR_STEPS,
-  VIE_SCOLAIRE_TOUR_TARGETS,
-} from "./vie-scolaire-tour.config";
+  DISCIPLINE_SELF_TOUR_ID,
+  DISCIPLINE_SELF_TOUR_STEPS,
+  DISCIPLINE_SELF_TOUR_TARGETS,
+} from "./discipline-tour.config";
 import type {
   DisciplineSummary,
   StudentLifeEvent,
@@ -62,7 +62,7 @@ const TAB_KEYS: Array<{ key: TabKey; labelKey: string; icon: string }> = [
 
 // ── Écran ─────────────────────────────────────────────────────────────────────
 
-export type StudentLifeScreenProps = {
+export type DisciplineSelfScreenProps = {
   studentId: string;
   studentLabel: string;
   onBack: () => void;
@@ -70,19 +70,19 @@ export type StudentLifeScreenProps = {
    * (utilisé par la vue Parent pour tenir à jour le family store — sans
    * lien vers ce store depuis ce composant partagé). */
   onClassLabelResolved?: (classLabel: string) => void;
-  /** "student" quand l'élève consulte sa propre vie scolaire, "parent"
+  /** "student" quand l'élève consulte sa propre discipline, "parent"
    * quand un parent consulte celle d'un enfant. L'aide guidée (tour +
    * modale) est déclenchée pour les deux rôles. */
   viewerRole: "student" | "parent";
 };
 
-export function StudentLifeScreen({
+export function DisciplineSelfScreen({
   studentId,
   studentLabel,
   onBack,
   onClassLabelResolved,
   viewerRole,
-}: StudentLifeScreenProps) {
+}: DisciplineSelfScreenProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { schoolSlug } = useAuthStore();
@@ -100,9 +100,9 @@ export function StudentLifeScreen({
   const [helpVisible, setHelpVisible] = useState(false);
 
   useOnboardingTourTrigger({
-    tourId: VIE_SCOLAIRE_TOUR_ID,
+    tourId: DISCIPLINE_SELF_TOUR_ID,
     role: viewerRole,
-    steps: VIE_SCOLAIRE_TOUR_STEPS,
+    steps: DISCIPLINE_SELF_TOUR_STEPS,
   });
 
   const events: StudentLifeEvent[] = eventsMap[studentId] ?? [];
@@ -145,7 +145,7 @@ export function StudentLifeScreen({
     }
   }, [load, isCached]);
 
-  // Consultation de la vie scolaire d'un élève = lecture des événements
+  // Consultation de la discipline d'un élève = lecture des événements
   // discipline de cet élève : remet le badge (icône app + nav) à zéro.
   // Sans cet appel, le compteur `disciplineUnread` ne redescend jamais
   // (il se base côté API sur un readMarker jamais posé par le client).
@@ -175,29 +175,29 @@ export function StudentLifeScreen({
   }, [classLabel, onClassLabelResolved]);
 
   return (
-    <View style={styles.root} testID="vie-scolaire-screen">
+    <View style={styles.root} testID="discipline-self-screen">
       {/* Header */}
       <View style={styles.headerWrap}>
         <ModuleHeader
-          title={t("discipline.header.vieScolaire")}
+          title={t("discipline.header.discipline")}
           subtitle={subtitle}
           onBack={onBack}
-          testID="vie-scolaire-header"
+          testID="discipline-self-header"
           backTestID="btn-back"
-          titleTestID="vie-scolaire-header-title"
-          subtitleTestID="vie-scolaire-header-subtitle"
+          titleTestID="discipline-self-header-title"
+          subtitleTestID="discipline-self-header-subtitle"
           topInset={insets.top}
           helpAction={{
-            label: t("discipline.vieScolaire.help.menuLabel"),
+            label: t("discipline.disciplineSelf.help.menuLabel"),
             onPress: () => setHelpVisible(true),
-            testID: "vie-scolaire-help-menu-item",
+            testID: "discipline-self-help-menu-item",
           }}
-          menuTourTargetId={VIE_SCOLAIRE_TOUR_TARGETS.helpToggle}
+          menuTourTargetId={DISCIPLINE_SELF_TOUR_TARGETS.helpToggle}
         />
       </View>
 
       {/* Onglets */}
-      <OnboardingTarget id={VIE_SCOLAIRE_TOUR_TARGETS.tabs} style={styles.tabs}>
+      <OnboardingTarget id={DISCIPLINE_SELF_TOUR_TARGETS.tabs} style={styles.tabs}>
         {TAB_KEYS.map((item) => (
           <TouchableOpacity
             key={item.key}
@@ -248,7 +248,7 @@ export function StudentLifeScreen({
             isLoading={isLoading && !isCached}
             isRefreshing={isRefreshing}
             onRefresh={refresh}
-            kpisTourTargetId={VIE_SCOLAIRE_TOUR_TARGETS.kpis}
+            kpisTourTargetId={DISCIPLINE_SELF_TOUR_TARGETS.kpis}
           />
         )}
 
@@ -284,28 +284,28 @@ export function StudentLifeScreen({
         onClose={() => setHelpVisible(false)}
         title={
           tab === "synthese"
-            ? t("discipline.vieScolaire.help.synthese.title")
+            ? t("discipline.disciplineSelf.help.synthese.title")
             : tab === "absences"
-              ? t("discipline.vieScolaire.help.absences.title")
-              : t("discipline.vieScolaire.help.sanctions.title")
+              ? t("discipline.disciplineSelf.help.absences.title")
+              : t("discipline.disciplineSelf.help.sanctions.title")
         }
         sections={
           tab === "synthese"
             ? [
                 {
                   title: t(
-                    "discipline.vieScolaire.help.synthese.section1Title",
+                    "discipline.disciplineSelf.help.synthese.section1Title",
                   ),
                   body: [
-                    t("discipline.vieScolaire.help.synthese.section1Body"),
+                    t("discipline.disciplineSelf.help.synthese.section1Body"),
                   ],
                 },
                 {
                   title: t(
-                    "discipline.vieScolaire.help.synthese.section2Title",
+                    "discipline.disciplineSelf.help.synthese.section2Title",
                   ),
                   body: [
-                    t("discipline.vieScolaire.help.synthese.section2Body"),
+                    t("discipline.disciplineSelf.help.synthese.section2Body"),
                   ],
                 },
               ]
@@ -313,26 +313,26 @@ export function StudentLifeScreen({
               ? [
                   {
                     title: t(
-                      "discipline.vieScolaire.help.absences.section1Title",
+                      "discipline.disciplineSelf.help.absences.section1Title",
                     ),
                     body: [
-                      t("discipline.vieScolaire.help.absences.section1Body"),
+                      t("discipline.disciplineSelf.help.absences.section1Body"),
                     ],
                   },
                 ]
               : [
                   {
                     title: t(
-                      "discipline.vieScolaire.help.sanctions.section1Title",
+                      "discipline.disciplineSelf.help.sanctions.section1Title",
                     ),
                     body: [
-                      t("discipline.vieScolaire.help.sanctions.section1Body"),
+                      t("discipline.disciplineSelf.help.sanctions.section1Body"),
                     ],
                   },
                 ]
         }
-        closeLabel={t("discipline.vieScolaire.help.close")}
-        testID="vie-scolaire-help-modal"
+        closeLabel={t("discipline.disciplineSelf.help.close")}
+        testID="discipline-self-help-modal"
       />
     </View>
   );

@@ -3,7 +3,7 @@
  *
  * Couvre :
  *  - DisciplineStudentScreen : onglet Synthèse + onglet Historique + modale CRUD
- *  - VieScolaireScreen : vue parent lecture seule
+ *  - DisciplineChildScreen : vue parent lecture seule
  */
 import React from "react";
 import {
@@ -13,7 +13,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import DisciplineStudentScreen from "../../app/(home)/discipline-student/[studentId]";
-import VieScolaireScreen from "../../app/(home)/vie-scolaire/[childId]";
+import DisciplineChildScreen from "../../app/(home)/discipline/[childId]";
 import { disciplineApi } from "../../src/api/discipline.api";
 import { SuccessToastHost } from "../../src/components/feedback/SuccessToastHost";
 import { useDisciplineStore } from "../../src/store/discipline.store";
@@ -370,9 +370,9 @@ describe("DisciplineStudentScreen", () => {
   });
 });
 
-// ── VieScolaireScreen (parent — lecture seule) ────────────────────────────────
+// ── DisciplineChildScreen (parent — lecture seule) ────────────────────────────────
 
-describe("VieScolaireScreen", () => {
+describe("DisciplineChildScreen", () => {
   it("charge la vue parent lecture seule dans le store et affiche la bannière d'absence non justifiée", async () => {
     setAuthState({
       schoolSlug: "college-vogt",
@@ -388,7 +388,7 @@ describe("VieScolaireScreen", () => {
       }),
     ]);
 
-    render(<VieScolaireScreen />);
+    render(<DisciplineChildScreen />);
 
     await waitFor(() => {
       expect(screen.getByTestId("unjustified-banner")).toBeOnTheScreen();
@@ -404,7 +404,7 @@ describe("VieScolaireScreen", () => {
     mockRouteParams = { childId: "child-1" };
     api.list.mockResolvedValue([]);
 
-    render(<VieScolaireScreen />);
+    render(<DisciplineChildScreen />);
 
     await waitFor(() =>
       expect(screen.getByTestId("synthese-tab")).toBeTruthy(),

@@ -393,14 +393,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.schoolSettings.step3Title": "Une aide toujours disponible",
     "onboardingTour.schoolSettings.step3Body":
       "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel sur l'utilisation de cette page.",
-    "onboardingTour.vieScolaire.step1Title": "Trois onglets",
-    "onboardingTour.vieScolaire.step1Body":
+    "onboardingTour.disciplineSelf.step1Title": "Trois onglets",
+    "onboardingTour.disciplineSelf.step1Body":
       "Touchez un onglet pour passer de la synthèse aux absences et retards, puis aux sanctions et punitions.",
-    "onboardingTour.vieScolaire.step2Title": "Filtrez par indicateur",
-    "onboardingTour.vieScolaire.step2Body":
+    "onboardingTour.disciplineSelf.step2Title": "Filtrez par indicateur",
+    "onboardingTour.disciplineSelf.step2Body":
       "Touchez une carte (absences, retards, sanctions, punitions) pour filtrer la liste des événements récents sur ce type.",
-    "onboardingTour.vieScolaire.step3Title": "Une aide toujours disponible",
-    "onboardingTour.vieScolaire.step3Body":
+    "onboardingTour.disciplineSelf.step3Title": "Une aide toujours disponible",
+    "onboardingTour.disciplineSelf.step3Body":
       "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour retrouver ces explications.",
     "onboardingTour.homework.step1Title": "Deux façons de voir vos devoirs",
     "onboardingTour.homework.step1Body":
@@ -422,7 +422,7 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Dans ce menu, cette entrée ouvre votre messagerie parent, où se trouvent tous vos échanges avec l'école.",
     "onboardingTour.parentLanding.step3Title": "L'espace de votre enfant",
     "onboardingTour.parentLanding.step3Body":
-      "Touchez le nom de votre enfant pour déplier son espace : notes, emploi du temps, vie scolaire et plus encore.",
+      "Touchez le nom de votre enfant pour déplier son espace : notes, emploi du temps, discipline et plus encore.",
     "onboardingTour.parentLanding.step4Title": "Paramètres de votre compte",
     "onboardingTour.parentLanding.step4Body":
       "Cette icône ouvre les paramètres de votre compte : coordonnées, sécurité et préférences.",
@@ -794,7 +794,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "discipline.summary.allGoodTitle": "Tout va bien !",
     "discipline.summary.allGoodSubtitle":
-      "Aucun événement de vie scolaire enregistré sur l'année en cours.",
+      "Aucun événement de discipline enregistré sur l'année en cours.",
     "discipline.summary.currentYear": "Cette année scolaire",
     "discipline.summary.showAll": "Tout voir",
     "discipline.summary.noEventsOfType": "Aucun événement de ce type.",
@@ -866,29 +866,28 @@ export const translations: Record<Locale, Record<string, string>> = {
       "L'événement a été retiré du module discipline.",
 
     "discipline.header.discipline": "Discipline",
-    "discipline.header.vieScolaire": "Vie scolaire",
     "discipline.header.student": "Élève",
 
-    "discipline.vieScolaire.help.menuLabel": "Aide",
-    "discipline.vieScolaire.help.close": "Fermer",
-    "discipline.vieScolaire.help.synthese.title": "Vie scolaire — Synthèse",
-    "discipline.vieScolaire.help.synthese.section1Title":
+    "discipline.disciplineSelf.help.menuLabel": "Aide",
+    "discipline.disciplineSelf.help.close": "Fermer",
+    "discipline.disciplineSelf.help.synthese.title": "Discipline — Synthèse",
+    "discipline.disciplineSelf.help.synthese.section1Title":
       "Les compteurs de l'année",
-    "discipline.vieScolaire.help.synthese.section1Body":
+    "discipline.disciplineSelf.help.synthese.section1Body":
       "Les cartes en haut de l'écran totalisent, depuis le début de l'année scolaire, le nombre d'absences, de retards, de sanctions et de punitions. Ces chiffres se mettent à jour automatiquement dès qu'un nouvel événement est enregistré par l'établissement — vous n'avez rien à faire pour les actualiser.",
-    "discipline.vieScolaire.help.synthese.section2Title":
+    "discipline.disciplineSelf.help.synthese.section2Title":
       "Filtrer les événements récents",
-    "discipline.vieScolaire.help.synthese.section2Body":
+    "discipline.disciplineSelf.help.synthese.section2Body":
       "Touchez une carte (absences, retards, sanctions ou punitions) pour n'afficher, dans la liste « Événements récents » juste en dessous, que les événements de ce type — pratique pour vérifier rapidement, par exemple, si un retard signalé oralement a bien été enregistré. Touchez à nouveau la même carte (ou « Tout voir ») pour revenir à la liste complète sans filtre.",
-    "discipline.vieScolaire.help.absences.title": "Vie scolaire — Absences",
-    "discipline.vieScolaire.help.absences.section1Title":
+    "discipline.disciplineSelf.help.absences.title": "Discipline — Absences",
+    "discipline.disciplineSelf.help.absences.section1Title":
       "L'historique complet des absences et retards",
-    "discipline.vieScolaire.help.absences.section1Body":
+    "discipline.disciplineSelf.help.absences.section1Body":
       "Cet onglet liste, du plus récent au plus ancien, chaque absence et chaque retard enregistrés par l'établissement, avec leur date et leur motif si l'établissement en a précisé un. Cette liste est en lecture seule : elle reflète ce que l'établissement a saisi, elle ne peut pas être modifiée depuis l'application.",
-    "discipline.vieScolaire.help.sanctions.title": "Vie scolaire — Sanctions",
-    "discipline.vieScolaire.help.sanctions.section1Title":
+    "discipline.disciplineSelf.help.sanctions.title": "Discipline — Sanctions",
+    "discipline.disciplineSelf.help.sanctions.section1Title":
       "L'historique complet des sanctions et punitions",
-    "discipline.vieScolaire.help.sanctions.section1Body":
+    "discipline.disciplineSelf.help.sanctions.section1Body":
       "Cet onglet liste, du plus récent au plus ancien, chaque sanction et chaque punition enregistrées par l'établissement, avec leur date et leur motif. Comme l'onglet Absences, cette liste est en lecture seule et reflète uniquement ce que l'établissement a saisi.",
 
     "discipline.fab.addEvent": "Ajouter un événement de discipline",
@@ -901,9 +900,9 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Aucun événement n'a encore été saisi pour cette classe.",
     "discipline.empty.chooseStudent.title": "Choisissez un élève",
     "discipline.empty.chooseStudentClass.message":
-      "La synthèse vie scolaire apparaît ici après sélection d'un élève de la classe.",
+      "La synthèse discipline apparaît ici après sélection d'un élève de la classe.",
     "discipline.empty.chooseStudentGlobal.message":
-      "La synthèse vie scolaire apparaît ici après sélection d'un élève.",
+      "La synthèse discipline apparaît ici après sélection d'un élève.",
     "discipline.empty.searchStudent.title": "Recherchez un élève",
     "discipline.empty.searchStudent.message":
       "Saisissez un nom pour chercher dans toutes les classes, ou sélectionnez d'abord une classe.",
@@ -934,7 +933,7 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Parcourez et filtrez l'historique du plus récent au plus ancien.",
     "discipline.sections.booklets.title": "Carnets",
     "discipline.sections.booklets.subtitle":
-      "Sélectionnez un élève pour afficher sa synthèse vie scolaire.",
+      "Sélectionnez un élève pour afficher sa synthèse discipline.",
     "discipline.sections.searchStudents.title": "Rechercher un élève",
     "discipline.sections.searchStudents.subtitle":
       "Filtrez par classe ou saisissez un nom pour chercher dans toutes les classes.",
@@ -986,7 +985,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.adminTabs.students": "Élèves",
     "discipline.adminTabs.byClass": "Par classe",
 
-    "discipline.parent.title": "Vie scolaire",
+    "discipline.parent.title": "Discipline",
     "discipline.parent.empty.absencesRetards.title": "Aucune absence ni retard",
     "discipline.parent.empty.absencesRetards.message":
       "Aucune absence ou retard n'a été enregistré sur l'année en cours.",
@@ -3264,7 +3263,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.parent.help.close": "Fermer",
     "home.parent.help.section1Title": "Vos enfants",
     "home.parent.help.section1Body":
-      "Chaque enfant scolarisé sous votre compte apparaît sous forme de carte, avec son nom et sa classe. Le badge à côté du titre indique le nombre total d'enfants rattachés à votre compte. Touchez la carte d'un enfant pour ouvrir son espace personnel (emploi du temps, notes, devoirs, vie scolaire, fil de classe...).",
+      "Chaque enfant scolarisé sous votre compte apparaît sous forme de carte, avec son nom et sa classe. Le badge à côté du titre indique le nombre total d'enfants rattachés à votre compte. Touchez la carte d'un enfant pour ouvrir son espace personnel (emploi du temps, notes, devoirs, discipline, fil de classe...).",
     "home.parent.help.section2Title": "Accès rapides",
     "home.parent.help.section2Body":
       "Ces quatre raccourcis mènent directement aux rubriques les plus consultées, sans passer par le menu de navigation : « Fil d'actualité » (publications de l'école et des classes), « Finances » (frais de scolarité et paiements), « Messagerie » (échanges avec l'établissement — un badge rouge indique le nombre de messages non lus) et « Documents » (fichiers partagés par l'école).",
@@ -4433,14 +4432,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.schoolSettings.step3Title": "Help is always available",
     "onboardingTour.schoolSettings.step3Body":
       'Tap this button at any time, then "Help" in the menu, to see a reminder of how to use this page.',
-    "onboardingTour.vieScolaire.step1Title": "Three tabs",
-    "onboardingTour.vieScolaire.step1Body":
+    "onboardingTour.disciplineSelf.step1Title": "Three tabs",
+    "onboardingTour.disciplineSelf.step1Body":
       "Tap a tab to switch between the summary, absences and lateness, then sanctions and punishments.",
-    "onboardingTour.vieScolaire.step2Title": "Filter by indicator",
-    "onboardingTour.vieScolaire.step2Body":
+    "onboardingTour.disciplineSelf.step2Title": "Filter by indicator",
+    "onboardingTour.disciplineSelf.step2Body":
       "Tap a card (absences, lateness, sanctions, punishments) to filter the recent events list to that type.",
-    "onboardingTour.vieScolaire.step3Title": "Help is always available",
-    "onboardingTour.vieScolaire.step3Body":
+    "onboardingTour.disciplineSelf.step3Title": "Help is always available",
+    "onboardingTour.disciplineSelf.step3Body":
       'Tap this button at any time, then "Help" in the menu, to see these explanations again.',
     "onboardingTour.homework.step1Title": "Two ways to see your homework",
     "onboardingTour.homework.step1Body":
@@ -4462,7 +4461,7 @@ export const translations: Record<Locale, Record<string, string>> = {
       "In this menu, this entry opens your parent messaging, where all your exchanges with the school live.",
     "onboardingTour.parentLanding.step3Title": "Your child's space",
     "onboardingTour.parentLanding.step3Body":
-      "Tap your child's name to expand their space: grades, timetable, school life and more.",
+      "Tap your child's name to expand their space: grades, timetable, discipline and more.",
     "onboardingTour.parentLanding.step4Title": "Your account settings",
     "onboardingTour.parentLanding.step4Body":
       "This icon opens your account settings: contact details, security and preferences.",
@@ -4814,7 +4813,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     "discipline.summary.allGoodTitle": "All good!",
     "discipline.summary.allGoodSubtitle":
-      "No school life event recorded for the current year.",
+      "No discipline event recorded for the current year.",
     "discipline.summary.currentYear": "This school year",
     "discipline.summary.showAll": "Show all",
     "discipline.summary.noEventsOfType": "No events of this type.",
@@ -4880,28 +4879,27 @@ export const translations: Record<Locale, Record<string, string>> = {
       "The event has been removed from the discipline module.",
 
     "discipline.header.discipline": "Discipline",
-    "discipline.header.vieScolaire": "School life",
     "discipline.header.student": "Student",
 
-    "discipline.vieScolaire.help.menuLabel": "Help",
-    "discipline.vieScolaire.help.close": "Close",
-    "discipline.vieScolaire.help.synthese.title": "School life — Summary",
-    "discipline.vieScolaire.help.synthese.section1Title": "The year's counters",
-    "discipline.vieScolaire.help.synthese.section1Body":
+    "discipline.disciplineSelf.help.menuLabel": "Help",
+    "discipline.disciplineSelf.help.close": "Close",
+    "discipline.disciplineSelf.help.synthese.title": "Discipline — Summary",
+    "discipline.disciplineSelf.help.synthese.section1Title": "The year's counters",
+    "discipline.disciplineSelf.help.synthese.section1Body":
       "The cards at the top of the screen total, since the start of the school year, the number of absences, lateness, sanctions and punishments. These numbers update automatically as soon as a new event is recorded by the school — you don't need to do anything to refresh them.",
-    "discipline.vieScolaire.help.synthese.section2Title":
+    "discipline.disciplineSelf.help.synthese.section2Title":
       "Filtering recent events",
-    "discipline.vieScolaire.help.synthese.section2Body":
+    "discipline.disciplineSelf.help.synthese.section2Body":
       'Tap a card (absences, lateness, sanctions or punishments) to only show, in the "Recent events" list just below, events of that type — useful to quickly check, for example, whether a lateness reported verbally was actually recorded. Tap the same card again (or "Show all") to go back to the full unfiltered list.',
-    "discipline.vieScolaire.help.absences.title": "School life — Absences",
-    "discipline.vieScolaire.help.absences.section1Title":
+    "discipline.disciplineSelf.help.absences.title": "Discipline — Absences",
+    "discipline.disciplineSelf.help.absences.section1Title":
       "The full history of absences and lateness",
-    "discipline.vieScolaire.help.absences.section1Body":
+    "discipline.disciplineSelf.help.absences.section1Body":
       "This tab lists, most recent first, every absence and lateness recorded by the school, with its date and its reason if the school specified one. This list is read-only: it reflects what the school entered and cannot be edited from the app.",
-    "discipline.vieScolaire.help.sanctions.title": "School life — Sanctions",
-    "discipline.vieScolaire.help.sanctions.section1Title":
+    "discipline.disciplineSelf.help.sanctions.title": "Discipline — Sanctions",
+    "discipline.disciplineSelf.help.sanctions.section1Title":
       "The full history of sanctions and punishments",
-    "discipline.vieScolaire.help.sanctions.section1Body":
+    "discipline.disciplineSelf.help.sanctions.section1Body":
       "This tab lists, most recent first, every sanction and punishment recorded by the school, with its date and its reason. Like the Absences tab, this list is read-only and only reflects what the school entered.",
 
     "discipline.fab.addEvent": "Add a discipline event",
@@ -4914,9 +4912,9 @@ export const translations: Record<Locale, Record<string, string>> = {
       "No events have been recorded for this class yet.",
     "discipline.empty.chooseStudent.title": "Choose a student",
     "discipline.empty.chooseStudentClass.message":
-      "The school life summary appears here once a student in the class is selected.",
+      "The discipline summary appears here once a student in the class is selected.",
     "discipline.empty.chooseStudentGlobal.message":
-      "The school life summary appears here once a student is selected.",
+      "The discipline summary appears here once a student is selected.",
     "discipline.empty.searchStudent.title": "Search for a student",
     "discipline.empty.searchStudent.message":
       "Type a name to search across all classes, or select a class first.",
@@ -4946,7 +4944,7 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Browse and filter the history from most recent to oldest.",
     "discipline.sections.booklets.title": "Records",
     "discipline.sections.booklets.subtitle":
-      "Select a student to view their school life summary.",
+      "Select a student to view their discipline summary.",
     "discipline.sections.searchStudents.title": "Search for a student",
     "discipline.sections.searchStudents.subtitle":
       "Filter by class or type a name to search across all classes.",
@@ -4994,7 +4992,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.adminTabs.students": "Students",
     "discipline.adminTabs.byClass": "By class",
 
-    "discipline.parent.title": "School life",
+    "discipline.parent.title": "Discipline",
     "discipline.parent.empty.absencesRetards.title": "No absences or lateness",
     "discipline.parent.empty.absencesRetards.message":
       "No absence or lateness has been recorded for the current year.",
@@ -7196,7 +7194,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.parent.help.close": "Close",
     "home.parent.help.section1Title": "Your children",
     "home.parent.help.section1Body":
-      "Every child enrolled under your account appears as a card, with their name and class. The badge next to the title shows the total number of children linked to your account. Tap a child's card to open their personal space (timetable, grades, homework, school life, class feed...).",
+      "Every child enrolled under your account appears as a card, with their name and class. The badge next to the title shows the total number of children linked to your account. Tap a child's card to open their personal space (timetable, grades, homework, discipline, class feed...).",
     "home.parent.help.section2Title": "Quick access",
     "home.parent.help.section2Body":
       'These four shortcuts take you straight to the most visited sections without going through the navigation menu: "News feed" (school and class posts), "Finance" (tuition fees and payments), "Messaging" (conversations with the school — a red badge shows the number of unread messages) and "Documents" (files shared by the school).',

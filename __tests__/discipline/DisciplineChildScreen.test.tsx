@@ -5,7 +5,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
-import VieScolaireScreen from "../../app/(home)/vie-scolaire/[childId]";
+import DisciplineChildScreen from "../../app/(home)/discipline/[childId]";
 import { disciplineApi } from "../../src/api/discipline.api";
 import { badgesApi } from "../../src/api/badges.api";
 import { useDisciplineStore } from "../../src/store/discipline.store";
@@ -27,7 +27,7 @@ jest.mock("../../src/store/auth.store", () => ({ useAuthStore: jest.fn() }));
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: mockBack, push: mockPush }),
   useLocalSearchParams: () => ({ childId: "child-1" }),
-  usePathname: () => "/(home)/vie-scolaire/[childId]",
+  usePathname: () => "/(home)/discipline/[childId]",
   useFocusEffect: (callback: () => void) => {
     const { useEffect } = require("react");
     useEffect(() => {
@@ -104,13 +104,13 @@ beforeEach(() => {
   useBadgesStore.getState().clear();
 });
 
-describe("VieScolaireScreen", () => {
+describe("DisciplineChildScreen", () => {
   it("charge les donnees et affiche le nom de l'enfant", async () => {
     api.list.mockResolvedValueOnce([makeLifeEvent({ studentId: "child-1" })]);
 
-    render(<VieScolaireScreen />);
+    render(<DisciplineChildScreen />);
 
-    expect(screen.getByText("Vie scolaire")).toBeOnTheScreen();
+    expect(screen.getByText("Discipline")).toBeOnTheScreen();
     expect(screen.getByText("Ntamack Remi")).toBeOnTheScreen();
 
     await waitFor(() => {
@@ -140,7 +140,7 @@ describe("VieScolaireScreen", () => {
       },
     });
 
-    render(<VieScolaireScreen />);
+    render(<DisciplineChildScreen />);
 
     expect(screen.getByTestId("unjustified-banner")).toBeOnTheScreen();
   });
@@ -150,9 +150,9 @@ describe("VieScolaireScreen", () => {
       eventsMap: { "child-1": [makeLifeEvent({ studentId: "child-1" })] },
     });
 
-    render(<VieScolaireScreen />);
+    render(<DisciplineChildScreen />);
 
-    expect(screen.getByTestId("vie-scolaire-header")).toHaveStyle({
+    expect(screen.getByTestId("discipline-self-header")).toHaveStyle({
       backgroundColor: "#08467D",
       paddingHorizontal: 20,
     });
@@ -166,7 +166,7 @@ describe("VieScolaireScreen", () => {
       eventsMap: { "child-1": [makeLifeEvent({ studentId: "child-1" })] },
     });
 
-    render(<VieScolaireScreen />);
+    render(<DisciplineChildScreen />);
 
     fireEvent.press(screen.getByTestId("btn-back"));
 
@@ -181,19 +181,19 @@ describe("VieScolaireScreen", () => {
       eventsMap: { "child-1": [makeLifeEvent({ studentId: "child-1" })] },
     });
 
-    render(<VieScolaireScreen />);
+    render(<DisciplineChildScreen />);
 
     fireEvent.press(screen.getByTestId("module-header-menu"));
-    expect(screen.getByTestId("vie-scolaire-help-menu-item")).toBeTruthy();
+    expect(screen.getByTestId("discipline-self-help-menu-item")).toBeTruthy();
 
-    fireEvent.press(screen.getByTestId("vie-scolaire-help-menu-item"));
+    fireEvent.press(screen.getByTestId("discipline-self-help-menu-item"));
     await waitFor(() =>
-      expect(screen.getByTestId("vie-scolaire-help-modal-title")).toBeTruthy(),
+      expect(screen.getByTestId("discipline-self-help-modal-title")).toBeTruthy(),
     );
 
-    fireEvent.press(screen.getByTestId("vie-scolaire-help-modal-close"));
+    fireEvent.press(screen.getByTestId("discipline-self-help-modal-close"));
     await waitFor(() =>
-      expect(screen.queryByTestId("vie-scolaire-help-modal-title")).toBeNull(),
+      expect(screen.queryByTestId("discipline-self-help-modal-title")).toBeNull(),
     );
   });
 
@@ -203,7 +203,7 @@ describe("VieScolaireScreen", () => {
     );
     useDisciplineStore.setState({ eventsMap: { "child-1": events } });
 
-    render(<VieScolaireScreen />);
+    render(<DisciplineChildScreen />);
 
     // Avant filtre : tous les événements visibles dans la synthèse
     expect(screen.getByTestId("synthese-tab")).toBeOnTheScreen();
@@ -229,7 +229,7 @@ describe("VieScolaireScreen", () => {
     }));
     useDisciplineStore.setState({ eventsMap: { "child-1": events } });
 
-    render(<VieScolaireScreen />);
+    render(<DisciplineChildScreen />);
 
     fireEvent.press(screen.getByTestId("kpi-retards"));
     expect(screen.getByTestId("events-section-title")).toHaveTextContent(
@@ -253,7 +253,7 @@ describe("VieScolaireScreen", () => {
       },
     });
 
-    render(<VieScolaireScreen />);
+    render(<DisciplineChildScreen />);
 
     fireEvent.press(screen.getByTestId("tab-absences"));
     expect(screen.getByTestId("list-absences")).toBeOnTheScreen();
@@ -276,7 +276,7 @@ describe("VieScolaireScreen", () => {
       eventsMap: { "child-1": events },
     });
 
-    render(<VieScolaireScreen />);
+    render(<DisciplineChildScreen />);
 
     fireEvent.press(screen.getByTestId("tab-absences"));
 
@@ -296,7 +296,7 @@ describe("VieScolaireScreen", () => {
   it("affiche l'etat vide sur la synthese sans evenement", () => {
     useDisciplineStore.setState({ eventsMap: { "child-1": [] } });
 
-    render(<VieScolaireScreen />);
+    render(<DisciplineChildScreen />);
 
     expect(screen.getByTestId("synthese-empty")).toBeOnTheScreen();
   });
@@ -308,7 +308,7 @@ describe("VieScolaireScreen", () => {
       eventsMap: { "child-1": [makeLifeEvent({ studentId: "child-1" })] },
     });
 
-    render(<VieScolaireScreen />);
+    render(<DisciplineChildScreen />);
 
     await waitFor(() => {
       expect(mockBadgesApi.markRead).toHaveBeenCalledWith(
@@ -324,7 +324,7 @@ describe("VieScolaireScreen", () => {
       eventsMap: { "child-1": [makeLifeEvent({ studentId: "child-1" })] },
     });
 
-    render(<VieScolaireScreen />);
+    render(<DisciplineChildScreen />);
 
     await waitFor(() => {
       expect(mockBadgesApi.getUnreadSummary).toHaveBeenCalledWith(
@@ -339,7 +339,7 @@ describe("VieScolaireScreen", () => {
       eventsMap: { "child-1": [makeLifeEvent({ studentId: "child-1" })] },
     });
 
-    render(<VieScolaireScreen />);
+    render(<DisciplineChildScreen />);
 
     expect(mockBadgesApi.markRead).not.toHaveBeenCalled();
   });
@@ -347,7 +347,7 @@ describe("VieScolaireScreen", () => {
   it("affiche une erreur de chargement et permet de reessayer", async () => {
     api.list.mockRejectedValueOnce(new Error("DOWN")).mockResolvedValueOnce([]);
 
-    render(<VieScolaireScreen />);
+    render(<DisciplineChildScreen />);
 
     await waitFor(() => {
       expect(screen.getByTestId("load-error")).toBeOnTheScreen();

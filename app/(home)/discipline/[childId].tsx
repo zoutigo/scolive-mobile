@@ -4,17 +4,17 @@ import { useTranslation } from "../../../src/i18n/useTranslation";
 import { useFamilyStore } from "../../../src/store/family.store";
 import { buildChildHomeTarget } from "../../../src/components/navigation/nav-config";
 import { AppShell } from "../../../src/components/navigation/AppShell";
-import { StudentLifeScreen } from "../../../src/components/discipline/StudentLifeScreen";
+import { DisciplineSelfScreen } from "../../../src/components/discipline/DisciplineSelfScreen";
 
-export default function VieScolaireScreenRoute() {
+export default function DisciplineChildScreenRoute() {
   return (
     <AppShell showHeader={false}>
-      <VieScolaireChildScreen />
+      <DisciplineChildScreen />
     </AppShell>
   );
 }
 
-function VieScolaireChildScreen() {
+function DisciplineChildScreen() {
   const { t } = useTranslation();
   const { childId } = useLocalSearchParams<{ childId: string }>();
   const router = useRouter();
@@ -39,7 +39,7 @@ function VieScolaireChildScreen() {
   );
 
   return (
-    <StudentLifeScreen
+    <DisciplineSelfScreen
       studentId={childId}
       studentLabel={studentLabel}
       onBack={() => router.push(buildChildHomeTarget(childId) as never)}

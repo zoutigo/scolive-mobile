@@ -1,6 +1,6 @@
 /**
- * Vérifie la route self /vie-scolaire/me (rôle STUDENT) : résolution de
- * l'identité via useSelfStudentContext, rendu du StudentLifeScreen partagé
+ * Vérifie la route self /discipline/me (rôle STUDENT) : résolution de
+ * l'identité via useSelfStudentContext, rendu du DisciplineSelfScreen partagé
  * avec le parent, retour vers l'accueil (pas vers un accueil d'enfant).
  */
 import React from "react";
@@ -10,7 +10,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
-import VieScolaireMeScreen from "../../app/(home)/vie-scolaire/me";
+import DisciplineMeScreen from "../../app/(home)/discipline/me";
 import { disciplineApi } from "../../src/api/discipline.api";
 import { badgesApi } from "../../src/api/badges.api";
 import { timetableApi } from "../../src/api/timetable.api";
@@ -37,7 +37,7 @@ jest.mock("../../src/store/auth.store", () => ({
 }));
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
-  usePathname: () => "/(home)/vie-scolaire/me",
+  usePathname: () => "/(home)/discipline/me",
   useFocusEffect: (callback: () => void) => {
     const { useEffect } = require("react");
     useEffect(() => {
@@ -97,13 +97,13 @@ beforeEach(() => {
   useBadgesStore.getState().clear();
 });
 
-describe("VieScolaireMeScreen (self, rôle élève)", () => {
+describe("DisciplineMeScreen (self, rôle élève)", () => {
   it("résout sa propre identité puis charge ses propres événements", async () => {
     api.list.mockResolvedValueOnce([makeLifeEvent({ studentId: "self-1" })]);
 
-    render(<VieScolaireMeScreen />);
+    render(<DisciplineMeScreen />);
 
-    expect(screen.getByTestId("vie-scolaire-me-loading")).toBeOnTheScreen();
+    expect(screen.getByTestId("discipline-me-loading")).toBeOnTheScreen();
 
     await waitFor(() => {
       expect(screen.getByText(/Lisa Mbele/)).toBeOnTheScreen();
@@ -118,7 +118,7 @@ describe("VieScolaireMeScreen (self, rôle élève)", () => {
   });
 
   it("revient à l'accueil (pas à l'accueil d'un enfant) via le bouton retour", async () => {
-    render(<VieScolaireMeScreen />);
+    render(<DisciplineMeScreen />);
 
     await waitFor(() => {
       expect(screen.getByTestId("btn-back")).toBeOnTheScreen();
@@ -129,27 +129,27 @@ describe("VieScolaireMeScreen (self, rôle élève)", () => {
   });
 
   it("ouvre et ferme la modale d'aide depuis le menu du header (vue élève)", async () => {
-    render(<VieScolaireMeScreen />);
+    render(<DisciplineMeScreen />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("vie-scolaire-header")).toBeOnTheScreen();
+      expect(screen.getByTestId("discipline-self-header")).toBeOnTheScreen();
     });
 
     // La modale n'est pas visible par défaut.
-    expect(screen.queryByTestId("vie-scolaire-help-modal-title")).toBeNull();
+    expect(screen.queryByTestId("discipline-self-help-modal-title")).toBeNull();
 
     fireEvent.press(screen.getByTestId("module-header-menu"));
-    fireEvent.press(screen.getByTestId("vie-scolaire-help-menu-item"));
+    fireEvent.press(screen.getByTestId("discipline-self-help-menu-item"));
 
     expect(
-      screen.getByTestId("vie-scolaire-help-modal-title"),
-    ).toHaveTextContent("Vie scolaire — Synthèse");
+      screen.getByTestId("discipline-self-help-modal-title"),
+    ).toHaveTextContent("Discipline — Synthèse");
     expect(screen.getByText("Les compteurs de l'année")).toBeOnTheScreen();
     expect(
       screen.getByText("Filtrer les événements récents"),
     ).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByTestId("vie-scolaire-help-modal-close"));
-    expect(screen.queryByTestId("vie-scolaire-help-modal-title")).toBeNull();
+    fireEvent.press(screen.getByTestId("discipline-self-help-modal-close"));
+    expect(screen.queryByTestId("discipline-self-help-modal-title")).toBeNull();
   });
 });

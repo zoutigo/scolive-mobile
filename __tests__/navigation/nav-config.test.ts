@@ -595,7 +595,7 @@ describe("STUDENT_NAV — parité avec la vue parent (hors Santé)", () => {
       "/notes/me",
       "/homework/me",
       "/timetable/me",
-      "/vie-scolaire/me",
+      "/discipline/me",
       "/vie-de-classe/me",
       "/resources",
       "/messages",

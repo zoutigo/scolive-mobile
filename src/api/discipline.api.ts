@@ -23,7 +23,7 @@ function buildQuery(params: ListLifeEventsParams): string {
 
 export const disciplineApi = {
   /**
-   * Récupère les événements de vie scolaire d'un élève.
+   * Récupère les événements de discipline d'un élève.
    * Accessible aux parents (lecture seule) et aux rôles staff/teacher.
    */
   async list(
@@ -40,7 +40,7 @@ export const disciplineApi = {
   },
 
   /**
-   * Crée un événement de vie scolaire.
+   * Crée un événement de discipline.
    * Réservé aux rôles teacher / school_admin / school_manager / supervisor.
    */
   async create(
