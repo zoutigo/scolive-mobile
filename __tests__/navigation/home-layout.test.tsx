@@ -269,6 +269,78 @@ describe("HomeLayout — régression MaxUpdateDepth (logout depuis écran imbriq
  * Stack (mocké avec testID "mock-stack") reste présent au moment précis où
  * dismissTo() est appelé, pas seulement avant.
  */
+// ─── Tests de régression — dismissTo silencieusement no-op (session restaurée) ─
+
+/**
+ * Reproduction confirmée sur émulateur Android (2026-08-27) : après une
+ * session laissée ouverte toute une nuit, l'OS tue le process en arrière-plan
+ * puis restaure l'app le lendemain directement sur un écran profond de
+ * `(home)`. Dans ce cas, l'écran "/" n'a jamais été monté dans cette
+ * instance JS : `dismissTo("/")` ne trouve rien à dépiler et ne fait rien
+ * silencieusement (aucune erreur, aucune navigation). L'inspection native a
+ * confirmé le Stack de ce layout resté monté indéfiniment, avec l'overlay
+ * `home-layout-redirecting` figé par-dessus — écran blanc figé.
+ *
+ * Le filet de sécurité déclenche `router.replace("/")` si l'overlay est
+ * toujours affiché après un court délai, ce qui fonctionne même sans
+ * historique préexistant.
+ */
+describe("HomeLayout — régression dismissTo no-op (session restaurée après kill OS)", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("force router.replace('/') si dismissTo n'a pas fait disparaître l'écran après le délai", () => {
+    setAuthState({ isAuthenticated: false, isLoading: false });
+    render(<HomeLayout />);
+
+    expect(mockDismissTo).toHaveBeenCalledTimes(1);
+    expect(mockReplace).not.toHaveBeenCalled();
+
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+
+    expect(mockReplace).toHaveBeenCalledWith("/");
+  });
+
+  it("n'appelle pas router.replace si l'authentification revient avant le délai", () => {
+    setAuthState({ isAuthenticated: false, isLoading: false });
+    const { rerender } = render(<HomeLayout />);
+    expect(mockDismissTo).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      setAuthState({ isAuthenticated: true, isLoading: false });
+      rerender(<HomeLayout />);
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it("n'appelle pas router.replace si le composant est démonté avant le délai (dismissTo a réussi)", () => {
+    setAuthState({ isAuthenticated: false, isLoading: false });
+    const { unmount } = render(<HomeLayout />);
+    expect(mockDismissTo).toHaveBeenCalledTimes(1);
+
+    unmount();
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+});
+
 describe("HomeLayout — régression POP_TO_TOP non géré (Stack démonté avant dismissTo)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
