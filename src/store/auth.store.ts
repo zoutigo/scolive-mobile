@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { router } from "expo-router";
 import { registerSessionExpiredHandler } from "../auth/session-events";
 import { accountApi } from "../api/account.api";
 import { authApi } from "../api/auth.api";
@@ -19,6 +20,26 @@ function applyAccountLocale(user: AuthUser | null | undefined): void {
   useLocaleStore
     .getState()
     .setLocale(user.preferredLocale === "EN" ? "en" : "fr");
+}
+
+// Point d'entrée unique pour revenir à "/" après logout/expiration de session.
+// Appelé ici, imperativement, plutôt que via un effet réactif sur
+// isAuthenticated dans chaque layout : un logout déclenché depuis un écran
+// profond (ex. /account, /classes/[id]/discipline) laissait auparavant
+// plusieurs layouts (racine + (home) imbriqué) réagir chacun de leur côté au
+// même changement d'état, avec des courses qui bloquaient l'app sur un écran
+// blanc (cf. historique de app/(home)/_layout.tsx). `router` est le même
+// singleton déjà utilisé après login (app/login.tsx) pour revenir à "/" :
+// un href absolu se résout toujours au niveau de la racine, quelle que soit
+// la profondeur de navigation au moment de l'appel.
+function redirectToRoot(): void {
+  try {
+    router.replace("/");
+  } catch {
+    // Le root layout n'est pas encore monté (ex. logout appelé avant le
+    // premier rendu) : rien à faire, l'état isAuthenticated=false suffira
+    // au premier rendu de app/index.tsx à afficher LoginScreen.
+  }
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -195,6 +216,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       isLoading: false,
       authErrorMessage: null,
     });
+    redirectToRoot();
     await unregisterPushRegistration(currentSchoolSlug).catch(() => {});
     await authApi.logout().catch(() => {});
   },
@@ -210,6 +232,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       authErrorMessage:
         message?.trim() || "Votre session a expire. Veuillez vous reconnecter.",
     });
+    redirectToRoot();
   },
 
   clearAuthError: () => set({ authErrorMessage: null }),

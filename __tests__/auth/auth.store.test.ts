@@ -26,6 +26,15 @@ jest.mock("../../src/api/client", () => ({
   BASE_URL: "http://localhost:3001/api",
 }));
 
+jest.mock("expo-router", () => ({
+  router: { replace: jest.fn() },
+}));
+
+const { router: mockRouter } = require("expo-router") as {
+  router: { replace: jest.Mock };
+};
+const mockRouterReplace = mockRouter.replace;
+
 const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
 const mockAccountApi = accountApi as jest.Mocked<typeof accountApi>;
 const mockStorage = tokenStorage as jest.Mocked<typeof tokenStorage>;
@@ -413,6 +422,12 @@ describe("auth.store — logout", () => {
     expect(state.accessToken).toBeNull();
     expect(state.schoolSlug).toBeNull();
     expect(mockAuthApi.logout).toHaveBeenCalled();
+    // Redirection vers "/" déclenchée une seule fois, imperativement, par
+    // logout() lui-même — pas de dépendance sur un effet réactif ailleurs
+    // (voir src/store/auth.store.ts#redirectToRoot et l'historique de bug
+    // d'écran blanc au logout dans __tests__/integration/logout-redirect.integration.test.tsx).
+    expect(mockRouterReplace).toHaveBeenCalledTimes(1);
+    expect(mockRouterReplace).toHaveBeenCalledWith("/");
   });
 
   it("désauthentifie immédiatement sans attendre la fin du logout API", async () => {
@@ -440,6 +455,8 @@ describe("auth.store — logout", () => {
     expect(stateWhileApiPending.accessToken).toBeNull();
     expect(stateWhileApiPending.schoolSlug).toBeNull();
     expect(stateWhileApiPending.isLoading).toBe(false);
+    expect(mockRouterReplace).toHaveBeenCalledTimes(1);
+    expect(mockRouterReplace).toHaveBeenCalledWith("/");
 
     await act(async () => {
       await Promise.resolve();
@@ -481,5 +498,7 @@ describe("auth.store — logout", () => {
     expect(state.authErrorMessage).toBe(
       "Votre session a expiré. Veuillez vous reconnecter.",
     );
+    expect(mockRouterReplace).toHaveBeenCalledTimes(1);
+    expect(mockRouterReplace).toHaveBeenCalledWith("/");
   });
 });

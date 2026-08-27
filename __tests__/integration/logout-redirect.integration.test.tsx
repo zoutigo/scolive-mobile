@@ -1,23 +1,24 @@
 /**
  * Tests d'intégration — HomeLayout + store auth réel
  *
- * Ces tests vérifient que la correction du bug "Maximum update depth exceeded"
- * tient quand le vrai store Zustand est utilisé (pas de mock de useAuthStore).
+ * Historique du bug (reproduit manuellement sur émulateur Android) : lors de
+ * la déconnexion depuis un écran (home)/* imbriqué (ex. /account avec le
+ * sélecteur de rôle ouvert), la redirection vers "/" était pilotée par un
+ * effect réactif dans HomeLayout (d'abord `router.dismissAll()`, puis
+ * `router.dismissTo("/")` + un filet de sécurité `setTimeout` → `replace`).
+ * Ce montage à plusieurs acteurs réagissant chacun au changement de
+ * `isAuthenticated` (HomeLayout + app/index.tsx) restait sujet à des courses
+ * qui gelaient l'app sur un écran blanc, y compris après ces deux correctifs
+ * successifs.
  *
- * Scénario du bug (reproduit manuellement sur émulateur Android) : lors de la
- * déconnexion depuis un écran (home)/* imbriqué (ex. /account avec le
- * sélecteur de rôle ouvert), HomeLayout rendait <Redirect href="/" />
- * déclarativement à chaque render dès que isAuthenticated passait à false.
- * Au même moment, app/index.tsx réagit au même changement de store en
- * basculant HomeScreen -> LoginScreen. Les deux écrans "/" concurrents (celui
- * déjà présent dans la pile de navigation + celui recréé par le Redirect)
- * faisaient boucler React Navigation ("Maximum update depth exceeded"),
- * gelant l'app sur un écran blanc — logout "qui ne fait rien".
- *
- * Le correctif remplace le <Redirect> déclaratif par un unique appel
- * `router.dismissTo()` déclenché dans un effect gardé par un ref (jamais
- * plus d'une fois par transition), qui dépile jusqu'à l'écran "/" déjà
- * existant au lieu d'en empiler un second.
+ * Le correctif actuel supprime cette réactivité : `useAuthStore.logout()`
+ * et `.invalidateSession()` appellent eux-mêmes, une seule fois et de façon
+ * imperative, `router.replace("/")` (src/store/auth.store.ts#redirectToRoot)
+ * — exactement le même pattern déjà utilisé après un login réussi
+ * (app/login.tsx). HomeLayout n'est plus qu'un simple overlay pendant la
+ * fraction de seconde où `isAuthenticated` est déjà false mais où la
+ * redirection n'a pas encore démonté ce Stack ; il ne déclenche plus aucune
+ * navigation lui-même.
  */
 import React from "react";
 import { act, render, screen } from "@testing-library/react-native";
@@ -27,19 +28,20 @@ import type { AuthUser } from "../../src/types/auth.types";
 
 // ─── Mocks infrastructure ──────────────────────────────────────────────────────
 
-const mockDismissTo = jest.fn();
-const mockReplace = jest.fn();
-
 jest.mock("expo-router", () => ({
   Stack: Object.assign(
     ({ children }: { children?: React.ReactNode }) => <>{children}</>,
     { Screen: () => null },
   ),
-  useRouter: () => ({
-    dismissTo: mockDismissTo,
-    replace: mockReplace,
-  }),
+  router: {
+    replace: jest.fn(),
+  },
 }));
+
+const { router: mockRouter } = require("expo-router") as {
+  router: { replace: jest.Mock };
+};
+const mockReplace = mockRouter.replace;
 
 jest.mock("../../src/notifications/push-registration", () => ({
   syncPushRegistration: jest.fn().mockResolvedValue(undefined),
@@ -113,11 +115,11 @@ beforeEach(() => {
 
 describe("HomeLayout + store auth réel — intégration", () => {
   describe("état initial du store", () => {
-    it("affiche la vue de redirection quand le store est non-authentifié", () => {
+    it("affiche la vue de redirection quand le store est non-authentifié, sans naviguer elle-même", () => {
       render(<HomeLayout />);
 
       expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
-      expect(mockDismissTo).toHaveBeenCalledTimes(1);
+      expect(mockReplace).not.toHaveBeenCalled();
     });
 
     it("rend le spinner quand le store est en chargement", () => {
@@ -127,7 +129,7 @@ describe("HomeLayout + store auth réel — intégration", () => {
 
       expect(screen.getByTestId("home-layout-loading")).toBeOnTheScreen();
       expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
-      expect(mockDismissTo).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
     });
 
     it("rend le Stack navigateur quand le store est authentifié", () => {
@@ -137,14 +139,14 @@ describe("HomeLayout + store auth réel — intégration", () => {
 
       expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
       expect(screen.queryByTestId("home-layout-loading")).toBeNull();
-      expect(mockDismissTo).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
     });
   });
 
   // ── Transition logout via setState direct ──────────────────────────────────
 
-  describe("transition authentifié → déconnecté via setState", () => {
-    it("passe à la vue de redirection après setState sans lever d'erreur", async () => {
+  describe("transition authentifié → déconnecté via setState direct (hors logout())", () => {
+    it("passe à la vue de redirection après setState sans naviguer ni lever d'erreur", async () => {
       useAuthStore.setState(AUTHENTICATED_STATE);
       render(<HomeLayout />);
 
@@ -155,26 +157,16 @@ describe("HomeLayout + store auth réel — intégration", () => {
       });
 
       expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
-      expect(mockDismissTo).toHaveBeenCalledTimes(1);
+      // Un setState direct (pas via logout()/invalidateSession()) ne déclenche
+      // plus aucune navigation : seul le call site imperatif du store le fait.
       expect(mockReplace).not.toHaveBeenCalled();
-    });
-
-    it("ne renvoie jamais l'ancien pattern <Redirect> (testID home-layout-redirect)", async () => {
-      useAuthStore.setState(AUTHENTICATED_STATE);
-      render(<HomeLayout />);
-
-      await act(async () => {
-        useAuthStore.setState(UNAUTHENTICATED_STATE);
-      });
-
-      expect(screen.queryByTestId("home-layout-redirect")).toBeNull();
     });
   });
 
   // ── Transition logout via logout() réel ───────────────────────────────────
 
   describe("transition via logout() du store", () => {
-    it("HomeLayout redirige après logout() sans crash", async () => {
+    it("logout() vide le store, redirige vers / une seule fois, et HomeLayout ne navigue pas lui-même", async () => {
       useAuthStore.setState(AUTHENTICATED_STATE);
       render(<HomeLayout />);
 
@@ -187,25 +179,47 @@ describe("HomeLayout + store auth réel — intégration", () => {
       expect(useAuthStore.getState().isAuthenticated).toBe(false);
       expect(useAuthStore.getState().user).toBeNull();
       expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
-      expect(mockDismissTo).toHaveBeenCalledTimes(1);
+      expect(mockReplace).toHaveBeenCalledTimes(1);
+      expect(mockReplace).toHaveBeenCalledWith("/");
     });
 
-    it("logout() vide le store et HomeLayout n'appelle dismissTo qu'une fois", async () => {
+    it("logout() ne redirige qu'une fois même si le composant re-render plusieurs fois ensuite", async () => {
       useAuthStore.setState(AUTHENTICATED_STATE);
-      render(<HomeLayout />);
+      const { rerender } = render(<HomeLayout />);
 
       await act(async () => {
         await useAuthStore.getState().logout();
       });
 
-      expect(mockDismissTo).toHaveBeenCalledTimes(1);
+      rerender(<HomeLayout />);
+      rerender(<HomeLayout />);
+      rerender(<HomeLayout />);
+
+      expect(mockReplace).toHaveBeenCalledTimes(1);
     });
   });
 
-  // ── Régression — "Maximum update depth exceeded" ───────────────────────────
+  // ── Transition invalidateSession() (expiration de session) ─────────────────
 
-  describe("régression — boucle infinie de rendus (MaxUpdateDepth)", () => {
-    it("des changements d'état rapides successifs ne lèvent pas d'erreur", async () => {
+  describe("transition via invalidateSession() du store", () => {
+    it("invalidateSession() redirige vers / une seule fois", async () => {
+      useAuthStore.setState(AUTHENTICATED_STATE);
+      render(<HomeLayout />);
+
+      await act(async () => {
+        await useAuthStore.getState().invalidateSession("Session expirée");
+      });
+
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
+      expect(mockReplace).toHaveBeenCalledTimes(1);
+      expect(mockReplace).toHaveBeenCalledWith("/");
+    });
+  });
+
+  // ── Régression — pas de re-déclenchement en boucle ──────────────────────────
+
+  describe("régression — pas de navigation en boucle sur des changements d'état répétés", () => {
+    it("des changements d'état rapides successifs (hors logout()) ne lèvent pas d'erreur et ne naviguent jamais", async () => {
       useAuthStore.setState(AUTHENTICATED_STATE);
       render(<HomeLayout />);
 
@@ -218,47 +232,22 @@ describe("HomeLayout + store auth réel — intégration", () => {
         }),
       ).resolves.not.toThrow();
 
-      // Une seule redirection malgré les changements d'état multiples.
-      expect(mockDismissTo).toHaveBeenCalledTimes(1);
+      expect(mockReplace).not.toHaveBeenCalled();
     });
 
-    it("le composant ne redéclenche pas dismissTo après déconnexion", async () => {
-      useAuthStore.setState(AUTHENTICATED_STATE);
-      render(<HomeLayout />);
-
-      await act(async () => {
-        useAuthStore.setState(UNAUTHENTICATED_STATE);
-      });
-      expect(mockDismissTo).toHaveBeenCalledTimes(1);
-
-      // Changements supplémentaires sans changer isAuthenticated (ex. le
-      // ConfirmDialog "session expirée" de app/index.tsx pilote authErrorMessage).
-      await act(async () => {
-        useAuthStore.setState({ authErrorMessage: "test" });
-        useAuthStore.setState({ authErrorMessage: null });
-      });
-
-      // Toujours stable : un seul dismissTo, pas de boucle.
-      expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
-      expect(mockDismissTo).toHaveBeenCalledTimes(1);
-    });
-
-    it("logout depuis un écran imbriqué (isAuthenticated bascule alors qu'un autre re-render est déjà en cours) reste stable", async () => {
-      // Reproduit la condition de course du bug : plusieurs souscripteurs du
-      // store (ici simulés par des setState imbriqués) réagissent au même
-      // instant que HomeLayout au changement d'authentification.
+    it("logout depuis un écran imbriqué (plusieurs re-renders de HomeLayout après coup) reste stable et ne redirige qu'une fois", async () => {
       useAuthStore.setState(AUTHENTICATED_STATE);
       const { rerender } = render(<HomeLayout />);
 
       await act(async () => {
-        useAuthStore.setState(UNAUTHENTICATED_STATE);
+        await useAuthStore.getState().logout();
         rerender(<HomeLayout />);
         rerender(<HomeLayout />);
         rerender(<HomeLayout />);
       });
 
       expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
-      expect(mockDismissTo).toHaveBeenCalledTimes(1);
+      expect(mockReplace).toHaveBeenCalledTimes(1);
     });
   });
 });
