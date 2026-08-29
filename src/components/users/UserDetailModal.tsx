@@ -611,6 +611,7 @@ function StudentSection({
           label="Agenda"
           color={theme.icon}
           onPress={onAgendaPress}
+          disabled={!enrollments[0]?.classId}
           testID="action-student-agenda"
         />
         <ActionButton
@@ -1725,13 +1726,20 @@ export function UserDetailModal({
   }, [user, onClose, router]);
 
   const handleStudentAgenda = useCallback(() => {
-    if (!user) return;
+    // Ne pas réutiliser "/timetable/child/[childId]" (vue "mon enfant" côté
+    // parent) : l'API sous-jacente exige que l'appelant ait lui-même un
+    // lien ParentStudent avec cet élève, ce qui n'est jamais le cas pour un
+    // School Admin consultant la fiche d'un élève — l'écran restait vide
+    // sans erreur visible. On réutilise le même pattern déjà correct que
+    // "Devoirs" (handleStudentDevoirs ci-dessous) : la vue classe, scopée
+    // école/rôle staff, pas parent.
+    if (!user || !detail?.enrollments[0]?.classId) return;
     onClose();
     router.push({
-      pathname: "/(home)/timetable/child/[childId]",
-      params: { childId: resolveStudentId(user) },
+      pathname: "/(home)/timetable/class/[classId]",
+      params: { classId: detail.enrollments[0].classId },
     } as never);
-  }, [user, onClose, router]);
+  }, [user, detail, onClose, router]);
 
   const handleStudentDevoirs = useCallback(() => {
     if (!user || !detail?.enrollments[0]?.classId) return;

@@ -1,42 +1,32 @@
 import React from "react";
-import { act, render, screen } from "@testing-library/react-native";
+import { render, screen } from "@testing-library/react-native";
 import HomeLayout from "../../app/(home)/_layout";
 import { useAuthStore } from "../../src/store/auth.store";
 
 jest.mock("../../src/store/auth.store", () => ({ useAuthStore: jest.fn() }));
 
 /**
- * Reproduction confirmée sur émulateur Android (voir logs de session) :
- * quand HomeLayout redirige via <Redirect href="/" /> (rendu déclaratif à
- * chaque render) pendant qu'on se déconnecte depuis un écran imbriqué comme
- * /account, app/index.tsx réagit au MÊME changement de isAuthenticated en
- * basculant HomeScreen -> LoginScreen. Les deux écrans "/" concurrents
- * (celui déjà dans la pile + celui recréé par le Redirect) font boucler
- * React Navigation -> "Maximum update depth exceeded" -> écran blanc figé.
+ * HomeLayout ne pilote plus aucune navigation (voir
+ * __tests__/integration/logout-redirect.integration.test.tsx pour
+ * l'historique du bug et le correctif). La redirection vers "/" au
+ * logout/expiration de session est déclenchée une seule fois, de façon
+ * imperative, directement dans `useAuthStore.logout()` /
+ * `.invalidateSession()` (src/store/auth.store.ts#redirectToRoot) — jamais
+ * ici.
  *
- * Le correctif déclenche `router.dismissTo("/")` une seule fois par
- * transition (via un ref, jamais au render) pour dépiler jusqu'à l'écran "/"
- * déjà existant au lieu d'en empiler un second. Reproduit puis vérifié
- * corrigé manuellement à plusieurs reprises sur device avant d'écrire ces
- * tests.
+ * Ce fichier vérifie uniquement :
+ * - le rendu pur de HomeLayout en fonction de isLoading
+ * - l'absence totale d'appel `router.*` depuis ce composant, quel que soit
+ *   isAuthenticated ou le nombre de rerenders
  *
- * Régression prod (2026-08-26) : la première version de ce correctif
- * utilisait `router.dismissAll()` (action POP_TO_TOP), qui ne dépile QUE la
- * pile Stack imbriquée de ce layout, jamais la pile racine. Quand la
- * déconnexion est déclenchée depuis l'écran d'accueil lui-même (index de
- * cette pile, donc déjà en position 0), POP_TO_TOP est un no-op — React
- * Navigation ne bubble pas l'action vers le Stack racine. Résultat : l'app
- * reste bloquée indéfiniment sur l'overlay `home-layout-redirecting`
- * ci-dessous, écran blanc figé, jusqu'à ce que l'utilisateur force l'arrêt de
- * l'app depuis les paramètres du téléphone. `dismissTo("/")` traverse les
- * navigateurs imbriqués jusqu'à la route root, y compris dans ce cas.
+ * Il n'affiche plus d'overlay conditionné à isAuthenticated : ce Stack
+ * partage la route "index" avec app/index.tsx (segments de groupe expo-router
+ * invisibles dans l'URL), donc un `router.replace("/")` déclenché depuis un
+ * écran imbriqué peut atterrir ici plutôt qu'à la racine — dans ce cas c'est
+ * app/(home)/index.tsx qui affiche lui-même LoginScreen (voir
+ * __tests__/home/HomeScreen.user-loading.test.tsx). Un overlay opaque ici
+ * masquerait ce repli.
  */
-const mockDismissTo = jest.fn();
-const mockReplace = jest.fn();
-
-// Le mock de Stack rend un wrapper avec testID pour pouvoir vérifier qu'il
-// reste monté pendant l'état de redirection (régression POP_TO_TOP non géré :
-// voir describe "régression POP_TO_TOP" plus bas).
 jest.mock("expo-router", () => {
   const { View: MockView } = jest.requireActual("react-native");
   return {
@@ -46,12 +36,18 @@ jest.mock("expo-router", () => {
       ),
       { Screen: () => null },
     ),
-    useRouter: () => ({
-      dismissTo: mockDismissTo,
-      replace: mockReplace,
-    }),
+    router: {
+      dismissTo: jest.fn(),
+      replace: jest.fn(),
+    },
   };
 });
+
+const { router: mockRouter } = require("expo-router") as {
+  router: { dismissTo: jest.Mock; replace: jest.Mock };
+};
+const mockDismissTo = mockRouter.dismissTo;
+const mockReplace = mockRouter.replace;
 
 const mockUseAuthStore = useAuthStore as jest.MockedFunction<
   typeof useAuthStore
@@ -77,29 +73,20 @@ describe("HomeLayout — tests unitaires", () => {
       expect(screen.getByTestId("home-layout-loading")).toBeOnTheScreen();
     });
 
-    it("ne déclenche pas dismissTo pendant le chargement", () => {
+    it("ne navigue jamais pendant le chargement", () => {
       setAuthState({ isAuthenticated: false, isLoading: true });
       render(<HomeLayout />);
       expect(mockDismissTo).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
     });
   });
 
   describe("isAuthenticated = false, isLoading = false", () => {
-    it("affiche une vue neutre de redirection (pas le Stack navigator)", () => {
+    it("affiche le Stack navigator (pas d'overlay), sans naviguer", () => {
       setAuthState({ isAuthenticated: false, isLoading: false });
       render(<HomeLayout />);
-      expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
-    });
-
-    it("appelle router.dismissTo() exactement une fois", () => {
-      setAuthState({ isAuthenticated: false, isLoading: false });
-      render(<HomeLayout />);
-      expect(mockDismissTo).toHaveBeenCalledTimes(1);
-    });
-
-    it("n'appelle jamais router.replace (empilerait un second écran '/')", () => {
-      setAuthState({ isAuthenticated: false, isLoading: false });
-      render(<HomeLayout />);
+      expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
+      expect(mockDismissTo).not.toHaveBeenCalled();
       expect(mockReplace).not.toHaveBeenCalled();
     });
 
@@ -111,10 +98,10 @@ describe("HomeLayout — tests unitaires", () => {
   });
 
   describe("isAuthenticated = true, isLoading = false", () => {
-    it("n'affiche pas la vue de redirection", () => {
+    it("affiche le Stack navigator", () => {
       setAuthState({ isAuthenticated: true, isLoading: false });
       render(<HomeLayout />);
-      expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
+      expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
     });
 
     it("n'affiche pas le spinner de chargement", () => {
@@ -123,10 +110,11 @@ describe("HomeLayout — tests unitaires", () => {
       expect(screen.queryByTestId("home-layout-loading")).toBeNull();
     });
 
-    it("n'appelle pas dismissTo", () => {
+    it("ne navigue jamais", () => {
       setAuthState({ isAuthenticated: true, isLoading: false });
       render(<HomeLayout />);
       expect(mockDismissTo).not.toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
     });
   });
 });
@@ -138,33 +126,30 @@ describe("HomeLayout — tests fonctionnels", () => {
     jest.clearAllMocks();
   });
 
-  it("passe de Stack à la vue de redirection lors de la déconnexion", () => {
+  it("reste sur le Stack lors de la déconnexion, sans naviguer lui-même", () => {
     setAuthState({ isAuthenticated: true, isLoading: false });
     const { rerender } = render(<HomeLayout />);
 
-    expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
+    expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
 
-    act(() => {
-      setAuthState({ isAuthenticated: false, isLoading: false });
-      rerender(<HomeLayout />);
-    });
+    setAuthState({ isAuthenticated: false, isLoading: false });
+    rerender(<HomeLayout />);
 
-    expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
-    expect(mockDismissTo).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
+    expect(mockDismissTo).not.toHaveBeenCalled();
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 
-  it("passe de spinner à la vue de redirection quand le chargement se termine sans auth", () => {
+  it("passe de spinner à Stack quand le chargement se termine sans auth", () => {
     setAuthState({ isAuthenticated: false, isLoading: true });
     const { rerender } = render(<HomeLayout />);
     expect(screen.getByTestId("home-layout-loading")).toBeOnTheScreen();
 
-    act(() => {
-      setAuthState({ isAuthenticated: false, isLoading: false });
-      rerender(<HomeLayout />);
-    });
+    setAuthState({ isAuthenticated: false, isLoading: false });
+    rerender(<HomeLayout />);
 
     expect(screen.queryByTestId("home-layout-loading")).toBeNull();
-    expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
+    expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
   });
 
   it("passe de spinner à Stack quand le chargement se termine avec auth", () => {
@@ -172,49 +157,23 @@ describe("HomeLayout — tests fonctionnels", () => {
     const { rerender } = render(<HomeLayout />);
     expect(screen.getByTestId("home-layout-loading")).toBeOnTheScreen();
 
-    act(() => {
-      setAuthState({ isAuthenticated: true, isLoading: false });
-      rerender(<HomeLayout />);
-    });
+    setAuthState({ isAuthenticated: true, isLoading: false });
+    rerender(<HomeLayout />);
 
     expect(screen.queryByTestId("home-layout-loading")).toBeNull();
-    expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
+    expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
     expect(mockDismissTo).not.toHaveBeenCalled();
-  });
-
-  it("revient authentifié après une déconnexion sans redéclencher dismissTo", () => {
-    setAuthState({ isAuthenticated: true, isLoading: false });
-    const { rerender } = render(<HomeLayout />);
-
-    act(() => {
-      setAuthState({ isAuthenticated: false, isLoading: false });
-      rerender(<HomeLayout />);
-    });
-    expect(mockDismissTo).toHaveBeenCalledTimes(1);
-
-    act(() => {
-      setAuthState({ isAuthenticated: true, isLoading: false });
-      rerender(<HomeLayout />);
-    });
-    expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
-
-    // Nouvelle déconnexion : le ref doit avoir été réarmé, dismissTo rappelé une fois de plus.
-    act(() => {
-      setAuthState({ isAuthenticated: false, isLoading: false });
-      rerender(<HomeLayout />);
-    });
-    expect(mockDismissTo).toHaveBeenCalledTimes(2);
   });
 });
 
-// ─── Tests de régression — bug "Maximum update depth exceeded" ────────────────
+// ─── Tests de régression — pas de navigation, quel que soit le nombre de rerenders ──
 
-describe("HomeLayout — régression MaxUpdateDepth (logout depuis écran imbriqué)", () => {
+describe("HomeLayout — régression : aucun appel router.* depuis ce composant", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it("plusieurs rerenders successifs en état non-authentifié ne lèvent pas d'erreur", () => {
+  it("plusieurs rerenders successifs en état non-authentifié ne lèvent pas d'erreur ni ne naviguent", () => {
     setAuthState({ isAuthenticated: false, isLoading: false });
 
     expect(() => {
@@ -225,153 +184,27 @@ describe("HomeLayout — régression MaxUpdateDepth (logout depuis écran imbriq
       rerender(<HomeLayout />);
     }).not.toThrow();
 
-    expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
-  });
-
-  it("dismissTo n'est jamais appelé plus d'une fois même sur de nombreux rerenders", () => {
-    setAuthState({ isAuthenticated: false, isLoading: false });
-
-    const { rerender } = render(<HomeLayout />);
-    rerender(<HomeLayout />);
-    rerender(<HomeLayout />);
-    rerender(<HomeLayout />);
-    rerender(<HomeLayout />);
-
-    expect(mockDismissTo).toHaveBeenCalledTimes(1);
-  });
-
-  it("des changements d'état non liés à isAuthenticated ne redéclenchent pas dismissTo", () => {
-    setAuthState({ isAuthenticated: false, isLoading: false });
-    const { rerender } = render(<HomeLayout />);
-    expect(mockDismissTo).toHaveBeenCalledTimes(1);
-
-    // Simule un re-render provoqué par un autre champ du store (ex. authErrorMessage).
-    rerender(<HomeLayout />);
-    rerender(<HomeLayout />);
-
-    expect(mockDismissTo).toHaveBeenCalledTimes(1);
-  });
-});
-
-// ─── Tests de régression — "POP_TO_TOP was not handled by any navigator" ──────
-
-/**
- * Reproduction confirmée sur émulateur Android (capture d'écran LogBox) :
- * l'ancienne version retournait une <View> à la place du <Stack> dès que
- * `isAuthenticated` passait à `false`, démontant le navigateur imbriqué dans
- * le même commit que celui où l'effet allait déclencher `router.dismissTo()`
- * (action POP_TO_TOP). L'action arrivait donc sans navigateur Stack monté
- * pour la recevoir -> avertissement dev "POP_TO_TOP was not handled by any
- * navigator".
- *
- * Le correctif garde le Stack monté pendant toute la redirection ; l'écran de
- * redirection n'est plus qu'un overlay par-dessus. Ces tests vérifient que le
- * Stack (mocké avec testID "mock-stack") reste présent au moment précis où
- * dismissTo() est appelé, pas seulement avant.
- */
-// ─── Tests de régression — dismissTo silencieusement no-op (session restaurée) ─
-
-/**
- * Reproduction confirmée sur émulateur Android (2026-08-27) : après une
- * session laissée ouverte toute une nuit, l'OS tue le process en arrière-plan
- * puis restaure l'app le lendemain directement sur un écran profond de
- * `(home)`. Dans ce cas, l'écran "/" n'a jamais été monté dans cette
- * instance JS : `dismissTo("/")` ne trouve rien à dépiler et ne fait rien
- * silencieusement (aucune erreur, aucune navigation). L'inspection native a
- * confirmé le Stack de ce layout resté monté indéfiniment, avec l'overlay
- * `home-layout-redirecting` figé par-dessus — écran blanc figé.
- *
- * Le filet de sécurité déclenche `router.replace("/")` si l'overlay est
- * toujours affiché après un court délai, ce qui fonctionne même sans
- * historique préexistant.
- */
-describe("HomeLayout — régression dismissTo no-op (session restaurée après kill OS)", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    jest.useFakeTimers();
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  it("force router.replace('/') si dismissTo n'a pas fait disparaître l'écran après le délai", () => {
-    setAuthState({ isAuthenticated: false, isLoading: false });
-    render(<HomeLayout />);
-
-    expect(mockDismissTo).toHaveBeenCalledTimes(1);
-    expect(mockReplace).not.toHaveBeenCalled();
-
-    act(() => {
-      jest.advanceTimersByTime(500);
-    });
-
-    expect(mockReplace).toHaveBeenCalledWith("/");
-  });
-
-  it("n'appelle pas router.replace si l'authentification revient avant le délai", () => {
-    setAuthState({ isAuthenticated: false, isLoading: false });
-    const { rerender } = render(<HomeLayout />);
-    expect(mockDismissTo).toHaveBeenCalledTimes(1);
-
-    act(() => {
-      setAuthState({ isAuthenticated: true, isLoading: false });
-      rerender(<HomeLayout />);
-    });
-
-    act(() => {
-      jest.advanceTimersByTime(1000);
-    });
-
-    expect(mockReplace).not.toHaveBeenCalled();
-  });
-
-  it("n'appelle pas router.replace si le composant est démonté avant le délai (dismissTo a réussi)", () => {
-    setAuthState({ isAuthenticated: false, isLoading: false });
-    const { unmount } = render(<HomeLayout />);
-    expect(mockDismissTo).toHaveBeenCalledTimes(1);
-
-    unmount();
-
-    act(() => {
-      jest.advanceTimersByTime(1000);
-    });
-
+    expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
+    expect(mockDismissTo).not.toHaveBeenCalled();
     expect(mockReplace).not.toHaveBeenCalled();
   });
 });
 
-describe("HomeLayout — régression POP_TO_TOP non géré (Stack démonté avant dismissTo)", () => {
+// ─── Tests de régression — le Stack reste monté quel que soit l'état d'auth ──
+
+describe("HomeLayout — le Stack reste monté quel que soit l'état d'auth (pas d'overlay)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it("garde le Stack monté pendant l'affichage de la vue de redirection", () => {
+  it("garde le Stack monté en état non-authentifié", () => {
     setAuthState({ isAuthenticated: false, isLoading: false });
     render(<HomeLayout />);
 
     expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
-    expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
   });
 
-  it("le Stack est toujours monté lors du passage authentifié -> déconnecté (moment de l'appel dismissTo)", () => {
-    setAuthState({ isAuthenticated: true, isLoading: false });
-    const { rerender } = render(<HomeLayout />);
-    expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
-
-    act(() => {
-      setAuthState({ isAuthenticated: false, isLoading: false });
-      rerender(<HomeLayout />);
-    });
-
-    // dismissTo a bien été appelé, ET le Stack est toujours dans l'arbre au
-    // même render : la régression testée ici est l'inverse (Stack démonté
-    // avant l'appel), ce qui n'est plus le cas.
-    expect(mockDismissTo).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
-  });
-
-  it("le Stack n'est jamais démonté pendant que isAuthenticated reste false sur plusieurs rerenders", () => {
+  it("le Stack n'est jamais démonté sur plusieurs rerenders, quel que soit isAuthenticated", () => {
     setAuthState({ isAuthenticated: false, isLoading: false });
     const { rerender } = render(<HomeLayout />);
 

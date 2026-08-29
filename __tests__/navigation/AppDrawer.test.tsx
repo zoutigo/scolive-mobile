@@ -223,9 +223,7 @@ describe("Items de navigation — établissement", () => {
     "subjects",
     "curriculums",
     "enrollments",
-    "students",
     "teachers",
-    "parents",
     "grades",
     "messages",
   ];

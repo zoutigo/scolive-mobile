@@ -57,6 +57,7 @@ jest.mock("../../src/api/family.api", () => ({
 jest.mock("../../src/api/staff-functions.api", () => ({
   staffFunctionsApi: {
     listStaffFunctions: jest.fn(),
+    createStaffFunction: jest.fn(),
   },
 }));
 const mockShowSuccess = jest.fn();
@@ -863,6 +864,83 @@ describe("SchoolAdminUsersScreen — Création d'utilisateur (FAB)", () => {
       );
     });
     expect(mockShowSuccess).toHaveBeenCalled();
+  });
+
+  // Régression : aucune école n'avait de fonction configurée, laissant le
+  // sélecteur de fonction vide pour tout type de compte staff, sans moyen
+  // d'en créer une depuis mobile (fonctionnalité seulement exposée côté web,
+  // dans Paramètres). Ce test verrouille la création inline.
+  it("permet de créer une fonction à la volée quand aucune n'est encore configurée", async () => {
+    mockStaffFunctionsApi.listStaffFunctions.mockResolvedValueOnce([]);
+    mockStaffFunctionsApi.createStaffFunction.mockResolvedValueOnce({
+      id: "fn-new-1",
+      name: "Bibliothécaire",
+      description: null,
+    });
+    mockUsersApi.createStaffMember.mockResolvedValueOnce({
+      user: { id: "staff-new-1" },
+      userExisted: false,
+      onboardingEmailSent: false,
+      activationRequired: true,
+    });
+    mockUsersApi.get.mockResolvedValueOnce(
+      makeSchoolUserDetail({ ...TEACHER_USER, id: "staff-new-1" }),
+    );
+
+    renderScreen();
+    fireEvent.press(await screen.findByTestId("users-create-fab"));
+    fireEvent.press(
+      await screen.findByTestId("users-create-type-school_staff"),
+    );
+    await screen.findByTestId("users-create-staff-form-content");
+
+    await waitFor(() => {
+      expect(mockStaffFunctionsApi.listStaffFunctions).toHaveBeenCalledWith(
+        "college-vogt",
+      );
+    });
+
+    fireEvent.changeText(
+      screen.getByTestId("users-create-staff-new-function-input"),
+      "Bibliothécaire",
+    );
+    await act(async () => {
+      fireEvent.press(
+        screen.getByTestId("users-create-staff-new-function-submit"),
+      );
+    });
+
+    await waitFor(() => {
+      expect(mockStaffFunctionsApi.createStaffFunction).toHaveBeenCalledWith(
+        "college-vogt",
+        { name: "Bibliothécaire" },
+      );
+    });
+
+    // La fonction créée est désormais sélectionnée dans le dropdown.
+    expect(screen.getByTestId("users-create-staff-function")).toHaveTextContent(
+      "Bibliothécaire",
+    );
+
+    fireEvent.changeText(
+      screen.getByTestId("users-create-staff-phone"),
+      "699001122",
+    );
+    fireEvent.changeText(
+      screen.getByTestId("users-create-staff-pin"),
+      "123456",
+    );
+    fireEvent.press(screen.getByTestId("users-create-staff-submit"));
+
+    await waitFor(() => {
+      expect(mockUsersApi.createStaffMember).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({
+          role: "SCHOOL_STAFF",
+          functionId: "fn-new-1",
+        }),
+      );
+    });
   });
 
   it("revient au sélecteur de type puis à la liste via le bouton retour", async () => {

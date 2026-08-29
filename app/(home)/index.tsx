@@ -10,20 +10,35 @@ import { ParentHome } from "../../src/components/home/ParentHome";
 import { StudentHome } from "../../src/components/home/StudentHome";
 import { colors } from "../../src/theme";
 import { useTranslation } from "../../src/i18n/useTranslation";
+import LoginScreen from "../login";
 
 export default function HomeScreen() {
-  const { user, schoolSlug, logout } = useAuthStore();
+  const { user, schoolSlug, isAuthenticated, logout } = useAuthStore();
   const { t } = useTranslation();
 
   // Si user ne charge pas dans les 8 secondes, on déconnecte proprement.
   // Le logout doit être dans un useEffect — jamais pendant le rendu.
   React.useEffect(() => {
-    if (user) return;
+    if (!isAuthenticated || user) return;
     const timer = setTimeout(() => {
       void logout();
     }, 8000);
     return () => clearTimeout(timer);
-  }, [user, logout]);
+  }, [isAuthenticated, user, logout]);
+
+  // Filet de sécurité : cette route partage le chemin "/" avec app/index.tsx
+  // (les segments de groupe expo-router comme "(home)" sont invisibles dans
+  // l'URL). Quand `router.replace("/")` est appelé depuis un écran imbriqué
+  // profond, React Navigation résout la cible dans LE NAVIGATEUR (home) déjà
+  // actif (son propre "index") plutôt que de remonter jusqu'à app/index.tsx —
+  // cf. historique du bug d'écran blanc au logout dans
+  // src/store/auth.store.ts#redirectToRoot. Sans ce repli, un logout déclenché
+  // depuis un écran imbriqué atterrissait ici avec `user` déjà à `null`,
+  // affichait un spinner sans fin (masqué en plus par l'overlay de
+  // app/(home)/_layout.tsx), sans jamais retomber sur l'écran de connexion.
+  if (!isAuthenticated) {
+    return <LoginScreen />;
+  }
 
   if (!user) {
     return (

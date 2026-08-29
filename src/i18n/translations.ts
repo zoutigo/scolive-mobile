@@ -3740,6 +3740,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.create.field.student.noResults": "Aucun élève trouvé.",
     "users.create.field.function.label": "Fonction (optionnel)",
     "users.create.field.function.placeholder": "Choisir une fonction",
+    "users.create.field.function.newPlaceholder":
+      "Nouvelle fonction (ex. Bibliothécaire)",
+    "users.create.field.function.add": "Ajouter",
+    "users.create.field.function.createError":
+      "Impossible de créer cette fonction. Réessayez.",
     "users.create.submit.TEACHER": "Créer l'enseignant",
     "users.create.submit.STUDENT": "Créer l'élève",
     "users.create.submit.PARENT": "Créer le parent",
@@ -7662,6 +7667,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.create.field.student.noResults": "No student found.",
     "users.create.field.function.label": "Function (optional)",
     "users.create.field.function.placeholder": "Choose a function",
+    "users.create.field.function.newPlaceholder":
+      "New function (e.g. Librarian)",
+    "users.create.field.function.add": "Add",
+    "users.create.field.function.createError":
+      "Could not create this function. Please try again.",
     "users.create.submit.TEACHER": "Create teacher",
     "users.create.submit.STUDENT": "Create student",
     "users.create.submit.PARENT": "Create parent",

@@ -592,6 +592,7 @@ describe("STUDENT_NAV — parité avec la vue parent (hors Santé)", () => {
 
     expect(routes).toEqual([
       "/",
+      "/feed",
       "/notes/me",
       "/homework/me",
       "/timetable/me",
@@ -602,6 +603,18 @@ describe("STUDENT_NAV — parité avec la vue parent (hors Santé)", () => {
       "/placeholder",
       "/account",
     ]);
+  });
+
+  // Régression : le fil d'actualité général ("Fil d'actualité") était
+  // absent du menu élève alors qu'il existe pour tous les autres rôles
+  // (Parent, Enseignant, École) — un élève n'avait donc aucun accès au
+  // fil d'actualité de son école depuis son propre menu principal.
+  it("expose le fil d'actualité général (parité avec PARENT_NAV)", () => {
+    const items = studentItems();
+    const feed = items.find((item) => item.key === "feed");
+
+    expect(feed).toBeDefined();
+    expect(feed?.route).toBe("/feed");
   });
 
   it("n'expose pas de module Santé (exclusion volontaire)", () => {

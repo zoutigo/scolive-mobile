@@ -297,14 +297,12 @@ const SCHOOL_NAV: NavItem[] = [
     route: "/curriculums",
   },
   placeholder("Inscriptions", "person-add-outline", "enrollments"),
-  placeholder("Élèves", "people-outline", "students"),
   {
     key: "teachers",
     label: "Enseignants",
     icon: "school-outline",
     route: "/teachers",
   },
-  placeholder("Parents-Élèves", "people-circle-outline", "parents"),
   {
     key: "promotions",
     label: "Passages de classe",
@@ -437,6 +435,7 @@ const PARENT_NAV: NavItem[] = [
 
 const STUDENT_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
+  feedItem(),
   {
     key: "grades",
     label: "Notes",

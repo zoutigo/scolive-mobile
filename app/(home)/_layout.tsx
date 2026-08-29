@@ -1,68 +1,24 @@
-import { useRouter, Stack } from "expo-router";
-import { useEffect, useRef } from "react";
+import { Stack } from "expo-router";
 import { useAuthStore } from "../../src/store/auth.store";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { colors } from "../../src/theme";
 
 export default function HomeLayout() {
-  const { isAuthenticated, isLoading } = useAuthStore();
-  const router = useRouter();
-  // `router.replace` déclenché une seule fois par transition : le rendre à
-  // chaque re-render (ex. via <Redirect>) entre en conflit avec le swap
-  // HomeScreen/LoginScreen de app/index.tsx sur le même changement de
-  // isAuthenticated (ex. logout depuis un écran imbriqué comme /account) et
-  // provoque un "Maximum update depth exceeded" qui gèle l'app en écran blanc.
-  const hasRedirectedRef = useRef(false);
-  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      hasRedirectedRef.current = false;
-      if (fallbackTimerRef.current) {
-        clearTimeout(fallbackTimerRef.current);
-        fallbackTimerRef.current = null;
-      }
-      return;
-    }
-    if (isLoading || hasRedirectedRef.current) {
-      return;
-    }
-    hasRedirectedRef.current = true;
-    // `dismissTo("/")` dépile jusqu'à l'écran "/" déjà existant dans la pile
-    // racine, quelle que soit la profondeur courante, plutôt que d'en empiler
-    // un second (ce que fait `replace`) : avec deux instances de l'écran "/"
-    // actives, chacune réagissant au même isAuthenticated, React Navigation
-    // entre en boucle de réconciliation.
-    // `dismissAll()` (POP_TO_TOP) a été utilisé ici avant, mais il ne dépile
-    // que la pile Stack imbriquée de ce layout : quand la déconnexion est
-    // déclenchée depuis l'écran d'accueil lui-même (index de cette pile, donc
-    // déjà en position 0), c'est un no-op qui laisse l'app bloquée sur l'
-    // overlay de redirection ci-dessous, écran blanc figé jusqu'au force-stop.
-    // `dismissTo` traverse les navigateurs imbriqués jusqu'à la route root.
-    router.dismissTo("/");
-    // Filet de sécurité (reproduit sur émulateur : session laissée ouverte
-    // une nuit entière, app relancée le lendemain matin directement sur un
-    // écran profond restauré par l'OS après que celui-ci a tué le process en
-    // arrière-plan) : dans ce cas, l'écran "/" n'a jamais été monté dans
-    // cette instance JS, donc `dismissTo("/")` ne trouve rien à dépiler et ne
-    // fait rien silencieusement — le Stack de ce layout reste monté (constaté
-    // via l'inspection native : `home-layout-redirecting` ET
-    // `home-loading-spinner` présents en même temps dans l'arbre), figé en
-    // écran blanc indéfiniment. Si l'overlay est toujours affiché après un
-    // court délai, on force un `replace("/")`, qui fonctionne même sans
-    // historique préexistant.
-    fallbackTimerRef.current = setTimeout(() => {
-      fallbackTimerRef.current = null;
-      router.replace("/");
-    }, 500);
-
-    return () => {
-      if (fallbackTimerRef.current) {
-        clearTimeout(fallbackTimerRef.current);
-        fallbackTimerRef.current = null;
-      }
-    };
-  }, [isAuthenticated, isLoading, router]);
+  const { isLoading } = useAuthStore();
+  // Pas de navigation ici : `useAuthStore.logout()` et `.invalidateSession()`
+  // déclenchent eux-mêmes, une seule fois et de façon imperative,
+  // `router.replace("/")` (voir src/store/auth.store.ts#redirectToRoot).
+  // Avoir un second acteur réactif ici (ex. un useEffect sur
+  // isAuthenticated) recréait une course avec app/index.tsx sur le même
+  // changement d'état — historique d'écrans blancs figés au logout depuis
+  // un écran imbriqué (/account, /classes/[id]/discipline, ...).
+  //
+  // Pas d'overlay "!isAuthenticated" ici non plus : ce Stack partage la
+  // route "index" avec app/index.tsx (segments de groupe invisibles dans
+  // l'URL — cf. app/(home)/index.tsx), donc `router.replace("/")` appelé
+  // depuis un écran imbriqué peut très bien atterrir ici plutôt qu'à la
+  // racine. Un overlay opaque masquerait alors le repli LoginScreen que
+  // app/(home)/index.tsx affiche désormais lui-même dans ce cas.
 
   if (isLoading) {
     return (
@@ -72,144 +28,131 @@ export default function HomeLayout() {
     );
   }
 
-  // Le Stack reste monté pendant la redirection (overlay par-dessus) : le
-  // démonter avant que l'effet ci-dessus déclenche `router.dismissAll()`
-  // (action POP_TO_TOP) laisse cette action sans navigateur pour la
-  // recevoir, d'où l'avertissement "POP_TO_TOP was not handled by any
-  // navigator" observé en dev.
   return (
-    <View style={styles.flexFill}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen
-          name="placeholder"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="messages"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="account"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen name="feed" options={{ animation: "slide_from_right" }} />
-        <Stack.Screen
-          name="agenda/index"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="agenda/slot-create"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="agenda/slot-edit"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="timetable/index"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="timetable/class/[classId]"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="timetable/child/[childId]"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="notes/index"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="notes/class/[classId]"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="notes/child/[childId]"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="children/[childId]/index"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="children/[childId]/vie-de-classe"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="classes/[classId]/feed"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="classes/[classId]/notes"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="classes/[classId]/discipline"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="classes/[classId]/timetable"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="classes/[classId]/homework"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="admin-classes/index"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="admin-classes/[classId]/index"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="salles/index"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="tickets/index"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="tickets/create"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="tickets/[ticketId]"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="tests/index"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="tests/[campaignId]"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="tests/cases/[testCaseId]/index"
-          options={{ animation: "slide_from_right" }}
-        />
-        <Stack.Screen
-          name="tests/cases/[testCaseId]/submit"
-          options={{ animation: "slide_from_right" }}
-        />
-      </Stack>
-      {!isAuthenticated && (
-        <View style={styles.loader} testID="home-layout-redirecting" />
-      )}
-    </View>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen
+        name="placeholder"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="messages"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="account"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen name="feed" options={{ animation: "slide_from_right" }} />
+      <Stack.Screen
+        name="agenda/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="agenda/slot-create"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="agenda/slot-edit"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="timetable/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="timetable/class/[classId]"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="timetable/child/[childId]"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="notes/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="notes/class/[classId]"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="notes/child/[childId]"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="children/[childId]/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="children/[childId]/vie-de-classe"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="classes/[classId]/feed"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="classes/[classId]/notes"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="classes/[classId]/discipline"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="classes/[classId]/timetable"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="classes/[classId]/homework"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="admin-classes/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="admin-classes/[classId]/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="salles/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="tickets/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="tickets/create"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="tickets/[ticketId]"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="tests/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="tests/[campaignId]"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="tests/cases/[testCaseId]/index"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="tests/cases/[testCaseId]/submit"
+        options={{ animation: "slide_from_right" }}
+      />
+    </Stack>
   );
 }
 
 const styles = StyleSheet.create({
-  flexFill: {
-    flex: 1,
-  },
   loader: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: colors.background,
