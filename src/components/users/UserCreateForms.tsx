@@ -628,9 +628,9 @@ export function StaffCreateFormContent(props: {
   const functionId = watch("functionId") ?? "";
   const [newFunctionName, setNewFunctionName] = useState("");
   const [isCreatingFunction, setIsCreatingFunction] = useState(false);
-  const [createFunctionError, setCreateFunctionError] = useState<
-    string | null
-  >(null);
+  const [createFunctionError, setCreateFunctionError] = useState<string | null>(
+    null,
+  );
 
   async function handleCreateFunction() {
     const name = newFunctionName.trim();

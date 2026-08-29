@@ -22,9 +22,7 @@ import type { StaffFunctionOption } from "../../src/api/staff-functions.api";
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
 function renderForm(
-  overrides: Partial<
-    React.ComponentProps<typeof StaffCreateFormContent>
-  > = {},
+  overrides: Partial<React.ComponentProps<typeof StaffCreateFormContent>> = {},
 ) {
   return render(
     <StaffCreateFormContent
@@ -83,9 +81,13 @@ describe("StaffCreateFormContent — création de fonction à la volée", () => 
       expect(onCreateFunction).toHaveBeenCalledWith("Bibliothécaire"),
     );
     expect(
-      (screen.getByTestId("users-create-staff-new-function-input") as never as {
-        props: { value: string };
-      }).props.value,
+      (
+        screen.getByTestId(
+          "users-create-staff-new-function-input",
+        ) as never as {
+          props: { value: string };
+        }
+      ).props.value,
     ).toBe("");
   });
 
