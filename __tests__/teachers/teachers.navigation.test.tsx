@@ -66,15 +66,15 @@ describe("Teachers drawer navigation", () => {
     });
   });
 
-  it("place enseignants entre élèves et parents dans le menu school admin", () => {
+  it("place enseignants entre inscriptions et passages de classe dans le menu school admin", () => {
     const keys = getNavItems(schoolAdminUser).map((item) => item.key);
-    const studentsIndex = keys.indexOf("students");
+    const enrollmentsIndex = keys.indexOf("enrollments");
     const teachersIndex = keys.indexOf("teachers");
-    const parentsIndex = keys.indexOf("parents");
+    const promotionsIndex = keys.indexOf("promotions");
 
-    expect(studentsIndex).toBeGreaterThanOrEqual(0);
-    expect(teachersIndex).toBe(studentsIndex + 1);
-    expect(parentsIndex).toBe(teachersIndex + 1);
+    expect(enrollmentsIndex).toBeGreaterThanOrEqual(0);
+    expect(teachersIndex).toBe(enrollmentsIndex + 1);
+    expect(promotionsIndex).toBe(teachersIndex + 1);
   });
 
   it("navigue vers l'écran enseignants quand on presse l'item du drawer", () => {
