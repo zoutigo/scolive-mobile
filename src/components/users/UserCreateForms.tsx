@@ -597,6 +597,11 @@ export function StaffCreateFormContent(props: {
   isSubmitting?: boolean;
   onCancel: () => void;
   onSubmit: (values: StaffCreateFormValues) => Promise<void> | void;
+  /** Optionnel : permet de créer une fonction à la volée depuis ce
+   * formulaire quand aucune (ou pas la bonne) fonction n'est encore
+   * configurée pour l'école. Retourne la fonction créée pour sélection
+   * immédiate. */
+  onCreateFunction?: (name: string) => Promise<StaffFunctionOption>;
 }) {
   const { t } = useTranslation();
   const {
@@ -621,6 +626,27 @@ export function StaffCreateFormContent(props: {
 
   const mode = watch("mode");
   const functionId = watch("functionId") ?? "";
+  const [newFunctionName, setNewFunctionName] = useState("");
+  const [isCreatingFunction, setIsCreatingFunction] = useState(false);
+  const [createFunctionError, setCreateFunctionError] = useState<
+    string | null
+  >(null);
+
+  async function handleCreateFunction() {
+    const name = newFunctionName.trim();
+    if (!name || !props.onCreateFunction) return;
+    setIsCreatingFunction(true);
+    setCreateFunctionError(null);
+    try {
+      const created = await props.onCreateFunction(name);
+      setValue("functionId", created.id);
+      setNewFunctionName("");
+    } catch {
+      setCreateFunctionError(t("users.create.field.function.createError"));
+    } finally {
+      setIsCreatingFunction(false);
+    }
+  }
 
   return (
     <KeyboardAvoidingView
@@ -654,6 +680,44 @@ export function StaffCreateFormContent(props: {
             placeholder={t("users.create.field.function.placeholder")}
             testID="users-create-staff-function"
           />
+          {props.onCreateFunction ? (
+            <View style={styles.newFunctionRow}>
+              <TextInput
+                style={styles.newFunctionInput}
+                value={newFunctionName}
+                onChangeText={setNewFunctionName}
+                placeholder={t("users.create.field.function.newPlaceholder")}
+                placeholderTextColor={colors.textSecondary}
+                testID="users-create-staff-new-function-input"
+              />
+              <TouchableOpacity
+                style={[
+                  styles.newFunctionButton,
+                  (!newFunctionName.trim() || isCreatingFunction) &&
+                    styles.newFunctionButtonDisabled,
+                ]}
+                onPress={handleCreateFunction}
+                disabled={!newFunctionName.trim() || isCreatingFunction}
+                testID="users-create-staff-new-function-submit"
+              >
+                {isCreatingFunction ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <Text style={styles.newFunctionButtonText}>
+                    {t("users.create.field.function.add")}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : null}
+          {createFunctionError ? (
+            <Text
+              style={styles.newFunctionError}
+              testID="users-create-staff-new-function-error"
+            >
+              {createFunctionError}
+            </Text>
+          ) : null}
         </View>
       </ScrollView>
 
@@ -902,6 +966,43 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.primary,
     textTransform: "uppercase",
+  },
+  newFunctionRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 4,
+  },
+  newFunctionInput: {
+    flex: 1,
+    height: 44,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  newFunctionButton: {
+    height: 44,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  newFunctionButtonDisabled: {
+    opacity: 0.5,
+  },
+  newFunctionButtonText: {
+    color: colors.white,
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  newFunctionError: {
+    marginTop: 4,
+    fontSize: 12,
+    color: colors.notification,
   },
   formInput: {
     borderWidth: 1,

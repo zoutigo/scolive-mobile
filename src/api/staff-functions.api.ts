@@ -10,4 +10,14 @@ export const staffFunctionsApi = {
   listStaffFunctions(schoolSlug: string): Promise<StaffFunctionOption[]> {
     return apiFetch(`/schools/${schoolSlug}/admin/staff-functions`, {}, true);
   },
+  createStaffFunction(
+    schoolSlug: string,
+    payload: { name: string },
+  ): Promise<StaffFunctionOption> {
+    return apiFetch(
+      `/schools/${schoolSlug}/admin/staff-functions`,
+      { method: "POST", body: JSON.stringify(payload) },
+      true,
+    );
+  },
 };

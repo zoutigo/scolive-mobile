@@ -235,6 +235,21 @@ export function SchoolAdminUsersScreen() {
     StaffFunctionOption[]
   >([]);
 
+  async function handleCreateStaffFunction(
+    name: string,
+  ): Promise<StaffFunctionOption> {
+    if (!schoolSlug) {
+      throw new Error("schoolSlug missing");
+    }
+    const created = await staffFunctionsApi.createStaffFunction(schoolSlug, {
+      name,
+    });
+    setStaffFunctionOptions((prev) =>
+      [...prev, created].sort((a, b) => a.name.localeCompare(b.name)),
+    );
+    return created;
+  }
+
   function openCreateForms() {
     setCreateType(null);
     setScreenTab("forms");
@@ -708,6 +723,7 @@ export function SchoolAdminUsersScreen() {
                   isSubmitting={isSubmittingCreate}
                   onCancel={() => setCreateType(null)}
                   onSubmit={handleCreateStaffMember}
+                  onCreateFunction={handleCreateStaffFunction}
                 />
               ) : null}
             </>
