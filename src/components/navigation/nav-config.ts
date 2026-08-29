@@ -437,6 +437,7 @@ const PARENT_NAV: NavItem[] = [
 
 const STUDENT_NAV: NavItem[] = [
   { key: "home", label: "Accueil", icon: "home-outline", route: "/" },
+  feedItem(),
   {
     key: "grades",
     label: "Notes",
