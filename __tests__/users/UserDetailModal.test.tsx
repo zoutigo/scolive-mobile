@@ -2023,5 +2023,60 @@ describe("UserDetailModal", () => {
         }),
       );
     });
+
+    // Régression : le bouton Agenda de la fiche élève réutilisait la vue
+    // "mon enfant" côté parent, dont l'API exige que l'appelant (ici un
+    // School Admin) ait lui-même un lien ParentStudent avec l'élève — ce qui
+    // n'est jamais le cas, laissant l'écran vide sans erreur visible. Il
+    // navigue désormais vers la vue classe (scopée école/staff), comme le
+    // bouton Devoirs.
+    it("le bouton Agenda navigue vers la vue classe (pas la vue enfant côté parent)", async () => {
+      const detail = makeSchoolUserDetail({
+        ...STUDENT_USER,
+        enrollments: [
+          {
+            id: "enr-1",
+            classId: "cls-6eA",
+            className: "6e A",
+            schoolYear: "2025-2026",
+          },
+        ],
+      });
+      mockUsersApi.get.mockResolvedValueOnce(detail);
+      render(
+        <UserDetailModal
+          user={STUDENT_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-student-agenda")).toBeOnTheScreen(),
+      );
+      fireEvent.press(screen.getByTestId("action-student-agenda"));
+
+      expect(mockRouterPush).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: "/(home)/timetable/class/[classId]",
+          params: expect.objectContaining({ classId: "cls-6eA" }),
+        }),
+      );
+    });
+
+    it("le bouton Agenda est désactivé quand aucune inscription (pas de classId)", async () => {
+      const detail = makeSchoolUserDetail({ ...STUDENT_USER, enrollments: [] });
+      mockUsersApi.get.mockResolvedValueOnce(detail);
+      render(
+        <UserDetailModal
+          user={STUDENT_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-student-agenda")).toBeOnTheScreen(),
+      );
+      expect(screen.getByTestId("action-student-agenda")).toBeDisabled();
+    });
   });
 });
