@@ -29,9 +29,17 @@ function applyAccountLocale(user: AuthUser | null | undefined): void {
 // plusieurs layouts (racine + (home) imbriqué) réagir chacun de leur côté au
 // même changement d'état, avec des courses qui bloquaient l'app sur un écran
 // blanc (cf. historique de app/(home)/_layout.tsx). `router` est le même
-// singleton déjà utilisé après login (app/login.tsx) pour revenir à "/" :
-// un href absolu se résout toujours au niveau de la racine, quelle que soit
-// la profondeur de navigation au moment de l'appel.
+// singleton déjà utilisé après login (app/login.tsx) pour revenir à "/".
+//
+// Attention : un href absolu ne se résout PAS toujours au niveau de la
+// racine. app/(home)/index.tsx partage le chemin "/" avec ce fichier (les
+// segments de groupe expo-router comme "(home)" sont invisibles dans l'URL),
+// donc React Navigation peut très bien résoudre ce replace("/") dans le
+// navigateur (home) déjà actif (son propre "index") plutôt que de remonter
+// jusqu'à app/index.tsx, quand l'appel se fait depuis un écran imbriqué —
+// reproduit manuellement sur émulateur. C'est pour ça que app/(home)/index.tsx
+// affiche lui-même LoginScreen quand isAuthenticated est false : ce
+// redirectToRoot() est un signal, pas une garantie de destination.
 function redirectToRoot(): void {
   try {
     router.replace("/");

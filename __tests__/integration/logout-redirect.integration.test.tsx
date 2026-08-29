@@ -1,24 +1,45 @@
 /**
  * Tests d'intégration — HomeLayout + store auth réel
  *
- * Historique du bug (reproduit manuellement sur émulateur Android) : lors de
- * la déconnexion depuis un écran (home)/* imbriqué (ex. /account avec le
- * sélecteur de rôle ouvert), la redirection vers "/" était pilotée par un
- * effect réactif dans HomeLayout (d'abord `router.dismissAll()`, puis
- * `router.dismissTo("/")` + un filet de sécurité `setTimeout` → `replace`).
- * Ce montage à plusieurs acteurs réagissant chacun au changement de
- * `isAuthenticated` (HomeLayout + app/index.tsx) restait sujet à des courses
- * qui gelaient l'app sur un écran blanc, y compris après ces deux correctifs
- * successifs.
+ * Historique du bug (reproduit manuellement sur émulateur Android), en trois
+ * épisodes :
  *
- * Le correctif actuel supprime cette réactivité : `useAuthStore.logout()`
- * et `.invalidateSession()` appellent eux-mêmes, une seule fois et de façon
- * imperative, `router.replace("/")` (src/store/auth.store.ts#redirectToRoot)
- * — exactement le même pattern déjà utilisé après un login réussi
- * (app/login.tsx). HomeLayout n'est plus qu'un simple overlay pendant la
- * fraction de seconde où `isAuthenticated` est déjà false mais où la
- * redirection n'a pas encore démonté ce Stack ; il ne déclenche plus aucune
- * navigation lui-même.
+ * 1. La redirection vers "/" était pilotée par un effect réactif dans
+ *    HomeLayout (d'abord `router.dismissAll()`, puis `router.dismissTo("/")`
+ *    + un filet de sécurité `setTimeout` → `replace`). Ce montage à
+ *    plusieurs acteurs réagissant chacun au changement de `isAuthenticated`
+ *    (HomeLayout + app/index.tsx) restait sujet à des courses qui gelaient
+ *    l'app sur un écran blanc.
+ * 2. Le correctif suivant a supprimé cette réactivité : `useAuthStore.logout()`
+ *    et `.invalidateSession()` appellent eux-mêmes, une seule fois et de
+ *    façon imperative, `router.replace("/")`
+ *    (src/store/auth.store.ts#redirectToRoot). HomeLayout n'est plus qu'un
+ *    overlay passif — mais l'écran blanc a persisté.
+ * 3. Cause réelle, identifiée après reproduction sur émulateur : `app/(home)
+ *    /index.tsx` partage le chemin "/" avec `app/index.tsx` (les segments de
+ *    groupe expo-router comme "(home)" sont invisibles dans l'URL). Quand
+ *    `router.replace("/")` est appelé depuis un écran imbriqué profond
+ *    (ex. /account), React Navigation résout la cible dans le navigateur
+ *    (home) déjà actif (son propre "index", avec `user` déjà à `null`)
+ *    plutôt que de remonter jusqu'à `app/index.tsx` — parce que les deux
+ *    états (courant et cible) s'accordent déjà sur "(home)" au niveau
+ *    racine, la divergence n'apparaît qu'au niveau imbriqué. Résultat :
+ *    `HomeScreen` restait bloqué sur son spinner "user null" indéfiniment,
+ *    lui-même masqué par l'overlay opaque de HomeLayout — écran blanc figé,
+ *    confirmé par capture d'écran et dump UI sur émulateur (les deux testID
+ *    `home-loading-spinner` et l'ex-`home-layout-redirecting` étaient montés
+ *    simultanément, ce dernier au-dessus).
+ *
+ * Le correctif final ne cherche plus à empêcher cette résolution ambiguë
+ * (comportement normal de React Navigation pour les groupes de routes) : il
+ * ajoute un filet de sécurité côté contenu. `app/(home)/index.tsx` affiche
+ * désormais lui-même `LoginScreen` quand `isAuthenticated` est false (voir
+ * __tests__/home/HomeScreen.user-loading.test.tsx), et HomeLayout n'affiche
+ * plus d'overlay conditionné à `isAuthenticated` (il masquerait ce repli).
+ * `redirectToRoot()` reste utile comme signal best-effort — il fonctionne
+ * correctement pour tout appel depuis un écran non imbriqué (ex. après
+ * login, cf. app/login.tsx) — mais n'est plus le seul rempart contre l'écran
+ * blanc.
  */
 import React from "react";
 import { act, render, screen } from "@testing-library/react-native";
@@ -28,15 +49,20 @@ import type { AuthUser } from "../../src/types/auth.types";
 
 // ─── Mocks infrastructure ──────────────────────────────────────────────────────
 
-jest.mock("expo-router", () => ({
-  Stack: Object.assign(
-    ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-    { Screen: () => null },
-  ),
-  router: {
-    replace: jest.fn(),
-  },
-}));
+jest.mock("expo-router", () => {
+  const { View: MockView } = jest.requireActual("react-native");
+  return {
+    Stack: Object.assign(
+      ({ children }: { children?: React.ReactNode }) => (
+        <MockView testID="mock-stack">{children}</MockView>
+      ),
+      { Screen: () => null },
+    ),
+    router: {
+      replace: jest.fn(),
+    },
+  };
+});
 
 const { router: mockRouter } = require("expo-router") as {
   router: { replace: jest.Mock };
@@ -115,10 +141,10 @@ beforeEach(() => {
 
 describe("HomeLayout + store auth réel — intégration", () => {
   describe("état initial du store", () => {
-    it("affiche la vue de redirection quand le store est non-authentifié, sans naviguer elle-même", () => {
+    it("affiche le Stack navigateur (pas d'overlay) quand le store est non-authentifié, sans naviguer elle-même", () => {
       render(<HomeLayout />);
 
-      expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
+      expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
       expect(mockReplace).not.toHaveBeenCalled();
     });
 
@@ -128,7 +154,7 @@ describe("HomeLayout + store auth réel — intégration", () => {
       render(<HomeLayout />);
 
       expect(screen.getByTestId("home-layout-loading")).toBeOnTheScreen();
-      expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
+      expect(screen.queryByTestId("mock-stack")).toBeNull();
       expect(mockReplace).not.toHaveBeenCalled();
     });
 
@@ -137,7 +163,7 @@ describe("HomeLayout + store auth réel — intégration", () => {
 
       render(<HomeLayout />);
 
-      expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
+      expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
       expect(screen.queryByTestId("home-layout-loading")).toBeNull();
       expect(mockReplace).not.toHaveBeenCalled();
     });
@@ -146,17 +172,17 @@ describe("HomeLayout + store auth réel — intégration", () => {
   // ── Transition logout via setState direct ──────────────────────────────────
 
   describe("transition authentifié → déconnecté via setState direct (hors logout())", () => {
-    it("passe à la vue de redirection après setState sans naviguer ni lever d'erreur", async () => {
+    it("reste sur le Stack après setState sans naviguer ni lever d'erreur", async () => {
       useAuthStore.setState(AUTHENTICATED_STATE);
       render(<HomeLayout />);
 
-      expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
+      expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
 
       await act(async () => {
         useAuthStore.setState(UNAUTHENTICATED_STATE);
       });
 
-      expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
+      expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
       // Un setState direct (pas via logout()/invalidateSession()) ne déclenche
       // plus aucune navigation : seul le call site imperatif du store le fait.
       expect(mockReplace).not.toHaveBeenCalled();
@@ -170,7 +196,7 @@ describe("HomeLayout + store auth réel — intégration", () => {
       useAuthStore.setState(AUTHENTICATED_STATE);
       render(<HomeLayout />);
 
-      expect(screen.queryByTestId("home-layout-redirecting")).toBeNull();
+      expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
 
       await act(async () => {
         await useAuthStore.getState().logout();
@@ -178,7 +204,7 @@ describe("HomeLayout + store auth réel — intégration", () => {
 
       expect(useAuthStore.getState().isAuthenticated).toBe(false);
       expect(useAuthStore.getState().user).toBeNull();
-      expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
+      expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
       expect(mockReplace).toHaveBeenCalledTimes(1);
       expect(mockReplace).toHaveBeenCalledWith("/");
     });
@@ -246,7 +272,7 @@ describe("HomeLayout + store auth réel — intégration", () => {
         rerender(<HomeLayout />);
       });
 
-      expect(screen.getByTestId("home-layout-redirecting")).toBeOnTheScreen();
+      expect(screen.getByTestId("mock-stack")).toBeOnTheScreen();
       expect(mockReplace).toHaveBeenCalledTimes(1);
     });
   });

@@ -6,6 +6,14 @@
  *   HomeScreen affichait un spinner infini sans jamais en sortir.
  * - Le fix ajoute un timeout de 8s après lequel logout() est appelé pour
  *   remettre l'app dans un état propre (écran login).
+ *
+ * Régression écran blanc au logout (reproduite manuellement sur émulateur) :
+ * - app/(home)/index.tsx partage le chemin "/" avec app/index.tsx (segments
+ *   de groupe expo-router invisibles dans l'URL). `router.replace("/")`
+ *   déclenché depuis un écran imbriqué peut atterrir ici plutôt qu'à la
+ *   racine, avec `isAuthenticated=false` et `user=null`. HomeScreen doit
+ *   alors afficher LoginScreen lui-même plutôt qu'un spinner qui ne se
+ *   résout jamais.
  */
 
 import React from "react";
@@ -52,6 +60,13 @@ jest.mock("../../src/components/navigation/AppShell", () => ({
   AppShell: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useDrawer: () => ({ openDrawer: jest.fn() }),
 }));
+jest.mock("../../app/login", () => {
+  const { View: MockView } = jest.requireActual("react-native");
+  return {
+    __esModule: true,
+    default: () => <MockView testID="mock-login-screen" />,
+  };
+});
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -149,6 +164,30 @@ describe("HomeScreen — user null après authentification", () => {
 
     const { unmount } = render(<HomeScreen />);
     unmount();
+
+    await act(async () => {
+      jest.advanceTimersByTime(10000);
+    });
+
+    expect(mockLogout).not.toHaveBeenCalled();
+  });
+});
+
+describe("HomeScreen — repli LoginScreen quand isAuthenticated=false", () => {
+  it("affiche LoginScreen plutôt que le spinner quand isAuthenticated est false, même si user est null", () => {
+    setupStore({ isAuthenticated: false, user: null });
+    render(<HomeScreen />);
+
+    expect(screen.getByTestId("mock-login-screen")).toBeTruthy();
+    expect(screen.queryByTestId("home-loading-spinner")).toBeNull();
+  });
+
+  it("n'arme pas le timer de logout automatique quand isAuthenticated est déjà false", async () => {
+    setupStore({ isAuthenticated: false, user: null });
+    const mockLogout = jest.fn();
+    useAuthStore.setState((s) => ({ ...s, logout: mockLogout }));
+
+    render(<HomeScreen />);
 
     await act(async () => {
       jest.advanceTimersByTime(10000);

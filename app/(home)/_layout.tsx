@@ -4,17 +4,21 @@ import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { colors } from "../../src/theme";
 
 export default function HomeLayout() {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isLoading } = useAuthStore();
   // Pas de navigation ici : `useAuthStore.logout()` et `.invalidateSession()`
   // déclenchent eux-mêmes, une seule fois et de façon imperative,
   // `router.replace("/")` (voir src/store/auth.store.ts#redirectToRoot).
   // Avoir un second acteur réactif ici (ex. un useEffect sur
   // isAuthenticated) recréait une course avec app/index.tsx sur le même
   // changement d'état — historique d'écrans blancs figés au logout depuis
-  // un écran imbriqué (/account, /classes/[id]/discipline, ...). Cet écran
-  // ne fait plus qu'afficher un overlay pendant la fraction de seconde où
-  // isAuthenticated est déjà false mais où la redirection n'a pas encore
-  // démonté ce Stack.
+  // un écran imbriqué (/account, /classes/[id]/discipline, ...).
+  //
+  // Pas d'overlay "!isAuthenticated" ici non plus : ce Stack partage la
+  // route "index" avec app/index.tsx (segments de groupe invisibles dans
+  // l'URL — cf. app/(home)/index.tsx), donc `router.replace("/")` appelé
+  // depuis un écran imbriqué peut très bien atterrir ici plutôt qu'à la
+  // racine. Un overlay opaque masquerait alors le repli LoginScreen que
+  // app/(home)/index.tsx affiche désormais lui-même dans ce cas.
 
   if (isLoading) {
     return (
@@ -24,12 +28,8 @@ export default function HomeLayout() {
     );
   }
 
-  // Le Stack reste monté pendant la redirection (overlay par-dessus) plutôt
-  // que d'être démonté immédiatement : ça évite un flash sur l'écran
-  // imbriqué encore visible le temps que `router.replace("/")` prenne effet.
   return (
-    <View style={styles.flexFill}>
-      <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen
           name="placeholder"
@@ -149,17 +149,10 @@ export default function HomeLayout() {
           options={{ animation: "slide_from_right" }}
         />
       </Stack>
-      {!isAuthenticated && (
-        <View style={styles.loader} testID="home-layout-redirecting" />
-      )}
-    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flexFill: {
-    flex: 1,
-  },
   loader: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: colors.background,
