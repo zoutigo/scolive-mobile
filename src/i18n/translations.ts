@@ -2017,6 +2017,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.campaigns.search.placeholder": "Rechercher une campagne",
     "tests.campaigns.search.accessibilityLabel": "Rechercher une campagne",
     "tests.campaigns.search.clearAccessibilityLabel": "Effacer la recherche",
+    "tests.campaigns.badge.assigned": "Assignée",
     "tests.campaigns.filters.mineAccessibilityLabel":
       "Afficher uniquement mes campagnes assignées",
     "tests.campaigns.filters.resetSearch": "Réinitialiser",
@@ -5997,6 +5998,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "tests.campaigns.search.placeholder": "Search campaigns",
     "tests.campaigns.search.accessibilityLabel": "Search campaigns",
     "tests.campaigns.search.clearAccessibilityLabel": "Clear search",
+    "tests.campaigns.badge.assigned": "Assigned",
     "tests.campaigns.filters.mineAccessibilityLabel":
       "Show only campaigns assigned to me",
     "tests.campaigns.filters.resetSearch": "Reset",

@@ -42,19 +42,22 @@ interface Props {
   campaigns: TestCampaignSummary[];
   filter: TestsCampaignsFilter;
   onFilterChange: (filter: TestsCampaignsFilter) => void;
+  isPlatformContext?: boolean;
 }
 
 export function TestsCampaignsTab({
   campaigns,
   filter,
   onFilterChange,
+  isPlatformContext = false,
 }: Props) {
   const { t, locale } = useTranslation();
   const router = useRouter();
 
   const [searchInput, setSearchInput] = useState("");
-  const [appliedMineOnly, setAppliedMineOnly] = useState(() =>
-    campaigns.some((campaign) => campaign.assignedToMe),
+  const [appliedMineOnly, setAppliedMineOnly] = useState(
+    () =>
+      !isPlatformContext && campaigns.some((campaign) => campaign.assignedToMe),
   );
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState<DraftFilters>({
@@ -86,8 +89,11 @@ export function TestsCampaignsTab({
   );
 
   const sorted = useMemo(
-    () => sortCampaignsByDisplayStatus(campaigns),
-    [campaigns],
+    () =>
+      sortCampaignsByDisplayStatus(campaigns, {
+        prioritizeMine: !isPlatformContext,
+      }),
+    [campaigns, isPlatformContext],
   );
 
   const searchNormalized = searchInput.trim().toLowerCase();
@@ -266,14 +272,26 @@ export function TestsCampaignsTab({
               >
                 <View style={styles.cardHeader}>
                   <Text style={styles.cardTitle}>{campaign.title}</Text>
-                  <View
-                    style={[styles.statusPill, { backgroundColor: palette.bg }]}
-                  >
-                    <Text
-                      style={[styles.statusPillText, { color: palette.text }]}
+                  <View style={styles.pillGroup}>
+                    {campaign.assignedToMe ? (
+                      <View style={styles.assignedPill}>
+                        <Text style={styles.assignedPillText}>
+                          {t("tests.campaigns.badge.assigned")}
+                        </Text>
+                      </View>
+                    ) : null}
+                    <View
+                      style={[
+                        styles.statusPill,
+                        { backgroundColor: palette.bg },
+                      ]}
                     >
-                      {t(`tests.campaigns.status.${statusKey(status)}`)}
-                    </Text>
+                      <Text
+                        style={[styles.statusPillText, { color: palette.text }]}
+                      >
+                        {t(`tests.campaigns.status.${statusKey(status)}`)}
+                      </Text>
+                    </View>
                   </View>
                 </View>
                 {campaign.description ? (
@@ -385,12 +403,20 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.textPrimary,
   },
+  pillGroup: { flexDirection: "row", alignItems: "center", gap: 6 },
   statusPill: {
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
   statusPillText: { fontSize: 11, fontWeight: "700" },
+  assignedPill: {
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: colors.primary,
+  },
+  assignedPillText: { fontSize: 11, fontWeight: "700", color: colors.white },
   cardBody: {
     fontSize: 14,
     lineHeight: 20,

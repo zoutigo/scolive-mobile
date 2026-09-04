@@ -41,6 +41,8 @@ import { moduleBack } from "../../../src/utils/moduleBack";
 
 type TabKey = "summary" | "campaigns" | "executions" | "toRedo";
 
+const PLATFORM_ROLES = new Set(["SUPER_ADMIN", "ADMIN"]);
+
 export default function TestsHomeRoute() {
   return (
     <AppShell showHeader={false}>
@@ -64,6 +66,9 @@ function TestsHomeScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [helpVisible, setHelpVisible] = useState(false);
   const isInitialLoad = useRef(true);
+  const isPlatformContext = Boolean(
+    user?.activeRole && PLATFORM_ROLES.has(user.activeRole),
+  );
 
   const activeTourId = useOnboardingTourStore((state) => state.activeTourId);
   const startTour = useOnboardingTourStore((state) => state.startTour);
@@ -237,12 +242,14 @@ function TestsHomeScreen() {
               <TestsSummaryTab
                 campaigns={campaigns}
                 onCampaignsFilterPress={openCampaignsWithFilter}
+                isPlatformContext={isPlatformContext}
               />
             ) : activeTab === "campaigns" ? (
               <TestsCampaignsTab
                 campaigns={campaigns}
                 filter={campaignsFilter}
                 onFilterChange={setCampaignsFilter}
+                isPlatformContext={isPlatformContext}
               />
             ) : activeTab === "executions" ? (
               <TestsExecutionsTab campaigns={campaigns} />

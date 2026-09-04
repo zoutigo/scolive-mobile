@@ -9,8 +9,10 @@ import type { TestCampaignSummary } from "../../src/types/tests.types";
 
 function ControlledTestsCampaignsTab({
   campaigns,
+  isPlatformContext,
 }: {
   campaigns: TestCampaignSummary[];
+  isPlatformContext?: boolean;
 }) {
   const [filter, setFilter] =
     useState<TestsCampaignsFilter>(ALL_CAMPAIGNS_FILTER);
@@ -19,6 +21,7 @@ function ControlledTestsCampaignsTab({
       campaigns={campaigns}
       filter={filter}
       onFilterChange={setFilter}
+      isPlatformContext={isPlatformContext}
     />
   );
 }
@@ -289,6 +292,39 @@ describe("TestsCampaignsTab", () => {
       expect(screen.getByText("Campagne à venir")).toBeTruthy();
       expect(screen.getByText("Campagne terminée")).toBeTruthy();
     });
+
+    it("does not auto-apply mine-only filtering in platform context, even with assignments", () => {
+      const withAssignment: TestCampaignSummary[] = [
+        { ...CAMPAIGNS[0], assignedToMe: true },
+        CAMPAIGNS[1],
+        CAMPAIGNS[2],
+      ];
+      render(
+        <ControlledTestsCampaignsTab
+          campaigns={withAssignment}
+          isPlatformContext
+        />,
+      );
+
+      expect(screen.getByText("Campagne en cours")).toBeTruthy();
+      expect(screen.getByText("Campagne à venir")).toBeTruthy();
+      expect(screen.getByText("Campagne terminée")).toBeTruthy();
+    });
+  });
+
+  it("shows an assigned badge on campaigns assigned to me", () => {
+    const withAssignment: TestCampaignSummary[] = [
+      { ...CAMPAIGNS[1], assignedToMe: true },
+    ];
+    render(<ControlledTestsCampaignsTab campaigns={withAssignment} />);
+
+    expect(screen.getByText("Assignée")).toBeTruthy();
+  });
+
+  it("does not show an assigned badge on campaigns not assigned to me", () => {
+    render(<ControlledTestsCampaignsTab campaigns={[CAMPAIGNS[1]]} />);
+
+    expect(screen.queryByText("Assignée")).toBeNull();
   });
 });
 

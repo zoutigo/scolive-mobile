@@ -12,9 +12,14 @@ import type { TestsCampaignsFilter } from "./TestsCampaignsTab";
 interface Props {
   campaigns: TestCampaignSummary[];
   onCampaignsFilterPress?: (filter: TestsCampaignsFilter) => void;
+  isPlatformContext?: boolean;
 }
 
-export function TestsSummaryTab({ campaigns, onCampaignsFilterPress }: Props) {
+export function TestsSummaryTab({
+  campaigns,
+  onCampaignsFilterPress,
+  isPlatformContext = false,
+}: Props) {
   const { t } = useTranslation();
   const router = useRouter();
 
@@ -70,13 +75,17 @@ export function TestsSummaryTab({ campaigns, onCampaignsFilterPress }: Props) {
         );
       })
       .sort((a, b) => {
+        if (!isPlatformContext) {
+          const mineDiff = Number(!a.assignedToMe) - Number(!b.assignedToMe);
+          if (mineDiff !== 0) return mineDiff;
+        }
         const aDue = a.dueAt ? new Date(a.dueAt).getTime() : Infinity;
         const bDue = b.dueAt ? new Date(b.dueAt).getTime() : Infinity;
         return aDue - bDue;
       });
 
     return candidates[0] ?? null;
-  }, [campaigns]);
+  }, [campaigns, isPlatformContext]);
 
   if (campaigns.length === 0) {
     return (
