@@ -787,9 +787,13 @@ describe("SchoolAdminUsersScreen — Création d'utilisateur (FAB)", () => {
     );
 
     const now = new Date();
+    // Day 1 of the current month is never in the future relative to "now",
+    // unlike a fixed day (e.g. 15) which the date-of-birth field's
+    // maximumDate={new Date()} would disable whenever the test runs before
+    // that day of the month.
     const dateOfBirthIso = `${now.getFullYear()}-${String(
       now.getMonth() + 1,
-    ).padStart(2, "0")}-15`;
+    ).padStart(2, "0")}-01`;
     fireEvent.press(screen.getByTestId("users-create-student-date-of-birth"));
     fireEvent.press(
       await screen.findByTestId(
