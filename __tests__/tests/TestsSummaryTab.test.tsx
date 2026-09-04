@@ -87,6 +87,50 @@ describe("TestsSummaryTab", () => {
     ).toBeTruthy();
   });
 
+  it("highlights an assigned campaign over a non-assigned one with an earlier due date", () => {
+    const campaigns: TestCampaignSummary[] = [
+      {
+        ...CAMPAIGNS[0],
+        id: "not-mine",
+        title: "Campagne non assignée",
+        dueAt: "2020-01-05T00:00:00.000Z",
+        assignedToMe: false,
+      },
+      {
+        ...CAMPAIGNS[0],
+        id: "mine",
+        title: "Campagne assignée",
+        dueAt: "2020-02-05T00:00:00.000Z",
+        assignedToMe: true,
+      },
+    ];
+    render(<TestsSummaryTab campaigns={campaigns} />);
+
+    expect(screen.getByText("Campagne assignée")).toBeTruthy();
+  });
+
+  it("ignores assignment priority in the highlight when in platform context", () => {
+    const campaigns: TestCampaignSummary[] = [
+      {
+        ...CAMPAIGNS[0],
+        id: "not-mine",
+        title: "Campagne non assignée",
+        dueAt: "2020-01-05T00:00:00.000Z",
+        assignedToMe: false,
+      },
+      {
+        ...CAMPAIGNS[0],
+        id: "mine",
+        title: "Campagne assignée",
+        dueAt: "2020-02-05T00:00:00.000Z",
+        assignedToMe: true,
+      },
+    ];
+    render(<TestsSummaryTab campaigns={campaigns} isPlatformContext />);
+
+    expect(screen.getByText("Campagne non assignée")).toBeTruthy();
+  });
+
   it("does not render the campaign badge or CTA when there is nothing to do today", () => {
     const noPendingCampaigns: TestCampaignSummary[] = [
       {
