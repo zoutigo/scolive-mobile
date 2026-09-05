@@ -340,7 +340,9 @@ export function FeedComposerCard({
           </Text>
           <Text style={styles.cardHeaderTitle}>
             {t(
-              initialPost ? "feed.composer.editHeading" : "feed.composer.heading",
+              initialPost
+                ? "feed.composer.editHeading"
+                : "feed.composer.heading",
             )}
           </Text>
         </View>

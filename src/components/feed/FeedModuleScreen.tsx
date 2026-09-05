@@ -901,9 +901,7 @@ export function FeedModuleScreen({
               onDelete={
                 item.canManage && !readOnly ? setDeleteCandidate : undefined
               }
-              onEdit={
-                item.canManage && !readOnly ? handleEditPost : undefined
-              }
+              onEdit={item.canManage && !readOnly ? handleEditPost : undefined}
               onPress={() => setDetailIndex(index)}
               readOnly={readOnly}
             />

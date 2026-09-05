@@ -6560,8 +6560,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.toast.updateSuccessTitle": "Post updated",
     "feed.toast.updateSuccessMessage": "Your changes have been saved.",
     "feed.toast.updateErrorTitle": "Unable to save changes",
-    "feed.toast.updateErrorMessage":
-      "Unable to save these changes right now.",
+    "feed.toast.updateErrorMessage": "Unable to save these changes right now.",
     "feed.toast.imageErrorTitle": "Image not added",
     "feed.toast.imageErrorMessage": "Unable to add the image.",
 
