@@ -75,6 +75,10 @@ type Props = {
    * consulte le fil de classe de son enfant via le menu enfant. */
   readOnly?: boolean;
   onCreatePost?: (payload: CreateFeedPayload) => Promise<FeedPost>;
+  onUpdatePost?: (
+    postId: string,
+    payload: CreateFeedPayload,
+  ) => Promise<FeedPost>;
   onUploadInlineImage?: (file: {
     uri: string;
     name: string;
@@ -115,6 +119,7 @@ export function FeedModuleScreen({
   canCompose = false,
   readOnly = false,
   onCreatePost,
+  onUpdatePost,
   onUploadInlineImage,
   onUploadAttachment,
   unavailableTitle,
@@ -157,6 +162,7 @@ export function FeedModuleScreen({
   const [helpVisible, setHelpVisible] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerType] = useState<FeedPostType>("POST");
+  const [editingPost, setEditingPost] = useState<FeedPost | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<FeedPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -337,6 +343,44 @@ export function FeedModuleScreen({
             ? error.message
             : t("feed.toast.publishErrorMessage"),
       });
+    }
+  }
+
+  function handleEditPost(post: FeedPost) {
+    setEditingPost(post);
+    setComposerOpen(true);
+  }
+
+  function closeComposer() {
+    setComposerOpen(false);
+    setEditingPost(null);
+  }
+
+  async function handleUpdatePost(payload: CreateFeedPayload) {
+    if (!editingPost || !onUpdatePost) return;
+
+    const target = editingPost;
+    try {
+      const updated = await onUpdatePost(target.id, payload);
+      commitPosts((current) =>
+        current.map((entry) => (entry.id === updated.id ? updated : entry)),
+      );
+      showToast({
+        variant: "success",
+        title: t("feed.toast.updateSuccessTitle"),
+        message: t("feed.toast.updateSuccessMessage"),
+      });
+    } catch (error) {
+      showToast({
+        variant: "error",
+        title: t("feed.toast.updateErrorTitle"),
+        message:
+          error instanceof Error
+            ? error.message
+            : t("feed.toast.updateErrorMessage"),
+      });
+    } finally {
+      setEditingPost(null);
     }
   }
 
@@ -522,6 +566,9 @@ export function FeedModuleScreen({
                   onVote={handleVote}
                   onDelete={
                     item.canManage && !readOnly ? setDeleteCandidate : undefined
+                  }
+                  onEdit={
+                    item.canManage && !readOnly ? handleEditPost : undefined
                   }
                   readOnly={readOnly}
                 />
@@ -807,9 +854,9 @@ export function FeedModuleScreen({
           </View>
         </View>
       ) : composerOpen &&
-        canCompose &&
+        (canCompose || Boolean(editingPost)) &&
         !readOnly &&
-        onCreatePost &&
+        (editingPost ? onUpdatePost : onCreatePost) &&
         onUploadInlineImage ? (
         <ScrollView
           style={styles.composerScroll}
@@ -821,13 +868,18 @@ export function FeedModuleScreen({
           showsVerticalScrollIndicator={false}
         >
           <FeedComposerCard
-            key={`feed-composer-${composerType}`}
+            key={
+              editingPost
+                ? `feed-composer-edit-${editingPost.id}`
+                : `feed-composer-${composerType}`
+            }
             viewerRole={viewerRole}
             initialType={composerType}
-            onSubmit={handleCreatePost}
+            initialPost={editingPost ?? undefined}
+            onSubmit={editingPost ? handleUpdatePost : handleCreatePost}
             onUploadInlineImage={onUploadInlineImage}
             onUploadAttachment={onUploadAttachment}
-            onCancel={() => setComposerOpen(false)}
+            onCancel={closeComposer}
           />
         </ScrollView>
       ) : isLoading && posts.length === 0 ? (
@@ -848,6 +900,9 @@ export function FeedModuleScreen({
               onVote={handleVote}
               onDelete={
                 item.canManage && !readOnly ? setDeleteCandidate : undefined
+              }
+              onEdit={
+                item.canManage && !readOnly ? handleEditPost : undefined
               }
               onPress={() => setDetailIndex(index)}
               readOnly={readOnly}
@@ -910,7 +965,10 @@ export function FeedModuleScreen({
       !readOnly ? (
         <TouchableOpacity
           style={[styles.fab, { bottom: listBottomPadding - 4 }]}
-          onPress={() => setComposerOpen(true)}
+          onPress={() => {
+            setEditingPost(null);
+            setComposerOpen(true);
+          }}
           activeOpacity={0.88}
           testID={`${testIDPrefix}-compose-fab`}
         >

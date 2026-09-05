@@ -32,6 +32,7 @@ type Props = {
   onAddComment: (postId: string, text: string) => void;
   onVote?: (postId: string, optionId: string) => void;
   onDelete?: (post: FeedPost) => void;
+  onEdit?: (post: FeedPost) => void;
   onPress?: () => void;
   /** Consultation seule : masque publication/commentaire/reaction, desactive
    * like et vote, utilise quand un parent consulte le fil de classe de son
@@ -120,6 +121,7 @@ export function FeedPostCard({
   onAddComment,
   onVote,
   onDelete,
+  onEdit,
   onPress,
   readOnly = false,
 }: Props) {
@@ -371,6 +373,21 @@ export function FeedPostCard({
             </TouchableOpacity>
           ) : null}
         </View>
+
+        {post.canManage && onEdit && !readOnly ? (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => onEdit(post)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            testID={`feed-post-edit-${post.id}`}
+          >
+            <Ionicons
+              name="create-outline"
+              size={18}
+              color={colors.accentTeal}
+            />
+          </TouchableOpacity>
+        ) : null}
 
         {post.canManage && onDelete && !readOnly ? (
           <TouchableOpacity

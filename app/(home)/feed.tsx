@@ -77,6 +77,12 @@ function FeedScreen() {
     [schoolSlug],
   );
 
+  const handleUpdatePost = useCallback(
+    async (postId: string, payload: CreateFeedPayload) =>
+      feedApi.update(schoolSlug!, postId, payload),
+    [schoolSlug],
+  );
+
   const handleUploadInlineImage = useCallback(
     async (file: { uri: string; name: string; mimeType: string }) => {
       if (!schoolSlug) {
@@ -126,6 +132,7 @@ function FeedScreen() {
       deleteContextLabel={t("feed.page.context")}
       canCompose
       onCreatePost={handleCreatePost}
+      onUpdatePost={handleUpdatePost}
       onUploadInlineImage={handleUploadInlineImage}
       onUploadAttachment={handleUploadAttachment}
       helpTitle={t("feed.page.help.title")}

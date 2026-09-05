@@ -2540,6 +2540,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.toast.deleteErrorTitle": "Suppression impossible",
     "feed.toast.deleteErrorMessage":
       "Impossible de supprimer cette publication.",
+    "feed.toast.updateSuccessTitle": "Publication mise à jour",
+    "feed.toast.updateSuccessMessage":
+      "Vos modifications ont été enregistrées.",
+    "feed.toast.updateErrorTitle": "Modification impossible",
+    "feed.toast.updateErrorMessage":
+      "Impossible d'enregistrer les modifications pour le moment.",
     "feed.toast.imageErrorTitle": "Image non ajoutée",
     "feed.toast.imageErrorMessage": "Impossible d'ajouter l'image.",
 
@@ -2550,6 +2556,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.composer.pollLabel": "Sondage",
     "feed.composer.eyebrow": "Publication",
     "feed.composer.heading": "Partager une actualité",
+    "feed.composer.editHeading": "Modifier la publication",
     "feed.composer.modePost": "Post",
     "feed.composer.modePoll": "Sondage",
     "feed.composer.titlePlaceholder": "Titre de la publication",
@@ -2563,6 +2570,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.composer.publishing": "Publication…",
     "feed.composer.publishPoll": "Publier le sondage",
     "feed.composer.publish": "Publier",
+    "feed.composer.saving": "Enregistrement…",
+    "feed.composer.save": "Enregistrer",
     "feed.composer.colorMenuTitle": "Couleur du texte",
     "feed.composer.colorMenuMessage": "Choisissez une couleur",
     "feed.composer.colorDeepBlue": "Bleu profond",
@@ -6548,6 +6557,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.toast.deleteSuccessTitle": "Post deleted",
     "feed.toast.deleteErrorTitle": "Unable to delete",
     "feed.toast.deleteErrorMessage": "Unable to delete this post.",
+    "feed.toast.updateSuccessTitle": "Post updated",
+    "feed.toast.updateSuccessMessage": "Your changes have been saved.",
+    "feed.toast.updateErrorTitle": "Unable to save changes",
+    "feed.toast.updateErrorMessage":
+      "Unable to save these changes right now.",
     "feed.toast.imageErrorTitle": "Image not added",
     "feed.toast.imageErrorMessage": "Unable to add the image.",
 
@@ -6558,6 +6572,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.composer.pollLabel": "Poll",
     "feed.composer.eyebrow": "Post",
     "feed.composer.heading": "Share a post",
+    "feed.composer.editHeading": "Edit post",
     "feed.composer.modePost": "Post",
     "feed.composer.modePoll": "Poll",
     "feed.composer.titlePlaceholder": "Post title",
@@ -6571,6 +6586,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.composer.publishing": "Publishing…",
     "feed.composer.publishPoll": "Publish the poll",
     "feed.composer.publish": "Publish",
+    "feed.composer.saving": "Saving…",
+    "feed.composer.save": "Save",
     "feed.composer.colorMenuTitle": "Text color",
     "feed.composer.colorMenuMessage": "Choose a color",
     "feed.composer.colorDeepBlue": "Deep blue",

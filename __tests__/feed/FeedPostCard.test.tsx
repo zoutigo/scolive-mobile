@@ -142,6 +142,45 @@ describe("FeedPostCard", () => {
     );
   });
 
+  it("n'affiche pas le bouton d'édition par défaut", () => {
+    render(
+      <FeedPostCard
+        post={post}
+        onToggleLike={jest.fn()}
+        onAddComment={jest.fn()}
+      />,
+    );
+    expect(screen.queryByTestId("feed-post-edit-post-1")).toBeNull();
+  });
+
+  it("affiche le bouton d'édition uniquement quand canManage et onEdit sont fournis", () => {
+    render(
+      <FeedPostCard
+        post={{ ...post, canManage: true }}
+        onToggleLike={jest.fn()}
+        onAddComment={jest.fn()}
+        onEdit={jest.fn()}
+      />,
+    );
+    expect(screen.getByTestId("feed-post-edit-post-1")).toBeTruthy();
+  });
+
+  it("déclenche onEdit depuis le bouton du bas", () => {
+    const onEdit = jest.fn();
+    render(
+      <FeedPostCard
+        post={{ ...post, canManage: true }}
+        onToggleLike={jest.fn()}
+        onAddComment={jest.fn()}
+        onEdit={onEdit}
+      />,
+    );
+    fireEvent.press(screen.getByTestId("feed-post-edit-post-1"));
+    expect(onEdit).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "post-1" }),
+    );
+  });
+
   it("la card entière déclenche onPress quand fourni", () => {
     const onPress = jest.fn();
     render(
@@ -485,6 +524,19 @@ describe("FeedPostCard", () => {
         />,
       );
       expect(screen.queryByTestId("feed-post-delete-post-1")).toBeNull();
+    });
+
+    it("masque le bouton d'édition même si canManage est vrai", () => {
+      render(
+        <FeedPostCard
+          post={{ ...post, canManage: true }}
+          onToggleLike={jest.fn()}
+          onAddComment={jest.fn()}
+          onEdit={jest.fn()}
+          readOnly
+        />,
+      );
+      expect(screen.queryByTestId("feed-post-edit-post-1")).toBeNull();
     });
 
     it("désactive le vote sur un sondage sans appeler onVote", () => {

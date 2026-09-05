@@ -661,3 +661,138 @@ describe("FeedComposerCard — design header-band et footer", () => {
     });
   });
 });
+
+describe("FeedComposerCard — mode édition (initialPost)", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(Alert, "alert").mockImplementation(jest.fn());
+    __setMockEditorContentHtml("");
+  });
+
+  const editedPost = {
+    id: "post-42",
+    type: "POST" as const,
+    schoolSlug: "college-vogt",
+    author: {
+      id: "u1",
+      fullName: "Pierre Wome",
+      roleLabel: "Parent",
+      avatarText: "PW",
+    },
+    title: "Titre existant",
+    bodyHtml: "<p>Contenu existant</p>",
+    createdAt: "2026-04-05T10:00:00.000Z",
+    featuredUntil: null,
+    audience: { scope: "PARENTS_ONLY" as const, label: "Parents uniquement" },
+    attachments: [],
+    likedByViewer: false,
+    likesCount: 0,
+    comments: [],
+    canManage: true,
+  };
+
+  it("pré-remplit le titre et le contenu, et masque le sélecteur de type", () => {
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        initialPost={editedPost}
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-composer-title")).toHaveProp(
+      "value",
+      "Titre existant",
+    );
+    expect(screen.getByTestId("rich-editor-initial-content")).toHaveTextContent(
+      "<p>Contenu existant</p>",
+    );
+    expect(screen.queryByTestId("feed-composer-type-post")).toBeNull();
+    expect(screen.queryByTestId("feed-composer-type-poll")).toBeNull();
+  });
+
+  it("affiche le libellé Enregistrer plutôt que Publier", () => {
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        initialPost={editedPost}
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-composer-submit")).toHaveTextContent(
+      "Enregistrer",
+    );
+  });
+
+  it("soumet les modifications avec le type verrouillé sur celui du post d'origine", async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    __setMockEditorContentHtml("<p>Contenu existant</p>");
+
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        initialPost={editedPost}
+        onSubmit={onSubmit}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+
+    fireEvent.changeText(
+      screen.getByTestId("feed-composer-title"),
+      "Titre modifié",
+    );
+    fireEvent.press(screen.getByTestId("feed-composer-submit"));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "POST",
+          title: "Titre modifié",
+          bodyHtml: "<p>Contenu existant</p>",
+          audienceScope: "PARENTS_ONLY",
+        }),
+      );
+    });
+  });
+
+  it("pré-remplit la question et les options d'un sondage existant", () => {
+    const editedPoll = {
+      ...editedPost,
+      id: "poll-42",
+      type: "POLL" as const,
+      poll: {
+        question: "Quel créneau préférez-vous ?",
+        votedOptionId: null,
+        options: [
+          { id: "option-1", label: "Mercredi matin", votes: 4 },
+          { id: "option-2", label: "Vendredi après-midi", votes: 2 },
+        ],
+      },
+    };
+
+    render(
+      <FeedComposerCard
+        viewerRole="PARENT"
+        initialPost={editedPoll}
+        onSubmit={jest.fn()}
+        onUploadInlineImage={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("feed-composer-poll-question")).toHaveProp(
+      "value",
+      "Quel créneau préférez-vous ?",
+    );
+    expect(screen.getByTestId("feed-composer-poll-option-1")).toHaveProp(
+      "value",
+      "Mercredi matin",
+    );
+    expect(screen.getByTestId("feed-composer-poll-option-2")).toHaveProp(
+      "value",
+      "Vendredi après-midi",
+    );
+  });
+});
