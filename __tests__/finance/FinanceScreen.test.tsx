@@ -124,6 +124,47 @@ describe("FinanceScreen — porte-monnaie (parent)", () => {
     );
   });
 
+  it("affiche l'historique des dernieres operations quand des transactions existent", async () => {
+    api.getWalletSummary.mockResolvedValue({
+      walletId: "wallet-1",
+      balance: 5000,
+      transactions: [
+        {
+          id: "tx-1",
+          type: "TOPUP",
+          amount: 5000,
+          createdAt: "2026-09-05T00:00:00.000Z",
+          note: null,
+        },
+        {
+          id: "tx-2",
+          type: "ALLOCATION",
+          amount: 30000,
+          createdAt: "2026-09-01T00:00:00.000Z",
+          note: "Reinscription Remi Ntamack",
+        },
+      ],
+      children: [],
+    });
+    render(<FinanceScreen />);
+    openWalletTab();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("wallet-history-card")).toBeOnTheScreen(),
+    );
+    expect(screen.getByText("+5 000 FCFA")).toBeOnTheScreen();
+    expect(screen.getByText("-30 000 FCFA")).toBeOnTheScreen();
+    expect(screen.getByText(/Reinscription Remi Ntamack/)).toBeOnTheScreen();
+  });
+
+  it("masque le bloc historique quand il n'y a aucune transaction", async () => {
+    render(<FinanceScreen />);
+    openWalletTab();
+
+    await waitFor(() => expect(api.getWalletSummary).toHaveBeenCalledTimes(1));
+    expect(screen.queryByTestId("wallet-history-card")).toBeNull();
+  });
+
   it('appuie sur "Je paie et je reinscris" et confirme la reinscription', async () => {
     api.getWalletSummary.mockResolvedValue(WALLET_ONE_CHILD_READY);
     render(<FinanceScreen />);

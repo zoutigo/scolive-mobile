@@ -11,6 +11,7 @@ import { FinanceTabs } from "./FinanceTabs";
 import { FinanceHero } from "./FinanceHero";
 import { LedgerRow } from "./LedgerRow";
 import { WalletBalanceCard } from "./WalletBalanceCard";
+import { WalletHistoryCard } from "./WalletHistoryCard";
 import { ChildReenrollmentCard } from "../enrollments/ChildReenrollmentCard";
 import { InvoiceCard } from "./InvoiceCard";
 import { PaymentChannelCard } from "./PaymentChannelCard";
@@ -338,6 +339,7 @@ function FinanceScreenContent() {
                   onTopUp={onTopUp}
                 />
               </OnboardingTarget>
+              <WalletHistoryCard transactions={wallet?.transactions ?? []} />
               <OnboardingTarget id={FINANCE_PARENT_TOUR_TARGETS.children}>
                 <Text style={styles.childrenTitle}>
                   {t("finSituation.children.title")}
