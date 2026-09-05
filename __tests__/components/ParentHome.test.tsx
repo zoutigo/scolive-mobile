@@ -11,11 +11,28 @@ import { ParentHome } from "../../src/components/home/ParentHome";
 import { useFamilyStore } from "../../src/store/family.store";
 import { useMessagingStore } from "../../src/store/messaging.store";
 import { useHomeHeaderHelpStore } from "../../src/store/home-header-help.store";
+import { disciplineApi } from "../../src/api/discipline.api";
+import { notesApi } from "../../src/api/notes.api";
+import { authApi } from "../../src/api/auth.api";
 import type { AuthUser } from "../../src/types/auth.types";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
+
+jest.mock("../../src/api/discipline.api", () => ({
+  disciplineApi: { list: jest.fn().mockResolvedValue([]) },
+}));
+jest.mock("../../src/api/notes.api", () => ({
+  notesApi: { listStudentNotes: jest.fn().mockResolvedValue([]) },
+}));
+jest.mock("../../src/api/auth.api", () => ({
+  authApi: {
+    parentDashboardSummary: jest
+      .fn()
+      .mockRejectedValue(new Error("no summary")),
+  },
+}));
 
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
@@ -56,6 +73,11 @@ const child2 = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  (disciplineApi.list as jest.Mock).mockResolvedValue([]);
+  (notesApi.listStudentNotes as jest.Mock).mockResolvedValue([]);
+  (authApi.parentDashboardSummary as jest.Mock).mockRejectedValue(
+    new Error("no summary"),
+  );
   useFamilyStore.setState({
     children: [],
     isLoading: false,
@@ -290,5 +312,150 @@ describe("Accès rapides", () => {
         screen.queryByTestId("parent-landing-help-modal-title"),
       ).toBeNull();
     });
+  });
+});
+
+// ── Résumés discipline / évaluations / compte ──────────────────────────────────
+
+describe("Résumé discipline", () => {
+  beforeEach(() => {
+    useFamilyStore.setState({ children: [child1, child2], isLoading: false });
+  });
+
+  it("affiche une carte de suivi disciplinaire par enfant avec ses statistiques", async () => {
+    (disciplineApi.list as jest.Mock).mockImplementation(
+      async (_slug: string, studentId: string) =>
+        studentId === "c1"
+          ? [
+              {
+                id: "evt-1",
+                schoolId: "s1",
+                studentId: "c1",
+                classId: null,
+                schoolYearId: null,
+                authorUserId: "author",
+                type: "ABSENCE",
+                occurredAt: "2026-03-01T08:00:00.000Z",
+                durationMinutes: 60,
+                justified: false,
+                reason: "Absence",
+              },
+            ]
+          : [],
+    );
+
+    render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+    expect(await screen.findByTestId("discipline-summary-c1")).toBeTruthy();
+    expect(screen.getByText("Priorité parent")).toBeTruthy();
+    expect(screen.getByText("1 absence(s) à justifier.")).toBeTruthy();
+  });
+
+  it("navigue vers le détail discipline de l'enfant au tap sur la carte", async () => {
+    render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+    fireEvent.press(await screen.findByTestId("discipline-summary-c1"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/discipline/[childId]",
+      params: { childId: "c1" },
+    });
+  });
+
+  it("n'affiche pas la section discipline quand il n'y a pas d'enfant", () => {
+    useFamilyStore.setState({ children: [], isLoading: false });
+    render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+    expect(screen.queryByTestId("parent-discipline-section")).toBeNull();
+  });
+});
+
+describe("Résumé évaluations", () => {
+  beforeEach(() => {
+    useFamilyStore.setState({ children: [child1], isLoading: false });
+  });
+
+  it("affiche la moyenne et les dernières évaluations de l'enfant", async () => {
+    (notesApi.listStudentNotes as jest.Mock).mockResolvedValue([
+      {
+        term: "TERM_1",
+        label: "1er trimestre",
+        councilLabel: "",
+        generatedAtLabel: "",
+        generalAverage: { student: 15.5, class: 12, min: 5, max: 18 },
+        sequences: [],
+        subjects: [
+          {
+            id: "subj-1",
+            subjectLabel: "Anglais",
+            teachers: [],
+            coefficient: 2,
+            studentAverage: 15.5,
+            classAverage: 12,
+            classMin: 5,
+            classMax: 18,
+            evaluations: [
+              {
+                id: "eval-1",
+                label: "Devoir",
+                score: 15.5,
+                maxScore: 20,
+                recordedAt: "2026-03-10T08:00:00.000Z",
+                countsForAverage: true,
+                isFinalExam: false,
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+    expect(await screen.findByTestId("notes-summary-c1")).toBeTruthy();
+    expect(screen.getByText("15,5/20")).toBeTruthy();
+    expect(screen.getByText("Anglais")).toBeTruthy();
+  });
+
+  it("navigue vers les évaluations de l'enfant au tap sur la carte", async () => {
+    render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+    fireEvent.press(await screen.findByTestId("notes-summary-c1"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/notes/child/[childId]",
+      params: { childId: "c1" },
+    });
+  });
+});
+
+describe("Résumé compte parent", () => {
+  it("affiche le panneau compte quand le résumé est disponible", async () => {
+    (authApi.parentDashboardSummary as jest.Mock).mockResolvedValue({
+      unreadMessages: 5,
+      payments: {
+        connected: false,
+        pendingCount: null,
+        overdueCount: null,
+        detail: "Non connecte",
+      },
+      documents: {
+        recentCount: 1,
+        totalPublishedCount: 3,
+        detail: "1 bulletin publie",
+        latest: [{ id: "doc-1", title: "Bulletin T1", publishedAt: null }],
+      },
+    });
+
+    render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+    expect(await screen.findByTestId("parent-account-section")).toBeTruthy();
+    expect(screen.getByText("5")).toBeTruthy();
+  });
+
+  it("n'affiche pas le panneau compte tant que le résumé n'a pas pu être chargé", () => {
+    render(<ParentHome user={parentUser} schoolSlug="college-vogt" />);
+
+    expect(screen.queryByTestId("parent-account-section")).toBeNull();
   });
 });
