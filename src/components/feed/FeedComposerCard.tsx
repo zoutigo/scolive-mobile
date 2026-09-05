@@ -19,6 +19,7 @@ import {
 import type {
   CreateFeedPayload,
   FeedAudienceScope,
+  FeedPost,
   FeedPostType,
   FeedViewerRole,
 } from "../../types/feed.types";
@@ -36,6 +37,10 @@ type DraftAttachment = {
 type Props = {
   viewerRole: FeedViewerRole;
   initialType?: FeedPostType;
+  /** Present in edit mode: pre-fills the form from an existing post and
+   * locks the POST/POLL type, mirroring web's inline edit form which never
+   * lets an existing post change type. */
+  initialPost?: FeedPost;
   onSubmit: (payload: CreateFeedPayload) => Promise<void>;
   onUploadInlineImage: (file: {
     uri: string;
@@ -112,6 +117,7 @@ function hasTextContent(html: string) {
 export function FeedComposerCard({
   viewerRole,
   initialType = "POST",
+  initialPost,
   onSubmit,
   onUploadInlineImage,
   onUploadAttachment,
@@ -127,14 +133,26 @@ export function FeedComposerCard({
     [viewerRole, locale],
   );
 
-  const [type, setType] = useState<FeedPostType>(initialType);
+  const [type, setType] = useState<FeedPostType>(
+    initialPost?.type ?? initialType,
+  );
   const [bodyError, setBodyError] = useState<string | null>(null);
   const [featuredDays, setFeaturedDays] = useState("0");
-  const [attachments, setAttachments] = useState<DraftAttachment[]>([]);
+  const [attachments, setAttachments] = useState<DraftAttachment[]>(
+    () =>
+      initialPost?.attachments.map((attachment) => ({
+        id: attachment.id,
+        fileName: attachment.fileName,
+        sizeLabel: attachment.sizeLabel,
+        fileUrl: attachment.fileUrl ?? null,
+      })) ?? [],
+  );
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [selectedAudienceScope, setSelectedAudienceScope] =
-    useState<FeedAudienceScope>(audienceOptions[0]?.scope ?? "SCHOOL_ALL");
+    useState<FeedAudienceScope>(
+      initialPost?.audience.scope ?? audienceOptions[0]?.scope ?? "SCHOOL_ALL",
+    );
 
   const typeRef = useRef<FeedPostType>(type);
   typeRef.current = type;
@@ -180,9 +198,11 @@ export function FeedComposerCard({
     reValidateMode: "onChange",
     resolver: zodResolver(schemaRef.current),
     defaultValues: {
-      title: "",
-      pollQuestion: "",
-      pollOptions: [{ value: "" }, { value: "" }],
+      title: initialPost?.title ?? "",
+      pollQuestion: initialPost?.poll?.question ?? "",
+      pollOptions: initialPost?.poll?.options.length
+        ? initialPost.poll.options.map((option) => ({ value: option.label }))
+        : [{ value: "" }, { value: "" }],
     },
   });
 
@@ -194,8 +214,9 @@ export function FeedComposerCard({
   const { isSubmitting, submitCount } = formState;
 
   useEffect(() => {
+    if (initialPost) return;
     setType(initialType);
-  }, [initialType]);
+  }, [initialType, initialPost]);
 
   function showFieldErr(fieldState: {
     error?: { message?: string };
@@ -318,7 +339,11 @@ export function FeedComposerCard({
               : t("feed.composer.modePost")}
           </Text>
           <Text style={styles.cardHeaderTitle}>
-            {t("feed.composer.heading")}
+            {t(
+              initialPost
+                ? "feed.composer.editHeading"
+                : "feed.composer.heading",
+            )}
           </Text>
         </View>
         {onCancel ? (
@@ -334,35 +359,43 @@ export function FeedComposerCard({
 
       {/* ── Body ── */}
       <View style={styles.cardBody}>
-        {/* Mode selector */}
-        <View style={styles.modeRow}>
-          {(["POST", "POLL"] as const).map((value) => (
-            <TouchableOpacity
-              key={value}
-              style={[styles.modeChip, type === value && styles.modeChipActive]}
-              onPress={() => setType(value)}
-              testID={`feed-composer-type-${value.toLowerCase()}`}
-            >
-              <Ionicons
-                name={
-                  value === "POST" ? "newspaper-outline" : "stats-chart-outline"
-                }
-                size={14}
-                color={type === value ? colors.white : colors.primary}
-              />
-              <Text
+        {/* Mode selector — hidden in edit mode: a post's type never changes
+            once published, mirroring web's inline edit form. */}
+        {initialPost ? null : (
+          <View style={styles.modeRow}>
+            {(["POST", "POLL"] as const).map((value) => (
+              <TouchableOpacity
+                key={value}
                 style={[
-                  styles.modeChipText,
-                  type === value && styles.modeChipTextActive,
+                  styles.modeChip,
+                  type === value && styles.modeChipActive,
                 ]}
+                onPress={() => setType(value)}
+                testID={`feed-composer-type-${value.toLowerCase()}`}
               >
-                {value === "POST"
-                  ? t("feed.composer.modePost")
-                  : t("feed.composer.modePoll")}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+                <Ionicons
+                  name={
+                    value === "POST"
+                      ? "newspaper-outline"
+                      : "stats-chart-outline"
+                  }
+                  size={14}
+                  color={type === value ? colors.white : colors.primary}
+                />
+                <Text
+                  style={[
+                    styles.modeChipText,
+                    type === value && styles.modeChipTextActive,
+                  ]}
+                >
+                  {value === "POST"
+                    ? t("feed.composer.modePost")
+                    : t("feed.composer.modePoll")}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* Title */}
         <View style={styles.fieldGroup}>
@@ -400,6 +433,7 @@ export function FeedComposerCard({
           </Text>
           <RichEditorField
             ref={editorFieldRef}
+            initialHtml={initialPost?.bodyHtml}
             placeholder={t("feed.composer.editorPlaceholder")}
             colorPresets={getColorPresets(t)}
             labels={{
@@ -645,11 +679,15 @@ export function FeedComposerCard({
           >
             <Ionicons name="send-outline" size={15} color={colors.white} />
             <Text style={styles.actionBtnPrimaryText}>
-              {isSubmitting
-                ? t("feed.composer.publishing")
-                : type === "POLL"
-                  ? t("feed.composer.publishPoll")
-                  : t("feed.composer.publish")}
+              {initialPost
+                ? isSubmitting
+                  ? t("feed.composer.saving")
+                  : t("feed.composer.save")
+                : isSubmitting
+                  ? t("feed.composer.publishing")
+                  : type === "POLL"
+                    ? t("feed.composer.publishPoll")
+                    : t("feed.composer.publish")}
             </Text>
           </TouchableOpacity>
         </View>

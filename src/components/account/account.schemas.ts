@@ -6,9 +6,16 @@ export const PASSWORD_COMPLEXITY_REGEX =
 export const accountPersonalProfileSchema = z.object({
   firstName: z.string().trim().min(1, "Le prénom est obligatoire."),
   lastName: z.string().trim().min(1, "Le nom est obligatoire."),
-  gender: z.enum(["M", "F", "OTHER"], {
-    message: "Le genre est obligatoire.",
-  }),
+  // Includes "" as a valid input (never a valid output) so the form can
+  // represent "no gender selected yet" without silently defaulting to a
+  // real value when the profile has none saved.
+  gender: z
+    .enum(["M", "F", "OTHER", ""], {
+      message: "Le genre est obligatoire.",
+    })
+    .refine((value) => value !== "", {
+      message: "Le genre est obligatoire.",
+    }),
   phone: z
     .string()
     .trim()

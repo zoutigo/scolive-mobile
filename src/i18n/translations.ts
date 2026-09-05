@@ -274,6 +274,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "finSituation.wallet.balance": "Solde du porte-monnaie",
     "finSituation.wallet.topUpAmount": "Montant a crediter",
     "finSituation.wallet.topUpSubmit": "Crediter",
+    "finSituation.walletHistory.title": "Dernieres operations",
+    "finSituation.wallet.transaction.topUp": "Depot",
+    "finSituation.wallet.transaction.allocation": "Reinscription",
     "finSituation.wallet.allChildrenLoaded": "Tous les enfants ont ete charges",
     "finSituation.wallet.errors.load":
       "Impossible de charger le porte-monnaie.",
@@ -2540,6 +2543,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.toast.deleteErrorTitle": "Suppression impossible",
     "feed.toast.deleteErrorMessage":
       "Impossible de supprimer cette publication.",
+    "feed.toast.updateSuccessTitle": "Publication mise à jour",
+    "feed.toast.updateSuccessMessage":
+      "Vos modifications ont été enregistrées.",
+    "feed.toast.updateErrorTitle": "Modification impossible",
+    "feed.toast.updateErrorMessage":
+      "Impossible d'enregistrer les modifications pour le moment.",
     "feed.toast.imageErrorTitle": "Image non ajoutée",
     "feed.toast.imageErrorMessage": "Impossible d'ajouter l'image.",
 
@@ -2550,6 +2559,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.composer.pollLabel": "Sondage",
     "feed.composer.eyebrow": "Publication",
     "feed.composer.heading": "Partager une actualité",
+    "feed.composer.editHeading": "Modifier la publication",
     "feed.composer.modePost": "Post",
     "feed.composer.modePoll": "Sondage",
     "feed.composer.titlePlaceholder": "Titre de la publication",
@@ -2563,6 +2573,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.composer.publishing": "Publication…",
     "feed.composer.publishPoll": "Publier le sondage",
     "feed.composer.publish": "Publier",
+    "feed.composer.saving": "Enregistrement…",
+    "feed.composer.save": "Enregistrer",
     "feed.composer.colorMenuTitle": "Couleur du texte",
     "feed.composer.colorMenuMessage": "Choisissez une couleur",
     "feed.composer.colorDeepBlue": "Bleu profond",
@@ -3274,6 +3286,60 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.parent.help.section4Title": "Retrouver toutes les rubriques",
     "home.parent.help.section4Body":
       "Cette page ne montre que l'essentiel. Pour tout le reste (paramètres du compte, autres modules...), touchez l'icône Menu dans la barre du bas : elle ouvre la navigation complète vers toutes les rubriques disponibles pour votre compte.",
+
+    "home.parent.dashboard.disciplineEyebrow": "Discipline",
+    "home.parent.dashboard.disciplineTitle": "Suivi disciplinaire",
+    "home.parent.dashboard.stats.absences": "Absences",
+    "home.parent.dashboard.stats.retards": "Retards",
+    "home.parent.dashboard.stats.incidents": "Incidents",
+    "home.parent.dashboard.openDetail": "Ouvrir le détail discipline",
+    "home.parent.dashboard.status.calm": "Situation sereine",
+    "home.parent.dashboard.status.watch": "À surveiller",
+    "home.parent.dashboard.status.alert": "Priorité parent",
+    "home.parent.dashboard.detail.none":
+      "Aucun signal disciplinaire notable sur la période.",
+    "home.parent.dashboard.detail.unjustifiedAbsences":
+      "{count} absence(s) à justifier.",
+    "home.parent.dashboard.detail.incidentsRecorded":
+      "{count} incident(s) recensé(s) sur la période.",
+    "home.parent.dashboard.detail.absencesRecorded":
+      "{count} absence(s) enregistrée(s).",
+    "home.parent.dashboard.detail.retardsThisTerm":
+      "{count} retard(s) ce trimestre.",
+
+    "home.parent.dashboard.evaluationsEyebrow": "Évaluations",
+    "home.parent.dashboard.evaluationsTitle": "Résultats récents",
+    "home.parent.dashboard.evaluationsOpenLink": "Ouvrir les évaluations",
+    "home.parent.dashboard.notes.averagePending": "En attente",
+    "home.parent.dashboard.notes.termCurrent": "Trimestre en cours",
+    "home.parent.dashboard.notes.nonePublished": "Aucune évaluation publiée",
+    "home.parent.dashboard.notes.trendConfirm": "Progression à confirmer",
+    "home.parent.dashboard.notes.trendVeryGood": "Dynamique très encourageante",
+    "home.parent.dashboard.notes.trendGood": "Bases solides ce trimestre",
+    "home.parent.dashboard.notes.trendWatch": "Points de vigilance à suivre",
+
+    "home.parent.dashboard.accountEyebrow": "Compte",
+    "home.parent.dashboard.accountTitle": "Mon espace parent",
+    "home.parent.dashboard.accountStatusLabel": "Situation du compte",
+    "home.parent.dashboard.accountHeadlineOk": "Compte parent à jour",
+    "home.parent.dashboard.accountHeadlinePending":
+      "{count} point{suffix} à traiter",
+    "home.parent.dashboard.accountDetailLate":
+      "Un règlement reste en retard et mérite une vérification.",
+    "home.parent.dashboard.accountDetailNeutral":
+      "Retrouvez ici les éléments administratifs et les échanges à suivre.",
+    "home.parent.dashboard.paymentsLabel": "Paiements",
+    "home.parent.dashboard.paymentsDetail":
+      "{lateCount} en retard, {pendingCount} en attente",
+    "home.parent.dashboard.paymentsAllOk": "Aucun paiement en attente",
+    "home.parent.dashboard.unreadMessagesLabel": "Messages non lus",
+    "home.parent.dashboard.unreadMessagesHintPositive":
+      "Des échanges attendent votre lecture.",
+    "home.parent.dashboard.unreadMessagesHintNeutral":
+      "Boîte de réception à jour",
+    "home.parent.dashboard.documentsLabel": "Documents récents",
+    "home.parent.dashboard.documentsPublished": "{count} document(s) publié(s)",
+    "home.parent.dashboard.documentsNone": "Aucun document publié",
 
     "home.teacher.help.toggle": "Aide sur cette page",
     "home.teacher.help.title": "Votre tableau de bord enseignant",
@@ -4325,6 +4391,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "finSituation.wallet.balance": "Wallet balance",
     "finSituation.wallet.topUpAmount": "Amount to top up",
     "finSituation.wallet.topUpSubmit": "Top up",
+    "finSituation.walletHistory.title": "Recent transactions",
+    "finSituation.wallet.transaction.topUp": "Top-up",
+    "finSituation.wallet.transaction.allocation": "Re-enrollment",
     "finSituation.wallet.allChildrenLoaded": "All children have been loaded",
     "finSituation.wallet.errors.load": "Unable to load the wallet.",
     "finSituation.wallet.errors.amount": "Invalid amount.",
@@ -6494,6 +6563,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.toast.deleteSuccessTitle": "Post deleted",
     "feed.toast.deleteErrorTitle": "Unable to delete",
     "feed.toast.deleteErrorMessage": "Unable to delete this post.",
+    "feed.toast.updateSuccessTitle": "Post updated",
+    "feed.toast.updateSuccessMessage": "Your changes have been saved.",
+    "feed.toast.updateErrorTitle": "Unable to save changes",
+    "feed.toast.updateErrorMessage": "Unable to save these changes right now.",
     "feed.toast.imageErrorTitle": "Image not added",
     "feed.toast.imageErrorMessage": "Unable to add the image.",
 
@@ -6504,6 +6577,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.composer.pollLabel": "Poll",
     "feed.composer.eyebrow": "Post",
     "feed.composer.heading": "Share a post",
+    "feed.composer.editHeading": "Edit post",
     "feed.composer.modePost": "Post",
     "feed.composer.modePoll": "Poll",
     "feed.composer.titlePlaceholder": "Post title",
@@ -6517,6 +6591,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "feed.composer.publishing": "Publishing…",
     "feed.composer.publishPoll": "Publish the poll",
     "feed.composer.publish": "Publish",
+    "feed.composer.saving": "Saving…",
+    "feed.composer.save": "Save",
     "feed.composer.colorMenuTitle": "Text color",
     "feed.composer.colorMenuMessage": "Choose a color",
     "feed.composer.colorDeepBlue": "Deep blue",
@@ -7212,6 +7288,59 @@ export const translations: Record<Locale, Record<string, string>> = {
     "home.parent.help.section4Title": "Finding every other section",
     "home.parent.help.section4Body":
       "This page only shows the essentials. For everything else (account settings, other modules...), tap the Menu icon in the bottom bar: it opens the full navigation to every section available for your account.",
+
+    "home.parent.dashboard.disciplineEyebrow": "Discipline",
+    "home.parent.dashboard.disciplineTitle": "Discipline tracking",
+    "home.parent.dashboard.stats.absences": "Absences",
+    "home.parent.dashboard.stats.retards": "Lateness",
+    "home.parent.dashboard.stats.incidents": "Incidents",
+    "home.parent.dashboard.openDetail": "Open discipline details",
+    "home.parent.dashboard.status.calm": "Calm situation",
+    "home.parent.dashboard.status.watch": "To watch",
+    "home.parent.dashboard.status.alert": "Parent priority",
+    "home.parent.dashboard.detail.none":
+      "No notable disciplinary signal for the period.",
+    "home.parent.dashboard.detail.unjustifiedAbsences":
+      "{count} unjustified absence(s) to clear.",
+    "home.parent.dashboard.detail.incidentsRecorded":
+      "{count} incident(s) recorded for the period.",
+    "home.parent.dashboard.detail.absencesRecorded":
+      "{count} absence(s) recorded.",
+    "home.parent.dashboard.detail.retardsThisTerm":
+      "{count} lateness this term.",
+
+    "home.parent.dashboard.evaluationsEyebrow": "Assessments",
+    "home.parent.dashboard.evaluationsTitle": "Recent results",
+    "home.parent.dashboard.evaluationsOpenLink": "Open assessments",
+    "home.parent.dashboard.notes.averagePending": "Pending",
+    "home.parent.dashboard.notes.termCurrent": "Current term",
+    "home.parent.dashboard.notes.nonePublished": "No assessment published",
+    "home.parent.dashboard.notes.trendConfirm": "Progress to confirm",
+    "home.parent.dashboard.notes.trendVeryGood": "Very encouraging trend",
+    "home.parent.dashboard.notes.trendGood": "Solid foundations this term",
+    "home.parent.dashboard.notes.trendWatch": "Areas to watch",
+
+    "home.parent.dashboard.accountEyebrow": "Account",
+    "home.parent.dashboard.accountTitle": "My parent space",
+    "home.parent.dashboard.accountStatusLabel": "Account status",
+    "home.parent.dashboard.accountHeadlineOk": "Parent account up to date",
+    "home.parent.dashboard.accountHeadlinePending":
+      "{count} item{suffix} to handle",
+    "home.parent.dashboard.accountDetailLate":
+      "One payment is overdue and requires attention.",
+    "home.parent.dashboard.accountDetailNeutral":
+      "Find your administrative items and exchanges here.",
+    "home.parent.dashboard.paymentsLabel": "Payments",
+    "home.parent.dashboard.paymentsDetail":
+      "{lateCount} overdue, {pendingCount} pending",
+    "home.parent.dashboard.paymentsAllOk": "No pending payment",
+    "home.parent.dashboard.unreadMessagesLabel": "Unread messages",
+    "home.parent.dashboard.unreadMessagesHintPositive":
+      "New messages are waiting for you.",
+    "home.parent.dashboard.unreadMessagesHintNeutral": "Inbox is up to date",
+    "home.parent.dashboard.documentsLabel": "Recent documents",
+    "home.parent.dashboard.documentsPublished": "{count} document(s) published",
+    "home.parent.dashboard.documentsNone": "No documents published",
 
     "home.teacher.help.toggle": "Help on this page",
     "home.teacher.help.title": "Your teacher dashboard",

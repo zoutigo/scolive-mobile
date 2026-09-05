@@ -31,7 +31,7 @@ jest.mock("expo-router", () => ({
 jest.mock("../../src/api/auth.api");
 jest.mock("../../src/api/family.api");
 jest.mock("../../src/api/client", () => ({
-  apiFetch: jest.fn(),
+  apiFetch: jest.fn().mockResolvedValue([]),
   tokenStorage: {
     getAccessToken: jest.fn(),
     getRefreshToken: jest.fn(),
@@ -85,6 +85,21 @@ const fakeParentUser: AuthUser = {
 beforeEach(() => {
   jest.clearAllMocks();
   mockFamilyApi.getParentMe.mockResolvedValue({ linkedStudents: [] });
+  mockAuthApi.parentDashboardSummary.mockResolvedValue({
+    unreadMessages: 0,
+    payments: {
+      connected: false,
+      pendingCount: null,
+      overdueCount: null,
+      detail: "",
+    },
+    documents: {
+      recentCount: 0,
+      totalPublishedCount: 0,
+      detail: "",
+      latest: [],
+    },
+  });
   useAuthStore.setState({
     user: null,
     accessToken: null,

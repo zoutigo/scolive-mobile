@@ -18,6 +18,17 @@ import { useTranslation } from "../../i18n/useTranslation";
 import { useOnboardingTourTrigger } from "../../hooks/useOnboardingTourTrigger";
 import { useHomeHeaderHelpAction } from "../../hooks/useHomeHeaderHelpAction";
 import { PageHelpModal } from "../help/PageHelpModal";
+import { disciplineApi } from "../../api/discipline.api";
+import { notesApi } from "../../api/notes.api";
+import { authApi } from "../../api/auth.api";
+import {
+  buildAccountSummary,
+  buildDisciplineSummary,
+  buildNotesSummary,
+  type ChildDisciplineSummary,
+  type ChildNotesSummary,
+  type ParentAccountSummary,
+} from "./parent-dashboard-logic";
 import {
   PARENT_LANDING_TOUR_ID,
   PARENT_LANDING_TOUR_STEPS,
@@ -32,17 +43,71 @@ interface ParentHomeProps {
 }
 
 export function ParentHome({ schoolSlug }: ParentHomeProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { children, isLoading, setActiveChild } = useFamilyStore();
   const { unreadCount, loadUnreadCount } = useMessagingStore();
   const router = useRouter();
   const { onScroll } = useHeaderScroll();
   const [helpVisible, setHelpVisible] = useState(false);
+  const [disciplineSummaries, setDisciplineSummaries] = useState<
+    ChildDisciplineSummary[]
+  >([]);
+  const [notesSummaries, setNotesSummaries] = useState<ChildNotesSummary[]>([]);
+  const [accountSummary, setAccountSummary] =
+    useState<ParentAccountSummary | null>(null);
 
   useEffect(() => {
     if (!schoolSlug) return;
     loadUnreadCount(schoolSlug).catch(() => {});
   }, [loadUnreadCount, schoolSlug]);
+
+  useEffect(() => {
+    if (!schoolSlug || children.length === 0) {
+      setDisciplineSummaries([]);
+      setNotesSummaries([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    Promise.all(
+      children.map(async (child) => {
+        const [lifeEvents, notes] = await Promise.all([
+          disciplineApi.list(schoolSlug, child.id).catch(() => []),
+          notesApi.listStudentNotes(schoolSlug, child.id).catch(() => []),
+        ]);
+        return {
+          discipline: buildDisciplineSummary(child, lifeEvents, t),
+          notes: buildNotesSummary(child, notes, t),
+        };
+      }),
+    ).then((results) => {
+      if (cancelled) return;
+      setDisciplineSummaries(results.map((entry) => entry.discipline));
+      setNotesSummaries(results.map((entry) => entry.notes));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolSlug, children, locale]);
+
+  useEffect(() => {
+    if (!schoolSlug) return;
+    let cancelled = false;
+
+    authApi
+      .parentDashboardSummary(schoolSlug)
+      .then((payload) => {
+        if (cancelled) return;
+        setAccountSummary(buildAccountSummary(payload, t));
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolSlug, locale]);
 
   useOnboardingTourTrigger({
     tourId: PARENT_LANDING_TOUR_ID,
@@ -62,6 +127,20 @@ export function ParentHome({ schoolSlug }: ParentHomeProps) {
   function handleChildPress(child: ParentChild) {
     setActiveChild(child.id);
     router.push(buildChildHomeTarget(child.id) as never);
+  }
+
+  function handleDisciplinePress(childId: string) {
+    router.push({
+      pathname: "/(home)/discipline/[childId]",
+      params: { childId },
+    } as never);
+  }
+
+  function handleNotesPress(childId: string) {
+    router.push({
+      pathname: "/(home)/notes/child/[childId]",
+      params: { childId },
+    } as never);
   }
 
   function handleQuickAccessPress(id: string, label: string) {
@@ -149,6 +228,145 @@ export function ParentHome({ schoolSlug }: ParentHomeProps) {
             </View>
           )}
         </View>
+
+        {/* Discipline */}
+        {disciplineSummaries.length > 0 ? (
+          <View testID="parent-discipline-section">
+            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
+              {t("home.parent.dashboard.disciplineTitle")}
+            </Text>
+            <View style={styles.cardsList}>
+              {disciplineSummaries.map((summary) => (
+                <TouchableOpacity
+                  key={summary.childId}
+                  style={styles.summaryCard}
+                  activeOpacity={0.8}
+                  onPress={() => handleDisciplinePress(summary.childId)}
+                  testID={`discipline-summary-${summary.childId}`}
+                >
+                  <View style={styles.summaryCardHeader}>
+                    <Text style={styles.summaryCardName}>
+                      {summary.childName}
+                    </Text>
+                    <View
+                      style={[
+                        styles.toneChip,
+                        { backgroundColor: toneColor(summary.statusTone) },
+                      ]}
+                    >
+                      <Text style={styles.toneChipText}>
+                        {summary.statusLabel}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.summaryCardDetail}>{summary.detail}</Text>
+                  <View style={styles.statsRow}>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statValue}>{summary.absences}</Text>
+                      <Text style={styles.statLabel}>
+                        {t("home.parent.dashboard.stats.absences")}
+                      </Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statValue}>{summary.retards}</Text>
+                      <Text style={styles.statLabel}>
+                        {t("home.parent.dashboard.stats.retards")}
+                      </Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statValue}>{summary.incidents}</Text>
+                      <Text style={styles.statLabel}>
+                        {t("home.parent.dashboard.stats.incidents")}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.summaryCardLink}>
+                    {t("home.parent.dashboard.openDetail")}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Évaluations */}
+        {notesSummaries.length > 0 ? (
+          <View testID="parent-evaluations-section">
+            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
+              {t("home.parent.dashboard.evaluationsTitle")}
+            </Text>
+            <View style={styles.cardsList}>
+              {notesSummaries.map((summary) => (
+                <TouchableOpacity
+                  key={summary.childId}
+                  style={styles.summaryCard}
+                  activeOpacity={0.8}
+                  onPress={() => handleNotesPress(summary.childId)}
+                  testID={`notes-summary-${summary.childId}`}
+                >
+                  <View style={styles.summaryCardHeader}>
+                    <Text style={styles.summaryCardName}>
+                      {summary.childName}
+                    </Text>
+                    <Text style={styles.summaryAverage}>
+                      {summary.averageLabel}
+                    </Text>
+                  </View>
+                  <Text style={styles.summaryCardDetail}>
+                    {summary.trendLabel}
+                  </Text>
+                  {summary.latestEvaluations.map((evaluation) => (
+                    <View key={evaluation.id} style={styles.evalRow}>
+                      <Text style={styles.evalSubject} numberOfLines={1}>
+                        {evaluation.subjectLabel}
+                      </Text>
+                      <Text style={styles.evalScore}>
+                        {evaluation.score}/{evaluation.maxScore}
+                      </Text>
+                      <Text style={styles.evalDate}>
+                        {evaluation.recordedAtLabel}
+                      </Text>
+                    </View>
+                  ))}
+                  <Text style={styles.summaryCardLink}>
+                    {t("home.parent.dashboard.evaluationsOpenLink")}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Compte */}
+        {accountSummary ? (
+          <View testID="parent-account-section">
+            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
+              {t("home.parent.dashboard.accountTitle")}
+            </Text>
+            <View style={styles.accountCard}>
+              <Text style={styles.accountHeadline}>
+                {accountSummary.headline}
+              </Text>
+              <Text style={styles.accountDetail}>{accountSummary.detail}</Text>
+              {accountSummary.items.map((item) => (
+                <View key={item.id} style={styles.accountItemRow}>
+                  <View style={styles.accountItemText}>
+                    <Text style={styles.accountItemLabel}>{item.label}</Text>
+                    <Text style={styles.accountItemDetail}>{item.detail}</Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.accountItemValue,
+                      { color: toneColor(item.tone) },
+                    ]}
+                  >
+                    {item.value}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
 
         {/* Accès rapides */}
         <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
@@ -275,6 +493,12 @@ export function ParentHome({ schoolSlug }: ParentHomeProps) {
       />
     </>
   );
+}
+
+function toneColor(tone: "calm" | "watch" | "alert" | "neutral"): string {
+  if (tone === "alert") return colors.notification;
+  if (tone === "watch") return colors.warmAccent;
+  return colors.accentTeal;
 }
 
 // ── Carte enfant ─────────────────────────────────────────────────────────────
@@ -460,4 +684,92 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   newsEmpty: { alignItems: "center", padding: 32, gap: 8 },
+
+  cardsList: { gap: 10, marginBottom: 4 },
+  summaryCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    padding: 16,
+    gap: 8,
+  },
+  summaryCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  summaryCardName: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  summaryCardDetail: { fontSize: 12, color: colors.textSecondary },
+  summaryCardLink: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.primary,
+  },
+  summaryAverage: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.primary,
+  },
+  toneChip: {
+    flexShrink: 0,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  toneChipText: { color: colors.white, fontSize: 11, fontWeight: "600" },
+  statsRow: { flexDirection: "row", gap: 16, marginTop: 4 },
+  statItem: { alignItems: "flex-start" },
+  statValue: { fontSize: 16, fontWeight: "700", color: colors.textPrimary },
+  statLabel: { fontSize: 11, color: colors.textSecondary },
+  evalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 4,
+    borderTopWidth: 1,
+    borderTopColor: colors.warmBorder,
+  },
+  evalSubject: { flex: 1, fontSize: 13, color: colors.textPrimary },
+  evalScore: { fontSize: 13, fontWeight: "700", color: colors.textPrimary },
+  evalDate: { fontSize: 11, color: colors.textSecondary },
+
+  accountCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    padding: 16,
+    gap: 10,
+  },
+  accountHeadline: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.textPrimary,
+  },
+  accountDetail: { fontSize: 12, color: colors.textSecondary },
+  accountItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.warmBorder,
+  },
+  accountItemText: { flex: 1, minWidth: 0 },
+  accountItemLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+  accountItemDetail: { fontSize: 11, color: colors.textSecondary },
+  accountItemValue: { fontSize: 16, fontWeight: "700" },
 });

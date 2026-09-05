@@ -84,7 +84,8 @@ type SecuritySection =
   | "recovery"
   | null;
 
-type PersonalValues = z.infer<typeof accountPersonalProfileSchema>;
+type PersonalValues = z.input<typeof accountPersonalProfileSchema>;
+type PersonalOutputValues = z.output<typeof accountPersonalProfileSchema>;
 type PasswordValues = z.infer<typeof accountChangePasswordSchema>;
 type CreatePasswordValues = z.infer<typeof accountCreatePasswordSchema>;
 type PinValues = z.infer<typeof accountChangePinSchema>;
@@ -397,21 +398,25 @@ function PersonalFormEdit({
   const lastNameRef = useRef<TextInput>(null);
   const phoneRef = useRef<TextInput>(null);
 
-  const { control, handleSubmit, formState } = useForm<PersonalValues>({
+  const { control, handleSubmit, formState } = useForm<
+    PersonalValues,
+    unknown,
+    PersonalOutputValues
+  >({
     mode: "onChange",
     reValidateMode: "onChange",
     resolver: zodResolver(accountPersonalProfileSchema),
     defaultValues: {
       firstName: profile.firstName,
       lastName: profile.lastName,
-      gender: profile.gender ?? "M",
+      gender: profile.gender ?? "",
       phone: toLocalPhoneDisplay(profile.phone),
     },
   });
 
   const { isSubmitting, submitCount } = formState;
 
-  async function onValid(data: PersonalValues) {
+  async function onValid(data: PersonalOutputValues) {
     try {
       const response = await accountApi.updateProfile(data);
       showSuccess({
@@ -489,15 +494,21 @@ function PersonalFormEdit({
       <Controller
         control={control}
         name="gender"
-        render={({ field }) => (
-          <PillSelector
-            label="Genre"
-            value={field.value}
-            options={GENDER_OPTIONS}
-            onChange={(value) => field.onChange(value as AccountGender)}
-            testIDPrefix="account-gender"
-          />
-        )}
+        render={({ field, fieldState }) => {
+          const err = fieldErr(fieldState, submitCount);
+          return (
+            <>
+              <PillSelector
+                label="Genre"
+                value={field.value}
+                options={GENDER_OPTIONS}
+                onChange={(value) => field.onChange(value as AccountGender)}
+                testIDPrefix="account-gender"
+              />
+              {err ? <Text style={styles.fieldError}>{err}</Text> : null}
+            </>
+          );
+        }}
       />
       <Controller
         control={control}

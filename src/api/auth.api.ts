@@ -9,6 +9,26 @@ import type {
 // AuthResponse est un alias de LoginResponse
 export type AuthResponse = LoginResponse;
 
+export type ParentDashboardSummaryResponse = {
+  unreadMessages: number;
+  payments: {
+    connected: boolean;
+    pendingCount: number | null;
+    overdueCount: number | null;
+    detail: string;
+  };
+  documents: {
+    recentCount: number;
+    totalPublishedCount: number;
+    detail: string;
+    latest: Array<{
+      id: string;
+      title: string;
+      publishedAt: string | null;
+    }>;
+  };
+};
+
 export const authApi = {
   loginEmail(email: string, password: string): Promise<LoginResponse> {
     return apiFetch("/auth/login", {
@@ -67,6 +87,16 @@ export const authApi = {
 
   meGlobal(): Promise<AuthUser> {
     return apiFetch(`/me`, {}, true);
+  },
+
+  parentDashboardSummary(
+    schoolSlug: string,
+  ): Promise<ParentDashboardSummaryResponse> {
+    return apiFetch(
+      `/schools/${schoolSlug}/auth/me/parent-dashboard-summary`,
+      {},
+      true,
+    );
   },
 
   registerPushToken(

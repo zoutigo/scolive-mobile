@@ -122,6 +122,7 @@ beforeEach(() => {
     meta: { page: 1, limit: 12, total: 1, totalPages: 1 },
   });
   api.create.mockResolvedValue(samplePost);
+  api.update.mockResolvedValue(samplePost);
   api.toggleLike.mockResolvedValue({ liked: true, likesCount: 3 });
   api.addComment.mockResolvedValue({
     comment: {
@@ -402,5 +403,46 @@ describe("FeedScreen", () => {
         "opt-2",
       );
     });
+  });
+
+  it("édite un post via le bouton d'édition et enregistre les modifications via l'API", async () => {
+    const editablePost = { ...samplePost, canManage: true };
+    api.list.mockResolvedValueOnce({
+      items: [editablePost],
+      meta: { page: 1, limit: 12, total: 1, totalPages: 1 },
+    });
+    const updatedPost = { ...editablePost, title: "Réunion modifiée" };
+    api.update.mockResolvedValueOnce(updatedPost);
+
+    await renderFeedScreen();
+
+    fireEvent.press(screen.getByTestId("feed-post-edit-post-1"));
+
+    expect(screen.getByTestId("feed-composer-title")).toHaveProp(
+      "value",
+      "Réunion des parents",
+    );
+    expect(screen.getByTestId("feed-composer-submit")).toHaveTextContent(
+      "Enregistrer",
+    );
+
+    fireEvent.changeText(
+      screen.getByTestId("feed-composer-title"),
+      "Réunion modifiée",
+    );
+    fireEvent.press(screen.getByTestId("rich-editor-set-content"));
+    fireEvent.press(screen.getByTestId("feed-composer-submit"));
+
+    await waitFor(() => {
+      expect(api.update).toHaveBeenCalledWith(
+        "college-vogt",
+        "post-1",
+        expect.objectContaining({ title: "Réunion modifiée" }),
+      );
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("feed-composer-card")).toBeNull();
+    });
+    expect(screen.getByText("RÉUNION MODIFIÉE")).toBeTruthy();
   });
 });

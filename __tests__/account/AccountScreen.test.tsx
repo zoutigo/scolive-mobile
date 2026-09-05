@@ -213,6 +213,42 @@ describe("AccountScreen", () => {
     expect(saveBtn.props.accessibilityState?.disabled).toBeFalsy();
   });
 
+  it("ne préremplit pas Genre à M quand le profil n'en a pas et bloque l'enregistrement tant qu'il n'est pas choisi", async () => {
+    // Régression : le formulaire préremplissait Genre à "M" quand
+    // profile.gender était null, donc enregistrer un changement sans rapport
+    // (ex. prénom) écrivait silencieusement gender: "M" sur des comptes qui
+    // n'avaient jamais choisi de genre — confirmé en réel côté web pour le
+    // même bug avant ce correctif miroir côté mobile.
+    api.getMe.mockResolvedValueOnce({ ...profileResponse, gender: null });
+
+    render(<AccountScreen />);
+
+    await waitFor(() => {
+      expect(api.getMe).toHaveBeenCalled();
+    });
+
+    fireEvent.press(screen.getByTestId("account-edit-personal"));
+    fireEvent.changeText(
+      screen.getByTestId("account-first-name-input"),
+      "Rémi modifié",
+    );
+    fireEvent.press(screen.getByTestId("account-save-personal"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Le genre est obligatoire.")).toBeTruthy();
+    });
+    expect(api.updateProfile).not.toHaveBeenCalled();
+
+    fireEvent.press(screen.getByTestId("account-gender-M"));
+    fireEvent.press(screen.getByTestId("account-save-personal"));
+
+    await waitFor(() => {
+      expect(api.updateProfile).toHaveBeenCalledWith(
+        expect.objectContaining({ gender: "M" }),
+      );
+    });
+  });
+
   it("affiche une erreur de champ si le prénom est vidé", async () => {
     render(<AccountScreen />);
 
