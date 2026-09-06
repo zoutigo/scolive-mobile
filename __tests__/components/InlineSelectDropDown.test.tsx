@@ -150,6 +150,29 @@ describe("InlineSelectDropDown — sélection", () => {
     expect(screen.getByTestId("test-select-option-r-a01")).toBeTruthy();
     expect(screen.getByTestId("test-select-option-r-b45")).toBeTruthy();
   });
+
+  it("place les options dans un conteneur scrollable pour rester toutes atteignables (pas de recouvrement par une barre d'actions fixe)", async () => {
+    renderDropdown({ options: LONG_OPTIONS });
+    fireEvent.press(screen.getByTestId("test-select"));
+    await waitFor(() =>
+      expect(screen.getByTestId("test-select-options-scroll")).toBeTruthy(),
+    );
+  });
+
+  it("permet de sélectionner la dernière option d'une longue liste", async () => {
+    const { onChange } = renderDropdown({ options: LONG_OPTIONS });
+    fireEvent.press(screen.getByTestId("test-select"));
+    const lastOption = LONG_OPTIONS[LONG_OPTIONS.length - 1];
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`test-select-option-${lastOption.value}`),
+      ).toBeTruthy(),
+    );
+    fireEvent.press(
+      screen.getByTestId(`test-select-option-${lastOption.value}`),
+    );
+    expect(onChange).toHaveBeenCalledWith(lastOption.value);
+  });
 });
 
 // ─── État d'erreur ────────────────────────────────────────────────────────────

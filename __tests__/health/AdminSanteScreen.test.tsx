@@ -114,6 +114,20 @@ beforeEach(() => {
   api.listSchoolStudents.mockResolvedValue(paginated([]));
 });
 
+describe("AdminSanteScreen — libellés d'onglets", () => {
+  it("n'affiche jamais le libellé technique 'Cares' pour l'onglet signalements", async () => {
+    render(<AdminSanteScreenRoute />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("admin-kpi-active-conditions"),
+      ).toBeOnTheScreen();
+    });
+    expect(screen.queryByText("Cares")).not.toBeOnTheScreen();
+    expect(screen.getByText("Événements hors école")).toBeOnTheScreen();
+  });
+});
+
 describe("AdminSanteScreen — onglet Synthèse", () => {
   it("charge et affiche les statistiques école au montage", async () => {
     render(<AdminSanteScreenRoute />);
@@ -232,6 +246,25 @@ describe("AdminSanteScreen — onglet Cares", () => {
     expect(screen.queryByTestId("admin-cares-filter-panel")).toBeNull();
   });
 
+  it("sélectionne le dernier type de signalement de la liste déroulante (option non masquée par la barre d'actions)", async () => {
+    await goToCaresTab();
+    fireEvent.press(screen.getByTestId("admin-cares-filter-toggle"));
+    fireEvent.press(screen.getByTestId("admin-cares-filter-reportType"));
+    fireEvent.press(
+      screen.getByTestId("admin-cares-filter-reportType-option-AUTRE"),
+    );
+    fireEvent.press(screen.getByTestId("admin-cares-filter-apply"));
+
+    await waitFor(() => {
+      expect(api.listSchoolReports).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({
+          filters: expect.objectContaining({ reportType: "AUTRE" }),
+        }),
+      );
+    });
+  });
+
   it("Reset vide draft ET applied, panneau reste ouvert", async () => {
     await goToCaresTab();
     fireEvent.press(screen.getByTestId("admin-cares-filter-toggle"));
@@ -286,6 +319,37 @@ describe("AdminSanteScreen — onglet Cares", () => {
         params: expect.objectContaining({ studentId: "student-1" }),
       }),
     );
+  });
+
+  it("acquitte un signalement en attente sans naviguer vers la fiche élève", async () => {
+    api.listSchoolReports.mockResolvedValue(paginated([REPORT_1]));
+    api.acknowledgeReport.mockResolvedValue({
+      ...REPORT_1,
+      acknowledgedAt: "2026-02-06T08:00:00Z",
+    });
+    await goToCaresTab();
+
+    await waitFor(() => screen.getByTestId("admin-cares-acknowledge-report-1"));
+    fireEvent.press(screen.getByTestId("admin-cares-acknowledge-report-1"));
+
+    await waitFor(() => {
+      expect(api.acknowledgeReport).toHaveBeenCalledWith(
+        "college-vogt",
+        "student-1",
+        "report-1",
+      );
+    });
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("n'affiche pas le bouton d'acquittement pour un signalement déjà acquitté", async () => {
+    api.listSchoolReports.mockResolvedValueOnce(
+      paginated([{ ...REPORT_1, acknowledgedAt: "2026-02-06T08:00:00Z" }]),
+    );
+    await goToCaresTab();
+
+    await waitFor(() => screen.getByTestId("admin-cares-item-report-1"));
+    expect(screen.queryByTestId("admin-cares-acknowledge-report-1")).toBeNull();
   });
 
   describe("pagination", () => {

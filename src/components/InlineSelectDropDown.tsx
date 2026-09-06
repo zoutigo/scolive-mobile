@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -140,7 +141,14 @@ export function InlineSelectDropDown({
               {noResultsLabel ?? t("components.inlineSelect.noResults")}
             </Text>
           ) : (
-            filteredOptions.map(renderOption)
+            <ScrollView
+              style={styles.optionsScroll}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+              testID={testID ? `${testID}-options-scroll` : undefined}
+            >
+              {filteredOptions.map(renderOption)}
+            </ScrollView>
           )}
           {searchable ? (
             <View style={styles.searchWrap}>
@@ -237,6 +245,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textPrimary,
     padding: 0,
+  },
+  optionsScroll: {
+    maxHeight: 280,
   },
   noResults: {
     paddingHorizontal: 20,

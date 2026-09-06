@@ -121,6 +121,14 @@ describe("AdminSanteStudentScreen — hero", () => {
     expect(hero.getByText("Mbele Nathan")).toBeOnTheScreen();
     expect(hero.getByText("CM2 A · 11 ans")).toBeOnTheScreen();
   });
+
+  it("n'affiche jamais le libellé technique 'Cares' pour l'onglet historique", async () => {
+    render(<AdminHealthStudentScreenRoute />);
+
+    await waitFor(() => screen.getByTestId("admin-sante-student-hero"));
+    expect(screen.queryByText("Cares")).not.toBeOnTheScreen();
+    expect(screen.getByText("Historique")).toBeOnTheScreen();
+  });
 });
 
 describe("AdminSanteStudentScreen — onglet Cares", () => {
@@ -156,6 +164,55 @@ describe("AdminSanteStudentScreen — onglet Cares", () => {
     await waitFor(() => {
       expect(screen.getByText("Aucun soin enregistré.")).toBeOnTheScreen();
     });
+  });
+
+  it("acquitte un signalement en attente depuis la fiche élève", async () => {
+    api.getHistory.mockResolvedValue(
+      paginated([REPORT_1_HISTORY, CARE_EVENT_HISTORY]),
+    );
+    api.acknowledgeReport.mockResolvedValue({
+      ...REPORT_1_HISTORY.payload,
+      acknowledgedAt: "2026-02-06T08:00:00Z",
+    });
+    render(<AdminHealthStudentScreenRoute />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("report-acknowledge-report-1"),
+      ).toBeOnTheScreen(),
+    );
+    fireEvent.press(screen.getByTestId("report-acknowledge-report-1"));
+
+    await waitFor(() => {
+      expect(api.acknowledgeReport).toHaveBeenCalledWith(
+        "college-vogt",
+        "student-1",
+        "report-1",
+      );
+    });
+    expect(api.getHistory).toHaveBeenLastCalledWith(
+      "college-vogt",
+      "student-1",
+      expect.objectContaining({ page: 1 }),
+    );
+  });
+
+  it("n'affiche pas le bouton d'acquittement pour un signalement déjà acquitté", async () => {
+    api.getHistory.mockResolvedValueOnce(
+      paginated([
+        {
+          ...REPORT_1_HISTORY,
+          payload: {
+            ...REPORT_1_HISTORY.payload,
+            acknowledgedAt: "2026-02-06T08:00:00Z",
+          },
+        },
+      ]),
+    );
+    render(<AdminHealthStudentScreenRoute />);
+
+    await waitFor(() => screen.getByText("Crise d'asthme"));
+    expect(screen.queryByTestId("report-acknowledge-report-1")).toBeNull();
   });
 
   describe("pagination", () => {

@@ -101,6 +101,9 @@ function AdminHealthStudentScreenContent() {
     useState<StudentHealthCareEvent | null>(null);
   const [isSavingForm, setIsSavingForm] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [acknowledgingReportId, setAcknowledgingReportId] = useState<
+    string | null
+  >(null);
 
   const studentName = [params.lastName, params.firstName]
     .filter(Boolean)
@@ -279,6 +282,30 @@ function AdminHealthStudentScreenContent() {
     }
   }
 
+  async function acknowledgeReport(reportId: string) {
+    if (!schoolSlug || !studentId) return;
+    setAcknowledgingReportId(reportId);
+    try {
+      await healthApi.acknowledgeReport(schoolSlug, studentId, reportId);
+      showSuccess({
+        title: t("health.admin.cares.card.acknowledgeSuccessTitle"),
+        message: t("health.admin.cares.card.acknowledgeSuccessMessage"),
+      });
+      await loadCares(1, "reset");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : t("health.admin.profile.errors.saveGeneric");
+      showError({
+        title: t("health.admin.profile.errors.saveGeneric"),
+        message,
+      });
+    } finally {
+      setAcknowledgingReportId(null);
+    }
+  }
+
   return (
     <View style={styles.root} testID="admin-sante-student-screen">
       <ModuleHeader
@@ -369,6 +396,15 @@ function AdminHealthStudentScreenContent() {
                         ? () => openEditForm(item.payload)
                         : undefined
                     }
+                    onAcknowledge={
+                      item.kind === "REPORT" && !item.payload.acknowledgedAt
+                        ? () => acknowledgeReport(item.payload.id)
+                        : undefined
+                    }
+                    isAcknowledging={
+                      item.kind === "REPORT" &&
+                      acknowledgingReportId === item.payload.id
+                    }
                   />
                 )}
               />
@@ -447,10 +483,14 @@ function HistoryCard({
   t,
   item,
   onEdit,
+  onAcknowledge,
+  isAcknowledging,
 }: {
   t: TranslateFn;
   item: HealthHistoryItem;
   onEdit?: () => void;
+  onAcknowledge?: () => void;
+  isAcknowledging?: boolean;
 }) {
   if (item.kind === "CARE_EVENT") {
     const event = item.payload;
@@ -539,6 +579,20 @@ function HistoryCard({
           </Text>
         </View>
       </View>
+      {onAcknowledge ? (
+        <TouchableOpacity
+          style={styles.acknowledgeButton}
+          onPress={onAcknowledge}
+          disabled={isAcknowledging}
+          testID={`report-acknowledge-${report.id}`}
+        >
+          <Text style={styles.acknowledgeButtonLabel}>
+            {isAcknowledging
+              ? t("health.admin.cares.card.acknowledging")
+              : t("health.admin.cares.card.acknowledgeAction")}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
@@ -817,6 +871,19 @@ const styles = StyleSheet.create({
   editLink: { alignSelf: "flex-end", marginTop: 2 },
   editLinkLabel: {
     color: colors.accentTealDark,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  acknowledgeButton: {
+    alignSelf: "flex-end",
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+    backgroundColor: colors.accentTeal,
+  },
+  acknowledgeButtonLabel: {
+    color: colors.white,
     fontSize: 12,
     fontWeight: "700",
   },

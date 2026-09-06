@@ -99,6 +99,8 @@ type ConditionFormValues = {
   label: string;
   description: string;
   active: boolean;
+  isVisibleToAllTeachers: boolean;
+  publicAlertLabel: string;
 };
 
 type ReportFormValues = {
@@ -469,6 +471,10 @@ function SanteScreenContent() {
         alertLevel: values.alertLevel,
         label: values.label,
         description: values.description || undefined,
+        isVisibleToAllTeachers: values.isVisibleToAllTeachers,
+        publicAlertLabel: values.isVisibleToAllTeachers
+          ? values.publicAlertLabel.trim()
+          : undefined,
       });
       showSuccess({
         title: t("health.parent.form.successTitle"),
@@ -514,6 +520,10 @@ function SanteScreenContent() {
           label: values.label,
           description: values.description || undefined,
           active: values.active,
+          isVisibleToAllTeachers: values.isVisibleToAllTeachers,
+          publicAlertLabel: values.isVisibleToAllTeachers
+            ? values.publicAlertLabel.trim()
+            : undefined,
         },
       );
       showSuccess({
@@ -1555,15 +1565,23 @@ function ConditionFormContent({
   // the `active` switch is simply not rendered (and not sent) on create.
   const schema = useMemo(() => editConditionFormSchema(t), [t]);
   const labelInputRef = useRef<TextInput>(null);
+  const publicAlertLabelInputRef = useRef<TextInput>(null);
   const {
     scrollViewRef,
     registerFieldOffset,
     registerFieldInputRef,
     focusFirstInvalidField,
   } = useScrollToFirstError<
-    "type" | "alertLevel" | "label" | "description" | "active"
+    | "type"
+    | "alertLevel"
+    | "label"
+    | "description"
+    | "active"
+    | "isVisibleToAllTeachers"
+    | "publicAlertLabel"
   >();
   registerFieldInputRef("label", labelInputRef);
+  registerFieldInputRef("publicAlertLabel", publicAlertLabelInputRef);
 
   const form = useForm<ConditionFormValues>({
     resolver: zodResolver(schema),
@@ -1575,12 +1593,29 @@ function ConditionFormContent({
       label: editing?.label ?? "",
       description: editing?.description ?? "",
       active: editing?.active ?? true,
+      isVisibleToAllTeachers: editing?.isVisibleToAllTeachers ?? false,
+      publicAlertLabel: editing?.publicAlertLabel ?? "",
     },
   });
 
   const FIELD_ORDER: Array<
-    "type" | "alertLevel" | "label" | "description" | "active"
-  > = ["type", "alertLevel", "label", "description", "active"];
+    | "type"
+    | "alertLevel"
+    | "label"
+    | "description"
+    | "active"
+    | "isVisibleToAllTeachers"
+    | "publicAlertLabel"
+  > = [
+    "type",
+    "alertLevel",
+    "label",
+    "description",
+    "active",
+    "isVisibleToAllTeachers",
+    "publicAlertLabel",
+  ];
+  const isVisibleToAllTeachers = form.watch("isVisibleToAllTeachers");
 
   const handleSave = form.handleSubmit(onSubmit, (errors) =>
     focusFirstInvalidField(FIELD_ORDER, errors),
@@ -1717,6 +1752,64 @@ function ConditionFormContent({
                   onValueChange={field.onChange}
                   testID="condition-form-active"
                 />
+              </View>
+            )}
+          />
+        ) : null}
+
+        <Controller
+          control={form.control}
+          name="isVisibleToAllTeachers"
+          render={({ field }) => (
+            <View
+              style={styles.switchRow}
+              onLayout={registerFieldOffset("isVisibleToAllTeachers")}
+            >
+              <Text style={styles.label}>
+                {t("health.form.visibleToAllTeachers")}
+              </Text>
+              <Switch
+                value={field.value}
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  form.trigger("publicAlertLabel");
+                }}
+                testID="condition-form-visibleToAllTeachers"
+              />
+            </View>
+          )}
+        />
+
+        {isVisibleToAllTeachers ? (
+          <Controller
+            control={form.control}
+            name="publicAlertLabel"
+            render={({ field, fieldState }) => (
+              <View
+                style={styles.field}
+                onLayout={registerFieldOffset("publicAlertLabel")}
+              >
+                <Text style={styles.label}>
+                  {t("health.form.publicAlertLabel")}
+                </Text>
+                <TextInput
+                  ref={publicAlertLabelInputRef}
+                  style={[styles.input, fieldState.error && styles.inputError]}
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder={t("health.form.publicAlertLabelPlaceholder")}
+                  placeholderTextColor={colors.textSecondary}
+                  testID="condition-form-publicAlertLabel"
+                />
+                {fieldState.error ? (
+                  <Text
+                    style={styles.formFieldError}
+                    testID="condition-form-publicAlertLabel-error"
+                  >
+                    {fieldState.error.message}
+                  </Text>
+                ) : null}
               </View>
             )}
           />

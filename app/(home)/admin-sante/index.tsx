@@ -12,6 +12,7 @@ import React, {
   useState,
 } from "react";
 import {
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -24,6 +25,7 @@ import { colors } from "../../../src/theme";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import type { TranslateFn } from "../../../src/i18n/useTranslation";
 import { useAuthStore } from "../../../src/store/auth.store";
+import { useSuccessToastStore } from "../../../src/store/success-toast.store";
 import { moduleBack } from "../../../src/utils/moduleBack";
 import { ModuleHeader } from "../../../src/components/navigation/ModuleHeader";
 import { AppShell } from "../../../src/components/navigation/AppShell";
@@ -82,6 +84,11 @@ function AdminSanteScreenContent() {
   const { t } = useTranslation();
   const router = useRouter();
   const { schoolSlug, user } = useAuthStore();
+  const showSuccess = useSuccessToastStore((s) => s.showSuccess);
+  const showError = useSuccessToastStore((s) => s.showError);
+  const [acknowledgingReportId, setAcknowledgingReportId] = useState<
+    string | null
+  >(null);
 
   const [tab, setTab] = useState<MainTab>("synthese");
   const [classrooms, setClassrooms] = useState<TeacherClassroomOption[]>([]);
@@ -192,6 +199,30 @@ function AdminSanteScreenContent() {
     if (tab !== "cares") return;
     void loadCares(1, caresAppliedFilters, caresAppliedSearch, "reset");
   }, [tab, caresAppliedFilters, caresAppliedSearch, loadCares]);
+
+  async function acknowledgeReport(studentId: string, reportId: string) {
+    if (!schoolSlug) return;
+    setAcknowledgingReportId(reportId);
+    try {
+      await healthApi.acknowledgeReport(schoolSlug, studentId, reportId);
+      showSuccess({
+        title: t("health.admin.cares.card.acknowledgeSuccessTitle"),
+        message: t("health.admin.cares.card.acknowledgeSuccessMessage"),
+      });
+      await loadCares(1, caresAppliedFilters, caresAppliedSearch, "reset");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : t("health.admin.profile.errors.saveGeneric");
+      showError({
+        title: t("health.admin.profile.errors.saveGeneric"),
+        message,
+      });
+    } finally {
+      setAcknowledgingReportId(null);
+    }
+  }
 
   useEffect(() => {
     if (caresSearchDebounceRef.current)
@@ -555,6 +586,22 @@ function AdminSanteScreenContent() {
                         : t("health.admin.cares.card.pending")}
                     </Text>
                   </View>
+                  {!item.acknowledgedAt ? (
+                    <TouchableOpacity
+                      style={styles.acknowledgeButton}
+                      disabled={acknowledgingReportId === item.id}
+                      onPress={() =>
+                        acknowledgeReport(item.student.id, item.id)
+                      }
+                      testID={`admin-cares-acknowledge-${item.id}`}
+                    >
+                      <Text style={styles.acknowledgeButtonLabel}>
+                        {acknowledgingReportId === item.id
+                          ? t("health.admin.cares.card.acknowledging")
+                          : t("health.admin.cares.card.acknowledgeAction")}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </TouchableOpacity>
               )}
             />
@@ -625,7 +672,12 @@ function AdminSanteScreenContent() {
 
           {studentsFiltersOpen ? (
             <View style={styles.filterPanel} testID="admin-eleves-filter-panel">
-              <View style={styles.filterScrollWrapper}>
+              <ScrollView
+                style={styles.filterScrollWrapper}
+                contentContainerStyle={styles.filterScrollContent}
+                nestedScrollEnabled
+                keyboardShouldPersistTaps="handled"
+              >
                 <View style={styles.filterGroup}>
                   <Text style={styles.filterGroupLabel}>
                     {t("health.admin.eleves.filters.classLabel")}
@@ -641,7 +693,7 @@ function AdminSanteScreenContent() {
                     testID="admin-eleves-filter-class"
                   />
                 </View>
-              </View>
+              </ScrollView>
               <View style={styles.filterActionsRow}>
                 <TouchableOpacity
                   style={styles.filterActionReset}
@@ -897,7 +949,12 @@ function CaresFiltersPanel(props: {
 
   return (
     <View style={styles.filterPanel} testID="admin-cares-filter-panel">
-      <View style={styles.filterScrollWrapper}>
+      <ScrollView
+        style={styles.filterScrollWrapper}
+        contentContainerStyle={styles.filterScrollContent}
+        nestedScrollEnabled
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.filterGroup}>
           <Text style={styles.filterGroupLabel}>
             {t("health.admin.cares.filters.alertLevelLabel")}
@@ -990,7 +1047,7 @@ function CaresFiltersPanel(props: {
             })}
           </View>
         </View>
-      </View>
+      </ScrollView>
 
       <View style={styles.filterActionsRow}>
         <TouchableOpacity
@@ -1088,7 +1145,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     gap: 14,
   },
-  filterScrollWrapper: { flex: 1, gap: 14 },
+  filterScrollWrapper: { flex: 1 },
+  filterScrollContent: { gap: 14, paddingBottom: 8 },
   filterGroup: { gap: 8 },
   filterGroupLabel: {
     fontSize: 11,
@@ -1207,6 +1265,19 @@ const styles = StyleSheet.create({
   },
   badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
   badgeLabel: { fontSize: 11, fontWeight: "700" },
+  acknowledgeButton: {
+    alignSelf: "flex-end",
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+    backgroundColor: colors.accentTeal,
+  },
+  acknowledgeButtonLabel: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "700",
+  },
 
   studentRow: {
     flexDirection: "row",
