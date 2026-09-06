@@ -834,6 +834,94 @@ describe("UserDetailModal", () => {
       expect(screen.getByTestId("role-check-teacher")).toBeOnTheScreen();
       expect(screen.getByTestId("role-check-parent")).toBeOnTheScreen();
     });
+
+    it("le bouton Réinitialiser le PIN n'apparaît pas si l'utilisateur n'a pas d'identifiant téléphone", async () => {
+      mockUsersApi.get.mockResolvedValueOnce(
+        makeSchoolUserDetail({ ...TEACHER_USER, hasPhoneCredential: false }),
+      );
+      render(
+        <UserDetailModal
+          user={TEACHER_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-edit-roles")).toBeOnTheScreen(),
+      );
+      expect(screen.queryByTestId("action-reset-pin")).toBeNull();
+    });
+
+    it("le bouton Réinitialiser le PIN apparaît si l'utilisateur a un identifiant téléphone", async () => {
+      mockUsersApi.get.mockResolvedValueOnce(
+        makeSchoolUserDetail({ ...TEACHER_USER, hasPhoneCredential: true }),
+      );
+      render(
+        <UserDetailModal
+          user={TEACHER_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-reset-pin")).toBeOnTheScreen(),
+      );
+    });
+
+    it("le clic sur Réinitialiser le PIN affiche le nouveau PIN", async () => {
+      mockUsersApi.get.mockResolvedValue(
+        makeSchoolUserDetail({ ...TEACHER_USER, hasPhoneCredential: true }),
+      );
+      mockUsersApi.resetPin.mockResolvedValueOnce({
+        temporaryPin: "416797",
+      } as never);
+
+      render(
+        <UserDetailModal
+          user={TEACHER_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-reset-pin")).toBeOnTheScreen(),
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("action-reset-pin"));
+      });
+
+      await waitFor(() =>
+        expect(
+          screen.getByTestId("credential-display-sheet"),
+        ).toBeOnTheScreen(),
+      );
+      expect(screen.getByText("416797")).toBeOnTheScreen();
+    });
+
+    it("affiche une erreur si la réinitialisation du PIN échoue", async () => {
+      mockUsersApi.get.mockResolvedValue(
+        makeSchoolUserDetail({ ...TEACHER_USER, hasPhoneCredential: true }),
+      );
+      mockUsersApi.resetPin.mockRejectedValueOnce(new Error("Network error"));
+
+      render(
+        <UserDetailModal
+          user={TEACHER_USER}
+          schoolSlug={SLUG}
+          onClose={jest.fn()}
+        />,
+      );
+      await waitFor(() =>
+        expect(screen.getByTestId("action-reset-pin")).toBeOnTheScreen(),
+      );
+
+      await act(async () => {
+        fireEvent.press(screen.getByTestId("action-reset-pin"));
+      });
+
+      expect(screen.queryByTestId("credential-display-sheet")).toBeNull();
+    });
   });
 
   // ── Actions enseignant ──────────────────────────────────────────────────────

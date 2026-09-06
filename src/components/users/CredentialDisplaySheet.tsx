@@ -13,8 +13,9 @@ import { colors } from "../../theme";
 interface CredentialDisplaySheetProps {
   visible: boolean;
   onClose: () => void;
-  username: string;
-  temporaryPassword: string;
+  username?: string;
+  temporaryPassword?: string;
+  temporaryPin?: string;
   title?: string;
 }
 
@@ -69,6 +70,7 @@ export function CredentialDisplaySheet({
   onClose,
   username,
   temporaryPassword,
+  temporaryPin,
   title = "Accès créé",
 }: CredentialDisplaySheetProps) {
   return (
@@ -99,15 +101,19 @@ export function CredentialDisplaySheet({
           </View>
 
           <View style={styles.credentials}>
-            <CopyRow label="Identifiant" value={username} />
-            <CopyRow label="Mot de passe" value={temporaryPassword} />
+            {username ? <CopyRow label="Identifiant" value={username} /> : null}
+            {temporaryPassword ? (
+              <CopyRow label="Mot de passe" value={temporaryPassword} />
+            ) : null}
+            {temporaryPin ? <CopyRow label="PIN" value={temporaryPin} /> : null}
           </View>
 
           <View style={styles.warningBox}>
             <Ionicons name="warning-outline" size={16} color="#C06A1A" />
             <Text style={styles.warningText}>
-              Ce mot de passe ne sera affiché qu'une fois. Remettez-le en mains
-              propres à l'élève.
+              {temporaryPin
+                ? "Ce PIN ne sera affiché qu'une fois. Communiquez-le à l'utilisateur par un canal sûr."
+                : "Ce mot de passe ne sera affiché qu'une fois. Remettez-le en mains propres à l'élève."}
             </Text>
           </View>
 
@@ -118,7 +124,9 @@ export function CredentialDisplaySheet({
               color={colors.textSecondary}
             />
             <Text style={styles.noteText}>
-              Les parents ont été notifiés par messagerie.
+              {temporaryPin
+                ? "L'utilisateur a été notifié par messagerie."
+                : "Les parents ont été notifiés par messagerie."}
             </Text>
           </View>
 

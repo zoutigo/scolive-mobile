@@ -279,12 +279,16 @@ function ActionButton(props: {
 
 function CommonActionsFooter({
   member,
+  hasPhoneCredential,
   onMessagePress,
   onEditRolesPress,
+  onResetPinPress,
 }: {
   member: SchoolMember;
+  hasPhoneCredential: boolean;
   onMessagePress: () => void;
   onEditRolesPress: () => void;
+  onResetPinPress: () => void;
 }) {
   // Masquer le footer pour les student-only (pas de compte)
   if (!member.hasAccount) return null;
@@ -304,6 +308,15 @@ function CommonActionsFooter({
         onPress={onEditRolesPress}
         testID="action-edit-roles"
       />
+      {hasPhoneCredential ? (
+        <ActionButton
+          icon="key-outline"
+          label="Réinitialiser le PIN"
+          color="#7B4EA0"
+          onPress={onResetPinPress}
+          testID="action-reset-pin"
+        />
+      ) : null}
     </View>
   );
 }
@@ -1476,8 +1489,9 @@ export function UserDetailModal({
   const [isSubmittingParent, setIsSubmittingParent] = useState(false);
 
   type CredentialsDisplay = {
-    username: string;
-    temporaryPassword: string;
+    username?: string;
+    temporaryPassword?: string;
+    temporaryPin?: string;
     title: string;
   };
   const [credentialsDisplay, setCredentialsDisplay] =
@@ -1787,6 +1801,19 @@ export function UserDetailModal({
     }
   }, [user, schoolSlug, showError]);
 
+  const handleResetPin = useCallback(async () => {
+    if (!user || !user.hasAccount) return;
+    try {
+      const result = await usersApi.resetPin(schoolSlug, user.id);
+      setCredentialsDisplay({
+        temporaryPin: result.temporaryPin,
+        title: "PIN réinitialisé",
+      });
+    } catch (err) {
+      showError({ title: "Erreur", message: extractApiError(err) });
+    }
+  }, [user, schoolSlug, showError]);
+
   const handleChildAction = useCallback(
     (
       child: {
@@ -2072,8 +2099,14 @@ export function UserDetailModal({
                   />
                   <CommonActionsFooter
                     member={user}
+                    hasPhoneCredential={
+                      !!detail &&
+                      "hasPhoneCredential" in detail &&
+                      detail.hasPhoneCredential
+                    }
                     onMessagePress={handleSendMessage}
                     onEditRolesPress={handleOpenEditRoles}
+                    onResetPinPress={() => void handleResetPin()}
                   />
                 </>
               ) : null}
@@ -2205,6 +2238,7 @@ export function UserDetailModal({
           onClose={() => setCredentialsDisplay(null)}
           username={credentialsDisplay.username}
           temporaryPassword={credentialsDisplay.temporaryPassword}
+          temporaryPin={credentialsDisplay.temporaryPin}
           title={credentialsDisplay.title}
         />
       ) : null}
