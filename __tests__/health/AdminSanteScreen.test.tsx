@@ -114,6 +114,20 @@ beforeEach(() => {
   api.listSchoolStudents.mockResolvedValue(paginated([]));
 });
 
+describe("AdminSanteScreen — libellés d'onglets", () => {
+  it("n'affiche jamais le libellé technique 'Cares' pour l'onglet signalements", async () => {
+    render(<AdminSanteScreenRoute />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("admin-kpi-active-conditions"),
+      ).toBeOnTheScreen();
+    });
+    expect(screen.queryByText("Cares")).not.toBeOnTheScreen();
+    expect(screen.getByText("Événements hors école")).toBeOnTheScreen();
+  });
+});
+
 describe("AdminSanteScreen — onglet Synthèse", () => {
   it("charge et affiche les statistiques école au montage", async () => {
     render(<AdminSanteScreenRoute />);

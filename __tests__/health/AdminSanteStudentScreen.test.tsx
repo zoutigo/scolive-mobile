@@ -121,6 +121,14 @@ describe("AdminSanteStudentScreen — hero", () => {
     expect(hero.getByText("Mbele Nathan")).toBeOnTheScreen();
     expect(hero.getByText("CM2 A · 11 ans")).toBeOnTheScreen();
   });
+
+  it("n'affiche jamais le libellé technique 'Cares' pour l'onglet historique", async () => {
+    render(<AdminHealthStudentScreenRoute />);
+
+    await waitFor(() => screen.getByTestId("admin-sante-student-hero"));
+    expect(screen.queryByText("Cares")).not.toBeOnTheScreen();
+    expect(screen.getByText("Historique")).toBeOnTheScreen();
+  });
 });
 
 describe("AdminSanteStudentScreen — onglet Cares", () => {
