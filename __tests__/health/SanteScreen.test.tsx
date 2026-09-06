@@ -264,6 +264,47 @@ describe("SanteScreen (vue parent) — onglet Conditions", () => {
     );
   });
 
+  it("condition visible de tous les enseignants : bloque sans libellé, envoie le libellé une fois renseigné", async () => {
+    render(<SanteScreenRoute />);
+    await waitFor(() => expect(api.listConditions).toHaveBeenCalledTimes(1));
+
+    fireEvent.press(screen.getByTestId("sante-fab"));
+    fireEvent.changeText(
+      screen.getByTestId("condition-form-label"),
+      "Asthme sévère",
+    );
+    fireEvent(
+      screen.getByTestId("condition-form-visibleToAllTeachers"),
+      "valueChange",
+      true,
+    );
+    fireEvent.press(screen.getByTestId("condition-form-submit"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("condition-form-publicAlertLabel-error"),
+      ).toBeOnTheScreen();
+    });
+    expect(api.createCondition).not.toHaveBeenCalled();
+
+    fireEvent.changeText(
+      screen.getByTestId("condition-form-publicAlertLabel"),
+      "Asthme — inhalateur dans le cartable",
+    );
+    fireEvent.press(screen.getByTestId("condition-form-submit"));
+
+    await waitFor(() => {
+      expect(api.createCondition).toHaveBeenCalledWith(
+        "college-vogt",
+        "child-1",
+        expect.objectContaining({
+          isVisibleToAllTeachers: true,
+          publicAlertLabel: "Asthme — inhalateur dans le cartable",
+        }),
+      );
+    });
+  });
+
   it("Annuler dans le formulaire revient au tab d'origine sans appeler l'API", async () => {
     render(<SanteScreenRoute />);
     await waitFor(() => expect(api.listConditions).toHaveBeenCalledTimes(1));

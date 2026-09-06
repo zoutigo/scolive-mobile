@@ -4012,8 +4012,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "health.form.sportRestriction": "Restriction sportive associée",
     "health.form.careSummaryPlaceholder": "Ex : Chute dans la cour",
     "health.form.submitCareEvent": "Enregistrer ce soin",
+    "health.form.visibleToAllTeachers": "Visible de tous les enseignants",
+    "health.form.publicAlertLabel": "Libellé d'alerte publique",
+    "health.form.publicAlertLabelPlaceholder":
+      "Ex : Asthme — inhalateur dans le cartable",
     "health.validation.labelRequired": "L'intitulé est requis.",
     "health.validation.descriptionRequired": "La description est requise.",
+    "health.validation.publicAlertLabelRequired":
+      "Le libellé d'alerte publique est requis lorsque la condition est visible de tous les enseignants.",
     "health.errors.load": "Impossible de charger les informations de santé.",
     "health.errors.createFailed": "Impossible d'enregistrer cette information.",
     "health.alertLevel.INFO": "Information",
@@ -4070,6 +4076,11 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Aucun signalement ne correspond à votre recherche.",
     "health.admin.cares.card.pending": "En attente",
     "health.admin.cares.card.acknowledged": "Acquitté",
+    "health.admin.cares.card.acknowledgeAction": "Marquer comme pris en compte",
+    "health.admin.cares.card.acknowledging": "Enregistrement…",
+    "health.admin.cares.card.acknowledgeSuccessTitle": "Signalement acquitté",
+    "health.admin.cares.card.acknowledgeSuccessMessage":
+      "Le signalement a été marqué comme pris en compte.",
     "health.admin.eleves.search.placeholder": "Rechercher un élève…",
     "health.admin.eleves.search.accessibilityLabel": "Rechercher",
     "health.admin.eleves.filters.toggleAccessibilityLabel": "Filtres",
@@ -7996,8 +8007,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "health.form.sportRestriction": "Sport restriction attached",
     "health.form.careSummaryPlaceholder": "E.g. Fell in the yard",
     "health.form.submitCareEvent": "Record this care",
+    "health.form.visibleToAllTeachers": "Visible to all teachers",
+    "health.form.publicAlertLabel": "Public alert label",
+    "health.form.publicAlertLabelPlaceholder":
+      "E.g. Asthma — inhaler in the bag",
     "health.validation.labelRequired": "Label is required.",
     "health.validation.descriptionRequired": "Description is required.",
+    "health.validation.publicAlertLabelRequired":
+      "The public alert label is required when the condition is visible to all teachers.",
     "health.errors.load": "Unable to load health information.",
     "health.errors.createFailed": "Unable to save this information.",
     "health.alertLevel.INFO": "Information",
@@ -8053,6 +8070,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "health.admin.cares.empty.search": "No report matches your search.",
     "health.admin.cares.card.pending": "Pending",
     "health.admin.cares.card.acknowledged": "Acknowledged",
+    "health.admin.cares.card.acknowledgeAction": "Mark as acknowledged",
+    "health.admin.cares.card.acknowledging": "Saving…",
+    "health.admin.cares.card.acknowledgeSuccessTitle": "Report acknowledged",
+    "health.admin.cares.card.acknowledgeSuccessMessage":
+      "The report has been marked as acknowledged.",
     "health.admin.eleves.search.placeholder": "Search a student…",
     "health.admin.eleves.search.accessibilityLabel": "Search",
     "health.admin.eleves.filters.toggleAccessibilityLabel": "Filters",

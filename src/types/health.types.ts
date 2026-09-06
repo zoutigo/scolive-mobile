@@ -119,6 +119,8 @@ export interface CreateHealthConditionPayload {
   alertLevel: HealthAlertLevel;
   label: string;
   description?: string;
+  isVisibleToAllTeachers?: boolean;
+  publicAlertLabel?: string;
 }
 
 export interface UpdateHealthConditionPayload {
@@ -127,6 +129,8 @@ export interface UpdateHealthConditionPayload {
   label: string;
   description?: string;
   active: boolean;
+  isVisibleToAllTeachers?: boolean;
+  publicAlertLabel?: string;
 }
 
 export interface CreateHealthCareEventPayload {
@@ -289,13 +293,25 @@ export function createConditionFormSchema(t: TranslateFn) {
 }
 
 export function editConditionFormSchema(t: TranslateFn) {
-  return z.object({
-    type: z.enum(HEALTH_CONDITION_TYPES),
-    alertLevel: z.enum(HEALTH_ALERT_LEVELS),
-    label: z.string().trim().min(1, t("health.validation.labelRequired")),
-    description: z.string(),
-    active: z.boolean(),
-  });
+  return z
+    .object({
+      type: z.enum(HEALTH_CONDITION_TYPES),
+      alertLevel: z.enum(HEALTH_ALERT_LEVELS),
+      label: z.string().trim().min(1, t("health.validation.labelRequired")),
+      description: z.string(),
+      active: z.boolean(),
+      isVisibleToAllTeachers: z.boolean(),
+      publicAlertLabel: z.string(),
+    })
+    .refine(
+      (values) =>
+        !values.isVisibleToAllTeachers ||
+        values.publicAlertLabel.trim().length > 0,
+      {
+        message: t("health.validation.publicAlertLabelRequired"),
+        path: ["publicAlertLabel"],
+      },
+    );
 }
 
 export function createReportFormSchema(t: TranslateFn) {
