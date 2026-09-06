@@ -83,6 +83,7 @@ export interface SchoolUserDetail extends UserItem {
   teachingClasses: SchoolUserTeachingClass[];
   studentParents: SchoolUserParent[];
   staffFunctions: SchoolUserStaffFunction[];
+  hasPhoneCredential: boolean;
 }
 
 // Profil student-only (pas de compte utilisateur)

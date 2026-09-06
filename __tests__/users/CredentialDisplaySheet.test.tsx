@@ -91,3 +91,40 @@ describe("CredentialDisplaySheet — fermer", () => {
     expect(onClose).toHaveBeenCalled();
   });
 });
+
+describe("CredentialDisplaySheet — PIN uniquement", () => {
+  const PIN_PROPS = {
+    visible: true,
+    onClose: jest.fn(),
+    temporaryPin: "416797",
+    title: "PIN réinitialisé",
+  };
+
+  it("affiche le PIN", () => {
+    render(<CredentialDisplaySheet {...PIN_PROPS} />);
+    expect(screen.getByText("416797")).toBeOnTheScreen();
+  });
+
+  it("n'affiche pas de ligne identifiant ni mot de passe", () => {
+    render(<CredentialDisplaySheet {...PIN_PROPS} />);
+    expect(screen.queryByTestId("copy-identifiant")).not.toBeOnTheScreen();
+    expect(screen.queryByTestId("copy-mot de passe")).not.toBeOnTheScreen();
+  });
+
+  it("copie le PIN via Clipboard", async () => {
+    render(<CredentialDisplaySheet {...PIN_PROPS} />);
+
+    fireEvent.press(screen.getByTestId("copy-pin"));
+
+    await waitFor(() =>
+      expect(mockClipboard.setStringAsync).toHaveBeenCalledWith("416797"),
+    );
+  });
+
+  it("affiche un avertissement spécifique au PIN", () => {
+    render(<CredentialDisplaySheet {...PIN_PROPS} />);
+    expect(
+      screen.getByText(/Ce PIN ne sera affiché qu'une fois/),
+    ).toBeOnTheScreen();
+  });
+});

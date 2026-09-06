@@ -90,6 +90,17 @@ export const usersApi = {
     );
   },
 
+  async resetPin(
+    schoolSlug: string,
+    userId: string,
+  ): Promise<{ temporaryPin: string }> {
+    return apiFetch(
+      `/schools/${schoolSlug}/users/${userId}/reset-pin`,
+      { method: "POST", body: JSON.stringify({}) },
+      true,
+    );
+  },
+
   async suggestUsername(
     schoolSlug: string,
     studentId: string,

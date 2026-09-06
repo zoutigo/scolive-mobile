@@ -263,4 +263,34 @@ describe("usersApi", () => {
       ).rejects.toThrow("Network error");
     });
   });
+
+  describe("resetPin", () => {
+    it("appelle POST sur le bon endpoint", async () => {
+      mockApiFetch.mockResolvedValueOnce({ temporaryPin: "123456" });
+
+      await usersApi.resetPin(SLUG, "user-1");
+
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        `/schools/${SLUG}/users/user-1/reset-pin`,
+        { method: "POST", body: JSON.stringify({}) },
+        true,
+      );
+    });
+
+    it("retourne le PIN temporaire généré par le serveur", async () => {
+      mockApiFetch.mockResolvedValueOnce({ temporaryPin: "654321" });
+
+      const result = await usersApi.resetPin(SLUG, "user-1");
+
+      expect(result.temporaryPin).toBe("654321");
+    });
+
+    it("propage les erreurs (ex: pas d'identifiant téléphone)", async () => {
+      mockApiFetch.mockRejectedValueOnce(new Error("Not Found"));
+
+      await expect(usersApi.resetPin(SLUG, "user-1")).rejects.toThrow(
+        "Not Found",
+      );
+    });
+  });
 });

@@ -61,6 +61,7 @@ export function makeSchoolUserDetail(
     studentParents,
     staffFunctions,
     updatedAt,
+    hasPhoneCredential,
     ...userOverrides
   } = overrides as Partial<SchoolUserDetail>;
   const base = makeSchoolUser(userOverrides as Partial<UserItem>);
@@ -73,6 +74,7 @@ export function makeSchoolUserDetail(
     studentParents: studentParents ?? [],
     staffFunctions: staffFunctions ?? [],
     updatedAt: updatedAt ?? "2026-01-15T10:00:00.000Z",
+    hasPhoneCredential: hasPhoneCredential ?? false,
   };
 }
 
