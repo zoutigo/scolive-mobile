@@ -167,7 +167,7 @@ describe("StudentHome — données réelles", () => {
       /^1Matières$/,
     );
     expect(screen.getByTestId("student-home-stat-homework")).toHaveTextContent(
-      /^1Homework$/,
+      /^1Cahier de texte$/,
     );
   });
 
@@ -202,7 +202,7 @@ describe("StudentHome — données réelles", () => {
     expect(mockPush).toHaveBeenCalledWith("/notes/me");
   });
 
-  it("navigue vers /homework/me au tap sur la carte Homework et l'accès rapide Homework", async () => {
+  it("navigue vers /homework/me au tap sur la carte Cahier de texte et l'accès rapide Cahier de texte", async () => {
     render(<StudentHome user={STUDENT_USER} schoolSlug="college-vogt" />);
     await waitForLoaded();
 

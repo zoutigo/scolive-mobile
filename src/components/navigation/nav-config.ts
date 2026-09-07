@@ -39,6 +39,15 @@ export function buildChildHomeworkTarget(childId: string, classId: string) {
   } as const;
 }
 
+export function buildChildCursusTarget(childId: string) {
+  return {
+    pathname: "/(home)/cursus/[childId]",
+    params: {
+      childId,
+    },
+  } as const;
+}
+
 export function buildTeacherClassFeedTarget(classId: string) {
   return {
     pathname: "/(home)/classes/[classId]/feed",
@@ -444,7 +453,7 @@ const STUDENT_NAV: NavItem[] = [
   },
   {
     key: "homework",
-    label: "Devoirs",
+    label: "Cahier de texte",
     icon: "document-text-outline",
     route: "/homework/me",
   },
@@ -509,7 +518,7 @@ export function buildChildNavItems(
       ? [
           {
             key: `child-${childId}-homework`,
-            label: "Homework",
+            label: "Cahier de texte",
             icon: "document-text-outline",
             route: buildChildHomeworkTarget(childId, classId).pathname,
             params: buildChildHomeworkTarget(childId, classId).params,
@@ -550,6 +559,13 @@ export function buildChildNavItems(
       label: "Messagerie",
       icon: "chatbubble-outline",
       route: "/messages",
+    },
+    {
+      key: `child-${childId}-cursus`,
+      label: "Cursus",
+      icon: "school-outline",
+      route: buildChildCursusTarget(childId).pathname,
+      params: buildChildCursusTarget(childId).params,
     },
     {
       key: `child-${childId}-resources`,
@@ -616,7 +632,7 @@ export function buildTeacherClassItems(
     },
     {
       key: `teacher-class-${classId}-homework`,
-      label: "Homework",
+      label: "Devoirs",
       icon: "document-text-outline",
       route: buildTeacherClassHomeworkTarget(classId).pathname,
       params: buildTeacherClassHomeworkTarget(classId).params,

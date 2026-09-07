@@ -405,6 +405,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.disciplineSelf.step3Title": "Une aide toujours disponible",
     "onboardingTour.disciplineSelf.step3Body":
       "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour retrouver ces explications.",
+    "onboardingTour.cursus.step1Title": "Filtrez l'historique",
+    "onboardingTour.cursus.step1Body":
+      "Touchez Année, Classe ou Type pour affiner l'historique discipline sur tout le parcours de votre enfant.",
+    "onboardingTour.cursus.step2Title": "Synthèse chiffrée",
+    "onboardingTour.cursus.step2Body":
+      "Ces cartes résument le nombre d'années/classes couvertes et le total par type d'événement, en tenant compte des filtres actifs.",
+    "onboardingTour.cursus.step3Title": "Une aide toujours disponible",
+    "onboardingTour.cursus.step3Body":
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour retrouver ces explications.",
     "onboardingTour.homework.step1Title": "Deux façons de voir vos devoirs",
     "onboardingTour.homework.step1Body":
       "« Liste » affiche vos prochains devoirs les uns après les autres, « Agenda » les organise par semaine ou par mois.",
@@ -871,6 +880,28 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.header.discipline": "Discipline",
     "discipline.header.student": "Élève",
 
+    "discipline.cursus.title": "Cursus",
+    "discipline.cursus.subtitleDefault": "Historique élève",
+    "discipline.cursus.error": "Impossible de charger le cursus.",
+    "discipline.cursus.filters.year": "Année",
+    "discipline.cursus.filters.class": "Classe",
+    "discipline.cursus.filters.type": "Type",
+    "discipline.cursus.filters.reset": "Réinitialiser",
+    "discipline.cursus.notDefined.year": "Année non définie",
+    "discipline.cursus.notDefined.class": "Classe non définie",
+    "discipline.cursus.synthese.yearsClasses": "Années / classes",
+    "discipline.cursus.empty":
+      "Aucun événement discipline sur le cursus pour le moment.",
+    "discipline.cursus.help.menuLabel": "Aide",
+    "discipline.cursus.help.close": "Fermer",
+    "discipline.cursus.help.title": "Cursus",
+    "discipline.cursus.help.section1Title": "Le cursus",
+    "discipline.cursus.help.section1Body":
+      "Cet écran regroupe l'historique discipline de votre enfant sur toutes les années scolaires et toutes les classes fréquentées, contrairement à l'écran Discipline qui ne montre que l'année en cours.",
+    "discipline.cursus.help.section2Title": "Filtrer l'historique",
+    "discipline.cursus.help.section2Body":
+      "Utilisez les filtres Année, Classe et Type pour affiner la synthèse et la liste des événements. Le bouton Réinitialiser efface tous les filtres actifs.",
+
     "discipline.disciplineSelf.help.menuLabel": "Aide",
     "discipline.disciplineSelf.help.close": "Fermer",
     "discipline.disciplineSelf.help.synthese.title": "Discipline — Synthèse",
@@ -1100,7 +1131,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.errors.loadContext":
       "Impossible de charger le contexte homework.",
 
-    "homework.header.title": "Homework",
+    "homework.header.title": "Cahier de texte",
+    "homework.header.titleTeacher": "Devoirs",
     "homework.loading.module": "Chargement du module homework...",
     "homework.loading.control": "Chargement du suivi...",
     "homework.loading.detail": "Chargement du détail...",
@@ -3200,6 +3232,22 @@ export const translations: Record<Locale, Record<string, string>> = {
     "childHome.supplies.linkLabel": "Voir tout",
     "childHome.supplies.empty":
       "Aucune liste de fournitures définie pour ce niveau pour le moment.",
+    "childHome.today": "Aujourd'hui",
+    "childHome.room": "Salle {room}",
+    "childHome.roomTBC": "Salle à confirmer",
+    "childHome.noNextClass": "Aucun prochain cours identifiable pour l'instant.",
+    "childHome.discipline.title": "Discipline",
+    "childHome.discipline.linkLabel": "Voir le suivi",
+    "childHome.discipline.noRecentEvent": "Aucun événement récent.",
+    "childHome.discipline.unjustifiedAbsences": "Absences injustifiées",
+    "childHome.discipline.sanctionsPunitions": "Sanctions / punitions",
+    "childHome.quickAccess.title": "Accès rapides",
+    "childHome.quickAccess.notes": "Notes",
+    "childHome.quickAccess.discipline": "Discipline",
+    "childHome.quickAccess.classFeed": "Vie de classe",
+    "childHome.quickAccess.timetable": "Emploi du temps",
+    "childHome.quickAccess.messages": "Messagerie",
+    "childHome.quickAccess.homework": "Cahier de texte",
     "onboardingTour.childHome.kpisTitle": "Trois indicateurs",
     "onboardingTour.childHome.kpisBody":
       "Moyenne, devoirs non faits et messages non lus : touchez une carte pour ouvrir le module correspondant.",
@@ -4527,6 +4575,15 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.disciplineSelf.step3Title": "Help is always available",
     "onboardingTour.disciplineSelf.step3Body":
       'Tap this button at any time, then "Help" in the menu, to see these explanations again.',
+    "onboardingTour.cursus.step1Title": "Filter the history",
+    "onboardingTour.cursus.step1Body":
+      "Tap Year, Class or Type to narrow the discipline history across your child's whole path.",
+    "onboardingTour.cursus.step2Title": "Summary at a glance",
+    "onboardingTour.cursus.step2Body":
+      "These cards summarize the number of years/classes covered and the total per event type, taking active filters into account.",
+    "onboardingTour.cursus.step3Title": "Help is always available",
+    "onboardingTour.cursus.step3Body":
+      'Tap this button at any time, then "Help" in the menu, to see these explanations again.',
     "onboardingTour.homework.step1Title": "Two ways to see your homework",
     "onboardingTour.homework.step1Body":
       '"List" shows your upcoming homework one after another, "Agenda" organizes them by week or month.',
@@ -4967,6 +5024,27 @@ export const translations: Record<Locale, Record<string, string>> = {
     "discipline.header.discipline": "Discipline",
     "discipline.header.student": "Student",
 
+    "discipline.cursus.title": "Cursus",
+    "discipline.cursus.subtitleDefault": "Student history",
+    "discipline.cursus.error": "Unable to load the cursus.",
+    "discipline.cursus.filters.year": "Year",
+    "discipline.cursus.filters.class": "Class",
+    "discipline.cursus.filters.type": "Type",
+    "discipline.cursus.filters.reset": "Reset",
+    "discipline.cursus.notDefined.year": "Year not set",
+    "discipline.cursus.notDefined.class": "Class not set",
+    "discipline.cursus.synthese.yearsClasses": "Years / classes",
+    "discipline.cursus.empty": "No discipline event on the cursus yet.",
+    "discipline.cursus.help.menuLabel": "Help",
+    "discipline.cursus.help.close": "Close",
+    "discipline.cursus.help.title": "Cursus",
+    "discipline.cursus.help.section1Title": "The cursus",
+    "discipline.cursus.help.section1Body":
+      "This screen gathers your child's discipline history across every school year and every class attended, unlike the Discipline screen which only shows the current year.",
+    "discipline.cursus.help.section2Title": "Filter the history",
+    "discipline.cursus.help.section2Body":
+      "Use the Year, Class and Type filters to refine the summary and the event list. The Reset button clears every active filter.",
+
     "discipline.disciplineSelf.help.menuLabel": "Help",
     "discipline.disciplineSelf.help.close": "Close",
     "discipline.disciplineSelf.help.synthese.title": "Discipline — Summary",
@@ -5187,7 +5265,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.errors.openAttachment": "Unable to open this attachment.",
     "homework.errors.loadContext": "Unable to load the homework context.",
 
-    "homework.header.title": "Homework",
+    "homework.header.title": "Homework notebook",
+    "homework.header.titleTeacher": "Homework",
     "homework.loading.module": "Loading the homework module...",
     "homework.loading.control": "Loading tracking...",
     "homework.loading.detail": "Loading details...",
@@ -7214,6 +7293,22 @@ export const translations: Record<Locale, Record<string, string>> = {
     "childHome.supplies.title": "School supplies",
     "childHome.supplies.linkLabel": "See all",
     "childHome.supplies.empty": "No supply list defined for this level yet.",
+    "childHome.today": "Today",
+    "childHome.room": "Room {room}",
+    "childHome.roomTBC": "Room to confirm",
+    "childHome.noNextClass": "No upcoming class identifiable at the moment.",
+    "childHome.discipline.title": "Discipline",
+    "childHome.discipline.linkLabel": "View tracking",
+    "childHome.discipline.noRecentEvent": "No recent event.",
+    "childHome.discipline.unjustifiedAbsences": "Unjustified absences",
+    "childHome.discipline.sanctionsPunitions": "Sanctions / punishments",
+    "childHome.quickAccess.title": "Quick access",
+    "childHome.quickAccess.notes": "Grades",
+    "childHome.quickAccess.discipline": "Discipline",
+    "childHome.quickAccess.classFeed": "Class life",
+    "childHome.quickAccess.timetable": "Timetable",
+    "childHome.quickAccess.messages": "Messaging",
+    "childHome.quickAccess.homework": "Homework notebook",
     "onboardingTour.childHome.kpisTitle": "Three indicators",
     "onboardingTour.childHome.kpisBody":
       "Average, undone homework and unread messages: tap a card to open the matching module.",

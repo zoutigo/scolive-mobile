@@ -9,6 +9,8 @@ import {
   buildTeacherClassDisciplineTarget,
   buildTeacherClassTimetableTarget,
   buildTeacherClassHomeworkTarget,
+  buildChildNavItems,
+  buildChildCursusTarget,
   buildDrawerNavigationConfig,
   getNavItems,
 } from "../../src/components/navigation/nav-config";
@@ -228,7 +230,7 @@ describe("teacher class navigation model", () => {
       },
       {
         key: "teacher-class-class-1-homework",
-        label: "Homework",
+        label: "Devoirs",
         icon: "document-text-outline",
         route: "/(home)/classes/[classId]/homework",
         params: { classId: "class-1" },
@@ -259,7 +261,7 @@ describe("teacher class navigation model", () => {
       "Notes",
       "Discipline",
       "Emploi du temps",
-      "Homework",
+      "Devoirs",
     ]);
   });
 
@@ -577,6 +579,46 @@ describe("PLATFORM_NAV — Contenu du site", () => {
     const items = getNavItems(superAdmin);
     const keys = items.map((item) => item.key);
     expect(keys.indexOf("site-content")).toBe(keys.indexOf("account") - 1);
+  });
+});
+
+describe("buildChildNavItems — menu enfant (vue parent)", () => {
+  const child = {
+    id: "child-1",
+    firstName: "Lisa",
+    lastName: "Ntamack",
+    classId: "class-1",
+  };
+
+  it("expose le module Cursus, avec la même route que buildChildCursusTarget", () => {
+    const items = buildChildNavItems(child);
+    const cursus = items.find((item) => item.key === "child-child-1-cursus");
+
+    expect(cursus).toBeDefined();
+    expect(cursus?.label).toBe("Cursus");
+    expect(cursus?.route).toBe(buildChildCursusTarget("child-1").pathname);
+    expect(cursus?.params).toEqual(buildChildCursusTarget("child-1").params);
+  });
+
+  it("place Cursus après Messagerie et avant Ressources", () => {
+    const items = buildChildNavItems(child);
+    const keys = items.map((item) => item.key);
+
+    expect(keys.indexOf("child-child-1-cursus")).toBe(
+      keys.indexOf("child-child-1-messages") + 1,
+    );
+    expect(keys.indexOf("child-child-1-cursus")).toBe(
+      keys.indexOf("child-child-1-resources") - 1,
+    );
+  });
+
+  it("libelle le module devoirs 'Cahier de texte' (parité de nommage avec le web)", () => {
+    const items = buildChildNavItems(child);
+    const homework = items.find(
+      (item) => item.key === "child-child-1-homework",
+    );
+
+    expect(homework?.label).toBe("Cahier de texte");
   });
 });
 
