@@ -508,7 +508,10 @@ export function ChildHomeScreen() {
                 onPress={goToDiscipline}
                 linkLabel={t("childHome.discipline.linkLabel")}
               >
-                <View style={styles.disciplineBody} testID="child-home-discipline-body">
+                <View
+                  style={styles.disciplineBody}
+                  testID="child-home-discipline-body"
+                >
                   <Text style={styles.disciplineSummaryText}>
                     {latestDisciplineEvent
                       ? `${getDisciplineTypeLabel(t, latestDisciplineEvent.type)} : ${latestDisciplineEvent.reason}`
@@ -524,7 +527,8 @@ export function ChildHomeScreen() {
                       testID="child-home-discipline-sanctions"
                       label={t("childHome.discipline.sanctionsPunitions")}
                       value={
-                        disciplineSummary.sanctions + disciplineSummary.punitions
+                        disciplineSummary.sanctions +
+                        disciplineSummary.punitions
                       }
                     />
                   </View>
@@ -846,7 +850,10 @@ function NextClassCard(props: {
       </View>
       {nextOccurrence ? (
         <>
-          <Text style={styles.nextClassTitle} testID="child-home-next-class-title">
+          <Text
+            style={styles.nextClassTitle}
+            testID="child-home-next-class-title"
+          >
             {formatMinuteToTime(nextOccurrence.startMinute)} -{" "}
             {formatMinuteToTime(nextOccurrence.endMinute)} ·{" "}
             {nextOccurrence.subject.name}
@@ -862,7 +869,10 @@ function NextClassCard(props: {
           </Text>
         </>
       ) : (
-        <Text style={styles.nextClassEmpty} testID="child-home-next-class-empty">
+        <Text
+          style={styles.nextClassEmpty}
+          testID="child-home-next-class-empty"
+        >
           {t("childHome.noNextClass")}
         </Text>
       )}
@@ -878,7 +888,10 @@ function DisciplineMetric(props: {
   return (
     <View style={styles.disciplineMetric} testID={props.testID}>
       <Text style={styles.disciplineMetricLabel}>{props.label}</Text>
-      <Text style={styles.disciplineMetricValue} testID={`${props.testID}-value`}>
+      <Text
+        style={styles.disciplineMetricValue}
+        testID={`${props.testID}-value`}
+      >
         {props.value}
       </Text>
     </View>
@@ -901,28 +914,67 @@ function QuickAccessGrid(props: {
     label: string;
     onPress?: () => void;
   }> = [
-    { key: "notes", icon: "ribbon-outline", label: t("childHome.quickAccess.notes"), onPress: props.onNotes },
-    { key: "discipline", icon: "person-circle-outline", label: t("childHome.quickAccess.discipline"), onPress: props.onDiscipline },
-    { key: "class-feed", icon: "newspaper-outline", label: t("childHome.quickAccess.classFeed"), onPress: props.onFeed },
-    { key: "timetable", icon: "calendar-outline", label: t("childHome.quickAccess.timetable"), onPress: props.onTimetable },
-    { key: "messages", icon: "chatbubble-outline", label: t("childHome.quickAccess.messages"), onPress: props.onMessages },
-    { key: "homework", icon: "document-text-outline", label: t("childHome.quickAccess.homework"), onPress: props.onHomework },
+    {
+      key: "notes",
+      icon: "ribbon-outline",
+      label: t("childHome.quickAccess.notes"),
+      onPress: props.onNotes,
+    },
+    {
+      key: "discipline",
+      icon: "person-circle-outline",
+      label: t("childHome.quickAccess.discipline"),
+      onPress: props.onDiscipline,
+    },
+    {
+      key: "class-feed",
+      icon: "newspaper-outline",
+      label: t("childHome.quickAccess.classFeed"),
+      onPress: props.onFeed,
+    },
+    {
+      key: "timetable",
+      icon: "calendar-outline",
+      label: t("childHome.quickAccess.timetable"),
+      onPress: props.onTimetable,
+    },
+    {
+      key: "messages",
+      icon: "chatbubble-outline",
+      label: t("childHome.quickAccess.messages"),
+      onPress: props.onMessages,
+    },
+    {
+      key: "homework",
+      icon: "document-text-outline",
+      label: t("childHome.quickAccess.homework"),
+      onPress: props.onHomework,
+    },
   ];
 
   return (
     <View style={styles.quickAccessBlock} testID="child-home-quick-access">
-      <Text style={styles.quickAccessTitle}>{t("childHome.quickAccess.title")}</Text>
+      <Text style={styles.quickAccessTitle}>
+        {t("childHome.quickAccess.title")}
+      </Text>
       <View style={styles.quickAccessGrid}>
         {links.map((link) => (
           <TouchableOpacity
             key={link.key}
-            style={[styles.quickAccessItem, !link.onPress && styles.quickAccessItemDisabled]}
+            style={[
+              styles.quickAccessItem,
+              !link.onPress && styles.quickAccessItemDisabled,
+            ]}
             onPress={link.onPress}
             disabled={!link.onPress}
             testID={`child-home-quick-${link.key}`}
             activeOpacity={0.8}
           >
-            <Ionicons name={link.icon as "home"} size={18} color={colors.primary} />
+            <Ionicons
+              name={link.icon as "home"}
+              size={18}
+              color={colors.primary}
+            />
             <Text style={styles.quickAccessLabel} numberOfLines={1}>
               {link.label}
             </Text>

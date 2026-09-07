@@ -1096,9 +1096,9 @@ describe("ChildHomeScreen — bloc discipline", () => {
     render(<ChildHomeScreen />);
     await waitForContent();
 
-    expect(
-      screen.getByTestId("child-home-discipline-body"),
-    ).toHaveTextContent(/Absence non justifiée/);
+    expect(screen.getByTestId("child-home-discipline-body")).toHaveTextContent(
+      /Absence non justifiée/,
+    );
     expect(
       screen.getByTestId("child-home-discipline-unjustified-value"),
     ).toHaveTextContent("1");
@@ -1111,9 +1111,9 @@ describe("ChildHomeScreen — bloc discipline", () => {
     render(<ChildHomeScreen />);
     await waitForContent();
 
-    expect(
-      screen.getByTestId("child-home-discipline-body"),
-    ).toHaveTextContent(/Aucun événement récent\./);
+    expect(screen.getByTestId("child-home-discipline-body")).toHaveTextContent(
+      /Aucun événement récent\./,
+    );
   });
 
   it("appelle disciplineApi avec le scope 'current' pour l'enfant", async () => {
@@ -1176,9 +1176,7 @@ describe("ChildHomeScreen — bloc accès rapides", () => {
   it("désactive le raccourci Cahier de texte quand la classe de l'enfant est inconnue", async () => {
     mockTimetableApi.getMyTimetable.mockRejectedValue(new Error("DOWN"));
     useFamilyStore.setState({
-      children: [
-        { id: "child-1", firstName: "Remi", lastName: "Ntamack" },
-      ],
+      children: [{ id: "child-1", firstName: "Remi", lastName: "Ntamack" }],
       activeChildId: null,
       isLoading: false,
     });

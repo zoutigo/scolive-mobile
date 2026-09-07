@@ -3235,7 +3235,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "childHome.today": "Aujourd'hui",
     "childHome.room": "Salle {room}",
     "childHome.roomTBC": "Salle à confirmer",
-    "childHome.noNextClass": "Aucun prochain cours identifiable pour l'instant.",
+    "childHome.noNextClass":
+      "Aucun prochain cours identifiable pour l'instant.",
     "childHome.discipline.title": "Discipline",
     "childHome.discipline.linkLabel": "Voir le suivi",
     "childHome.discipline.noRecentEvent": "Aucun événement récent.",

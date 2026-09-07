@@ -165,12 +165,12 @@ describe("CursusChildScreen", () => {
     expect(screen.getByTestId("cursus-kpi-retards-value")).toHaveTextContent(
       "1",
     );
-    expect(
-      screen.getByTestId("cursus-kpi-sanctions-value"),
-    ).toHaveTextContent("1");
-    expect(
-      screen.getByTestId("cursus-kpi-punitions-value"),
-    ).toHaveTextContent("0");
+    expect(screen.getByTestId("cursus-kpi-sanctions-value")).toHaveTextContent(
+      "1",
+    );
+    expect(screen.getByTestId("cursus-kpi-punitions-value")).toHaveTextContent(
+      "0",
+    );
   });
 
   it("filtre l'historique par année scolaire", async () => {
@@ -224,9 +224,7 @@ describe("CursusChildScreen", () => {
   });
 
   it("affiche une erreur de chargement et permet de réessayer", async () => {
-    api.list
-      .mockRejectedValueOnce(new Error("DOWN"))
-      .mockResolvedValueOnce([]);
+    api.list.mockRejectedValueOnce(new Error("DOWN")).mockResolvedValueOnce([]);
 
     render(<CursusChildScreen />);
 

@@ -107,7 +107,8 @@ export function CursusScreen({
     const map = new Map<string, string>();
     for (const event of events) {
       const id = event.schoolYearId ?? "none";
-      const label = event.schoolYear?.label ?? t("discipline.cursus.notDefined.year");
+      const label =
+        event.schoolYear?.label ?? t("discipline.cursus.notDefined.year");
       map.set(id, label);
     }
     return Array.from(map.entries())
@@ -119,7 +120,8 @@ export function CursusScreen({
     const map = new Map<string, string>();
     for (const event of events) {
       const id = event.classId ?? "none";
-      const label = event.class?.name ?? t("discipline.cursus.notDefined.class");
+      const label =
+        event.class?.name ?? t("discipline.cursus.notDefined.class");
       map.set(id, label);
     }
     return Array.from(map.entries())
@@ -138,7 +140,10 @@ export function CursusScreen({
 
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
-      if (yearFilter !== ALL_ID && (event.schoolYearId ?? "none") !== yearFilter) {
+      if (
+        yearFilter !== ALL_ID &&
+        (event.schoolYearId ?? "none") !== yearFilter
+      ) {
         return false;
       }
       if (classFilter !== ALL_ID && (event.classId ?? "none") !== classFilter) {
@@ -172,7 +177,9 @@ export function CursusScreen({
       }
     }
     return Array.from(map.values()).sort((a, b) =>
-      `${b.yearLabel} ${b.className}`.localeCompare(`${a.yearLabel} ${a.className}`),
+      `${b.yearLabel} ${b.className}`.localeCompare(
+        `${a.yearLabel} ${a.className}`,
+      ),
     );
   }, [filteredEvents, t]);
 
@@ -267,7 +274,11 @@ export function CursusScreen({
               onPress={resetFilters}
               testID="cursus-filters-reset"
             >
-              <Ionicons name="close-circle-outline" size={16} color={colors.textSecondary} />
+              <Ionicons
+                name="close-circle-outline"
+                size={16}
+                color={colors.textSecondary}
+              />
               <Text style={styles.resetBtnText}>
                 {t("discipline.cursus.filters.reset")}
               </Text>
@@ -278,7 +289,11 @@ export function CursusScreen({
 
       {errorMessage ? (
         <View style={styles.errorBanner} testID="cursus-error">
-          <Ionicons name="alert-circle-outline" size={16} color={colors.notification} />
+          <Ionicons
+            name="alert-circle-outline"
+            size={16}
+            color={colors.notification}
+          />
           <Text style={styles.errorText}>{errorMessage}</Text>
           <TouchableOpacity onPress={load} testID="cursus-retry">
             <Text style={styles.retryText}>{t("discipline.retry")}</Text>
@@ -338,13 +353,23 @@ export function CursusScreen({
 
           {groups.length === 0 ? (
             <View style={styles.empty} testID="cursus-groups-empty">
-              <Ionicons name="school-outline" size={40} color={colors.warmBorder} />
-              <Text style={styles.emptyText}>{t("discipline.cursus.empty")}</Text>
+              <Ionicons
+                name="school-outline"
+                size={40}
+                color={colors.warmBorder}
+              />
+              <Text style={styles.emptyText}>
+                {t("discipline.cursus.empty")}
+              </Text>
             </View>
           ) : (
             <View style={styles.groups} testID="cursus-groups">
               {groups.map((group) => (
-                <View key={group.key} style={styles.group} testID={`cursus-group-${group.key}`}>
+                <View
+                  key={group.key}
+                  style={styles.group}
+                  testID={`cursus-group-${group.key}`}
+                >
                   <Text style={styles.groupTitle}>
                     {group.yearLabel} · {group.className}
                   </Text>
@@ -399,7 +424,10 @@ function KpiTile({
       <View style={[styles.kpiIconWrap, { backgroundColor: accent + "22" }]}>
         <Ionicons name={icon as "school-outline"} size={15} color={accent} />
       </View>
-      <Text style={[styles.kpiValue, { color: accent }]} testID={`${testID}-value`}>
+      <Text
+        style={[styles.kpiValue, { color: accent }]}
+        testID={`${testID}-value`}
+      >
         {value}
       </Text>
       <Text style={styles.kpiLabel} numberOfLines={2}>
@@ -430,7 +458,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
-  resetBtnText: { fontSize: 12, fontWeight: "600", color: colors.textSecondary },
+  resetBtnText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
 
   errorBanner: {
     flexDirection: "row",
@@ -445,7 +477,12 @@ const styles = StyleSheet.create({
   errorText: { flex: 1, fontSize: 13, color: colors.notification },
   retryText: { fontSize: 13, fontWeight: "700", color: colors.primary },
 
-  loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 64 },
+  loadingWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 64,
+  },
 
   content: { padding: 16, gap: 16, paddingBottom: 32 },
 
