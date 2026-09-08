@@ -73,6 +73,7 @@ const NON_MENU_SCREENS = new Set([
   "discipline-student", // atteint via un item Discipline, pas un module de menu dédié
   "discipline", // idem, atteint via les sections enfant
   "sante", // idem, atteint via les sections enfant (santé de l'élève)
+  "cursus", // idem, atteint via les sections enfant (historique discipline multi-années)
   "classes", // sous-modules enseignant par classe, pas un item de menu plat
   "notes", // "grades"/"Notes" pointe vers /notes -> couvert, mais dossier contient aussi child/class dynamiques
   "tickets", // branché via la bottom tab bar ("Support"), pas le drawer

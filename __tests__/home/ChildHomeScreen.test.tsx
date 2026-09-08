@@ -17,8 +17,10 @@ import { messagingApi } from "../../src/api/messaging.api";
 import { homeworkApi } from "../../src/api/homework.api";
 import { feedApi } from "../../src/api/feed.api";
 import { supplyListsApi } from "../../src/api/supply-lists.api";
+import { disciplineApi } from "../../src/api/discipline.api";
 import { colors } from "../../src/theme";
 import { useDrawer } from "../../src/components/navigation/drawer-context";
+import { makeLifeEvent } from "../../test-utils/discipline.fixtures";
 
 jest.setTimeout(30000);
 
@@ -29,6 +31,7 @@ jest.mock("../../src/api/messaging.api");
 jest.mock("../../src/api/homework.api");
 jest.mock("../../src/api/feed.api");
 jest.mock("../../src/api/supply-lists.api");
+jest.mock("../../src/api/discipline.api");
 
 const mockPush = jest.fn();
 
@@ -55,6 +58,7 @@ const mockMessagingApi = messagingApi as jest.Mocked<typeof messagingApi>;
 const mockHomeworkApi = homeworkApi as jest.Mocked<typeof homeworkApi>;
 const mockFeedApi = feedApi as jest.Mocked<typeof feedApi>;
 const mockSupplyListsApi = supplyListsApi as jest.Mocked<typeof supplyListsApi>;
+const mockDisciplineApi = disciplineApi as jest.Mocked<typeof disciplineApi>;
 const mockUseDrawer = useDrawer as jest.MockedFunction<typeof useDrawer>;
 const mockOpenDrawer = jest.fn();
 
@@ -282,6 +286,25 @@ const FEED_FIXTURE = {
   meta: { page: 1, limit: 2, total: 10, totalPages: 5 },
 };
 
+const NEXT_OCCURRENCE_FIXTURE = {
+  ...TIMETABLE_FIXTURE,
+  occurrences: [
+    {
+      id: "occ-1",
+      source: "RECURRING" as const,
+      status: "PLANNED" as const,
+      occurrenceDate: "2099-01-01",
+      weekday: 4,
+      startMinute: 8 * 60,
+      endMinute: 9 * 60,
+      room: "B12",
+      reason: null,
+      subject: { id: "math", name: "Mathématiques" },
+      teacherUser: { id: "t1", firstName: "Albert", lastName: "Mvondo" },
+    },
+  ],
+};
+
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
@@ -322,6 +345,7 @@ beforeEach(() => {
     targetSchoolYearId: null,
     items: [],
   });
+  mockDisciplineApi.list.mockResolvedValue([]);
 });
 
 // ── extractLatestEvaluations ──────────────────────────────────────────────────
@@ -1016,6 +1040,154 @@ describe("ChildHomeScreen — intégration contextuelle", () => {
     expect(mockFeedApi.list).toHaveBeenCalledWith(
       "college-vogt",
       expect.objectContaining({ viewScope: "GENERAL", limit: 2 }),
+    );
+  });
+});
+
+describe("ChildHomeScreen — bloc prochain cours", () => {
+  it("affiche l'horaire, la matière, l'enseignant et la salle du prochain cours", async () => {
+    mockTimetableApi.getMyTimetable.mockResolvedValue(NEXT_OCCURRENCE_FIXTURE);
+    render(<ChildHomeScreen />);
+    await waitForContent();
+
+    const card = screen.getByTestId("child-home-next-class-title");
+    expect(card.props.children.join("")).toContain("08:00");
+    expect(card.props.children.join("")).toContain("09:00");
+    expect(card.props.children.join("")).toContain("Mathématiques");
+  });
+
+  it("affiche un état vide quand aucun prochain cours n'est identifiable", async () => {
+    render(<ChildHomeScreen />);
+    await waitForContent();
+
+    expect(screen.getByTestId("child-home-next-class-empty")).toBeTruthy();
+  });
+
+  it("navigue vers l'emploi du temps de l'enfant au tap sur la carte", async () => {
+    render(<ChildHomeScreen />);
+    await waitForContent();
+
+    fireEvent.press(screen.getByTestId("child-home-next-class"));
+    expect(mockPush).toHaveBeenCalledWith("/timetable/child/child-1");
+  });
+});
+
+describe("ChildHomeScreen — bloc discipline", () => {
+  const DISCIPLINE_EVENTS = [
+    makeLifeEvent({
+      id: "evt-1",
+      studentId: "child-1",
+      type: "ABSENCE",
+      justified: false,
+      reason: "Absence non justifiée",
+      occurredAt: "2026-04-16T08:00:00.000Z",
+    }),
+    makeLifeEvent({
+      id: "evt-2",
+      studentId: "child-1",
+      type: "SANCTION",
+      reason: "Retenue",
+      occurredAt: "2026-04-10T08:00:00.000Z",
+    }),
+  ];
+
+  it("affiche le dernier événement et les compteurs (absences injustifiées, sanctions/punitions)", async () => {
+    mockDisciplineApi.list.mockResolvedValue(DISCIPLINE_EVENTS);
+    render(<ChildHomeScreen />);
+    await waitForContent();
+
+    expect(screen.getByTestId("child-home-discipline-body")).toHaveTextContent(
+      /Absence non justifiée/,
+    );
+    expect(
+      screen.getByTestId("child-home-discipline-unjustified-value"),
+    ).toHaveTextContent("1");
+    expect(
+      screen.getByTestId("child-home-discipline-sanctions-value"),
+    ).toHaveTextContent("1");
+  });
+
+  it("affiche un état vide quand l'enfant n'a aucun événement de discipline", async () => {
+    render(<ChildHomeScreen />);
+    await waitForContent();
+
+    expect(screen.getByTestId("child-home-discipline-body")).toHaveTextContent(
+      /Aucun événement récent\./,
+    );
+  });
+
+  it("appelle disciplineApi avec le scope 'current' pour l'enfant", async () => {
+    render(<ChildHomeScreen />);
+    await waitForContent();
+
+    expect(mockDisciplineApi.list).toHaveBeenCalledWith(
+      "college-vogt",
+      "child-1",
+      { scope: "current" },
+    );
+  });
+
+  it("navigue vers l'écran Discipline de l'enfant au tap sur le lien du bloc", async () => {
+    render(<ChildHomeScreen />);
+    await waitForContent();
+
+    fireEvent.press(screen.getByTestId("child-home-discipline-block-link"));
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/discipline/[childId]",
+      params: { childId: "child-1" },
+    });
+  });
+});
+
+describe("ChildHomeScreen — bloc accès rapides", () => {
+  it("affiche les 6 raccourcis (Notes, Discipline, Vie de classe, Emploi du temps, Messagerie, Cahier de texte)", async () => {
+    render(<ChildHomeScreen />);
+    await waitForContent();
+
+    expect(screen.getByTestId("child-home-quick-access")).toBeTruthy();
+    expect(screen.getByTestId("child-home-quick-notes")).toBeTruthy();
+    expect(screen.getByTestId("child-home-quick-discipline")).toBeTruthy();
+    expect(screen.getByTestId("child-home-quick-class-feed")).toBeTruthy();
+    expect(screen.getByTestId("child-home-quick-timetable")).toBeTruthy();
+    expect(screen.getByTestId("child-home-quick-messages")).toBeTruthy();
+    expect(screen.getByTestId("child-home-quick-homework")).toBeTruthy();
+  });
+
+  it("navigue vers le bon module au tap sur chaque raccourci", async () => {
+    render(<ChildHomeScreen />);
+    await waitForContent();
+
+    fireEvent.press(screen.getByTestId("child-home-quick-discipline"));
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/discipline/[childId]",
+      params: { childId: "child-1" },
+    });
+
+    fireEvent.press(screen.getByTestId("child-home-quick-timetable"));
+    expect(mockPush).toHaveBeenCalledWith("/timetable/child/child-1");
+
+    fireEvent.press(screen.getByTestId("child-home-quick-homework"));
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/classes/[classId]/homework",
+      params: { classId: "class-1", childId: "child-1" },
+    });
+  });
+
+  it("désactive le raccourci Cahier de texte quand la classe de l'enfant est inconnue", async () => {
+    mockTimetableApi.getMyTimetable.mockRejectedValue(new Error("DOWN"));
+    useFamilyStore.setState({
+      children: [{ id: "child-1", firstName: "Remi", lastName: "Ntamack" }],
+      activeChildId: null,
+      isLoading: false,
+    });
+    render(<ChildHomeScreen />);
+    await waitForContent();
+
+    fireEvent.press(screen.getByTestId("child-home-quick-homework"));
+    expect(mockPush).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: "/(home)/classes/[classId]/homework",
+      }),
     );
   });
 });

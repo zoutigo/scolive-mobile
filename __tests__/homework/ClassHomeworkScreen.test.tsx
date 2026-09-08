@@ -1618,3 +1618,35 @@ describe("ClassHomeworkScreen — onglet formulaires", () => {
     ).toBeTruthy();
   });
 });
+
+describe("ClassHomeworkScreen — titre du header selon le rôle (parité de nommage avec le web)", () => {
+  it("affiche 'Devoirs' pour un enseignant (parité avec le libellé web enseignant)", async () => {
+    setupTeacher();
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-header-title")).toBeTruthy(),
+    );
+
+    expect(
+      within(screen.getByTestId("class-homework-header-title")).getByText(
+        translate("fr", "homework.header.titleTeacher"),
+      ),
+    ).toBeTruthy();
+  });
+
+  it("affiche 'Cahier de texte' pour un parent (parité avec le libellé web parent)", async () => {
+    setupParent();
+    render(<ClassHomeworkScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-header-title")).toBeTruthy(),
+    );
+
+    expect(
+      within(screen.getByTestId("class-homework-header-title")).getByText(
+        translate("fr", "homework.header.title"),
+      ),
+    ).toBeTruthy();
+  });
+});

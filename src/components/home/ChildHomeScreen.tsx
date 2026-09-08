@@ -20,13 +20,24 @@ import { messagingApi } from "../../api/messaging.api";
 import { homeworkApi } from "../../api/homework.api";
 import { feedApi } from "../../api/feed.api";
 import { supplyListsApi } from "../../api/supply-lists.api";
+import { disciplineApi } from "../../api/discipline.api";
 import type { MessageListItem } from "../../types/messaging.types";
 import type { StudentNotesResponse } from "../../types/notes.types";
-import type { MyTimetableResponse } from "../../types/timetable.types";
+import type {
+  MyTimetableResponse,
+  TimetableOccurrence,
+} from "../../types/timetable.types";
 import type { HomeworkRow } from "../../types/homework.types";
 import type { FeedPost } from "../../types/feed.types";
 import type { ChildSupplyList } from "../../types/supply-lists.types";
+import {
+  computeDisciplineSummary,
+  getDisciplineTypeLabel,
+  type DisciplineSummary,
+  type StudentLifeEvent,
+} from "../../types/discipline.types";
 import { useTranslation } from "../../i18n/useTranslation";
+import type { TranslateFn } from "../../i18n/useTranslation";
 import { ErrorBanner } from "../timetable/TimetableCommon";
 import {
   formatEvaluationDate,
@@ -50,6 +61,7 @@ type DashboardState = {
   unreadMessages: MessageListItem[];
   homework: HomeworkRow[];
   feedPosts: FeedPost[];
+  disciplineEvents: StudentLifeEvent[];
 };
 
 const INITIAL_STATE: DashboardState = {
@@ -59,6 +71,7 @@ const INITIAL_STATE: DashboardState = {
   unreadMessages: [],
   homework: [],
   feedPosts: [],
+  disciplineEvents: [],
 };
 
 function buildSubtitle(
@@ -75,6 +88,14 @@ function buildSubtitle(
   const classLabel =
     child?.className?.trim() || timetable?.class.name?.trim() || "";
   return classLabel ? `${childLabel} • ${classLabel}` : childLabel;
+}
+
+function formatMinuteToTime(value: number) {
+  const hours = Math.floor(value / 60)
+    .toString()
+    .padStart(2, "0");
+  const minutes = (value % 60).toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
 }
 
 function formatShortDate(value?: string | null) {
@@ -165,23 +186,31 @@ export function ChildHomeScreen() {
         .children.find((c) => c.id === childId);
       const classIdForHw = currentChild?.classId ?? null;
 
-      const [notesRes, timetableRes, unreadRes, inboxRes, feedRes, hwRes] =
-        await Promise.allSettled([
-          notesApi.listStudentNotes(schoolSlug, childId),
-          timetableApi.getMyTimetable(schoolSlug, { childId }),
-          messagingApi.unreadCount(schoolSlug),
-          messagingApi.list(schoolSlug, {
-            folder: "inbox",
-            page: 1,
-            limit: 20,
-          }),
-          feedApi.list(schoolSlug, { viewScope: "GENERAL", limit: 2 }),
-          classIdForHw
-            ? homeworkApi.listClassHomework(schoolSlug, classIdForHw, {
-                studentId: childId,
-              })
-            : Promise.resolve([] as HomeworkRow[]),
-        ]);
+      const [
+        notesRes,
+        timetableRes,
+        unreadRes,
+        inboxRes,
+        feedRes,
+        hwRes,
+        disciplineRes,
+      ] = await Promise.allSettled([
+        notesApi.listStudentNotes(schoolSlug, childId),
+        timetableApi.getMyTimetable(schoolSlug, { childId }),
+        messagingApi.unreadCount(schoolSlug),
+        messagingApi.list(schoolSlug, {
+          folder: "inbox",
+          page: 1,
+          limit: 20,
+        }),
+        feedApi.list(schoolSlug, { viewScope: "GENERAL", limit: 2 }),
+        classIdForHw
+          ? homeworkApi.listClassHomework(schoolSlug, classIdForHw, {
+              studentId: childId,
+            })
+          : Promise.resolve([] as HomeworkRow[]),
+        disciplineApi.list(schoolSlug, childId, { scope: "current" }),
+      ]);
 
       const notes =
         notesRes.status === "fulfilled" ? notesRes.value : INITIAL_STATE.notes;
@@ -202,6 +231,10 @@ export function ChildHomeScreen() {
           : INITIAL_STATE.feedPosts;
       let homework =
         hwRes.status === "fulfilled" ? hwRes.value : INITIAL_STATE.homework;
+      const disciplineEvents =
+        disciplineRes.status === "fulfilled"
+          ? disciplineRes.value
+          : INITIAL_STATE.disciplineEvents;
 
       const hasAnySuccess = [notesRes, timetableRes, unreadRes, inboxRes].some(
         (r) => r.status === "fulfilled",
@@ -240,6 +273,7 @@ export function ChildHomeScreen() {
         unreadMessages,
         homework,
         feedPosts,
+        disciplineEvents,
       });
       setIsLoading(false);
       setIsRefreshing(false);
@@ -285,6 +319,29 @@ export function ChildHomeScreen() {
     () => extractLatestEvaluations(state.notes, 3),
     [state.notes],
   );
+  const disciplineSummary: DisciplineSummary = useMemo(
+    () => computeDisciplineSummary(state.disciplineEvents),
+    [state.disciplineEvents],
+  );
+  const latestDisciplineEvent = state.disciplineEvents[0] ?? null;
+  const nextOccurrence = useMemo(() => {
+    const now = Date.now();
+    return (
+      state.timetable?.occurrences
+        ?.filter((entry) => entry.status === "PLANNED")
+        .sort((a, b) =>
+          `${a.occurrenceDate}-${a.startMinute}`.localeCompare(
+            `${b.occurrenceDate}-${b.startMinute}`,
+          ),
+        )
+        .find((entry) => {
+          const startAt = new Date(
+            `${entry.occurrenceDate}T${formatMinuteToTime(entry.startMinute)}:00`,
+          ).getTime();
+          return startAt >= now - 15 * 60 * 1000;
+        }) ?? null
+    );
+  }, [state.timetable]);
   const classId = child?.classId ?? state.timetable?.class?.id ?? null;
   const subtitle = buildSubtitle(child, state.timetable);
 
@@ -312,6 +369,15 @@ export function ChildHomeScreen() {
       pathname: "/(home)/children/[childId]/vie-de-classe",
       params: { childId },
     });
+  }
+  function goToDiscipline() {
+    router.push({
+      pathname: "/(home)/discipline/[childId]",
+      params: { childId },
+    });
+  }
+  function goToTimetable() {
+    router.push(`/timetable/child/${childId}` as never);
   }
 
   return (
@@ -397,6 +463,12 @@ export function ChildHomeScreen() {
               </View>
             </OnboardingTarget>
 
+            <NextClassCard
+              t={t}
+              nextOccurrence={nextOccurrence}
+              onPress={goToTimetable}
+            />
+
             <OnboardingTarget id={CHILD_HOME_TOUR_TARGETS.sections}>
               <SectionBlock
                 testID="child-home-evals-block"
@@ -425,6 +497,42 @@ export function ChildHomeScreen() {
                     />
                   ))
                 )}
+              </SectionBlock>
+
+              <SectionBlock
+                testID="child-home-discipline-block"
+                title={t("childHome.discipline.title")}
+                icon="shield-outline"
+                iconColor={colors.notification}
+                iconTone="#FDE7E7"
+                onPress={goToDiscipline}
+                linkLabel={t("childHome.discipline.linkLabel")}
+              >
+                <View
+                  style={styles.disciplineBody}
+                  testID="child-home-discipline-body"
+                >
+                  <Text style={styles.disciplineSummaryText}>
+                    {latestDisciplineEvent
+                      ? `${getDisciplineTypeLabel(t, latestDisciplineEvent.type)} : ${latestDisciplineEvent.reason}`
+                      : t("childHome.discipline.noRecentEvent")}
+                  </Text>
+                  <View style={styles.disciplineMetricsRow}>
+                    <DisciplineMetric
+                      testID="child-home-discipline-unjustified"
+                      label={t("childHome.discipline.unjustifiedAbsences")}
+                      value={disciplineSummary.unjustifiedAbsences}
+                    />
+                    <DisciplineMetric
+                      testID="child-home-discipline-sanctions"
+                      label={t("childHome.discipline.sanctionsPunitions")}
+                      value={
+                        disciplineSummary.sanctions +
+                        disciplineSummary.punitions
+                      }
+                    />
+                  </View>
+                </View>
               </SectionBlock>
             </OnboardingTarget>
 
@@ -524,6 +632,16 @@ export function ChildHomeScreen() {
                 ))
               )}
             </SectionBlock>
+
+            <QuickAccessGrid
+              t={t}
+              onNotes={goToNotes}
+              onDiscipline={goToDiscipline}
+              onFeed={goToFeed}
+              onTimetable={goToTimetable}
+              onMessages={goToMessages}
+              onHomework={classId ? goToHomework : undefined}
+            />
           </>
         )}
       </OnboardingScrollView>
@@ -713,6 +831,160 @@ function EmptyRow(props: { testID: string; label: string }) {
   );
 }
 
+function NextClassCard(props: {
+  t: TranslateFn;
+  nextOccurrence: TimetableOccurrence | null;
+  onPress: () => void;
+}) {
+  const { t, nextOccurrence, onPress } = props;
+  return (
+    <TouchableOpacity
+      style={styles.nextClassCard}
+      onPress={onPress}
+      testID="child-home-next-class"
+      activeOpacity={0.85}
+    >
+      <View style={styles.nextClassHeader}>
+        <Ionicons name="time-outline" size={14} color={colors.primary} />
+        <Text style={styles.nextClassLabel}>{t("childHome.today")}</Text>
+      </View>
+      {nextOccurrence ? (
+        <>
+          <Text
+            style={styles.nextClassTitle}
+            testID="child-home-next-class-title"
+          >
+            {formatMinuteToTime(nextOccurrence.startMinute)} -{" "}
+            {formatMinuteToTime(nextOccurrence.endMinute)} ·{" "}
+            {nextOccurrence.subject.name}
+          </Text>
+          <Text style={styles.nextClassSub}>
+            {nextOccurrence.teacherUser.lastName.toUpperCase()}{" "}
+            {nextOccurrence.teacherUser.firstName}
+          </Text>
+          <Text style={styles.nextClassRoom}>
+            {nextOccurrence.room?.trim()
+              ? t("childHome.room").replace("{room}", nextOccurrence.room)
+              : t("childHome.roomTBC")}
+          </Text>
+        </>
+      ) : (
+        <Text
+          style={styles.nextClassEmpty}
+          testID="child-home-next-class-empty"
+        >
+          {t("childHome.noNextClass")}
+        </Text>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+function DisciplineMetric(props: {
+  testID: string;
+  label: string;
+  value: number;
+}) {
+  return (
+    <View style={styles.disciplineMetric} testID={props.testID}>
+      <Text style={styles.disciplineMetricLabel}>{props.label}</Text>
+      <Text
+        style={styles.disciplineMetricValue}
+        testID={`${props.testID}-value`}
+      >
+        {props.value}
+      </Text>
+    </View>
+  );
+}
+
+function QuickAccessGrid(props: {
+  t: TranslateFn;
+  onNotes: () => void;
+  onDiscipline: () => void;
+  onFeed: () => void;
+  onTimetable: () => void;
+  onMessages: () => void;
+  onHomework?: () => void;
+}) {
+  const { t } = props;
+  const links: Array<{
+    key: string;
+    icon: string;
+    label: string;
+    onPress?: () => void;
+  }> = [
+    {
+      key: "notes",
+      icon: "ribbon-outline",
+      label: t("childHome.quickAccess.notes"),
+      onPress: props.onNotes,
+    },
+    {
+      key: "discipline",
+      icon: "person-circle-outline",
+      label: t("childHome.quickAccess.discipline"),
+      onPress: props.onDiscipline,
+    },
+    {
+      key: "class-feed",
+      icon: "newspaper-outline",
+      label: t("childHome.quickAccess.classFeed"),
+      onPress: props.onFeed,
+    },
+    {
+      key: "timetable",
+      icon: "calendar-outline",
+      label: t("childHome.quickAccess.timetable"),
+      onPress: props.onTimetable,
+    },
+    {
+      key: "messages",
+      icon: "chatbubble-outline",
+      label: t("childHome.quickAccess.messages"),
+      onPress: props.onMessages,
+    },
+    {
+      key: "homework",
+      icon: "document-text-outline",
+      label: t("childHome.quickAccess.homework"),
+      onPress: props.onHomework,
+    },
+  ];
+
+  return (
+    <View style={styles.quickAccessBlock} testID="child-home-quick-access">
+      <Text style={styles.quickAccessTitle}>
+        {t("childHome.quickAccess.title")}
+      </Text>
+      <View style={styles.quickAccessGrid}>
+        {links.map((link) => (
+          <TouchableOpacity
+            key={link.key}
+            style={[
+              styles.quickAccessItem,
+              !link.onPress && styles.quickAccessItemDisabled,
+            ]}
+            onPress={link.onPress}
+            disabled={!link.onPress}
+            testID={`child-home-quick-${link.key}`}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={link.icon as "home"}
+              size={18}
+              color={colors.primary}
+            />
+            <Text style={styles.quickAccessLabel} numberOfLines={1}>
+              {link.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -864,5 +1136,118 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     fontStyle: "italic",
+  },
+
+  nextClassCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    padding: 16,
+    gap: 4,
+  },
+  nextClassHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
+  },
+  nextClassLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  nextClassTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: colors.textPrimary,
+  },
+  nextClassSub: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  nextClassRoom: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.primary,
+  },
+  nextClassEmpty: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+
+  disciplineBody: { gap: 10 },
+  disciplineSummaryText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  disciplineMetricsRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  disciplineMetric: {
+    flex: 1,
+    borderRadius: 14,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 2,
+  },
+  disciplineMetricLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
+  disciplineMetricValue: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: colors.textPrimary,
+  },
+
+  quickAccessBlock: {
+    backgroundColor: colors.surface,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    padding: 16,
+    gap: 12,
+  },
+  quickAccessTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: colors.textPrimary,
+  },
+  quickAccessGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  quickAccessItem: {
+    flexGrow: 1,
+    flexBasis: "30%",
+    minWidth: 96,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.warmBorder,
+    backgroundColor: colors.background,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    gap: 6,
+  },
+  quickAccessItemDisabled: {
+    opacity: 0.4,
+  },
+  quickAccessLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    textAlign: "center",
   },
 });

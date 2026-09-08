@@ -1692,7 +1692,9 @@ export function ClassHomeworkScreen({
   const moduleHeaderTitle =
     isFormsTab && formContext?.type === "edit"
       ? t("homework.form.editModuleTitle")
-      : t("homework.header.title");
+      : viewType === "teacher" || viewType === "school"
+        ? t("homework.header.titleTeacher")
+        : t("homework.header.title");
 
   const headerComponent = useMemo(
     () => (
