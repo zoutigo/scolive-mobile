@@ -300,6 +300,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "finSituation.children.deadlinePassed": "Date limite depassee",
     "finSituation.children.insufficientBalance":
       "Solde insuffisant : approvisionnez votre porte-monnaie de {amount} pour reinscrire.",
+    "finSituation.children.feeScheduleMissing":
+      "Aucun echeancier n'est encore configure pour ce niveau : contactez l'ecole pour connaitre le montant a regler.",
     "finSituation.children.confirmed.title": "Inscription confirmee !",
     "finSituation.children.confirmed.message":
       "Preparez la rentree en consultant la liste des fournitures.",
@@ -4477,6 +4479,8 @@ export const translations: Record<Locale, Record<string, string>> = {
     "finSituation.children.deadlinePassed": "Deadline passed",
     "finSituation.children.insufficientBalance":
       "Insufficient balance: top up your wallet by {amount} to re-enroll.",
+    "finSituation.children.feeScheduleMissing":
+      "No fee schedule has been set up for this level yet: contact the school to know the amount due.",
     "finSituation.children.confirmed.title": "Re-enrollment confirmed!",
     "finSituation.children.confirmed.message":
       "Get ready for the new school year by checking the supply list.",

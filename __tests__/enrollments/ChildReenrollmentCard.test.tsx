@@ -152,6 +152,21 @@ describe("ChildReenrollmentCard", () => {
     expect(screen.getByText(/02 sept\. 2026/)).toBeTruthy();
   });
 
+  it("affiche une alerte 'echeancier non configure' au lieu d'un montant a 0 quand requiredAmount est absent", () => {
+    const onPayAndReinscribe = jest.fn();
+    render(
+      <ChildReenrollmentCard
+        item={{ ...BASE_CHILD, requiredAmount: null }}
+        walletBalance={50000}
+        submitting={false}
+        onPayAndReinscribe={onPayAndReinscribe}
+      />,
+    );
+    expect(screen.getByTestId("fee-schedule-missing-student-1")).toBeTruthy();
+    expect(screen.queryByTestId("pay-and-reinscribe-student-1")).toBeNull();
+    expect(screen.queryByTestId("insufficient-balance-student-1")).toBeNull();
+  });
+
   it("ne casse pas l'affichage si aucune donnee enrichie n'est disponible (retro-compatibilite)", () => {
     render(
       <ChildReenrollmentCard
