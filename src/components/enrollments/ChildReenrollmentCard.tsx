@@ -59,11 +59,19 @@ export function ChildReenrollmentCard({
   tourTargetId,
 }: Props) {
   const { t } = useTranslation();
-  const required = item.requiredAmount ?? 0;
   const isReady = item.status === "READY_TO_REINSCRIBE";
   const isConfirmed = item.status === "ALREADY_REINSCRIBED";
-  const insufficientBalance = isReady && walletBalance < required;
-  const canReinscribe = isReady && !insufficientBalance && !submitting;
+  // requiredAmount est absent quand aucun echeancier n'est encore configure
+  // pour le niveau cible : distinct de 0 (echeancier existant deja solde),
+  // pour ne jamais laisser croire a une reinscription gratuite.
+  const feeScheduleMissing =
+    isReady &&
+    (item.requiredAmount === null || item.requiredAmount === undefined);
+  const required = item.requiredAmount ?? 0;
+  const insufficientBalance =
+    isReady && !feeScheduleMissing && walletBalance < required;
+  const canReinscribe =
+    isReady && !feeScheduleMissing && !insufficientBalance && !submitting;
   const daysLeft = item.reinscriptionDeadline
     ? daysUntil(item.reinscriptionDeadline)
     : null;
@@ -133,7 +141,18 @@ export function ChildReenrollmentCard({
         </View>
       ) : null}
 
-      {isReady ? (
+      {isReady && feeScheduleMissing ? (
+        <View
+          style={styles.amountBlock}
+          testID={`fee-schedule-missing-${item.student.id}`}
+        >
+          <Text style={styles.statusBannerTextReady}>
+            {t("finSituation.children.feeScheduleMissing")}
+          </Text>
+        </View>
+      ) : null}
+
+      {isReady && !feeScheduleMissing ? (
         <View style={styles.amountBlock}>
           <Text style={styles.amountLabel}>
             {t("finSituation.children.required")}
