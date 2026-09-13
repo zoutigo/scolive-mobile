@@ -69,6 +69,13 @@ export function buildTeacherClassDisciplineTarget(classId: string) {
   } as const;
 }
 
+export function buildTeacherClassHealthTarget(classId: string) {
+  return {
+    pathname: "/(home)/classes/[classId]/sante",
+    params: { classId },
+  } as const;
+}
+
 export function buildTeacherClassTimetableTarget(classId: string) {
   return {
     pathname: "/(home)/classes/[classId]/timetable",
@@ -599,6 +606,7 @@ export function buildChildSections(
 export function buildTeacherClassItems(
   classId: string,
   classBadge?: TeacherClassBadgeSummary,
+  isReferentTeacher = false,
 ): NavItem[] {
   return [
     {
@@ -623,6 +631,17 @@ export function buildTeacherClassItems(
       route: buildTeacherClassDisciplineTarget(classId).pathname,
       params: buildTeacherClassDisciplineTarget(classId).params,
     },
+    ...(isReferentTeacher
+      ? [
+          {
+            key: `teacher-class-${classId}-health`,
+            label: "Santé",
+            icon: "heart-outline",
+            route: buildTeacherClassHealthTarget(classId).pathname,
+            params: buildTeacherClassHealthTarget(classId).params,
+          } satisfies NavItem,
+        ]
+      : []),
     {
       key: `teacher-class-${classId}-timetable`,
       label: "Emploi du temps",
@@ -643,6 +662,7 @@ export function buildTeacherClassItems(
 export function buildTeacherClassSections(
   classes: TimetableClassOption[],
   badges?: UnreadSummary | null,
+  currentUserId?: string,
 ): TeacherClassSection[] {
   return classes.map((entry) => ({
     ...entry,
@@ -651,6 +671,7 @@ export function buildTeacherClassSections(
       badges?.teacherClasses.find(
         (classBadge) => classBadge.classId === entry.classId,
       ),
+      Boolean(currentUserId && entry.referentTeacherUserId === currentUserId),
     ),
   }));
 }
@@ -679,7 +700,11 @@ export function buildDrawerNavigationConfig(input: {
   if (view === "teacher") {
     return {
       navItems,
-      teacherClassSections: buildTeacherClassSections(teacherClasses, badges),
+      teacherClassSections: buildTeacherClassSections(
+        teacherClasses,
+        badges,
+        user.id,
+      ),
     };
   }
 

@@ -69,6 +69,7 @@ describe("teacherClassNavApi", () => {
           { id: "math", name: "Mathématiques" },
         ],
         studentCount: 1,
+        referentTeacherUserId: null,
       },
     ]);
   });

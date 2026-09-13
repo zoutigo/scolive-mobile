@@ -335,4 +335,19 @@ describe("healthApi", () => {
       true,
     );
   });
+
+  it("récupère la liste des élèves de la classe pour l'enseignant référent", async () => {
+    mockApiFetch.mockResolvedValueOnce({
+      class: { id: "class-1", name: "6e B" },
+      items: [],
+    });
+
+    await healthApi.getTeacherClassRoster("college-vogt", "class-1");
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/schools/college-vogt/classes/class-1/health/students",
+      {},
+      true,
+    );
+  });
 });

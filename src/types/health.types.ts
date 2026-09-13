@@ -159,6 +159,20 @@ export interface SchoolHealthStudentSummary {
   age: number | null;
 }
 
+export interface TeacherClassHealthRosterStudent {
+  id: string;
+  firstName: string;
+  lastName: string;
+  age: number | null;
+  activeConditionsCount: number;
+  highestActiveAlertLevel: HealthAlertLevel | null;
+}
+
+export interface TeacherClassHealthRoster {
+  class: SchoolHealthClassSummary;
+  items: TeacherClassHealthRosterStudent[];
+}
+
 export interface SchoolHealthReportItem {
   id: string;
   type: HealthReportType;

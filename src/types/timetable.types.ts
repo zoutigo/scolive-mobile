@@ -180,6 +180,7 @@ export type TimetableClassOption = {
     firstName: string;
     lastName: string;
   } | null;
+  referentTeacherUserId?: string | null;
 };
 
 export type TimetableClassOptionsResponse = {
@@ -205,6 +206,7 @@ export type TimetableClassOptionsContext = {
     className: string;
     subjectName: string;
     schoolYearId: string;
+    referentTeacherUserId?: string | null;
   }>;
   students: Array<{
     classId: string;

@@ -384,3 +384,44 @@ describe("AdminSanteStudentScreen — FAB + formulaire soin (création/modificat
     expect(api.updateCareEvent).not.toHaveBeenCalled();
   });
 });
+
+describe("AdminSanteStudentScreen — vue enseignant référent (lecture seule)", () => {
+  beforeEach(() => {
+    useAuthStore.setState({
+      schoolSlug: "college-vogt",
+      user: {
+        id: "teacher-1",
+        firstName: "William",
+        lastName: "Tagal",
+        onboardingHelpEnabled: false,
+        activeRole: "TEACHER",
+        platformRoles: [],
+        memberships: [{ schoolId: "school-1", role: "TEACHER" }],
+        profileCompleted: true,
+      },
+    } as never);
+  });
+
+  it("n'affiche pas le FAB d'ajout de soin", async () => {
+    api.getHistory.mockResolvedValueOnce(paginated([CARE_EVENT_HISTORY]));
+    render(<AdminHealthStudentScreenRoute />);
+
+    await waitFor(() => screen.getByTestId("admin-sante-student-cares-list"));
+    expect(screen.queryByTestId("admin-sante-student-fab")).toBeNull();
+  });
+
+  it("n'affiche pas le lien Modifier sur un soin", async () => {
+    api.getHistory.mockResolvedValueOnce(paginated([CARE_EVENT_HISTORY]));
+    render(<AdminHealthStudentScreenRoute />);
+
+    await waitFor(() => screen.getByText("Chute dans la cour"));
+    expect(screen.queryByTestId("care-event-edit-care-1")).toBeNull();
+  });
+
+  it("affiche toujours le bouton d'acquittement d'un signalement en attente", async () => {
+    api.getHistory.mockResolvedValueOnce(paginated([REPORT_1_HISTORY]));
+    render(<AdminHealthStudentScreenRoute />);
+
+    await waitFor(() => screen.getByTestId("report-acknowledge-report-1"));
+  });
+});

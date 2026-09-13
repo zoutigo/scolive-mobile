@@ -3964,6 +3964,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "rooms.detail.notFound": "Salle introuvable.",
 
     "health.title": "Santé",
+    "health.teacherReferent.title": "Santé",
+    "health.teacherReferent.empty.title": "Aucun élève",
+    "health.teacherReferent.empty.message":
+      "Aucun élève inscrit dans cette classe pour le moment.",
+    "health.teacherReferent.errors.load":
+      "Impossible de charger la liste des élèves.",
     "health.parent.help.menuLabel": "Aide",
     "health.parent.help.title": "Santé",
     "health.parent.help.close": "Fermer",
@@ -8011,6 +8017,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "rooms.detail.notFound": "Room not found.",
 
     "health.title": "Health",
+    "health.teacherReferent.title": "Health",
+    "health.teacherReferent.empty.title": "No student",
+    "health.teacherReferent.empty.message":
+      "No student enrolled in this class yet.",
+    "health.teacherReferent.errors.load": "Could not load the student list.",
     "health.parent.help.menuLabel": "Help",
     "health.parent.help.title": "Health",
     "health.parent.help.close": "Close",
