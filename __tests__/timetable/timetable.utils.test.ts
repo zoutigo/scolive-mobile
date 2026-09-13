@@ -148,6 +148,29 @@ describe("timetable utils", () => {
     expect(classes[0]?.referentTeacherUserId).toBeNull();
   });
 
+  it("garde la classe mais ignore l'entrée de matière vide (référent sans affectation matière)", () => {
+    const classes = buildTimetableClassOptions({
+      schoolYears: [{ id: "sy1", label: "2025-2026", isActive: true }],
+      selectedSchoolYearId: "sy1",
+      assignments: [
+        {
+          classId: "c1",
+          className: "6e B",
+          schoolYearId: "sy1",
+          subjectId: "",
+          subjectName: "",
+          referentTeacherUserId: "teacher-1",
+        },
+      ],
+      students: [],
+    });
+
+    expect(classes).toHaveLength(1);
+    expect(classes[0]?.classId).toBe("c1");
+    expect(classes[0]?.referentTeacherUserId).toBe("teacher-1");
+    expect(classes[0]?.subjects).toHaveLength(0);
+  });
+
   it("construit la plage de requête correcte selon la vue active", () => {
     const cursorDate = new Date("2026-04-14T09:00:00Z");
 

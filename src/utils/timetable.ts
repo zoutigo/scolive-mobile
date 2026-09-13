@@ -358,10 +358,12 @@ export function buildTimetableClassOptions(
       studentIds: new Set<string>(),
       referentTeacherUserId: assignment.referentTeacherUserId ?? null,
     };
-    existing.subjects.set(assignment.subjectId, {
-      id: assignment.subjectId,
-      name: assignment.subjectName,
-    });
+    if (assignment.subjectId) {
+      existing.subjects.set(assignment.subjectId, {
+        id: assignment.subjectId,
+        name: assignment.subjectName,
+      });
+    }
     classMap.set(assignment.classId, existing);
   });
 
