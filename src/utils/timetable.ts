@@ -345,6 +345,7 @@ export function buildTimetableClassOptions(
       schoolYearId: string;
       subjects: Map<string, { id: string; name: string }>;
       studentIds: Set<string>;
+      referentTeacherUserId?: string | null;
     }
   >();
 
@@ -355,11 +356,14 @@ export function buildTimetableClassOptions(
       schoolYearId: assignment.schoolYearId,
       subjects: new Map<string, { id: string; name: string }>(),
       studentIds: new Set<string>(),
+      referentTeacherUserId: assignment.referentTeacherUserId ?? null,
     };
-    existing.subjects.set(assignment.subjectId, {
-      id: assignment.subjectId,
-      name: assignment.subjectName,
-    });
+    if (assignment.subjectId) {
+      existing.subjects.set(assignment.subjectId, {
+        id: assignment.subjectId,
+        name: assignment.subjectName,
+      });
+    }
     classMap.set(assignment.classId, existing);
   });
 
@@ -381,6 +385,7 @@ export function buildTimetableClassOptions(
         a.name.localeCompare(b.name),
       ),
       studentCount: entry.studentIds.size,
+      referentTeacherUserId: entry.referentTeacherUserId ?? null,
     }))
     .sort((a, b) =>
       `${a.schoolYearLabel}-${a.className}`.localeCompare(

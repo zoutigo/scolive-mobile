@@ -7,6 +7,7 @@ import {
   buildTeacherClassFeedTarget,
   buildTeacherClassNotesTarget,
   buildTeacherClassDisciplineTarget,
+  buildTeacherClassHealthTarget,
   buildTeacherClassTimetableTarget,
   buildTeacherClassHomeworkTarget,
   buildChildNavItems,
@@ -265,6 +266,45 @@ describe("teacher class navigation model", () => {
     ]);
   });
 
+  it("ajoute l'entrée Santé uniquement pour la classe dont l'enseignant est référent", () => {
+    const sections = buildTeacherClassSections(
+      [
+        {
+          classId: "class-1",
+          className: "6e B",
+          schoolYearId: "sy1",
+          schoolYearLabel: "2025-2026",
+          subjects: [{ id: "math", name: "Mathématiques" }],
+          studentCount: 12,
+          referentTeacherUserId: "teacher-1",
+        },
+        {
+          classId: "class-2",
+          className: "6e C",
+          schoolYearId: "sy1",
+          schoolYearLabel: "2025-2026",
+          subjects: [{ id: "math", name: "Mathématiques" }],
+          studentCount: 10,
+          referentTeacherUserId: "teacher-2",
+        },
+      ],
+      undefined,
+      "teacher-1",
+    );
+
+    expect(sections[0].navItems.map((item) => item.label)).toEqual([
+      "Fil de classe",
+      "Notes",
+      "Discipline",
+      "Santé",
+      "Emploi du temps",
+      "Devoirs",
+    ]);
+    expect(sections[1].navItems.map((item) => item.label)).not.toContain(
+      "Santé",
+    );
+  });
+
   it("expose les route builders cibles pour les modules de classe", () => {
     expect(buildTeacherClassFeedTarget("class-1")).toEqual({
       pathname: "/(home)/classes/[classId]/feed",
@@ -276,6 +316,10 @@ describe("teacher class navigation model", () => {
     });
     expect(buildTeacherClassDisciplineTarget("class-1")).toEqual({
       pathname: "/(home)/classes/[classId]/discipline",
+      params: { classId: "class-1" },
+    });
+    expect(buildTeacherClassHealthTarget("class-1")).toEqual({
+      pathname: "/(home)/classes/[classId]/sante",
       params: { classId: "class-1" },
     });
     expect(buildTeacherClassTimetableTarget("class-1")).toEqual({

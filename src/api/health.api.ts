@@ -16,6 +16,7 @@ import type {
   StudentHealthCondition,
   StudentHealthReport,
   StudentHealthUrgencySummary,
+  TeacherClassHealthRoster,
   UpdateHealthCareEventPayload,
   UpdateHealthConditionPayload,
 } from "../types/health.types";
@@ -272,6 +273,17 @@ export const healthApi = {
   ): Promise<StudentHealthUrgencySummary> {
     return apiFetch<StudentHealthUrgencySummary>(
       `/schools/${schoolSlug}/students/${studentId}/health/urgence`,
+      {},
+      true,
+    );
+  },
+
+  async getTeacherClassRoster(
+    schoolSlug: string,
+    classId: string,
+  ): Promise<TeacherClassHealthRoster> {
+    return apiFetch<TeacherClassHealthRoster>(
+      `/schools/${schoolSlug}/classes/${classId}/health/students`,
       {},
       true,
     );

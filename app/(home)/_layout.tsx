@@ -101,6 +101,10 @@ export default function HomeLayout() {
         options={{ animation: "slide_from_right" }}
       />
       <Stack.Screen
+        name="classes/[classId]/sante"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
         name="classes/[classId]/timetable"
         options={{ animation: "slide_from_right" }}
       />

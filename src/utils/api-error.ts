@@ -23,6 +23,8 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
   "Subject is not allowed for this class":
     "Cette matière n'est pas autorisée pour cette classe.",
   "Class has no curriculum": "Cette classe n'a pas de programme défini.",
+  "Track must match curriculum track":
+    "La filière de la classe ne correspond plus à celle de son programme. Contactez un administrateur pour corriger la filière ou le programme de cette classe.",
   "Subject is not in class curriculum":
     "Cette matière ne fait pas partie du programme de la classe.",
 
