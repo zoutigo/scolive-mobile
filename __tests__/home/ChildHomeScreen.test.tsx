@@ -1143,7 +1143,7 @@ describe("ChildHomeScreen — bloc discipline", () => {
 });
 
 describe("ChildHomeScreen — bloc accès rapides", () => {
-  it("affiche les 6 raccourcis (Notes, Discipline, Vie de classe, Emploi du temps, Messagerie, Cahier de texte)", async () => {
+  it("affiche les 6 raccourcis (Notes, Discipline, Vie de classe, Emploi du temps, Messagerie, Devoirs)", async () => {
     render(<ChildHomeScreen />);
     await waitForContent();
 
@@ -1176,7 +1176,7 @@ describe("ChildHomeScreen — bloc accès rapides", () => {
     });
   });
 
-  it("désactive le raccourci Cahier de texte quand la classe de l'enfant est inconnue", async () => {
+  it("désactive le raccourci Devoirs quand la classe de l'enfant est inconnue", async () => {
     mockTimetableApi.getMyTimetable.mockRejectedValue(new Error("DOWN"));
     useFamilyStore.setState({
       children: [{ id: "child-1", firstName: "Remi", lastName: "Ntamack" }],

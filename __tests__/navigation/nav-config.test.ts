@@ -685,13 +685,13 @@ describe("buildChildNavItems — menu enfant (vue parent)", () => {
     expect(supplies?.unread).toBe(1);
   });
 
-  it("libelle le module devoirs 'Cahier de texte' (parité de nommage avec le web)", () => {
+  it("libelle le module devoirs 'Devoirs' (parité de nommage avec le web)", () => {
     const items = buildChildNavItems(child);
     const homework = items.find(
       (item) => item.key === "child-child-1-homework",
     );
 
-    expect(homework?.label).toBe("Cahier de texte");
+    expect(homework?.label).toBe("Devoirs");
   });
 });
 

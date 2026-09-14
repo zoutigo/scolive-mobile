@@ -81,6 +81,7 @@ function shuffle<T>(items: T[], seed: number): T[] {
 function resolveDeepLink(
   deepLinkRoute: string | null,
   childId: string | null,
+  classId: string | null,
 ): { pathname: string; params?: Record<string, string> } | null {
   if (!deepLinkRoute) return null;
   if (deepLinkRoute === "/messagerie") {
@@ -96,6 +97,13 @@ function resolveDeepLink(
     }
     if (deepLinkRoute.endsWith("/discipline")) {
       return { pathname: "/(home)/discipline/[childId]", params: { childId } };
+    }
+    if (deepLinkRoute.endsWith("/cahier-de-texte")) {
+      if (!classId) return null;
+      return {
+        pathname: "/(home)/classes/[classId]/homework",
+        params: { classId, childId },
+      };
     }
   }
   return null;
@@ -120,6 +128,7 @@ function TrainingQuizChapterInner() {
   const familyChildren = useFamilyStore((state) => state.children);
   const loadFamilyChildren = useFamilyStore((state) => state.loadChildren);
   const linkedChildId = familyChildren[0]?.id ?? null;
+  const linkedClassId = familyChildren[0]?.classId ?? null;
 
   const [ready, setReady] = useState(false);
   const [chapter, setChapter] = useState<QuizChapterDetail | null>(null);
@@ -216,8 +225,13 @@ function TrainingQuizChapterInner() {
   }, [question, attemptRound]);
 
   const resolvedDeepLink = useMemo(
-    () => resolveDeepLink(question?.deepLinkRoute ?? null, linkedChildId),
-    [question, linkedChildId],
+    () =>
+      resolveDeepLink(
+        question?.deepLinkRoute ?? null,
+        linkedChildId,
+        linkedClassId,
+      ),
+    [question, linkedChildId, linkedClassId],
   );
 
   function startCooldown(seconds: number) {

@@ -8,6 +8,9 @@ const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   MessageSquare: "chatbubble-outline",
   CalendarDays: "calendar-outline",
   Wallet: "wallet-outline",
+  ClipboardList: "clipboard-outline",
+  GraduationCap: "school-outline",
+  HeartPulse: "heart-outline",
 };
 
 export function TrainingQuizIcon({

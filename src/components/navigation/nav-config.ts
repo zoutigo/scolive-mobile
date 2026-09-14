@@ -466,7 +466,7 @@ const STUDENT_NAV: NavItem[] = [
   },
   {
     key: "homework",
-    label: "Cahier de texte",
+    label: "Devoirs",
     icon: "document-text-outline",
     route: "/homework/me",
   },
@@ -537,7 +537,7 @@ export function buildChildNavItems(
       ? [
           {
             key: `child-${childId}-homework`,
-            label: "Cahier de texte",
+            label: "Devoirs",
             icon: "document-text-outline",
             route: buildChildHomeworkTarget(childId, classId).pathname,
             params: buildChildHomeworkTarget(childId, classId).params,

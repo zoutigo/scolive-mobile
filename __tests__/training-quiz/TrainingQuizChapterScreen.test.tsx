@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react-native";
 import { TrainingQuizChapterScreen } from "../../src/components/training-quiz/TrainingQuizChapterScreen";
 import { trainingQuizApi } from "../../src/api/training-quiz.api";
+import { useFamilyStore } from "../../src/store/family.store";
 import type { QuizChapterDetail } from "../../src/types/training-quiz.types";
 
 const mockPush = jest.fn();
@@ -227,6 +228,78 @@ describe("TrainingQuizChapterScreen", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("training-quiz-chapter-complete")).toBeTruthy();
+    });
+  });
+
+  it("résout le deep-link du module Devoirs vers l'écran natif classes/[classId]/homework", async () => {
+    (useFamilyStore as unknown as jest.Mock).mockImplementation(
+      (selector?: (s: unknown) => unknown) => {
+        const state = {
+          children: [
+            {
+              id: "child-1",
+              firstName: "Ela",
+              lastName: "Ngo",
+              classId: "class-1",
+            },
+          ],
+          loadChildren: jest.fn(),
+        };
+        return selector ? selector(state) : state;
+      },
+    );
+
+    const chapter = makeChapter({
+      moduleKey: "devoirs",
+      questions: [
+        {
+          id: "question-1",
+          order: 1,
+          type: "MCQ_SINGLE",
+          stage: "DISCOVERY",
+          text: "Où consultez-vous les devoirs de votre enfant ?",
+          hint: null,
+          imageUrl: null,
+          deepLinkRoute: "/children/{childId}/cahier-de-texte",
+          solved: false,
+          attemptsCount: 0,
+          options: [
+            { id: "opt-correct", order: 1, text: "Onglet Devoirs" },
+            { id: "opt-wrong", order: 2, text: "Onglet Messagerie" },
+          ],
+        },
+      ],
+    });
+    api.getChapter.mockResolvedValue(chapter);
+    api.submitAnswer.mockResolvedValue({
+      correct: true,
+      alreadySolved: false,
+      explanation: "Les devoirs sont visibles dans l'onglet Devoirs.",
+      correctOptionIds: ["opt-correct"],
+      attemptsCount: 1,
+    });
+    api.listChapters.mockResolvedValue([]);
+
+    render(<TrainingQuizChapterScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Où consultez-vous les devoirs de votre enfant ?"),
+      ).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("training-quiz-option-opt-correct"));
+    fireEvent.press(screen.getByTestId("training-quiz-validate-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("training-quiz-deeplink-button")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("training-quiz-deeplink-button"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/classes/[classId]/homework",
+      params: { classId: "class-1", childId: "child-1" },
     });
   });
 

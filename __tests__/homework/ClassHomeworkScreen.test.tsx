@@ -1635,7 +1635,7 @@ describe("ClassHomeworkScreen — titre du header selon le rôle (parité de nom
     ).toBeTruthy();
   });
 
-  it("affiche 'Cahier de texte' pour un parent (parité avec le libellé web parent)", async () => {
+  it("affiche 'Devoirs' pour un parent (parité avec le libellé web parent)", async () => {
     setupParent();
     render(<ClassHomeworkScreen />);
 

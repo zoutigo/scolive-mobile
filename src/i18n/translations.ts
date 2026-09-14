@@ -1120,7 +1120,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.errors.loadContext":
       "Impossible de charger le contexte homework.",
 
-    "homework.header.title": "Cahier de texte",
+    "homework.header.title": "Devoirs",
     "homework.header.titleTeacher": "Devoirs",
     "homework.loading.module": "Chargement du module homework...",
     "homework.loading.control": "Chargement du suivi...",
@@ -3248,7 +3248,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "childHome.quickAccess.classFeed": "Vie de classe",
     "childHome.quickAccess.timetable": "Emploi du temps",
     "childHome.quickAccess.messages": "Messagerie",
-    "childHome.quickAccess.homework": "Cahier de texte",
+    "childHome.quickAccess.homework": "Devoirs",
     "onboardingTour.childHome.kpisTitle": "Trois indicateurs",
     "onboardingTour.childHome.kpisBody":
       "Moyenne, devoirs non faits et messages non lus : touchez une carte pour ouvrir le module correspondant.",
@@ -5370,7 +5370,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.errors.openAttachment": "Unable to open this attachment.",
     "homework.errors.loadContext": "Unable to load the homework context.",
 
-    "homework.header.title": "Homework notebook",
+    "homework.header.title": "Homework",
     "homework.header.titleTeacher": "Homework",
     "homework.loading.module": "Loading the homework module...",
     "homework.loading.control": "Loading tracking...",
@@ -7423,7 +7423,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "childHome.quickAccess.classFeed": "Class life",
     "childHome.quickAccess.timetable": "Timetable",
     "childHome.quickAccess.messages": "Messaging",
-    "childHome.quickAccess.homework": "Homework notebook",
+    "childHome.quickAccess.homework": "Homework",
     "onboardingTour.childHome.kpisTitle": "Three indicators",
     "onboardingTour.childHome.kpisBody":
       "Average, undone homework and unread messages: tap a card to open the matching module.",

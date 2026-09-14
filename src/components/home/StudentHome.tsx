@@ -249,7 +249,7 @@ export function StudentHome(props: StudentHomeProps) {
           <Text style={[styles.statValue, { color: colors.warmAccent }]}>
             {selfContext.classId ? `${undoneHomework}` : "—"}
           </Text>
-          <Text style={styles.statLabel}>Cahier de texte</Text>
+          <Text style={styles.statLabel}>Devoirs</Text>
         </TouchableOpacity>
       </View>
 
@@ -367,7 +367,7 @@ export function StudentHome(props: StudentHomeProps) {
         {[
           {
             icon: "journal-outline",
-            label: "Cahier de texte",
+            label: "Devoirs",
             color: colors.primary,
             onPress: goToHomework,
             testID: "student-home-quick-homework",
