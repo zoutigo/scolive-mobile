@@ -483,6 +483,12 @@ const STUDENT_NAV: NavItem[] = [
     route: "/vie-de-classe/me",
   },
   {
+    key: "supply-lists",
+    label: "Fournitures scolaires",
+    icon: "bag-outline",
+    route: "/(home)/fournitures/me",
+  },
+  {
     key: "resources",
     label: "Ressources",
     icon: "library-outline",
@@ -573,6 +579,14 @@ export function buildChildNavItems(
       icon: "school-outline",
       route: buildChildCursusTarget(childId).pathname,
       params: buildChildCursusTarget(childId).params,
+    },
+    {
+      key: `child-${childId}-supply-lists`,
+      label: "Fournitures scolaires",
+      icon: "bag-outline",
+      route: "/(home)/fournitures/[childId]",
+      params: { childId },
+      unread: toUnread(childBadge?.suppliesAvailable),
     },
     {
       key: `child-${childId}-resources`,

@@ -1602,6 +1602,7 @@ describe("Badges sur les items de navigation", () => {
           homeworkPending: 0,
           notesUnread: 7,
           disciplineUnread: 0,
+          suppliesAvailable: 0,
         }),
       },
     ];

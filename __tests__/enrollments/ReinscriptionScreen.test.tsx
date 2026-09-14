@@ -7,7 +7,6 @@ import {
 } from "@testing-library/react-native";
 import { ReinscriptionScreen } from "../../src/components/enrollments/ReinscriptionScreen";
 import { financeApi } from "../../src/api/finance.api";
-import { supplyListsApi } from "../../src/api/supply-lists.api";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useSuccessToastStore } from "../../src/store/success-toast.store";
 import { useOnboardingTourStore } from "../../src/store/onboarding-tour.store";
@@ -15,7 +14,6 @@ import type { WalletSummary } from "../../src/types/finance.types";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("../../src/api/finance.api");
-jest.mock("../../src/api/supply-lists.api");
 jest.mock("../../src/components/navigation/AppShell", () => ({
   AppShell: ({ children }: { children: React.ReactNode }) => children,
 }));
@@ -40,7 +38,6 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 
 const financeApiMock = financeApi as jest.Mocked<typeof financeApi>;
-const supplyListsApiMock = supplyListsApi as jest.Mocked<typeof supplyListsApi>;
 
 const WALLET_ONE_CHILD_READY: WalletSummary = {
   walletId: "wallet-1",
@@ -120,19 +117,6 @@ beforeEach(() => {
         allocatedAmount: 0,
         remainingAmount: 50000,
         status: "UPCOMING",
-      },
-    ],
-  });
-  supplyListsApiMock.getMyChildSupplyList.mockResolvedValue({
-    targetSchoolYearId: "sy-2026",
-    targetSchoolYearLabel: "2026-2027",
-    items: [
-      {
-        id: "item-1",
-        rank: 1,
-        label: "Cahier 100 pages",
-        quantity: 3,
-        note: null,
       },
     ],
   });
@@ -229,24 +213,6 @@ describe("ReinscriptionScreen — onglet Paiement", () => {
     ).toBeOnTheScreen();
     expect(screen.getByText("Payée")).toBeOnTheScreen();
     expect(screen.getByText("À venir")).toBeOnTheScreen();
-  });
-});
-
-describe("ReinscriptionScreen — onglet Fournitures", () => {
-  it("charge et affiche la liste de fournitures scopee au niveau cible de chaque enfant pret", async () => {
-    financeApiMock.getWalletSummary.mockResolvedValue(WALLET_ONE_CHILD_READY);
-    render(<ReinscriptionScreen />);
-
-    await screen.findByText("Remi Ntamack");
-    fireEvent.press(screen.getByTestId("reinscription-tabs-fournitures"));
-
-    await waitFor(() =>
-      expect(supplyListsApiMock.getMyChildSupplyList).toHaveBeenCalledWith(
-        "college-vogt",
-        "student-1",
-      ),
-    );
-    expect(await screen.findByText(/Cahier 100 pages/)).toBeOnTheScreen();
   });
 });
 

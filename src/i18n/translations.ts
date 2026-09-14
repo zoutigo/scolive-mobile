@@ -311,19 +311,9 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Pret(e) a etre reinscrit(e)",
 
     "reinscription.title": "Réinscription",
-    "reinscription.tabs.paiement": "Paiement",
-    "reinscription.tabs.fournitures": "Fournitures",
     "reinscription.children.title": "Mes enfants",
     "reinscription.children.allLoaded": "Tous les enfants ont ete charges",
     "reinscription.children.empty": "Aucun enfant rattache a votre compte.",
-    "reinscription.supplies.notOpenYet":
-      "L'annee suivante n'est pas encore ouverte par l'ecole.",
-    "reinscription.supplies.empty":
-      "Aucune liste de fournitures definie pour ce niveau pour le moment.",
-    "reinscription.supplies.emptyList":
-      "Aucun enfant pret pour une liste de fournitures.",
-    "reinscription.supplies.allLoaded":
-      "Toutes les listes de fournitures ont ete chargees",
     "reinscription.wallet.balance": "Solde du porte-monnaie",
     "reinscription.wallet.topUpLink": "Recharger",
     "reinscription.wallet.success.reinscribed":
@@ -335,13 +325,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "reinscription.help.close": "Fermer",
     "reinscription.help.section1Title": "Payer et réinscrire",
     "reinscription.help.section1Body":
-      "Dès qu'un enfant est promu par le conseil de classe, il apparaît dans l'onglet Paiement avec le montant restant dû (selon la politique de seuil définie par l'école : 1ère échéance ou paiement intégral) et la date limite. Rechargez votre porte-monnaie depuis Situation financière puis touchez « Je paie et je réinscris » pour régler ce montant et confirmer la réinscription en un seul geste.",
+      "Dès qu'un enfant est promu par le conseil de classe, il apparaît ici avec le montant restant dû (selon la politique de seuil définie par l'école : 1ère échéance ou paiement intégral) et la date limite. Rechargez votre porte-monnaie depuis Situation financière puis touchez « Je paie et je réinscris » pour régler ce montant et confirmer la réinscription en un seul geste.",
     "reinscription.help.section2Title": "Statuts affichés",
     "reinscription.help.section2Body":
       "« En attente de la décision du conseil de classe » signifie que le niveau de l'an prochain n'est pas encore décidé. « Prêt(e) à être réinscrit(e) » signifie que le paiement peut être effectué. « Déjà réinscrit(e) » confirme que la réinscription est actée.",
     "reinscription.help.section3Title": "Fournitures scolaires",
     "reinscription.help.section3Body":
-      "L'onglet Fournitures liste, pour chaque enfant, les articles nécessaires pour le niveau qu'il intègre l'an prochain (et non son niveau actuel). Cette liste est gérée par l'établissement.",
+      "Une fois votre enfant réinscrit, la liste des fournitures nécessaires pour son futur niveau devient disponible dans son propre menu (rubrique Fournitures scolaires), gérée par l'établissement.",
 
     "onboardingTour.reinscription.walletTitle": "Votre porte-monnaie",
     "onboardingTour.reinscription.walletBody":
@@ -352,9 +342,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.reinscription.reinscribeTitle": "Payer et réinscrire",
     "onboardingTour.reinscription.reinscribeBody":
       "Ce bouton débite le montant requis de votre porte-monnaie et confirme la réinscription en un seul geste.",
-    "onboardingTour.reinscription.suppliesTabTitle": "Fournitures scolaires",
-    "onboardingTour.reinscription.suppliesTabBody":
-      "Cet onglet liste les fournitures nécessaires pour le niveau que votre enfant intègre l'an prochain.",
     "onboardingTour.reinscription.helpToggleTitle": "Besoin d'aide ?",
     "onboardingTour.reinscription.helpToggleBody":
       "Touchez ce bouton, puis « Aide » dans le menu, pour retrouver ces explications à tout moment.",
@@ -3229,11 +3216,22 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Chaque bloc (dernières évaluations, fil d'actualité, messages non lus) affiche un aperçu. Touchez « Voir plus » en haut à droite du bloc pour ouvrir le module complet.",
     "childHome.help.section3Title": "Fournitures scolaires",
     "childHome.help.section3Body":
-      "Dès que le conseil de classe a décidé du niveau que votre enfant intègre l'an prochain, un bloc « Fournitures » apparaît ici avec un aperçu des articles nécessaires pour ce niveau. Touchez ce bloc pour ouvrir l'écran Réinscription et voir la liste complète.",
+      "Dès que le conseil de classe a décidé du niveau que votre enfant intègre l'an prochain, un bloc « Fournitures » apparaît ici avec un aperçu des articles nécessaires pour ce niveau. Touchez ce bloc pour ouvrir l'écran dédié Fournitures scolaires et voir la liste complète.",
     "childHome.supplies.title": "Fournitures scolaires",
     "childHome.supplies.linkLabel": "Voir tout",
     "childHome.supplies.empty":
       "Aucune liste de fournitures définie pour ce niveau pour le moment.",
+    "supplyList.screen.title": "Fournitures scolaires",
+    "supplyList.screen.loading": "Chargement de la liste de fournitures...",
+    "supplyList.screen.error":
+      "Impossible de charger la liste de fournitures pour le moment.",
+    "supplyList.screen.notReady":
+      "La liste de fournitures sera disponible une fois la décision du conseil de classe rendue et l'année suivante ouverte.",
+    "supplyList.screen.empty":
+      "Aucune liste de fournitures n'a encore été publiée par l'école pour cette année.",
+    "supplyList.screen.yearLabel": "Année scolaire {year}",
+    "supplyList.screen.quantity": "x{quantity}",
+    "supplyList.screen.note": "Note : {note}",
     "childHome.today": "Aujourd'hui",
     "childHome.room": "Salle {room}",
     "childHome.roomTBC": "Salle à confirmer",
@@ -4493,17 +4491,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "finSituation.children.confirmed.viewSupplies": "View the supply list",
 
     "reinscription.title": "Re-enrollment",
-    "reinscription.tabs.paiement": "Payment",
-    "reinscription.tabs.fournitures": "Supplies",
     "reinscription.children.title": "My children",
     "reinscription.children.allLoaded": "All children have been loaded",
     "reinscription.children.empty": "No child linked to your account.",
-    "reinscription.supplies.notOpenYet":
-      "Next year has not been opened by the school yet.",
-    "reinscription.supplies.empty":
-      "No supply list defined for this level yet.",
-    "reinscription.supplies.emptyList": "No child ready for a supply list yet.",
-    "reinscription.supplies.allLoaded": "All supply lists have been loaded",
     "reinscription.wallet.balance": "Wallet balance",
     "reinscription.wallet.topUpLink": "Top up",
     "reinscription.wallet.success.reinscribed": "{firstName} is re-enrolled!",
@@ -4514,13 +4504,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "reinscription.help.close": "Close",
     "reinscription.help.section1Title": "Pay and re-enroll",
     "reinscription.help.section1Body":
-      'As soon as a child is promoted by the class council, they appear in the Payment tab with the remaining amount due (based on the threshold policy set by the school: first installment or full payment) and the deadline. Top up your wallet from Financial situation then tap "Pay and re-enroll" to settle that amount and confirm re-enrollment in one action.',
+      'As soon as a child is promoted by the class council, they appear here with the remaining amount due (based on the threshold policy set by the school: first installment or full payment) and the deadline. Top up your wallet from Financial situation then tap "Pay and re-enroll" to settle that amount and confirm re-enrollment in one action.',
     "reinscription.help.section2Title": "Displayed statuses",
     "reinscription.help.section2Body":
       '"Awaiting class council decision" means next year\'s level has not been decided yet. "Ready to re-enroll" means payment can be made. "Already re-enrolled" confirms re-enrollment is done.',
     "reinscription.help.section3Title": "School supplies",
     "reinscription.help.section3Body":
-      "The Supplies tab lists, for each child, the items needed for the level they are moving into next year (not their current level). This list is managed by the school.",
+      "Once your child is re-enrolled, the list of supplies needed for their upcoming level becomes available in their own menu (School supplies section), managed by the school.",
 
     "onboardingTour.reinscription.walletTitle": "Your wallet",
     "onboardingTour.reinscription.walletBody":
@@ -4531,9 +4521,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.reinscription.reinscribeTitle": "Pay and re-enroll",
     "onboardingTour.reinscription.reinscribeBody":
       "This button debits the required amount from your wallet and confirms re-enrollment in one action.",
-    "onboardingTour.reinscription.suppliesTabTitle": "School supplies",
-    "onboardingTour.reinscription.suppliesTabBody":
-      "This tab lists the supplies needed for the level your child is moving into next year.",
     "onboardingTour.reinscription.helpToggleTitle": "Need help?",
     "onboardingTour.reinscription.helpToggleBody":
       'Tap this button, then "Help" in the menu, to find these explanations again at any time.',
@@ -7300,10 +7287,20 @@ export const translations: Record<Locale, Record<string, string>> = {
       'Each block (latest evaluations, news feed, unread messages) shows a preview. Tap "See more" at the top right of the block to open the full module.',
     "childHome.help.section3Title": "School supplies",
     "childHome.help.section3Body":
-      'As soon as the class council has decided which level your child is moving into next year, a "Supplies" block appears here with a preview of the items needed for that level. Tap this block to open the Re-enrollment screen and see the full list.',
+      'As soon as the class council has decided which level your child is moving into next year, a "Supplies" block appears here with a preview of the items needed for that level. Tap this block to open the dedicated School supplies screen and see the full list.',
     "childHome.supplies.title": "School supplies",
     "childHome.supplies.linkLabel": "See all",
     "childHome.supplies.empty": "No supply list defined for this level yet.",
+    "supplyList.screen.title": "School supplies",
+    "supplyList.screen.loading": "Loading the supply list...",
+    "supplyList.screen.error": "Unable to load the supply list right now.",
+    "supplyList.screen.notReady":
+      "The supply list will be available once the class council decision is made and next year is open.",
+    "supplyList.screen.empty":
+      "The school hasn't published a supply list for this year yet.",
+    "supplyList.screen.yearLabel": "School year {year}",
+    "supplyList.screen.quantity": "x{quantity}",
+    "supplyList.screen.note": "Note: {note}",
     "childHome.today": "Today",
     "childHome.room": "Room {room}",
     "childHome.roomTBC": "Room to confirm",
