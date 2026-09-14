@@ -446,6 +446,12 @@ const PARENT_NAV: NavItem[] = [
     route: "/messages",
   },
   placeholder("Documents", "document-outline", "documents"),
+  {
+    key: "training-quiz",
+    label: "Quiz de formation",
+    icon: "trophy-outline",
+    route: "/(home)/training-quiz",
+  },
   accountItem(),
 ];
 
