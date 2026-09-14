@@ -363,12 +363,8 @@ describe("TrainingQuizChapterScreen", () => {
     render(<TrainingQuizChapterScreen />);
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Question de pratique non résolue"),
-      ).toBeTruthy();
+      expect(screen.getByText("Question de pratique non résolue")).toBeTruthy();
     });
-    expect(
-      screen.queryByText("Question de pratique déjà résolue"),
-    ).toBeNull();
+    expect(screen.queryByText("Question de pratique déjà résolue")).toBeNull();
   });
 });
