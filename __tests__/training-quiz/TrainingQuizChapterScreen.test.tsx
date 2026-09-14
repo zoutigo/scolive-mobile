@@ -278,4 +278,97 @@ describe("TrainingQuizChapterScreen", () => {
       expect(screen.getByText("Chapitre introuvable")).toBeTruthy();
     });
   });
+
+  it("reprend directement sur la mission en cours d'un niveau déjà démarré, sans revenir à la première question", async () => {
+    const chapter = makeChapter({
+      levels: [
+        {
+          stage: "DISCOVERY",
+          totalQuestions: 1,
+          solvedQuestions: 1,
+          unlocked: true,
+          objective: "Découvrez le module Notes.",
+          introSeen: true,
+        },
+        {
+          stage: "PRACTICE",
+          totalQuestions: 2,
+          solvedQuestions: 1,
+          unlocked: true,
+          objective: "Entraînez-vous.",
+          introSeen: true,
+        },
+        {
+          stage: "MASTERY",
+          totalQuestions: 0,
+          solvedQuestions: 0,
+          unlocked: false,
+          objective: "",
+          introSeen: false,
+        },
+      ],
+      questions: [
+        {
+          id: "question-discovery",
+          order: 1,
+          type: "MCQ_SINGLE",
+          stage: "DISCOVERY",
+          text: "Où trouve-t-on les notes de son enfant ?",
+          hint: null,
+          imageUrl: null,
+          deepLinkRoute: null,
+          solved: true,
+          attemptsCount: 1,
+          options: [
+            { id: "opt-correct", order: 1, text: "Onglet Notes" },
+            { id: "opt-wrong", order: 2, text: "Onglet Messagerie" },
+          ],
+        },
+        {
+          id: "question-practice-1",
+          order: 1,
+          type: "MCQ_SINGLE",
+          stage: "PRACTICE",
+          text: "Question de pratique déjà résolue",
+          hint: null,
+          imageUrl: null,
+          deepLinkRoute: null,
+          solved: true,
+          attemptsCount: 1,
+          options: [
+            { id: "opt-a", order: 1, text: "Réponse A" },
+            { id: "opt-b", order: 2, text: "Réponse B" },
+          ],
+        },
+        {
+          id: "question-practice-2",
+          order: 2,
+          type: "MCQ_SINGLE",
+          stage: "PRACTICE",
+          text: "Question de pratique non résolue",
+          hint: null,
+          imageUrl: null,
+          deepLinkRoute: null,
+          solved: false,
+          attemptsCount: 0,
+          options: [
+            { id: "opt-c", order: 1, text: "Réponse C" },
+            { id: "opt-d", order: 2, text: "Réponse D" },
+          ],
+        },
+      ],
+    });
+    api.getChapter.mockResolvedValue(chapter);
+
+    render(<TrainingQuizChapterScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Question de pratique non résolue"),
+      ).toBeTruthy();
+    });
+    expect(
+      screen.queryByText("Question de pratique déjà résolue"),
+    ).toBeNull();
+  });
 });

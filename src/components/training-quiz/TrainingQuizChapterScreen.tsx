@@ -982,8 +982,9 @@ const styles = StyleSheet.create({
   },
   questionText: {
     fontSize: 17,
-    fontWeight: "600",
-    lineHeight: 24,
+    fontWeight: "500",
+    lineHeight: 25,
+    textAlign: "justify",
     color: colors.textPrimary,
   },
   multiHint: {
