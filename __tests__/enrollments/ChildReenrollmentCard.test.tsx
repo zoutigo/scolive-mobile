@@ -5,6 +5,11 @@ import type { ChildFinanceStatus } from "../../src/types/finance.types";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
+const mockPush = jest.fn();
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
+
 const BASE_CHILD: ChildFinanceStatus = {
   student: {
     id: "student-1",
@@ -96,8 +101,8 @@ describe("ChildReenrollmentCard", () => {
     );
   });
 
-  it("ne montre ni deadline ni CTA une fois l'enfant reinscrit, et recolore la card avec un message fournitures", () => {
-    const onViewSupplies = jest.fn();
+  it("ne montre ni deadline ni CTA une fois l'enfant reinscrit, et navigue vers l'ecran dedie Fournitures scolaires de l'enfant", () => {
+    mockPush.mockClear();
     render(
       <ChildReenrollmentCard
         item={{
@@ -109,7 +114,6 @@ describe("ChildReenrollmentCard", () => {
         walletBalance={0}
         submitting={false}
         onPayAndReinscribe={jest.fn()}
-        onViewSupplies={onViewSupplies}
       />,
     );
     expect(screen.queryByTestId("pay-and-reinscribe-student-1")).toBeNull();
@@ -117,7 +121,10 @@ describe("ChildReenrollmentCard", () => {
     expect(screen.getByText("Inscription confirmee !")).toBeTruthy();
 
     fireEvent.press(screen.getByTestId("view-supplies-student-1"));
-    expect(onViewSupplies).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/fournitures/[childId]",
+      params: { childId: "student-1" },
+    });
   });
 
   it("affiche un badge de confirmation et la date de rentree une fois l'enfant reinscrit", () => {

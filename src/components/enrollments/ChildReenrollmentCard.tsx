@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { colors } from "../../theme";
 import { useTranslation } from "../../i18n/useTranslation";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
@@ -11,7 +12,6 @@ interface Props {
   walletBalance: number;
   submitting: boolean;
   onPayAndReinscribe: (item: ChildFinanceStatus) => void;
-  onViewSupplies?: () => void;
   tourTargetId?: string;
 }
 
@@ -55,10 +55,10 @@ export function ChildReenrollmentCard({
   walletBalance,
   submitting,
   onPayAndReinscribe,
-  onViewSupplies,
   tourTargetId,
 }: Props) {
   const { t } = useTranslation();
+  const router = useRouter();
   const isReady = item.status === "READY_TO_REINSCRIBE";
   const isConfirmed = item.status === "ALREADY_REINSCRIBED";
   // requiredAmount est absent quand aucun echeancier n'est encore configure
@@ -226,16 +226,19 @@ export function ChildReenrollmentCard({
               )}
             </Text>
           ) : null}
-          {onViewSupplies ? (
-            <TouchableOpacity
-              onPress={onViewSupplies}
-              testID={`view-supplies-${item.student.id}`}
-            >
-              <Text style={styles.confirmedLink}>
-                {t("finSituation.children.confirmed.viewSupplies")}
-              </Text>
-            </TouchableOpacity>
-          ) : null}
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/(home)/fournitures/[childId]",
+                params: { childId: item.student.id },
+              })
+            }
+            testID={`view-supplies-${item.student.id}`}
+          >
+            <Text style={styles.confirmedLink}>
+              {t("finSituation.children.confirmed.viewSupplies")}
+            </Text>
+          </TouchableOpacity>
         </View>
       ) : null}
     </View>

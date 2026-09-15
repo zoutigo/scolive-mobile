@@ -735,7 +735,7 @@ describe("ChildHomeScreen — bloc fournitures scolaires", () => {
     expect(screen.getByTestId("child-home-supplies-empty")).toBeTruthy();
   });
 
-  it("navigue vers l'ecran Reinscription au tap sur le bloc", async () => {
+  it("navigue vers l'ecran dedie Fournitures scolaires de l'enfant au tap sur le bloc", async () => {
     mockSupplyListsApi.getMyChildSupplyList.mockResolvedValue({
       targetSchoolYearId: "sy-2026",
       targetSchoolYearLabel: "2026-2027",
@@ -753,7 +753,10 @@ describe("ChildHomeScreen — bloc fournitures scolaires", () => {
     await waitForContent();
 
     fireEvent.press(screen.getByTestId("child-home-supplies-block-link"));
-    expect(mockPush).toHaveBeenCalledWith("/(home)/reinscription");
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/fournitures/[childId]",
+      params: { childId: "child-1" },
+    });
   });
 });
 
@@ -1140,7 +1143,7 @@ describe("ChildHomeScreen — bloc discipline", () => {
 });
 
 describe("ChildHomeScreen — bloc accès rapides", () => {
-  it("affiche les 6 raccourcis (Notes, Discipline, Vie de classe, Emploi du temps, Messagerie, Cahier de texte)", async () => {
+  it("affiche les 6 raccourcis (Notes, Discipline, Vie de classe, Emploi du temps, Messagerie, Devoirs)", async () => {
     render(<ChildHomeScreen />);
     await waitForContent();
 
@@ -1173,7 +1176,7 @@ describe("ChildHomeScreen — bloc accès rapides", () => {
     });
   });
 
-  it("désactive le raccourci Cahier de texte quand la classe de l'enfant est inconnue", async () => {
+  it("désactive le raccourci Devoirs quand la classe de l'enfant est inconnue", async () => {
     mockTimetableApi.getMyTimetable.mockRejectedValue(new Error("DOWN"));
     useFamilyStore.setState({
       children: [{ id: "child-1", firstName: "Remi", lastName: "Ntamack" }],

@@ -361,8 +361,11 @@ export function ChildHomeScreen() {
   function goToMessages() {
     router.push("/(home)/messages" as never);
   }
-  function goToReinscription() {
-    router.push("/(home)/reinscription" as never);
+  function goToFournitures() {
+    router.push({
+      pathname: "/(home)/fournitures/[childId]",
+      params: { childId },
+    });
   }
   function goToFeed() {
     router.push({
@@ -543,7 +546,7 @@ export function ChildHomeScreen() {
                 icon="bag-outline"
                 iconColor={colors.accentTealDark}
                 iconTone="#D5EEEA"
-                onPress={goToReinscription}
+                onPress={goToFournitures}
                 linkLabel={t("childHome.supplies.linkLabel")}
               >
                 {supplyList.items.length === 0 ? (
@@ -564,7 +567,7 @@ export function ChildHomeScreen() {
                         isLast={
                           idx === Math.min(supplyList.items.length, 3) - 1
                         }
-                        onPress={goToReinscription}
+                        onPress={goToFournitures}
                       />
                     ))
                 )}

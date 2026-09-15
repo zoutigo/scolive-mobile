@@ -446,6 +446,12 @@ const PARENT_NAV: NavItem[] = [
     route: "/messages",
   },
   placeholder("Documents", "document-outline", "documents"),
+  {
+    key: "training-quiz",
+    label: "Quiz de formation",
+    icon: "trophy-outline",
+    route: "/(home)/training-quiz",
+  },
   accountItem(),
 ];
 
@@ -460,7 +466,7 @@ const STUDENT_NAV: NavItem[] = [
   },
   {
     key: "homework",
-    label: "Cahier de texte",
+    label: "Devoirs",
     icon: "document-text-outline",
     route: "/homework/me",
   },
@@ -481,6 +487,12 @@ const STUDENT_NAV: NavItem[] = [
     label: "Vie de classe",
     icon: "newspaper-outline",
     route: "/vie-de-classe/me",
+  },
+  {
+    key: "supply-lists",
+    label: "Fournitures scolaires",
+    icon: "bag-outline",
+    route: "/(home)/fournitures/me",
   },
   {
     key: "resources",
@@ -525,7 +537,7 @@ export function buildChildNavItems(
       ? [
           {
             key: `child-${childId}-homework`,
-            label: "Cahier de texte",
+            label: "Devoirs",
             icon: "document-text-outline",
             route: buildChildHomeworkTarget(childId, classId).pathname,
             params: buildChildHomeworkTarget(childId, classId).params,
@@ -573,6 +585,14 @@ export function buildChildNavItems(
       icon: "school-outline",
       route: buildChildCursusTarget(childId).pathname,
       params: buildChildCursusTarget(childId).params,
+    },
+    {
+      key: `child-${childId}-supply-lists`,
+      label: "Fournitures scolaires",
+      icon: "bag-outline",
+      route: "/(home)/fournitures/[childId]",
+      params: { childId },
+      unread: toUnread(childBadge?.suppliesAvailable),
     },
     {
       key: `child-${childId}-resources`,

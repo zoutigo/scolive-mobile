@@ -424,10 +424,11 @@ describe("buildDrawerNavigationConfig", () => {
             homeworkPending: 1,
             notesUnread: 4,
             disciplineUnread: 3,
+            suppliesAvailable: 1,
           },
         ],
         teacherClasses: [],
-        total: 15,
+        total: 16,
       },
     });
 
@@ -446,6 +447,10 @@ describe("buildDrawerNavigationConfig", () => {
     expect(
       childItems.find((item) => item.key === "child-child-1-life")?.unread,
     ).toBe(3);
+    expect(
+      childItems.find((item) => item.key === "child-child-1-supply-lists")
+        ?.unread,
+    ).toBe(1);
   });
 
   it("affiche le badge du menu Reinscription quand des enfants sont prets a etre reinscrits", () => {
@@ -644,25 +649,49 @@ describe("buildChildNavItems — menu enfant (vue parent)", () => {
     expect(cursus?.params).toEqual(buildChildCursusTarget("child-1").params);
   });
 
-  it("place Cursus après Messagerie et avant Ressources", () => {
+  it("place Cursus après Messagerie et Fournitures scolaires avant Ressources", () => {
     const items = buildChildNavItems(child);
     const keys = items.map((item) => item.key);
 
     expect(keys.indexOf("child-child-1-cursus")).toBe(
       keys.indexOf("child-child-1-messages") + 1,
     );
-    expect(keys.indexOf("child-child-1-cursus")).toBe(
+    expect(keys.indexOf("child-child-1-supply-lists")).toBe(
+      keys.indexOf("child-child-1-cursus") + 1,
+    );
+    expect(keys.indexOf("child-child-1-supply-lists")).toBe(
       keys.indexOf("child-child-1-resources") - 1,
     );
   });
 
-  it("libelle le module devoirs 'Cahier de texte' (parité de nommage avec le web)", () => {
+  it("expose le module Fournitures scolaires, avec badge non-lu", () => {
+    const items = buildChildNavItems(child, {
+      studentId: "child-1",
+      firstName: "Lisa",
+      lastName: "Ntamack",
+      homeworkPending: 0,
+      notesUnread: 0,
+      disciplineUnread: 0,
+      suppliesAvailable: 1,
+    });
+    const supplies = items.find(
+      (item) => item.key === "child-child-1-supply-lists",
+    );
+
+    expect(supplies).toBeDefined();
+    expect(supplies?.label).toBe("Fournitures scolaires");
+    expect(supplies?.route).toBe("/(home)/fournitures/[childId]");
+    expect(supplies?.params).toEqual({ childId: "child-1" });
+    expect(supplies?.unread).toBe(1);
+  });
+
+  it("libelle le module devoirs 'Devoirs' (parité de nommage avec le web)", () => {
     const items = buildChildNavItems(child);
     const homework = items.find(
       (item) => item.key === "child-child-1-homework",
     );
 
-    expect(homework?.label).toBe("Cahier de texte");
+    expect(homework?.label).toBe("Devoirs");
   });
 });
 
@@ -684,11 +713,21 @@ describe("STUDENT_NAV — parité avec la vue parent (hors Santé)", () => {
       "/timetable/me",
       "/discipline/me",
       "/vie-de-classe/me",
+      "/(home)/fournitures/me",
       "/resources",
       "/messages",
       "/placeholder",
       "/account",
     ]);
+  });
+
+  it("expose un lien Fournitures scolaires vers /(home)/fournitures/me (visible sans etre liee a la reinscription, indisponible cote eleve)", () => {
+    const items = studentItems();
+    const supplies = items.find((item) => item.key === "supply-lists");
+
+    expect(supplies).toBeDefined();
+    expect(supplies?.label).toBe("Fournitures scolaires");
+    expect(supplies?.route).toBe("/(home)/fournitures/me");
   });
 
   // Régression : le fil d'actualité général ("Fil d'actualité") était

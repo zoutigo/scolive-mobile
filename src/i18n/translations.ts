@@ -311,19 +311,9 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Pret(e) a etre reinscrit(e)",
 
     "reinscription.title": "Réinscription",
-    "reinscription.tabs.paiement": "Paiement",
-    "reinscription.tabs.fournitures": "Fournitures",
     "reinscription.children.title": "Mes enfants",
     "reinscription.children.allLoaded": "Tous les enfants ont ete charges",
     "reinscription.children.empty": "Aucun enfant rattache a votre compte.",
-    "reinscription.supplies.notOpenYet":
-      "L'annee suivante n'est pas encore ouverte par l'ecole.",
-    "reinscription.supplies.empty":
-      "Aucune liste de fournitures definie pour ce niveau pour le moment.",
-    "reinscription.supplies.emptyList":
-      "Aucun enfant pret pour une liste de fournitures.",
-    "reinscription.supplies.allLoaded":
-      "Toutes les listes de fournitures ont ete chargees",
     "reinscription.wallet.balance": "Solde du porte-monnaie",
     "reinscription.wallet.topUpLink": "Recharger",
     "reinscription.wallet.success.reinscribed":
@@ -335,13 +325,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "reinscription.help.close": "Fermer",
     "reinscription.help.section1Title": "Payer et réinscrire",
     "reinscription.help.section1Body":
-      "Dès qu'un enfant est promu par le conseil de classe, il apparaît dans l'onglet Paiement avec le montant restant dû (selon la politique de seuil définie par l'école : 1ère échéance ou paiement intégral) et la date limite. Rechargez votre porte-monnaie depuis Situation financière puis touchez « Je paie et je réinscris » pour régler ce montant et confirmer la réinscription en un seul geste.",
+      "Dès qu'un enfant est promu par le conseil de classe, il apparaît ici avec le montant restant dû (selon la politique de seuil définie par l'école : 1ère échéance ou paiement intégral) et la date limite. Rechargez votre porte-monnaie depuis Situation financière puis touchez « Je paie et je réinscris » pour régler ce montant et confirmer la réinscription en un seul geste.",
     "reinscription.help.section2Title": "Statuts affichés",
     "reinscription.help.section2Body":
       "« En attente de la décision du conseil de classe » signifie que le niveau de l'an prochain n'est pas encore décidé. « Prêt(e) à être réinscrit(e) » signifie que le paiement peut être effectué. « Déjà réinscrit(e) » confirme que la réinscription est actée.",
     "reinscription.help.section3Title": "Fournitures scolaires",
     "reinscription.help.section3Body":
-      "L'onglet Fournitures liste, pour chaque enfant, les articles nécessaires pour le niveau qu'il intègre l'an prochain (et non son niveau actuel). Cette liste est gérée par l'établissement.",
+      "Une fois votre enfant réinscrit, la liste des fournitures nécessaires pour son futur niveau devient disponible dans son propre menu (rubrique Fournitures scolaires), gérée par l'établissement.",
 
     "onboardingTour.reinscription.walletTitle": "Votre porte-monnaie",
     "onboardingTour.reinscription.walletBody":
@@ -352,9 +342,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.reinscription.reinscribeTitle": "Payer et réinscrire",
     "onboardingTour.reinscription.reinscribeBody":
       "Ce bouton débite le montant requis de votre porte-monnaie et confirme la réinscription en un seul geste.",
-    "onboardingTour.reinscription.suppliesTabTitle": "Fournitures scolaires",
-    "onboardingTour.reinscription.suppliesTabBody":
-      "Cet onglet liste les fournitures nécessaires pour le niveau que votre enfant intègre l'an prochain.",
     "onboardingTour.reinscription.helpToggleTitle": "Besoin d'aide ?",
     "onboardingTour.reinscription.helpToggleBody":
       "Touchez ce bouton, puis « Aide » dans le menu, pour retrouver ces explications à tout moment.",
@@ -1133,7 +1120,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.errors.loadContext":
       "Impossible de charger le contexte homework.",
 
-    "homework.header.title": "Cahier de texte",
+    "homework.header.title": "Devoirs",
     "homework.header.titleTeacher": "Devoirs",
     "homework.loading.module": "Chargement du module homework...",
     "homework.loading.control": "Chargement du suivi...",
@@ -3229,11 +3216,22 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Chaque bloc (dernières évaluations, fil d'actualité, messages non lus) affiche un aperçu. Touchez « Voir plus » en haut à droite du bloc pour ouvrir le module complet.",
     "childHome.help.section3Title": "Fournitures scolaires",
     "childHome.help.section3Body":
-      "Dès que le conseil de classe a décidé du niveau que votre enfant intègre l'an prochain, un bloc « Fournitures » apparaît ici avec un aperçu des articles nécessaires pour ce niveau. Touchez ce bloc pour ouvrir l'écran Réinscription et voir la liste complète.",
+      "Dès que le conseil de classe a décidé du niveau que votre enfant intègre l'an prochain, un bloc « Fournitures » apparaît ici avec un aperçu des articles nécessaires pour ce niveau. Touchez ce bloc pour ouvrir l'écran dédié Fournitures scolaires et voir la liste complète.",
     "childHome.supplies.title": "Fournitures scolaires",
     "childHome.supplies.linkLabel": "Voir tout",
     "childHome.supplies.empty":
       "Aucune liste de fournitures définie pour ce niveau pour le moment.",
+    "supplyList.screen.title": "Fournitures scolaires",
+    "supplyList.screen.loading": "Chargement de la liste de fournitures...",
+    "supplyList.screen.error":
+      "Impossible de charger la liste de fournitures pour le moment.",
+    "supplyList.screen.notReady":
+      "La liste de fournitures sera disponible une fois la décision du conseil de classe rendue et l'année suivante ouverte.",
+    "supplyList.screen.empty":
+      "Aucune liste de fournitures n'a encore été publiée par l'école pour cette année.",
+    "supplyList.screen.yearLabel": "Année scolaire {year}",
+    "supplyList.screen.quantity": "x{quantity}",
+    "supplyList.screen.note": "Note : {note}",
     "childHome.today": "Aujourd'hui",
     "childHome.room": "Salle {room}",
     "childHome.roomTBC": "Salle à confirmer",
@@ -3250,7 +3248,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "childHome.quickAccess.classFeed": "Vie de classe",
     "childHome.quickAccess.timetable": "Emploi du temps",
     "childHome.quickAccess.messages": "Messagerie",
-    "childHome.quickAccess.homework": "Cahier de texte",
+    "childHome.quickAccess.homework": "Devoirs",
     "onboardingTour.childHome.kpisTitle": "Trois indicateurs",
     "onboardingTour.childHome.kpisBody":
       "Moyenne, devoirs non faits et messages non lus : touchez une carte pour ouvrir le module correspondant.",
@@ -4202,6 +4200,113 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.healthSchool.studentFabTitle": "Fiche élève",
     "onboardingTour.healthSchool.studentFabBody":
       "Ouvrez la fiche d'un élève pour voir ses soins et conditions de santé, et utilisez le bouton + pour enregistrer un nouveau soin.",
+
+    "trainingQuiz.shellName": "Quiz de formation",
+    "trainingQuiz.list.title": "Quiz de formation",
+    "trainingQuiz.list.subtitle":
+      "Apprenez à utiliser Scolive en jouant : chaque chapitre correspond à un module de l'application.",
+    "trainingQuiz.list.empty":
+      "Aucun chapitre de formation n'est disponible pour votre rôle pour le moment.",
+    "trainingQuiz.list.missionsCount": "{count} missions",
+    "trainingQuiz.list.currentStageMissionsCount": "{stage} : {count} missions",
+    "trainingQuiz.list.startCta": "Commencer",
+    "trainingQuiz.list.continueCta": "Continuer",
+    "trainingQuiz.list.completeCta": "Revoir",
+    "trainingQuiz.list.statusInProgress": "En cours",
+    "trainingQuiz.list.statusComplete": "Terminé",
+    "trainingQuiz.list.inProgressSection": "Reprendre où vous en étiez",
+    "trainingQuiz.list.allChaptersSection": "Tous les chapitres",
+    "trainingQuiz.score.title": "Votre score",
+    "trainingQuiz.score.globalLabel": "Score global",
+    "trainingQuiz.score.encouragementEmpty":
+      "Lancez votre premier chapitre pour démarrer votre progression.",
+    "trainingQuiz.score.encouragementProgress":
+      "Continuez, vous progressez bien !",
+    "trainingQuiz.score.encouragementDone":
+      "Bravo, vous maîtrisez ce chapitre !",
+    "trainingQuiz.chapter.missionLabel": "Mission {current} sur {total}",
+    "trainingQuiz.chapter.back": "Retour aux chapitres",
+    "trainingQuiz.chapter.solvedBadge": "Réussie",
+    "trainingQuiz.chapter.multiHint": "Plusieurs réponses possibles",
+    "trainingQuiz.chapter.validate": "Valider",
+    "trainingQuiz.chapter.retry": "Réessayer",
+    "trainingQuiz.chapter.retryCooldown": "Réessayer dans {time}",
+    "trainingQuiz.chapter.next": "Mission suivante",
+    "trainingQuiz.chapter.finish": "Terminer",
+    "trainingQuiz.chapter.correctTitle": "Bonne réponse !",
+    "trainingQuiz.chapter.incorrectTitle": "Pas tout à fait",
+    "trainingQuiz.chapter.retryHint":
+      "Prenez un instant pour repenser à l'indice avant de réessayer.",
+    "trainingQuiz.chapter.discoveryRetryHint":
+      "Repensez à la question et retentez votre chance.",
+    "trainingQuiz.chapter.deepLinkCta": "Voir dans l'application",
+    "trainingQuiz.chapter.hintShowCta": "Afficher un indice",
+    "trainingQuiz.chapter.hintHideCta": "Cacher l'indice",
+    "trainingQuiz.chapter.hintLabel": "Indice",
+    "trainingQuiz.chapter.hintAutoSuggest":
+      "Vous bloquez ? Un indice est disponible ci-dessous.",
+    "trainingQuiz.chapter.stage.discovery": "Découverte",
+    "trainingQuiz.chapter.stage.practice": "Pratique",
+    "trainingQuiz.chapter.stage.mastery": "Maîtrise",
+    "trainingQuiz.chapter.levelProgress": "{solved}/{total}",
+    "trainingQuiz.chapter.levelLocked":
+      "Terminez le niveau précédent pour débloquer celui-ci.",
+    "trainingQuiz.chapter.findAnswerInApp":
+      "Repérez la réponse dans l'application, puis revenez retenter une fois le compte à rebours terminé.",
+    "trainingQuiz.chapter.deepLinkVisited": "Application consultée",
+    "trainingQuiz.chapter.retryNeedsDeepLinkHint":
+      "Consultez d'abord l'application pour débloquer Réessayer.",
+    "trainingQuiz.chapter.completeTitle": "Chapitre terminé !",
+    "trainingQuiz.chapter.completeSubtitle":
+      "Vous avez répondu à toutes les missions de ce chapitre.",
+    "trainingQuiz.chapter.completeScore": "{total} missions réussies 🎉",
+    "trainingQuiz.chapter.nextModuleLabel": "Prochaine étape suggérée",
+    "trainingQuiz.chapter.nextModuleCta": "Démarrer ce module",
+    "trainingQuiz.chapter.completeBackCta": "Retour aux chapitres",
+    "trainingQuiz.levelIntro.objectiveLabel": "Objectif de ce niveau",
+    "trainingQuiz.levelIntro.rulesLabel": "Règles du niveau",
+    "trainingQuiz.levelIntro.questionsCount": "{count} missions à réussir",
+    "trainingQuiz.levelIntro.startCta": "Commencer ce niveau",
+    "trainingQuiz.levelIntro.continueCta": "Continuer ce niveau",
+    "trainingQuiz.levelIntro.rules.discovery.retry":
+      "Vous pouvez réessayer immédiatement, sans attente.",
+    "trainingQuiz.levelIntro.rules.discovery.noHint":
+      "Aucun indice n'est proposé : c'est un pur rappel de ce que vous connaissez déjà.",
+    "trainingQuiz.levelIntro.rules.discovery.noReveal":
+      "En cas d'erreur, la bonne réponse n'est jamais révélée.",
+    "trainingQuiz.levelIntro.rules.practice.hint":
+      "Un indice apparaît automatiquement après 2 essais infructueux.",
+    "trainingQuiz.levelIntro.rules.practice.appVisit":
+      "Après une erreur, vous devez consulter l'écran correspondant dans l'application avant de pouvoir réessayer.",
+    "trainingQuiz.levelIntro.rules.practice.cooldown":
+      "Un compte à rebours s'ajoute à chaque nouvel essai infructueux, jusqu'à 8 minutes.",
+    "trainingQuiz.levelIntro.rules.mastery.hint":
+      "Un indice reste disponible si vous en avez besoin.",
+    "trainingQuiz.levelIntro.rules.mastery.reveal":
+      "En cas d'erreur, la bonne réponse vous est indiquée.",
+    "trainingQuiz.levelIntro.rules.mastery.cooldown":
+      "Un compte à rebours s'ajoute à chaque nouvel essai infructueux, jusqu'à 8 minutes.",
+    "trainingQuiz.levelComplete.title": "Niveau {stage} terminé !",
+    "trainingQuiz.levelComplete.scoreLabel":
+      "{solved}/{total} missions réussies",
+    "trainingQuiz.levelComplete.encouragement.one":
+      "Belle performance, votre régularité paie !",
+    "trainingQuiz.levelComplete.encouragement.two":
+      "Bravo, vous progressez à un excellent rythme !",
+    "trainingQuiz.levelComplete.encouragement.three":
+      "Superbe travail, continuez comme ça !",
+    "trainingQuiz.levelComplete.encouragement.four":
+      "Impressionnant, chaque mission vous rapproche du but !",
+    "trainingQuiz.levelComplete.nextLevelHint":
+      "Prochaine étape : le niveau {stage}.",
+    "trainingQuiz.levelComplete.chapterAlmostDoneHint":
+      "C'était le dernier niveau de ce chapitre !",
+    "trainingQuiz.levelComplete.continueCta": "Passer au niveau {stage}",
+    "trainingQuiz.levelComplete.finishChapterCta": "Terminer le chapitre",
+    "trainingQuiz.errors.load":
+      "Impossible de charger le quiz de formation pour le moment.",
+    "trainingQuiz.help.menuLabel": "Aide",
+    "trainingQuiz.help.close": "Fermer",
   },
   en: {
     "common.loading": "Loading...",
@@ -4493,17 +4598,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "finSituation.children.confirmed.viewSupplies": "View the supply list",
 
     "reinscription.title": "Re-enrollment",
-    "reinscription.tabs.paiement": "Payment",
-    "reinscription.tabs.fournitures": "Supplies",
     "reinscription.children.title": "My children",
     "reinscription.children.allLoaded": "All children have been loaded",
     "reinscription.children.empty": "No child linked to your account.",
-    "reinscription.supplies.notOpenYet":
-      "Next year has not been opened by the school yet.",
-    "reinscription.supplies.empty":
-      "No supply list defined for this level yet.",
-    "reinscription.supplies.emptyList": "No child ready for a supply list yet.",
-    "reinscription.supplies.allLoaded": "All supply lists have been loaded",
     "reinscription.wallet.balance": "Wallet balance",
     "reinscription.wallet.topUpLink": "Top up",
     "reinscription.wallet.success.reinscribed": "{firstName} is re-enrolled!",
@@ -4514,13 +4611,13 @@ export const translations: Record<Locale, Record<string, string>> = {
     "reinscription.help.close": "Close",
     "reinscription.help.section1Title": "Pay and re-enroll",
     "reinscription.help.section1Body":
-      'As soon as a child is promoted by the class council, they appear in the Payment tab with the remaining amount due (based on the threshold policy set by the school: first installment or full payment) and the deadline. Top up your wallet from Financial situation then tap "Pay and re-enroll" to settle that amount and confirm re-enrollment in one action.',
+      'As soon as a child is promoted by the class council, they appear here with the remaining amount due (based on the threshold policy set by the school: first installment or full payment) and the deadline. Top up your wallet from Financial situation then tap "Pay and re-enroll" to settle that amount and confirm re-enrollment in one action.',
     "reinscription.help.section2Title": "Displayed statuses",
     "reinscription.help.section2Body":
       '"Awaiting class council decision" means next year\'s level has not been decided yet. "Ready to re-enroll" means payment can be made. "Already re-enrolled" confirms re-enrollment is done.',
     "reinscription.help.section3Title": "School supplies",
     "reinscription.help.section3Body":
-      "The Supplies tab lists, for each child, the items needed for the level they are moving into next year (not their current level). This list is managed by the school.",
+      "Once your child is re-enrolled, the list of supplies needed for their upcoming level becomes available in their own menu (School supplies section), managed by the school.",
 
     "onboardingTour.reinscription.walletTitle": "Your wallet",
     "onboardingTour.reinscription.walletBody":
@@ -4531,9 +4628,6 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.reinscription.reinscribeTitle": "Pay and re-enroll",
     "onboardingTour.reinscription.reinscribeBody":
       "This button debits the required amount from your wallet and confirms re-enrollment in one action.",
-    "onboardingTour.reinscription.suppliesTabTitle": "School supplies",
-    "onboardingTour.reinscription.suppliesTabBody":
-      "This tab lists the supplies needed for the level your child is moving into next year.",
     "onboardingTour.reinscription.helpToggleTitle": "Need help?",
     "onboardingTour.reinscription.helpToggleBody":
       'Tap this button, then "Help" in the menu, to find these explanations again at any time.',
@@ -5276,7 +5370,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "homework.errors.openAttachment": "Unable to open this attachment.",
     "homework.errors.loadContext": "Unable to load the homework context.",
 
-    "homework.header.title": "Homework notebook",
+    "homework.header.title": "Homework",
     "homework.header.titleTeacher": "Homework",
     "homework.loading.module": "Loading the homework module...",
     "homework.loading.control": "Loading tracking...",
@@ -7300,10 +7394,20 @@ export const translations: Record<Locale, Record<string, string>> = {
       'Each block (latest evaluations, news feed, unread messages) shows a preview. Tap "See more" at the top right of the block to open the full module.',
     "childHome.help.section3Title": "School supplies",
     "childHome.help.section3Body":
-      'As soon as the class council has decided which level your child is moving into next year, a "Supplies" block appears here with a preview of the items needed for that level. Tap this block to open the Re-enrollment screen and see the full list.',
+      'As soon as the class council has decided which level your child is moving into next year, a "Supplies" block appears here with a preview of the items needed for that level. Tap this block to open the dedicated School supplies screen and see the full list.',
     "childHome.supplies.title": "School supplies",
     "childHome.supplies.linkLabel": "See all",
     "childHome.supplies.empty": "No supply list defined for this level yet.",
+    "supplyList.screen.title": "School supplies",
+    "supplyList.screen.loading": "Loading the supply list...",
+    "supplyList.screen.error": "Unable to load the supply list right now.",
+    "supplyList.screen.notReady":
+      "The supply list will be available once the class council decision is made and next year is open.",
+    "supplyList.screen.empty":
+      "The school hasn't published a supply list for this year yet.",
+    "supplyList.screen.yearLabel": "School year {year}",
+    "supplyList.screen.quantity": "x{quantity}",
+    "supplyList.screen.note": "Note: {note}",
     "childHome.today": "Today",
     "childHome.room": "Room {room}",
     "childHome.roomTBC": "Room to confirm",
@@ -7319,7 +7423,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "childHome.quickAccess.classFeed": "Class life",
     "childHome.quickAccess.timetable": "Timetable",
     "childHome.quickAccess.messages": "Messaging",
-    "childHome.quickAccess.homework": "Homework notebook",
+    "childHome.quickAccess.homework": "Homework",
     "onboardingTour.childHome.kpisTitle": "Three indicators",
     "onboardingTour.childHome.kpisBody":
       "Average, undone homework and unread messages: tap a card to open the matching module.",
@@ -8246,5 +8350,108 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.healthSchool.studentFabTitle": "Student profile",
     "onboardingTour.healthSchool.studentFabBody":
       "Open a student's profile to see their cares and health conditions, and use the + button to record a new care.",
+
+    "trainingQuiz.shellName": "Training quiz",
+    "trainingQuiz.list.title": "Training quiz",
+    "trainingQuiz.list.subtitle":
+      "Learn to use Scolive by playing: each chapter matches an application module.",
+    "trainingQuiz.list.empty":
+      "No training chapter is available for your role yet.",
+    "trainingQuiz.list.missionsCount": "{count} missions",
+    "trainingQuiz.list.currentStageMissionsCount": "{stage}: {count} missions",
+    "trainingQuiz.list.startCta": "Start",
+    "trainingQuiz.list.continueCta": "Continue",
+    "trainingQuiz.list.completeCta": "Review",
+    "trainingQuiz.list.statusInProgress": "In progress",
+    "trainingQuiz.list.statusComplete": "Complete",
+    "trainingQuiz.list.inProgressSection": "Pick up where you left off",
+    "trainingQuiz.list.allChaptersSection": "All chapters",
+    "trainingQuiz.score.title": "Your score",
+    "trainingQuiz.score.globalLabel": "Global score",
+    "trainingQuiz.score.encouragementEmpty":
+      "Start your first chapter to begin your progress.",
+    "trainingQuiz.score.encouragementProgress":
+      "Keep going, you're doing great!",
+    "trainingQuiz.score.encouragementDone":
+      "Well done, you've mastered this chapter!",
+    "trainingQuiz.chapter.missionLabel": "Mission {current} of {total}",
+    "trainingQuiz.chapter.back": "Back to chapters",
+    "trainingQuiz.chapter.solvedBadge": "Solved",
+    "trainingQuiz.chapter.multiHint": "Multiple answers possible",
+    "trainingQuiz.chapter.validate": "Check answer",
+    "trainingQuiz.chapter.retry": "Try again",
+    "trainingQuiz.chapter.retryCooldown": "Try again in {time}",
+    "trainingQuiz.chapter.next": "Next mission",
+    "trainingQuiz.chapter.finish": "Finish",
+    "trainingQuiz.chapter.correctTitle": "Correct!",
+    "trainingQuiz.chapter.incorrectTitle": "Not quite",
+    "trainingQuiz.chapter.retryHint":
+      "Take a moment to think back on the hint before trying again.",
+    "trainingQuiz.chapter.discoveryRetryHint":
+      "Think back on the question and give it another try.",
+    "trainingQuiz.chapter.deepLinkCta": "See it in the app",
+    "trainingQuiz.chapter.hintShowCta": "Show a hint",
+    "trainingQuiz.chapter.hintHideCta": "Hide hint",
+    "trainingQuiz.chapter.hintLabel": "Hint",
+    "trainingQuiz.chapter.hintAutoSuggest": "Stuck? A hint is available below.",
+    "trainingQuiz.chapter.stage.discovery": "Discovery",
+    "trainingQuiz.chapter.stage.practice": "Practice",
+    "trainingQuiz.chapter.stage.mastery": "Mastery",
+    "trainingQuiz.chapter.levelProgress": "{solved}/{total}",
+    "trainingQuiz.chapter.levelLocked":
+      "Finish the previous level to unlock this one.",
+    "trainingQuiz.chapter.findAnswerInApp":
+      "Find the answer in the app, then come back to try again once the countdown ends.",
+    "trainingQuiz.chapter.deepLinkVisited": "App visited",
+    "trainingQuiz.chapter.retryNeedsDeepLinkHint":
+      "Check the app first to unlock Try again.",
+    "trainingQuiz.chapter.completeTitle": "Chapter complete!",
+    "trainingQuiz.chapter.completeSubtitle":
+      "You've answered every mission in this chapter.",
+    "trainingQuiz.chapter.completeScore": "{total} missions passed 🎉",
+    "trainingQuiz.chapter.nextModuleLabel": "Suggested next step",
+    "trainingQuiz.chapter.nextModuleCta": "Start this module",
+    "trainingQuiz.chapter.completeBackCta": "Back to chapters",
+    "trainingQuiz.levelIntro.objectiveLabel": "Objective of this level",
+    "trainingQuiz.levelIntro.rulesLabel": "Level rules",
+    "trainingQuiz.levelIntro.questionsCount": "{count} missions to complete",
+    "trainingQuiz.levelIntro.startCta": "Start this level",
+    "trainingQuiz.levelIntro.continueCta": "Continue this level",
+    "trainingQuiz.levelIntro.rules.discovery.retry":
+      "You can retry immediately, no waiting.",
+    "trainingQuiz.levelIntro.rules.discovery.noHint":
+      "No hint is offered: this is pure recall of what you already know.",
+    "trainingQuiz.levelIntro.rules.discovery.noReveal":
+      "On a wrong answer, the correct option is never revealed.",
+    "trainingQuiz.levelIntro.rules.practice.hint":
+      "A hint appears automatically after 2 failed attempts.",
+    "trainingQuiz.levelIntro.rules.practice.appVisit":
+      "After a wrong answer, you must check the matching screen in the app before you can retry.",
+    "trainingQuiz.levelIntro.rules.practice.cooldown":
+      "A countdown is added on every new failed attempt, up to 8 minutes.",
+    "trainingQuiz.levelIntro.rules.mastery.hint":
+      "A hint stays available if you need one.",
+    "trainingQuiz.levelIntro.rules.mastery.reveal":
+      "On a wrong answer, the correct option is shown to you.",
+    "trainingQuiz.levelIntro.rules.mastery.cooldown":
+      "A countdown is added on every new failed attempt, up to 8 minutes.",
+    "trainingQuiz.levelComplete.title": "{stage} level complete!",
+    "trainingQuiz.levelComplete.scoreLabel": "{solved}/{total} missions passed",
+    "trainingQuiz.levelComplete.encouragement.one":
+      "Great performance, your consistency is paying off!",
+    "trainingQuiz.levelComplete.encouragement.two":
+      "Well done, you're progressing at a great pace!",
+    "trainingQuiz.levelComplete.encouragement.three":
+      "Superb work, keep it up!",
+    "trainingQuiz.levelComplete.encouragement.four":
+      "Impressive, every mission brings you closer to the goal!",
+    "trainingQuiz.levelComplete.nextLevelHint": "Next up: the {stage} level.",
+    "trainingQuiz.levelComplete.chapterAlmostDoneHint":
+      "That was the last level of this chapter!",
+    "trainingQuiz.levelComplete.continueCta": "Move on to {stage}",
+    "trainingQuiz.levelComplete.finishChapterCta": "Finish the chapter",
+    "trainingQuiz.errors.load": "Couldn't load the training quiz right now.",
+    "trainingQuiz.help.menuLabel": "Help",
+    "trainingQuiz.help.close": "Close",
   },
 };

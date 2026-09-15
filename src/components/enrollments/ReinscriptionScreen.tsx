@@ -6,11 +6,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
 import { AppShell } from "../navigation/AppShell";
 import { ModuleHeader } from "../navigation/ModuleHeader";
-import { UnderlineTabs } from "../navigation/UnderlineTabs";
 import { InfiniteScrollList } from "../lists/InfiniteScrollList";
 import { WalletSummaryLinkCard } from "../finance/WalletSummaryLinkCard";
 import { ChildReenrollmentCard } from "./ChildReenrollmentCard";
-import { SupplyListCard } from "./SupplyListCard";
 import { InstallmentBreakdownCard } from "./InstallmentBreakdownCard";
 import { PageHelpModal } from "../help/PageHelpModal";
 import { OnboardingTarget } from "../onboarding/OnboardingTarget";
@@ -24,15 +22,11 @@ import type {
   ChildFinanceStatus,
   WalletSummary,
 } from "../../types/finance.types";
-import type { ChildSupplyList } from "../../types/supply-lists.types";
 import { moduleBack } from "../../utils/moduleBack";
 import { useAuthStore } from "../../store/auth.store";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { useTranslation } from "../../i18n/useTranslation";
 import { financeApi } from "../../api/finance.api";
-import { supplyListsApi } from "../../api/supply-lists.api";
-
-type ReinscriptionTab = "paiement" | "fournitures";
 
 export function ReinscriptionScreen() {
   return (
@@ -46,7 +40,6 @@ function ReinscriptionScreenContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const [tab, setTab] = useState<ReinscriptionTab>("paiement");
   const { schoolSlug } = useAuthStore();
   const showSuccess = useSuccessToastStore((state) => state.showSuccess);
   const showError = useSuccessToastStore((state) => state.showError);
@@ -55,10 +48,6 @@ function ReinscriptionScreenContent() {
   const [walletLoading, setWalletLoading] = useState(false);
   const [reinscribingId, setReinscribingId] = useState<string | null>(null);
   const [helpVisible, setHelpVisible] = useState(false);
-  const [supplyLists, setSupplyLists] = useState<
-    Record<string, ChildSupplyList>
-  >({});
-  const [supplyListsLoading, setSupplyListsLoading] = useState(false);
 
   useOnboardingTourTrigger({
     tourId: REINSCRIPTION_TOUR_ID,
@@ -93,40 +82,10 @@ function ReinscriptionScreenContent() {
     [wallet],
   );
 
-  const loadSupplyLists = useCallback(async () => {
-    if (!schoolSlug || eligibleChildren.length === 0) return;
-    setSupplyListsLoading(true);
-    try {
-      const entries = await Promise.all(
-        eligibleChildren.map(async (child) => {
-          const list = await supplyListsApi.getMyChildSupplyList(
-            schoolSlug,
-            child.student.id,
-          );
-          return [child.student.id, list] as const;
-        }),
-      );
-      setSupplyLists(Object.fromEntries(entries));
-    } catch (error) {
-      showError({
-        title: t("reinscription.errors.load"),
-        message: error instanceof Error ? error.message : "",
-      });
-    } finally {
-      setSupplyListsLoading(false);
-    }
-  }, [schoolSlug, eligibleChildren, showError]);
-
   useFocusEffect(
     useCallback(() => {
       void loadWallet();
     }, [loadWallet]),
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      if (tab === "fournitures") void loadSupplyLists();
-    }, [tab, loadSupplyLists]),
   );
 
   async function onPayAndReinscribe(child: ChildFinanceStatus) {
@@ -177,104 +136,58 @@ function ReinscriptionScreenContent() {
         />
       </View>
 
-      <UnderlineTabs<ReinscriptionTab>
-        items={[
-          { key: "paiement", label: t("reinscription.tabs.paiement") },
-          { key: "fournitures", label: t("reinscription.tabs.fournitures") },
-        ]}
-        activeKey={tab}
-        onSelect={setTab}
-        testIDPrefix="reinscription-tabs"
-        tourTargetId={
-          tab === "paiement"
-            ? REINSCRIPTION_TOUR_TARGETS.suppliesTab
-            : undefined
+      <InfiniteScrollList
+        data={eligibleChildren}
+        keyExtractor={(item) => item.student.id}
+        renderItem={({ item }) => (
+          <View style={styles.cardWrap}>
+            <ChildReenrollmentCard
+              item={item}
+              walletBalance={wallet?.balance ?? 0}
+              submitting={reinscribingId === item.student.id}
+              onPayAndReinscribe={onPayAndReinscribe}
+              tourTargetId={
+                item.student.id === firstReadyChildId
+                  ? REINSCRIPTION_TOUR_TARGETS.reinscribe
+                  : undefined
+              }
+            />
+            {item.targetSchoolYearId ? (
+              <InstallmentBreakdownCard
+                studentId={item.student.id}
+                schoolYearId={item.targetSchoolYearId}
+              />
+            ) : null}
+          </View>
+        )}
+        hasMore={false}
+        refreshing={walletLoading}
+        onRefresh={loadWallet}
+        ListHeaderComponent={
+          <>
+            <OnboardingTarget id={REINSCRIPTION_TOUR_TARGETS.wallet}>
+              <WalletSummaryLinkCard
+                balance={wallet?.balance ?? 0}
+                onPress={() => router.push("/(home)/finance")}
+              />
+            </OnboardingTarget>
+            <OnboardingTarget id={REINSCRIPTION_TOUR_TARGETS.children}>
+              <Text style={styles.sectionTitle}>
+                {t("reinscription.children.title")}
+              </Text>
+            </OnboardingTarget>
+          </>
         }
+        endOfListLabel={t("reinscription.children.allLoaded")}
+        contentContainerStyle={styles.listContent}
+        emptyComponent={
+          <EmptyView
+            icon="people-outline"
+            label={t("reinscription.children.empty")}
+          />
+        }
+        testID="reinscription-children-list"
       />
-
-      {tab === "paiement" && (
-        <InfiniteScrollList
-          data={eligibleChildren}
-          keyExtractor={(item) => item.student.id}
-          renderItem={({ item }) => (
-            <View style={styles.cardWrap}>
-              <ChildReenrollmentCard
-                item={item}
-                walletBalance={wallet?.balance ?? 0}
-                submitting={reinscribingId === item.student.id}
-                onPayAndReinscribe={onPayAndReinscribe}
-                onViewSupplies={() => setTab("fournitures")}
-                tourTargetId={
-                  item.student.id === firstReadyChildId
-                    ? REINSCRIPTION_TOUR_TARGETS.reinscribe
-                    : undefined
-                }
-              />
-              {item.targetSchoolYearId ? (
-                <InstallmentBreakdownCard
-                  studentId={item.student.id}
-                  schoolYearId={item.targetSchoolYearId}
-                />
-              ) : null}
-            </View>
-          )}
-          hasMore={false}
-          refreshing={walletLoading}
-          onRefresh={loadWallet}
-          ListHeaderComponent={
-            <>
-              <OnboardingTarget id={REINSCRIPTION_TOUR_TARGETS.wallet}>
-                <WalletSummaryLinkCard
-                  balance={wallet?.balance ?? 0}
-                  onPress={() => router.push("/(home)/finance")}
-                />
-              </OnboardingTarget>
-              <OnboardingTarget id={REINSCRIPTION_TOUR_TARGETS.children}>
-                <Text style={styles.sectionTitle}>
-                  {t("reinscription.children.title")}
-                </Text>
-              </OnboardingTarget>
-            </>
-          }
-          endOfListLabel={t("reinscription.children.allLoaded")}
-          contentContainerStyle={styles.listContent}
-          emptyComponent={
-            <EmptyView
-              icon="people-outline"
-              label={t("reinscription.children.empty")}
-            />
-          }
-          testID="reinscription-children-list"
-        />
-      )}
-
-      {tab === "fournitures" && (
-        <InfiniteScrollList
-          data={eligibleChildren}
-          keyExtractor={(item) => item.student.id}
-          renderItem={({ item }) => (
-            <View style={styles.cardWrap}>
-              <SupplyListCard
-                student={item.student}
-                supplyList={supplyLists[item.student.id]}
-                loading={supplyListsLoading && !supplyLists[item.student.id]}
-              />
-            </View>
-          )}
-          hasMore={false}
-          refreshing={supplyListsLoading}
-          onRefresh={loadSupplyLists}
-          endOfListLabel={t("reinscription.supplies.allLoaded")}
-          contentContainerStyle={styles.listContent}
-          emptyComponent={
-            <EmptyView
-              icon="bag-outline"
-              label={t("reinscription.supplies.emptyList")}
-            />
-          }
-          testID="reinscription-supplies-list"
-        />
-      )}
 
       <PageHelpModal
         visible={helpVisible}

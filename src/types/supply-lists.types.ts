@@ -10,6 +10,7 @@ export type ChildSupplyList = {
   targetSchoolYearId: string | null;
   targetSchoolYearLabel?: string;
   items: SupplyItemRow[];
+  seen?: boolean;
 };
 
 export type SupplyListRow = {

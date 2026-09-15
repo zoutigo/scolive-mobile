@@ -21,6 +21,17 @@ export const supplyListsApi = {
     );
   },
 
+  markMyChildSupplyListSeen(
+    schoolSlug: string,
+    studentId: string,
+  ): Promise<{ targetSchoolYearId: string | null }> {
+    return apiFetch(
+      `/schools/${schoolSlug}/me/supply-lists/students/${studentId}/seen`,
+      { method: "POST" },
+      true,
+    );
+  },
+
   listSupplyLists(
     schoolSlug: string,
     params: { schoolYearId?: string; academicLevelId?: string } = {},
