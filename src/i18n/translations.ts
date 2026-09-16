@@ -994,6 +994,41 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.teacherDiscipline.step4Body":
       "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel adapté à l'onglet que vous consultez.",
 
+    "onboardingTour.teacherAttendance.step1Title": "Choisir la date",
+    "onboardingTour.teacherAttendance.step1Body":
+      "Naviguez vers la veille ou le lendemain, ou choisissez une date précise, pour faire l'appel du jour souhaité.",
+    "onboardingTour.teacherAttendance.step2Title": "Cocher les absents",
+    "onboardingTour.teacherAttendance.step2Body":
+      "Chaque élève est présent par défaut : basculez sur Absent pour les élèves manquants ce jour-là.",
+    "onboardingTour.teacherAttendance.step3Title":
+      "Une aide toujours disponible",
+    "onboardingTour.teacherAttendance.step3Body":
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour un rappel du fonctionnement de l'appel.",
+
+    "attendance.header.title": "Appel",
+    "attendance.dateLabel": "Date",
+    "attendance.loading": "Chargement...",
+    "attendance.summary": "{present}/{total} présents",
+    "attendance.presentLabel": "Présent",
+    "attendance.absentLabel": "Absent",
+    "attendance.saveButton": "Enregistrer l'appel",
+    "attendance.saving": "Enregistrement...",
+    "attendance.empty.title": "Aucun élève",
+    "attendance.empty.message": "Aucun élève inscrit dans cette classe.",
+    "attendance.errors.loadRoster":
+      "Impossible de charger la liste des élèves.",
+    "attendance.errors.saveTitle": "Échec de l'enregistrement",
+    "attendance.errors.saveFailed": "Impossible d'enregistrer l'appel.",
+    "attendance.toasts.savedTitle": "Appel enregistré",
+    "attendance.toasts.savedMessage":
+      "L'appel de la classe a bien été enregistré.",
+    "attendance.help.menuLabel": "Aide",
+    "attendance.help.close": "J'ai compris",
+    "attendance.help.title": "Comment utiliser l'appel",
+    "attendance.help.section1Title": "Faire l'appel du jour",
+    "attendance.help.section1Body":
+      "Choisissez une date puis basculez chaque élève sur Absent si besoin ; tous les élèves sont présents par défaut. Touchez Enregistrer l'appel pour sauvegarder.",
+
     "discipline.filters.title": "Filtres",
     "discipline.filters.student": "Élève",
     "discipline.filters.allStudents": "Tous les élèves",
@@ -5261,6 +5296,38 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.teacherDiscipline.step4Title": "Help is always available",
     "onboardingTour.teacherDiscipline.step4Body":
       'Tap this button at any time, then "Help" in the menu, for a reminder tailored to the tab you\'re viewing.',
+
+    "onboardingTour.teacherAttendance.step1Title": "Pick the date",
+    "onboardingTour.teacherAttendance.step1Body":
+      "Move to the previous or next day, or pick a specific date, to take roll call for that day.",
+    "onboardingTour.teacherAttendance.step2Title": "Mark absentees",
+    "onboardingTour.teacherAttendance.step2Body":
+      "Every student is present by default: switch a student to Absent if they are missing that day.",
+    "onboardingTour.teacherAttendance.step3Title": "Help is always available",
+    "onboardingTour.teacherAttendance.step3Body":
+      'Tap this button at any time, then "Help" in the menu, for a reminder of how roll call works.',
+
+    "attendance.header.title": "Roll call",
+    "attendance.dateLabel": "Date",
+    "attendance.loading": "Loading...",
+    "attendance.summary": "{present}/{total} present",
+    "attendance.presentLabel": "Present",
+    "attendance.absentLabel": "Absent",
+    "attendance.saveButton": "Save roll call",
+    "attendance.saving": "Saving...",
+    "attendance.empty.title": "No student",
+    "attendance.empty.message": "No student enrolled in this class.",
+    "attendance.errors.loadRoster": "Unable to load the student list.",
+    "attendance.errors.saveTitle": "Save failed",
+    "attendance.errors.saveFailed": "Unable to save the roll call.",
+    "attendance.toasts.savedTitle": "Roll call saved",
+    "attendance.toasts.savedMessage": "The class roll call was saved.",
+    "attendance.help.menuLabel": "Help",
+    "attendance.help.close": "Got it",
+    "attendance.help.title": "How to use roll call",
+    "attendance.help.section1Title": "Take today's roll call",
+    "attendance.help.section1Body":
+      "Pick a date, then switch a student to Absent if needed; every student is present by default. Tap Save roll call to store it.",
 
     "discipline.filters.title": "Filters",
     "discipline.filters.student": "Student",

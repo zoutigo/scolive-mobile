@@ -5,6 +5,7 @@ import {
   buildTeacherClassItems,
   buildTeacherClassSections,
   buildTeacherClassFeedTarget,
+  buildTeacherClassAttendanceTarget,
   buildTeacherClassNotesTarget,
   buildTeacherClassDisciplineTarget,
   buildTeacherClassHealthTarget,
@@ -199,13 +200,20 @@ describe("getRoleLabel", () => {
 });
 
 describe("teacher class navigation model", () => {
-  it("construit les 5 sous-modules attendus pour une classe enseignant", () => {
+  it("construit les 6 sous-modules attendus pour une classe enseignant", () => {
     expect(buildTeacherClassItems("class-1")).toEqual([
       {
         key: "teacher-class-class-1-feed",
         label: "Fil de classe",
         icon: "newspaper-outline",
         route: "/(home)/classes/[classId]/feed",
+        params: { classId: "class-1" },
+      },
+      {
+        key: "teacher-class-class-1-attendance",
+        label: "Élèves",
+        icon: "people-outline",
+        route: "/(home)/classes/[classId]/eleves",
         params: { classId: "class-1" },
       },
       {
@@ -259,6 +267,7 @@ describe("teacher class navigation model", () => {
     });
     expect(sections[0].navItems.map((item) => item.label)).toEqual([
       "Fil de classe",
+      "Élèves",
       "Notes",
       "Discipline",
       "Emploi du temps",
@@ -294,6 +303,7 @@ describe("teacher class navigation model", () => {
 
     expect(sections[0].navItems.map((item) => item.label)).toEqual([
       "Fil de classe",
+      "Élèves",
       "Notes",
       "Discipline",
       "Santé",
@@ -308,6 +318,10 @@ describe("teacher class navigation model", () => {
   it("expose les route builders cibles pour les modules de classe", () => {
     expect(buildTeacherClassFeedTarget("class-1")).toEqual({
       pathname: "/(home)/classes/[classId]/feed",
+      params: { classId: "class-1" },
+    });
+    expect(buildTeacherClassAttendanceTarget("class-1")).toEqual({
+      pathname: "/(home)/classes/[classId]/eleves",
       params: { classId: "class-1" },
     });
     expect(buildTeacherClassNotesTarget("class-1")).toEqual({

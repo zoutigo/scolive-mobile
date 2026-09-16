@@ -55,6 +55,13 @@ export function buildTeacherClassFeedTarget(classId: string) {
   } as const;
 }
 
+export function buildTeacherClassAttendanceTarget(classId: string) {
+  return {
+    pathname: "/(home)/classes/[classId]/eleves",
+    params: { classId },
+  } as const;
+}
+
 export function buildTeacherClassNotesTarget(classId: string) {
   return {
     pathname: "/(home)/classes/[classId]/notes",
@@ -641,6 +648,13 @@ export function buildTeacherClassItems(
       icon: "newspaper-outline",
       route: buildTeacherClassFeedTarget(classId).pathname,
       params: buildTeacherClassFeedTarget(classId).params,
+    },
+    {
+      key: `teacher-class-${classId}-attendance`,
+      label: "Élèves",
+      icon: "people-outline",
+      route: buildTeacherClassAttendanceTarget(classId).pathname,
+      params: buildTeacherClassAttendanceTarget(classId).params,
     },
     {
       key: `teacher-class-${classId}-notes`,
