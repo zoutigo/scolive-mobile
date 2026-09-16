@@ -1503,21 +1503,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.childAgenda.help.section3Body":
       "Touchez une carte de cours pour voir en un coup d'œil son horaire, l'enseignant et la salle.",
 
-    "timetable.classesScreen.headerTitle": "Mes classes",
-    "timetable.classesScreen.schoolYear.title": "Année scolaire",
-    "timetable.classesScreen.schoolYear.subtitle":
-      "Filtrez vos classes pour garder un périmètre clair avant de gérer le planning.",
-    "timetable.classesScreen.schoolYear.label": "Année",
-    "timetable.classesScreen.schoolYear.activeSuffix": "active",
-    "timetable.classesScreen.classes.title": "Classes accessibles",
-    "timetable.classesScreen.classes.subtitle":
-      "Le module ouvre la page agenda mobile de la classe. Les restrictions backend du rôle enseignant restent respectées.",
-    "timetable.classesScreen.loading": "Chargement des classes...",
-    "timetable.classesScreen.empty.title": "Aucune classe trouvée",
-    "timetable.classesScreen.empty.message":
+    "timetable.adminClassesScreen.headerTitle": "Emploi du temps",
+    "timetable.adminClassesScreen.schoolYear.title": "Année scolaire",
+    "timetable.adminClassesScreen.schoolYear.subtitle":
+      "Filtrez les classes de l'école pour garder un périmètre clair avant de gérer le planning.",
+    "timetable.adminClassesScreen.schoolYear.label": "Année",
+    "timetable.adminClassesScreen.schoolYear.activeSuffix": "active",
+    "timetable.adminClassesScreen.classes.title": "Classes de l'école",
+    "timetable.adminClassesScreen.classes.subtitle":
+      "Sélectionnez une classe pour gérer ses créneaux, séances ponctuelles et vacances.",
+    "timetable.adminClassesScreen.loading": "Chargement des classes...",
+    "timetable.adminClassesScreen.empty.title": "Aucune classe trouvée",
+    "timetable.adminClassesScreen.empty.message":
       "Aucune affectation exploitable n'a été trouvée sur cette année.",
-    "timetable.classesScreen.studentSingular": "élève",
-    "timetable.classesScreen.studentPlural": "élèves",
+    "timetable.adminClassesScreen.studentSingular": "élève",
+    "timetable.adminClassesScreen.studentPlural": "élèves",
 
     "timetable.teacherAgenda.headerTitle": "Agenda",
     "timetable.teacherAgenda.tabs.users": "Utilisateurs",
@@ -5789,21 +5789,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.childAgenda.help.section3Body":
       "Tap a course card to see its time, teacher and room at a glance.",
 
-    "timetable.classesScreen.headerTitle": "My classes",
-    "timetable.classesScreen.schoolYear.title": "School year",
-    "timetable.classesScreen.schoolYear.subtitle":
-      "Filter your classes to keep a clear scope before managing the schedule.",
-    "timetable.classesScreen.schoolYear.label": "Year",
-    "timetable.classesScreen.schoolYear.activeSuffix": "active",
-    "timetable.classesScreen.classes.title": "Accessible classes",
-    "timetable.classesScreen.classes.subtitle":
-      "The module opens the mobile schedule page for the class. Backend restrictions for the teacher role are still enforced.",
-    "timetable.classesScreen.loading": "Loading classes...",
-    "timetable.classesScreen.empty.title": "No class found",
-    "timetable.classesScreen.empty.message":
+    "timetable.adminClassesScreen.headerTitle": "Timetable",
+    "timetable.adminClassesScreen.schoolYear.title": "School year",
+    "timetable.adminClassesScreen.schoolYear.subtitle":
+      "Filter the school's classes to keep a clear scope before managing the schedule.",
+    "timetable.adminClassesScreen.schoolYear.label": "Year",
+    "timetable.adminClassesScreen.schoolYear.activeSuffix": "active",
+    "timetable.adminClassesScreen.classes.title": "School classes",
+    "timetable.adminClassesScreen.classes.subtitle":
+      "Select a class to manage its slots, one-off sessions and holidays.",
+    "timetable.adminClassesScreen.loading": "Loading classes...",
+    "timetable.adminClassesScreen.empty.title": "No class found",
+    "timetable.adminClassesScreen.empty.message":
       "No usable assignment was found for this year.",
-    "timetable.classesScreen.studentSingular": "student",
-    "timetable.classesScreen.studentPlural": "students",
+    "timetable.adminClassesScreen.studentSingular": "student",
+    "timetable.adminClassesScreen.studentPlural": "students",
 
     "timetable.teacherAgenda.headerTitle": "Schedule",
     "timetable.teacherAgenda.tabs.users": "Users",

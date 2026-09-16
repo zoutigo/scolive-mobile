@@ -190,11 +190,11 @@ describe("Flux enseignant — anti-empilement cross-module", () => {
     mockPathname = "/classes/class-a/discipline";
     renderTeacherDrawer();
     fireEvent.press(screen.getByTestId("drawer-section-teacher-general"));
-    fireEvent.press(screen.getByTestId("nav-item-timetable"));
+    fireEvent.press(screen.getByTestId("nav-item-agenda"));
     act(() => jest.runAllTimers());
 
     expect(mockDismissAll).toHaveBeenCalled();
-    expect(mockReplace).toHaveBeenCalledWith("/timetable");
+    expect(mockReplace).toHaveBeenCalledWith("/agenda");
     expect(mockPush).not.toHaveBeenCalled();
   });
 });

@@ -6,7 +6,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
-import { ClassTimetableManagerScreen } from "../../src/components/timetable/ClassTimetableManagerScreen";
+import { AdminClassTimetableManagerScreen } from "../../src/components/timetable/AdminClassTimetableManagerScreen";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useSuccessToastStore } from "../../src/store/success-toast.store";
 import { useTimetableStore } from "../../src/store/timetable.store";
@@ -144,9 +144,9 @@ beforeEach(() => {
 
 const mockCreateCalendarEvent = jest.fn().mockResolvedValue(undefined);
 
-describe("ClassTimetableManagerScreen", () => {
+describe("AdminClassTimetableManagerScreen", () => {
   it("charge le contexte et l'agenda de classe au montage", async () => {
-    render(<ClassTimetableManagerScreen />);
+    render(<AdminClassTimetableManagerScreen />);
 
     expect(screen.getByTestId("class-timetable-header")).toBeOnTheScreen();
     expect(screen.getByTestId("class-timetable-back-btn")).toBeOnTheScreen();
@@ -161,7 +161,7 @@ describe("ClassTimetableManagerScreen", () => {
   });
 
   it("permet d'ajouter un créneau récurrent", async () => {
-    render(<ClassTimetableManagerScreen />);
+    render(<AdminClassTimetableManagerScreen />);
 
     await waitFor(() => {
       expect(mockLoadClassContext).toHaveBeenCalled();
@@ -183,7 +183,7 @@ describe("ClassTimetableManagerScreen", () => {
   });
 
   it("affiche les salles disponibles et soumet la salle sélectionnée", async () => {
-    render(<ClassTimetableManagerScreen />);
+    render(<AdminClassTimetableManagerScreen />);
 
     await waitFor(() => {
       expect(mockLoadClassContext).toHaveBeenCalled();
@@ -224,7 +224,7 @@ describe("ClassTimetableManagerScreen", () => {
       },
     ]);
 
-    render(<ClassTimetableManagerScreen />);
+    render(<AdminClassTimetableManagerScreen />);
     await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
     fireEvent.press(screen.getByTestId("class-timetable-tab-slots"));
 
@@ -232,7 +232,7 @@ describe("ClassTimetableManagerScreen", () => {
   });
 
   it("utilise le sélecteur d'heure réutilisable pour le formulaire récurrent", async () => {
-    render(<ClassTimetableManagerScreen />);
+    render(<AdminClassTimetableManagerScreen />);
 
     await waitFor(() => {
       expect(mockLoadClassContext).toHaveBeenCalled();
@@ -268,7 +268,7 @@ describe("ClassTimetableManagerScreen", () => {
   });
 
   it("le bouton du formulaire créneau est actif par défaut (pas de blocage isValid)", async () => {
-    render(<ClassTimetableManagerScreen />);
+    render(<AdminClassTimetableManagerScreen />);
     await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
 
     fireEvent.press(screen.getByTestId("class-timetable-tab-slots"));
@@ -278,7 +278,7 @@ describe("ClassTimetableManagerScreen", () => {
   });
 
   it("valide le libellé de fermeture et affiche une erreur si vide", async () => {
-    render(<ClassTimetableManagerScreen />);
+    render(<AdminClassTimetableManagerScreen />);
     await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
 
     fireEvent.press(screen.getByTestId("class-timetable-tab-holidays"));
@@ -296,7 +296,7 @@ describe("ClassTimetableManagerScreen", () => {
   });
 
   it("câblage scroll-vers-erreur : onLayout sur la section fermeture ne crashe pas", async () => {
-    render(<ClassTimetableManagerScreen />);
+    render(<AdminClassTimetableManagerScreen />);
     await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
 
     fireEvent.press(screen.getByTestId("class-timetable-tab-holidays"));
@@ -320,7 +320,7 @@ describe("ClassTimetableManagerScreen", () => {
   });
 
   it("soumet une fermeture valide", async () => {
-    render(<ClassTimetableManagerScreen />);
+    render(<AdminClassTimetableManagerScreen />);
     await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
 
     fireEvent.press(screen.getByTestId("class-timetable-tab-holidays"));
@@ -343,7 +343,7 @@ describe("ClassTimetableManagerScreen", () => {
 
   describe("Sélection multi-jours des créneaux récurrents", () => {
     it("sélectionne plusieurs jours et crée un slot par jour", async () => {
-      render(<ClassTimetableManagerScreen />);
+      render(<AdminClassTimetableManagerScreen />);
       await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
       fireEvent.press(screen.getByTestId("class-timetable-tab-slots"));
 
@@ -373,7 +373,7 @@ describe("ClassTimetableManagerScreen", () => {
     });
 
     it("désélectionner le seul jour sélectionné ne décoche pas (1 minimum)", async () => {
-      render(<ClassTimetableManagerScreen />);
+      render(<AdminClassTimetableManagerScreen />);
       await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
       fireEvent.press(screen.getByTestId("class-timetable-tab-slots"));
 
@@ -432,7 +432,7 @@ describe("ClassTimetableManagerScreen", () => {
           }) as never,
       );
 
-      render(<ClassTimetableManagerScreen />);
+      render(<AdminClassTimetableManagerScreen />);
       await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
 
       // On bascule sur l'onglet slots
@@ -499,7 +499,7 @@ describe("ClassTimetableManagerScreen", () => {
         },
       ]);
 
-      render(<ClassTimetableManagerScreen />);
+      render(<AdminClassTimetableManagerScreen />);
       await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
 
       fireEvent.press(screen.getByTestId("occurrence-cancel-trigger-occ-1"));
@@ -538,7 +538,7 @@ describe("ClassTimetableManagerScreen", () => {
         },
       ]);
 
-      render(<ClassTimetableManagerScreen />);
+      render(<AdminClassTimetableManagerScreen />);
       await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
 
       fireEvent.press(screen.getByTestId("occurrence-cancel-trigger-occ-2"));
@@ -576,7 +576,7 @@ describe("ClassTimetableManagerScreen", () => {
         },
       ]);
 
-      render(<ClassTimetableManagerScreen />);
+      render(<AdminClassTimetableManagerScreen />);
       await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
 
       fireEvent.press(screen.getByTestId("occurrence-cancel-trigger-occ-3"));

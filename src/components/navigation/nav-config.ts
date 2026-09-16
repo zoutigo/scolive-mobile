@@ -405,12 +405,6 @@ const TEACHER_NAV: NavItem[] = [
     route: "/agenda",
   },
   {
-    key: "timetable",
-    label: "Mes classes",
-    icon: "calendar-outline",
-    route: "/timetable",
-  },
-  {
     key: "resources",
     label: "Ressources",
     icon: "library-outline",

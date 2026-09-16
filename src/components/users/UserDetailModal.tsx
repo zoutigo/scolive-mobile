@@ -1750,7 +1750,7 @@ export function UserDetailModal({
     if (!user || !detail?.enrollments[0]?.classId) return;
     onClose();
     router.push({
-      pathname: "/(home)/timetable/class/[classId]",
+      pathname: "/(home)/admin-timetable/class/[classId]",
       params: { classId: detail.enrollments[0].classId },
     } as never);
   }, [user, detail, onClose, router]);

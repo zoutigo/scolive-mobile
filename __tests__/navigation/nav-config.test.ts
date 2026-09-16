@@ -373,7 +373,6 @@ describe("buildDrawerNavigationConfig", () => {
       "home",
       "feed",
       "agenda",
-      "timetable",
       "resources",
       "messages",
       "training-quiz",

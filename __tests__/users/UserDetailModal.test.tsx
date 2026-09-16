@@ -2145,7 +2145,7 @@ describe("UserDetailModal", () => {
 
       expect(mockRouterPush).toHaveBeenCalledWith(
         expect.objectContaining({
-          pathname: "/(home)/timetable/class/[classId]",
+          pathname: "/(home)/admin-timetable/class/[classId]",
           params: expect.objectContaining({ classId: "cls-6eA" }),
         }),
       );

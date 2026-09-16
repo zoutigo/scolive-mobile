@@ -918,7 +918,7 @@ describe("nav-config — SCHOOL_ADMIN", () => {
     expect(items.find((i) => i.key === "timetable")).toBeUndefined();
   });
 
-  it("TEACHER garde ses propres entrées agenda et timetable", () => {
+  it("TEACHER garde son entrée agenda (plus d'entrée timetable, retirée : redondante avec Agenda)", () => {
     const user = makeNavUser({
       role: "TEACHER",
       activeRole: "TEACHER",
@@ -926,7 +926,7 @@ describe("nav-config — SCHOOL_ADMIN", () => {
     });
     const items = getNavItems(user);
     expect(items.find((i) => i.key === "agenda")).toBeDefined();
-    expect(items.find((i) => i.key === "timetable")).toBeDefined();
+    expect(items.find((i) => i.key === "timetable")).toBeUndefined();
   });
 });
 

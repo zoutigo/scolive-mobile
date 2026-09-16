@@ -152,7 +152,7 @@ function firstAssignmentForSubject(
   return assignments.find((entry) => entry.subjectId === subjectId);
 }
 
-export function ClassTimetableManagerScreen() {
+export function AdminClassTimetableManagerScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{
