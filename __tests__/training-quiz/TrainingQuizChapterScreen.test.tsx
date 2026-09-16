@@ -9,6 +9,8 @@ import {
 import { TrainingQuizChapterScreen } from "../../src/components/training-quiz/TrainingQuizChapterScreen";
 import { trainingQuizApi } from "../../src/api/training-quiz.api";
 import { useFamilyStore } from "../../src/store/family.store";
+import { useAuthStore } from "../../src/store/auth.store";
+import { useTeacherClassNavStore } from "../../src/store/teacher-class-nav.store";
 import type { QuizChapterDetail } from "../../src/types/training-quiz.types";
 
 const mockPush = jest.fn();
@@ -33,34 +35,76 @@ jest.mock("expo-router", () => ({
     useEffect(() => callback(), [callback]);
   },
 }));
+function defaultAuthState() {
+  return {
+    schoolSlug: "college-vogt",
+    user: {
+      id: "u1",
+      firstName: "Awa",
+      lastName: "Ngo",
+      activeRole: "PARENT",
+      role: "PARENT",
+    },
+    logout: jest.fn(),
+  };
+}
+function defaultFamilyState() {
+  return {
+    children: [{ id: "child-1", firstName: "Ela", lastName: "Ngo" }] as Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      classId?: string;
+    }>,
+    loadChildren: jest.fn(),
+    clearChildren: jest.fn(),
+  };
+}
+function defaultTeacherClassNavState() {
+  return {
+    classOptions: null as {
+      schoolYears: unknown[];
+      selectedSchoolYearId: string | null;
+      classes: Array<{ classId: string }>;
+    } | null,
+    loadClassOptions: jest.fn().mockResolvedValue(undefined),
+    reset: jest.fn(),
+  };
+}
+
 jest.mock("../../src/store/auth.store", () => ({
-  useAuthStore: jest.fn((selector?: (s: unknown) => unknown) => {
-    const state = {
-      schoolSlug: "college-vogt",
-      user: {
-        id: "u1",
-        firstName: "Awa",
-        lastName: "Ngo",
-        activeRole: "PARENT",
-        role: "PARENT",
-      },
-      logout: jest.fn(),
-    };
-    return selector ? selector(state) : state;
-  }),
+  useAuthStore: jest.fn(),
 }));
 jest.mock("../../src/store/family.store", () => ({
-  useFamilyStore: jest.fn((selector?: (s: unknown) => unknown) => {
-    const state = {
-      children: [{ id: "child-1", firstName: "Ela", lastName: "Ngo" }],
-      loadChildren: jest.fn(),
-    };
-    return selector ? selector(state) : state;
-  }),
+  useFamilyStore: jest.fn(),
+}));
+jest.mock("../../src/store/teacher-class-nav.store", () => ({
+  useTeacherClassNavStore: jest.fn(),
 }));
 jest.mock("../../src/api/training-quiz.api");
 
 const api = trainingQuizApi as jest.Mocked<typeof trainingQuizApi>;
+
+function mockAuthState(state: ReturnType<typeof defaultAuthState>) {
+  (useAuthStore as unknown as jest.Mock).mockImplementation(
+    (selector?: (s: unknown) => unknown) =>
+      selector ? selector(state) : state,
+  );
+}
+function mockFamilyState(state: ReturnType<typeof defaultFamilyState>) {
+  (useFamilyStore as unknown as jest.Mock).mockImplementation(
+    (selector?: (s: unknown) => unknown) =>
+      selector ? selector(state) : state,
+  );
+}
+function mockTeacherClassNavState(
+  state: ReturnType<typeof defaultTeacherClassNavState>,
+) {
+  (useTeacherClassNavStore as unknown as jest.Mock).mockImplementation(
+    (selector?: (s: unknown) => unknown) =>
+      selector ? selector(state) : state,
+  );
+}
 
 function makeChapter(
   overrides: Partial<QuizChapterDetail> = {},
@@ -127,6 +171,9 @@ function makeChapter(
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockAuthState(defaultAuthState());
+  mockFamilyState(defaultFamilyState());
+  mockTeacherClassNavState(defaultTeacherClassNavState());
 });
 
 describe("TrainingQuizChapterScreen", () => {
@@ -232,22 +279,17 @@ describe("TrainingQuizChapterScreen", () => {
   });
 
   it("résout le deep-link du module Devoirs vers l'écran natif classes/[classId]/homework", async () => {
-    (useFamilyStore as unknown as jest.Mock).mockImplementation(
-      (selector?: (s: unknown) => unknown) => {
-        const state = {
-          children: [
-            {
-              id: "child-1",
-              firstName: "Ela",
-              lastName: "Ngo",
-              classId: "class-1",
-            },
-          ],
-          loadChildren: jest.fn(),
-        };
-        return selector ? selector(state) : state;
-      },
-    );
+    mockFamilyState({
+      ...defaultFamilyState(),
+      children: [
+        {
+          id: "child-1",
+          firstName: "Ela",
+          lastName: "Ngo",
+          classId: "class-1",
+        },
+      ],
+    });
 
     const chapter = makeChapter({
       moduleKey: "devoirs",
@@ -300,6 +342,80 @@ describe("TrainingQuizChapterScreen", () => {
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/(home)/classes/[classId]/homework",
       params: { classId: "class-1", childId: "child-1" },
+    });
+  });
+
+  it("résout le deep-link {classId} d'un enseignant vers l'écran natif de saisie des notes de sa classe", async () => {
+    mockAuthState({
+      ...defaultAuthState(),
+      user: {
+        id: "teacher-1",
+        firstName: "Awa",
+        lastName: "Ngo",
+        activeRole: "TEACHER",
+        role: "TEACHER",
+      },
+    });
+    mockTeacherClassNavState({
+      ...defaultTeacherClassNavState(),
+      classOptions: {
+        schoolYears: [],
+        selectedSchoolYearId: null,
+        classes: [{ classId: "class-6a" }],
+      },
+    });
+
+    const chapter = makeChapter({
+      moduleKey: "notes",
+      questions: [
+        {
+          id: "question-1",
+          order: 1,
+          type: "MCQ_SINGLE",
+          stage: "DISCOVERY",
+          text: "Où saisissez-vous les notes de votre classe ?",
+          hint: null,
+          imageUrl: null,
+          deepLinkRoute: "/classes/{classId}/notes",
+          solved: false,
+          attemptsCount: 0,
+          options: [
+            { id: "opt-correct", order: 1, text: "Onglet Notes" },
+            { id: "opt-wrong", order: 2, text: "Onglet Messagerie" },
+          ],
+        },
+      ],
+    });
+    api.getChapter.mockResolvedValue(chapter);
+    api.submitAnswer.mockResolvedValue({
+      correct: true,
+      alreadySolved: false,
+      explanation: "Les notes se saisissent dans l'onglet Notes.",
+      correctOptionIds: ["opt-correct"],
+      attemptsCount: 1,
+    });
+    api.listChapters.mockResolvedValue([]);
+
+    render(<TrainingQuizChapterScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Où saisissez-vous les notes de votre classe ?"),
+      ).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("training-quiz-option-opt-correct"));
+    fireEvent.press(screen.getByTestId("training-quiz-validate-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("training-quiz-deeplink-button")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("training-quiz-deeplink-button"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/classes/[classId]/notes",
+      params: { classId: "class-6a" },
     });
   });
 

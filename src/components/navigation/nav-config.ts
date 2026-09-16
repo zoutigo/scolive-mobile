@@ -415,6 +415,12 @@ const TEACHER_NAV: NavItem[] = [
     icon: "chatbubble-outline",
     route: "/messages",
   },
+  {
+    key: "training-quiz",
+    label: "Quiz de formation",
+    icon: "trophy-outline",
+    route: "/(home)/training-quiz",
+  },
   accountItem(),
 ];
 

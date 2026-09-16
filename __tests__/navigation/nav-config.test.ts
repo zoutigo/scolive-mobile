@@ -362,6 +362,7 @@ describe("buildDrawerNavigationConfig", () => {
       "timetable",
       "resources",
       "messages",
+      "training-quiz",
       "account",
     ]);
     expect(config.teacherClassSections).toHaveLength(1);

@@ -23,6 +23,14 @@ import { useTranslation } from "../../i18n/useTranslation";
 import { moduleBack } from "../../utils/moduleBack";
 import { useAuthStore } from "../../store/auth.store";
 import { useFamilyStore } from "../../store/family.store";
+import { useTeacherClassNavStore } from "../../store/teacher-class-nav.store";
+import {
+  buildTeacherClassDisciplineTarget,
+  buildTeacherClassFeedTarget,
+  buildTeacherClassHealthTarget,
+  buildTeacherClassHomeworkTarget,
+  buildTeacherClassNotesTarget,
+} from "../navigation/nav-config";
 import { trainingQuizApi } from "../../api/training-quiz.api";
 import { LevelIntro } from "./LevelIntro";
 import { LevelComplete } from "./LevelComplete";
@@ -106,6 +114,26 @@ function resolveDeepLink(
       };
     }
   }
+  // TEACHER-only routes: same target screens reached from the drawer's
+  // per-class section (nav-config.ts#buildTeacherClassItems).
+  if (deepLinkRoute.includes("{classId}")) {
+    if (!classId) return null;
+    if (deepLinkRoute.endsWith("/notes")) {
+      return buildTeacherClassNotesTarget(classId);
+    }
+    if (deepLinkRoute.endsWith("/devoirs")) {
+      return buildTeacherClassHomeworkTarget(classId);
+    }
+    if (deepLinkRoute.endsWith("/discipline")) {
+      return buildTeacherClassDisciplineTarget(classId);
+    }
+    if (deepLinkRoute.endsWith("/fil")) {
+      return buildTeacherClassFeedTarget(classId);
+    }
+    if (deepLinkRoute.endsWith("/sante")) {
+      return buildTeacherClassHealthTarget(classId);
+    }
+  }
   return null;
 }
 
@@ -125,10 +153,20 @@ function TrainingQuizChapterInner() {
   const chapterId = params.chapterId;
 
   const schoolSlug = useAuthStore((state) => state.schoolSlug);
+  const activeRole = useAuthStore((state) => state.user?.activeRole ?? null);
   const familyChildren = useFamilyStore((state) => state.children);
   const loadFamilyChildren = useFamilyStore((state) => state.loadChildren);
+  const teacherClassOptions = useTeacherClassNavStore(
+    (state) => state.classOptions,
+  );
+  const loadTeacherClassOptions = useTeacherClassNavStore(
+    (state) => state.loadClassOptions,
+  );
   const linkedChildId = familyChildren[0]?.id ?? null;
-  const linkedClassId = familyChildren[0]?.classId ?? null;
+  const linkedClassId =
+    activeRole === "TEACHER"
+      ? (teacherClassOptions?.classes[0]?.classId ?? null)
+      : (familyChildren[0]?.classId ?? null);
 
   const [ready, setReady] = useState(false);
   const [chapter, setChapter] = useState<QuizChapterDetail | null>(null);
@@ -153,10 +191,16 @@ function TrainingQuizChapterInner() {
   const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (schoolSlug && familyChildren.length === 0) {
+    if (activeRole !== "TEACHER" && schoolSlug && familyChildren.length === 0) {
       void loadFamilyChildren(schoolSlug);
     }
-  }, [schoolSlug, familyChildren.length, loadFamilyChildren]);
+  }, [activeRole, schoolSlug, familyChildren.length, loadFamilyChildren]);
+
+  useEffect(() => {
+    if (activeRole === "TEACHER" && schoolSlug && !teacherClassOptions) {
+      void loadTeacherClassOptions(schoolSlug).catch(() => undefined);
+    }
+  }, [activeRole, schoolSlug, teacherClassOptions, loadTeacherClassOptions]);
 
   const boot = useCallback(async () => {
     if (!chapterId) return;
