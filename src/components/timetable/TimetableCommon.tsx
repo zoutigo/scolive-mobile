@@ -224,6 +224,13 @@ export function OccurrencesAgenda(props: {
   emptyTitle: string;
   emptyMessage: string;
   testID?: string;
+  cancellableOccurrenceId?: string | null;
+  cancelReason?: string;
+  cancelling?: boolean;
+  onPressCancel?: (item: TimetableOccurrence) => void;
+  onChangeCancelReason?: (value: string) => void;
+  onConfirmCancel?: (item: TimetableOccurrence) => void;
+  onDismissCancel?: () => void;
 }) {
   const { t } = useTranslation();
   const groups = groupOccurrencesByDate(props.occurrences);
@@ -317,6 +324,60 @@ export function OccurrencesAgenda(props: {
                       <Text style={styles.cancelBadge}>
                         {t("timetable.common.courseCancelled")}
                       </Text>
+                    ) : props.onPressCancel ? (
+                      props.cancellableOccurrenceId === item.id ? (
+                        <View style={styles.occurrenceCancelForm}>
+                          <TextInput
+                            style={styles.textInput}
+                            value={props.cancelReason ?? ""}
+                            onChangeText={props.onChangeCancelReason}
+                            placeholder={t(
+                              "timetable.common.cancelReasonPlaceholder",
+                            )}
+                            multiline
+                            testID={`occurrence-cancel-reason-${item.id}`}
+                          />
+                          <View style={styles.occurrenceCancelActions}>
+                            <TouchableOpacity
+                              style={styles.occurrenceCancelDismiss}
+                              onPress={props.onDismissCancel}
+                              disabled={props.cancelling}
+                              testID={`occurrence-cancel-dismiss-${item.id}`}
+                            >
+                              <Text style={styles.occurrenceCancelDismissText}>
+                                {t("timetable.common.cancelActionDismiss")}
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={styles.occurrenceCancelConfirm}
+                              onPress={() => props.onConfirmCancel?.(item)}
+                              disabled={props.cancelling}
+                              testID={`occurrence-cancel-confirm-${item.id}`}
+                            >
+                              <Text style={styles.occurrenceCancelConfirmText}>
+                                {props.cancelling
+                                  ? t("timetable.common.cancelActionSaving")
+                                  : t("timetable.common.cancelActionConfirm")}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.occurrenceCancelTrigger}
+                          onPress={() => props.onPressCancel?.(item)}
+                          testID={`occurrence-cancel-trigger-${item.id}`}
+                        >
+                          <Ionicons
+                            name="close-circle-outline"
+                            size={16}
+                            color={colors.notification}
+                          />
+                          <Text style={styles.occurrenceCancelTriggerText}>
+                            {t("timetable.common.cancelActionTrigger")}
+                          </Text>
+                        </TouchableOpacity>
+                      )
                     ) : null}
                   </View>
                 </View>
@@ -643,6 +704,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: colors.notification,
+  },
+  occurrenceCancelTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 6,
+    alignSelf: "flex-start",
+  },
+  occurrenceCancelTriggerText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.notification,
+  },
+  occurrenceCancelForm: {
+    marginTop: 8,
+    gap: 8,
+  },
+  occurrenceCancelActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+  },
+  occurrenceCancelDismiss: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  occurrenceCancelDismissText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
+  occurrenceCancelConfirm: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: colors.notification,
+  },
+  occurrenceCancelConfirmText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   eventList: {
     gap: 10,

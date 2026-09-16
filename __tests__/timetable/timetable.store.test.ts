@@ -81,4 +81,55 @@ describe("timetable.store", () => {
     );
     expect(useTimetableStore.getState().isSubmitting).toBe(false);
   });
+
+  it("transmet le motif d'annulation à l'API pour un one-off", async () => {
+    api.deleteOneOffSlot.mockResolvedValueOnce(undefined);
+
+    await useTimetableStore
+      .getState()
+      .deleteOneOffSlot("college-vogt", "oof-1", "Rendez-vous medical");
+
+    expect(api.deleteOneOffSlot).toHaveBeenCalledWith(
+      "college-vogt",
+      "oof-1",
+      "Rendez-vous medical",
+    );
+  });
+
+  it("annule une occurrence récurrente via cancelSlotOccurrence", async () => {
+    api.cancelSlotOccurrence.mockResolvedValueOnce({ id: "exc-1" });
+
+    await useTimetableStore
+      .getState()
+      .cancelSlotOccurrence(
+        "college-vogt",
+        "slot-1",
+        "2026-03-16",
+        "Formation",
+      );
+
+    expect(api.cancelSlotOccurrence).toHaveBeenCalledWith(
+      "college-vogt",
+      "slot-1",
+      "2026-03-16",
+      "Formation",
+    );
+  });
+
+  it("remonte l'erreur d'annulation d'occurrence et remet isSubmitting à false", async () => {
+    api.cancelSlotOccurrence.mockRejectedValueOnce(
+      new Error("Créneau introuvable"),
+    );
+
+    await expect(
+      useTimetableStore
+        .getState()
+        .cancelSlotOccurrence("college-vogt", "slot-1", "2026-03-16"),
+    ).rejects.toThrow("Créneau introuvable");
+
+    expect(useTimetableStore.getState().errorMessage).toBe(
+      "Créneau introuvable",
+    );
+    expect(useTimetableStore.getState().isSubmitting).toBe(false);
+  });
 });

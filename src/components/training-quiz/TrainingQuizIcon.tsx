@@ -11,6 +11,7 @@ const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   ClipboardList: "clipboard-outline",
   GraduationCap: "school-outline",
   HeartPulse: "heart-outline",
+  Newspaper: "newspaper-outline",
 };
 
 export function TrainingQuizIcon({

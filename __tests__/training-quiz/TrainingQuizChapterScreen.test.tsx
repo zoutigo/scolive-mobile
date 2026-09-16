@@ -419,6 +419,132 @@ describe("TrainingQuizChapterScreen", () => {
     });
   });
 
+  it("résout le deep-link {classId} du module Emploi du temps vers l'écran natif d'agenda de classe", async () => {
+    mockAuthState({
+      ...defaultAuthState(),
+      user: {
+        id: "teacher-1",
+        firstName: "Awa",
+        lastName: "Ngo",
+        activeRole: "TEACHER",
+        role: "TEACHER",
+      },
+    });
+    mockTeacherClassNavState({
+      ...defaultTeacherClassNavState(),
+      classOptions: {
+        schoolYears: [],
+        selectedSchoolYearId: null,
+        classes: [{ classId: "class-6a" }],
+      },
+    });
+
+    const chapter = makeChapter({
+      moduleKey: "emploi-du-temps",
+      questions: [
+        {
+          id: "question-1",
+          order: 1,
+          type: "MCQ_SINGLE",
+          stage: "DISCOVERY",
+          text: "Où gérez-vous les créneaux de votre classe ?",
+          hint: null,
+          imageUrl: null,
+          deepLinkRoute: "/classes/{classId}/agenda",
+          solved: false,
+          attemptsCount: 0,
+          options: [
+            { id: "opt-correct", order: 1, text: "Onglet Emploi du temps" },
+            { id: "opt-wrong", order: 2, text: "Onglet Messagerie" },
+          ],
+        },
+      ],
+    });
+    api.getChapter.mockResolvedValue(chapter);
+    api.submitAnswer.mockResolvedValue({
+      correct: true,
+      alreadySolved: false,
+      explanation: "Les créneaux se gèrent dans l'onglet Emploi du temps.",
+      correctOptionIds: ["opt-correct"],
+      attemptsCount: 1,
+    });
+    api.listChapters.mockResolvedValue([]);
+
+    render(<TrainingQuizChapterScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Où gérez-vous les créneaux de votre classe ?"),
+      ).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("training-quiz-option-opt-correct"));
+    fireEvent.press(screen.getByTestId("training-quiz-validate-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("training-quiz-deeplink-button")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("training-quiz-deeplink-button"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/classes/[classId]/timetable",
+      params: { classId: "class-6a" },
+    });
+  });
+
+  it("résout le deep-link general /fil (sans {classId}) vers l'écran natif du fil d'actualité", async () => {
+    const chapter = makeChapter({
+      moduleKey: "fil",
+      questions: [
+        {
+          id: "question-1",
+          order: 1,
+          type: "MCQ_SINGLE",
+          stage: "DISCOVERY",
+          text: "Où publiez-vous une information pour toute l'école ?",
+          hint: null,
+          imageUrl: null,
+          deepLinkRoute: "/fil",
+          solved: false,
+          attemptsCount: 0,
+          options: [
+            { id: "opt-correct", order: 1, text: "Le fil général de l'école" },
+            { id: "opt-wrong", order: 2, text: "La messagerie" },
+          ],
+        },
+      ],
+    });
+    api.getChapter.mockResolvedValue(chapter);
+    api.submitAnswer.mockResolvedValue({
+      correct: true,
+      alreadySolved: false,
+      explanation: "Le fil général de l'école.",
+      correctOptionIds: ["opt-correct"],
+      attemptsCount: 1,
+    });
+    api.listChapters.mockResolvedValue([]);
+
+    render(<TrainingQuizChapterScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Où publiez-vous une information pour toute l'école ?"),
+      ).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("training-quiz-option-opt-correct"));
+    fireEvent.press(screen.getByTestId("training-quiz-validate-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("training-quiz-deeplink-button")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("training-quiz-deeplink-button"));
+
+    expect(mockPush).toHaveBeenCalledWith({ pathname: "/(home)/feed" });
+  });
+
   it("applique un compte à rebours avant de réactiver Réessayer après une mauvaise réponse", async () => {
     jest.useFakeTimers();
     const chapter = makeChapter();

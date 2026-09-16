@@ -1409,6 +1409,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.common.sourceException": "Exception",
     "timetable.common.sourceAdjusted": "Ajusté",
     "timetable.common.courseCancelled": "Cours annulé",
+    "timetable.common.cancelActionTrigger": "Annuler cette séance",
+    "timetable.common.cancelReasonPlaceholder":
+      "Motif (absence, formation, rendez-vous médical...)",
+    "timetable.common.cancelActionDismiss": "Fermer",
+    "timetable.common.cancelActionConfirm": "Confirmer l'annulation",
+    "timetable.common.cancelActionSaving": "Annulation...",
     "timetable.common.noClosureTitle": "Aucune fermeture enregistrée",
     "timetable.common.noClosureMessage":
       "Les jours fériés et vacances créés pour l'école apparaîtront ici.",
@@ -1639,6 +1645,11 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Le créneau ponctuel ne figure plus dans l'agenda.",
     "timetable.classManager.toast.oneOffDeleteErrorMessage":
       "Impossible de supprimer cette séance.",
+    "timetable.classManager.toast.occurrenceCancelledTitle": "Séance annulée",
+    "timetable.classManager.toast.occurrenceCancelledMessage":
+      "La séance a été annulée et la classe a été prévenue.",
+    "timetable.classManager.toast.occurrenceCancelErrorMessage":
+      "Impossible d'annuler cette séance.",
     "timetable.classManager.toast.holidayDeletedTitle": "Fermeture supprimée",
     "timetable.classManager.toast.holidayDeletedMessage":
       "Le calendrier école a été mis à jour.",
@@ -1769,6 +1780,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.slotEditPanel.title": "MODIFIER CE CRÉNEAU",
     "timetable.slotEditPanel.scope.occurrence": "Ce créneau",
     "timetable.slotEditPanel.scope.series": "Toute la série",
+    "timetable.slotEditPanel.reasonLabel": "Motif de l'annulation",
+    "timetable.slotEditPanel.reasonPlaceholder":
+      "Ex. : absence, formation, rendez-vous médical...",
     "timetable.slotEditPanel.validation.startRequired":
       "Renseignez l'heure de début.",
     "timetable.slotEditPanel.validation.endRequired":
@@ -5651,6 +5665,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.common.sourceException": "Exception",
     "timetable.common.sourceAdjusted": "Adjusted",
     "timetable.common.courseCancelled": "Class cancelled",
+    "timetable.common.cancelActionTrigger": "Cancel this class",
+    "timetable.common.cancelReasonPlaceholder":
+      "Reason (absence, training, medical appointment...)",
+    "timetable.common.cancelActionDismiss": "Close",
+    "timetable.common.cancelActionConfirm": "Confirm cancellation",
+    "timetable.common.cancelActionSaving": "Cancelling...",
     "timetable.common.noClosureTitle": "No closure recorded",
     "timetable.common.noClosureMessage":
       "Public holidays and school breaks created for the school will appear here.",
@@ -5872,6 +5892,12 @@ export const translations: Record<Locale, Record<string, string>> = {
       "The one-off slot is no longer in the schedule.",
     "timetable.classManager.toast.oneOffDeleteErrorMessage":
       "Unable to delete this session.",
+    "timetable.classManager.toast.occurrenceCancelledTitle":
+      "Class cancelled",
+    "timetable.classManager.toast.occurrenceCancelledMessage":
+      "The class was cancelled and the class feed was notified.",
+    "timetable.classManager.toast.occurrenceCancelErrorMessage":
+      "Unable to cancel this class.",
     "timetable.classManager.toast.holidayDeletedTitle": "Closure deleted",
     "timetable.classManager.toast.holidayDeletedMessage":
       "The school calendar has been updated.",
@@ -5997,6 +6023,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.slotEditPanel.title": "EDIT THIS SLOT",
     "timetable.slotEditPanel.scope.occurrence": "This slot",
     "timetable.slotEditPanel.scope.series": "Whole series",
+    "timetable.slotEditPanel.reasonLabel": "Cancellation reason",
+    "timetable.slotEditPanel.reasonPlaceholder":
+      "E.g.: absence, training, medical appointment...",
     "timetable.slotEditPanel.validation.startRequired": "Enter the start time.",
     "timetable.slotEditPanel.validation.endRequired": "Enter the end time.",
     "timetable.slotEditPanel.validation.roomRequired": "Enter a room.",

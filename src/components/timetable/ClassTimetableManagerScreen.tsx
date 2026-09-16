@@ -34,6 +34,7 @@ import {
 } from "../../utils/timetable";
 import type {
   TimetableCalendarEvent,
+  TimetableOccurrence,
   TimetableOneOffSlot,
   TimetableRecurringSlot,
 } from "../../types/timetable.types";
@@ -177,6 +178,7 @@ export function ClassTimetableManagerScreen() {
     createOneOffSlot,
     updateOneOffSlot,
     deleteOneOffSlot,
+    cancelSlotOccurrence,
     createCalendarEvent,
     updateCalendarEvent,
     deleteCalendarEvent,
@@ -194,6 +196,11 @@ export function ClassTimetableManagerScreen() {
   const [slotEditId, setSlotEditId] = useState("");
   const [oneOffEditId, setOneOffEditId] = useState("");
   const [holidayEditId, setHolidayEditId] = useState("");
+  const [cancellingOccurrenceId, setCancellingOccurrenceId] = useState<
+    string | null
+  >(null);
+  const [cancelOccurrenceReason, setCancelOccurrenceReason] = useState("");
+  const [isCancellingOccurrence, setIsCancellingOccurrence] = useState(false);
 
   const slotSchema = useMemo(() => createSlotSchema(t), [t]);
   const oneOffSchema = useMemo(() => createOneOffSchema(t), [t]);
@@ -701,6 +708,48 @@ export function ClassTimetableManagerScreen() {
     }
   }
 
+  async function handleConfirmCancelOccurrence(item: TimetableOccurrence) {
+    if (!schoolSlug) return;
+    setIsCancellingOccurrence(true);
+    try {
+      if (item.oneOffSlotId) {
+        await deleteOneOffSlot(
+          schoolSlug,
+          item.oneOffSlotId,
+          cancelOccurrenceReason,
+        );
+      } else if (item.slotId) {
+        await cancelSlotOccurrence(
+          schoolSlug,
+          item.slotId,
+          item.occurrenceDate,
+          cancelOccurrenceReason,
+        );
+      } else {
+        return;
+      }
+      showToast({
+        variant: "success",
+        title: t("timetable.classManager.toast.occurrenceCancelledTitle"),
+        message: t("timetable.classManager.toast.occurrenceCancelledMessage"),
+      });
+      setCancellingOccurrenceId(null);
+      setCancelOccurrenceReason("");
+      await load();
+    } catch (error) {
+      showToast({
+        variant: "error",
+        title: t("timetable.classManager.toast.deleteImpossibleTitle"),
+        message:
+          error instanceof Error
+            ? error.message
+            : t("timetable.classManager.toast.occurrenceCancelErrorMessage"),
+      });
+    } finally {
+      setIsCancellingOccurrence(false);
+    }
+  }
+
   async function handleDeleteHoliday(event: TimetableCalendarEvent) {
     if (!schoolSlug) return;
     try {
@@ -865,6 +914,19 @@ export function ClassTimetableManagerScreen() {
                 emptyTitle={t("timetable.classManager.agenda.emptyTitle")}
                 emptyMessage={t("timetable.classManager.agenda.emptyMessage")}
                 testID="class-timetable-occurrences"
+                cancellableOccurrenceId={cancellingOccurrenceId}
+                cancelReason={cancelOccurrenceReason}
+                cancelling={isCancellingOccurrence}
+                onPressCancel={(item) => {
+                  setCancellingOccurrenceId(item.id);
+                  setCancelOccurrenceReason("");
+                }}
+                onChangeCancelReason={setCancelOccurrenceReason}
+                onConfirmCancel={handleConfirmCancelOccurrence}
+                onDismissCancel={() => {
+                  setCancellingOccurrenceId(null);
+                  setCancelOccurrenceReason("");
+                }}
               />
             </SectionCard>
           ) : tab === "slots" ? (

@@ -206,10 +206,36 @@ export const timetableApi = {
     );
   },
 
-  deleteOneOffSlot(schoolSlug: string, oneOffSlotId: string): Promise<void> {
+  deleteOneOffSlot(
+    schoolSlug: string,
+    oneOffSlotId: string,
+    reason?: string,
+  ): Promise<void> {
     return apiFetch(
-      `/schools/${schoolSlug}/timetable/one-off-slots/${oneOffSlotId}`,
+      `/schools/${schoolSlug}/timetable/one-off-slots/${oneOffSlotId}${toQuery({
+        reason,
+      })}`,
       { method: "DELETE" },
+      true,
+    );
+  },
+
+  cancelSlotOccurrence(
+    schoolSlug: string,
+    slotId: string,
+    occurrenceDate: string,
+    reason?: string,
+  ): Promise<unknown> {
+    return apiFetch(
+      `/schools/${schoolSlug}/timetable/slots/${slotId}/exceptions`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          occurrenceDate,
+          type: "CANCEL",
+          reason: reason?.trim() || undefined,
+        }),
+      },
       true,
     );
   },

@@ -30,6 +30,7 @@ import {
   buildTeacherClassHealthTarget,
   buildTeacherClassHomeworkTarget,
   buildTeacherClassNotesTarget,
+  buildTeacherClassTimetableTarget,
 } from "../navigation/nav-config";
 import { trainingQuizApi } from "../../api/training-quiz.api";
 import { LevelIntro } from "./LevelIntro";
@@ -95,6 +96,9 @@ function resolveDeepLink(
   if (deepLinkRoute === "/messagerie") {
     return { pathname: "/messages" };
   }
+  if (deepLinkRoute === "/fil") {
+    return { pathname: "/(home)/feed" };
+  }
   if (deepLinkRoute.includes("{childId}")) {
     if (!childId) return null;
     if (deepLinkRoute.endsWith("/notes")) {
@@ -132,6 +136,9 @@ function resolveDeepLink(
     }
     if (deepLinkRoute.endsWith("/sante")) {
       return buildTeacherClassHealthTarget(classId);
+    }
+    if (deepLinkRoute.endsWith("/agenda")) {
+      return buildTeacherClassTimetableTarget(classId);
     }
   }
   return null;

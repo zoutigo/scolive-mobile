@@ -25,6 +25,8 @@ const mockBack = jest.fn();
 const mockLoadClassContext = jest.fn();
 const mockLoadClassTimetable = jest.fn();
 const mockCreateRecurringSlot = jest.fn().mockResolvedValue(undefined);
+const mockDeleteOneOffSlot = jest.fn().mockResolvedValue(undefined);
+const mockCancelSlotOccurrence = jest.fn().mockResolvedValue(undefined);
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: mockBack }),
@@ -131,7 +133,8 @@ beforeEach(() => {
     deleteRecurringSlot: jest.fn(),
     createOneOffSlot: jest.fn(),
     updateOneOffSlot: jest.fn(),
-    deleteOneOffSlot: jest.fn(),
+    deleteOneOffSlot: mockDeleteOneOffSlot,
+    cancelSlotOccurrence: mockCancelSlotOccurrence,
     createCalendarEvent: mockCreateCalendarEvent,
     updateCalendarEvent: jest.fn(),
     deleteCalendarEvent: jest.fn(),
@@ -452,6 +455,140 @@ describe("ClassTimetableManagerScreen", () => {
         // En édition, create ne doit pas avoir été appelé
         expect(mockCreateRecurringSlot).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe("Annulation d'une séance depuis l'onglet Agenda", () => {
+    function setOccurrences(
+      occurrences: Array<Record<string, unknown>>,
+    ) {
+      useTimetableStore.setState(
+        (s) =>
+          ({
+            ...s,
+            classTimetable: {
+              class: { id: "class-1", schoolYearId: "sy1", academicLevelId: null },
+              slots: [],
+              oneOffSlots: [],
+              slotExceptions: [],
+              occurrences,
+              calendarEvents: [],
+              subjectStyles: [],
+            },
+          }) as never,
+      );
+    }
+
+    it("annule une séance récurrente avec motif (exception CANCEL)", async () => {
+      setOccurrences([
+        {
+          id: "occ-1",
+          source: "RECURRING",
+          status: "PLANNED",
+          occurrenceDate: "2026-03-16",
+          weekday: 1,
+          startMinute: 525,
+          endMinute: 580,
+          room: "B14",
+          reason: null,
+          slotId: "slot-1",
+          subject: { id: "math", name: "Maths" },
+          teacherUser: { id: "t1", firstName: "Paul", lastName: "Manga" },
+        },
+      ]);
+
+      render(<ClassTimetableManagerScreen />);
+      await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
+
+      fireEvent.press(screen.getByTestId("occurrence-cancel-trigger-occ-1"));
+
+      const reasonInput = screen.getByTestId("occurrence-cancel-reason-occ-1");
+      fireEvent.changeText(reasonInput, "Rendez-vous medical");
+
+      fireEvent.press(screen.getByTestId("occurrence-cancel-confirm-occ-1"));
+
+      await waitFor(() => {
+        expect(mockCancelSlotOccurrence).toHaveBeenCalledWith(
+          "college-vogt",
+          "slot-1",
+          "2026-03-16",
+          "Rendez-vous medical",
+        );
+        expect(mockDeleteOneOffSlot).not.toHaveBeenCalled();
+      });
+    });
+
+    it("annule une séance ponctuelle avec motif (suppression du one-off)", async () => {
+      setOccurrences([
+        {
+          id: "occ-2",
+          source: "ONE_OFF",
+          status: "PLANNED",
+          occurrenceDate: "2026-03-17",
+          weekday: 2,
+          startMinute: 525,
+          endMinute: 580,
+          room: "B14",
+          reason: null,
+          oneOffSlotId: "oof-1",
+          subject: { id: "math", name: "Maths" },
+          teacherUser: { id: "t1", firstName: "Paul", lastName: "Manga" },
+        },
+      ]);
+
+      render(<ClassTimetableManagerScreen />);
+      await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
+
+      fireEvent.press(screen.getByTestId("occurrence-cancel-trigger-occ-2"));
+
+      const reasonInput = screen.getByTestId("occurrence-cancel-reason-occ-2");
+      fireEvent.changeText(reasonInput, "Formation");
+
+      fireEvent.press(screen.getByTestId("occurrence-cancel-confirm-occ-2"));
+
+      await waitFor(() => {
+        expect(mockDeleteOneOffSlot).toHaveBeenCalledWith(
+          "college-vogt",
+          "oof-1",
+          "Formation",
+        );
+        expect(mockCancelSlotOccurrence).not.toHaveBeenCalled();
+      });
+    });
+
+    it("le bouton Fermer masque le formulaire de motif sans annuler la séance", async () => {
+      setOccurrences([
+        {
+          id: "occ-3",
+          source: "RECURRING",
+          status: "PLANNED",
+          occurrenceDate: "2026-03-18",
+          weekday: 3,
+          startMinute: 525,
+          endMinute: 580,
+          room: "B14",
+          reason: null,
+          slotId: "slot-3",
+          subject: { id: "math", name: "Maths" },
+          teacherUser: { id: "t1", firstName: "Paul", lastName: "Manga" },
+        },
+      ]);
+
+      render(<ClassTimetableManagerScreen />);
+      await waitFor(() => expect(mockLoadClassContext).toHaveBeenCalled());
+
+      fireEvent.press(screen.getByTestId("occurrence-cancel-trigger-occ-3"));
+      expect(
+        screen.getByTestId("occurrence-cancel-reason-occ-3"),
+      ).toBeOnTheScreen();
+
+      fireEvent.press(screen.getByTestId("occurrence-cancel-dismiss-occ-3"));
+
+      expect(
+        screen.queryByTestId("occurrence-cancel-reason-occ-3"),
+      ).not.toBeOnTheScreen();
+      expect(mockCancelSlotOccurrence).not.toHaveBeenCalled();
+      expect(mockDeleteOneOffSlot).not.toHaveBeenCalled();
     });
   });
 });
