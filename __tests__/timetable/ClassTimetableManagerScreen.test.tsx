@@ -459,15 +459,17 @@ describe("ClassTimetableManagerScreen", () => {
   });
 
   describe("Annulation d'une séance depuis l'onglet Agenda", () => {
-    function setOccurrences(
-      occurrences: Array<Record<string, unknown>>,
-    ) {
+    function setOccurrences(occurrences: Array<Record<string, unknown>>) {
       useTimetableStore.setState(
         (s) =>
           ({
             ...s,
             classTimetable: {
-              class: { id: "class-1", schoolYearId: "sy1", academicLevelId: null },
+              class: {
+                id: "class-1",
+                schoolYearId: "sy1",
+                academicLevelId: null,
+              },
               slots: [],
               oneOffSlots: [],
               slotExceptions: [],

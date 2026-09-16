@@ -529,7 +529,9 @@ describe("TrainingQuizChapterScreen", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("Où publiez-vous une information pour toute l'école ?"),
+        screen.getByText(
+          "Où publiez-vous une information pour toute l'école ?",
+        ),
       ).toBeTruthy();
     });
 

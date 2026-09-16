@@ -5892,8 +5892,7 @@ export const translations: Record<Locale, Record<string, string>> = {
       "The one-off slot is no longer in the schedule.",
     "timetable.classManager.toast.oneOffDeleteErrorMessage":
       "Unable to delete this session.",
-    "timetable.classManager.toast.occurrenceCancelledTitle":
-      "Class cancelled",
+    "timetable.classManager.toast.occurrenceCancelledTitle": "Class cancelled",
     "timetable.classManager.toast.occurrenceCancelledMessage":
       "The class was cancelled and the class feed was notified.",
     "timetable.classManager.toast.occurrenceCancelErrorMessage":
