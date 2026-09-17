@@ -111,9 +111,29 @@ function roster(absentIds: string[] = []) {
 }
 
 beforeEach(() => {
+  // Fake only Date (not timers) so `today` in the screen is deterministic
+  // without breaking @testing-library/react-native's waitFor, which polls
+  // via real setTimeout/setInterval.
+  jest.useFakeTimers({
+    doNotFake: [
+      "setTimeout",
+      "clearTimeout",
+      "setInterval",
+      "clearInterval",
+      "setImmediate",
+      "clearImmediate",
+      "nextTick",
+      "queueMicrotask",
+    ],
+  });
+  jest.setSystemTime(new Date("2026-09-16T08:00:00Z"));
   jest.clearAllMocks();
   mockAttendanceApi.getRoster.mockResolvedValue(roster());
   mockAttendanceApi.saveRollCall.mockResolvedValue(roster(["student-2"]));
+});
+
+afterEach(() => {
+  jest.useRealTimers();
 });
 
 describe("TeacherClassAttendanceScreen", () => {
