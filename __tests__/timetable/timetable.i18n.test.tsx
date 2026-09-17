@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react-native";
 import { StudentTimetableScreen } from "../../src/components/timetable/StudentTimetableScreen";
-import { TimetableClassesScreen } from "../../src/components/timetable/TimetableClassesScreen";
+import { AdminTimetableClassesScreen } from "../../src/components/timetable/AdminTimetableClassesScreen";
 import {
   TeacherAgendaScreen,
   TeacherAgendaScreenInner,
@@ -195,43 +195,43 @@ describe("Agenda/Emploi du temps — traduction selon la locale (mobile)", () =>
     });
   });
 
-  describe("TimetableClassesScreen", () => {
-    it("affiche le titre 'Mes classes' en français par défaut", async () => {
-      render(<TimetableClassesScreen />);
+  describe("AdminTimetableClassesScreen", () => {
+    it("affiche le titre 'Emploi du temps' en français par défaut", async () => {
+      render(<AdminTimetableClassesScreen />);
 
       await waitFor(() =>
         expect(
           screen.getByText(
-            translate("fr", "timetable.classesScreen.headerTitle"),
+            translate("fr", "timetable.adminClassesScreen.headerTitle"),
           ),
         ).toBeTruthy(),
       );
       expect(
         screen.getByText(
-          translate("fr", "timetable.classesScreen.schoolYear.title"),
+          translate("fr", "timetable.adminClassesScreen.schoolYear.title"),
         ),
       ).toBeTruthy();
     });
 
-    it("affiche le titre 'My classes' en anglais quand locale=en", async () => {
+    it("affiche le titre 'Timetable' en anglais quand locale=en", async () => {
       useLocaleStore.setState({ locale: "en" });
-      render(<TimetableClassesScreen />);
+      render(<AdminTimetableClassesScreen />);
 
       await waitFor(() =>
         expect(
           screen.getByText(
-            translate("en", "timetable.classesScreen.headerTitle"),
+            translate("en", "timetable.adminClassesScreen.headerTitle"),
           ),
         ).toBeTruthy(),
       );
       expect(
         screen.getByText(
-          translate("en", "timetable.classesScreen.schoolYear.title"),
+          translate("en", "timetable.adminClassesScreen.schoolYear.title"),
         ),
       ).toBeTruthy();
       expect(
         screen.queryByText(
-          translate("fr", "timetable.classesScreen.headerTitle"),
+          translate("fr", "timetable.adminClassesScreen.headerTitle"),
         ),
       ).toBeNull();
     });

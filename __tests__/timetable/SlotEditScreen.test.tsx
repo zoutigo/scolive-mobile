@@ -44,6 +44,7 @@ jest.mock("../../src/api/timetable.api", () => ({
     updateRecurringSlot: jest.fn(),
     deleteOneOffSlot: jest.fn(),
     deleteRecurringSlot: jest.fn(),
+    cancelSlotOccurrence: jest.fn(),
   },
 }));
 jest.mock("../../src/api/rooms.api", () => ({
@@ -207,6 +208,7 @@ beforeEach(() => {
   api.deleteOneOffSlot.mockResolvedValue(undefined as never);
   api.deleteRecurringSlot.mockResolvedValue(undefined as never);
   api.createOneOffSlot.mockResolvedValue(undefined as never);
+  api.cancelSlotOccurrence.mockResolvedValue(undefined as never);
   api.getClassContext.mockResolvedValue({
     class: { id: "cls-6eC", name: "6eC", schoolYearId: "sy1" },
     selectedSchoolYearId: "sy1",
@@ -394,15 +396,60 @@ describe("SlotEditScreen — suppression", () => {
     jest.restoreAllMocks();
   });
 
-  it("supprime l'occurrence oneoff et navigue back", async () => {
+  it("le bouton de suppression est desactive tant qu'aucun motif n'est saisi", () => {
     render(<SlotEditScreen />);
+    expect(screen.getByTestId("slot-edit-delete-occurrence")).toBeDisabled();
+  });
+
+  it("supprime l'occurrence oneoff avec le motif saisi et navigue back", async () => {
+    render(<SlotEditScreen />);
+    fireEvent.changeText(
+      screen.getByTestId("slot-edit-cancel-reason"),
+      "Rendez-vous medical",
+    );
     fireEvent.press(screen.getByTestId("slot-edit-delete-occurrence"));
 
     await waitFor(() => {
       expect(api.deleteOneOffSlot).toHaveBeenCalledWith(
         "ecole-pilote",
         "one-off-1",
+        "Rendez-vous medical",
       );
+      expect(mockClearPendingSlotEdit).toHaveBeenCalled();
+      expect(mockBack).toHaveBeenCalled();
+    });
+  });
+});
+
+describe("SlotEditScreen — annulation d'une occurrence récurrente", () => {
+  beforeEach(() => {
+    setupStore(EDIT_CTX_RECURRING);
+    jest.spyOn(Alert, "alert").mockImplementation((_, __, buttons) => {
+      const confirmBtn = buttons?.find((b) => b.style === "destructive");
+      confirmBtn?.onPress?.();
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("annule l'occurrence via une exception CANCEL avec le motif saisi (pas de placeholder one-off)", async () => {
+    render(<SlotEditScreen />);
+    fireEvent.changeText(
+      screen.getByTestId("slot-edit-cancel-reason"),
+      "Formation",
+    );
+    fireEvent.press(screen.getByTestId("slot-edit-delete-occurrence"));
+
+    await waitFor(() => {
+      expect(api.cancelSlotOccurrence).toHaveBeenCalledWith(
+        "ecole-pilote",
+        EDIT_CTX_RECURRING.occurrence.slotId,
+        EDIT_CTX_RECURRING.occurrence.occurrenceDate,
+        "Formation",
+      );
+      expect(api.createOneOffSlot).not.toHaveBeenCalled();
       expect(mockClearPendingSlotEdit).toHaveBeenCalled();
       expect(mockBack).toHaveBeenCalled();
     });

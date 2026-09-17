@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -92,6 +93,7 @@ export function SlotEditScreen() {
   const { pendingSlotEdit, clearPendingSlotEdit } = useTimetableStore();
 
   const [isSaving, setIsSaving] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
   const [classCtx, setClassCtx] =
     useState<ClassTimetableContextResponse | null>(null);
   const [roomAvailability, setRoomAvailability] = useState<RoomAvailability[]>(
@@ -115,6 +117,10 @@ export function SlotEditScreen() {
       .then(setClassCtx)
       .catch(() => {});
   }, [ctx?.adminMode, ctx?.classId, schoolSlug]);
+
+  useEffect(() => {
+    setCancelReason("");
+  }, [occurrence?.id]);
 
   const schema = useMemo(() => createSchema(t), [t]);
 
@@ -332,23 +338,19 @@ export function SlotEditScreen() {
         await timetableApi.deleteOneOffSlot(
           schoolSlug,
           occurrence.oneOffSlotId,
+          cancelReason,
         );
         showSuccess({
           title: t("timetable.slotEditPanel.toasts.slotDeletedTitle"),
           message: t("timetable.slotEditPanel.toasts.slotDeletedMessage"),
         });
-      } else {
-        await timetableApi.createOneOffSlot(schoolSlug, ctx.classId, {
-          schoolYearId: ctx.schoolYearId,
-          occurrenceDate: occurrence.occurrenceDate,
-          startMinute: occurrence.startMinute,
-          endMinute: occurrence.endMinute,
-          subjectId: occurrence.subject.id,
-          teacherUserId: occurrence.teacherUser.id,
-          room: occurrence.room,
-          status: "CANCELLED",
-          sourceSlotId: occurrence.slotId ?? null,
-        });
+      } else if (occurrence.slotId) {
+        await timetableApi.cancelSlotOccurrence(
+          schoolSlug,
+          occurrence.slotId,
+          occurrence.occurrenceDate,
+          cancelReason,
+        );
         showSuccess({
           title: t("timetable.slotEditPanel.toasts.slotCancelledTitle"),
           message: t("timetable.slotEditPanel.toasts.slotCancelledMessage"),
@@ -471,6 +473,23 @@ export function SlotEditScreen() {
                       </TouchableOpacity>
                     </>
                   )}
+                />
+              </View>
+            ) : null}
+
+            {/* Motif d'annulation — annulation d'une occurrence unique (récurrente ou ponctuelle) */}
+            {!targetsSeries ? (
+              <View>
+                <Text style={styles.fieldLabel}>
+                  {t("timetable.slotEditPanel.reasonLabel")}
+                </Text>
+                <TextInput
+                  value={cancelReason}
+                  onChangeText={setCancelReason}
+                  placeholder={t("timetable.slotEditPanel.reasonPlaceholder")}
+                  style={styles.reasonInput}
+                  multiline
+                  testID="slot-edit-cancel-reason"
                 />
               </View>
             ) : null}
@@ -614,9 +633,18 @@ export function SlotEditScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.actionBtn, styles.actionBtnDanger]}
+                style={[
+                  styles.actionBtn,
+                  styles.actionBtnDanger,
+                  !targetsSeries &&
+                    cancelReason.trim().length === 0 &&
+                    styles.actionBtnDisabled,
+                ]}
                 onPress={() => confirmDelete(targetsSeries)}
-                disabled={isSaving}
+                disabled={
+                  isSaving ||
+                  (!targetsSeries && cancelReason.trim().length === 0)
+                }
                 testID={
                   targetsSeries
                     ? "slot-edit-delete-series"
@@ -751,6 +779,18 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   errorText: { fontSize: 10, color: colors.notification, marginTop: 4 },
+  reasonInput: {
+    minHeight: 60,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E8D8C2",
+    backgroundColor: colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: colors.textPrimary,
+    textAlignVertical: "top",
+  },
 
   /* Actions */
   actionsRow: { flexDirection: "row", gap: 10 },

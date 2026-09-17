@@ -5,7 +5,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
-import { TimetableClassesScreen } from "../../src/components/timetable/TimetableClassesScreen";
+import { AdminTimetableClassesScreen } from "../../src/components/timetable/AdminTimetableClassesScreen";
 import { useAuthStore } from "../../src/store/auth.store";
 import { useTimetableStore } from "../../src/store/timetable.store";
 
@@ -44,10 +44,10 @@ beforeEach(() => {
       firstName: "Paul",
       lastName: "Manga",
       platformRoles: [],
-      memberships: [{ schoolId: "s1", role: "TEACHER" }],
+      memberships: [{ schoolId: "s1", role: "SCHOOL_ADMIN" }],
       profileCompleted: true,
-      role: "TEACHER",
-      activeRole: "TEACHER",
+      role: "SCHOOL_ADMIN",
+      activeRole: "SCHOOL_ADMIN",
     },
     schoolSlug: "college-vogt",
     accessToken: "token",
@@ -78,9 +78,9 @@ beforeEach(() => {
   } as never);
 });
 
-describe("TimetableClassesScreen", () => {
+describe("AdminTimetableClassesScreen", () => {
   it("charge les classes au montage", async () => {
-    render(<TimetableClassesScreen />);
+    render(<AdminTimetableClassesScreen />);
 
     await waitFor(() => {
       expect(mockLoadClassOptions).toHaveBeenCalledWith(
@@ -91,52 +91,51 @@ describe("TimetableClassesScreen", () => {
   });
 
   it("ouvre la classe sélectionnée", () => {
-    render(<TimetableClassesScreen />);
+    render(<AdminTimetableClassesScreen />);
 
-    fireEvent.press(screen.getByTestId("timetable-class-row-class-1"));
+    fireEvent.press(screen.getByTestId("admin-timetable-class-row-class-1"));
 
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: "/(home)/timetable/class/[classId]",
+      pathname: "/(home)/admin-timetable/class/[classId]",
       params: { classId: "class-1", schoolYearId: "sy1" },
     });
   });
 
   it("affiche le ModuleHeader avec back et titre (menu déplacé vers la bottom tab bar)", () => {
-    render(<TimetableClassesScreen />);
+    render(<AdminTimetableClassesScreen />);
 
-    expect(screen.getByTestId("timetable-classes-header")).toBeTruthy();
-    expect(screen.getByTestId("timetable-classes-back")).toBeTruthy();
+    expect(screen.getByTestId("admin-timetable-classes-header")).toBeTruthy();
+    expect(screen.getByTestId("admin-timetable-classes-back")).toBeTruthy();
     expect(screen.getByTestId("module-header-title")).toBeTruthy();
   });
 
   it("n'affiche pas de sous-titre quand l'utilisateur n'a pas de schoolName", () => {
-    render(<TimetableClassesScreen />);
+    render(<AdminTimetableClassesScreen />);
 
     expect(screen.queryByTestId("module-header-subtitle")).toBeNull();
   });
 
-  it("affiche le sous-titre école · classe quand l'utilisateur a les données", () => {
+  it("affiche le sous-titre école quand l'utilisateur a un schoolName", () => {
     useAuthStore.setState((s) => ({
       ...s,
       user: s.user
         ? {
             ...s.user,
             schoolName: "Collège Vogt",
-            referentClass: { name: "6eC" },
           }
         : null,
     }));
-    render(<TimetableClassesScreen />);
+    render(<AdminTimetableClassesScreen />);
 
     expect(screen.getByTestId("module-header-subtitle").props.children).toBe(
-      "Collège Vogt · 6eC",
+      "Collège Vogt",
     );
   });
 
   it("le bouton retour appelle router.back()", () => {
-    render(<TimetableClassesScreen />);
+    render(<AdminTimetableClassesScreen />);
 
-    fireEvent.press(screen.getByTestId("timetable-classes-back"));
+    fireEvent.press(screen.getByTestId("admin-timetable-classes-back"));
 
     expect(mockBack).toHaveBeenCalledTimes(1);
   });

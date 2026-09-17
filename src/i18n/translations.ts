@@ -994,6 +994,41 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.teacherDiscipline.step4Body":
       "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour afficher un rappel adapté à l'onglet que vous consultez.",
 
+    "onboardingTour.teacherAttendance.step1Title": "Choisir la date",
+    "onboardingTour.teacherAttendance.step1Body":
+      "Naviguez vers la veille ou le lendemain, ou choisissez une date précise, pour faire l'appel du jour souhaité.",
+    "onboardingTour.teacherAttendance.step2Title": "Cocher les absents",
+    "onboardingTour.teacherAttendance.step2Body":
+      "Chaque élève est présent par défaut : basculez sur Absent pour les élèves manquants ce jour-là.",
+    "onboardingTour.teacherAttendance.step3Title":
+      "Une aide toujours disponible",
+    "onboardingTour.teacherAttendance.step3Body":
+      "Touchez ce bouton à tout moment, puis « Aide » dans le menu, pour un rappel du fonctionnement de l'appel.",
+
+    "attendance.header.title": "Appel",
+    "attendance.dateLabel": "Date",
+    "attendance.loading": "Chargement...",
+    "attendance.summary": "{present}/{total} présents",
+    "attendance.presentLabel": "Présent",
+    "attendance.absentLabel": "Absent",
+    "attendance.saveButton": "Enregistrer l'appel",
+    "attendance.saving": "Enregistrement...",
+    "attendance.empty.title": "Aucun élève",
+    "attendance.empty.message": "Aucun élève inscrit dans cette classe.",
+    "attendance.errors.loadRoster":
+      "Impossible de charger la liste des élèves.",
+    "attendance.errors.saveTitle": "Échec de l'enregistrement",
+    "attendance.errors.saveFailed": "Impossible d'enregistrer l'appel.",
+    "attendance.toasts.savedTitle": "Appel enregistré",
+    "attendance.toasts.savedMessage":
+      "L'appel de la classe a bien été enregistré.",
+    "attendance.help.menuLabel": "Aide",
+    "attendance.help.close": "J'ai compris",
+    "attendance.help.title": "Comment utiliser l'appel",
+    "attendance.help.section1Title": "Faire l'appel du jour",
+    "attendance.help.section1Body":
+      "Choisissez une date puis basculez chaque élève sur Absent si besoin ; tous les élèves sont présents par défaut. Touchez Enregistrer l'appel pour sauvegarder.",
+
     "discipline.filters.title": "Filtres",
     "discipline.filters.student": "Élève",
     "discipline.filters.allStudents": "Tous les élèves",
@@ -1409,6 +1444,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.common.sourceException": "Exception",
     "timetable.common.sourceAdjusted": "Ajusté",
     "timetable.common.courseCancelled": "Cours annulé",
+    "timetable.common.cancelActionTrigger": "Annuler cette séance",
+    "timetable.common.cancelReasonPlaceholder":
+      "Motif (absence, formation, rendez-vous médical...)",
+    "timetable.common.cancelActionDismiss": "Fermer",
+    "timetable.common.cancelActionConfirm": "Confirmer l'annulation",
+    "timetable.common.cancelActionSaving": "Annulation...",
     "timetable.common.noClosureTitle": "Aucune fermeture enregistrée",
     "timetable.common.noClosureMessage":
       "Les jours fériés et vacances créés pour l'école apparaîtront ici.",
@@ -1462,21 +1503,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.childAgenda.help.section3Body":
       "Touchez une carte de cours pour voir en un coup d'œil son horaire, l'enseignant et la salle.",
 
-    "timetable.classesScreen.headerTitle": "Mes classes",
-    "timetable.classesScreen.schoolYear.title": "Année scolaire",
-    "timetable.classesScreen.schoolYear.subtitle":
-      "Filtrez vos classes pour garder un périmètre clair avant de gérer le planning.",
-    "timetable.classesScreen.schoolYear.label": "Année",
-    "timetable.classesScreen.schoolYear.activeSuffix": "active",
-    "timetable.classesScreen.classes.title": "Classes accessibles",
-    "timetable.classesScreen.classes.subtitle":
-      "Le module ouvre la page agenda mobile de la classe. Les restrictions backend du rôle enseignant restent respectées.",
-    "timetable.classesScreen.loading": "Chargement des classes...",
-    "timetable.classesScreen.empty.title": "Aucune classe trouvée",
-    "timetable.classesScreen.empty.message":
+    "timetable.adminClassesScreen.headerTitle": "Emploi du temps",
+    "timetable.adminClassesScreen.schoolYear.title": "Année scolaire",
+    "timetable.adminClassesScreen.schoolYear.subtitle":
+      "Filtrez les classes de l'école pour garder un périmètre clair avant de gérer le planning.",
+    "timetable.adminClassesScreen.schoolYear.label": "Année",
+    "timetable.adminClassesScreen.schoolYear.activeSuffix": "active",
+    "timetable.adminClassesScreen.classes.title": "Classes de l'école",
+    "timetable.adminClassesScreen.classes.subtitle":
+      "Sélectionnez une classe pour gérer ses créneaux, séances ponctuelles et vacances.",
+    "timetable.adminClassesScreen.loading": "Chargement des classes...",
+    "timetable.adminClassesScreen.empty.title": "Aucune classe trouvée",
+    "timetable.adminClassesScreen.empty.message":
       "Aucune affectation exploitable n'a été trouvée sur cette année.",
-    "timetable.classesScreen.studentSingular": "élève",
-    "timetable.classesScreen.studentPlural": "élèves",
+    "timetable.adminClassesScreen.studentSingular": "élève",
+    "timetable.adminClassesScreen.studentPlural": "élèves",
 
     "timetable.teacherAgenda.headerTitle": "Agenda",
     "timetable.teacherAgenda.tabs.users": "Utilisateurs",
@@ -1639,6 +1680,11 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Le créneau ponctuel ne figure plus dans l'agenda.",
     "timetable.classManager.toast.oneOffDeleteErrorMessage":
       "Impossible de supprimer cette séance.",
+    "timetable.classManager.toast.occurrenceCancelledTitle": "Séance annulée",
+    "timetable.classManager.toast.occurrenceCancelledMessage":
+      "La séance a été annulée et la classe a été prévenue.",
+    "timetable.classManager.toast.occurrenceCancelErrorMessage":
+      "Impossible d'annuler cette séance.",
     "timetable.classManager.toast.holidayDeletedTitle": "Fermeture supprimée",
     "timetable.classManager.toast.holidayDeletedMessage":
       "Le calendrier école a été mis à jour.",
@@ -1769,6 +1815,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.slotEditPanel.title": "MODIFIER CE CRÉNEAU",
     "timetable.slotEditPanel.scope.occurrence": "Ce créneau",
     "timetable.slotEditPanel.scope.series": "Toute la série",
+    "timetable.slotEditPanel.reasonLabel": "Motif de l'annulation",
+    "timetable.slotEditPanel.reasonPlaceholder":
+      "Ex. : absence, formation, rendez-vous médical...",
     "timetable.slotEditPanel.validation.startRequired":
       "Renseignez l'heure de début.",
     "timetable.slotEditPanel.validation.endRequired":
@@ -5248,6 +5297,38 @@ export const translations: Record<Locale, Record<string, string>> = {
     "onboardingTour.teacherDiscipline.step4Body":
       'Tap this button at any time, then "Help" in the menu, for a reminder tailored to the tab you\'re viewing.',
 
+    "onboardingTour.teacherAttendance.step1Title": "Pick the date",
+    "onboardingTour.teacherAttendance.step1Body":
+      "Move to the previous or next day, or pick a specific date, to take roll call for that day.",
+    "onboardingTour.teacherAttendance.step2Title": "Mark absentees",
+    "onboardingTour.teacherAttendance.step2Body":
+      "Every student is present by default: switch a student to Absent if they are missing that day.",
+    "onboardingTour.teacherAttendance.step3Title": "Help is always available",
+    "onboardingTour.teacherAttendance.step3Body":
+      'Tap this button at any time, then "Help" in the menu, for a reminder of how roll call works.',
+
+    "attendance.header.title": "Roll call",
+    "attendance.dateLabel": "Date",
+    "attendance.loading": "Loading...",
+    "attendance.summary": "{present}/{total} present",
+    "attendance.presentLabel": "Present",
+    "attendance.absentLabel": "Absent",
+    "attendance.saveButton": "Save roll call",
+    "attendance.saving": "Saving...",
+    "attendance.empty.title": "No student",
+    "attendance.empty.message": "No student enrolled in this class.",
+    "attendance.errors.loadRoster": "Unable to load the student list.",
+    "attendance.errors.saveTitle": "Save failed",
+    "attendance.errors.saveFailed": "Unable to save the roll call.",
+    "attendance.toasts.savedTitle": "Roll call saved",
+    "attendance.toasts.savedMessage": "The class roll call was saved.",
+    "attendance.help.menuLabel": "Help",
+    "attendance.help.close": "Got it",
+    "attendance.help.title": "How to use roll call",
+    "attendance.help.section1Title": "Take today's roll call",
+    "attendance.help.section1Body":
+      "Pick a date, then switch a student to Absent if needed; every student is present by default. Tap Save roll call to store it.",
+
     "discipline.filters.title": "Filters",
     "discipline.filters.student": "Student",
     "discipline.filters.allStudents": "All students",
@@ -5651,6 +5732,12 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.common.sourceException": "Exception",
     "timetable.common.sourceAdjusted": "Adjusted",
     "timetable.common.courseCancelled": "Class cancelled",
+    "timetable.common.cancelActionTrigger": "Cancel this class",
+    "timetable.common.cancelReasonPlaceholder":
+      "Reason (absence, training, medical appointment...)",
+    "timetable.common.cancelActionDismiss": "Close",
+    "timetable.common.cancelActionConfirm": "Confirm cancellation",
+    "timetable.common.cancelActionSaving": "Cancelling...",
     "timetable.common.noClosureTitle": "No closure recorded",
     "timetable.common.noClosureMessage":
       "Public holidays and school breaks created for the school will appear here.",
@@ -5702,21 +5789,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.childAgenda.help.section3Body":
       "Tap a course card to see its time, teacher and room at a glance.",
 
-    "timetable.classesScreen.headerTitle": "My classes",
-    "timetable.classesScreen.schoolYear.title": "School year",
-    "timetable.classesScreen.schoolYear.subtitle":
-      "Filter your classes to keep a clear scope before managing the schedule.",
-    "timetable.classesScreen.schoolYear.label": "Year",
-    "timetable.classesScreen.schoolYear.activeSuffix": "active",
-    "timetable.classesScreen.classes.title": "Accessible classes",
-    "timetable.classesScreen.classes.subtitle":
-      "The module opens the mobile schedule page for the class. Backend restrictions for the teacher role are still enforced.",
-    "timetable.classesScreen.loading": "Loading classes...",
-    "timetable.classesScreen.empty.title": "No class found",
-    "timetable.classesScreen.empty.message":
+    "timetable.adminClassesScreen.headerTitle": "Timetable",
+    "timetable.adminClassesScreen.schoolYear.title": "School year",
+    "timetable.adminClassesScreen.schoolYear.subtitle":
+      "Filter the school's classes to keep a clear scope before managing the schedule.",
+    "timetable.adminClassesScreen.schoolYear.label": "Year",
+    "timetable.adminClassesScreen.schoolYear.activeSuffix": "active",
+    "timetable.adminClassesScreen.classes.title": "School classes",
+    "timetable.adminClassesScreen.classes.subtitle":
+      "Select a class to manage its slots, one-off sessions and holidays.",
+    "timetable.adminClassesScreen.loading": "Loading classes...",
+    "timetable.adminClassesScreen.empty.title": "No class found",
+    "timetable.adminClassesScreen.empty.message":
       "No usable assignment was found for this year.",
-    "timetable.classesScreen.studentSingular": "student",
-    "timetable.classesScreen.studentPlural": "students",
+    "timetable.adminClassesScreen.studentSingular": "student",
+    "timetable.adminClassesScreen.studentPlural": "students",
 
     "timetable.teacherAgenda.headerTitle": "Schedule",
     "timetable.teacherAgenda.tabs.users": "Users",
@@ -5872,6 +5959,11 @@ export const translations: Record<Locale, Record<string, string>> = {
       "The one-off slot is no longer in the schedule.",
     "timetable.classManager.toast.oneOffDeleteErrorMessage":
       "Unable to delete this session.",
+    "timetable.classManager.toast.occurrenceCancelledTitle": "Class cancelled",
+    "timetable.classManager.toast.occurrenceCancelledMessage":
+      "The class was cancelled and the class feed was notified.",
+    "timetable.classManager.toast.occurrenceCancelErrorMessage":
+      "Unable to cancel this class.",
     "timetable.classManager.toast.holidayDeletedTitle": "Closure deleted",
     "timetable.classManager.toast.holidayDeletedMessage":
       "The school calendar has been updated.",
@@ -5997,6 +6089,9 @@ export const translations: Record<Locale, Record<string, string>> = {
     "timetable.slotEditPanel.title": "EDIT THIS SLOT",
     "timetable.slotEditPanel.scope.occurrence": "This slot",
     "timetable.slotEditPanel.scope.series": "Whole series",
+    "timetable.slotEditPanel.reasonLabel": "Cancellation reason",
+    "timetable.slotEditPanel.reasonPlaceholder":
+      "E.g.: absence, training, medical appointment...",
     "timetable.slotEditPanel.validation.startRequired": "Enter the start time.",
     "timetable.slotEditPanel.validation.endRequired": "Enter the end time.",
     "timetable.slotEditPanel.validation.roomRequired": "Enter a room.",

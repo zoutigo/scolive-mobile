@@ -141,7 +141,7 @@ export function SchoolHome({ user, schoolSlug }: SchoolHomeProps) {
     }
 
     if (label === "Emploi du temps") {
-      router.push("/(home)/timetable");
+      router.push("/(home)/admin-timetable");
       return;
     }
 

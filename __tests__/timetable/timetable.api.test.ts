@@ -154,4 +154,53 @@ describe("timetableApi CRUD", () => {
     expect(options.method).toBe("POST");
     expect(String(options.body)).toContain('"subjectId":"math"');
   });
+
+  it("supprime un one-off avec le motif en query string", async () => {
+    mockFetch.mockResolvedValueOnce(okJson({}));
+
+    await timetableApi.deleteOneOffSlot(
+      "college-vogt",
+      "oof-1",
+      "Rendez-vous medical",
+    );
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain(
+      "/schools/college-vogt/timetable/one-off-slots/oof-1",
+    );
+    expect(url).toContain("reason=Rendez-vous+medical");
+    expect(options.method).toBe("DELETE");
+  });
+
+  it("supprime un one-off sans motif (query string vide)", async () => {
+    mockFetch.mockResolvedValueOnce(okJson({}));
+
+    await timetableApi.deleteOneOffSlot("college-vogt", "oof-1");
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toContain(
+      "/schools/college-vogt/timetable/one-off-slots/oof-1",
+    );
+    expect(url).not.toContain("reason=");
+  });
+
+  it("annule une occurrence récurrente via une exception CANCEL avec motif", async () => {
+    mockFetch.mockResolvedValueOnce(okJson({ id: "exc-1" }));
+
+    await timetableApi.cancelSlotOccurrence(
+      "college-vogt",
+      "slot-1",
+      "2026-03-16",
+      "Formation",
+    );
+
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toContain(
+      "/schools/college-vogt/timetable/slots/slot-1/exceptions",
+    );
+    expect(options.method).toBe("POST");
+    expect(String(options.body)).toContain('"type":"CANCEL"');
+    expect(String(options.body)).toContain('"reason":"Formation"');
+    expect(String(options.body)).toContain('"occurrenceDate":"2026-03-16"');
+  });
 });

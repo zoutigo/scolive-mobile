@@ -57,11 +57,11 @@ export default function HomeLayout() {
         options={{ animation: "slide_from_right" }}
       />
       <Stack.Screen
-        name="timetable/index"
+        name="admin-timetable/index"
         options={{ animation: "slide_from_right" }}
       />
       <Stack.Screen
-        name="timetable/class/[classId]"
+        name="admin-timetable/class/[classId]"
         options={{ animation: "slide_from_right" }}
       />
       <Stack.Screen
@@ -90,6 +90,10 @@ export default function HomeLayout() {
       />
       <Stack.Screen
         name="classes/[classId]/feed"
+        options={{ animation: "slide_from_right" }}
+      />
+      <Stack.Screen
+        name="classes/[classId]/eleves"
         options={{ animation: "slide_from_right" }}
       />
       <Stack.Screen

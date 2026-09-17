@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme";
 import { useAuthStore } from "../../store/auth.store";
 import { useTimetableStore } from "../../store/timetable.store";
-import { buildTeacherSubtitle } from "../navigation/nav-config";
+import { buildAdminSubtitle } from "../navigation/nav-config";
 import { ModuleHeader } from "../navigation/ModuleHeader";
 import {
   EmptyState,
@@ -27,7 +27,7 @@ import {
 import { useTranslation } from "../../i18n/useTranslation";
 import { moduleBack } from "../../utils/moduleBack";
 
-export function TimetableClassesScreen() {
+export function AdminTimetableClassesScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -68,7 +68,7 @@ export function TimetableClassesScreen() {
     );
   }, [classOptions, effectiveYearId]);
 
-  const subtitle = user ? buildTeacherSubtitle(user) : null;
+  const subtitle = user ? buildAdminSubtitle(user) : null;
 
   return (
     <KeyboardAvoidingView
@@ -76,11 +76,11 @@ export function TimetableClassesScreen() {
       style={styles.root}
     >
       <ModuleHeader
-        title={t("timetable.classesScreen.headerTitle")}
+        title={t("timetable.adminClassesScreen.headerTitle")}
         subtitle={subtitle}
         onBack={() => moduleBack(router)}
-        testID="timetable-classes-header"
-        backTestID="timetable-classes-back"
+        testID="admin-timetable-classes-header"
+        backTestID="admin-timetable-classes-back"
       />
       <ScrollView
         style={styles.root}
@@ -103,11 +103,11 @@ export function TimetableClassesScreen() {
         {errorMessage ? <ErrorBanner message={errorMessage} /> : null}
 
         <SectionCard
-          title={t("timetable.classesScreen.schoolYear.title")}
-          subtitle={t("timetable.classesScreen.schoolYear.subtitle")}
+          title={t("timetable.adminClassesScreen.schoolYear.title")}
+          subtitle={t("timetable.adminClassesScreen.schoolYear.subtitle")}
         >
           <PillSelector
-            label={t("timetable.classesScreen.schoolYear.label")}
+            label={t("timetable.adminClassesScreen.schoolYear.label")}
             value={effectiveYearId}
             onChange={(value) => {
               setSelectedSchoolYearId(value);
@@ -116,24 +116,24 @@ export function TimetableClassesScreen() {
             options={schoolYears.map((year) => ({
               value: year.id,
               label: year.isActive
-                ? `${year.label} • ${t("timetable.classesScreen.schoolYear.activeSuffix")}`
+                ? `${year.label} • ${t("timetable.adminClassesScreen.schoolYear.activeSuffix")}`
                 : year.label,
             }))}
-            testIDPrefix="timetable-school-year"
+            testIDPrefix="admin-timetable-school-year"
           />
         </SectionCard>
 
         <SectionCard
-          title={t("timetable.classesScreen.classes.title")}
-          subtitle={t("timetable.classesScreen.classes.subtitle")}
+          title={t("timetable.adminClassesScreen.classes.title")}
+          subtitle={t("timetable.adminClassesScreen.classes.subtitle")}
         >
           {isLoadingClassOptions && !classOptions ? (
-            <LoadingBlock label={t("timetable.classesScreen.loading")} />
+            <LoadingBlock label={t("timetable.adminClassesScreen.loading")} />
           ) : filteredClasses.length === 0 ? (
             <EmptyState
               icon="book-outline"
-              title={t("timetable.classesScreen.empty.title")}
-              message={t("timetable.classesScreen.empty.message")}
+              title={t("timetable.adminClassesScreen.empty.title")}
+              message={t("timetable.adminClassesScreen.empty.message")}
             />
           ) : (
             <View style={styles.classList}>
@@ -143,14 +143,14 @@ export function TimetableClassesScreen() {
                   style={styles.classRow}
                   onPress={() =>
                     router.push({
-                      pathname: "/(home)/timetable/class/[classId]",
+                      pathname: "/(home)/admin-timetable/class/[classId]",
                       params: {
                         classId: item.classId,
                         schoolYearId: item.schoolYearId,
                       },
                     })
                   }
-                  testID={`timetable-class-row-${item.classId}`}
+                  testID={`admin-timetable-class-row-${item.classId}`}
                 >
                   <View style={styles.classLeading}>
                     <View style={styles.classIcon}>
@@ -165,8 +165,8 @@ export function TimetableClassesScreen() {
                       <Text style={styles.classMeta}>
                         {item.schoolYearLabel} • {item.studentCount}{" "}
                         {item.studentCount > 1
-                          ? t("timetable.classesScreen.studentPlural")
-                          : t("timetable.classesScreen.studentSingular")}
+                          ? t("timetable.adminClassesScreen.studentPlural")
+                          : t("timetable.adminClassesScreen.studentSingular")}
                       </Text>
                     </View>
                   </View>

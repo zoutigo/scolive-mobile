@@ -78,7 +78,17 @@ type TimetableState = {
     oneOffSlotId: string,
     payload: Partial<UpsertOneOffSlotInput>,
   ) => Promise<void>;
-  deleteOneOffSlot: (schoolSlug: string, oneOffSlotId: string) => Promise<void>;
+  deleteOneOffSlot: (
+    schoolSlug: string,
+    oneOffSlotId: string,
+    reason?: string,
+  ) => Promise<void>;
+  cancelSlotOccurrence: (
+    schoolSlug: string,
+    slotId: string,
+    occurrenceDate: string,
+    reason?: string,
+  ) => Promise<void>;
   createCalendarEvent: (
     schoolSlug: string,
     payload: UpsertCalendarEventInput,
@@ -271,14 +281,34 @@ export const useTimetableStore = create<TimetableState>((set) => ({
     }
   },
 
-  async deleteOneOffSlot(schoolSlug, oneOffSlotId) {
+  async deleteOneOffSlot(schoolSlug, oneOffSlotId, reason) {
     set({ isSubmitting: true, errorMessage: null });
     try {
-      await timetableApi.deleteOneOffSlot(schoolSlug, oneOffSlotId);
+      await timetableApi.deleteOneOffSlot(schoolSlug, oneOffSlotId, reason);
     } catch (error) {
       set({
         errorMessage:
           error instanceof Error ? error.message : "Suppression impossible.",
+      });
+      throw error;
+    } finally {
+      set({ isSubmitting: false });
+    }
+  },
+
+  async cancelSlotOccurrence(schoolSlug, slotId, occurrenceDate, reason) {
+    set({ isSubmitting: true, errorMessage: null });
+    try {
+      await timetableApi.cancelSlotOccurrence(
+        schoolSlug,
+        slotId,
+        occurrenceDate,
+        reason,
+      );
+    } catch (error) {
+      set({
+        errorMessage:
+          error instanceof Error ? error.message : "Annulation impossible.",
       });
       throw error;
     } finally {

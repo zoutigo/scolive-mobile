@@ -245,7 +245,7 @@ describe("Items de navigation — établissement", () => {
 
 describe("Items de navigation — enseignant", () => {
   const items = getNavItems(teacherUser);
-  const expectedKeys = ["home", "feed", "agenda", "timetable", "messages"];
+  const expectedKeys = ["home", "feed", "agenda", "messages"];
 
   expectedKeys.forEach((key) => {
     it(`affiche l'item "${key}"`, () => {
@@ -1727,9 +1727,9 @@ describe("Stratégie push/replace — changement de module (replace)", () => {
     });
     // Ouvrir la section générale enseignant
     fireEvent.press(screen.getByTestId("drawer-section-teacher-general"));
-    fireEvent.press(screen.getByTestId("nav-item-timetable"));
+    fireEvent.press(screen.getByTestId("nav-item-agenda"));
     act(() => jest.runAllTimers());
-    expect(mockReplace).toHaveBeenCalledWith("/timetable");
+    expect(mockReplace).toHaveBeenCalledWith("/agenda");
     expect(mockPush).not.toHaveBeenCalled();
   });
 

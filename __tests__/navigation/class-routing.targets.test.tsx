@@ -1,4 +1,5 @@
 import {
+  buildTeacherClassAttendanceTarget,
   buildTeacherClassDisciplineTarget,
   buildTeacherClassFeedTarget,
   buildTeacherClassHomeworkTarget,
@@ -10,6 +11,10 @@ describe("teacher class routing targets", () => {
   it("génère des routes cohérentes pour tous les modules de classe", () => {
     expect(buildTeacherClassFeedTarget("class-1")).toEqual({
       pathname: "/(home)/classes/[classId]/feed",
+      params: { classId: "class-1" },
+    });
+    expect(buildTeacherClassAttendanceTarget("class-1")).toEqual({
+      pathname: "/(home)/classes/[classId]/eleves",
       params: { classId: "class-1" },
     });
     expect(buildTeacherClassNotesTarget("class-1")).toEqual({
