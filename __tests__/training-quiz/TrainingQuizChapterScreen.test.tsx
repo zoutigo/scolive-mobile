@@ -345,6 +345,215 @@ describe("TrainingQuizChapterScreen", () => {
     });
   });
 
+  it("résout le deep-link parent du module Santé vers l'écran natif sante/[childId]", async () => {
+    mockFamilyState({
+      ...defaultFamilyState(),
+      children: [
+        {
+          id: "child-1",
+          firstName: "Ela",
+          lastName: "Ngo",
+          classId: "class-1",
+        },
+      ],
+    });
+
+    const chapter = makeChapter({
+      moduleKey: "sante",
+      questions: [
+        {
+          id: "question-1",
+          order: 1,
+          type: "MCQ_SINGLE",
+          stage: "DISCOVERY",
+          text: "Où accédez-vous au dossier santé de votre enfant ?",
+          hint: null,
+          imageUrl: null,
+          deepLinkRoute: "/children/{childId}/sante",
+          solved: false,
+          attemptsCount: 0,
+          options: [
+            { id: "opt-correct", order: 1, text: "Sous-menu de l'enfant" },
+            { id: "opt-wrong", order: 2, text: "Messagerie" },
+          ],
+        },
+      ],
+    });
+    api.getChapter.mockResolvedValue(chapter);
+    api.submitAnswer.mockResolvedValue({
+      correct: true,
+      alreadySolved: false,
+      explanation: "Depuis la fiche de l'enfant.",
+      correctOptionIds: ["opt-correct"],
+      attemptsCount: 1,
+    });
+    api.listChapters.mockResolvedValue([]);
+
+    render(<TrainingQuizChapterScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Où accédez-vous au dossier santé de votre enfant ?"),
+      ).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("training-quiz-option-opt-correct"));
+    fireEvent.press(screen.getByTestId("training-quiz-validate-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("training-quiz-deeplink-button")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("training-quiz-deeplink-button"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/sante/[childId]",
+      params: { childId: "child-1" },
+    });
+  });
+
+  it("résout le deep-link parent du fil de classe vers l'écran natif children/[childId]/vie-de-classe", async () => {
+    mockFamilyState({
+      ...defaultFamilyState(),
+      children: [
+        {
+          id: "child-1",
+          firstName: "Ela",
+          lastName: "Ngo",
+          classId: "class-1",
+        },
+      ],
+    });
+
+    const chapter = makeChapter({
+      moduleKey: "fil",
+      questions: [
+        {
+          id: "question-1",
+          order: 1,
+          type: "MCQ_SINGLE",
+          stage: "DISCOVERY",
+          text: 'Le fil "Vie de classe" d\'un enfant particulier montre :',
+          hint: null,
+          imageUrl: null,
+          deepLinkRoute: "/children/{childId}/vie-de-classe",
+          solved: false,
+          attemptsCount: 0,
+          options: [
+            {
+              id: "opt-correct",
+              order: 1,
+              text: "Les publications de sa classe",
+            },
+            { id: "opt-wrong", order: 2, text: "Toutes les publications" },
+          ],
+        },
+      ],
+    });
+    api.getChapter.mockResolvedValue(chapter);
+    api.submitAnswer.mockResolvedValue({
+      correct: true,
+      alreadySolved: false,
+      explanation: "Uniquement la classe de cet enfant.",
+      correctOptionIds: ["opt-correct"],
+      attemptsCount: 1,
+    });
+    api.listChapters.mockResolvedValue([]);
+
+    render(<TrainingQuizChapterScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          'Le fil "Vie de classe" d\'un enfant particulier montre :',
+        ),
+      ).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("training-quiz-option-opt-correct"));
+    fireEvent.press(screen.getByTestId("training-quiz-validate-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("training-quiz-deeplink-button")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("training-quiz-deeplink-button"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/(home)/children/[childId]/vie-de-classe",
+      params: { childId: "child-1" },
+    });
+  });
+
+  it("résout le deep-link parent de l'emploi du temps vers l'écran natif timetable/child/[childId]", async () => {
+    mockFamilyState({
+      ...defaultFamilyState(),
+      children: [
+        {
+          id: "child-1",
+          firstName: "Ela",
+          lastName: "Ngo",
+          classId: "class-1",
+        },
+      ],
+    });
+
+    const chapter = makeChapter({
+      moduleKey: "emploi-du-temps",
+      questions: [
+        {
+          id: "question-1",
+          order: 1,
+          type: "MCQ_SINGLE",
+          stage: "DISCOVERY",
+          text: "Où consultez-vous l'emploi du temps de votre enfant ?",
+          hint: null,
+          imageUrl: null,
+          deepLinkRoute: "/emploi-du-temps?childId={childId}",
+          solved: false,
+          attemptsCount: 0,
+          options: [
+            { id: "opt-correct", order: 1, text: "Sous-menu de l'enfant" },
+            { id: "opt-wrong", order: 2, text: "Messagerie" },
+          ],
+        },
+      ],
+    });
+    api.getChapter.mockResolvedValue(chapter);
+    api.submitAnswer.mockResolvedValue({
+      correct: true,
+      alreadySolved: false,
+      explanation: "Depuis la fiche de l'enfant.",
+      correctOptionIds: ["opt-correct"],
+      attemptsCount: 1,
+    });
+    api.listChapters.mockResolvedValue([]);
+
+    render(<TrainingQuizChapterScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          "Où consultez-vous l'emploi du temps de votre enfant ?",
+        ),
+      ).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("training-quiz-option-opt-correct"));
+    fireEvent.press(screen.getByTestId("training-quiz-validate-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("training-quiz-deeplink-button")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("training-quiz-deeplink-button"));
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/timetable/child/[childId]",
+      params: { childId: "child-1" },
+    });
+  });
+
   it("résout le deep-link {classId} d'un enseignant vers l'écran natif de saisie des notes de sa classe", async () => {
     mockAuthState({
       ...defaultAuthState(),

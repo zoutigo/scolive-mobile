@@ -117,6 +117,21 @@ function resolveDeepLink(
         params: { classId, childId },
       };
     }
+    if (deepLinkRoute.endsWith("/sante")) {
+      return { pathname: "/(home)/sante/[childId]", params: { childId } };
+    }
+    if (deepLinkRoute.endsWith("/vie-de-classe")) {
+      return {
+        pathname: "/(home)/children/[childId]/vie-de-classe",
+        params: { childId },
+      };
+    }
+    if (deepLinkRoute.startsWith("/emploi-du-temps")) {
+      return {
+        pathname: "/timetable/child/[childId]",
+        params: { childId },
+      };
+    }
   }
   // TEACHER-only routes: same target screens reached from the drawer's
   // per-class section (nav-config.ts#buildTeacherClassItems).
