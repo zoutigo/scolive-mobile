@@ -4,8 +4,10 @@ import type {
   WalletSummary,
 } from "../types/finance.types";
 import type {
+  CreateReinscriptionDeadlinePayload,
   FeeScheduleRow,
   FinanceSettings,
+  ReinscriptionDeadlineRow,
   RecordDirectPaymentPayload,
   RecordDirectPaymentResponse,
   StudentFinanceSummary,
@@ -122,6 +124,41 @@ export const financeApi = {
     return apiFetch(
       `/schools/${schoolSlug}/me/finance/wallet/top-up`,
       { method: "POST", body: JSON.stringify({ amount }) },
+      true,
+    );
+  },
+
+  listReinscriptionDeadlines(
+    schoolSlug: string,
+  ): Promise<ReinscriptionDeadlineRow[]> {
+    return apiFetch(
+      buildAdminPath(schoolSlug, "finance/reinscription-deadlines"),
+      {},
+      true,
+    );
+  },
+
+  createReinscriptionDeadline(
+    schoolSlug: string,
+    payload: CreateReinscriptionDeadlinePayload,
+  ): Promise<ReinscriptionDeadlineRow> {
+    return apiFetch(
+      buildAdminPath(schoolSlug, "finance/reinscription-deadlines"),
+      { method: "POST", body: JSON.stringify(payload) },
+      true,
+    );
+  },
+
+  deleteReinscriptionDeadline(
+    schoolSlug: string,
+    deadlineId: string,
+  ): Promise<{ success: boolean }> {
+    return apiFetch(
+      buildAdminPath(
+        schoolSlug,
+        `finance/reinscription-deadlines/${deadlineId}`,
+      ),
+      { method: "DELETE" },
       true,
     );
   },

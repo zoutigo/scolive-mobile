@@ -206,7 +206,7 @@ describe("Scrollabilité de la liste de navigation", () => {
     };
     render(<AppDrawer {...baseProps} navItems={getNavItems(schoolUser)} />);
     const schoolItems = getNavItems(schoolUser);
-    expect(schoolItems).toHaveLength(21);
+    expect(schoolItems).toHaveLength(22);
     schoolItems
       .filter((item) => item.key !== "account")
       .forEach((item) => {

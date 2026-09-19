@@ -345,6 +345,12 @@ const SCHOOL_NAV: NavItem[] = [
     route: "/finance-paiements",
   },
   {
+    key: "finance-reinscription-deadlines",
+    label: "Délais de réinscription",
+    icon: "calendar-outline",
+    route: "/finance-reinscription-deadlines",
+  },
+  {
     key: "supply-lists",
     label: "Fournitures scolaires",
     icon: "bag-outline",

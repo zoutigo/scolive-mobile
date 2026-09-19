@@ -46,6 +46,27 @@ export const translations: Record<Locale, Record<string, string>> = {
     "financeAdmin.schedules.form.addInstallment": "Ajouter une échéance",
     "financeAdmin.schedules.deleteConfirm.title": "Supprimer l'échéancier",
 
+    "financeAdmin.reinscriptionDeadlines.title": "Délais de réinscription",
+    "financeAdmin.reinscriptionDeadlines.empty":
+      "Aucun délai de réinscription défini pour le moment.",
+    "financeAdmin.reinscriptionDeadlines.success.saved": "Délai enregistré.",
+    "financeAdmin.reinscriptionDeadlines.success.deleted": "Délai supprimé.",
+    "financeAdmin.reinscriptionDeadlines.errors.save":
+      "Enregistrement impossible.",
+    "financeAdmin.reinscriptionDeadlines.errors.load": "Chargement impossible.",
+    "financeAdmin.reinscriptionDeadlines.errors.delete":
+      "Suppression impossible.",
+    "financeAdmin.reinscriptionDeadlines.form.title": "Nouveau délai",
+    "financeAdmin.reinscriptionDeadlines.form.subtitle":
+      "Choisissez l'année scolaire, le niveau et la date limite de réinscription.",
+    "financeAdmin.reinscriptionDeadlines.form.schoolYear": "Année scolaire",
+    "financeAdmin.reinscriptionDeadlines.form.academicLevel": "Niveau",
+    "financeAdmin.reinscriptionDeadlines.form.deadline": "Date limite",
+    "financeAdmin.reinscriptionDeadlines.form.deadlinePlaceholder":
+      "Selectionner une date",
+    "financeAdmin.reinscriptionDeadlines.deleteConfirm.title":
+      "Supprimer ce délai",
+
     "supplyListsAdmin.title": "Fournitures scolaires",
     "supplyListsAdmin.lockedTitle": "Module réservé au personnel administratif",
     "supplyListsAdmin.lockedMessage":
@@ -4393,6 +4414,25 @@ export const translations: Record<Locale, Record<string, string>> = {
     "financeAdmin.schedules.form.amount": "Amount",
     "financeAdmin.schedules.form.addInstallment": "Add installment",
     "financeAdmin.schedules.deleteConfirm.title": "Delete fee schedule",
+
+    "financeAdmin.reinscriptionDeadlines.title": "Re-enrollment deadlines",
+    "financeAdmin.reinscriptionDeadlines.empty":
+      "No re-enrollment deadline defined yet.",
+    "financeAdmin.reinscriptionDeadlines.success.saved": "Deadline saved.",
+    "financeAdmin.reinscriptionDeadlines.success.deleted": "Deadline deleted.",
+    "financeAdmin.reinscriptionDeadlines.errors.save": "Unable to save.",
+    "financeAdmin.reinscriptionDeadlines.errors.load": "Unable to load.",
+    "financeAdmin.reinscriptionDeadlines.errors.delete": "Unable to delete.",
+    "financeAdmin.reinscriptionDeadlines.form.title": "New deadline",
+    "financeAdmin.reinscriptionDeadlines.form.subtitle":
+      "Choose the school year, level and re-enrollment deadline.",
+    "financeAdmin.reinscriptionDeadlines.form.schoolYear": "School year",
+    "financeAdmin.reinscriptionDeadlines.form.academicLevel": "Level",
+    "financeAdmin.reinscriptionDeadlines.form.deadline": "Deadline",
+    "financeAdmin.reinscriptionDeadlines.form.deadlinePlaceholder":
+      "Select a date",
+    "financeAdmin.reinscriptionDeadlines.deleteConfirm.title":
+      "Delete this deadline",
 
     "supplyListsAdmin.title": "School supplies",
     "supplyListsAdmin.lockedTitle": "Module reserved for admin staff",
