@@ -19,6 +19,33 @@ export const translations: Record<Locale, Record<string, string>> = {
     "financeAdmin.lockedTitle": "Module réservé au personnel administratif",
     "financeAdmin.lockedMessage":
       "Ce module mobile est disponible pour les comptes admin, gestionnaire ou comptable.",
+
+    "admissionsAdmin.title": "Inscriptions",
+    "admissionsAdmin.lockedMessage":
+      "Ce module mobile est disponible pour les comptes admin ou gestionnaire.",
+    "admissionsAdmin.tabs.pool": "En attente d'affectation",
+    "admissionsAdmin.tabs.form": "Nouvelle admission",
+    "admissionsAdmin.pool.empty":
+      "Aucun élève en attente d'affectation de classe.",
+    "admissionsAdmin.pool.assign": "Affecter une classe",
+    "admissionsAdmin.pool.assignTitle": "Choisir une classe",
+    "admissionsAdmin.pool.assignConfirm": "Confirmer l'affectation",
+    "admissionsAdmin.pool.assignCancel": "Annuler",
+    "admissionsAdmin.pool.assignSuccess": "Élève affecté à la classe.",
+    "admissionsAdmin.pool.assignError": "Affectation impossible.",
+    "admissionsAdmin.form.title": "Nouvel élève",
+    "admissionsAdmin.form.subtitle":
+      "L'élève rejoint le pool en attente d'affectation dès que le paiement de la première tranche est enregistré.",
+    "admissionsAdmin.form.firstName": "Prénom",
+    "admissionsAdmin.form.lastName": "Nom",
+    "admissionsAdmin.form.dateOfBirth": "Date de naissance (optionnel)",
+    "admissionsAdmin.form.academicLevel": "Niveau",
+    "admissionsAdmin.form.track": "Filière (optionnel)",
+    "admissionsAdmin.form.trackNone": "Aucune filière",
+    "admissionsAdmin.form.schoolYear": "Année scolaire (optionnel)",
+    "admissionsAdmin.form.success": "Admission enregistrée.",
+    "admissionsAdmin.form.error": "Enregistrement impossible.",
+    "admissionsAdmin.errors.load": "Chargement impossible.",
     "financeAdmin.settings.title": "Seuil de réinscription",
     "financeAdmin.settings.description":
       "Détermine à partir de quel montant versé un élève promu est considéré réinscrit.",
@@ -4388,6 +4415,32 @@ export const translations: Record<Locale, Record<string, string>> = {
     "financeAdmin.lockedTitle": "Module reserved for administrative staff",
     "financeAdmin.lockedMessage":
       "This mobile module is available for admin, manager or accountant accounts.",
+
+    "admissionsAdmin.title": "Admissions",
+    "admissionsAdmin.lockedMessage":
+      "This mobile module is available for admin or manager accounts.",
+    "admissionsAdmin.tabs.pool": "Awaiting assignment",
+    "admissionsAdmin.tabs.form": "New admission",
+    "admissionsAdmin.pool.empty": "No student awaiting class assignment.",
+    "admissionsAdmin.pool.assign": "Assign a class",
+    "admissionsAdmin.pool.assignTitle": "Choose a class",
+    "admissionsAdmin.pool.assignConfirm": "Confirm assignment",
+    "admissionsAdmin.pool.assignCancel": "Cancel",
+    "admissionsAdmin.pool.assignSuccess": "Student assigned to the class.",
+    "admissionsAdmin.pool.assignError": "Unable to assign.",
+    "admissionsAdmin.form.title": "New student",
+    "admissionsAdmin.form.subtitle":
+      "The student joins the awaiting-assignment pool once the first installment is recorded.",
+    "admissionsAdmin.form.firstName": "First name",
+    "admissionsAdmin.form.lastName": "Last name",
+    "admissionsAdmin.form.dateOfBirth": "Date of birth (optional)",
+    "admissionsAdmin.form.academicLevel": "Level",
+    "admissionsAdmin.form.track": "Track (optional)",
+    "admissionsAdmin.form.trackNone": "No track",
+    "admissionsAdmin.form.schoolYear": "School year (optional)",
+    "admissionsAdmin.form.success": "Admission saved.",
+    "admissionsAdmin.form.error": "Unable to save.",
+    "admissionsAdmin.errors.load": "Unable to load.",
     "financeAdmin.settings.title": "Re-enrollment threshold",
     "financeAdmin.settings.description":
       "Determines how much a promoted student's family must pay to be considered re-enrolled.",
