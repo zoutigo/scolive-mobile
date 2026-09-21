@@ -319,7 +319,12 @@ const SCHOOL_NAV: NavItem[] = [
     icon: "layers-outline",
     route: "/curriculums",
   },
-  placeholder("Inscriptions", "person-add-outline", "enrollments"),
+  {
+    key: "enrollments",
+    label: "Inscriptions",
+    icon: "person-add-outline",
+    route: "/inscriptions",
+  },
   {
     key: "teachers",
     label: "Enseignants",
@@ -343,6 +348,12 @@ const SCHOOL_NAV: NavItem[] = [
     label: "Paiements",
     icon: "cash-outline",
     route: "/finance-paiements",
+  },
+  {
+    key: "finance-reinscription-deadlines",
+    label: "Délais de réinscription",
+    icon: "calendar-outline",
+    route: "/finance-reinscription-deadlines",
   },
   {
     key: "supply-lists",

@@ -1,7 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -66,10 +65,8 @@ export function InlineSearchSelect({
 
   return (
     <View style={styles.row} testID={testID}>
-      <Text style={styles.label} numberOfLines={2}>
-        {label}
-      </Text>
-      <View style={styles.fieldColumn}>
+      <Text style={styles.label}>{label}</Text>
+      <View>
         <View
           style={[
             styles.inputWrapper,
@@ -126,36 +123,30 @@ export function InlineSearchSelect({
         </View>
         {open && filteredOptions.length > 0 ? (
           <View style={styles.suggestions} testID={`${testID}-suggestions`}>
-            <ScrollView
-              keyboardShouldPersistTaps="handled"
-              nestedScrollEnabled
-              style={styles.suggestionsList}
-            >
-              {filteredOptions.map((item) => (
-                <TouchableOpacity
-                  key={item.value}
+            {filteredOptions.map((item) => (
+              <TouchableOpacity
+                key={item.value}
+                style={[
+                  styles.suggestionOption,
+                  item.value === value && styles.suggestionOptionSelected,
+                ]}
+                onPress={() => {
+                  onChange(item.value);
+                  setOpen(false);
+                  setQuery("");
+                }}
+                testID={`${testID}-option-${item.value}`}
+              >
+                <Text
                   style={[
-                    styles.suggestionOption,
-                    item.value === value && styles.suggestionOptionSelected,
+                    styles.suggestionText,
+                    item.value === value && styles.suggestionTextSelected,
                   ]}
-                  onPress={() => {
-                    onChange(item.value);
-                    setOpen(false);
-                    setQuery("");
-                  }}
-                  testID={`${testID}-option-${item.value}`}
                 >
-                  <Text
-                    style={[
-                      styles.suggestionText,
-                      item.value === value && styles.suggestionTextSelected,
-                    ]}
-                  >
-                    {item.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         ) : null}
         {open && filteredOptions.length === 0 ? (
@@ -170,21 +161,13 @@ export function InlineSearchSelect({
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: "row",
-    alignItems: "flex-start",
     marginBottom: 16,
   },
   label: {
-    width: 110,
-    paddingTop: 14,
+    marginBottom: 6,
     fontSize: 14,
     fontWeight: "600",
     color: colors.textPrimary,
-  },
-  fieldColumn: {
-    flex: 1,
-    position: "relative",
-    zIndex: 10,
   },
   inputWrapper: {
     height: 48,
@@ -212,25 +195,17 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   suggestions: {
-    position: "absolute",
-    top: 52,
-    left: 0,
-    right: 0,
+    marginTop: 4,
     backgroundColor: colors.white,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: "#E0D0BA",
-    maxHeight: 220,
     elevation: 6,
     shadowColor: "#000",
     shadowOpacity: 0.15,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
-    zIndex: 20,
     padding: 4,
-  },
-  suggestionsList: {
-    flexGrow: 0,
   },
   suggestionOption: {
     paddingVertical: 10,

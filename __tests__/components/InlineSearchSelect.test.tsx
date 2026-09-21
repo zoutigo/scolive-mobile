@@ -195,6 +195,36 @@ describe("InlineSearchSelect", () => {
     expect(screen.getByTestId("school-select-option-Centre")).toBeTruthy();
   });
 
+  it("renders every option in the flow (no clipped nested scroll container), so all are reachable via the parent screen's scroll", () => {
+    const manyOptions = [
+      "Adamaoua",
+      "Centre",
+      "Est",
+      "Extrême-Nord",
+      "Littoral",
+      "Nord",
+      "Nord-Ouest",
+      "Ouest",
+      "Sud",
+      "Sud-Ouest",
+    ].map((name) => ({ value: name, label: name }));
+    render(
+      <InlineSearchSelect
+        label="Région"
+        options={manyOptions}
+        value=""
+        onChange={jest.fn()}
+        testID="region-select"
+      />,
+    );
+    fireEvent(screen.getByTestId("region-select-input"), "focus");
+    for (const option of manyOptions) {
+      expect(
+        screen.getByTestId(`region-select-option-${option.value}`),
+      ).toBeTruthy();
+    }
+  });
+
   it("shows an empty-state message when no option matches the query", () => {
     render(
       <InlineSearchSelect

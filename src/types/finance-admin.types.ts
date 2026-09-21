@@ -34,6 +34,19 @@ export type UpsertFeeSchedulePayload = {
   installments: UpsertFeeScheduleInstallmentPayload[];
 };
 
+export type ReinscriptionDeadlineRow = {
+  id: string;
+  academicLevel: { id: string; label: string; code: string };
+  schoolYear: { id: string; label: string };
+  deadline: string;
+};
+
+export type CreateReinscriptionDeadlinePayload = {
+  schoolYearId: string;
+  academicLevelId: string;
+  deadline: string;
+};
+
 export type StudentFinanceSummary = {
   student: { id: string; firstName: string; lastName: string };
   decision: {
