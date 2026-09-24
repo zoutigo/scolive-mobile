@@ -85,4 +85,46 @@ describe("SchoolHome", () => {
 
     expect(mockPush).toHaveBeenCalledWith("/(home)/notes");
   });
+
+  it("navigue vers les utilisateurs depuis la navigation rapide (remplace l'ancien raccourci Élèves)", () => {
+    render(<SchoolHome user={schoolUser} schoolSlug="college-vogt" />);
+
+    fireEvent.press(screen.getByText("Utilisateurs"));
+
+    expect(mockPush).toHaveBeenCalledWith("/(home)/users");
+  });
+
+  it("navigue vers les inscriptions depuis la navigation rapide", () => {
+    render(<SchoolHome user={schoolUser} schoolSlug="college-vogt" />);
+
+    fireEvent.press(screen.getByText("Inscriptions"));
+
+    expect(mockPush).toHaveBeenCalledWith("/(home)/inscriptions");
+  });
+
+  it("navigue vers chaque module depuis les cartes KPI", async () => {
+    render(<SchoolHome user={schoolUser} schoolSlug="college-vogt" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("18")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByText("Classes"));
+    expect(mockPush).toHaveBeenLastCalledWith("/(home)/admin-classes");
+
+    fireEvent.press(screen.getByText("Élèves"));
+    expect(mockPush).toHaveBeenLastCalledWith("/(home)/users");
+
+    fireEvent.press(screen.getByText("Enseignants"));
+    expect(mockPush).toHaveBeenLastCalledWith("/(home)/teachers");
+
+    fireEvent.press(screen.getByText("Parents"));
+    expect(mockPush).toHaveBeenLastCalledWith("/(home)/users");
+
+    fireEvent.press(screen.getByText("Matières"));
+    expect(mockPush).toHaveBeenLastCalledWith("/(home)/matieres");
+
+    fireEvent.press(screen.getByText("Salles"));
+    expect(mockPush).toHaveBeenLastCalledWith("/(home)/salles");
+  });
 });

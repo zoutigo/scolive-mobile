@@ -83,7 +83,15 @@ function seedApiState() {
       id: "level-6e",
       code: "6EME",
       label: "Sixième",
+      languageSystem: "FRANCOPHONE",
       _count: { classes: 2, curriculums: 1 },
+    },
+    {
+      id: "level-form1",
+      code: "FORM1",
+      label: "Form 1",
+      languageSystem: "ANGLOPHONE",
+      _count: { classes: 0, curriculums: 0 },
     },
   ];
   tracksState = [
@@ -91,6 +99,7 @@ function seedApiState() {
       id: "track-sc",
       code: "SCI",
       label: "Scientifique",
+      languageSystem: "FRANCOPHONE",
       _count: { classes: 0, curriculums: 0 },
     },
   ];
@@ -128,6 +137,7 @@ function seedApiState() {
         id: "level-6e",
         code: "6EME",
         label: "Sixième",
+        languageSystem: "FRANCOPHONE",
       },
       track: null,
       _count: {
@@ -144,11 +154,13 @@ function seedApiState() {
         id: "level-6e",
         code: "6EME",
         label: "Sixième",
+        languageSystem: "FRANCOPHONE",
       },
       track: {
         id: "track-sc",
         code: "SCI",
         label: "Scientifique",
+        languageSystem: "FRANCOPHONE",
       },
       _count: {
         classes: 0,
@@ -164,6 +176,8 @@ function seedApiState() {
         coefficient: 4,
         weeklyHours: 5,
         isMandatory: true,
+        isNational: false,
+        isCustomized: false,
         subject: {
           id: "subject-math",
           name: "Mathématiques",
@@ -326,6 +340,8 @@ beforeEach(() => {
     coefficient: 2,
     weeklyHours: 2,
     isMandatory: false,
+    isNational: false,
+    isCustomized: false,
     subject: {
       id: "subject-phys",
       name: "Physique",
@@ -922,6 +938,92 @@ describe("CurriculumsAdminScreen — curriculums", () => {
     );
     const submit = screen.getByTestId("curriculum-form-submit");
     expect(submit.props.accessibilityState?.disabled).toBeFalsy();
+  });
+
+  it("distingue visuellement les matières nationales et celles ajoutées par l'école", async () => {
+    curriculumSubjectsState["curr-1"] = [
+      {
+        id: "curr-subj-national",
+        subjectId: "subject-math",
+        coefficient: 4,
+        weeklyHours: 5,
+        isMandatory: true,
+        isNational: true,
+        isCustomized: false,
+        subject: { id: "subject-math", name: "Mathématiques" },
+      },
+      {
+        id: "curr-subj-school",
+        subjectId: "subject-chinois",
+        coefficient: 1,
+        weeklyHours: 2,
+        isMandatory: false,
+        isNational: false,
+        isCustomized: false,
+        subject: { id: "subject-chinois", name: "Chinois" },
+      },
+    ];
+
+    await renderAndWaitLoaded();
+    fireEvent.press(screen.getByTestId("curriculum-subjects-curr-1"));
+    await waitFor(() =>
+      expect(screen.getByTestId("curriculum-selector")).toBeTruthy(),
+    );
+
+    expect(
+      await screen.findByTestId("curriculum-subject-origin-curr-subj-national"),
+    ).toHaveTextContent("National");
+    expect(
+      screen.getByTestId("curriculum-subject-origin-curr-subj-school"),
+    ).toHaveTextContent("Ajoutée par l'école");
+  });
+
+  it("affiche le badge de langue sur les niveaux et permet de filtrer", async () => {
+    await renderAndWaitLoaded();
+    fireEvent.press(screen.getByTestId("curriculums-tab-levels"));
+
+    expect(
+      await screen.findByTestId("curriculum-level-language-level-6e"),
+    ).toHaveTextContent("Francophone");
+    expect(
+      screen.getByTestId("curriculum-level-language-level-form1"),
+    ).toHaveTextContent("Anglophone");
+
+    fireEvent.press(screen.getByTestId("curriculum-language-filter-ANGLOPHONE"));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Sixième")).toBeNull();
+      expect(screen.getByText("Form 1")).toBeTruthy();
+    });
+  });
+
+  it("affiche le badge de langue sur les filières et permet de filtrer", async () => {
+    await renderAndWaitLoaded();
+    fireEvent.press(screen.getByTestId("curriculums-tab-tracks"));
+
+    expect(
+      await screen.findByTestId("curriculum-track-language-track-sc"),
+    ).toHaveTextContent("Francophone");
+
+    fireEvent.press(screen.getByTestId("curriculum-language-filter-ANGLOPHONE"));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Scientifique")).toBeNull();
+    });
+  });
+
+  it("affiche le badge de langue sur les curriculums et permet de filtrer", async () => {
+    await renderAndWaitLoaded();
+
+    expect(
+      await screen.findByTestId("curriculum-language-curr-1"),
+    ).toHaveTextContent("Francophone");
+
+    fireEvent.press(screen.getByTestId("curriculum-language-filter-ANGLOPHONE"));
+
+    await waitFor(() => {
+      expect(screen.queryByText("6EME - TRONC_COMMUN")).toBeNull();
+    });
   });
 });
 

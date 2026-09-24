@@ -110,7 +110,11 @@ type NationalFormContext =
       mode: FormMode;
       originPane: NationalTabKey;
       id?: string;
-      initialValues?: { code: string; label: string };
+      initialValues?: {
+        code: string;
+        label: string;
+        languageSystem?: SchoolLanguageSystem | "";
+      };
     }
   | {
       kind: "curriculum";
@@ -123,7 +127,11 @@ type NationalFormContext =
       mode: FormMode;
       originPane: NationalTabKey;
       id?: string;
-      initialValues?: { code: string; name: string };
+      initialValues?: {
+        code: string;
+        name: string;
+        languageSystem?: SchoolLanguageSystem | "";
+      };
     };
 
 type NationalDeleteTarget =
@@ -225,11 +233,23 @@ const NATIONAL_CURRICULUM_FORM_SCHEMA = z.object({
 const NATIONAL_TRACK_FORM_SCHEMA = z.object({
   code: z.string().trim().min(1, "Le code est obligatoire."),
   label: z.string().trim().min(1, "Le libellé est obligatoire."),
+  languageSystem: z.union([
+    z.literal("FRANCOPHONE"),
+    z.literal("ANGLOPHONE"),
+    z.literal("BILINGUAL"),
+    z.literal(""),
+  ]),
 });
 
 const NATIONAL_SUBJECT_FORM_SCHEMA = z.object({
   code: z.string().trim().min(1, "Le code est obligatoire."),
   name: z.string().trim().min(1, "Le nom est obligatoire."),
+  languageSystem: z.union([
+    z.literal("FRANCOPHONE"),
+    z.literal("ANGLOPHONE"),
+    z.literal("BILINGUAL"),
+    z.literal(""),
+  ]),
 });
 
 const NATIONAL_CURRICULUM_SUBJECT_FORM_SCHEMA = z.object({
@@ -1600,10 +1620,18 @@ function NationalCurriculumFormContent(props: {
 
 function NationalTrackFormContent(props: {
   mode: FormMode;
-  initialValues?: { code: string; label: string };
+  initialValues?: {
+    code: string;
+    label: string;
+    languageSystem?: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL" | "";
+  };
   isSubmitting?: boolean;
   onCancel: () => void;
-  onSubmit: (values: { code: string; label: string }) => Promise<void> | void;
+  onSubmit: (values: {
+    code: string;
+    label: string;
+    languageSystem?: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL";
+  }) => Promise<void> | void;
 }) {
   const {
     control,
@@ -1613,7 +1641,11 @@ function NationalTrackFormContent(props: {
   } = useForm<z.infer<typeof NATIONAL_TRACK_FORM_SCHEMA>>({
     resolver: zodResolver(NATIONAL_TRACK_FORM_SCHEMA),
     mode: "onChange",
-    defaultValues: props.initialValues ?? { code: "", label: "" },
+    defaultValues: {
+      code: props.initialValues?.code ?? "",
+      label: props.initialValues?.label ?? "",
+      languageSystem: props.initialValues?.languageSystem ?? "",
+    },
   });
 
   return (
@@ -1660,6 +1692,25 @@ function NationalTrackFormContent(props: {
             />
           )}
         />
+        <Controller
+          control={control}
+          name="languageSystem"
+          render={({ field: { value, onChange } }) => (
+            <CompactSelectField
+              label="Système linguistique"
+              value={value}
+              onChange={(next) =>
+                onChange(
+                  next as "" | "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL",
+                )
+              }
+              options={NATIONAL_LEVEL_LANGUAGE_SYSTEM_OPTIONS}
+              placeholder="Sélectionner un système"
+              testID="national-track-form-language-system"
+              error={errors.languageSystem?.message}
+            />
+          )}
+        />
       </ScrollView>
 
       <View style={styles.formActionsBar}>
@@ -1671,7 +1722,12 @@ function NationalTrackFormContent(props: {
           onCancel={props.onCancel}
           onSubmit={() =>
             void handleSubmit(
-              async (values) => props.onSubmit(values),
+              async (values) =>
+                props.onSubmit({
+                  code: values.code,
+                  label: values.label,
+                  languageSystem: values.languageSystem || undefined,
+                }),
               (errs) => {
                 const first = Object.keys(errs)[0];
                 if (first)
@@ -1688,10 +1744,18 @@ function NationalTrackFormContent(props: {
 
 function NationalSubjectFormContent(props: {
   mode: FormMode;
-  initialValues?: { code: string; name: string };
+  initialValues?: {
+    code: string;
+    name: string;
+    languageSystem?: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL" | "";
+  };
   isSubmitting?: boolean;
   onCancel: () => void;
-  onSubmit: (values: { code: string; name: string }) => Promise<void> | void;
+  onSubmit: (values: {
+    code: string;
+    name: string;
+    languageSystem?: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL";
+  }) => Promise<void> | void;
 }) {
   const {
     control,
@@ -1701,7 +1765,11 @@ function NationalSubjectFormContent(props: {
   } = useForm<z.infer<typeof NATIONAL_SUBJECT_FORM_SCHEMA>>({
     resolver: zodResolver(NATIONAL_SUBJECT_FORM_SCHEMA),
     mode: "onChange",
-    defaultValues: props.initialValues ?? { code: "", name: "" },
+    defaultValues: {
+      code: props.initialValues?.code ?? "",
+      name: props.initialValues?.name ?? "",
+      languageSystem: props.initialValues?.languageSystem ?? "",
+    },
   });
 
   return (
@@ -1748,6 +1816,25 @@ function NationalSubjectFormContent(props: {
             />
           )}
         />
+        <Controller
+          control={control}
+          name="languageSystem"
+          render={({ field: { value, onChange } }) => (
+            <CompactSelectField
+              label="Système linguistique"
+              value={value}
+              onChange={(next) =>
+                onChange(
+                  next as "" | "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL",
+                )
+              }
+              options={NATIONAL_LEVEL_LANGUAGE_SYSTEM_OPTIONS}
+              placeholder="Sélectionner un système"
+              testID="national-subject-form-language-system"
+              error={errors.languageSystem?.message}
+            />
+          )}
+        />
       </ScrollView>
 
       <View style={styles.formActionsBar}>
@@ -1759,7 +1846,12 @@ function NationalSubjectFormContent(props: {
           onCancel={props.onCancel}
           onSubmit={() =>
             void handleSubmit(
-              async (values) => props.onSubmit(values),
+              async (values) =>
+                props.onSubmit({
+                  code: values.code,
+                  name: values.name,
+                  languageSystem: values.languageSystem || undefined,
+                }),
               (errs) => {
                 const first = Object.keys(errs)[0];
                 if (first)
@@ -2284,7 +2376,11 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
     }
   }
 
-  async function handleTrackSubmit(values: { code: string; label: string }) {
+  async function handleTrackSubmit(values: {
+    code: string;
+    label: string;
+    languageSystem?: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL";
+  }) {
     if (!formContext || formContext.kind !== "track") return;
     const ctx = formContext;
     setIsSubmittingTrack(true);
@@ -2347,7 +2443,11 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
     }
   }
 
-  async function handleSubjectSubmit(values: { code: string; name: string }) {
+  async function handleSubjectSubmit(values: {
+    code: string;
+    name: string;
+    languageSystem?: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL";
+  }) {
     if (!formContext || formContext.kind !== "subject") return;
     const ctx = formContext;
     setIsSubmittingSubject(true);
@@ -3138,7 +3238,19 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
                             <Text style={styles.entityTitle}>
                               {track.label}
                             </Text>
-                            <Text style={styles.entityMeta}>{track.code}</Text>
+                            <Text style={styles.entityMeta}>
+                              {[
+                                track.code,
+                                track.languageSystem
+                                  ? NATIONAL_LEVEL_LANGUAGE_SYSTEM_OPTIONS.find(
+                                      (option) =>
+                                        option.value === track.languageSystem,
+                                    )?.label
+                                  : null,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </Text>
                           </View>
                         </View>
                         <View style={styles.iconActions}>
@@ -3153,6 +3265,7 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
                                 initialValues: {
                                   code: track.code,
                                   label: track.label,
+                                  languageSystem: track.languageSystem ?? "",
                                 },
                               });
                               setPane("forms");
@@ -3340,7 +3453,18 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
                                 {subject.name}
                               </Text>
                               <Text style={styles.entityMeta}>
-                                {subject.code}
+                                {[
+                                  subject.code,
+                                  subject.languageSystem
+                                    ? NATIONAL_LEVEL_LANGUAGE_SYSTEM_OPTIONS.find(
+                                        (option) =>
+                                          option.value ===
+                                          subject.languageSystem,
+                                      )?.label
+                                    : null,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
                               </Text>
                             </View>
                           </View>
@@ -3356,6 +3480,8 @@ function NationalCatalogTabs(props: { onBack: () => void }) {
                                   initialValues: {
                                     code: subject.code,
                                     name: subject.name,
+                                    languageSystem:
+                                      subject.languageSystem ?? "",
                                   },
                                 });
                                 setPane("forms");
@@ -3587,6 +3713,9 @@ export function CurriculumsAdminScreen() {
   >([]);
   const [selectedCurriculumId, setSelectedCurriculumId] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [catalogLanguageFilter, setCatalogLanguageFilter] = useState<
+    "" | "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL"
+  >("");
 
   const role = user?.activeRole ?? user?.role ?? null;
   const isAllowed =
@@ -3598,17 +3727,123 @@ export function CurriculumsAdminScreen() {
   const tabItems = BASE_TAB_ITEMS;
   const subtitle = user ? buildAdminSubtitle(user) : null;
 
+  function matchesLanguageFilter(
+    languageSystem: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL" | null | undefined,
+  ) {
+    if (!catalogLanguageFilter) return true;
+    if (!languageSystem) return true;
+    if (languageSystem === "BILINGUAL") return true;
+    return languageSystem === catalogLanguageFilter;
+  }
+
+  function languageSystemLabel(
+    languageSystem: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL" | null | undefined,
+  ) {
+    if (languageSystem === "FRANCOPHONE") return "Francophone";
+    if (languageSystem === "ANGLOPHONE") return "Anglophone";
+    if (languageSystem === "BILINGUAL") return "Bilingue";
+    return "Non renseignée";
+  }
+
+  function LanguageBadge({
+    languageSystem,
+    testID,
+  }: {
+    languageSystem: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL" | null | undefined;
+    testID?: string;
+  }) {
+    const badgeStyle =
+      languageSystem === "FRANCOPHONE"
+        ? styles.languageBadgeFrancophone
+        : languageSystem === "ANGLOPHONE"
+          ? styles.languageBadgeAnglophone
+          : languageSystem === "BILINGUAL"
+            ? styles.languageBadgeBilingual
+            : styles.languageBadgeUnspecified;
+    const textStyle =
+      languageSystem === "FRANCOPHONE"
+        ? styles.languageBadgeTextFrancophone
+        : languageSystem === "ANGLOPHONE"
+          ? styles.languageBadgeTextAnglophone
+          : languageSystem === "BILINGUAL"
+            ? styles.languageBadgeTextBilingual
+            : styles.languageBadgeTextUnspecified;
+    return (
+      <View style={[styles.languageBadge, badgeStyle]} testID={testID}>
+        <Text style={[styles.languageBadgeText, textStyle]}>
+          {languageSystemLabel(languageSystem)}
+        </Text>
+      </View>
+    );
+  }
+
+  function LanguageFilterBar() {
+    const options: Array<{
+      value: "" | "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL";
+      label: string;
+    }> = [
+      { value: "", label: "Toutes" },
+      { value: "FRANCOPHONE", label: "Francophone" },
+      { value: "ANGLOPHONE", label: "Anglophone" },
+      { value: "BILINGUAL", label: "Bilingue" },
+    ];
+    return (
+      <View style={styles.languageFilterBar} testID="curriculum-language-filter">
+        <Text style={styles.languageFilterLabel}>Langue :</Text>
+        <View style={styles.languageFilterOptions}>
+          {options.map((option) => {
+            const active = catalogLanguageFilter === option.value;
+            return (
+              <TouchableOpacity
+                key={option.value || "all"}
+                style={[
+                  styles.languageFilterChip,
+                  active ? styles.languageFilterChipActive : null,
+                ]}
+                onPress={() => setCatalogLanguageFilter(option.value)}
+                testID={`curriculum-language-filter-${option.value || "all"}`}
+              >
+                <Text
+                  style={[
+                    styles.languageFilterChipText,
+                    active ? styles.languageFilterChipTextActive : null,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    );
+  }
+
   const orderedLevels = useMemo(
-    () => [...levels].sort((a, b) => a.code.localeCompare(b.code)),
-    [levels],
+    () =>
+      [...levels]
+        .sort((a, b) => a.code.localeCompare(b.code))
+        .filter((level) => matchesLanguageFilter(level.languageSystem)),
+    [levels, catalogLanguageFilter],
   );
   const orderedTracks = useMemo(
-    () => [...tracks].sort((a, b) => a.code.localeCompare(b.code)),
-    [tracks],
+    () =>
+      [...tracks]
+        .sort((a, b) => a.code.localeCompare(b.code))
+        .filter((track) => matchesLanguageFilter(track.languageSystem)),
+    [tracks, catalogLanguageFilter],
   );
   const orderedCurriculums = useMemo(
-    () => [...curriculums].sort((a, b) => a.name.localeCompare(b.name)),
-    [curriculums],
+    () =>
+      [...curriculums]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .filter((curriculum) =>
+          matchesLanguageFilter(
+            curriculum.track?.languageSystem ??
+              curriculum.academicLevel.languageSystem,
+          ),
+        ),
+    [curriculums, catalogLanguageFilter],
   );
   const orderedCurriculumSubjects = useMemo(
     () =>
@@ -4221,6 +4456,7 @@ export function CurriculumsAdminScreen() {
                 subtitle="Base de la structure pédagogique"
                 testID="curriculums-levels-card"
               >
+                <LanguageFilterBar />
                 {orderedLevels.length === 0 ? (
                   <EmptyState
                     icon="layers-outline"
@@ -4267,6 +4503,10 @@ export function CurriculumsAdminScreen() {
                                 "classe",
                               )}
                             </Text>
+                            <LanguageBadge
+                              languageSystem={level.languageSystem}
+                              testID={`curriculum-level-language-${level.id}`}
+                            />
                           </View>
                         </View>
                         <View style={styles.iconActions}>
@@ -4324,6 +4564,7 @@ export function CurriculumsAdminScreen() {
                 subtitle="Options et spécialisations par niveau"
                 testID="curriculums-tracks-card"
               >
+                <LanguageFilterBar />
                 {orderedTracks.length === 0 ? (
                   <EmptyState
                     icon="git-branch-outline"
@@ -4370,6 +4611,10 @@ export function CurriculumsAdminScreen() {
                                 "classe",
                               )}
                             </Text>
+                            <LanguageBadge
+                              languageSystem={track.languageSystem}
+                              testID={`curriculum-track-language-${track.id}`}
+                            />
                           </View>
                         </View>
                         <View style={styles.iconActions}>
@@ -4427,6 +4672,7 @@ export function CurriculumsAdminScreen() {
                 subtitle="Assemblage d'un niveau, d'une filière et de matières officielles"
                 testID="curriculums-card"
               >
+                <LanguageFilterBar />
                 {orderedCurriculums.length === 0 ? (
                   <EmptyState
                     icon="albums-outline"
@@ -4482,6 +4728,13 @@ export function CurriculumsAdminScreen() {
                               ·{" "}
                               {formatCount(curriculum._count.classes, "classe")}
                             </Text>
+                            <LanguageBadge
+                              languageSystem={
+                                curriculum.track?.languageSystem ??
+                                curriculum.academicLevel.languageSystem
+                              }
+                              testID={`curriculum-language-${curriculum.id}`}
+                            />
                           </View>
                         </TouchableOpacity>
                         <View style={styles.iconActions}>
@@ -4620,6 +4873,30 @@ export function CurriculumsAdminScreen() {
                                     ? "Obligatoire"
                                     : "Optionnelle"}
                                 </Text>
+                                <View
+                                  style={[
+                                    styles.originBadge,
+                                    entry.isNational
+                                      ? styles.originBadgeNational
+                                      : styles.originBadgeSchool,
+                                  ]}
+                                  testID={`curriculum-subject-origin-${entry.id}`}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.originBadgeText,
+                                      entry.isNational
+                                        ? styles.originBadgeTextNational
+                                        : styles.originBadgeTextSchool,
+                                    ]}
+                                  >
+                                    {entry.isNational
+                                      ? entry.isCustomized
+                                        ? "National (personnalisé)"
+                                        : "National"
+                                      : "Ajoutée par l'école"}
+                                  </Text>
+                                </View>
                               </View>
                             </View>
                             <View style={styles.iconActions}>
@@ -4863,6 +5140,99 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 12,
     lineHeight: 17,
+  },
+  originBadge: {
+    alignSelf: "flex-start",
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  originBadgeNational: {
+    backgroundColor: "rgba(12, 95, 168, 0.1)",
+  },
+  originBadgeSchool: {
+    backgroundColor: "rgba(36, 124, 114, 0.1)",
+  },
+  originBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  originBadgeTextNational: {
+    color: colors.primary,
+  },
+  originBadgeTextSchool: {
+    color: colors.accentTeal,
+  },
+  languageBadge: {
+    alignSelf: "flex-start",
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  languageBadgeFrancophone: {
+    backgroundColor: "rgba(8, 70, 125, 0.1)",
+  },
+  languageBadgeAnglophone: {
+    backgroundColor: "rgba(36, 124, 114, 0.1)",
+  },
+  languageBadgeBilingual: {
+    backgroundColor: "rgba(216, 155, 91, 0.18)",
+  },
+  languageBadgeUnspecified: {
+    backgroundColor: "rgba(95, 90, 82, 0.1)",
+  },
+  languageBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  languageBadgeTextFrancophone: {
+    color: colors.primary,
+  },
+  languageBadgeTextAnglophone: {
+    color: colors.accentTeal,
+  },
+  languageBadgeTextBilingual: {
+    color: colors.warmAccent,
+  },
+  languageBadgeTextUnspecified: {
+    color: colors.textSecondary,
+  },
+  languageFilterBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  languageFilterLabel: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  languageFilterOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  languageFilterChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  languageFilterChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  languageFilterChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textSecondary,
+  },
+  languageFilterChipTextActive: {
+    color: "#FFFFFF",
   },
   iconActions: {
     flexDirection: "row",

@@ -100,6 +100,7 @@ beforeEach(() => {
         id: "subject-national-created",
         code: payload.code,
         name: payload.name,
+        languageSystem: payload.languageSystem ?? null,
         isNational: true,
         _count: {
           assignments: 0,
@@ -139,6 +140,7 @@ describe("SubjectsAdminScreen — catalogue national", () => {
         id: "subject-national-1",
         code: "MATH",
         name: "Mathématiques",
+        languageSystem: null,
         isNational: true,
         _count: {
           assignments: 0,
@@ -203,6 +205,7 @@ describe("SubjectsAdminScreen — catalogue national", () => {
         id: "subject-national-1",
         code: "MATH",
         name: "Mathématiques",
+        languageSystem: null,
         isNational: true,
         _count: {
           assignments: 0,

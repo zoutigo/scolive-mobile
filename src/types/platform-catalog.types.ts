@@ -1,7 +1,10 @@
+export type SchoolLanguageSystem = "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL";
+
 export type NationalSubjectRow = {
   id: string;
   code: string;
   name: string;
+  languageSystem: SchoolLanguageSystem | null;
   isNational: true;
   _count: {
     assignments: number;
@@ -14,12 +17,11 @@ export type NationalSubjectRow = {
 export type CreateNationalSubjectPayload = {
   code: string;
   name: string;
+  languageSystem?: SchoolLanguageSystem;
 };
 
 export type UpdateNationalSubjectPayload =
   Partial<CreateNationalSubjectPayload>;
-
-export type SchoolLanguageSystem = "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL";
 
 export type NationalCycleRow = {
   id: string;
@@ -65,6 +67,7 @@ export type NationalTrackRow = {
   id: string;
   code: string;
   label: string;
+  languageSystem: SchoolLanguageSystem | null;
   isNational: true;
   _count?: {
     classes: number;
@@ -75,6 +78,7 @@ export type NationalTrackRow = {
 export type CreateNationalTrackPayload = {
   code: string;
   label: string;
+  languageSystem?: SchoolLanguageSystem;
 };
 
 export type UpdateNationalTrackPayload = Partial<CreateNationalTrackPayload>;

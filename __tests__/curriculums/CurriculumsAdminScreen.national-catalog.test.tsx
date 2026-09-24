@@ -184,6 +184,7 @@ beforeEach(() => {
         id: "track-national-created",
         code: payload.code,
         label: payload.label,
+        languageSystem: payload.languageSystem ?? null,
         isNational: true,
         _count: { classes: 0, curriculums: 0 },
       };
@@ -270,6 +271,7 @@ beforeEach(() => {
         id: "subject-national-created",
         code: payload.code,
         name: payload.name,
+        languageSystem: payload.languageSystem ?? null,
         isNational: true,
         _count: {
           assignments: 0,
@@ -772,6 +774,78 @@ describe("CurriculumsAdminScreen — catalogue national", () => {
     });
   });
 
+  it("crée une filière nationale avec un système linguistique sélectionné", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+
+    render(<CurriculumsAdminScreen />);
+
+    fireEvent.press(await screen.findByTestId("national-catalog-tab-tracks"));
+    fireEvent.press(await screen.findByTestId("national-catalog-fab"));
+    fireEvent.changeText(
+      await screen.findByTestId("national-track-form-code"),
+      "ARTS_A1",
+    );
+    fireEvent.changeText(
+      await screen.findByTestId("national-track-form-label"),
+      "Arts A1",
+    );
+    fireEvent.press(
+      await screen.findByTestId("national-track-form-language-system"),
+    );
+    fireEvent.press(
+      await screen.findByTestId(
+        "national-track-form-language-system-option-ANGLOPHONE",
+      ),
+    );
+    fireEvent.press(await screen.findByTestId("national-track-form-submit"));
+
+    await waitFor(() => {
+      expect(mockPlatformCatalogApi.createNationalTrack).toHaveBeenCalledWith({
+        code: "ARTS_A1",
+        label: "Arts A1",
+        languageSystem: "ANGLOPHONE",
+      });
+    });
+  });
+
+  it("crée une matière nationale avec un système linguistique sélectionné", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+
+    render(<CurriculumsAdminScreen />);
+
+    fireEvent.press(
+      await screen.findByTestId("national-catalog-tab-subjects"),
+    );
+    fireEvent.press(await screen.findByTestId("national-catalog-fab"));
+    fireEvent.changeText(
+      await screen.findByTestId("national-subject-form-code"),
+      "MATHS_EN",
+    );
+    fireEvent.changeText(
+      await screen.findByTestId("national-subject-form-name"),
+      "Mathematics",
+    );
+    fireEvent.press(
+      await screen.findByTestId("national-subject-form-language-system"),
+    );
+    fireEvent.press(
+      await screen.findByTestId(
+        "national-subject-form-language-system-option-ANGLOPHONE",
+      ),
+    );
+    fireEvent.press(await screen.findByTestId("national-subject-form-submit"));
+
+    await waitFor(() => {
+      expect(
+        mockPlatformCatalogApi.createNationalSubject,
+      ).toHaveBeenCalledWith({
+        code: "MATHS_EN",
+        name: "Mathematics",
+        languageSystem: "ANGLOPHONE",
+      });
+    });
+  });
+
   it("crée un curriculum national avec une filière et l'affiche dans la liste", async () => {
     mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
     nationalLevelsState = [
@@ -790,6 +864,7 @@ describe("CurriculumsAdminScreen — catalogue national", () => {
         id: "track-1",
         code: "D",
         label: "Série D",
+        languageSystem: null,
         isNational: true,
         _count: { classes: 0, curriculums: 0 },
       },
@@ -854,6 +929,7 @@ describe("CurriculumsAdminScreen — catalogue national", () => {
         id: "subject-1",
         code: "MATH",
         name: "Maths",
+        languageSystem: null,
         isNational: true,
         _count: {
           assignments: 0,
@@ -967,6 +1043,7 @@ describe("CurriculumsAdminScreen — catalogue national", () => {
         id: "subject-1",
         code: "MATH",
         name: "Maths",
+        languageSystem: null,
         isNational: true,
         _count: {
           assignments: 0,

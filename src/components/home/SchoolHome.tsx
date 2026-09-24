@@ -96,59 +96,44 @@ export function SchoolHome({ user, schoolSlug }: SchoolHomeProps) {
       label: t("home.school.kpi.classes"),
       value: kpis?.classesCount,
       color: colors.primary,
+      onPress: () => router.push("/(home)/admin-classes"),
     },
     {
       icon: "people",
       label: t("home.school.kpi.students"),
       value: kpis?.studentsCount,
       color: colors.accentTeal,
+      onPress: () => router.push("/(home)/users"),
     },
     {
       icon: "school",
       label: t("home.school.kpi.teachers"),
       value: kpis?.teachersCount,
       color: colors.warmAccent,
+      onPress: () => router.push("/(home)/teachers"),
     },
     {
       icon: "heart",
       label: t("home.school.kpi.parents"),
       value: kpis?.parentsCount,
       color: "#6B5EA8",
+      onPress: () => router.push("/(home)/users"),
     },
     {
       icon: "book-outline",
       label: t("home.school.kpi.subjects"),
       value: kpis?.subjectsCount,
       color: "#3A8FAF",
+      onPress: () => router.push("/(home)/matieres"),
     },
     {
       icon: "business",
       label: t("home.school.kpi.rooms"),
       value: kpis?.roomsCount,
       color: "#D08B3A",
+      onPress: () => router.push("/(home)/salles"),
     },
   ] as const;
-
-  function handleQuickLinkPress(label: string) {
-    if (label === "Fil d'actualité") {
-      router.push("/(home)/feed");
-      return;
-    }
-
-    if (label === "Messagerie") {
-      router.push("/(home)/messages");
-      return;
-    }
-
-    if (label === "Emploi du temps") {
-      router.push("/(home)/admin-timetable");
-      return;
-    }
-
-    if (label === "Notes") {
-      router.push("/(home)/notes");
-    }
-  }
 
   return (
     <ScrollView
@@ -176,6 +161,7 @@ export function SchoolHome({ user, schoolSlug }: SchoolHomeProps) {
             key={s.label}
             style={styles.statCard}
             activeOpacity={0.75}
+            onPress={s.onPress}
           >
             <View
               style={[styles.statCardIcon, { backgroundColor: s.color + "18" }]}
@@ -201,36 +187,38 @@ export function SchoolHome({ user, schoolSlug }: SchoolHomeProps) {
           icon="calendar-outline"
           label="Emploi du temps"
           color={colors.primary}
-          onPress={() => handleQuickLinkPress("Emploi du temps")}
+          onPress={() => router.push("/(home)/admin-timetable")}
         />
         <QuickLink
           icon="newspaper-outline"
           label="Fil d'actualité"
           color={colors.accentTeal}
-          onPress={() => handleQuickLinkPress("Fil d'actualité")}
+          onPress={() => router.push("/(home)/feed")}
         />
         <QuickLink
           icon="people-outline"
-          label="Élèves"
+          label="Utilisateurs"
           color={colors.accentTeal}
+          onPress={() => router.push("/(home)/users")}
         />
         <QuickLink
           icon="ribbon-outline"
           label="Notes"
           color={colors.warmAccent}
-          onPress={() => handleQuickLinkPress("Notes")}
+          onPress={() => router.push("/(home)/notes")}
         />
         <QuickLink
           icon="chatbubble-outline"
           label="Messagerie"
           color="#6B5EA8"
           count="3"
-          onPress={() => handleQuickLinkPress("Messagerie")}
+          onPress={() => router.push("/(home)/messages")}
         />
         <QuickLink
           icon="person-add-outline"
           label="Inscriptions"
           color="#3A8FAF"
+          onPress={() => router.push("/(home)/inscriptions")}
         />
       </View>
     </ScrollView>
