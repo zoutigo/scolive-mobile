@@ -989,7 +989,9 @@ describe("CurriculumsAdminScreen — curriculums", () => {
       screen.getByTestId("curriculum-level-language-level-form1"),
     ).toHaveTextContent("Anglophone");
 
-    fireEvent.press(screen.getByTestId("curriculum-language-filter-ANGLOPHONE"));
+    fireEvent.press(
+      screen.getByTestId("curriculum-language-filter-ANGLOPHONE"),
+    );
 
     await waitFor(() => {
       expect(screen.queryByText("Sixième")).toBeNull();
@@ -1005,7 +1007,9 @@ describe("CurriculumsAdminScreen — curriculums", () => {
       await screen.findByTestId("curriculum-track-language-track-sc"),
     ).toHaveTextContent("Francophone");
 
-    fireEvent.press(screen.getByTestId("curriculum-language-filter-ANGLOPHONE"));
+    fireEvent.press(
+      screen.getByTestId("curriculum-language-filter-ANGLOPHONE"),
+    );
 
     await waitFor(() => {
       expect(screen.queryByText("Scientifique")).toBeNull();
@@ -1019,7 +1023,9 @@ describe("CurriculumsAdminScreen — curriculums", () => {
       await screen.findByTestId("curriculum-language-curr-1"),
     ).toHaveTextContent("Francophone");
 
-    fireEvent.press(screen.getByTestId("curriculum-language-filter-ANGLOPHONE"));
+    fireEvent.press(
+      screen.getByTestId("curriculum-language-filter-ANGLOPHONE"),
+    );
 
     await waitFor(() => {
       expect(screen.queryByText("6EME - TRONC_COMMUN")).toBeNull();

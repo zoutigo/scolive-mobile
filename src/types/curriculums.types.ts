@@ -1,4 +1,7 @@
-export type CurriculumLanguageSystem = "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL";
+export type CurriculumLanguageSystem =
+  | "FRANCOPHONE"
+  | "ANGLOPHONE"
+  | "BILINGUAL";
 
 export type CurriculumAcademicLevel = {
   id: string;

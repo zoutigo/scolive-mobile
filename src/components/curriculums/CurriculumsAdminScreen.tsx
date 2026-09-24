@@ -3728,7 +3728,12 @@ export function CurriculumsAdminScreen() {
   const subtitle = user ? buildAdminSubtitle(user) : null;
 
   function matchesLanguageFilter(
-    languageSystem: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL" | null | undefined,
+    languageSystem:
+      | "FRANCOPHONE"
+      | "ANGLOPHONE"
+      | "BILINGUAL"
+      | null
+      | undefined,
   ) {
     if (!catalogLanguageFilter) return true;
     if (!languageSystem) return true;
@@ -3737,7 +3742,12 @@ export function CurriculumsAdminScreen() {
   }
 
   function languageSystemLabel(
-    languageSystem: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL" | null | undefined,
+    languageSystem:
+      | "FRANCOPHONE"
+      | "ANGLOPHONE"
+      | "BILINGUAL"
+      | null
+      | undefined,
   ) {
     if (languageSystem === "FRANCOPHONE") return "Francophone";
     if (languageSystem === "ANGLOPHONE") return "Anglophone";
@@ -3749,7 +3759,12 @@ export function CurriculumsAdminScreen() {
     languageSystem,
     testID,
   }: {
-    languageSystem: "FRANCOPHONE" | "ANGLOPHONE" | "BILINGUAL" | null | undefined;
+    languageSystem:
+      | "FRANCOPHONE"
+      | "ANGLOPHONE"
+      | "BILINGUAL"
+      | null
+      | undefined;
     testID?: string;
   }) {
     const badgeStyle =
@@ -3788,7 +3803,10 @@ export function CurriculumsAdminScreen() {
       { value: "BILINGUAL", label: "Bilingue" },
     ];
     return (
-      <View style={styles.languageFilterBar} testID="curriculum-language-filter">
+      <View
+        style={styles.languageFilterBar}
+        testID="curriculum-language-filter"
+      >
         <Text style={styles.languageFilterLabel}>Langue :</Text>
         <View style={styles.languageFilterOptions}>
           {options.map((option) => {

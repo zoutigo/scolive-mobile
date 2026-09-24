@@ -813,9 +813,7 @@ describe("CurriculumsAdminScreen — catalogue national", () => {
 
     render(<CurriculumsAdminScreen />);
 
-    fireEvent.press(
-      await screen.findByTestId("national-catalog-tab-subjects"),
-    );
+    fireEvent.press(await screen.findByTestId("national-catalog-tab-subjects"));
     fireEvent.press(await screen.findByTestId("national-catalog-fab"));
     fireEvent.changeText(
       await screen.findByTestId("national-subject-form-code"),
@@ -836,13 +834,13 @@ describe("CurriculumsAdminScreen — catalogue national", () => {
     fireEvent.press(await screen.findByTestId("national-subject-form-submit"));
 
     await waitFor(() => {
-      expect(
-        mockPlatformCatalogApi.createNationalSubject,
-      ).toHaveBeenCalledWith({
-        code: "MATHS_EN",
-        name: "Mathematics",
-        languageSystem: "ANGLOPHONE",
-      });
+      expect(mockPlatformCatalogApi.createNationalSubject).toHaveBeenCalledWith(
+        {
+          code: "MATHS_EN",
+          name: "Mathematics",
+          languageSystem: "ANGLOPHONE",
+        },
+      );
     });
   });
 
