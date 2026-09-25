@@ -219,6 +219,8 @@ beforeEach(() => {
       isMandatory: payload.isMandatory ?? true,
       coefficient: payload.coefficient ?? null,
       weeklyHours: payload.weeklyHours ?? null,
+      isNational: false,
+      isCustomized: false,
       subject: { id: payload.subjectId, name: "" },
     }),
   );

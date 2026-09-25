@@ -1,3 +1,8 @@
+export type CurriculumLanguageSystem =
+  | "FRANCOPHONE"
+  | "ANGLOPHONE"
+  | "BILINGUAL";
+
 export type CurriculumAcademicLevel = {
   id: string;
   code: string;
@@ -5,6 +10,7 @@ export type CurriculumAcademicLevel = {
   order?: number | null;
   isNational?: boolean;
   isActivated?: boolean;
+  languageSystem?: CurriculumLanguageSystem | null;
   _count?: {
     classes: number;
     curriculums: number;
@@ -15,6 +21,7 @@ export type CurriculumTrack = {
   id: string;
   code: string;
   label: string;
+  languageSystem?: CurriculumLanguageSystem | null;
   _count?: {
     classes: number;
     curriculums: number;
@@ -45,11 +52,13 @@ export type CurriculumRow = {
     id: string;
     code: string;
     label: string;
+    languageSystem?: CurriculumLanguageSystem | null;
   };
   track: {
     id: string;
     code: string;
     label: string;
+    languageSystem?: CurriculumLanguageSystem | null;
   } | null;
   _count: {
     classes: number;
@@ -67,6 +76,8 @@ export type CurriculumSubjectRow = {
     id: string;
     name: string;
   };
+  isNational: boolean;
+  isCustomized: boolean;
 };
 
 export type CreateAcademicLevelPayload = {
