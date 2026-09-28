@@ -12,6 +12,13 @@ const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   GraduationCap: "school-outline",
   HeartPulse: "heart-outline",
   Newspaper: "newspaper-outline",
+  Users: "person-outline",
+  Settings: "settings-outline",
+  Building2: "business-outline",
+  DoorOpen: "grid-outline",
+  UserPlus: "person-add-outline",
+  TrendingUp: "trending-up-outline",
+  CalendarClock: "alarm-outline",
 };
 
 export function TrainingQuizIcon({

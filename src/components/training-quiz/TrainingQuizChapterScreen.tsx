@@ -99,6 +99,32 @@ function resolveDeepLink(
   if (deepLinkRoute === "/fil") {
     return { pathname: "/(home)/feed" };
   }
+  // SCHOOL_ADMIN chapters: routes map 1:1 to their own top-level admin
+  // screens (different names than the web app's, same feature).
+  if (deepLinkRoute === "/utilisateurs") {
+    return { pathname: "/(home)/users" };
+  }
+  if (deepLinkRoute === "/settings") {
+    return { pathname: "/(home)/school-settings" };
+  }
+  if (deepLinkRoute === "/classes") {
+    return { pathname: "/(home)/admin-classes" };
+  }
+  if (deepLinkRoute === "/subjects") {
+    return { pathname: "/(home)/matieres" };
+  }
+  if (deepLinkRoute === "/salles") {
+    return { pathname: "/(home)/salles" };
+  }
+  if (deepLinkRoute === "/enrollments") {
+    return { pathname: "/(home)/inscriptions" };
+  }
+  if (deepLinkRoute === "/promotions") {
+    return { pathname: "/(home)/promotions" };
+  }
+  if (deepLinkRoute === "/finance-reinscription-deadlines") {
+    return { pathname: "/(home)/finance-reinscription-deadlines" };
+  }
   if (deepLinkRoute.includes("{childId}")) {
     if (!childId) return null;
     if (deepLinkRoute.endsWith("/notes")) {
