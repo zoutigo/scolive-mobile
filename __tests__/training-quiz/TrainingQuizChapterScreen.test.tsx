@@ -756,6 +756,64 @@ describe("TrainingQuizChapterScreen", () => {
     expect(mockPush).toHaveBeenCalledWith({ pathname: "/(home)/feed" });
   });
 
+  it("résout le deep-link SCHOOL_ADMIN /utilisateurs vers l'écran natif admin des utilisateurs", async () => {
+    const chapter = makeChapter({
+      moduleKey: "utilisateurs",
+      questions: [
+        {
+          id: "question-1",
+          order: 1,
+          type: "MCQ_SINGLE",
+          stage: "DISCOVERY",
+          text: "Quel type de compte NE PEUT PAS être créé depuis l'écran Utilisateurs ?",
+          hint: null,
+          imageUrl: null,
+          deepLinkRoute: "/utilisateurs",
+          solved: false,
+          attemptsCount: 0,
+          options: [
+            {
+              id: "opt-correct",
+              order: 1,
+              text: "Administrateur d'école",
+            },
+            { id: "opt-wrong", order: 2, text: "Enseignant" },
+          ],
+        },
+      ],
+    });
+    api.getChapter.mockResolvedValue(chapter);
+    api.submitAnswer.mockResolvedValue({
+      correct: true,
+      alreadySolved: false,
+      explanation: "Administrateur d'école.",
+      correctOptionIds: ["opt-correct"],
+      attemptsCount: 1,
+    });
+    api.listChapters.mockResolvedValue([]);
+
+    render(<TrainingQuizChapterScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          "Quel type de compte NE PEUT PAS être créé depuis l'écran Utilisateurs ?",
+        ),
+      ).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("training-quiz-option-opt-correct"));
+    fireEvent.press(screen.getByTestId("training-quiz-validate-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("training-quiz-deeplink-button")).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByTestId("training-quiz-deeplink-button"));
+
+    expect(mockPush).toHaveBeenCalledWith({ pathname: "/(home)/users" });
+  });
+
   it("applique un compte à rebours avant de réactiver Réessayer après une mauvaise réponse", async () => {
     jest.useFakeTimers();
     const chapter = makeChapter();

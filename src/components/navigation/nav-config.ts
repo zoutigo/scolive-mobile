@@ -403,6 +403,12 @@ const SCHOOL_NAV: NavItem[] = [
     icon: "options-outline",
     route: "/school-settings",
   },
+  {
+    key: "training-quiz",
+    label: "Quiz de formation",
+    icon: "trophy-outline",
+    route: "/(home)/training-quiz",
+  },
   accountItem(),
 ];
 

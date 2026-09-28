@@ -412,6 +412,21 @@ describe("buildDrawerNavigationConfig", () => {
     ).toEqual({ navItems: [] });
   });
 
+  it("inclut le Quiz de formation dans la navigation SCHOOL_ADMIN, juste avant Mon compte", () => {
+    const schoolAdmin = makeUser({
+      role: "SCHOOL_ADMIN",
+      activeRole: "SCHOOL_ADMIN",
+      memberships: [{ schoolId: "s1", role: "SCHOOL_ADMIN" }],
+    });
+
+    const items = getNavItems(schoolAdmin);
+    const keys = items.map((item) => item.key);
+
+    expect(keys.indexOf("training-quiz")).toBe(keys.indexOf("account") - 1);
+    const trainingQuizItem = items.find((item) => item.key === "training-quiz");
+    expect(trainingQuizItem?.route).toBe("/(home)/training-quiz");
+  });
+
   it("applique les badges fil/messagerie et par enfant pour un parent", () => {
     const parentUser = makeUser({
       role: "PARENT",
