@@ -101,6 +101,20 @@ export const usersApi = {
     );
   },
 
+  async removeMember(
+    schoolSlug: string,
+    userId: string,
+  ): Promise<{
+    action: "EXCLUDED" | "UNASSIGNED_FROM_CLASS";
+    remainingRoles: string[];
+  }> {
+    return apiFetch(
+      `/schools/${schoolSlug}/users/${userId}`,
+      { method: "DELETE" },
+      true,
+    );
+  },
+
   async suggestUsername(
     schoolSlug: string,
     studentId: string,

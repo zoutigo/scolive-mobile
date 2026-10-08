@@ -76,6 +76,9 @@ export interface SchoolUserStaffFunction {
 }
 
 export interface SchoolUserDetail extends UserItem {
+  isPrimaryAdmin?: boolean;
+  isSelf?: boolean;
+  hasActiveClass?: boolean;
   lastLoginAt: string | null;
   enrollments: SchoolUserEnrollment[];
   children: SchoolUserChild[];

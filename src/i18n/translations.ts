@@ -3838,6 +3838,32 @@ export const translations: Record<Locale, Record<string, string>> = {
     "schoolsAdmin.detail.pendingBadge": "En attente",
     "schoolsAdmin.detail.activeBadge": "Actif",
     "schoolsAdmin.detail.removeAdmin": "Retirer",
+    "schoolsAdmin.form.primaryAdmin.label": "Administrateur principal",
+    "schoolsAdmin.form.primaryAdmin.hint":
+      "Choisissez un utilisateur de la plateforme. Il pourra être remplacé mais jamais retiré.",
+    "schoolsAdmin.form.primaryAdmin.placeholder":
+      "Sélectionner un utilisateur plateforme",
+    "schoolsAdmin.form.primaryAdmin.loadFailed":
+      "Impossible de charger les utilisateurs de la plateforme.",
+    "schoolsAdmin.form.errors.primaryAdminRequired":
+      "L'administrateur principal est obligatoire.",
+    "schoolsAdmin.toast.createdWithPrimaryAdmin":
+      "L'école a été créée. L'administrateur principal a reçu le rôle SCHOOL_ADMIN.",
+    "schoolsAdmin.detail.primaryAdminBadge": "Principal",
+    "schoolsAdmin.detail.primaryAdmin.replaceTitle":
+      "Remplacer l'administrateur principal",
+    "schoolsAdmin.detail.primaryAdmin.designateTitle":
+      "Désigner l'administrateur principal",
+    "schoolsAdmin.detail.primaryAdmin.replaceHint":
+      "L'administrateur principal ne peut pas être retiré, seulement remplacé. L'ancien perd le rôle d'administrateur mais conserve ses autres rôles dans l'école.",
+    "schoolsAdmin.detail.primaryAdmin.missingHint":
+      "Cette école n'a pas encore d'administrateur principal.",
+    "schoolsAdmin.detail.primaryAdmin.replaceAction": "Remplacer",
+    "schoolsAdmin.detail.primaryAdmin.designateAction": "Désigner",
+    "schoolsAdmin.detail.primaryAdmin.successTitle": "Administrateur principal",
+    "schoolsAdmin.detail.primaryAdmin.success":
+      "Administrateur principal mis à jour.",
+    "schoolsAdmin.detail.primaryAdmin.failedTitle": "Remplacement impossible",
     "schoolsAdmin.detail.removeAdminLastAdminHint":
       "Impossible de retirer le dernier administrateur.",
     "schoolsAdmin.detail.confirmRemoveAdminTitle": "Retirer l'administrateur",
@@ -3896,6 +3922,22 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.empty.titleSearch": "Aucun résultat",
     "users.empty.messageSearch": "Modifiez vos critères de recherche.",
     "users.errors.loadFailed": "Impossible de charger les utilisateurs.",
+    "users.actions.exclude": "Exclure de l'école",
+    "users.actions.unassignClass": "Retirer de sa classe",
+    "users.exclude.title": "Exclure de l'école",
+    "users.exclude.message":
+      "{name} n'aura plus accès à l'établissement et ses rôles seront retirés. Son historique (notes, présences, années passées) est conservé et le compte n'est pas supprimé.",
+    "users.exclude.confirm": "Exclure",
+    "users.exclude.successTitle": "Utilisateur exclu",
+    "users.exclude.success": "{name} a été exclu(e) de l'école.",
+    "users.exclude.failed": "Exclusion impossible",
+    "users.unassignClass.title": "Retirer de sa classe",
+    "users.unassignClass.message":
+      "{name} restera élève de l'école mais ne sera plus affecté(e) à une classe pour l'année scolaire en cours. Son historique est conservé.",
+    "users.unassignClass.confirm": "Retirer de la classe",
+    "users.unassignClass.successTitle": "Classe retirée",
+    "users.unassignClass.success":
+      "{name} n'a plus de classe pour l'année en cours.",
     "users.create.fabAccessibilityLabel": "Créer un utilisateur",
     "users.create.chooseType.title": "Nouvel utilisateur",
     "users.create.chooseType.subtitle": "Choisissez le type de compte à créer.",
@@ -8093,6 +8135,31 @@ export const translations: Record<Locale, Record<string, string>> = {
     "schoolsAdmin.detail.pendingBadge": "Pending",
     "schoolsAdmin.detail.activeBadge": "Active",
     "schoolsAdmin.detail.removeAdmin": "Remove",
+    "schoolsAdmin.form.primaryAdmin.label": "Primary administrator",
+    "schoolsAdmin.form.primaryAdmin.hint":
+      "Pick a platform user. They can be replaced but never removed.",
+    "schoolsAdmin.form.primaryAdmin.placeholder": "Select a platform user",
+    "schoolsAdmin.form.primaryAdmin.loadFailed":
+      "Unable to load platform users.",
+    "schoolsAdmin.form.errors.primaryAdminRequired":
+      "The primary administrator is required.",
+    "schoolsAdmin.toast.createdWithPrimaryAdmin":
+      "The school was created. The primary administrator received the SCHOOL_ADMIN role.",
+    "schoolsAdmin.detail.primaryAdminBadge": "Primary",
+    "schoolsAdmin.detail.primaryAdmin.replaceTitle":
+      "Replace the primary administrator",
+    "schoolsAdmin.detail.primaryAdmin.designateTitle":
+      "Designate the primary administrator",
+    "schoolsAdmin.detail.primaryAdmin.replaceHint":
+      "The primary administrator cannot be removed, only replaced. The previous one loses the administrator role but keeps their other roles in the school.",
+    "schoolsAdmin.detail.primaryAdmin.missingHint":
+      "This school has no primary administrator yet.",
+    "schoolsAdmin.detail.primaryAdmin.replaceAction": "Replace",
+    "schoolsAdmin.detail.primaryAdmin.designateAction": "Designate",
+    "schoolsAdmin.detail.primaryAdmin.successTitle": "Primary administrator",
+    "schoolsAdmin.detail.primaryAdmin.success":
+      "Primary administrator updated.",
+    "schoolsAdmin.detail.primaryAdmin.failedTitle": "Replacement failed",
     "schoolsAdmin.detail.removeAdminLastAdminHint":
       "The last administrator cannot be removed.",
     "schoolsAdmin.detail.confirmRemoveAdminTitle": "Remove administrator",
@@ -8151,6 +8218,22 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.empty.titleSearch": "No results",
     "users.empty.messageSearch": "Adjust your search criteria.",
     "users.errors.loadFailed": "Unable to load users.",
+    "users.actions.exclude": "Remove from school",
+    "users.actions.unassignClass": "Remove from class",
+    "users.exclude.title": "Remove from school",
+    "users.exclude.message":
+      "{name} will lose access to the school and their roles will be removed. Their history (grades, attendance, past years) is kept and the account is not deleted.",
+    "users.exclude.confirm": "Remove",
+    "users.exclude.successTitle": "User removed",
+    "users.exclude.success": "{name} was removed from the school.",
+    "users.exclude.failed": "Removal failed",
+    "users.unassignClass.title": "Remove from class",
+    "users.unassignClass.message":
+      "{name} will remain a student of the school but will no longer be assigned to a class for the current school year. Their history is kept.",
+    "users.unassignClass.confirm": "Remove from class",
+    "users.unassignClass.successTitle": "Class removed",
+    "users.unassignClass.success":
+      "{name} no longer has a class for the current year.",
     "users.create.fabAccessibilityLabel": "Create a user",
     "users.create.chooseType.title": "New user",
     "users.create.chooseType.subtitle": "Choose the type of account to create.",

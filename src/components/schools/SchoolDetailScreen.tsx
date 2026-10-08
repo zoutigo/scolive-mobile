@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -33,7 +33,12 @@ import {
 } from "./SchoolAdminEntryForm";
 import { colors } from "../../theme";
 import { extractApiError } from "../../utils/api-error";
-import type { SchoolAdminRow, SchoolDetails } from "../../types/schools.types";
+import type {
+  PlatformUserOption,
+  SchoolAdminRow,
+  SchoolDetails,
+} from "../../types/schools.types";
+import { InlineSearchSelect } from "../InlineSearchSelect";
 import { moduleBack } from "../../utils/moduleBack";
 
 export function SchoolDetailScreen() {
@@ -54,6 +59,33 @@ export function SchoolDetailScreen() {
   const [removeAdminTarget, setRemoveAdminTarget] =
     useState<SchoolAdminRow | null>(null);
   const [isRemovingAdmin, setIsRemovingAdmin] = useState(false);
+
+  const [platformUsers, setPlatformUsers] = useState<PlatformUserOption[]>([]);
+  const [replacePrimaryUserId, setReplacePrimaryUserId] = useState("");
+  const [isReplacingPrimary, setIsReplacingPrimary] = useState(false);
+
+  const loadPlatformUsers = useCallback(async (query?: string) => {
+    try {
+      setPlatformUsers(await schoolsApi.listPlatformUsers(query));
+    } catch {
+      setPlatformUsers([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadPlatformUsers();
+  }, [loadPlatformUsers]);
+
+  const replaceOptions = useMemo(
+    () =>
+      platformUsers
+        .filter((user) => user.id !== details?.primaryAdminUserId)
+        .map((user) => ({
+          value: user.id,
+          label: `${user.firstName} ${user.lastName}${user.email ? ` - ${user.email}` : ""}`,
+        })),
+    [platformUsers, details?.primaryAdminUserId],
+  );
 
   const [newAdmin, setNewAdmin] = useState<SchoolAdminEntryValue>(
     EMPTY_SCHOOL_ADMIN_ENTRY,
@@ -81,6 +113,27 @@ export function SchoolDetailScreen() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const confirmReplacePrimary = useCallback(async () => {
+    if (!replacePrimaryUserId) return;
+    setIsReplacingPrimary(true);
+    try {
+      await schoolsApi.replacePrimaryAdmin(schoolId, replacePrimaryUserId);
+      showSuccess({
+        title: t("schoolsAdmin.detail.primaryAdmin.successTitle"),
+        message: t("schoolsAdmin.detail.primaryAdmin.success"),
+      });
+      setReplacePrimaryUserId("");
+      await load();
+    } catch (error) {
+      showError({
+        title: t("schoolsAdmin.detail.primaryAdmin.failedTitle"),
+        message: extractApiError(error),
+      });
+    } finally {
+      setIsReplacingPrimary(false);
+    }
+  }, [replacePrimaryUserId, schoolId, showSuccess, showError, t, load]);
 
   const submitAddAdmin = useCallback(async () => {
     const validationErrors = validateSchoolAdminEntry(newAdmin, t);
@@ -400,6 +453,14 @@ export function SchoolDetailScreen() {
                       <View style={{ flex: 1 }}>
                         <Text style={styles.adminName}>
                           {admin.firstName} {admin.lastName}
+                          {admin.isPrimary ? (
+                            <Text
+                              style={styles.primaryBadge}
+                              testID={`school-detail-primary-badge-${admin.id}`}
+                            >
+                              {`  ${t("schoolsAdmin.detail.primaryAdminBadge")}`}
+                            </Text>
+                          ) : null}
                         </Text>
                         <Text style={styles.adminEmail}>{admin.email}</Text>
                       </View>
@@ -438,22 +499,24 @@ export function SchoolDetailScreen() {
                           />
                         </TouchableOpacity>
                       ) : null}
-                      <TouchableOpacity
-                        style={styles.resendBtn}
-                        onPress={() => setRemoveAdminTarget(admin)}
-                        disabled={details.schoolAdmins.length <= 1}
-                        testID={`school-detail-remove-admin-${admin.id}`}
-                      >
-                        <Ionicons
-                          name="person-remove-outline"
-                          size={14}
-                          color={
-                            details.schoolAdmins.length <= 1
-                              ? colors.textSecondary
-                              : colors.notification
-                          }
-                        />
-                      </TouchableOpacity>
+                      {admin.isPrimary ? null : (
+                        <TouchableOpacity
+                          style={styles.resendBtn}
+                          onPress={() => setRemoveAdminTarget(admin)}
+                          disabled={details.schoolAdmins.length <= 1}
+                          testID={`school-detail-remove-admin-${admin.id}`}
+                        >
+                          <Ionicons
+                            name="person-remove-outline"
+                            size={14}
+                            color={
+                              details.schoolAdmins.length <= 1
+                                ? colors.textSecondary
+                                : colors.notification
+                            }
+                          />
+                        </TouchableOpacity>
+                      )}
                     </View>
                   ))}
                   {details.schoolAdmins.length <= 1 ? (
@@ -463,6 +526,47 @@ export function SchoolDetailScreen() {
                   ) : null}
                 </View>
               )}
+
+              <View
+                style={styles.addAdminForm}
+                testID="school-detail-primary-admin"
+              >
+                <Text style={styles.adminName}>
+                  {details.primaryAdminUserId
+                    ? t("schoolsAdmin.detail.primaryAdmin.replaceTitle")
+                    : t("schoolsAdmin.detail.primaryAdmin.designateTitle")}
+                </Text>
+                <Text style={styles.mutedText}>
+                  {details.primaryAdminUserId
+                    ? t("schoolsAdmin.detail.primaryAdmin.replaceHint")
+                    : t("schoolsAdmin.detail.primaryAdmin.missingHint")}
+                </Text>
+                <InlineSearchSelect
+                  label={t("schoolsAdmin.form.primaryAdmin.label")}
+                  options={replaceOptions}
+                  value={replacePrimaryUserId}
+                  onChange={setReplacePrimaryUserId}
+                  onQueryChange={(query) => void loadPlatformUsers(query)}
+                  placeholder={t("schoolsAdmin.form.primaryAdmin.placeholder")}
+                  testID="school-detail-primary-admin-select"
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.addAdminSubmit,
+                    (!replacePrimaryUserId || isReplacingPrimary) &&
+                      styles.addAdminSubmitDisabled,
+                  ]}
+                  disabled={!replacePrimaryUserId || isReplacingPrimary}
+                  onPress={() => void confirmReplacePrimary()}
+                  testID="school-detail-primary-admin-submit"
+                >
+                  <Text style={styles.addAdminSubmitLabel}>
+                    {details.primaryAdminUserId
+                      ? t("schoolsAdmin.detail.primaryAdmin.replaceAction")
+                      : t("schoolsAdmin.detail.primaryAdmin.designateAction")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
               <View
                 style={styles.addAdminForm}
@@ -603,6 +707,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     padding: 10,
+  },
+  primaryBadge: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.primary,
   },
   adminName: {
     fontSize: 13,

@@ -611,6 +611,7 @@ export function SchoolAdminUsersScreen() {
         user={selectedUser}
         schoolSlug={schoolSlug ?? ""}
         onClose={() => setSelectedUser(null)}
+        onMemberChanged={() => void loadFirstPage(true)}
         testID="users-detail-modal"
       />
     );

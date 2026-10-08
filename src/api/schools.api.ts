@@ -4,6 +4,8 @@ import type {
   AddSchoolAdminResult,
   CreateSchoolPayload,
   CreateSchoolResult,
+  PlatformUserOption,
+  ReplacePrimaryAdminResult,
   SchoolDetails,
   SchoolRow,
   SchoolsListParams,
@@ -90,6 +92,24 @@ export const schoolsApi = {
     return apiFetch(
       `/system/schools/${schoolId}/admins/${adminUserId}`,
       { method: "DELETE" },
+      true,
+    );
+  },
+
+  listPlatformUsers(search?: string): Promise<PlatformUserOption[]> {
+    const query = search?.trim()
+      ? `?search=${encodeURIComponent(search.trim())}`
+      : "";
+    return apiFetch(`/system/platform-users${query}`, {}, true);
+  },
+
+  replacePrimaryAdmin(
+    schoolId: string,
+    userId: string,
+  ): Promise<ReplacePrimaryAdminResult> {
+    return apiFetch(
+      `/system/schools/${schoolId}/primary-admin`,
+      { method: "PATCH", body: JSON.stringify({ userId }) },
       true,
     );
   },

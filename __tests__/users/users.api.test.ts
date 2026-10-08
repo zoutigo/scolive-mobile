@@ -293,4 +293,29 @@ describe("usersApi", () => {
       );
     });
   });
+
+  describe("removeMember", () => {
+    it("appelle DELETE sur le bon endpoint avec auth", async () => {
+      mockApiFetch.mockResolvedValueOnce({
+        action: "EXCLUDED",
+        remainingRoles: [],
+      });
+
+      const result = await usersApi.removeMember(SLUG, "user-1");
+
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        `/schools/${SLUG}/users/user-1`,
+        { method: "DELETE" },
+        true,
+      );
+      expect(result.action).toBe("EXCLUDED");
+    });
+
+    it("propage les refus serveur (admin principal, soi-même, dernier admin)", async () => {
+      mockApiFetch.mockRejectedValueOnce(new Error("Conflict"));
+      await expect(usersApi.removeMember(SLUG, "user-1")).rejects.toThrow(
+        "Conflict",
+      );
+    });
+  });
 });

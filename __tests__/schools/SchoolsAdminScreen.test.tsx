@@ -180,9 +180,35 @@ function makeManySchools(count: number): SchoolRow[] {
 
 let schoolsState: SchoolRow[];
 
+const PLATFORM_USERS = [
+  {
+    id: "platform-1",
+    firstName: "Paul",
+    lastName: "Support",
+    email: "paul@scolive.cm",
+    platformRoles: ["SUPPORT"],
+  },
+  {
+    id: "platform-2",
+    firstName: "Alice",
+    lastName: "Admin",
+    email: "alice@scolive.cm",
+    platformRoles: ["ADMIN"],
+  },
+];
+
+async function pickPrimaryAdmin(userId = "platform-1") {
+  const input = await screen.findByTestId("schools-create-primary-admin-input");
+  fireEvent(input, "focus");
+  fireEvent.press(
+    await screen.findByTestId(`schools-create-primary-admin-option-${userId}`),
+  );
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
   schoolsState = [];
+  mockSchoolsApi.listPlatformUsers.mockResolvedValue(PLATFORM_USERS);
 
   mockSchoolsApi.listSchools.mockImplementation(async (params) =>
     computeListResult(schoolsState, params),
@@ -219,8 +245,6 @@ beforeEach(() => {
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-01T00:00:00.000Z",
       },
-      userExisted: false,
-      setupCompleted: false,
     };
   });
   mockSchoolsApi.addSchoolAdmin.mockImplementation(async () => ({
@@ -680,10 +704,7 @@ describe("SchoolsAdminScreen", () => {
       screen.getByTestId("schools-create-name"),
       "Greenwich College",
     );
-    fireEvent.changeText(
-      screen.getByTestId("schools-create-main-admin-email"),
-      "admin@greenwich.cm",
-    );
+    await pickPrimaryAdmin("platform-2");
 
     fireEvent.press(screen.getByTestId("schools-create-cycle"));
     fireEvent.press(
@@ -706,7 +727,7 @@ describe("SchoolsAdminScreen", () => {
         city: undefined,
         cycle: "SECONDARY",
         languageSystem: "ANGLOPHONE",
-        schoolAdminEmail: "admin@greenwich.cm",
+        primaryAdminUserId: "platform-2",
       });
     });
 
@@ -759,10 +780,7 @@ describe("SchoolsAdminScreen", () => {
       screen.getByTestId("schools-create-name"),
       "École du Littoral",
     );
-    fireEvent.changeText(
-      screen.getByTestId("schools-create-main-admin-email"),
-      "admin@littoral.cm",
-    );
+    await pickPrimaryAdmin();
     fireEvent.press(screen.getByTestId("schools-create-submit"));
 
     await waitFor(() => {
@@ -776,7 +794,7 @@ describe("SchoolsAdminScreen", () => {
     });
   });
 
-  it("crée l'admin fondateur par téléphone + PIN quand ce mode est choisi", async () => {
+  it("n'expose plus de saisie email/téléphone/PIN pour l'admin principal et n'envoie que l'id choisi", async () => {
     mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
 
     render(<SchoolsAdminScreen />);
@@ -784,32 +802,62 @@ describe("SchoolsAdminScreen", () => {
     fireEvent.press(await screen.findByTestId("schools-fab"));
     await screen.findByTestId("schools-create-form");
 
+    expect(screen.queryByTestId("schools-create-main-admin-email")).toBeNull();
+    expect(
+      screen.queryByTestId("schools-create-main-admin-mode-phone"),
+    ).toBeNull();
+    expect(screen.queryByTestId("schools-create-main-admin-pin")).toBeNull();
+
     fireEvent.changeText(
       screen.getByTestId("schools-create-name"),
-      "École par téléphone",
+      "École plateforme",
     );
-    fireEvent.press(screen.getByTestId("schools-create-main-admin-mode-phone"));
-    fireEvent.changeText(
-      screen.getByTestId("schools-create-main-admin-phone"),
-      "699001122",
-    );
-    fireEvent.changeText(
-      screen.getByTestId("schools-create-main-admin-pin"),
-      "123456",
-    );
+    await pickPrimaryAdmin();
     fireEvent.press(screen.getByTestId("schools-create-submit"));
 
     await waitFor(() => {
       expect(mockSchoolsApi.createSchool).toHaveBeenCalledWith(
-        expect.objectContaining({
-          schoolAdminPhone: "699001122",
-          schoolAdminPin: "123456",
-        }),
+        expect.objectContaining({ primaryAdminUserId: "platform-1" }),
       );
     });
-    expect(mockSchoolsApi.createSchool).toHaveBeenCalledWith(
-      expect.not.objectContaining({ schoolAdminEmail: expect.anything() }),
+    const payload = mockSchoolsApi.createSchool.mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(payload.schoolAdminEmail).toBeUndefined();
+    expect(payload.schoolAdminPhone).toBeUndefined();
+    expect(payload.schoolAdminPin).toBeUndefined();
+  });
+
+  it("recherche côté serveur des platform users quand on tape dans le sélecteur", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+
+    render(<SchoolsAdminScreen />);
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
+    fireEvent.press(await screen.findByTestId("schools-fab"));
+    await screen.findByTestId("schools-create-form");
+
+    const input = await screen.findByTestId(
+      "schools-create-primary-admin-input",
     );
+    fireEvent(input, "focus");
+    fireEvent.changeText(input, "alice");
+    await waitFor(() => {
+      expect(mockSchoolsApi.listPlatformUsers).toHaveBeenCalledWith("alice");
+    });
+  });
+
+  it("affiche une erreur si la liste des platform users ne se charge pas", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+    mockSchoolsApi.listPlatformUsers.mockRejectedValue(new Error("boom"));
+
+    render(<SchoolsAdminScreen />);
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
+    fireEvent.press(await screen.findByTestId("schools-fab"));
+
+    expect(
+      await screen.findByTestId("schools-create-primary-admin-load-error"),
+    ).toBeTruthy();
   });
 
   it("permet d'ajouter et de retirer des administrateurs supplémentaires à la création", async () => {
@@ -824,10 +872,7 @@ describe("SchoolsAdminScreen", () => {
       screen.getByTestId("schools-create-name"),
       "École multi-admins",
     );
-    fireEvent.changeText(
-      screen.getByTestId("schools-create-main-admin-email"),
-      "principal@ecole.cm",
-    );
+    await pickPrimaryAdmin();
 
     fireEvent.press(screen.getByTestId("schools-create-add-admin"));
     expect(
@@ -864,7 +909,7 @@ describe("SchoolsAdminScreen", () => {
 
     await waitFor(() => {
       expect(mockSchoolsApi.createSchool).toHaveBeenCalledWith(
-        expect.objectContaining({ schoolAdminEmail: "principal@ecole.cm" }),
+        expect.objectContaining({ primaryAdminUserId: "platform-1" }),
       );
     });
     await waitFor(() => {
@@ -876,7 +921,7 @@ describe("SchoolsAdminScreen", () => {
     expect(mockSchoolsApi.addSchoolAdmin).toHaveBeenCalledTimes(1);
   });
 
-  it("bloque la soumission tant que l'admin fondateur téléphone n'a pas de PIN valide", async () => {
+  it("bloque la soumission tant qu'aucun admin principal n'est choisi", async () => {
     mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
 
     render(<SchoolsAdminScreen />);
@@ -888,18 +933,32 @@ describe("SchoolsAdminScreen", () => {
       screen.getByTestId("schools-create-name"),
       "École incomplète",
     );
-    fireEvent.press(screen.getByTestId("schools-create-main-admin-mode-phone"));
-    fireEvent.changeText(
-      screen.getByTestId("schools-create-main-admin-phone"),
-      "699001122",
-    );
-    // PIN volontairement laissé vide.
     fireEvent.press(screen.getByTestId("schools-create-submit"));
 
     expect(
-      await screen.findByTestId("schools-create-main-admin-pin-error"),
+      await screen.findByTestId("schools-create-primary-admin-error"),
     ).toBeTruthy();
     expect(mockSchoolsApi.createSchool).not.toHaveBeenCalled();
+  });
+
+  it("affiche un toast d'erreur et reste sur le formulaire si le serveur refuse l'admin principal", async () => {
+    mockAuthState = { schoolSlug: null, user: makeSuperAdminUser() };
+    mockSchoolsApi.createSchool.mockRejectedValue(
+      new Error(
+        "L'administrateur principal doit etre un utilisateur de la plateforme",
+      ),
+    );
+
+    render(<SchoolsAdminScreen />);
+    fireEvent.press(await screen.findByTestId("schools-tab-list"));
+    fireEvent.press(await screen.findByTestId("schools-fab"));
+    await screen.findByTestId("schools-create-form");
+    fireEvent.changeText(screen.getByTestId("schools-create-name"), "École KO");
+    await pickPrimaryAdmin();
+    fireEvent.press(screen.getByTestId("schools-create-submit"));
+
+    await waitFor(() => expect(mockShowError).toHaveBeenCalled());
+    expect(screen.getByTestId("schools-create-form")).toBeTruthy();
   });
 
   it("annule la création sans appeler l'API et revient au tab d'origine", async () => {

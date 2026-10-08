@@ -33,6 +33,7 @@ import {
 } from "../teachers/TeacherAssignmentSheet";
 import { PromoteToUserFormContent } from "./PromoteToUserSheet";
 import { CredentialDisplaySheet } from "./CredentialDisplaySheet";
+import { ConfirmDialog } from "../ConfirmDialog";
 import { useSuccessToastStore } from "../../store/success-toast.store";
 import { extractApiError } from "../../utils/api-error";
 import { useTranslation } from "../../i18n/useTranslation";
@@ -283,12 +284,17 @@ function CommonActionsFooter({
   onMessagePress,
   onEditRolesPress,
   onResetPinPress,
+  removeLabel,
+  onRemovePress,
 }: {
   member: SchoolMember;
   hasPhoneCredential: boolean;
   onMessagePress: () => void;
   onEditRolesPress: () => void;
   onResetPinPress: () => void;
+  /** Renseigné uniquement quand le retrait de l'école est autorisé. */
+  removeLabel?: string | null;
+  onRemovePress?: () => void;
 }) {
   // Masquer le footer pour les student-only (pas de compte)
   if (!member.hasAccount) return null;
@@ -315,6 +321,15 @@ function CommonActionsFooter({
           color="#7B4EA0"
           onPress={onResetPinPress}
           testID="action-reset-pin"
+        />
+      ) : null}
+      {removeLabel && onRemovePress ? (
+        <ActionButton
+          icon="person-remove-outline"
+          label={removeLabel}
+          color="#B42318"
+          onPress={onRemovePress}
+          testID="action-exclude"
         />
       ) : null}
     </View>
@@ -1447,6 +1462,8 @@ interface UserDetailModalProps {
   user: SchoolMember | null;
   schoolSlug: string;
   onClose: () => void;
+  /** Appelé après une exclusion / un retrait de classe pour rafraîchir la liste. */
+  onMemberChanged?: () => void;
   testID?: string;
 }
 
@@ -1454,6 +1471,7 @@ export function UserDetailModal({
   user,
   schoolSlug,
   onClose,
+  onMemberChanged,
   testID,
 }: UserDetailModalProps) {
   const insets = useSafeAreaInsets();
@@ -1801,6 +1819,59 @@ export function UserDetailModal({
     }
   }, [user, schoolSlug, showError]);
 
+  const [excludeVisible, setExcludeVisible] = useState(false);
+  const isStudentOnlyRole =
+    !!user && user.roles.length > 0 && user.roles.every((r) => r === "STUDENT");
+  const canRemove =
+    !!user &&
+    user.type === "user" &&
+    !!detail &&
+    "hasPhoneCredential" in detail &&
+    !detail.isPrimaryAdmin &&
+    !detail.isSelf &&
+    (!isStudentOnlyRole || !!detail.hasActiveClass);
+
+  const handleConfirmExclude = useCallback(async () => {
+    if (!user || user.type !== "user") return;
+    setExcludeVisible(false);
+    const name = `${user.lastName} ${user.firstName}`.trim();
+    try {
+      await usersApi.removeMember(schoolSlug, user.id);
+      onMemberChanged?.();
+      if (isStudentOnlyRole) {
+        showSuccess({
+          title: tDetail("users.unassignClass.successTitle"),
+          message: tDetail("users.unassignClass.success").replace(
+            "{name}",
+            name,
+          ),
+        });
+        void loadDetail();
+      } else {
+        showSuccess({
+          title: tDetail("users.exclude.successTitle"),
+          message: tDetail("users.exclude.success").replace("{name}", name),
+        });
+        onClose();
+      }
+    } catch (err) {
+      showError({
+        title: tDetail("users.exclude.failed"),
+        message: extractApiError(err),
+      });
+    }
+  }, [
+    user,
+    schoolSlug,
+    isStudentOnlyRole,
+    onMemberChanged,
+    onClose,
+    showSuccess,
+    showError,
+    tDetail,
+    loadDetail,
+  ]);
+
   const handleResetPin = useCallback(async () => {
     if (!user || !user.hasAccount) return;
     try {
@@ -2107,6 +2178,14 @@ export function UserDetailModal({
                     onMessagePress={handleSendMessage}
                     onEditRolesPress={handleOpenEditRoles}
                     onResetPinPress={() => void handleResetPin()}
+                    removeLabel={
+                      canRemove
+                        ? isStudentOnlyRole
+                          ? tDetail("users.actions.unassignClass")
+                          : tDetail("users.actions.exclude")
+                        : null
+                    }
+                    onRemovePress={() => setExcludeVisible(true)}
                   />
                 </>
               ) : null}
@@ -2242,6 +2321,28 @@ export function UserDetailModal({
           title={credentialsDisplay.title}
         />
       ) : null}
+
+      <ConfirmDialog
+        visible={excludeVisible}
+        variant="danger"
+        icon="person-remove-outline"
+        title={
+          isStudentOnlyRole
+            ? tDetail("users.unassignClass.title")
+            : tDetail("users.exclude.title")
+        }
+        message={(isStudentOnlyRole
+          ? tDetail("users.unassignClass.message")
+          : tDetail("users.exclude.message")
+        ).replace("{name}", `${user.lastName} ${user.firstName}`.trim())}
+        confirmLabel={
+          isStudentOnlyRole
+            ? tDetail("users.unassignClass.confirm")
+            : tDetail("users.exclude.confirm")
+        }
+        onConfirm={() => void handleConfirmExclude()}
+        onCancel={() => setExcludeVisible(false)}
+      />
     </>
   );
 }
