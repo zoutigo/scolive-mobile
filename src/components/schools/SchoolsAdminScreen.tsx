@@ -469,9 +469,6 @@ function CreateSchoolFormContent(props: {
         />
       </View>
 
-      <Text style={styles.formSectionTitle}>
-        {t("schoolsAdmin.form.mainAdminTitle")}
-      </Text>
       <InlineSearchSelect
         label={t("schoolsAdmin.form.primaryAdmin.label")}
         options={platformUserOptions}
