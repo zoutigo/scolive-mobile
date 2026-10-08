@@ -60,6 +60,7 @@ import {
 } from "../../data/cameroon-locations";
 import type {
   AddSchoolAdminPayload,
+  PlatformUserOption,
   CreateSchoolPayload,
   SchoolCycle,
   SchoolLanguageSystem,
@@ -274,11 +275,37 @@ function CreateSchoolFormContent(props: {
 
   const region = watch("region");
 
-  const [mainAdmin, setMainAdmin] = useState<SchoolAdminEntryValue>(
-    EMPTY_SCHOOL_ADMIN_ENTRY,
+  const [primaryAdminUserId, setPrimaryAdminUserId] = useState("");
+  const [primaryAdminError, setPrimaryAdminError] = useState<string | null>(
+    null,
   );
-  const [mainAdminErrors, setMainAdminErrors] =
-    useState<SchoolAdminEntryErrors>({});
+  const [platformUsers, setPlatformUsers] = useState<PlatformUserOption[]>([]);
+  const [platformUsersLoading, setPlatformUsersLoading] = useState(true);
+  const [platformUsersLoadFailed, setPlatformUsersLoadFailed] = useState(false);
+
+  const loadPlatformUsers = useCallback(async (query?: string) => {
+    try {
+      setPlatformUsers(await schoolsApi.listPlatformUsers(query));
+      setPlatformUsersLoadFailed(false);
+    } catch {
+      setPlatformUsersLoadFailed(true);
+    } finally {
+      setPlatformUsersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadPlatformUsers();
+  }, [loadPlatformUsers]);
+
+  const platformUserOptions = useMemo(
+    () =>
+      platformUsers.map((user) => ({
+        value: user.id,
+        label: `${user.firstName} ${user.lastName}${user.email ? ` - ${user.email}` : ""}`,
+      })),
+    [platformUsers],
+  );
   const [additionalAdmins, setAdditionalAdmins] = useState<
     SchoolAdminEntryValue[]
   >([]);
@@ -288,25 +315,25 @@ function CreateSchoolFormContent(props: {
 
   const submit = handleSubmit(
     async (values) => {
-      const mainErrors = validateSchoolAdminEntry(mainAdmin, t);
       const additionalErrorsList = additionalAdmins.map((admin) =>
         validateSchoolAdminEntry(admin, t),
       );
-      const hasMainErrors = Object.keys(mainErrors).length > 0;
       const hasAdditionalErrors = additionalErrorsList.some(
         (entryErrors) => Object.keys(entryErrors).length > 0,
       );
 
-      if (hasMainErrors || hasAdditionalErrors) {
-        setMainAdminErrors(mainErrors);
+      if (!primaryAdminUserId) {
+        setPrimaryAdminError(
+          t("schoolsAdmin.form.errors.primaryAdminRequired"),
+        );
+      } else {
+        setPrimaryAdminError(null);
+      }
+      if (!primaryAdminUserId || hasAdditionalErrors) {
         setAdditionalAdminErrors(additionalErrorsList);
         return;
       }
-      setMainAdminErrors({});
       setAdditionalAdminErrors([]);
-
-      const mainPayload = schoolAdminEntryToPayload(mainAdmin);
-      if (!mainPayload) return;
 
       const additionalPayloads = additionalAdmins
         .map(schoolAdminEntryToPayload)
@@ -322,12 +349,7 @@ function CreateSchoolFormContent(props: {
           city: values.city || undefined,
           cycle: values.cycle || undefined,
           languageSystem: values.languageSystem || undefined,
-          ...(mainPayload.email
-            ? { schoolAdminEmail: mainPayload.email }
-            : {
-                schoolAdminPhone: mainPayload.phone,
-                schoolAdminPin: mainPayload.pin,
-              }),
+          primaryAdminUserId,
         },
         additionalPayloads,
       );
@@ -450,14 +472,39 @@ function CreateSchoolFormContent(props: {
       <Text style={styles.formSectionTitle}>
         {t("schoolsAdmin.form.mainAdminTitle")}
       </Text>
-      <SchoolAdminEntryForm
-        value={mainAdmin}
-        onChange={setMainAdmin}
-        errors={mainAdminErrors}
-        title={t("schoolsAdmin.form.mainAdminTitle")}
-        testIDPrefix="schools-create-main-admin"
-        t={t}
+      <InlineSearchSelect
+        label={t("schoolsAdmin.form.primaryAdmin.label")}
+        options={platformUserOptions}
+        value={primaryAdminUserId}
+        onChange={(next) => {
+          setPrimaryAdminUserId(next);
+          setPrimaryAdminError(null);
+        }}
+        onQueryChange={(query) => void loadPlatformUsers(query)}
+        placeholder={t("schoolsAdmin.form.primaryAdmin.placeholder")}
+        loading={platformUsersLoading}
+        hasError={Boolean(primaryAdminError)}
+        testID="schools-create-primary-admin"
       />
+      <Text style={styles.formHint}>
+        {t("schoolsAdmin.form.primaryAdmin.hint")}
+      </Text>
+      {primaryAdminError ? (
+        <Text
+          style={styles.formError}
+          testID="schools-create-primary-admin-error"
+        >
+          {primaryAdminError}
+        </Text>
+      ) : null}
+      {platformUsersLoadFailed ? (
+        <Text
+          style={styles.formError}
+          testID="schools-create-primary-admin-load-error"
+        >
+          {t("schoolsAdmin.form.primaryAdmin.loadFailed")}
+        </Text>
+      ) : null}
 
       <Text style={styles.formSectionTitle}>
         {t("schoolsAdmin.form.additionalAdminsTitle")}
@@ -1134,7 +1181,6 @@ export function SchoolsAdminScreen() {
       try {
         const result = await schoolsApi.createSchool(values);
         const activationCodes: string[] = [];
-        if (result.activationCode) activationCodes.push(result.activationCode);
 
         let additionalFailures = 0;
         for (const admin of additionalAdmins) {
@@ -1152,9 +1198,7 @@ export function SchoolsAdminScreen() {
         }
 
         const messageParts = [
-          result.userExisted
-            ? t("schoolsAdmin.toast.createdExisting")
-            : t("schoolsAdmin.toast.createdNew"),
+          t("schoolsAdmin.toast.createdWithPrimaryAdmin"),
           ...activationCodes.map(
             (code) => `${t("schoolsAdmin.form.activationCodeBanner")}: ${code}`,
           ),
@@ -2185,6 +2229,10 @@ const styles = StyleSheet.create({
     color: "#B84A3B",
     fontSize: 12,
     lineHeight: 16,
+  },
+  formHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
   },
   formSectionTitle: {
     fontSize: 14,

@@ -67,6 +67,7 @@ export type SchoolsOverview = {
 
 export type SchoolAdminRow = {
   id: string;
+  isPrimary?: boolean;
   firstName: string;
   lastName: string;
   email: string;
@@ -120,6 +121,7 @@ export type SchoolDetails = {
     gradesCount: number;
   };
   roleBreakdown: SchoolRoleBreakdown;
+  primaryAdminUserId?: string | null;
   schoolAdmins: SchoolAdminRow[];
 };
 
@@ -134,9 +136,25 @@ export type CreateSchoolPayload = {
   city?: string;
   cycle?: SchoolCycle;
   languageSystem?: SchoolLanguageSystem;
-  schoolAdminEmail?: string;
-  schoolAdminPhone?: string;
-  schoolAdminPin?: string;
+  primaryAdminUserId: string;
+};
+
+export type PlatformUserOption = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  platformRoles: string[];
+};
+
+export type ReplacePrimaryAdminResult = {
+  success: boolean;
+  primaryAdmin: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string | null;
+  };
 };
 
 export type UpdateSchoolPayload = {
@@ -178,8 +196,10 @@ export type CreatedSchoolSummary = {
 
 export type CreateSchoolResult = {
   school: CreatedSchoolSummary;
-  userExisted: boolean;
-  setupCompleted: boolean;
-  activationRequired?: boolean;
-  activationCode?: string | null;
+  schoolAdmin?: {
+    id: string;
+    email: string | null;
+    firstName: string;
+    lastName: string;
+  };
 };

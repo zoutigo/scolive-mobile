@@ -128,8 +128,26 @@ function makeDetails(overrides?: Partial<SchoolDetails>): SchoolDetails {
   };
 }
 
+const PLATFORM_USERS = [
+  {
+    id: "platform-1",
+    firstName: "Paul",
+    lastName: "Support",
+    email: "paul@scolive.cm",
+    platformRoles: ["SUPPORT"],
+  },
+  {
+    id: "platform-2",
+    firstName: "Alice",
+    lastName: "Admin",
+    email: "alice@scolive.cm",
+    platformRoles: ["ADMIN"],
+  },
+];
+
 beforeEach(() => {
   jest.clearAllMocks();
+  mockSchoolsApi.listPlatformUsers.mockResolvedValue(PLATFORM_USERS);
 });
 
 describe("SchoolDetailScreen", () => {
@@ -411,5 +429,131 @@ describe("SchoolDetailScreen", () => {
     expect(
       await screen.findByTestId("school-detail-error-banner"),
     ).toBeTruthy();
+  });
+
+  describe("administrateur principal", () => {
+    const withPrimary = (primaryId: string | null) => {
+      const base = makeDetails();
+      return makeDetails({
+        primaryAdminUserId: primaryId,
+        schoolAdmins: base.schoolAdmins.map((admin) => ({
+          ...admin,
+          isPrimary: admin.id === primaryId,
+        })),
+      });
+    };
+
+    it("affiche le badge Principal et masque le retrait pour l'admin principal", async () => {
+      mockSchoolsApi.getSchoolDetails.mockResolvedValue(withPrimary("admin-1"));
+
+      render(<SchoolDetailScreen />);
+
+      expect(
+        await screen.findByTestId("school-detail-primary-badge-admin-1"),
+      ).toBeTruthy();
+      expect(
+        screen.queryByTestId("school-detail-primary-badge-admin-2"),
+      ).toBeNull();
+      expect(
+        screen.queryByTestId("school-detail-remove-admin-admin-1"),
+      ).toBeNull();
+      expect(
+        screen.getByTestId("school-detail-remove-admin-admin-2"),
+      ).toBeTruthy();
+    });
+
+    it("remplace l'admin principal via la liste des platform users (l'actuel n'est pas proposé)", async () => {
+      mockSchoolsApi.getSchoolDetails.mockResolvedValue(
+        withPrimary("platform-1"),
+      );
+      mockSchoolsApi.replacePrimaryAdmin.mockResolvedValue({
+        success: true,
+        primaryAdmin: {
+          id: "platform-2",
+          firstName: "Alice",
+          lastName: "Admin",
+          email: "alice@scolive.cm",
+        },
+      });
+
+      render(<SchoolDetailScreen />);
+
+      const submit = await screen.findByTestId(
+        "school-detail-primary-admin-submit",
+      );
+      expect(submit.props.accessibilityState?.disabled ?? true).toBeTruthy();
+
+      const input = screen.getByTestId(
+        "school-detail-primary-admin-select-input",
+      );
+      fireEvent(input, "focus");
+      expect(
+        screen.queryByTestId(
+          "school-detail-primary-admin-select-option-platform-1",
+        ),
+      ).toBeNull();
+      fireEvent.press(
+        await screen.findByTestId(
+          "school-detail-primary-admin-select-option-platform-2",
+        ),
+      );
+      fireEvent.press(screen.getByTestId("school-detail-primary-admin-submit"));
+
+      await waitFor(() => {
+        expect(mockSchoolsApi.replacePrimaryAdmin).toHaveBeenCalledWith(
+          "school-1",
+          "platform-2",
+        );
+      });
+      expect(mockShowSuccess).toHaveBeenCalled();
+      // Rechargement de la fiche après remplacement.
+      await waitFor(() =>
+        expect(
+          mockSchoolsApi.getSchoolDetails.mock.calls.length,
+        ).toBeGreaterThan(1),
+      );
+    });
+
+    it("affiche un toast d'erreur si le remplacement est refusé", async () => {
+      mockSchoolsApi.getSchoolDetails.mockResolvedValue(
+        withPrimary("platform-1"),
+      );
+      mockSchoolsApi.replacePrimaryAdmin.mockRejectedValue(new Error("refusé"));
+
+      render(<SchoolDetailScreen />);
+
+      const input = await screen.findByTestId(
+        "school-detail-primary-admin-select-input",
+      );
+      fireEvent(input, "focus");
+      fireEvent.press(
+        await screen.findByTestId(
+          "school-detail-primary-admin-select-option-platform-2",
+        ),
+      );
+      fireEvent.press(screen.getByTestId("school-detail-primary-admin-submit"));
+
+      await waitFor(() => expect(mockShowError).toHaveBeenCalled());
+      expect(mockShowSuccess).not.toHaveBeenCalled();
+    });
+
+    it("école legacy sans admin principal : invite à en désigner un, retrait non bloqué", async () => {
+      mockSchoolsApi.getSchoolDetails.mockResolvedValue(withPrimary(null));
+
+      render(<SchoolDetailScreen />);
+
+      expect(
+        await screen.findByTestId("school-detail-primary-admin"),
+      ).toBeTruthy();
+      expect(
+        screen.queryByTestId("school-detail-primary-badge-admin-1"),
+      ).toBeNull();
+      expect(
+        screen.getByTestId("school-detail-remove-admin-admin-1"),
+      ).toBeTruthy();
+      expect(
+        screen.getByTestId("school-detail-remove-admin-admin-2"),
+      ).toBeTruthy();
+    });
   });
 });
