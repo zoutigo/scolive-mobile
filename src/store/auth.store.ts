@@ -192,25 +192,46 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (response.schoolSlug) {
       await tokenStorage.setSchoolSlug(response.schoolSlug);
     }
+
+    let user: AuthUser | null = null;
+    try {
+      user = response.schoolSlug
+        ? await authApi.me(response.schoolSlug)
+        : await authApi.meGlobal();
+    } catch {
+      // user stays null; home screen will handle gracefully
+    }
+
+    // Compte authentifié mais rattaché à aucun établissement ni rôle plateforme
+    // (ex. membre exclu de son école) : on n'ouvre pas une application vide, on
+    // coupe la session et on l'explique (parité avec le web). Le store n'est
+    // marqué authentifié qu'ensuite, pour que l'écran de connexion ne soit pas
+    // démonté (et son message d'erreur perdu) par une redirection éclair.
+    if (
+      user &&
+      user.memberships.length === 0 &&
+      user.platformRoles.length === 0
+    ) {
+      await tokenStorage.clear().catch(() => {});
+      const noSchool = new Error("NO_SCHOOL_ACCOUNT") as Error & {
+        code?: string;
+      };
+      noSchool.code = "NO_SCHOOL_ACCOUNT";
+      throw noSchool;
+    }
+
     set({
       accessToken: response.accessToken,
       schoolSlug: response.schoolSlug,
       isAuthenticated: true,
       authErrorMessage: null,
+      ...(user ? { user } : {}),
     });
+    if (user) applyAccountLocale(user);
     if (response.schoolSlug) {
       void syncPushRegistration(response.schoolSlug).catch((error) =>
         console.warn("[push] syncPushRegistration failed", error),
       );
-    }
-    try {
-      const user = response.schoolSlug
-        ? await authApi.me(response.schoolSlug)
-        : await authApi.meGlobal();
-      set({ user });
-      applyAccountLocale(user);
-    } catch {
-      // user stays null; home screen will handle gracefully
     }
   },
 

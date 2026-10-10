@@ -724,6 +724,113 @@ describe("ClassHomeworkScreen — vue parent", () => {
   });
 });
 
+// ─── Lecture seule (élève / parent exclu) ──────────────────────────────────────
+
+describe("ClassHomeworkScreen — lecture seule (compte exclu)", () => {
+  beforeEach(() => {
+    mockAuthState({
+      schoolSlug: "college-vogt",
+      user: { ...PARENT_USER, schoolReadOnly: true },
+    });
+    mockUseFamilyStore.mockReturnValue({
+      children: [CHILD_RECORD],
+      activeChildId: "child-1",
+    } as never);
+    mockTimetableApi.getClassContext.mockRejectedValue(new Error("forbidden"));
+  });
+
+  it("désactive « Marquer fait » sur la carte et n'appelle jamais l'API", async () => {
+    render(<ClassHomeworkScreen />);
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-homework-toggle-done-hw-1"),
+      ).toBeTruthy(),
+    );
+
+    const button = screen.getByTestId("class-homework-toggle-done-hw-1");
+    expect(button.props.accessibilityState).toMatchObject({ disabled: true });
+    fireEvent.press(button);
+    expect(mockHomeworkApi.setCompletion).not.toHaveBeenCalled();
+  });
+
+  it("grise le bouton par la couleur (pas d'opacité dynamique, bug Fabric)", async () => {
+    render(<ClassHomeworkScreen />);
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-homework-toggle-done-hw-1"),
+      ).toBeTruthy(),
+    );
+    const style = StyleSheet.flatten(
+      screen.getByTestId("class-homework-toggle-done-hw-1").props.style,
+    );
+    expect(style.backgroundColor).toBe("#94A3B8");
+    expect(style.opacity ?? 1).toBe(1);
+  });
+
+  it("garde les commentaires lisibles mais retire le formulaire d'ajout", async () => {
+    render(<ClassHomeworkScreen />);
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-comments-hw-1")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("class-homework-comments-hw-1"));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-homework-comments-panel-hw-1"),
+      ).toBeTruthy(),
+    );
+    await waitFor(() =>
+      expect(screen.getByText("Commencez par relire la leçon.")).toBeTruthy(),
+    );
+    expect(
+      screen.queryByTestId("class-homework-inline-comment-input-hw-1"),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId("class-homework-inline-comment-submit-hw-1"),
+    ).toBeNull();
+  });
+
+  it("ouvre toujours le détail (consultation) sans action possible", async () => {
+    render(<ClassHomeworkScreen />);
+    await waitFor(() =>
+      expect(screen.getByText("Exercices 1 à 3")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByText("Exercices 1 à 3"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("homework-detail-header")).toBeTruthy(),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-toggle-done")).toBeTruthy(),
+    );
+    expect(
+      screen.getByTestId("class-homework-toggle-done").props.accessibilityState,
+    ).toMatchObject({ disabled: true });
+    expect(screen.queryByTestId("class-homework-comment-input")).toBeNull();
+    expect(screen.queryByTestId("class-homework-comment-submit")).toBeNull();
+  });
+
+  it("accès normal : bouton actif et formulaire de commentaire présents", async () => {
+    setupParent();
+    mockTimetableApi.getClassContext.mockRejectedValue(new Error("forbidden"));
+    render(<ClassHomeworkScreen />);
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("class-homework-toggle-done-hw-1"),
+      ).toBeTruthy(),
+    );
+    expect(
+      screen.getByTestId("class-homework-toggle-done-hw-1").props
+        .accessibilityState,
+    ).toMatchObject({ disabled: false });
+
+    fireEvent.press(screen.getByText("Exercices 1 à 3"));
+    await waitFor(() =>
+      expect(screen.getByTestId("class-homework-comment-input")).toBeTruthy(),
+    );
+  });
+});
+
 // ─── Comportements transversaux ────────────────────────────────────────────────
 
 describe("ClassHomeworkScreen — comportements transversaux", () => {

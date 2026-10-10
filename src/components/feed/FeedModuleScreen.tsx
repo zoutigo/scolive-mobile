@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useSchoolReadOnly } from "../../hooks/useSchoolReadOnly";
 import {
   ActivityIndicator,
   Dimensions,
@@ -117,7 +118,7 @@ export function FeedModuleScreen({
   deleteContextLabel,
   searchPlaceholder,
   canCompose = false,
-  readOnly = false,
+  readOnly: readOnlyProp = false,
   onCreatePost,
   onUpdatePost,
   onUploadInlineImage,
@@ -130,6 +131,8 @@ export function FeedModuleScreen({
   helpSections,
 }: Props) {
   const { t } = useTranslation();
+  // Un compte en lecture seule (élève/parent exclu) hérite du mode consultation.
+  const readOnly = readOnlyProp || useSchoolReadOnly();
   const tRef = useRef(t);
   tRef.current = t;
   const effectiveSearchPlaceholder =

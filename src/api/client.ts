@@ -1,5 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { notifySessionExpired } from "../auth/session-events";
+import { translate } from "../i18n/useTranslation";
+import { useLocaleStore } from "../store/locale.store";
 
 const ACCESS_TOKEN_KEY = "scolive_access_token";
 const REFRESH_TOKEN_KEY = "scolive_refresh_token";
@@ -98,19 +100,23 @@ export async function apiFetch<T>(
     const body = await response.json().catch(() => ({}));
     const rawMessage = body?.message;
     const message =
-      typeof rawMessage === "string"
-        ? rawMessage
-        : Array.isArray(rawMessage) && rawMessage.length > 0
-          ? (rawMessage as string[]).join(", ")
-          : response.status === 401
-            ? "Votre session a expiré. Veuillez vous reconnecter."
-            : response.status === 403
-              ? "Vous n'avez pas les droits pour effectuer cette action."
-              : response.status === 404
-                ? "Ressource introuvable."
-                : response.status === 409
-                  ? "Conflit : cette ressource existe déjà ou est en cours de modification."
-                  : `Erreur serveur (${response.status}).`;
+      // Refus d'écriture d'un compte en lecture seule (élève/parent exclu) :
+      // message traduit côté client plutôt que le texte français du serveur.
+      response.status === 403 && body?.code === "SCHOOL_MEMBER_READ_ONLY"
+        ? translate(useLocaleStore.getState().locale, "readOnly.actionBlocked")
+        : typeof rawMessage === "string"
+          ? rawMessage
+          : Array.isArray(rawMessage) && rawMessage.length > 0
+            ? (rawMessage as string[]).join(", ")
+            : response.status === 401
+              ? "Votre session a expiré. Veuillez vous reconnecter."
+              : response.status === 403
+                ? "Vous n'avez pas les droits pour effectuer cette action."
+                : response.status === 404
+                  ? "Ressource introuvable."
+                  : response.status === 409
+                    ? "Conflit : cette ressource existe déjà ou est en cours de modification."
+                    : `Erreur serveur (${response.status}).`;
 
     if (withAuth && response.status === 401) {
       await handleUnauthorized(message);

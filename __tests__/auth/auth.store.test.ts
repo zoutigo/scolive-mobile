@@ -288,6 +288,88 @@ describe("auth.store — handleLoginResponse() avec schoolSlug null", () => {
   });
 });
 
+// ── Compte sans établissement (ex. membre exclu) ──────────────────────────
+
+describe("auth.store — handleLoginResponse() compte sans école", () => {
+  const orphanUser: AuthUser = {
+    ...fakeUser,
+    memberships: [],
+    platformRoles: [],
+    role: null,
+    activeRole: null,
+  };
+
+  beforeEach(() => {
+    mockStorage.setTokens.mockResolvedValue(undefined);
+    mockStorage.clear.mockResolvedValue(undefined);
+  });
+
+  it("coupe la session et lève NO_SCHOOL_ACCOUNT au lieu d'ouvrir une application vide", async () => {
+    mockAuthApi.meGlobal.mockResolvedValue(orphanUser);
+
+    await expect(
+      useAuthStore
+        .getState()
+        .handleLoginResponse({ ...fakeLoginResponse, schoolSlug: null }),
+    ).rejects.toMatchObject({ code: "NO_SCHOOL_ACCOUNT" });
+
+    const state = useAuthStore.getState();
+    expect(state.isAuthenticated).toBe(false);
+    expect(state.user).toBeNull();
+    expect(state.accessToken).toBeNull();
+    expect(mockStorage.clear).toHaveBeenCalled();
+  });
+
+  it("le message d'erreur affiché est traduit (fr et en)", async () => {
+    const { parseApiError } = require("../../src/auth/google-sso-callback");
+    const { translate } = require("../../src/i18n/useTranslation");
+    mockAuthApi.meGlobal.mockResolvedValue(orphanUser);
+
+    let caught: unknown;
+    try {
+      await useAuthStore
+        .getState()
+        .handleLoginResponse({ ...fakeLoginResponse, schoolSlug: null });
+    } catch (error) {
+      caught = error;
+    }
+    expect(parseApiError(caught, (k: string) => translate("fr", k))).toContain(
+      "Aucune école n'est associée à ce compte",
+    );
+    expect(parseApiError(caught, (k: string) => translate("en", k))).toContain(
+      "No school is linked to this account",
+    );
+  });
+
+  it("garde un compte avec un rôle plateforme et sans école (support, admin plateforme)", async () => {
+    mockAuthApi.meGlobal.mockResolvedValue({
+      ...orphanUser,
+      platformRoles: ["SUPER_ADMIN"],
+    } as AuthUser);
+
+    await act(async () => {
+      await useAuthStore
+        .getState()
+        .handleLoginResponse({ ...fakeLoginResponse, schoolSlug: null });
+    });
+
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+    expect(useAuthStore.getState().user?.platformRoles).toEqual([
+      "SUPER_ADMIN",
+    ]);
+  });
+
+  it("ne bloque pas un compte avec au moins une école", async () => {
+    mockAuthApi.me.mockResolvedValue(fakeUser);
+
+    await act(async () => {
+      await useAuthStore.getState().handleLoginResponse(fakeLoginResponse);
+    });
+
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+  });
+});
+
 // ── Synchronisation de la langue du compte ────────────────────────────────
 //
 // La langue du compte ("compte gagne") doit écraser la langue de l'appareil

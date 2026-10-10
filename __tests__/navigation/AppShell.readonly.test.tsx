@@ -3,13 +3,19 @@
  * tous les enfants sont exclus). Le flag vient de `/auth/me` (`schoolReadOnly`).
  */
 import React from "react";
-import { Text } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import { render, screen } from "@testing-library/react-native";
 import { AppShell } from "../../src/components/navigation/AppShell";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
+let mockInsetsTop = 0;
 jest.mock("react-native-safe-area-context", () => ({
-  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+  useSafeAreaInsets: () => ({
+    top: mockInsetsTop,
+    bottom: 0,
+    left: 0,
+    right: 0,
+  }),
 }));
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
@@ -77,9 +83,9 @@ function baseUser(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function renderShell() {
+function renderShell(showHeader = true) {
   return render(
-    <AppShell>
+    <AppShell showHeader={showHeader}>
       <Text>contenu</Text>
     </AppShell>,
   );
@@ -110,5 +116,53 @@ describe("AppShell — bannière lecture seule", () => {
     renderShell();
     expect(screen.queryByTestId("read-only-banner")).toBeNull();
     expect(screen.getByText("contenu")).toBeOnTheScreen();
+  });
+});
+
+describe("AppShell — libellés selon le rôle", () => {
+  beforeEach(() => {
+    mockInsetsTop = 0;
+  });
+
+  it("s'adresse à l'élève exclu à la deuxième personne", () => {
+    mockUser = baseUser({
+      role: "STUDENT",
+      activeRole: "STUDENT",
+      schoolReadOnly: true,
+    });
+    renderShell();
+    expect(screen.getByText(/Vous n'êtes plus inscrit\(e\)/)).toBeOnTheScreen();
+    expect(screen.queryByText(/Votre enfant/)).toBeNull();
+  });
+
+  it("parle de l'enfant au parent dont tous les enfants sont exclus", () => {
+    mockUser = baseUser({ schoolReadOnly: true });
+    renderShell();
+    expect(
+      screen.getByText(/Votre enfant n'est plus inscrit\(e\)/),
+    ).toBeOnTheScreen();
+  });
+});
+
+describe("AppShell — bannière sous la barre d'état", () => {
+  beforeEach(() => {
+    mockUser = baseUser({ schoolReadOnly: true });
+  });
+
+  function paddingTopOf(testID: string): number | undefined {
+    const style = StyleSheet.flatten(screen.getByTestId(testID).props.style);
+    return style?.paddingTop;
+  }
+
+  it("hors accueil (sans en-tête), la bannière ajoute l'encoche/barre d'état", () => {
+    mockInsetsTop = 40;
+    renderShell(false);
+    expect(paddingTopOf("read-only-banner")).toBe(50);
+  });
+
+  it("avec l'en-tête de l'accueil, aucun décalage supplémentaire", () => {
+    mockInsetsTop = 40;
+    renderShell(true);
+    expect(paddingTopOf("read-only-banner")).toBeUndefined();
   });
 });

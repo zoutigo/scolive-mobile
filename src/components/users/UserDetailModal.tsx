@@ -2445,6 +2445,9 @@ const EXCLUSION_REASON_MAX = 500;
 
 const styles = StyleSheet.create({
   excludeReasonWrap: {
+    // Le dialogue centre ses enfants : sans largeur explicite, le champ se
+    // contracte autour du texte saisi.
+    alignSelf: "stretch",
     marginTop: 12,
     gap: 4,
   },
@@ -2454,6 +2457,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   excludeReasonInput: {
+    alignSelf: "stretch",
     minHeight: 56,
     borderWidth: 1.5,
     borderColor: colors.warmBorder,

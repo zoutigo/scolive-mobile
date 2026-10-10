@@ -131,3 +131,39 @@ describe("ClassLifeFeedScreen — mode self (élève)", () => {
     expect(screen.getByTestId("feed-composer-card")).toBeOnTheScreen();
   });
 });
+
+describe("ClassLifeFeedScreen — élève exclu (lecture seule)", () => {
+  function setReadOnly(value: boolean) {
+    useAuthStore.setState({
+      user: {
+        ...(useAuthStore.getState().user as unknown as Record<string, unknown>),
+        schoolReadOnly: value,
+      } as never,
+    });
+  }
+
+  it("consulte le fil de sa classe mais n'a plus de bouton de publication", async () => {
+    setReadOnly(true);
+    render(<ClassLifeFeedScreen />);
+
+    await waitFor(() => {
+      expect(api.list).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({ viewScope: "CLASS", classId: "class-1" }),
+      );
+    });
+    expect(screen.getByText(/Lisa Mbele/)).toBeOnTheScreen();
+    expect(screen.queryByTestId("child-class-feed-compose-fab")).toBeNull();
+  });
+
+  it("garde le bouton de publication quand schoolReadOnly est faux", async () => {
+    setReadOnly(false);
+    render(<ClassLifeFeedScreen />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("child-class-feed-compose-fab"),
+      ).toBeOnTheScreen();
+    });
+  });
+});

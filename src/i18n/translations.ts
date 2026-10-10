@@ -558,6 +558,8 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Ce compte Google n'est pas encore autorisé par votre établissement.",
     "apiErrors.invalidSchoolAccount":
       "Ce compte Google n'est pas rattaché à cette école.",
+    "apiErrors.noSchoolAccount":
+      "Aucune école n'est associée à ce compte. Si vous avez été retiré(e) d'un établissement, contactez son administration.",
     "apiErrors.apiUnreachable":
       "Le serveur est inaccessible. Vérifiez que l'API est démarrée (port 3001).",
     "apiErrors.generic":
@@ -3957,7 +3959,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.reinvite.failed": "Réinvitation impossible",
     "readOnly.title": "Accès en lecture seule",
     "readOnly.message":
-      "L'élève n'est plus inscrit(e) dans l'établissement. Vous pouvez consulter l'historique (notes, devoirs, emploi du temps…) mais plus effectuer d'action ni recevoir de notification.",
+      "Vous n'êtes plus inscrit(e) dans l'établissement. Vous pouvez consulter votre historique (notes, devoirs, emploi du temps…) mais plus effectuer d'action ni recevoir de notification.",
+    "readOnly.actionBlocked":
+      "Action impossible : votre accès est en lecture seule.",
+    "readOnly.messageParent":
+      "Votre enfant n'est plus inscrit(e) dans l'établissement. Vous pouvez consulter son historique (notes, devoirs, emploi du temps…) mais plus effectuer d'action ni recevoir de notification.",
     "users.unassignClass.title": "Retirer de sa classe",
     "users.unassignClass.message":
       "{name} restera élève de l'école mais ne sera plus affecté(e) à une classe pour l'année scolaire en cours. Son historique est conservé.",
@@ -5004,6 +5010,8 @@ export const translations: Record<Locale, Record<string, string>> = {
       "This Google account is not yet authorized by your school.",
     "apiErrors.invalidSchoolAccount":
       "This Google account is not linked to this school.",
+    "apiErrors.noSchoolAccount":
+      "No school is linked to this account. If you were removed from a school, please contact its administration.",
     "apiErrors.apiUnreachable":
       "Server unreachable. Make sure the API is running (port 3001).",
     "apiErrors.generic": "Unable to connect. Check your internet connection.",
@@ -8278,7 +8286,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.reinvite.failed": "Could not invite back",
     "readOnly.title": "Read-only access",
     "readOnly.message":
-      "The student is no longer enrolled at the school. You can browse the history (grades, homework, timetable…) but can no longer act or receive notifications.",
+      "You are no longer enrolled at the school. You can browse your history (grades, homework, timetable…) but can no longer act or receive notifications.",
+    "readOnly.actionBlocked": "Action not possible: your access is read-only.",
+    "readOnly.messageParent":
+      "Your child is no longer enrolled at the school. You can browse their history (grades, homework, timetable…) but can no longer act or receive notifications.",
     "users.unassignClass.title": "Remove from class",
     "users.unassignClass.message":
       "{name} will remain a student of the school but will no longer be assigned to a class for the current school year. Their history is kept.",

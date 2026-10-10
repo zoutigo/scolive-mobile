@@ -6,6 +6,7 @@
  * gestion d'erreur serveur.
  */
 import React from "react";
+import { StyleSheet } from "react-native";
 import {
   fireEvent,
   render,
@@ -131,6 +132,30 @@ describe("UserDetailModal — exclusion de l'école", () => {
     expect(onMemberChanged).toHaveBeenCalledTimes(1);
     expect(mockShowSuccess).toHaveBeenCalledTimes(1);
     expect(mockShowError).not.toHaveBeenCalled();
+  });
+
+  it("le champ motif occupe toute la largeur du dialogue (ne se contracte pas autour du texte)", async () => {
+    await renderLoaded(TEACHER_USER);
+    fireEvent.press(screen.getByTestId("action-exclude"));
+    const input = await screen.findByTestId("exclude-reason-input");
+    fireEvent.changeText(input, "Fin");
+
+    const inputStyle = StyleSheet.flatten(
+      screen.getByTestId("exclude-reason-input").props.style,
+    );
+    expect(inputStyle.alignSelf).toBe("stretch");
+
+    // Le conteneur (libellé + champ) s'étire aussi dans la carte centrée.
+    let node = screen.getByTestId("exclude-reason-input").parent;
+    let wrapStyle: Record<string, unknown> | undefined;
+    while (node && !wrapStyle) {
+      const style = StyleSheet.flatten(node.props?.style) as
+        | Record<string, unknown>
+        | undefined;
+      if (style?.marginTop === 12 && style?.gap === 4) wrapStyle = style;
+      node = node.parent;
+    }
+    expect(wrapStyle?.alignSelf).toBe("stretch");
   });
 
   it("annuler la confirmation n'exclut personne", async () => {

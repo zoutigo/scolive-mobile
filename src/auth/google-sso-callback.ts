@@ -46,6 +46,8 @@ export function parseApiError(
       return t("apiErrors.accountNotProvisioned");
     case "INVALID_SCHOOL_ACCOUNT":
       return t("apiErrors.invalidSchoolAccount");
+    case "NO_SCHOOL_ACCOUNT":
+      return t("apiErrors.noSchoolAccount");
     default:
       if (statusCode === 401) {
         return t("apiErrors.invalidCredentials");

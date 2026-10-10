@@ -1034,6 +1034,23 @@ describe("SchoolAdminUsersScreen — Membres exclus et réinvitation", () => {
     expect(useUsersStore.getState().filters.membershipStatus).toBe("excluded");
   });
 
+  it("masque le bouton de création dans la liste des exclus (il recouvrait les cartes) et le rend aux actifs", async () => {
+    mockUsersApi.list.mockResolvedValue(makeUsersPage([PARENT_USER]));
+    renderScreen();
+    expect(await screen.findByTestId("users-create-fab")).toBeOnTheScreen();
+
+    await openExcludedList();
+    await screen.findByTestId(`user-card-${EXCLUDED_TEACHER.id}`);
+    expect(screen.queryByTestId("users-create-fab")).toBeNull();
+
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("users-filter-reset"));
+    });
+    fireEvent.press(screen.getByTestId("users-filter-close"));
+    expect(await screen.findByTestId("users-create-fab")).toBeOnTheScreen();
+  });
+
   it("Reset revient aux actifs", async () => {
     await openExcludedList();
     fireEvent.press(screen.getByTestId("users-filter-toggle"));

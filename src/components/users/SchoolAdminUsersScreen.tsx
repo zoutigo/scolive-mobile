@@ -1131,7 +1131,9 @@ export function SchoolAdminUsersScreen() {
         </>
       )}
 
-      {screenTab === "list" && !filtersOpen ? (
+      {screenTab === "list" &&
+      !filtersOpen &&
+      filters.membershipStatus !== "excluded" ? (
         <TouchableOpacity
           style={styles.fab}
           onPress={openCreateForms}

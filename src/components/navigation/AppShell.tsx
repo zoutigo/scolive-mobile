@@ -156,10 +156,22 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
             ]}
           >
             {user?.schoolReadOnly ? (
-              <View style={styles.readOnlyBanner} testID="read-only-banner">
+              <View
+                style={[
+                  styles.readOnlyBanner,
+                  // Hors accueil, la bannière est le premier élément de l'écran :
+                  // elle doit passer sous la barre d'état (encoche, heure).
+                  !showHeader ? { paddingTop: insets.top + 10 } : null,
+                ]}
+                testID="read-only-banner"
+              >
                 <Text style={styles.readOnlyTitle}>{t("readOnly.title")}</Text>
                 <Text style={styles.readOnlyMessage}>
-                  {t("readOnly.message")}
+                  {t(
+                    user.activeRole === "PARENT"
+                      ? "readOnly.messageParent"
+                      : "readOnly.message",
+                  )}
                 </Text>
               </View>
             ) : null}
