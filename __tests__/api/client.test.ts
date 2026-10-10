@@ -1,5 +1,6 @@
 import { apiFetch, tokenStorage } from "../../src/api/client";
 import { registerSessionExpiredHandler } from "../../src/auth/session-events";
+import { useLocaleStore } from "../../src/store/locale.store";
 
 jest.mock("expo-secure-store", () => ({
   getItemAsync: jest.fn(),
@@ -155,6 +156,87 @@ describe("apiFetch()", () => {
     ).rejects.toMatchObject({
       message: "Erreur serveur (500).",
       statusCode: 500,
+    });
+  });
+
+  describe("refus d'écriture en lecture seule (403 SCHOOL_MEMBER_READ_ONLY)", () => {
+    const readOnly403 = {
+      ok: false,
+      status: 403,
+      json: async () => ({
+        code: "SCHOOL_MEMBER_READ_ONLY",
+        message:
+          "Votre accès à cet établissement est en lecture seule : vous ne pouvez plus effectuer cette action.",
+      }),
+    };
+
+    afterEach(() => {
+      useLocaleStore.setState({ locale: "fr" });
+    });
+
+    it("affiche le message traduit en français et conserve le code pour l'appelant", async () => {
+      useLocaleStore.setState({ locale: "fr" });
+      mockFetch.mockResolvedValueOnce(readOnly403);
+
+      await expect(
+        apiFetch(
+          "/schools/test/homework/1/completion",
+          { method: "PATCH" },
+          true,
+        ),
+      ).rejects.toMatchObject({
+        message: "Action impossible : votre accès est en lecture seule.",
+        code: "SCHOOL_MEMBER_READ_ONLY",
+        statusCode: 403,
+      });
+    });
+
+    it("traduit le message en anglais selon la langue de l'app", async () => {
+      useLocaleStore.setState({ locale: "en" });
+      mockFetch.mockResolvedValueOnce(readOnly403);
+
+      await expect(
+        apiFetch("/schools/test/messages", { method: "POST" }, true),
+      ).rejects.toMatchObject({
+        message: "Action not possible: your access is read-only.",
+        code: "SCHOOL_MEMBER_READ_ONLY",
+      });
+    });
+
+    it("ne touche pas aux autres 403 (message serveur ou générique)", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: async () => ({ code: "OTHER", message: "Rôle insuffisant" }),
+      });
+      await expect(
+        apiFetch("/schools/test/x", { method: "POST" }, true),
+      ).rejects.toMatchObject({ message: "Rôle insuffisant", code: "OTHER" });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: async () => ({}),
+      });
+      await expect(
+        apiFetch("/schools/test/x", { method: "POST" }, true),
+      ).rejects.toMatchObject({
+        message: "Vous n'avez pas les droits pour effectuer cette action.",
+      });
+    });
+
+    it("ne confond pas ce code avec un autre statut HTTP", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+        json: async () => ({
+          code: "SCHOOL_MEMBER_READ_ONLY",
+          message: "Conflit serveur",
+        }),
+      });
+      await expect(
+        apiFetch("/schools/test/x", { method: "POST" }, true),
+      ).rejects.toMatchObject({ message: "Conflit serveur" });
     });
   });
 });

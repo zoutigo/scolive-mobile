@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { View, StyleSheet, AppState } from "react-native";
+import { View, Text, StyleSheet, AppState } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../../store/auth.store";
 import { useBadgesStore } from "../../store/badges.store";
@@ -7,6 +7,7 @@ import { useFamilyStore } from "../../store/family.store";
 import { useTeacherClassNavStore } from "../../store/teacher-class-nav.store";
 import { useOnboardingTourStore } from "../../store/onboarding-tour.store";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import { PLATFORM_SCOPE } from "../../api/messaging-client";
 import { AppHeader } from "./AppHeader";
 import { AppDrawer } from "./AppDrawer";
@@ -36,6 +37,7 @@ interface AppShellProps {
 
 export function AppShell({ children, showHeader = true }: AppShellProps) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [pendingSection, setPendingSection] = useState<string | null>(null);
   const { user, schoolSlug } = useAuthStore();
@@ -153,6 +155,26 @@ export function AppShell({ children, showHeader = true }: AppShellProps) {
               { paddingBottom: BOTTOM_TAB_BAR_HEIGHT + insets.bottom },
             ]}
           >
+            {user?.schoolReadOnly ? (
+              <View
+                style={[
+                  styles.readOnlyBanner,
+                  // Hors accueil, la bannière est le premier élément de l'écran :
+                  // elle doit passer sous la barre d'état (encoche, heure).
+                  !showHeader ? { paddingTop: insets.top + 10 } : null,
+                ]}
+                testID="read-only-banner"
+              >
+                <Text style={styles.readOnlyTitle}>{t("readOnly.title")}</Text>
+                <Text style={styles.readOnlyMessage}>
+                  {t(
+                    user.activeRole === "PARENT"
+                      ? "readOnly.messageParent"
+                      : "readOnly.message",
+                  )}
+                </Text>
+              </View>
+            ) : null}
             {children}
           </View>
           <BottomTabBar />
@@ -187,5 +209,22 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  readOnlyBanner: {
+    backgroundColor: "#FFF3E4",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F4C7A1",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 2,
+  },
+  readOnlyTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#7A4A12",
+  },
+  readOnlyMessage: {
+    fontSize: 12,
+    color: "#7A4A12",
   },
 });

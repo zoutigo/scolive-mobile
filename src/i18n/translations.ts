@@ -558,6 +558,8 @@ export const translations: Record<Locale, Record<string, string>> = {
       "Ce compte Google n'est pas encore autorisé par votre établissement.",
     "apiErrors.invalidSchoolAccount":
       "Ce compte Google n'est pas rattaché à cette école.",
+    "apiErrors.noSchoolAccount":
+      "Aucune école n'est associée à ce compte. Si vous avez été retiré(e) d'un établissement, contactez son administration.",
     "apiErrors.apiUnreachable":
       "Le serveur est inaccessible. Vérifiez que l'API est démarrée (port 3001).",
     "apiErrors.generic":
@@ -3931,6 +3933,37 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.exclude.successTitle": "Utilisateur exclu",
     "users.exclude.success": "{name} a été exclu(e) de l'école.",
     "users.exclude.failed": "Exclusion impossible",
+    "users.exclude.messageStudent":
+      "{name} sera retiré(e) de tous les effectifs (notes, devoirs, appel…) et ne recevra plus aucune notification, ni ses parents. Son compte et celui de ses parents restent consultables en lecture seule pour l'historique, sans possibilité d'agir. Rien n'est supprimé et {name} pourra être réinvité(e).",
+    "users.exclude.messageStaff":
+      "{name} n'aura plus aucun accès à l'établissement et ses rôles seront retirés. Son historique (notes, présences, années passées) est conservé, le compte n'est pas supprimé et {name} pourra être réinvité(e).",
+    "users.exclude.reasonLabel": "Motif (facultatif)",
+    "users.exclude.reasonPlaceholder":
+      "Ex. fin de contrat, départ de l'établissement…",
+    "users.exclude.reasonTooLong":
+      "Le motif ne peut pas dépasser 500 caractères.",
+    "users.filters.membershipLabel": "Statut dans l'école",
+    "users.membership.active": "Actifs",
+    "users.membership.excluded": "Exclus",
+    "users.excluded.badge": "Exclu(e)",
+    "users.excluded.since": "Exclu(e) le {date}",
+    "users.excluded.reason": "Motif : {reason}",
+    "users.excluded.hint":
+      "Ces personnes ne font plus partie de l'école. Réinvitez-les pour leur redonner accès.",
+    "users.empty.excludedTitle": "Aucune personne exclue",
+    "users.empty.excludedMessage":
+      "Les personnes exclues de l'école apparaîtront ici.",
+    "users.actions.reinvite": "Inviter dans l'école",
+    "users.reinvite.successTitle": "Personne réinvitée",
+    "users.reinvite.success": "{name} a été réinvité(e) dans l'école.",
+    "users.reinvite.failed": "Réinvitation impossible",
+    "readOnly.title": "Accès en lecture seule",
+    "readOnly.message":
+      "Vous n'êtes plus inscrit(e) dans l'établissement. Vous pouvez consulter votre historique (notes, devoirs, emploi du temps…) mais plus effectuer d'action ni recevoir de notification.",
+    "readOnly.actionBlocked":
+      "Action impossible : votre accès est en lecture seule.",
+    "readOnly.messageParent":
+      "Votre enfant n'est plus inscrit(e) dans l'établissement. Vous pouvez consulter son historique (notes, devoirs, emploi du temps…) mais plus effectuer d'action ni recevoir de notification.",
     "users.unassignClass.title": "Retirer de sa classe",
     "users.unassignClass.message":
       "{name} restera élève de l'école mais ne sera plus affecté(e) à une classe pour l'année scolaire en cours. Son historique est conservé.",
@@ -4977,6 +5010,8 @@ export const translations: Record<Locale, Record<string, string>> = {
       "This Google account is not yet authorized by your school.",
     "apiErrors.invalidSchoolAccount":
       "This Google account is not linked to this school.",
+    "apiErrors.noSchoolAccount":
+      "No school is linked to this account. If you were removed from a school, please contact its administration.",
     "apiErrors.apiUnreachable":
       "Server unreachable. Make sure the API is running (port 3001).",
     "apiErrors.generic": "Unable to connect. Check your internet connection.",
@@ -8227,6 +8262,34 @@ export const translations: Record<Locale, Record<string, string>> = {
     "users.exclude.successTitle": "User removed",
     "users.exclude.success": "{name} was removed from the school.",
     "users.exclude.failed": "Removal failed",
+    "users.exclude.messageStudent":
+      "{name} will be removed from every roster (grades, homework, attendance…) and will no longer receive any notification, nor will their parents. Their account and their parents' accounts stay viewable in read-only mode for the history, with no way to act. Nothing is deleted and {name} can be invited back.",
+    "users.exclude.messageStaff":
+      "{name} will no longer have any access to the school and their roles will be removed. Their history (grades, attendance, past years) is kept, the account is not deleted and {name} can be invited back.",
+    "users.exclude.reasonLabel": "Reason (optional)",
+    "users.exclude.reasonPlaceholder": "E.g. end of contract, left the school…",
+    "users.exclude.reasonTooLong": "The reason cannot exceed 500 characters.",
+    "users.filters.membershipLabel": "School status",
+    "users.membership.active": "Active",
+    "users.membership.excluded": "Excluded",
+    "users.excluded.badge": "Excluded",
+    "users.excluded.since": "Excluded on {date}",
+    "users.excluded.reason": "Reason: {reason}",
+    "users.excluded.hint":
+      "These people are no longer part of the school. Invite them back to restore their access.",
+    "users.empty.excludedTitle": "No excluded people",
+    "users.empty.excludedMessage":
+      "People excluded from the school will appear here.",
+    "users.actions.reinvite": "Invite back to the school",
+    "users.reinvite.successTitle": "Person invited back",
+    "users.reinvite.success": "{name} was invited back to the school.",
+    "users.reinvite.failed": "Could not invite back",
+    "readOnly.title": "Read-only access",
+    "readOnly.message":
+      "You are no longer enrolled at the school. You can browse your history (grades, homework, timetable…) but can no longer act or receive notifications.",
+    "readOnly.actionBlocked": "Action not possible: your access is read-only.",
+    "readOnly.messageParent":
+      "Your child is no longer enrolled at the school. You can browse their history (grades, homework, timetable…) but can no longer act or receive notifications.",
     "users.unassignClass.title": "Remove from class",
     "users.unassignClass.message":
       "{name} will remain a student of the school but will no longer be assigned to a class for the current school year. Their history is kept.",

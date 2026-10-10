@@ -176,6 +176,48 @@ describe("Rendu initial", () => {
     expect(screen.queryByTestId("compose-fab")).toBeNull();
   });
 
+  it("n'affiche pas le FAB pour un compte en lecture seule (élève/parent exclu)", () => {
+    useFamilyStore.setState({ activeChildId: null });
+    mockAuthUser({
+      user: {
+        id: "parent-1",
+        firstName: "Valery",
+        lastName: "Mbele",
+        platformRoles: [],
+        memberships: [{ schoolId: "school-1", role: "PARENT" }],
+        profileCompleted: true,
+        role: "PARENT",
+        activeRole: "PARENT",
+        schoolReadOnly: true,
+      },
+      schoolSlug: "college-vogt",
+      logout: jest.fn(),
+    });
+    render(<MessagesScreen />);
+    expect(screen.queryByTestId("compose-fab")).toBeNull();
+  });
+
+  it("garde le FAB quand schoolReadOnly est explicitement faux", () => {
+    useFamilyStore.setState({ activeChildId: null });
+    mockAuthUser({
+      user: {
+        id: "parent-1",
+        firstName: "Valery",
+        lastName: "Mbele",
+        platformRoles: [],
+        memberships: [{ schoolId: "school-1", role: "PARENT" }],
+        profileCompleted: true,
+        role: "PARENT",
+        activeRole: "PARENT",
+        schoolReadOnly: false,
+      },
+      schoolSlug: "college-vogt",
+      logout: jest.fn(),
+    });
+    render(<MessagesScreen />);
+    expect(screen.getByTestId("compose-fab")).toBeTruthy();
+  });
+
   it("n'affiche plus de bouton menu dans le header par défaut (déplacé vers la bottom tab bar)", () => {
     render(<MessagesScreen />);
     expect(screen.queryByTestId("messages-menu-btn")).toBeNull();

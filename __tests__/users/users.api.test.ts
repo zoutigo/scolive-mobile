@@ -318,4 +318,68 @@ describe("usersApi", () => {
       );
     });
   });
+
+  describe("exclusion et réinvitation", () => {
+    it("list n'envoie membershipStatus que pour les exclus", async () => {
+      mockApiFetch.mockResolvedValue(makeUsersPage([]));
+      await usersApi.list(SLUG, { membershipStatus: "active" });
+      await usersApi.list(SLUG, {});
+      await usersApi.list(SLUG, { membershipStatus: "excluded" });
+      expect(mockApiFetch.mock.calls[0][0]).not.toContain("membershipStatus");
+      expect(mockApiFetch.mock.calls[1][0]).not.toContain("membershipStatus");
+      expect(mockApiFetch.mock.calls[2][0]).toContain(
+        "membershipStatus=excluded",
+      );
+    });
+
+    it("excludeMember : POST users/:id/exclude avec motif nettoyé", async () => {
+      mockApiFetch.mockResolvedValueOnce({ action: "EXCLUDED" });
+      await usersApi.excludeMember(SLUG, "u-1", "  Fin de contrat ");
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        `/schools/${SLUG}/users/u-1/exclude`,
+        { method: "POST", body: JSON.stringify({ reason: "Fin de contrat" }) },
+        true,
+      );
+    });
+
+    it("excludeMember sans motif : corps vide", async () => {
+      mockApiFetch.mockResolvedValueOnce({ action: "EXCLUDED" });
+      await usersApi.excludeMember(SLUG, "u-1", "   ");
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        `/schools/${SLUG}/users/u-1/exclude`,
+        { method: "POST", body: "{}" },
+        true,
+      );
+    });
+
+    it("excludeStudent : POST users/students/:studentId/exclude", async () => {
+      mockApiFetch.mockResolvedValueOnce({ action: "EXCLUDED" });
+      await usersApi.excludeStudent(SLUG, "s-1", "Départ");
+      expect(mockApiFetch).toHaveBeenCalledWith(
+        `/schools/${SLUG}/users/students/s-1/exclude`,
+        { method: "POST", body: JSON.stringify({ reason: "Départ" }) },
+        true,
+      );
+    });
+
+    it("reinviteMember / reinviteStudent : POST sur les bonnes routes", async () => {
+      mockApiFetch.mockResolvedValue({ action: "REINVITED" });
+      await usersApi.reinviteMember(SLUG, "u-1");
+      await usersApi.reinviteStudent(SLUG, "s-1");
+      expect(mockApiFetch.mock.calls[0][0]).toBe(
+        `/schools/${SLUG}/users/u-1/reinvite`,
+      );
+      expect(mockApiFetch.mock.calls[1][0]).toBe(
+        `/schools/${SLUG}/users/students/s-1/reinvite`,
+      );
+      expect(mockApiFetch.mock.calls[0][1]).toEqual(
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+
+    it("propage l'erreur serveur", async () => {
+      mockApiFetch.mockRejectedValueOnce(new Error("409"));
+      await expect(usersApi.excludeMember(SLUG, "u-1")).rejects.toThrow("409");
+    });
+  });
 });

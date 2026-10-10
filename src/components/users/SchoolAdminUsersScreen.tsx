@@ -50,6 +50,7 @@ import type {
   SchoolRole,
   SchoolUser,
   SchoolUserAccountFilter,
+  SchoolUserMembershipFilter,
   SchoolUserRoleFilter,
   SchoolUsersFilters,
   SchoolYearOption,
@@ -146,16 +147,22 @@ const ACCOUNT_FILTER_KEYS: SchoolUserAccountFilter[] = [
   "WITHOUT_ACCOUNT",
 ];
 
+const MEMBERSHIP_FILTER_KEYS: SchoolUserMembershipFilter[] = [
+  "active",
+  "excluded",
+];
+
 type DraftFilters = Pick<
   SchoolUsersFilters,
-  "role" | "hasAccount" | "schoolYearId"
+  "role" | "hasAccount" | "schoolYearId" | "membershipStatus"
 >;
 
 function hasActiveFilters(filters: DraftFilters) {
   return (
     filters.role !== "ALL" ||
     filters.hasAccount !== "ALL" ||
-    filters.schoolYearId !== ""
+    filters.schoolYearId !== "" ||
+    filters.membershipStatus !== "active"
   );
 }
 
@@ -211,7 +218,9 @@ export function SchoolAdminUsersScreen() {
     role: filters.role,
     hasAccount: filters.hasAccount,
     schoolYearId: filters.schoolYearId,
+    membershipStatus: filters.membershipStatus,
   });
+  const [reinvitingId, setReinvitingId] = useState<string | null>(null);
   const [filterScrollOverflowing, setFilterScrollOverflowing] = useState(false);
   const [filterScrollNearBottom, setFilterScrollNearBottom] = useState(false);
   const filterScrollLayoutHeightRef = useRef(0);
@@ -420,6 +429,7 @@ export function SchoolAdminUsersScreen() {
           search: f.search,
           role: f.role,
           hasAccount: f.hasAccount,
+          membershipStatus: f.membershipStatus,
           schoolYearId: yearFilterApplies(f.role) ? f.schoolYearId : undefined,
           page: 1,
         });
@@ -445,6 +455,7 @@ export function SchoolAdminUsersScreen() {
         search: f.search,
         role: f.role,
         hasAccount: f.hasAccount,
+        membershipStatus: f.membershipStatus,
         schoolYearId: yearFilterApplies(f.role) ? f.schoolYearId : undefined,
         page: nextPage,
       });
@@ -459,7 +470,12 @@ export function SchoolAdminUsersScreen() {
   // ── Initial load & filter change ──────────────────────────────────────────────
   useEffect(() => {
     void loadFirstPage(false);
-  }, [filters.role, filters.hasAccount, filters.schoolYearId]);
+  }, [
+    filters.role,
+    filters.hasAccount,
+    filters.schoolYearId,
+    filters.membershipStatus,
+  ]);
 
   // ── Debounced search ──────────────────────────────────────────────────────────
   const handleSearchChange = useCallback(
@@ -494,6 +510,7 @@ export function SchoolAdminUsersScreen() {
       role: filters.role,
       hasAccount: filters.hasAccount,
       schoolYearId: filters.schoolYearId,
+      membershipStatus: filters.membershipStatus,
     });
     filterScrollLayoutHeightRef.current = 0;
     filterScrollContentHeightRef.current = 0;
@@ -507,6 +524,7 @@ export function SchoolAdminUsersScreen() {
       role: filters.role,
       hasAccount: filters.hasAccount,
       schoolYearId: filters.schoolYearId,
+      membershipStatus: filters.membershipStatus,
     });
     setFiltersOpen(false);
   }
@@ -520,6 +538,7 @@ export function SchoolAdminUsersScreen() {
     setFilters({
       role: draftFilters.role,
       hasAccount: draftFilters.hasAccount,
+      membershipStatus: draftFilters.membershipStatus,
       schoolYearId: yearFilterApplies(draftFilters.role)
         ? draftFilters.schoolYearId
         : "",
@@ -532,6 +551,7 @@ export function SchoolAdminUsersScreen() {
       role: "ALL",
       hasAccount: "ALL",
       schoolYearId: "",
+      membershipStatus: "active",
     };
     setDraftFilters(cleared);
     setFilters(cleared);
@@ -567,23 +587,59 @@ export function SchoolAdminUsersScreen() {
   }, []);
 
   // ── Render item ───────────────────────────────────────────────────────────────
+  const handleReinvite = useCallback(
+    async (member: SchoolUser) => {
+      if (!schoolSlug) return;
+      const name = `${member.lastName} ${member.firstName}`.trim();
+      setReinvitingId(member.id);
+      try {
+        if (member.type === "student-only") {
+          await usersApi.reinviteStudent(schoolSlug, member.studentId);
+        } else {
+          await usersApi.reinviteMember(schoolSlug, member.id);
+        }
+        showSuccess({
+          title: t("users.reinvite.successTitle"),
+          message: t("users.reinvite.success").replace("{name}", name),
+        });
+        void loadFirstPage(true);
+      } catch (err) {
+        showCreateError({
+          title: t("users.reinvite.failed"),
+          message: extractApiError(err),
+        });
+      } finally {
+        setReinvitingId(null);
+      }
+    },
+    [schoolSlug, showSuccess, showCreateError, loadFirstPage, t],
+  );
+
   const renderUser = useCallback(
     ({ item, index }: { item: SchoolUser; index: number }) => (
       <UserCard
         user={item}
         index={index}
         onPress={setSelectedUser}
+        onReinvite={item.excluded ? handleReinvite : undefined}
+        reinviting={reinvitingId === item.id}
         testID={`user-card-${item.id}`}
       />
     ),
-    [],
+    [handleReinvite, reinvitingId],
   );
 
   const keyExtractor = useCallback((item: SchoolUser) => item.id, []);
 
   const emptyComponent = isLoading ? null : (
     <View style={styles.centered}>
-      {error ? null : (
+      {error ? null : filters.membershipStatus === "excluded" ? (
+        <EmptyState
+          icon="people-outline"
+          title={t("users.empty.excludedTitle")}
+          message={t("users.empty.excludedMessage")}
+        />
+      ) : (
         <EmptyState
           icon={
             searchInput || hasActiveFilters(filters)
@@ -859,6 +915,41 @@ export function SchoolAdminUsersScreen() {
                 >
                   <View style={styles.filterGroup}>
                     <Text style={styles.filterGroupLabel}>
+                      {t("users.filters.membershipLabel")}
+                    </Text>
+                    <View style={styles.filterChipsRow}>
+                      {MEMBERSHIP_FILTER_KEYS.map((key) => (
+                        <TouchableOpacity
+                          key={key}
+                          style={[
+                            styles.filterChip,
+                            draftFilters.membershipStatus === key &&
+                              styles.filterChipActive,
+                          ]}
+                          onPress={() =>
+                            setDraftFilters((current) => ({
+                              ...current,
+                              membershipStatus: key,
+                            }))
+                          }
+                          testID={`users-filter-membership-${key}`}
+                        >
+                          <Text
+                            style={[
+                              styles.filterChipLabel,
+                              draftFilters.membershipStatus === key &&
+                                styles.filterChipLabelActive,
+                            ]}
+                          >
+                            {t(`users.membership.${key}`)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.filterGroup}>
+                    <Text style={styles.filterGroupLabel}>
                       {t("users.filters.roleLabel")}
                     </Text>
                     <View style={styles.filterChipsRow}>
@@ -1010,28 +1101,39 @@ export function SchoolAdminUsersScreen() {
               <LoadingBlock label={t("users.loading")} />
             </View>
           ) : (
-            <InfiniteScrollList
-              data={users}
-              renderItem={renderUser}
-              keyExtractor={keyExtractor}
-              onRefresh={() => void loadFirstPage(true)}
-              refreshing={isRefreshing}
-              onLoadMore={() => void loadMore()}
-              hasMore={hasMore}
-              isLoadingMore={isLoadingMore}
-              emptyComponent={emptyComponent}
-              contentContainerStyle={
-                users.length === 0 ? styles.emptyList : undefined
-              }
-              endOfListLabel={t("users.endOfList")}
-              ItemSeparatorComponent={UserSeparator}
-              testID="users-list"
-            />
+            <>
+              {filters.membershipStatus === "excluded" ? (
+                <View style={styles.excludedHint} testID="users-excluded-hint">
+                  <Text style={styles.excludedHintText}>
+                    {t("users.excluded.hint")}
+                  </Text>
+                </View>
+              ) : null}
+              <InfiniteScrollList
+                data={users}
+                renderItem={renderUser}
+                keyExtractor={keyExtractor}
+                onRefresh={() => void loadFirstPage(true)}
+                refreshing={isRefreshing}
+                onLoadMore={() => void loadMore()}
+                hasMore={hasMore}
+                isLoadingMore={isLoadingMore}
+                emptyComponent={emptyComponent}
+                contentContainerStyle={
+                  users.length === 0 ? styles.emptyList : undefined
+                }
+                endOfListLabel={t("users.endOfList")}
+                ItemSeparatorComponent={UserSeparator}
+                testID="users-list"
+              />
+            </>
           )}
         </>
       )}
 
-      {screenTab === "list" && !filtersOpen ? (
+      {screenTab === "list" &&
+      !filtersOpen &&
+      filters.membershipStatus !== "excluded" ? (
         <TouchableOpacity
           style={styles.fab}
           onPress={openCreateForms}
@@ -1046,6 +1148,15 @@ export function SchoolAdminUsersScreen() {
 }
 
 const styles = StyleSheet.create({
+  excludedHint: {
+    backgroundColor: "#FEF3F2",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  excludedHintText: {
+    fontSize: 12,
+    color: "#B42318",
+  },
   root: {
     flex: 1,
     backgroundColor: colors.background,

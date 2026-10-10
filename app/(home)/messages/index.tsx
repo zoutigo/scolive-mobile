@@ -314,7 +314,7 @@ function MessagesScreenContent() {
       {/* FAB Compose — visible uniquement sur l'onglet Boîte de réception,
           jamais quand on consulte la messagerie via le menu d'un enfant
           (le parent ne peut alors que consulter, jamais agir). */}
-      {folder === "inbox" && !activeChildId ? (
+      {folder === "inbox" && !activeChildId && !user?.schoolReadOnly ? (
         <OnboardingTarget
           id={MESSAGES_TOUR_TARGETS.compose}
           style={[

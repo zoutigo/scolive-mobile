@@ -215,4 +215,80 @@ describe("UserCard", () => {
     render(<UserCard user={studentOnly} onPress={jest.fn()} />);
     expect(screen.getByText("Mballa Cédric")).toBeOnTheScreen();
   });
+
+  // ── Membre exclu ─────────────────────────────────────────────────────────────
+
+  describe("membre exclu", () => {
+    const excluded = makeSchoolUser({
+      id: "ex-1",
+      excluded: true,
+      excludedAt: "2026-10-01T09:00:00.000Z",
+      exclusionReason: "Fin de contrat",
+    });
+
+    it("affiche le badge Exclu(e), la date et le motif, sans chevron ni ouverture", () => {
+      const onPress = jest.fn();
+      render(<UserCard user={excluded} onPress={onPress} />);
+      expect(screen.getByText("Exclu(e)")).toBeOnTheScreen();
+      expect(screen.getByTestId("user-excluded-since-ex-1")).toBeOnTheScreen();
+      expect(screen.getByText(/Fin de contrat/)).toBeOnTheScreen();
+      // Carte non interactive (View, pas de TouchableOpacity) : aucun détail à ouvrir.
+      expect(screen.getByTestId("user-card-ex-1")).toHaveProp(
+        "accessibilityState",
+        { disabled: true },
+      );
+      expect(onPress).not.toHaveBeenCalled();
+    });
+
+    it("propose uniquement 'Inviter dans l'école' et appelle onReinvite", () => {
+      const onReinvite = jest.fn();
+      render(
+        <UserCard
+          user={excluded}
+          onPress={jest.fn()}
+          onReinvite={onReinvite}
+        />,
+      );
+      fireEvent.press(screen.getByTestId("action-reinvite-ex-1"));
+      expect(onReinvite).toHaveBeenCalledWith(excluded);
+    });
+
+    it("désactive l'invitation pendant l'envoi (anti double tap)", () => {
+      const onReinvite = jest.fn();
+      render(
+        <UserCard
+          user={excluded}
+          onPress={jest.fn()}
+          onReinvite={onReinvite}
+          reinviting
+        />,
+      );
+      fireEvent.press(screen.getByTestId("action-reinvite-ex-1"));
+      expect(onReinvite).not.toHaveBeenCalled();
+    });
+
+    it("sans onReinvite : aucun bouton d'invitation", () => {
+      render(<UserCard user={excluded} onPress={jest.fn()} />);
+      expect(screen.queryByTestId("action-reinvite-ex-1")).toBeNull();
+    });
+
+    it("élève sans compte exclu et sans motif : pas de ligne motif", () => {
+      const only = makeStudentOnlyUser({
+        id: "so-1",
+        excluded: true,
+        excludedAt: "2026-10-02T09:00:00.000Z",
+        exclusionReason: null,
+      });
+      render(<UserCard user={only} onPress={jest.fn()} />);
+      expect(screen.queryByText(/Motif/)).toBeNull();
+      expect(screen.getByText("Exclu(e)")).toBeOnTheScreen();
+    });
+
+    it("une carte non exclue reste ouvrable", () => {
+      const onPress = jest.fn();
+      render(<UserCard user={TEACHER_USER} onPress={onPress} />);
+      fireEvent.press(screen.getByTestId(`user-card-${TEACHER_USER.id}`));
+      expect(onPress).toHaveBeenCalledWith(TEACHER_USER);
+    });
+  });
 });

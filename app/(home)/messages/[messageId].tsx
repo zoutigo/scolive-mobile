@@ -242,7 +242,10 @@ function MessageDetailPage({
   // Un parent qui consulte la messagerie via le menu d'un enfant ne peut que
   // consulter : editer/repondre/transferer/marquer lu-non lu/archiver/
   // supprimer sont desactives.
-  const readOnly = Boolean(activeChildId);
+  // Un compte en lecture seule dans l'école (élève/parent exclu) ne peut pas
+  // non plus agir, même hors du menu d'un enfant.
+  const schoolReadOnly = user?.schoolReadOnly === true;
+  const readOnly = Boolean(activeChildId) || schoolReadOnly;
   const scope =
     user && getViewType(user) === "platform"
       ? PLATFORM_SCOPE
@@ -293,6 +296,8 @@ function MessageDetailPage({
     if (!message.recipientState || message.recipientState.readAt) return;
     if (keepUnreadIds.has(id)) return;
     if (hasAutoMarkedRead.current) return;
+    // Pas d'accusé de lecture en lecture seule : l'écriture serait refusée.
+    if (schoolReadOnly) return;
     hasAutoMarkedRead.current = true;
 
     getMessagingClient(scope)
@@ -311,7 +316,15 @@ function MessageDetailPage({
           }
         : current,
     );
-  }, [scope, message, isActive, id, keepUnreadIds, markLocalRead]);
+  }, [
+    scope,
+    message,
+    isActive,
+    id,
+    keepUnreadIds,
+    markLocalRead,
+    schoolReadOnly,
+  ]);
 
   async function handleArchiveToggle() {
     if (!scope || !message) return;

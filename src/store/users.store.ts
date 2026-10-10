@@ -29,6 +29,7 @@ interface UsersState {
 
 const INITIAL_FILTERS: SchoolUsersFilters = {
   search: "",
+  membershipStatus: "active",
   role: "ALL",
   hasAccount: "ALL",
   schoolYearId: "",

@@ -284,20 +284,38 @@ function CommonActionsFooter({
   onMessagePress,
   onEditRolesPress,
   onResetPinPress,
-  removeLabel,
-  onRemovePress,
+  unassignLabel,
+  onUnassignPress,
+  excludeLabel,
+  onExcludePress,
 }: {
   member: SchoolMember;
   hasPhoneCredential: boolean;
   onMessagePress: () => void;
   onEditRolesPress: () => void;
   onResetPinPress: () => void;
-  /** Renseigné uniquement quand le retrait de l'école est autorisé. */
-  removeLabel?: string | null;
-  onRemovePress?: () => void;
+  /** Renseignés uniquement quand l'action est autorisée. */
+  unassignLabel?: string | null;
+  onUnassignPress?: () => void;
+  excludeLabel?: string | null;
+  onExcludePress?: () => void;
 }) {
-  // Masquer le footer pour les student-only (pas de compte)
-  if (!member.hasAccount) return null;
+  // Sans compte (student-only) : ni message, ni rôles, ni PIN — seule
+  // l'exclusion de l'école reste possible.
+  if (!member.hasAccount) {
+    if (!excludeLabel || !onExcludePress) return null;
+    return (
+      <View style={styles.actionsFooter} testID="user-detail-common-actions">
+        <ActionButton
+          icon="person-remove-outline"
+          label={excludeLabel}
+          color="#B42318"
+          onPress={onExcludePress}
+          testID="action-exclude"
+        />
+      </View>
+    );
+  }
   return (
     <View style={styles.actionsFooter} testID="user-detail-common-actions">
       <ActionButton
@@ -323,12 +341,21 @@ function CommonActionsFooter({
           testID="action-reset-pin"
         />
       ) : null}
-      {removeLabel && onRemovePress ? (
+      {unassignLabel && onUnassignPress ? (
         <ActionButton
           icon="person-remove-outline"
-          label={removeLabel}
+          label={unassignLabel}
           color="#B42318"
-          onPress={onRemovePress}
+          onPress={onUnassignPress}
+          testID="action-unassign-class"
+        />
+      ) : null}
+      {excludeLabel && onExcludePress ? (
+        <ActionButton
+          icon="person-remove-outline"
+          label={excludeLabel}
+          color="#B42318"
+          onPress={onExcludePress}
           testID="action-exclude"
         />
       ) : null}
@@ -1820,25 +1847,56 @@ export function UserDetailModal({
   }, [user, schoolSlug, showError]);
 
   const [excludeVisible, setExcludeVisible] = useState(false);
+  // "unassign" = retirer l'élève de sa classe ; "exclude" = sortie complète de l'école.
+  const [excludeMode, setExcludeMode] = useState<"unassign" | "exclude">(
+    "exclude",
+  );
+  const [excludeReason, setExcludeReason] = useState("");
   const isStudentOnlyRole =
     !!user && user.roles.length > 0 && user.roles.every((r) => r === "STUDENT");
-  const canRemove =
+  const isStudentMember = !!user && user.roles.includes("STUDENT");
+  const userDetail = !!detail && "hasPhoneCredential" in detail ? detail : null;
+  const canExclude =
+    !!user &&
+    (user.type === "student-only" ||
+      (user.type === "user" &&
+        !!userDetail &&
+        !userDetail.isPrimaryAdmin &&
+        !userDetail.isSelf));
+  const canUnassignClass =
     !!user &&
     user.type === "user" &&
-    !!detail &&
-    "hasPhoneCredential" in detail &&
-    !detail.isPrimaryAdmin &&
-    !detail.isSelf &&
-    (!isStudentOnlyRole || !!detail.hasActiveClass);
+    !!userDetail &&
+    isStudentOnlyRole &&
+    !userDetail.isSelf &&
+    !!userDetail.hasActiveClass;
+  const reasonTooLong = excludeReason.length > EXCLUSION_REASON_MAX;
+
+  const openExclude = useCallback((mode: "unassign" | "exclude") => {
+    setExcludeMode(mode);
+    setExcludeReason("");
+    setExcludeVisible(true);
+  }, []);
 
   const handleConfirmExclude = useCallback(async () => {
-    if (!user || user.type !== "user") return;
+    if (!user) return;
+    if (excludeMode === "exclude" && reasonTooLong) return;
     setExcludeVisible(false);
     const name = `${user.lastName} ${user.firstName}`.trim();
     try {
-      await usersApi.removeMember(schoolSlug, user.id);
+      if (excludeMode === "unassign") {
+        await usersApi.removeMember(schoolSlug, user.id);
+      } else if (user.type === "student-only") {
+        await usersApi.excludeStudent(
+          schoolSlug,
+          user.studentId,
+          excludeReason,
+        );
+      } else {
+        await usersApi.excludeMember(schoolSlug, user.id, excludeReason);
+      }
       onMemberChanged?.();
-      if (isStudentOnlyRole) {
+      if (excludeMode === "unassign") {
         showSuccess({
           title: tDetail("users.unassignClass.successTitle"),
           message: tDetail("users.unassignClass.success").replace(
@@ -1863,7 +1921,9 @@ export function UserDetailModal({
   }, [
     user,
     schoolSlug,
-    isStudentOnlyRole,
+    excludeMode,
+    excludeReason,
+    reasonTooLong,
     onMemberChanged,
     onClose,
     showSuccess,
@@ -2159,8 +2219,8 @@ export function UserDetailModal({
                   );
                 })}
               </View>
-              {/* Actions communes (masquées pour student-only) */}
-              {user.hasAccount ? (
+              {/* Actions communes (réduites à l'exclusion pour student-only) */}
+              {user.hasAccount || canExclude ? (
                 <>
                   <View
                     style={[
@@ -2178,14 +2238,16 @@ export function UserDetailModal({
                     onMessagePress={handleSendMessage}
                     onEditRolesPress={handleOpenEditRoles}
                     onResetPinPress={() => void handleResetPin()}
-                    removeLabel={
-                      canRemove
-                        ? isStudentOnlyRole
-                          ? tDetail("users.actions.unassignClass")
-                          : tDetail("users.actions.exclude")
+                    unassignLabel={
+                      canUnassignClass
+                        ? tDetail("users.actions.unassignClass")
                         : null
                     }
-                    onRemovePress={() => setExcludeVisible(true)}
+                    onUnassignPress={() => openExclude("unassign")}
+                    excludeLabel={
+                      canExclude ? tDetail("users.actions.exclude") : null
+                    }
+                    onExcludePress={() => openExclude("exclude")}
                   />
                 </>
               ) : null}
@@ -2327,29 +2389,93 @@ export function UserDetailModal({
         variant="danger"
         icon="person-remove-outline"
         title={
-          isStudentOnlyRole
+          excludeMode === "unassign"
             ? tDetail("users.unassignClass.title")
             : tDetail("users.exclude.title")
         }
-        message={(isStudentOnlyRole
+        message={(excludeMode === "unassign"
           ? tDetail("users.unassignClass.message")
-          : tDetail("users.exclude.message")
-        ).replace("{name}", `${user.lastName} ${user.firstName}`.trim())}
+          : isStudentMember
+            ? tDetail("users.exclude.messageStudent")
+            : tDetail("users.exclude.messageStaff")
+        ).replace(/\{name\}/g, `${user.lastName} ${user.firstName}`.trim())}
         confirmLabel={
-          isStudentOnlyRole
+          excludeMode === "unassign"
             ? tDetail("users.unassignClass.confirm")
             : tDetail("users.exclude.confirm")
         }
         onConfirm={() => void handleConfirmExclude()}
         onCancel={() => setExcludeVisible(false)}
-      />
+      >
+        {excludeMode === "exclude" ? (
+          <View style={styles.excludeReasonWrap}>
+            <Text style={styles.excludeReasonLabel}>
+              {tDetail("users.exclude.reasonLabel")}
+            </Text>
+            <TextInput
+              style={[
+                styles.excludeReasonInput,
+                reasonTooLong && styles.excludeReasonInputError,
+              ]}
+              value={excludeReason}
+              onChangeText={setExcludeReason}
+              placeholder={tDetail("users.exclude.reasonPlaceholder")}
+              placeholderTextColor={colors.textSecondary}
+              multiline
+              testID="exclude-reason-input"
+            />
+            {reasonTooLong ? (
+              <Text
+                style={styles.excludeReasonError}
+                testID="exclude-reason-error"
+              >
+                {tDetail("users.exclude.reasonTooLong")}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+      </ConfirmDialog>
     </>
   );
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
+const EXCLUSION_REASON_MAX = 500;
+
 const styles = StyleSheet.create({
+  excludeReasonWrap: {
+    // Le dialogue centre ses enfants : sans largeur explicite, le champ se
+    // contracte autour du texte saisi.
+    alignSelf: "stretch",
+    marginTop: 12,
+    gap: 4,
+  },
+  excludeReasonLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textSecondary,
+  },
+  excludeReasonInput: {
+    alignSelf: "stretch",
+    minHeight: 56,
+    borderWidth: 1.5,
+    borderColor: colors.warmBorder,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: colors.textPrimary,
+    backgroundColor: colors.background,
+    textAlignVertical: "top",
+  },
+  excludeReasonInputError: {
+    borderColor: "#B42318",
+  },
+  excludeReasonError: {
+    fontSize: 12,
+    color: "#B42318",
+  },
   modalRoot: {
     flex: 1,
     backgroundColor: colors.background,

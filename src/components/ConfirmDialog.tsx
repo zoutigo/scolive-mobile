@@ -6,6 +6,8 @@ import {
   Pressable,
   StyleSheet,
   Animated,
+  Keyboard,
+  ScrollView,
   TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,6 +27,8 @@ export interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   hideCancel?: boolean;
+  /** Contenu additionnel affiché sous le message (ex. champ de saisie). */
+  children?: React.ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -62,6 +66,7 @@ export function ConfirmDialog({
   confirmLabel,
   cancelLabel,
   hideCancel = false,
+  children,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -69,6 +74,8 @@ export function ConfirmDialog({
   const scaleAnim = useRef(new Animated.Value(0.85)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const [confirming, setConfirming] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const scrollRef = useRef<ScrollView | null>(null);
   const confirmingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -81,6 +88,28 @@ export function ConfirmDialog({
       if (confirmingTimeoutRef.current) {
         clearTimeout(confirmingTimeoutRef.current);
       }
+    };
+  }, [visible]);
+
+  // Une fenêtre Modal n'est pas déplacée par le clavier (adjustPan) : sans
+  // cela, un champ de saisie ajouté en `children` et les boutons restent
+  // cachés derrière le clavier. On réserve sa hauteur et on fait défiler la
+  // carte jusqu'aux boutons.
+  useEffect(() => {
+    if (!visible) {
+      setKeyboardHeight(0);
+      return;
+    }
+    const show = Keyboard.addListener("keyboardDidShow", (event) => {
+      setKeyboardHeight(event?.endCoordinates?.height ?? 0);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
+    });
+    const hide = Keyboard.addListener("keyboardDidHide", () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      show.remove();
+      hide.remove();
     };
   }, [visible]);
 
@@ -155,139 +184,164 @@ export function ConfirmDialog({
       </TouchableWithoutFeedback>
 
       {/* Carte animée */}
-      <View style={styles.centeredWrapper} pointerEvents="box-none">
-        <Animated.View
-          style={[
-            styles.card,
-            { opacity: opacityAnim, transform: [{ scale: scaleAnim }] },
-          ]}
-          testID="confirm-dialog-card"
+      <View
+        style={[styles.centeredWrapper, { paddingBottom: keyboardHeight }]}
+        pointerEvents="box-none"
+      >
+        <ScrollView
+          ref={scrollRef}
+          style={styles.cardScroll}
+          contentContainerStyle={styles.cardScrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          testID="confirm-dialog-scroll"
         >
-          <View
-            style={[styles.accentBar, { backgroundColor: accentColor }]}
-            testID="confirm-dialog-accent"
-          />
-          <View
+          <Animated.View
             style={[
-              styles.cornerGlow,
-              {
-                borderColor: `${accentColor}28`,
-                backgroundColor: `${accentColor}08`,
-              },
+              styles.card,
+              { opacity: opacityAnim, transform: [{ scale: scaleAnim }] },
             ]}
-          />
-          <View
-            style={[styles.glowOrb, { backgroundColor: `${accentColor}18` }]}
-          />
-          <View
-            style={[
-              styles.secondaryOrb,
-              { backgroundColor: `${accentColor}10` },
-            ]}
-          />
-
-          {/* Icône */}
-          <View style={styles.heroWrap}>
+            testID="confirm-dialog-card"
+          >
+            <View
+              style={[styles.accentBar, { backgroundColor: accentColor }]}
+              testID="confirm-dialog-accent"
+            />
             <View
               style={[
-                styles.iconHalo,
+                styles.cornerGlow,
                 {
-                  backgroundColor: `${accentColor}12`,
-                  borderColor: `${accentColor}20`,
+                  borderColor: `${accentColor}28`,
+                  backgroundColor: `${accentColor}08`,
                 },
               ]}
             />
-            <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
-              <Ionicons
-                name={iconName as "warning-outline"}
-                size={36}
-                color={accentColor}
-                testID="confirm-dialog-icon"
+            <View
+              style={[styles.glowOrb, { backgroundColor: `${accentColor}18` }]}
+            />
+            <View
+              style={[
+                styles.secondaryOrb,
+                { backgroundColor: `${accentColor}10` },
+              ]}
+            />
+
+            {/* Icône */}
+            <View style={styles.heroWrap}>
+              <View
+                style={[
+                  styles.iconHalo,
+                  {
+                    backgroundColor: `${accentColor}12`,
+                    borderColor: `${accentColor}20`,
+                  },
+                ]}
               />
+              <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
+                <Ionicons
+                  name={iconName as "warning-outline"}
+                  size={36}
+                  color={accentColor}
+                  testID="confirm-dialog-icon"
+                />
+              </View>
             </View>
-          </View>
 
-          {/* Textes */}
-          <View
-            style={[styles.badge, { backgroundColor: `${accentColor}14` }]}
-            testID="confirm-dialog-badge"
-          >
-            <Text style={[styles.badgeLabel, { color: accentColor }]}>
-              {badgeLabel}
+            {/* Textes */}
+            <View
+              style={[styles.badge, { backgroundColor: `${accentColor}14` }]}
+              testID="confirm-dialog-badge"
+            >
+              <Text style={[styles.badgeLabel, { color: accentColor }]}>
+                {badgeLabel}
+              </Text>
+            </View>
+            <Text style={styles.title} testID="confirm-dialog-title">
+              {title}
             </Text>
-          </View>
-          <Text style={styles.title} testID="confirm-dialog-title">
-            {title}
-          </Text>
-          {subtitle ? (
-            <Text style={styles.subtitle} testID="confirm-dialog-subtitle">
-              {subtitle}
-            </Text>
-          ) : null}
-          <View
-            style={[
-              styles.messagePanel,
-              {
-                backgroundColor:
-                  variant === "danger"
-                    ? "#FFF7F7"
-                    : variant === "warning"
-                      ? "#FFF9F2"
-                      : "#F5F9FF",
-                borderColor: `${accentColor}18`,
-              },
-            ]}
-          >
-            <Text style={styles.message} testID="confirm-dialog-message">
-              {message}
-            </Text>
-          </View>
+            {subtitle ? (
+              <Text style={styles.subtitle} testID="confirm-dialog-subtitle">
+                {subtitle}
+              </Text>
+            ) : null}
+            <View
+              style={[
+                styles.messagePanel,
+                {
+                  backgroundColor:
+                    variant === "danger"
+                      ? "#FFF7F7"
+                      : variant === "warning"
+                        ? "#FFF9F2"
+                        : "#F5F9FF",
+                  borderColor: `${accentColor}18`,
+                },
+              ]}
+            >
+              <Text style={styles.message} testID="confirm-dialog-message">
+                {message}
+              </Text>
+            </View>
+            {children}
 
-          {/* Actions
+            {/* Actions
               Pressable (pas TouchableOpacity) : le press du bouton confirmer
               déclenche un setState (`confirming`) dans ce même composant, ce
               qui corrompt l'Animated.Value interne de TouchableOpacity sur
               Fabric Android (opacité des boutons frères qui reste bloquée).
               Voir feedback_fabric_opacity_touchable. L'opacité "disabled" est
               posée sur un View interne, jamais sur le Pressable lui-même. */}
-          <View style={styles.actions}>
-            {hideCancel ? null : (
-              <Pressable
-                style={styles.cancelBtn}
-                onPress={onCancel}
-                testID="confirm-dialog-cancel"
-                accessibilityRole="button"
-                accessibilityLabel={resolvedCancelLabel}
-              >
-                <Text style={styles.cancelLabel}>{resolvedCancelLabel}</Text>
-              </Pressable>
-            )}
+            <View style={styles.actions}>
+              {hideCancel ? null : (
+                <Pressable
+                  style={styles.cancelBtn}
+                  onPress={onCancel}
+                  testID="confirm-dialog-cancel"
+                  accessibilityRole="button"
+                  accessibilityLabel={resolvedCancelLabel}
+                >
+                  <Text style={styles.cancelLabel}>{resolvedCancelLabel}</Text>
+                </Pressable>
+              )}
 
-            <Pressable
-              style={[
-                styles.confirmBtn,
-                hideCancel && styles.confirmBtnFull,
-                { backgroundColor: accentColor },
-              ]}
-              onPress={handleConfirmPress}
-              disabled={confirming}
-              testID="confirm-dialog-confirm"
-              accessibilityRole="button"
-              accessibilityLabel={resolvedConfirmLabel}
-              accessibilityState={{ disabled: confirming }}
-            >
-              <View style={confirming ? styles.confirmContentDisabled : null}>
-                <Text style={styles.confirmLabel}>{resolvedConfirmLabel}</Text>
-              </View>
-            </Pressable>
-          </View>
-        </Animated.View>
+              <Pressable
+                style={[
+                  styles.confirmBtn,
+                  hideCancel && styles.confirmBtnFull,
+                  { backgroundColor: accentColor },
+                ]}
+                onPress={handleConfirmPress}
+                disabled={confirming}
+                testID="confirm-dialog-confirm"
+                accessibilityRole="button"
+                accessibilityLabel={resolvedConfirmLabel}
+                accessibilityState={{ disabled: confirming }}
+              >
+                <View style={confirming ? styles.confirmContentDisabled : null}>
+                  <Text style={styles.confirmLabel}>
+                    {resolvedConfirmLabel}
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
+          </Animated.View>
+        </ScrollView>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  cardScroll: {
+    flexGrow: 0,
+    maxHeight: "100%",
+    width: "100%",
+  },
+  cardScrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.55)",

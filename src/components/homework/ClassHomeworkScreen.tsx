@@ -290,6 +290,8 @@ function HomeworkCard(props: {
   onPressDetails: () => void;
   canManage: boolean;
   canToggleDone?: boolean;
+  /** Élève/parent exclu : consultation seule (pas de « fait », pas de commentaire). */
+  readOnly?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
   onToggleComments?: () => void;
@@ -424,8 +426,11 @@ function HomeworkCard(props: {
                       styles.cardActionButton,
                       styles.cardActionButtonRow,
                       done && styles.cardActionDoneButton,
+                      props.readOnly && styles.readOnlyDisabled,
                     ]}
                     onPress={props.onToggleDone}
+                    disabled={props.readOnly}
+                    accessibilityState={{ disabled: Boolean(props.readOnly) }}
                     testID={`${prefix}-toggle-done-${props.item.id}`}
                   >
                     {done ? (
@@ -523,36 +528,38 @@ function HomeworkCard(props: {
                 {t("homework.comment.empty")}
               </Text>
             )}
-            <View style={styles.commentComposer}>
-              <TextInput
-                value={commentDraft}
-                onChangeText={setCommentDraft}
-                placeholder={t("homework.comment.placeholder")}
-                placeholderTextColor={colors.textSecondary}
-                style={styles.commentInput}
-                multiline
-                testID={`${prefix}-inline-comment-input-${props.item.id}`}
-              />
-              <TouchableOpacity
-                style={styles.commentCloseButton}
-                onPress={props.onToggleComments}
-                accessibilityLabel={t("homework.comment.close")}
-                testID={`${prefix}-inline-comment-close-${props.item.id}`}
-              >
-                <Ionicons name="close" size={16} color="#22456F" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.commentSubmit,
-                  isSubmittingComment && { opacity: 0.6 },
-                ]}
-                onPress={() => void submitInlineComment()}
-                disabled={isSubmittingComment}
-                testID={`${prefix}-inline-comment-submit-${props.item.id}`}
-              >
-                <Ionicons name="send" size={16} color={colors.white} />
-              </TouchableOpacity>
-            </View>
+            {props.readOnly ? null : (
+              <View style={styles.commentComposer}>
+                <TextInput
+                  value={commentDraft}
+                  onChangeText={setCommentDraft}
+                  placeholder={t("homework.comment.placeholder")}
+                  placeholderTextColor={colors.textSecondary}
+                  style={styles.commentInput}
+                  multiline
+                  testID={`${prefix}-inline-comment-input-${props.item.id}`}
+                />
+                <TouchableOpacity
+                  style={styles.commentCloseButton}
+                  onPress={props.onToggleComments}
+                  accessibilityLabel={t("homework.comment.close")}
+                  testID={`${prefix}-inline-comment-close-${props.item.id}`}
+                >
+                  <Ionicons name="close" size={16} color="#22456F" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.commentSubmit,
+                    isSubmittingComment && { opacity: 0.6 },
+                  ]}
+                  onPress={() => void submitInlineComment()}
+                  disabled={isSubmittingComment}
+                  testID={`${prefix}-inline-comment-submit-${props.item.id}`}
+                >
+                  <Ionicons name="send" size={16} color={colors.white} />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         ) : null}
 
@@ -1039,6 +1046,7 @@ export function ClassHomeworkScreen({
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { schoolSlug, user } = useAuthStore();
+  const readOnly = user?.schoolReadOnly === true;
   const { children, activeChildId } = useFamilyStore();
   const {
     items,
@@ -1962,8 +1970,11 @@ export function ClassHomeworkScreen({
                       isHomeworkDone(selectedDetail)
                         ? styles.secondarySuccessButton
                         : null,
+                      readOnly ? styles.readOnlyDisabled : null,
                     ]}
                     onPress={() => void handleToggleDone(selectedDetail)}
+                    disabled={readOnly}
+                    accessibilityState={{ disabled: readOnly }}
                     testID="class-homework-toggle-done"
                   >
                     <Text style={styles.primaryButtonText}>
@@ -2129,30 +2140,32 @@ export function ClassHomeworkScreen({
                     ))
                   )}
 
-                  <View style={styles.commentComposer}>
-                    <Controller
-                      control={commentControl}
-                      name="body"
-                      render={({ field: { value, onChange } }) => (
-                        <TextInput
-                          value={value}
-                          onChangeText={onChange}
-                          placeholder={t("homework.comment.placeholder")}
-                          placeholderTextColor={colors.textSecondary}
-                          style={styles.commentInput}
-                          multiline
-                          testID="class-homework-comment-input"
-                        />
-                      )}
-                    />
-                    <TouchableOpacity
-                      style={styles.commentSubmit}
-                      onPress={() => void handleAddComment()}
-                      testID="class-homework-comment-submit"
-                    >
-                      <Ionicons name="send" size={16} color={colors.white} />
-                    </TouchableOpacity>
-                  </View>
+                  {readOnly ? null : (
+                    <View style={styles.commentComposer}>
+                      <Controller
+                        control={commentControl}
+                        name="body"
+                        render={({ field: { value, onChange } }) => (
+                          <TextInput
+                            value={value}
+                            onChangeText={onChange}
+                            placeholder={t("homework.comment.placeholder")}
+                            placeholderTextColor={colors.textSecondary}
+                            style={styles.commentInput}
+                            multiline
+                            testID="class-homework-comment-input"
+                          />
+                        )}
+                      />
+                      <TouchableOpacity
+                        style={styles.commentSubmit}
+                        onPress={() => void handleAddComment()}
+                        testID="class-homework-comment-submit"
+                      >
+                        <Ionicons name="send" size={16} color={colors.white} />
+                      </TouchableOpacity>
+                    </View>
+                  )}
                   {commentErrors.body?.message ? (
                     <Text style={styles.fieldError}>
                       {commentErrors.body.message}
@@ -2239,6 +2252,7 @@ export function ClassHomeworkScreen({
                 }}
                 canManage={canManageAll && item.authorUserId === user?.id}
                 canToggleDone={!canManageAll}
+                readOnly={readOnly}
                 onEdit={() => openEditForm(item)}
                 onDelete={() => setDeleteTarget(item)}
                 onToggleComments={() => {
@@ -2361,6 +2375,7 @@ export function ClassHomeworkScreen({
                           canManageAll && item.authorUserId === user?.id
                         }
                         canToggleDone={!canManageAll}
+                        readOnly={readOnly}
                         onEdit={() => openEditForm(item)}
                         onDelete={() => setDeleteTarget(item)}
                         onToggleComments={() => togglePanel(item, "comments")}
@@ -2435,6 +2450,7 @@ export function ClassHomeworkScreen({
                           canManageAll && item.authorUserId === user?.id
                         }
                         canToggleDone={!canManageAll}
+                        readOnly={readOnly}
                         onEdit={() => openEditForm(item)}
                         onDelete={() => setDeleteTarget(item)}
                         onToggleComments={() => togglePanel(item, "comments")}
@@ -2562,6 +2578,11 @@ export function ClassHomeworkScreen({
 }
 
 const styles = StyleSheet.create({
+  // Pas d'opacity dynamique sur un TouchableOpacity (bug Fabric) : couleur grisée.
+  readOnlyDisabled: {
+    backgroundColor: "#94A3B8",
+    borderColor: "#94A3B8",
+  },
   root: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 16, gap: 14 },
   tabsSection: { marginBottom: 16 },

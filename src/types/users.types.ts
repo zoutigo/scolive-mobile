@@ -19,6 +19,9 @@ export type UserItem = {
   activationStatus: UserActivationStatus;
   profileCompleted: boolean;
   createdAt: string;
+  excluded?: boolean;
+  excludedAt?: string;
+  exclusionReason?: string | null;
 };
 
 export type StudentOnlyItem = {
@@ -36,6 +39,9 @@ export type StudentOnlyItem = {
   activationStatus: null;
   profileCompleted: false;
   createdAt: string;
+  excluded?: boolean;
+  excludedAt?: string;
+  exclusionReason?: string | null;
 };
 
 export type SchoolMember = UserItem | StudentOnlyItem;
@@ -116,8 +122,12 @@ export type SchoolUserAccountFilter =
   | "WITH_ACCOUNT"
   | "WITHOUT_ACCOUNT";
 
+/** `active` : membres de l'école ; `excluded` : sortis de l'école, réinvitables. */
+export type SchoolUserMembershipFilter = "active" | "excluded";
+
 export interface SchoolUsersFilters {
   search: string;
+  membershipStatus: SchoolUserMembershipFilter;
   role: SchoolUserRoleFilter;
   hasAccount: SchoolUserAccountFilter;
   /** "" means no year filter (all years) — matches SelectField's convention. */

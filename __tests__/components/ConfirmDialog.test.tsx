@@ -4,6 +4,7 @@
  * Fonctionnels : interactions (confirmer, annuler, clic overlay)
  */
 import React from "react";
+import { Keyboard, StyleSheet, Text } from "react-native";
 import { render, screen, fireEvent, act } from "@testing-library/react-native";
 import { ConfirmDialog } from "../../src/components/ConfirmDialog";
 
@@ -271,5 +272,117 @@ describe("Anti double-tap sur confirmer", () => {
     fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
     fireEvent.press(screen.getByTestId("confirm-dialog-cancel"));
     expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ── Clavier (champ de saisie en `children`) ───────────────────────────────────
+
+describe("Clavier", () => {
+  type KeyboardHandler = (event?: {
+    endCoordinates?: { height: number };
+  }) => void;
+  let handlers: Record<string, KeyboardHandler>;
+  let removers: jest.Mock[];
+
+  beforeEach(() => {
+    handlers = {};
+    removers = [];
+    jest
+      .spyOn(Keyboard, "addListener")
+      .mockImplementation((eventName, handler) => {
+        handlers[eventName] = handler as KeyboardHandler;
+        const remove = jest.fn();
+        removers.push(remove);
+        return { remove } as never;
+      });
+  });
+
+  afterEach(() => jest.restoreAllMocks());
+
+  function wrapperPaddingBottom(): number | undefined {
+    const card = screen.getByTestId("confirm-dialog-card");
+    // card -> Animated.View ; son parent est le ScrollView, puis le wrapper centré.
+    let node = card.parent;
+    while (node) {
+      const style = StyleSheet.flatten(node.props?.style);
+      if (style && "paddingBottom" in style && style.position === "absolute") {
+        return style.paddingBottom as number;
+      }
+      node = node.parent;
+    }
+    return undefined;
+  }
+
+  it("la carte est dans un conteneur défilable qui garde les boutons atteignables", () => {
+    render(<ConfirmDialog {...baseProps} />);
+    expect(screen.getByTestId("confirm-dialog-scroll")).toBeOnTheScreen();
+    expect(
+      screen.getByTestId("confirm-dialog-scroll").props
+        .keyboardShouldPersistTaps,
+    ).toBe("handled");
+    fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
+    expect(baseProps.onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("réserve la hauteur du clavier à son ouverture puis la libère", () => {
+    render(<ConfirmDialog {...baseProps} />);
+    expect(wrapperPaddingBottom()).toBe(0);
+
+    act(() => {
+      handlers.keyboardDidShow({ endCoordinates: { height: 420 } });
+    });
+    expect(wrapperPaddingBottom()).toBe(420);
+
+    act(() => {
+      handlers.keyboardDidHide();
+    });
+    expect(wrapperPaddingBottom()).toBe(0);
+  });
+
+  it("tolère un événement clavier sans coordonnées", () => {
+    render(<ConfirmDialog {...baseProps} />);
+    act(() => {
+      handlers.keyboardDidShow({});
+    });
+    expect(wrapperPaddingBottom()).toBe(0);
+  });
+
+  it("n'écoute le clavier que dialogue visible et nettoie ses écouteurs", () => {
+    const hidden = render(<ConfirmDialog {...baseProps} visible={false} />);
+    expect(Keyboard.addListener).not.toHaveBeenCalled();
+    hidden.unmount();
+
+    const shown = render(<ConfirmDialog {...baseProps} />);
+    expect(Keyboard.addListener).toHaveBeenCalledWith(
+      "keyboardDidShow",
+      expect.any(Function),
+    );
+    expect(Keyboard.addListener).toHaveBeenCalledWith(
+      "keyboardDidHide",
+      expect.any(Function),
+    );
+    shown.unmount();
+    expect(removers).toHaveLength(2);
+    removers.forEach((remove) => expect(remove).toHaveBeenCalledTimes(1));
+  });
+
+  it("remet la réserve à zéro quand le dialogue se ferme clavier ouvert", () => {
+    const view = render(<ConfirmDialog {...baseProps} />);
+    act(() => {
+      handlers.keyboardDidShow({ endCoordinates: { height: 300 } });
+    });
+    expect(wrapperPaddingBottom()).toBe(300);
+    view.rerender(<ConfirmDialog {...baseProps} visible={false} />);
+    view.rerender(<ConfirmDialog {...baseProps} visible />);
+    expect(wrapperPaddingBottom()).toBe(0);
+  });
+
+  it("garde les enfants (champ motif) dans la carte", () => {
+    render(
+      <ConfirmDialog {...baseProps}>
+        <Text testID="extra-field">Motif</Text>
+      </ConfirmDialog>,
+    );
+    expect(screen.getByTestId("extra-field")).toBeOnTheScreen();
   });
 });

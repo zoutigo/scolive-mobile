@@ -273,6 +273,59 @@ describe("Marquage comme lu", () => {
 
 // ── Affichage des destinataires ───────────────────────────────────────────────
 
+describe("Lecture seule (élève/parent exclu)", () => {
+  function setSchoolReadOnly(value: boolean | undefined) {
+    (useAuthStore as unknown as jest.Mock).mockReturnValue({
+      schoolSlug: "college-vogt",
+      user: {
+        id: "parent-1",
+        firstName: "Valery",
+        lastName: "Mbele",
+        platformRoles: [],
+        memberships: [{ schoolId: "school-1", role: "PARENT" }],
+        profileCompleted: true,
+        role: "PARENT",
+        activeRole: "PARENT",
+        schoolReadOnly: value,
+      },
+    });
+  }
+
+  it("le message reste lisible mais n'envoie aucun accusé de lecture", async () => {
+    setSchoolReadOnly(true);
+    await renderDetailAndWait();
+
+    expect(screen.getByText("Convocation réunion parents")).toBeTruthy();
+    // Laisse passer les effets : aucun appel d'écriture ne doit partir.
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(api.markRead).not.toHaveBeenCalled();
+    expect(storeState.markLocalRead).not.toHaveBeenCalled();
+  });
+
+  it("retire répondre, transférer, archiver et supprimer", async () => {
+    setSchoolReadOnly(true);
+    await renderDetailAndWait();
+
+    expect(screen.queryByTestId("reply-btn-m1")).toBeNull();
+    expect(screen.queryByTestId("forward-btn-m1")).toBeNull();
+    expect(screen.queryByTestId("archive-btn-m1")).toBeNull();
+    expect(screen.queryByTestId("mark-unread-btn-m1")).toBeNull();
+  });
+
+  it("accès normal : accusé de lecture envoyé et actions présentes", async () => {
+    setSchoolReadOnly(false);
+    await renderDetailAndWait();
+
+    await waitFor(() => {
+      expect(api.markRead).toHaveBeenCalledWith("college-vogt", "m1", true);
+    });
+    expect(screen.getByTestId("reply-btn-m1")).toBeTruthy();
+    expect(screen.getByTestId("archive-btn-m1")).toBeTruthy();
+  });
+});
+
 describe("Liste des destinataires", () => {
   it("affiche les destinataires quand on presse le toggle", async () => {
     await renderDetailAndWait();

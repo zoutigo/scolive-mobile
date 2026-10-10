@@ -5,6 +5,7 @@ import type {
   SchoolUserDetail,
   SchoolUserRoleFilter,
   SchoolRole,
+  SchoolUserMembershipFilter,
   SchoolYearOption,
   StudentOnlyDetail,
   PromoteStudentResponse,
@@ -42,6 +43,7 @@ function buildUsersQuery(params: {
   role?: SchoolUserRoleFilter;
   hasAccount?: SchoolUserAccountFilter;
   schoolYearId?: string | null;
+  membershipStatus?: SchoolUserMembershipFilter;
   page?: number;
 }): string {
   const q = new URLSearchParams();
@@ -49,6 +51,9 @@ function buildUsersQuery(params: {
   if (params.role && params.role !== "ALL") q.set("role", params.role);
   if (params.hasAccount === "WITH_ACCOUNT") q.set("hasAccount", "true");
   if (params.hasAccount === "WITHOUT_ACCOUNT") q.set("hasAccount", "false");
+  if (params.membershipStatus === "excluded") {
+    q.set("membershipStatus", "excluded");
+  }
   if (params.schoolYearId) q.set("schoolYearId", params.schoolYearId);
   q.set("page", String(params.page ?? 1));
   q.set("limit", String(USERS_PAGE_LIMIT));
@@ -63,6 +68,7 @@ export const usersApi = {
       role?: SchoolUserRoleFilter;
       hasAccount?: SchoolUserAccountFilter;
       schoolYearId?: string | null;
+      membershipStatus?: SchoolUserMembershipFilter;
       page?: number;
     },
   ): Promise<PaginatedSchoolUsers> {
@@ -111,6 +117,60 @@ export const usersApi = {
     return apiFetch(
       `/schools/${schoolSlug}/users/${userId}`,
       { method: "DELETE" },
+      true,
+    );
+  },
+
+  /** Sortie complète de l'école (tous rôles) : trace conservée, réinvitation possible. */
+  async excludeMember(
+    schoolSlug: string,
+    userId: string,
+    reason?: string,
+  ): Promise<{ action: "EXCLUDED"; roles: string[]; excludedAt: string }> {
+    return apiFetch(
+      `/schools/${schoolSlug}/users/${userId}/exclude`,
+      {
+        method: "POST",
+        body: JSON.stringify(reason?.trim() ? { reason: reason.trim() } : {}),
+      },
+      true,
+    );
+  },
+
+  /** Exclusion d'un élève sans compte (identifié par son studentId). */
+  async excludeStudent(
+    schoolSlug: string,
+    studentId: string,
+    reason?: string,
+  ): Promise<{ action: "EXCLUDED"; roles: string[]; excludedAt: string }> {
+    return apiFetch(
+      `/schools/${schoolSlug}/users/students/${studentId}/exclude`,
+      {
+        method: "POST",
+        body: JSON.stringify(reason?.trim() ? { reason: reason.trim() } : {}),
+      },
+      true,
+    );
+  },
+
+  async reinviteMember(
+    schoolSlug: string,
+    userId: string,
+  ): Promise<{ action: "REINVITED"; roles: string[] }> {
+    return apiFetch(
+      `/schools/${schoolSlug}/users/${userId}/reinvite`,
+      { method: "POST", body: JSON.stringify({}) },
+      true,
+    );
+  },
+
+  async reinviteStudent(
+    schoolSlug: string,
+    studentId: string,
+  ): Promise<{ action: "REINVITED"; roles: string[] }> {
+    return apiFetch(
+      `/schools/${schoolSlug}/users/students/${studentId}/reinvite`,
+      { method: "POST", body: JSON.stringify({}) },
       true,
     );
   },
