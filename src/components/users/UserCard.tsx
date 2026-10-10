@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme";
+import { useTranslation } from "../../i18n/useTranslation";
 import type {
   SchoolMember,
   SchoolRole,
@@ -73,11 +74,24 @@ function RoleDot({
 interface UserCardProps {
   user: SchoolMember;
   onPress: (user: SchoolMember) => void;
+  /** Action « Inviter dans l'école » d'une carte de membre exclu. */
+  onReinvite?: (user: SchoolMember) => void;
+  reinviting?: boolean;
   index?: number;
   testID?: string;
 }
 
-export function UserCard({ user, onPress, index = 0, testID }: UserCardProps) {
+const EXCLUDED_ACCENT = "#B42318";
+
+export function UserCard({
+  user,
+  onPress,
+  onReinvite,
+  reinviting = false,
+  index = 0,
+  testID,
+}: UserCardProps) {
+  const { t } = useTranslation();
   const fullName = `${user.lastName} ${user.firstName}`.trim();
   const cardBg = index % 2 === 1 ? colors.warmSurface : colors.surface;
   const accentColor = getStatusAccentColor(
@@ -85,6 +99,81 @@ export function UserCard({ user, onPress, index = 0, testID }: UserCardProps) {
     user.activationStatus,
   );
   const uniqueRoles = Array.from(new Set(user.roles)) as SchoolRole[];
+
+  // Membre exclu : carte atténuée, non ouvrable ; seule action : réinviter.
+  if (user.excluded) {
+    return (
+      <View
+        style={[styles.excludedCard]}
+        testID={testID ?? `user-card-${user.id}`}
+        accessibilityState={{ disabled: true }}
+      >
+        <View style={styles.info}>
+          <View style={styles.nameRow}>
+            <Text style={styles.excludedName} numberOfLines={1}>
+              {fullName}
+            </Text>
+            <View style={styles.excludedBadge}>
+              <Text style={styles.excludedBadgeText}>
+                {t("users.excluded.badge")}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.roleDotsRow}>
+            {uniqueRoles.map((role, i) => (
+              <RoleDot
+                key={role}
+                role={role}
+                userId={user.id}
+                isPrimary={i === 0}
+              />
+            ))}
+          </View>
+          <Text
+            style={styles.excludedSince}
+            testID={`user-excluded-since-${user.id}`}
+          >
+            {t("users.excluded.since").replace(
+              "{date}",
+              user.excludedAt
+                ? new Date(user.excludedAt).toLocaleDateString()
+                : "—",
+            )}
+          </Text>
+          {user.exclusionReason ? (
+            <Text style={styles.contactText}>
+              {t("users.excluded.reason").replace(
+                "{reason}",
+                user.exclusionReason,
+              )}
+            </Text>
+          ) : null}
+          {onReinvite ? (
+            <TouchableOpacity
+              style={[
+                styles.reinviteButton,
+                reinviting && styles.reinviteButtonDisabled,
+              ]}
+              onPress={() => onReinvite(user)}
+              disabled={reinviting}
+              testID={`action-reinvite-${user.id}`}
+              accessibilityRole="button"
+              accessibilityLabel={t("users.actions.reinvite")}
+            >
+              <Ionicons
+                name="person-add-outline"
+                size={14}
+                color={colors.primary}
+              />
+              <Text style={styles.reinviteButtonText}>
+                {t("users.actions.reinvite")}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <TouchableOpacity
@@ -153,6 +242,60 @@ export function UserCard({ user, onPress, index = 0, testID }: UserCardProps) {
 export { ROLE_LABELS, ROLE_COLORS };
 
 const styles = StyleSheet.create({
+  excludedCard: {
+    marginHorizontal: 16,
+    borderRadius: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "#FEF3F2",
+    borderLeftWidth: 3,
+    borderLeftColor: EXCLUDED_ACCENT,
+  },
+  excludedName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    flex: 1,
+    textDecorationLine: "line-through",
+  },
+  excludedBadge: {
+    backgroundColor: `${EXCLUDED_ACCENT}1A`,
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  excludedBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: EXCLUDED_ACCENT,
+  },
+  excludedSince: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: EXCLUDED_ACCENT,
+    marginTop: 2,
+  },
+  reinviteButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: `${colors.primary}55`,
+    backgroundColor: `${colors.primary}10`,
+  },
+  reinviteButtonDisabled: {
+    opacity: 0.5,
+  },
+  reinviteButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.primary,
+  },
   card: {
     flexDirection: "row",
     alignItems: "center",

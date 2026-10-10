@@ -1,8 +1,9 @@
 /**
  * Exclusion d'un membre de l'école / retrait de classe depuis la fiche utilisateur.
- * Couvre : visibilité du bouton (admin principal, soi-même, élève avec/sans
- * classe), confirmation, appel API, toasts, rafraîchissement de la liste,
- * fermeture, gestion d'erreur serveur.
+ * Couvre : visibilité des boutons (admin principal, soi-même, élève avec/sans
+ * classe, élève sans compte), confirmation, motif, appel API (POST exclude vs
+ * DELETE retrait de classe), toasts, rafraîchissement de la liste, fermeture,
+ * gestion d'erreur serveur.
  */
 import React from "react";
 import {
@@ -17,6 +18,7 @@ import {
   TEACHER_USER,
   STUDENT_USER,
   makeSchoolUserDetail,
+  makeStudentOnlyUser,
 } from "../../test-utils/users.fixtures";
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
@@ -97,28 +99,35 @@ async function renderLoaded(
 describe("UserDetailModal — exclusion de l'école", () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it("exclut un enseignant après confirmation, notifie la liste et ferme la fiche", async () => {
-    mockUsersApi.removeMember.mockResolvedValue({
+  it("exclut un enseignant après confirmation (POST exclude), notifie la liste et ferme la fiche", async () => {
+    mockUsersApi.excludeMember.mockResolvedValue({
       action: "EXCLUDED",
-      remainingRoles: [],
+      roles: ["TEACHER"],
+      excludedAt: "2026-10-10T08:00:00.000Z",
     });
     const onClose = jest.fn();
     const onMemberChanged = jest.fn();
     await renderLoaded(TEACHER_USER, {}, { onClose, onMemberChanged });
 
     fireEvent.press(screen.getByTestId("action-exclude"));
-    // Rien n'est supprimé avant la confirmation.
-    expect(mockUsersApi.removeMember).not.toHaveBeenCalled();
+    // Rien n'est exclu avant la confirmation.
+    expect(mockUsersApi.excludeMember).not.toHaveBeenCalled();
     expect(await screen.findByTestId("confirm-dialog-card")).toBeOnTheScreen();
+    fireEvent.changeText(
+      screen.getByTestId("exclude-reason-input"),
+      "Fin de contrat",
+    );
     fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
 
     await waitFor(() =>
-      expect(mockUsersApi.removeMember).toHaveBeenCalledWith(
+      expect(mockUsersApi.excludeMember).toHaveBeenCalledWith(
         SLUG,
         TEACHER_USER.id,
+        "Fin de contrat",
       ),
     );
     await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(mockUsersApi.removeMember).not.toHaveBeenCalled();
     expect(onMemberChanged).toHaveBeenCalledTimes(1);
     expect(mockShowSuccess).toHaveBeenCalledTimes(1);
     expect(mockShowError).not.toHaveBeenCalled();
@@ -128,7 +137,21 @@ describe("UserDetailModal — exclusion de l'école", () => {
     await renderLoaded(TEACHER_USER);
     fireEvent.press(screen.getByTestId("action-exclude"));
     fireEvent.press(await screen.findByTestId("confirm-dialog-cancel"));
+    expect(mockUsersApi.excludeMember).not.toHaveBeenCalled();
     expect(mockUsersApi.removeMember).not.toHaveBeenCalled();
+    expect(mockShowSuccess).not.toHaveBeenCalled();
+  });
+
+  it("refuse un motif de plus de 500 caractères : erreur inline, aucun appel API", async () => {
+    await renderLoaded(TEACHER_USER);
+    fireEvent.press(screen.getByTestId("action-exclude"));
+    fireEvent.changeText(
+      await screen.findByTestId("exclude-reason-input"),
+      "x".repeat(501),
+    );
+    expect(await screen.findByTestId("exclude-reason-error")).toBeOnTheScreen();
+    fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
+    expect(mockUsersApi.excludeMember).not.toHaveBeenCalled();
     expect(mockShowSuccess).not.toHaveBeenCalled();
   });
 
@@ -143,7 +166,7 @@ describe("UserDetailModal — exclusion de l'école", () => {
   });
 
   it("affiche l'erreur serveur (409) sans fermer la fiche ni rafraîchir la liste", async () => {
-    mockUsersApi.removeMember.mockRejectedValue(
+    mockUsersApi.excludeMember.mockRejectedValue(
       new Error("Impossible d'exclure le dernier administrateur"),
     );
     const onClose = jest.fn();
@@ -159,7 +182,7 @@ describe("UserDetailModal — exclusion de l'école", () => {
     expect(mockShowSuccess).not.toHaveBeenCalled();
   });
 
-  it("élève avec classe : libellé 'Retirer de sa classe', la fiche reste ouverte et se recharge", async () => {
+  it("élève avec classe : 'Retirer de sa classe' (DELETE, fiche ouverte) distinct de 'Exclure de l'école'", async () => {
     mockUsersApi.removeMember.mockResolvedValue({
       action: "UNASSIGNED_FROM_CLASS",
       remainingRoles: ["STUDENT"],
@@ -173,7 +196,10 @@ describe("UserDetailModal — exclusion de l'école", () => {
     );
 
     expect(screen.getByText("Retirer de sa classe")).toBeOnTheScreen();
-    fireEvent.press(screen.getByTestId("action-exclude"));
+    expect(screen.getByTestId("action-exclude")).toBeOnTheScreen();
+    fireEvent.press(screen.getByTestId("action-unassign-class"));
+    // Retrait de classe : pas de champ motif.
+    expect(screen.queryByTestId("exclude-reason-input")).toBeNull();
     fireEvent.press(await screen.findByTestId("confirm-dialog-confirm"));
 
     await waitFor(() =>
@@ -183,6 +209,7 @@ describe("UserDetailModal — exclusion de l'école", () => {
       ),
     );
     await waitFor(() => expect(onMemberChanged).toHaveBeenCalledTimes(1));
+    expect(mockUsersApi.excludeMember).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
     expect(mockShowSuccess).toHaveBeenCalledTimes(1);
     // Rechargement du détail pour refléter l'absence de classe.
@@ -191,8 +218,74 @@ describe("UserDetailModal — exclusion de l'école", () => {
     );
   });
 
-  it("élève sans classe pour l'année active : aucune action de retrait", async () => {
+  it("élève : 'Exclure de l'école' utilise POST exclude avec le message élève", async () => {
+    mockUsersApi.excludeMember.mockResolvedValue({
+      action: "EXCLUDED",
+      roles: ["STUDENT"],
+      excludedAt: "2026-10-10T08:00:00.000Z",
+    });
+    await renderLoaded(STUDENT_USER, { hasActiveClass: true });
+    fireEvent.press(screen.getByTestId("action-exclude"));
+    expect(
+      await screen.findByTestId("confirm-dialog-message"),
+    ).toHaveTextContent(/lecture seule/);
+    fireEvent.press(screen.getByTestId("confirm-dialog-confirm"));
+    await waitFor(() =>
+      expect(mockUsersApi.excludeMember).toHaveBeenCalledWith(
+        SLUG,
+        STUDENT_USER.id,
+        "",
+      ),
+    );
+    expect(mockUsersApi.removeMember).not.toHaveBeenCalled();
+  });
+
+  it("élève sans classe pour l'année active : plus de retrait de classe mais l'exclusion reste possible", async () => {
     await renderLoaded(STUDENT_USER, { hasActiveClass: false });
-    expect(screen.queryByTestId("action-exclude")).toBeNull();
+    expect(screen.queryByTestId("action-unassign-class")).toBeNull();
+    expect(screen.getByTestId("action-exclude")).toBeOnTheScreen();
+  });
+
+  it("élève sans compte : exclusion par studentId (route students/:id/exclude)", async () => {
+    mockUsersApi.getStudentProfile.mockResolvedValue({
+      type: "student-only",
+      studentId: "student-only-1",
+      firstName: "Amina",
+      lastName: "Fouda",
+      enrollments: [],
+      studentParents: [],
+    });
+    mockUsersApi.excludeStudent.mockResolvedValue({
+      action: "EXCLUDED",
+      roles: ["STUDENT"],
+      excludedAt: "2026-10-10T08:00:00.000Z",
+    });
+    const onClose = jest.fn();
+    const onMemberChanged = jest.fn();
+    render(
+      <UserDetailModal
+        user={makeStudentOnlyUser()}
+        schoolSlug={SLUG}
+        onClose={onClose}
+        onMemberChanged={onMemberChanged}
+      />,
+    );
+
+    fireEvent.press(await screen.findByTestId("action-exclude"));
+    // Seule l'exclusion est proposée sans compte (ni message, ni rôles, ni PIN).
+    expect(screen.queryByTestId("action-send-message")).toBeNull();
+    expect(screen.queryByTestId("action-edit-roles")).toBeNull();
+    fireEvent.press(await screen.findByTestId("confirm-dialog-confirm"));
+
+    await waitFor(() =>
+      expect(mockUsersApi.excludeStudent).toHaveBeenCalledWith(
+        SLUG,
+        "student-only-1",
+        "",
+      ),
+    );
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(onMemberChanged).toHaveBeenCalledTimes(1);
+    expect(mockUsersApi.excludeMember).not.toHaveBeenCalled();
   });
 });

@@ -23,6 +23,8 @@ export interface AuthUser {
   gender?: "M" | "F" | "OTHER" | null;
   preferredLocale?: "FR" | "EN";
   onboardingHelpEnabled?: boolean;
+  /** Élève exclu (ou parent dont tous les enfants le sont) : lecture seule. */
+  schoolReadOnly?: boolean;
   isTester?: boolean;
   platformRoles: PlatformRole[];
   memberships: Array<{ schoolId: string; role: SchoolRole }>;

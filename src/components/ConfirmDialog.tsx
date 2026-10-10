@@ -25,6 +25,8 @@ export interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   hideCancel?: boolean;
+  /** Contenu additionnel affiché sous le message (ex. champ de saisie). */
+  children?: React.ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -62,6 +64,7 @@ export function ConfirmDialog({
   confirmLabel,
   cancelLabel,
   hideCancel = false,
+  children,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -242,6 +245,7 @@ export function ConfirmDialog({
               {message}
             </Text>
           </View>
+          {children}
 
           {/* Actions
               Pressable (pas TouchableOpacity) : le press du bouton confirmer

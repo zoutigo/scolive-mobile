@@ -26,6 +26,7 @@ import {
   TEACHER_USER,
   PARENT_USER,
   makeSchoolUser,
+  makeStudentOnlyUser,
   makeUsersPage,
   makeSchoolUserDetail,
 } from "../../test-utils/users.fixtures";
@@ -39,6 +40,8 @@ jest.mock("../../src/api/users.api", () => ({
     get: jest.fn(),
     listSchoolYears: jest.fn(),
     createStaffMember: jest.fn(),
+    reinviteMember: jest.fn(),
+    reinviteStudent: jest.fn(),
   },
 }));
 jest.mock("../../src/api/teachers.api", () => ({
@@ -962,5 +965,184 @@ describe("SchoolAdminUsersScreen — Création d'utilisateur (FAB)", () => {
     await waitFor(() => {
       expect(screen.getByTestId("users-list")).toBeOnTheScreen();
     });
+  });
+});
+
+describe("SchoolAdminUsersScreen — Membres exclus et réinvitation", () => {
+  const EXCLUDED_TEACHER = makeSchoolUser({
+    id: "ex-teacher",
+    firstName: "Paul",
+    lastName: "Mbarga",
+    excluded: true,
+    excludedAt: "2026-10-01T09:00:00.000Z",
+    exclusionReason: "Fin de contrat",
+  });
+
+  async function openExcludedList() {
+    mockUsersApi.list.mockImplementation(async (_slug, params) =>
+      makeUsersPage(
+        params.membershipStatus === "excluded"
+          ? [EXCLUDED_TEACHER]
+          : [PARENT_USER],
+      ),
+    );
+    renderScreen();
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`user-card-${PARENT_USER.id}`),
+      ).toBeOnTheScreen(),
+    );
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+    fireEvent.press(screen.getByTestId("users-filter-membership-excluded"));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("users-filter-apply"));
+    });
+  }
+
+  it("charge par défaut les actifs (membershipStatus=active) et propose le filtre Statut", async () => {
+    mockUsersApi.list.mockResolvedValue(makeUsersPage([PARENT_USER]));
+    renderScreen();
+    await waitFor(() =>
+      expect(mockUsersApi.list).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({ membershipStatus: "active" }),
+      ),
+    );
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+    expect(
+      screen.getByTestId("users-filter-membership-active"),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByTestId("users-filter-membership-excluded"),
+    ).toBeOnTheScreen();
+  });
+
+  it("le filtre Exclus recharge la liste avec membershipStatus=excluded et affiche le bandeau", async () => {
+    await openExcludedList();
+    await waitFor(() =>
+      expect(mockUsersApi.list).toHaveBeenCalledWith(
+        "college-vogt",
+        expect.objectContaining({ membershipStatus: "excluded", page: 1 }),
+      ),
+    );
+    expect(
+      await screen.findByTestId(`user-card-${EXCLUDED_TEACHER.id}`),
+    ).toBeOnTheScreen();
+    expect(screen.getByTestId("users-excluded-hint")).toBeOnTheScreen();
+    expect(screen.queryByTestId(`user-card-${PARENT_USER.id}`)).toBeNull();
+    // Le bouton filtre est actif : un filtre de statut est appliqué.
+    expect(useUsersStore.getState().filters.membershipStatus).toBe("excluded");
+  });
+
+  it("Reset revient aux actifs", async () => {
+    await openExcludedList();
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("users-filter-reset"));
+    });
+    expect(useUsersStore.getState().filters.membershipStatus).toBe("active");
+  });
+
+  it("Fermer abandonne le brouillon du filtre Statut", async () => {
+    mockUsersApi.list.mockResolvedValue(makeUsersPage([PARENT_USER]));
+    renderScreen();
+    await waitFor(() => expect(mockUsersApi.list).toHaveBeenCalled());
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+    fireEvent.press(screen.getByTestId("users-filter-membership-excluded"));
+    fireEvent.press(screen.getByTestId("users-filter-close"));
+    expect(useUsersStore.getState().filters.membershipStatus).toBe("active");
+  });
+
+  it("réinvite un membre exclu : appel API, toast de succès, rechargement", async () => {
+    mockUsersApi.reinviteMember.mockResolvedValue({
+      action: "REINVITED",
+      roles: ["TEACHER"],
+    });
+    await openExcludedList();
+    fireEvent.press(
+      await screen.findByTestId(`action-reinvite-${EXCLUDED_TEACHER.id}`),
+    );
+    await waitFor(() =>
+      expect(mockUsersApi.reinviteMember).toHaveBeenCalledWith(
+        "college-vogt",
+        EXCLUDED_TEACHER.id,
+      ),
+    );
+    await waitFor(() => expect(mockShowSuccess).toHaveBeenCalledTimes(1));
+    expect(mockShowSuccess.mock.calls[0][0].message).toContain("Mbarga Paul");
+    const excludedLoads = mockUsersApi.list.mock.calls.filter(
+      (c) => c[1].membershipStatus === "excluded",
+    );
+    expect(excludedLoads.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("réinvite un élève sans compte via son studentId", async () => {
+    const onlyExcluded = makeStudentOnlyUser({
+      id: "so-1",
+      studentId: "stu-1",
+      excluded: true,
+      excludedAt: "2026-10-02T09:00:00.000Z",
+    });
+    mockUsersApi.reinviteStudent.mockResolvedValue({
+      action: "REINVITED",
+      roles: ["STUDENT"],
+    });
+    mockUsersApi.list.mockImplementation(async (_slug, params) =>
+      makeUsersPage(
+        params.membershipStatus === "excluded" ? [onlyExcluded] : [PARENT_USER],
+      ),
+    );
+    renderScreen();
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`user-card-${PARENT_USER.id}`),
+      ).toBeOnTheScreen(),
+    );
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+    fireEvent.press(screen.getByTestId("users-filter-membership-excluded"));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("users-filter-apply"));
+    });
+    fireEvent.press(await screen.findByTestId("action-reinvite-so-1"));
+    await waitFor(() =>
+      expect(mockUsersApi.reinviteStudent).toHaveBeenCalledWith(
+        "college-vogt",
+        "stu-1",
+      ),
+    );
+    expect(mockUsersApi.reinviteMember).not.toHaveBeenCalled();
+  });
+
+  it("affiche une erreur et garde la liste quand la réinvitation est refusée", async () => {
+    mockUsersApi.reinviteMember.mockRejectedValue(new Error("Classe pleine"));
+    await openExcludedList();
+    fireEvent.press(
+      await screen.findByTestId(`action-reinvite-${EXCLUDED_TEACHER.id}`),
+    );
+    await waitFor(() => expect(mockShowError).toHaveBeenCalledTimes(1));
+    expect(mockShowSuccess).not.toHaveBeenCalled();
+    expect(
+      screen.getByTestId(`user-card-${EXCLUDED_TEACHER.id}`),
+    ).toBeOnTheScreen();
+  });
+
+  it("affiche un état vide dédié quand personne n'est exclu", async () => {
+    mockUsersApi.list.mockImplementation(async (_slug, params) =>
+      makeUsersPage(
+        params.membershipStatus === "excluded" ? [] : [PARENT_USER],
+      ),
+    );
+    renderScreen();
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`user-card-${PARENT_USER.id}`),
+      ).toBeOnTheScreen(),
+    );
+    fireEvent.press(screen.getByTestId("users-filter-toggle"));
+    fireEvent.press(screen.getByTestId("users-filter-membership-excluded"));
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("users-filter-apply"));
+    });
+    expect(await screen.findByText("Aucune personne exclue")).toBeOnTheScreen();
   });
 });
